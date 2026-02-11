@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
 import { TicketPercent, CalendarDays, Copy, Check, Sparkles } from "lucide-react";
-import { useState, useEffect } from "react";
-import api from "@/Api/conectar"; // seu axios configurado
+import { useState, useEffect, useMemo } from "react";
+import api from "@/Api/conectar";
 
 interface Cupom {
   codigo: string;
@@ -25,9 +25,12 @@ export default function Cupons() {
         const dados: Cupom[] = res.data.dados.map((c: any) => ({
           codigo: c.codigo,
           descricao: c.descricao,
-          desconto: c.tipo_codigo === "frete" ? "FREE" : c.desconto + (c.tipo_codigo === "valor" ? "R$" : "%"),
+          desconto:
+            c.tipo_codigo === "frete"
+              ? "FREE"
+              : `${c.desconto}${c.tipo_codigo === "valor" ? "R$" : "%"}`,
           expiracao: c.expiracao ? c.expiracao.split("-").reverse().join("/") : "Indefinido",
-          tipo: c.tipo_codigo
+          tipo: c.tipo_codigo,
         }));
         setCupons(dados);
       } catch (err) {
@@ -47,75 +50,93 @@ export default function Cupons() {
     setTimeout(() => setCopiado(null), 2000);
   };
 
+  const theme = useMemo(
+    () => ({
+      rose: "#b76e79",
+      roseSoft: "#d9a5ad",
+      gold: "#d4af37",
+      ink: "#1f2937",
+      cream: "#fff6ee",
+      cream2: "#fff1e6",
+      line: "rgba(31,41,55,.10)",
+      soft: "rgba(255,255,255,.78)",
+      muted: "rgba(31,41,55,.70)",
+    }),
+    []
+  );
+
   const corTipo = (tipo: string) => {
+    // Tudo na paleta do site (sem verde neon)
     switch (tipo) {
       case "frete":
-        return "linear-gradient(135deg,#198754,#20c997)";
+        // “frete grátis” com vibe premium (ouro + rose suave)
+        return `linear-gradient(135deg, ${theme.gold}, ${theme.roseSoft})`;
       case "dourado":
-        return "linear-gradient(135deg,#d4af37,#b9932f)";
+        return `linear-gradient(135deg, ${theme.gold}, #b9932f)`;
       default:
-        return "linear-gradient(135deg,#a55c62,#923f45)";
+        // padrão (rosa queimado)
+        return `linear-gradient(135deg, ${theme.rose}, #923f45)`;
     }
   };
 
   if (loading) {
-    return (
-      <div className="loading">Carregando cupons...</div>
-    );
+    return <div className="cx-state">Carregando cupons…</div>;
   }
 
   if (erro) {
-    return (
-      <div className="erro">{erro}</div>
-    );
+    return <div className="cx-state cx-erro">{erro}</div>;
   }
 
   return (
-    <section className="cupons-section py-5">
+    <section className="cx-section py-5">
       <div className="container">
-
         {/* CABEÇALHO */}
         <div className="text-center mb-5">
-          <div className="icone-topo mb-3">
-            <Sparkles size={34} />
+          <div className="cx-icon mb-3" aria-hidden="true">
+            <Sparkles size={30} />
           </div>
-          <h2 className="titulo">
+
+          <h2 className="cx-title">
             Cupons <span>Exclusivos</span>
           </h2>
-          <p className="subtitulo">
-            Copie o código e aproveite descontos especiais
+
+          <p className="cx-subtitle">
+            Copie o código e aproveite descontos especiais — combina com sua festa e com seu bolso.
           </p>
         </div>
 
         {/* GRID */}
         <div className="row g-4">
-          {cupons.length === 0 && <p>Nenhum cupom disponível no momento.</p>}
-          {cupons.map(cupom => (
-            <div key={cupom.codigo} className="col-lg-4 col-md-6">
-              <div className="cupom-card">
+          {cupons.length === 0 && <p className="text-center">Nenhum cupom disponível no momento.</p>}
 
+          {cupons.map((cupom) => (
+            <div key={cupom.codigo} className="col-lg-4 col-md-6">
+              <article className="cx-card">
                 {/* HEADER */}
-                <div className="cupom-header" style={{ background: corTipo(cupom.tipo) }}>
-                  <span className="badge-tipo">
-                    <TicketPercent size={14} /> CUPOM
+                <div className="cx-head" style={{ background: corTipo(cupom.tipo) }}>
+                  <span className="cx-badge">
+                    <TicketPercent size={14} /> Cupom
                   </span>
 
-                  <div className="desconto">
+                  <div className="cx-discount">
                     <strong>{cupom.desconto}</strong>
                     {cupom.tipo !== "frete" && <small>OFF</small>}
                   </div>
                 </div>
 
                 {/* BODY */}
-                <div className="cupom-body">
-                  <p className="descricao">{cupom.descricao}</p>
+                <div className="cx-body">
+                  <p className="cx-desc">{cupom.descricao}</p>
 
                   {/* CÓDIGO */}
-                  <div className="codigo-box">
-                    <span className="codigo">{cupom.codigo}</span>
+                  <div className="cx-codebox">
+                    <span className="cx-code">{cupom.codigo}</span>
+
                     <button
-                      className={`btn-copiar ${copiado === cupom.codigo ? 'copiado' : ''}`}
+                      type="button"
+                      className={`cx-copy ${copiado === cupom.codigo ? "is-copied" : ""}`}
                       onClick={() => copiar(cupom.codigo)}
+                      aria-label={`Copiar cupom ${cupom.codigo}`}
                     >
                       {copiado === cupom.codigo ? (
                         <>
@@ -130,13 +151,15 @@ export default function Cupons() {
                   </div>
 
                   {/* INFO */}
-                  <div className="info">
+                  <div className="cx-info">
                     <CalendarDays size={14} />
-                    <span>{cupom.expiracao}</span>
+                    <span>Válido até: {cupom.expiracao}</span>
                   </div>
                 </div>
 
-              </div>
+                {/* “cantinho” decorativo */}
+                <div className="cx-corner" aria-hidden="true" />
+              </article>
             </div>
           ))}
         </div>
@@ -144,156 +167,226 @@ export default function Cupons() {
 
       {/* CSS */}
       <style jsx>{`
-        .cupons-section {
-          background: linear-gradient(135deg,#fffaf3,#f7efe4);
+        :root{
+          --rose:#b76e79;
+          --roseSoft:#d9a5ad;
+          --gold:#d4af37;
+
+          --ink:#1f2937;
+          --muted: rgba(31,41,55,.72);
+          --muted2: rgba(31,41,55,.58);
+
+          --cream:#fff6ee;
+          --cream2:#fff1e6;
+          --paper:#ffffff;
+
+          --line: rgba(31,41,55,.10);
+          --shadow: 0 24px 60px rgba(31,41,55,.12);
+        }
+
+        .cx-section{
+          background:
+            radial-gradient(1100px 520px at 15% 0%, rgba(183,110,121,.14), transparent 60%),
+            radial-gradient(900px 520px at 85% 0%, rgba(212,175,55,.12), transparent 60%),
+            linear-gradient(135deg, var(--cream), var(--cream2));
           padding-bottom: 5rem;
         }
 
-        .loading, .erro {
-          text-align: center;
+        .cx-state{
+          text-align:center;
           padding: 3rem 1rem;
-          font-size: 1.2rem;
-          color: #555;
+          font-size: 1.15rem;
+          color: var(--muted);
+        }
+        .cx-erro{ color: #b4232c; }
+
+        .cx-icon{
+          width: 74px;
+          height: 74px;
+          margin: 0 auto;
+          border-radius: 22px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          color: var(--ink);
+          background: rgba(255,255,255,.78);
+          border: 1px solid var(--line);
+          box-shadow: 0 18px 44px rgba(31,41,55,.10);
+          position: relative;
+          overflow:hidden;
+        }
+        .cx-icon::before{
+          content:"";
+          position:absolute;
+          inset:-1px;
+          background: radial-gradient(120px 80px at 20% 20%, rgba(183,110,121,.22), transparent 60%),
+                      radial-gradient(120px 80px at 80% 30%, rgba(212,175,55,.18), transparent 60%);
+          pointer-events:none;
+        }
+        .cx-icon :global(svg){ position: relative; z-index: 1; }
+
+        .cx-title{
+          font-size: 2.35rem;
+          font-weight: 950;
+          color: var(--ink);
+          letter-spacing: -0.5px;
+          margin: 0 0 8px;
+        }
+        .cx-title span{ color: var(--rose); }
+
+        .cx-subtitle{
+          color: var(--muted);
+          max-width: 560px;
+          margin: 0 auto;
         }
 
-        .icone-topo {
-          width: 72px;
-          height: 72px;
-          margin: auto;
-          border-radius: 50%;
-          background: linear-gradient(135deg,#d4af37,#b9932f);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #fff;
-          box-shadow: 0 12px 30px rgba(0,0,0,.18);
-        }
-
-        .titulo {
-          font-size: 2.4rem;
-          font-weight: 800;
-          color: #923f45;
-        }
-
-        .titulo span {
-          color: #d4af37;
-        }
-
-        .subtitulo {
-          color: #666;
-          max-width: 520px;
-          margin: auto;
-        }
-
-        .cupom-card {
-          background: rgba(255,255,255,.85);
-          backdrop-filter: blur(10px);
+        .cx-card{
+          position: relative;
+          background: rgba(255,255,255,.86);
+          border: 1px solid rgba(31,41,55,.10);
           border-radius: 26px;
           overflow: hidden;
           height: 100%;
-          box-shadow: 0 15px 35px rgba(0,0,0,.1);
-          transition: all .4s ease;
+          box-shadow: 0 18px 50px rgba(31,41,55,.10);
+          transition: transform .22s ease, box-shadow .22s ease;
+        }
+        .cx-card:hover{
+          transform: translateY(-6px);
+          box-shadow: 0 26px 70px rgba(31,41,55,.16);
         }
 
-        .cupom-card:hover {
-          transform: translateY(-10px);
-          box-shadow: 0 25px 50px rgba(0,0,0,.18);
-        }
-
-        .cupom-header {
-          padding: 1.6rem;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
+        .cx-head{
+          padding: 1.45rem 1.55rem;
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
           color: #fff;
+          position: relative;
+        }
+        .cx-head::after{
+          content:"";
+          position:absolute;
+          inset:0;
+          background:
+            radial-gradient(420px 140px at 20% 20%, rgba(255,255,255,.22), transparent 60%),
+            radial-gradient(420px 140px at 80% 30%, rgba(0,0,0,.12), transparent 60%);
+          pointer-events:none;
         }
 
-        .badge-tipo {
-          background: rgba(255,255,255,.25);
-          padding: 6px 16px;
+        .cx-badge{
+          position: relative;
+          z-index: 1;
+          background: rgba(255,255,255,.22);
+          border: 1px solid rgba(255,255,255,.28);
+          padding: 6px 14px;
           border-radius: 999px;
-          font-size: .7rem;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          gap: 6px;
+          font-size: .72rem;
+          font-weight: 850;
+          display:flex;
+          align-items:center;
+          gap: 7px;
+          letter-spacing: .8px;
+          text-transform: uppercase;
         }
 
-        .desconto strong {
-          font-size: 2.4rem;
-          font-weight: 900;
+        .cx-discount{
+          position: relative;
+          z-index: 1;
+          text-align:right;
           line-height: 1;
         }
-
-        .desconto small {
-          font-size: .7rem;
+        .cx-discount strong{
+          font-size: 2.25rem;
+          font-weight: 950;
+        }
+        .cx-discount small{
+          display:block;
+          margin-top: 6px;
+          font-size: .72rem;
           letter-spacing: 2px;
-          opacity: .9;
+          opacity: .95;
         }
 
-        .cupom-body {
-          padding: 2rem;
+        .cx-body{
+          padding: 1.6rem 1.55rem 1.55rem;
         }
 
-        .descricao {
+        .cx-desc{
+          color: var(--muted);
+          margin: 0 0 1.15rem;
+          line-height: 1.55;
           font-size: .95rem;
-          color: #555;
-          margin-bottom: 1.6rem;
+          min-height: 48px;
         }
 
-        .codigo-box {
-          background: #fff;
-          border: 2px dashed #e3d5b3;
-          border-radius: 16px;
-          padding: 1rem;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          margin-bottom: 1.2rem;
+        .cx-codebox{
+          background: rgba(255,255,255,.92);
+          border: 1.8px dashed rgba(212,175,55,.45);
+          border-radius: 18px;
+          padding: .95rem 1rem;
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap: 10px;
+          margin-bottom: 1rem;
+          box-shadow: 0 14px 30px rgba(31,41,55,.08);
         }
 
-        .codigo {
-          font-weight: 900;
+        .cx-code{
+          font-weight: 950;
           letter-spacing: 2px;
-          color: #923f45;
-          font-size: 1.1rem;
+          color: var(--ink);
+          font-size: 1.05rem;
+          text-transform: uppercase;
         }
 
-        .btn-copiar {
-          border: none;
-          background: linear-gradient(135deg,#d4af37,#b9932f);
-          color: #fff;
-          padding: .45rem 1rem;
+        .cx-copy{
+          border: 0;
           border-radius: 999px;
-          font-size: .75rem;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          transition: all .3s;
+          padding: .5rem .95rem;
+          font-size: .78rem;
+          font-weight: 900;
+          display:flex;
+          align-items:center;
+          gap: 8px;
+          cursor:pointer;
+          color: #1f2937;
+          background: linear-gradient(135deg, rgba(183,110,121,.26), rgba(212,175,55,.22));
+          box-shadow: 0 12px 26px rgba(183,110,121,.14);
+          transition: transform .16s ease, filter .16s ease, box-shadow .16s ease;
+          white-space: nowrap;
+        }
+        .cx-copy:hover{
+          transform: translateY(-1px);
+          filter: brightness(1.02);
+          box-shadow: 0 18px 40px rgba(183,110,121,.20);
         }
 
-        .btn-copiar:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 14px rgba(0,0,0,.2);
+        .cx-copy.is-copied{
+          background: linear-gradient(135deg, rgba(212,175,55,.35), rgba(183,110,121,.20));
         }
 
-        .btn-copiar.copiado {
-          background: linear-gradient(135deg,#198754,#20c997);
+        .cx-info{
+          font-size: .85rem;
+          color: var(--muted2);
+          display:flex;
+          align-items:center;
+          gap: 8px;
         }
 
-        .info {
-          font-size: .8rem;
-          color: #777;
-          display: flex;
-          align-items: center;
-          gap: 6px;
+        .cx-corner{
+          position:absolute;
+          right:-60px;
+          bottom:-60px;
+          width: 160px;
+          height: 160px;
+          border-radius: 999px;
+          background: radial-gradient(circle at 30% 30%, rgba(212,175,55,.22), rgba(183,110,121,.18), transparent 60%);
+          pointer-events:none;
         }
 
-        @media (max-width: 768px) {
-          .titulo {
-            font-size: 1.9rem;
-          }
+        @media (max-width: 768px){
+          .cx-title{ font-size: 1.9rem; }
         }
       `}</style>
     </section>

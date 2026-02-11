@@ -1,142 +1,424 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import useBanner from "@/hooks/Banner/useBanner";
-import api from "@/Api/conectar"; // 🔹 import do Axios
+import api from "@/Api/conectar";
 
 export default function Banner() {
   const { banners, loading, erro } = useBanner("ativos");
   const [index, setIndex] = useState(0);
+  const [isHover, setIsHover] = useState(false);
   const router = useRouter();
 
-  // Autoplay
-  useEffect(() => {
-    if (!banners || banners.length <= 1) return;
+  const intervalMs = 5000;
+  const timerRef = useRef<number | null>(null);
 
-    const interval = setInterval(() => {
-      setIndex((prev) => (prev + 1) % banners.length);
-    }, 5000);
+  const safeBanners = banners ?? [];
+  const hasMany = safeBanners.length > 1;
+  const banner = safeBanners[index];
 
-    return () => clearInterval(interval);
-  }, [banners]);
+  const imagemUrl = useMemo(() => {
+    if (!banner?.imagem) return null;
+    return `${api.defaults.baseURL}${banner.imagem.replace(/^\/+/, "")}`;
+  }, [banner]);
 
-  if (loading) return <div style={{ height: 420, background: "#eee" }} />;
-  if (erro || !banners?.length) return null;
+  const goTo = (i: number) => {
+    if (!safeBanners.length) return;
+    const next = (i + safeBanners.length) % safeBanners.length;
+    setIndex(next);
+  };
 
-  const banner = banners[index];
-
-  // Monta URL completa da imagem
-  const imagemUrl = banner.imagem
-    ? `${api.defaults.baseURL}${banner.imagem.replace(/^\/+/, "")}`
-    : null;
+  const next = () => goTo(index + 1);
+  const prev = () => goTo(index - 1);
 
   const handleClick = () => {
-    if (banner.link) {
-      router.push(banner.link);
-    }
+    if (banner?.link) router.push(banner.link);
   };
+
+  // autoplay (pausa no hover)
+  useEffect(() => {
+    if (!hasMany || isHover) return;
+
+    timerRef.current = window.setInterval(() => {
+      setIndex((prev) => (prev + 1) % safeBanners.length);
+    }, intervalMs);
+
+    return () => {
+      if (timerRef.current) window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    };
+  }, [hasMany, isHover, safeBanners.length]);
+
+  // teclado
+  useEffect(() => {
+    if (!hasMany) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowRight") next();
+      if (e.key === "ArrowLeft") prev();
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasMany, index]);
+
+  if (loading) return <div style={{ height: 460, background: "#eef2f7", borderRadius: 22 }} />;
+  if (erro || !safeBanners.length) return null;
 
   return (
     <>
-      <style jsx>{`
-        .hero-banner {
-          position: relative;
-          width: 100%;
-          height: 420px;
-          background-size: cover;
-          background-position: center;
-          cursor: pointer;
-        }
-        .hero-overlay {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(
-            90deg,
-            rgba(0, 0, 0, 0.75) 0%,
-            rgba(183, 110, 121, 0.55) 45%,
-            rgba(212, 175, 55, 0.35) 100%
-          );
-        }
-        .hero-content {
-          position: relative;
-          z-index: 2;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          pointer-events: none;
-        }
-        .hero-text {
-          max-width: 520px;
-          color: #fff;
-        }
-        .hero-title {
-          font-size: 2.8rem;
-          font-weight: 800;
-          line-height: 1.2;
-          margin-bottom: 12px;
-        }
-        .hero-desc {
-          font-size: 1.05rem;
-          opacity: 0.9;
-        }
-        .hero-dots {
-          position: absolute;
-          bottom: 18px;
-          left: 50%;
-          transform: translateX(-50%);
-          display: flex;
-          gap: 8px;
-          z-index: 3;
-        }
-        .hero-dot {
-          width: 10px;
-          height: 10px;
-          background: rgba(255, 255, 255, 0.5);
-          border-radius: 50%;
-        }
-        .hero-dot.active {
-          width: 28px;
-          border-radius: 20px;
-          background: #d4af37;
-        }
-        @media (max-width: 768px) {
-          .hero-banner {
-            height: 340px;
-          }
-          .hero-title {
-            font-size: 2rem;
-          }
-        }
-      `}</style>
-
       <section
-        className="hero-banner"
-        style={{ backgroundImage: `url(${imagemUrl})` }}
-        onClick={handleClick}
+        className={`hero ${isHover ? "paused" : ""}`}
+        onMouseEnter={() => setIsHover(true)}
+        onMouseLeave={() => setIsHover(false)}
+        aria-label="Banner principal"
       >
+        {/* BG */}
+        <div
+          className="hero-bg"
+          style={{
+            backgroundImage: imagemUrl ? `url(${imagemUrl})` : "none",
+          }}
+          role="img"
+          aria-label={banner?.titulo ?? "Banner"}
+          onClick={handleClick}
+        />
+
         <div className="hero-overlay" />
 
-        <div className="container hero-content">
+        {/* Setas */}
+        {hasMany && (
+          <>
+            <button
+              type="button"
+              className="hero-arrow left"
+              onClick={prev}
+              aria-label="Anterior"
+            >
+              <i className="bi bi-chevron-left" />
+            </button>
+
+            <button
+              type="button"
+              className="hero-arrow right"
+              onClick={next}
+              aria-label="Próximo"
+            >
+              <i className="bi bi-chevron-right" />
+            </button>
+          </>
+        )}
+
+        {/* Conteúdo */}
+        <div className="container hero-inner">
           <div className="row w-100">
-            <div className="col-md-6">
-              <div className="hero-text">
-                <h1 className="hero-title">{banner.titulo}</h1>
-                <p className="hero-desc">{banner.descricao}</p>
+            <div className="col-lg-6">
+              <div className="hero-card">
+                <div className="hero-kicker">
+                  <span className="hero-kicker-badge" />
+                  Destaque
+                </div>
+
+                <h1 className="hero-title">{banner?.titulo}</h1>
+                {banner?.descricao && <p className="hero-desc">{banner.descricao}</p>}
+
+                <div className="hero-actions">
+                  {banner?.link ? (
+                    <button
+                      type="button"
+                      className="hero-btn primary"
+                      onClick={handleClick}
+                    >
+                      Ver agora <i className="bi bi-arrow-right" />
+                    </button>
+                  ) : (
+                    <span className="hero-btn ghost" style={{ opacity: 0.85 }}>
+                      <i className="bi bi-info-circle" /> Sem link
+                    </span>
+                  )}
+
+                  {hasMany && (
+                    <button type="button" className="hero-btn" onClick={next}>
+                      Próximo <i className="bi bi-chevron-right" />
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="hero-dots">
-          {banners.map((_, i) => (
-            <div
-              key={i}
-              className={`hero-dot ${i === index ? "active" : ""}`}
-            />
-          ))}
-        </div>
+        {/* Dots */}
+        {hasMany && (
+          <div className="hero-dots" aria-label="Seleção de banners">
+            {safeBanners.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                className={`hero-dot ${i === index ? "active" : ""}`}
+                onClick={() => setIndex(i)}
+                aria-label={`Ir para o banner ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Progress */}
+        {hasMany && (
+          <div className="hero-progress">
+            <span />
+          </div>
+        )}
       </section>
+
+      <style jsx>{`
+        :root{
+          --rose:#b76e79;        /* rosa queimado */
+          --roseSoft:#d9a5ad;    /* rosa suave */
+          --gold:#d4af37;        /* dourado */
+          --navy:#0b1220;        /* azul escuro */
+          --navySoft:#142445;    /* azul médio */
+        }
+
+        .hero {
+          position: relative;
+          width: 100%;
+          height: 460px;
+          border-radius: 22px;
+          overflow: hidden;
+          background: linear-gradient(
+            135deg,
+            var(--navy) 0%,
+            var(--navySoft) 40%,
+            #2a1c2a 70%,
+            #000 100%
+          );
+          box-shadow: 0 30px 80px rgba(2, 6, 23, 0.25);
+          isolation: isolate;
+        }
+
+        /* imagem */
+        .hero-bg{
+          position:absolute;
+          inset:0;
+          background-size:cover;
+          background-position:center;
+          transform: scale(1.04);
+          transition: transform 900ms ease;
+          filter: saturate(1.05) contrast(1.02);
+          cursor: pointer;
+        }
+        .hero:hover .hero-bg{ transform: scale(1.1); }
+
+        /* overlay (rosa queimado + navy) */
+        .hero-overlay{
+          position:absolute;
+          inset:0;
+          background:
+            radial-gradient(
+              900px 420px at 20% 40%,
+              rgba(183, 110, 121, 0.45),
+              transparent 60%
+            ),
+            linear-gradient(
+              90deg,
+              rgba(0,0,0,.82) 0%,
+              rgba(20,36,69,.65) 45%,
+              rgba(0,0,0,.35) 100%
+            );
+          z-index:1;
+        }
+
+        /* conteúdo */
+        .hero-inner{
+          position:relative;
+          z-index:2;
+          height:100%;
+          display:flex;
+          align-items:center;
+        }
+
+        /* card glass premium */
+        .hero-card{
+          max-width: 560px;
+          padding: 26px;
+          border-radius: 22px;
+          background: rgba(255,255,255,.08);
+          border: 1px solid rgba(183,110,121,.35);
+          backdrop-filter: blur(14px);
+          box-shadow:
+            0 30px 60px rgba(0,0,0,.35),
+            inset 0 0 0 1px rgba(255,255,255,.06);
+          animation: fadeIn 420ms ease;
+        }
+
+        .hero-kicker{
+          display:inline-flex;
+          align-items:center;
+          gap:8px;
+          font-size:12px;
+          letter-spacing:1px;
+          text-transform:uppercase;
+          color: rgba(243, 215, 220, 0.95);
+          margin-bottom: 14px;
+        }
+        .hero-kicker-badge{
+          width:10px;
+          height:10px;
+          border-radius:999px;
+          background: var(--gold);
+          box-shadow: 0 0 0 6px rgba(212,175,55,.18);
+        }
+
+        .hero-title{
+          font-size: 2.9rem;
+          font-weight: 900;
+          line-height: 1.05;
+          color: #fff;
+          margin: 0 0 12px;
+          text-shadow: 0 20px 40px rgba(0,0,0,.55);
+        }
+
+        .hero-desc{
+          font-size: 1.05rem;
+          margin: 0 0 18px;
+          color: rgba(255,255,255,.88);
+        }
+
+        .hero-actions{
+          display:flex;
+          align-items:center;
+          gap:10px;
+          flex-wrap:wrap;
+          pointer-events:auto;
+        }
+
+        .hero-btn{
+          display:inline-flex;
+          align-items:center;
+          gap:10px;
+          padding: 12px 18px;
+          border-radius: 16px;
+          font-weight: 800;
+          border: 1px solid rgba(255,255,255,.18);
+          background: rgba(255,255,255,.10);
+          color: #fff;
+          transition: .18s ease;
+          user-select:none;
+        }
+        .hero-btn:hover{
+          transform: translateY(-1px);
+          background: rgba(255,255,255,.16);
+        }
+
+        .hero-btn.primary{
+          background: linear-gradient(135deg, var(--rose), var(--roseSoft));
+          border: none;
+          color: #1a0f12;
+          box-shadow: 0 18px 40px rgba(183,110,121,.45);
+        }
+        .hero-btn.primary:hover{
+          filter: brightness(1.06);
+        }
+
+        /* setas */
+        .hero-arrow{
+          position:absolute;
+          top:50%;
+          transform: translateY(-50%);
+          z-index:3;
+          width:44px;
+          height:44px;
+          border-radius:16px;
+          border:1px solid rgba(183,110,121,.35);
+          background: rgba(0,0,0,.25);
+          backdrop-filter: blur(10px);
+          color:#fff;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          transition: .18s ease;
+          opacity:0;
+          pointer-events:none;
+        }
+        .hero:hover .hero-arrow{
+          opacity:1;
+          pointer-events:auto;
+        }
+        .hero-arrow:hover{
+          background: rgba(0,0,0,.33);
+          transform: translateY(-50%) scale(1.02);
+        }
+        .hero-arrow.left{ left: 14px; }
+        .hero-arrow.right{ right: 14px; }
+
+        /* dots */
+        .hero-dots{
+          position:absolute;
+          bottom:18px;
+          left:50%;
+          transform: translateX(-50%);
+          display:flex;
+          gap:8px;
+          padding: 10px 14px;
+          border-radius: 999px;
+          background: rgba(0,0,0,.35);
+          border: 1px solid rgba(183,110,121,.35);
+          backdrop-filter: blur(10px);
+          z-index:3;
+        }
+        .hero-dot{
+          width: 9px;
+          height: 9px;
+          border-radius: 999px;
+          background: rgba(255,255,255,.45);
+          border: none;
+          transition: .2s ease;
+          cursor:pointer;
+        }
+        .hero-dot:hover{ background: rgba(255,255,255,.7); }
+        .hero-dot.active{
+          width: 26px;
+          background: linear-gradient(135deg, var(--gold), var(--rose));
+        }
+
+        /* progress */
+        .hero-progress{
+          position:absolute;
+          left:0; right:0; bottom:0;
+          height: 4px;
+          background: rgba(255,255,255,.12);
+          z-index:3;
+          overflow:hidden;
+        }
+        .hero-progress > span{
+          display:block;
+          height:100%;
+          width:100%;
+          transform-origin:left;
+          background: linear-gradient(135deg, var(--rose), var(--gold));
+          animation: progress ${intervalMs}ms linear infinite;
+        }
+        .paused .hero-progress > span{ animation-play-state: paused; }
+
+        @keyframes progress{
+          from{ transform: scaleX(0); }
+          to{ transform: scaleX(1); }
+        }
+        @keyframes fadeIn{
+          from{ opacity:0; transform: translateY(6px); }
+          to{ opacity:1; transform: translateY(0); }
+        }
+
+        @media (max-width: 768px){
+          .hero{ height: 360px; border-radius: 18px; }
+          .hero-title{ font-size: 2.05rem; }
+          .hero-card{ margin: 0 12px; }
+          .hero-arrow{ opacity:1; pointer-events:auto; }
+        }
+      `}</style>
     </>
   );
 }

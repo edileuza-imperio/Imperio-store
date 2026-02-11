@@ -64,14 +64,15 @@ export default function NavbarDesktop({ menus, categorias, searchPlaceholder }: 
     router.push(href);
   };
 
+  // ✅ LOGOUT CORRETO (rota do seu backend)
   const handleLogout = async () => {
     try {
       await api.post('/logout', {}, { withCredentials: true });
-    } catch {
-      console.warn('Erro ao deslogar. Continuando fluxo...');
+    } catch (e) {
+      console.warn('Logout falhou, mas vou seguir o fluxo.', e);
     } finally {
       closeAllDropdowns();
-      router.push('/login');
+      router.replace('/login'); // ou '/' se preferir
       router.refresh();
     }
   };
@@ -144,16 +145,10 @@ export default function NavbarDesktop({ menus, categorias, searchPlaceholder }: 
         style={{ paddingTop: 14, paddingBottom: 14 }}
       >
         {/* LOGO */}
-        <Link
-          href="/"
-          onClick={closeAllDropdowns}
-          style={{ textDecoration: 'none', color: ui.text }}
-        >
+        <Link href="/" onClick={closeAllDropdowns} style={{ textDecoration: 'none', color: ui.text }}>
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-              <span style={{ fontSize: 20, fontWeight: 900, letterSpacing: -0.3 }}>
-                Universo
-              </span>
+              <span style={{ fontSize: 20, fontWeight: 900, letterSpacing: -0.3 }}>Universo</span>
               <span
                 style={{
                   fontSize: 20,
@@ -203,6 +198,7 @@ export default function NavbarDesktop({ menus, categorias, searchPlaceholder }: 
           {menuPrincipal.map((item) => {
             const itensMenu = getItemsForMenu(item.id);
 
+            // LOGIN / USER
             if (item.nome.toLowerCase() === 'login') {
               if (usuarioLoading) {
                 return (
@@ -306,7 +302,10 @@ export default function NavbarDesktop({ menus, categorias, searchPlaceholder }: 
                       {usuario?.nome}
                     </span>
 
-                    <i className={`bi ${userDropdownOpen ? 'bi-chevron-up' : 'bi-chevron-down'}`} style={{ fontSize: 12, color: ui.muted }} />
+                    <i
+                      className={`bi ${userDropdownOpen ? 'bi-chevron-up' : 'bi-chevron-down'}`}
+                      style={{ fontSize: 12, color: ui.muted }}
+                    />
                   </button>
 
                   {userDropdownOpen && (
@@ -351,6 +350,7 @@ export default function NavbarDesktop({ menus, categorias, searchPlaceholder }: 
 
                         <div style={{ height: 1, background: 'rgba(0,0,0,0.06)', margin: '8px 0' }} />
 
+                        {/* ✅ LOGOUT USANDO A ROTA /logout */}
                         <button
                           type="button"
                           onClick={handleLogout}
@@ -374,7 +374,7 @@ export default function NavbarDesktop({ menus, categorias, searchPlaceholder }: 
               );
             }
 
-            // dropdown menu
+            // dropdown por itens
             if (itensMenu.length > 0 && item.id !== undefined) {
               const menuId = item.id;
               const active = openDropdown === menuId;
@@ -452,7 +452,7 @@ export default function NavbarDesktop({ menus, categorias, searchPlaceholder }: 
               );
             }
 
-            // simple menu as pill
+            // link simples
             return (
               <Link
                 key={item.id ?? item.nome}
@@ -512,7 +512,7 @@ export default function NavbarDesktop({ menus, categorias, searchPlaceholder }: 
             padding: 0,
             margin: 0,
             cursor: 'default',
-            zIndex: 1,
+            zIndex: 40,
           }}
         />
       )}

@@ -1,8 +1,15 @@
-'use client';
+"use client";
 
 import React from "react";
-import { FaFacebookF, FaInstagram } from "react-icons/fa";
-import 'bootstrap/dist/css/bootstrap.min.css';
+import {
+  FaFacebookF,
+  FaInstagram,
+  FaWhatsapp,
+  FaMapMarkerAlt,
+  FaEnvelope,
+  FaPhoneAlt,
+} from "react-icons/fa";
+import "bootstrap/dist/css/bootstrap.min.css";
 
 export default function FooterPrincipal() {
   const links = [
@@ -13,177 +20,427 @@ export default function FooterPrincipal() {
   ];
 
   const redesSociais = [
-    { url: "https://www.facebook.com/imperioloja", icone: <FaFacebookF /> },
-    { url: "https://www.instagram.com/imperio_festas12", icone: <FaInstagram /> },
+    { url: "https://www.facebook.com/imperioloja", label: "Facebook", icone: <FaFacebookF /> },
+    { url: "https://www.instagram.com/imperio_festas12", label: "Instagram", icone: <FaInstagram /> },
+    { url: "https://wa.me/5511991483834", label: "WhatsApp", icone: <FaWhatsapp /> },
   ];
 
   return (
     <>
       <style>{`
-        .footer {
-          background: linear-gradient(180deg, rgba(26,26,26,0.95) 0%, rgba(26,26,26,0.85) 100%);
-          backdrop-filter: blur(12px);
-          border-top: 3px solid #D4AF37;
-          color: #fff;
-          padding: 4rem 0 2rem;
-          font-family: 'Segoe UI', sans-serif;
+        :root{
+          /* Paleta do site (clara + rosa queimado + dourado) */
+          --cream:#fff6ee;
+          --cream2:#fff1e6;
+          --paper:#ffffff;
+
+          --text:#1f2937;     /* grafite */
+          --muted:#6b7280;
+
+          --rose:#b76e79;     /* rosa queimado */
+          --roseSoft:#d9a5ad;
+          --gold:#d4af37;
+
+          --line: rgba(31,41,55,.10);
+          --soft: rgba(255,255,255,.65);
+          --shadow: 0 22px 60px rgba(31,41,55,.12);
         }
 
-        .footer-logo-text {
-          font-size: 2rem;
-          font-weight: 800;
-          background: linear-gradient(90deg, #FF6F61, #D4AF37);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          margin-bottom: 0.5rem;
-          transition: all 0.3s ease;
-        }
-
-        .footer-logo-text:hover {
-          transform: scale(1.05);
-          filter: drop-shadow(0 0 8px #FF6F61);
-        }
-
-        .footer-desc {
-          color: #FF6F61;
-          font-weight: 500;
-          font-size: 0.95rem;
-          line-height: 1.4;
-        }
-
-        .footer-link {
-          color: #D4AF37;
-          text-decoration: none;
-          transition: all 0.3s ease;
-          display: inline-block;
-          font-size: 0.95rem;
+        .ft{
+          background:
+            radial-gradient(1100px 420px at 15% 0%, rgba(183,110,121,.14), transparent 60%),
+            radial-gradient(900px 420px at 85% 0%, rgba(212,175,55,.12), transparent 60%),
+            linear-gradient(180deg, var(--cream) 0%, var(--cream2) 100%);
+          border-top: 1px solid var(--line);
+          color: var(--text);
           position: relative;
+          overflow: hidden;
         }
 
-        .footer-link::after {
-          content: '';
-          display: block;
-          width: 0;
-          height: 2px;
-          background: #FF6F61;
-          transition: width 0.3s;
-          position: absolute;
-          bottom: -3px;
-          left: 0;
+        /* linha superior “premium” */
+        .ft::before{
+          content:"";
+          position:absolute;
+          left:0; right:0; top:0;
+          height:3px;
+          background: linear-gradient(90deg, rgba(0,0,0,0), rgba(183,110,121,.65), rgba(212,175,55,.75), rgba(0,0,0,0));
         }
 
-        .footer-link:hover::after {
-          width: 100%;
+        .ft-wrap{
+          padding: 52px 0 18px;
         }
 
-        .footer-social a {
-          color: #D4AF37;
-          font-size: 1.8rem;
-          margin-right: 20px;
-          transition: all 0.3s;
+        .ft-h{
+          font-weight: 950;
+          font-size: .9rem;
+          letter-spacing: 1px;
+          text-transform: uppercase;
+          color: rgba(31,41,55,.80);
+          margin-bottom: 14px;
         }
 
-        .footer-social a:hover {
-          color: #FF6F61;
-          transform: translateY(-5px) scale(1.3);
-          filter: drop-shadow(0 0 8px #FF6F61);
+        /* Brand */
+        .ft-brand{
+          display:flex;
+          align-items:center;
+          gap:12px;
+          margin-bottom: 10px;
         }
 
-        .footer-end {
-          color: #D4AF37;
-          font-weight: 400;
-          font-size: 0.9rem;
+        .ft-logo{
+          width: 48px;
+          height: 48px;
+          border-radius: 16px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          background: rgba(183,110,121,.14);
+          border: 1px solid rgba(183,110,121,.22);
+          box-shadow: 0 18px 40px rgba(183,110,121,.12);
+          color: var(--text);
+          font-weight: 950;
+          letter-spacing: .6px;
+          user-select:none;
         }
 
-        .footer-divider {
-          border-color: #D4AF37;
-          margin: 2.5rem 0;
+        .ft-title{
+          margin:0;
+          font-size: 1.2rem;
+          font-weight: 950;
+          line-height: 1.05;
+          color: var(--text);
         }
 
-        .footer-copy {
-          color: #D4AF37;
-          font-size: 0.9rem;
-          margin-top: 1rem;
+        .ft-sub{
+          margin:0;
+          font-size: .9rem;
+          color: rgba(31,41,55,.65);
         }
 
-        @media (max-width: 992px) {
-          .footer { padding: 3rem 1.5rem 2rem; }
-          .footer-logo-text { font-size: 1.8rem; }
-          .footer-social { justify-content: center !important; margin-top: 1rem; display: flex; }
+        .ft-desc{
+          color: rgba(31,41,55,.72);
+          margin: 10px 0 0;
+          line-height: 1.55;
+          font-size: .95rem;
+          max-width: 520px;
         }
 
-        @media (max-width: 768px) {
-          .footer-logo-text { font-size: 1.6rem; }
-          .footer-desc { font-size: 0.9rem; }
-          .footer-link { font-size: 0.9rem; }
-          .footer-end { font-size: 0.85rem; }
+        /* Badges */
+        .ft-badges{
+          display:flex;
+          flex-wrap:wrap;
+          gap:10px;
+          margin-top: 16px;
         }
 
-        @media (max-width: 480px) {
-          .footer-logo-text { font-size: 1.4rem; }
-          .footer-desc { text-align: center; }
-          .row { flex-direction: column !important; text-align: center; }
-          .col-md-3, .col-md-6 { margin-bottom: 1.5rem; }
+        .ft-badge{
+          display:inline-flex;
+          align-items:center;
+          gap:10px;
+          padding: 9px 12px;
+          border-radius: 999px;
+          background: rgba(255,255,255,.70);
+          border: 1px solid rgba(31,41,55,.10);
+          color: rgba(31,41,55,.80);
+          font-size: .88rem;
+          box-shadow: 0 12px 26px rgba(31,41,55,.08);
+          white-space: nowrap;
+        }
+
+        .ft-dot{
+          width:10px;
+          height:10px;
+          border-radius: 999px;
+          background: linear-gradient(135deg, var(--gold), var(--rose));
+          box-shadow: 0 0 0 6px rgba(212,175,55,.10);
+          flex:0 0 auto;
+        }
+
+        /* Social */
+        .ft-social{
+          display:flex;
+          gap:10px;
+          margin-top: 14px;
+          flex-wrap: wrap;
+        }
+
+        .ft-social a{
+          width: 44px;
+          height: 44px;
+          border-radius: 16px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          background: rgba(255,255,255,.78);
+          border: 1px solid rgba(31,41,55,.10);
+          color: rgba(31,41,55,.75);
+          transition: .16s ease;
+          font-size: 1.05rem;
+          box-shadow: 0 14px 30px rgba(31,41,55,.08);
+        }
+
+        .ft-social a:hover{
+          transform: translateY(-1px);
+          color: #1f2937;
+          background: linear-gradient(135deg, rgba(183,110,121,.22), rgba(212,175,55,.22));
+          border-color: rgba(183,110,121,.30);
+          box-shadow: 0 18px 44px rgba(183,110,121,.16);
+        }
+
+        /* Links (mais limpo e combinando) */
+        .ft-links{
+          list-style:none;
+          padding:0;
+          margin:0;
+          display:flex;
+          flex-direction:column;
+          gap:10px;
+        }
+
+        .ft-link{
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:14px;
+          padding: 11px 12px;
+          border-radius: 18px;
+          text-decoration:none;
+          color: rgba(31,41,55,.78);
+          background: rgba(255,255,255,.72);
+          border: 1px solid rgba(31,41,55,.10);
+          transition: .16s ease;
+          box-shadow: 0 14px 30px rgba(31,41,55,.08);
+        }
+
+        .ft-link-left{
+          display:flex;
+          align-items:center;
+          gap:10px;
+          font-weight: 800;
+        }
+
+        .ft-link-ico{
+          width: 36px;
+          height: 36px;
+          border-radius: 16px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          background: rgba(183,110,121,.10);
+          border: 1px solid rgba(183,110,121,.18);
+          color: rgba(31,41,55,.85);
+          flex: 0 0 auto;
+        }
+
+        .ft-link:hover{
+          transform: translateY(-1px);
+          border-color: rgba(183,110,121,.28);
+          background: rgba(255,255,255,.86);
+          box-shadow: 0 22px 50px rgba(183,110,121,.14);
+        }
+
+        .ft-link-arrow{
+          color: rgba(183,110,121,.9);
+          font-weight: 900;
+          transition: .16s ease;
+        }
+        .ft-link:hover .ft-link-arrow{
+          transform: translateX(2px);
+        }
+
+        /* Contato */
+        .ft-contact{
+          display:flex;
+          flex-direction:column;
+          gap:12px;
+        }
+
+        .ft-contact-item{
+          display:flex;
+          align-items:flex-start;
+          gap:12px;
+          padding: 12px;
+          border-radius: 18px;
+          background: rgba(255,255,255,.72);
+          border: 1px solid rgba(31,41,55,.10);
+          box-shadow: 0 14px 30px rgba(31,41,55,.08);
+        }
+
+        .ft-ico{
+          width: 42px;
+          height: 42px;
+          border-radius: 16px;
+          background: rgba(212,175,55,.10);
+          border: 1px solid rgba(212,175,55,.22);
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          color: rgba(31,41,55,.85);
+          flex: 0 0 auto;
+          margin-top: 1px;
+        }
+
+        .ft-ct-title{
+          font-weight: 950;
+          color: var(--text);
+          margin: 0 0 2px;
+          font-size: .95rem;
+        }
+
+        .ft-ct-text{
+          margin:0;
+          color: rgba(31,41,55,.72);
+          font-size: .93rem;
+          line-height: 1.35;
+          word-break: break-word;
+        }
+
+        .ft-contact a{
+          color: rgba(31,41,55,.82);
+          font-weight: 850;
+          text-decoration:none;
+        }
+        .ft-contact a:hover{
+          color: var(--rose);
+          text-decoration: underline;
+          text-underline-offset: 4px;
+        }
+
+        .ft-divider{
+          height: 1px;
+          background: rgba(31,41,55,.10);
+          margin: 26px 0 14px;
+        }
+
+        .ft-bottom{
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap: 12px;
+          color: rgba(31,41,55,.62);
+          font-size: .9rem;
+          padding-bottom: 18px;
+        }
+
+        .ft-bottom a{
+          color: rgba(183,110,121,.95);
+          text-decoration:none;
+          font-weight: 900;
+        }
+        .ft-bottom a:hover{
+          color: rgba(31,41,55,.95);
+        }
+
+        @media (max-width: 991.98px){
+          .ft-wrap{ padding: 44px 0 16px; }
+        }
+
+        @media (max-width: 576px){
+          .ft-wrap{ padding: 36px 0 14px; }
+          .ft-bottom{ flex-direction: column; align-items:flex-start; }
         }
       `}</style>
 
-      <footer className="footer">
-        <div className="container">
-          <div className="row align-items-start">
-
-            {/* Nome / Logo */}
-            <div className="col-md-3 text-md-start text-center mb-4 mb-md-0">
-              <div className="footer-logo-text">Imperio Store</div>
-              <p className="footer-desc">Sua loja de confiança com produtos de qualidade.</p>
-            </div>
-
-            {/* Links */}
-            <div className="col-md-6 mb-4 mb-md-0">
-              <div className="row">
-                <div className="col-6">
-                  <ul className="list-unstyled">
-                    {links.slice(0, 2).map((link, i) => (
-                      <li key={i} className="mb-2">
-                        <a href={link.url} className="footer-link">{link.titulo}</a>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="col-6">
-                  <ul className="list-unstyled">
-                    {links.slice(2).map((link, i) => (
-                      <li key={i} className="mb-2">
-                        <a href={link.url} className="footer-link">{link.titulo}</a>
-                      </li>
-                    ))}
-                  </ul>
+      <footer className="ft">
+        <div className="container ft-wrap">
+          <div className="row g-4">
+            {/* Brand */}
+            <div className="col-lg-5">
+              <div className="ft-brand">
+                <div className="ft-logo">UI</div>
+                <div>
+                  <p className="ft-title">Universo Império</p>
+                  <p className="ft-sub">Decorações & Eventos</p>
                 </div>
               </div>
-              <div className="d-flex footer-social mt-3 justify-content-md-start justify-content-center">
-                {redesSociais.map((redes, i) => (
-                  <a key={i} href={redes.url} target="_blank" rel="noopener noreferrer">{redes.icone}</a>
+
+              <p className="ft-desc">
+                Produtos selecionados para festas e eventos. Atendimento rápido, qualidade e uma experiência premium do início ao fim.
+              </p>
+
+              <div className="ft-badges">
+                <span className="ft-badge">
+                  <span className="ft-dot" /> Pagamento seguro
+                </span>
+                <span className="ft-badge">
+                  <span className="ft-dot" /> Suporte no WhatsApp
+                </span>
+              </div>
+
+              <div className="ft-social" aria-label="Redes sociais">
+                {redesSociais.map((r, i) => (
+                  <a key={i} href={r.url} target="_blank" rel="noopener noreferrer" aria-label={r.label} title={r.label}>
+                    {r.icone}
+                  </a>
                 ))}
               </div>
             </div>
 
-            {/* Contato / Informações */}
-            <div className="col-md-3 text-md-end text-center">
-              <p className="footer-end">(11) 99148-3834</p>
-              <p className="footer-end">imperiofestasecestas@gmail.com</p>
-              <p className="footer-end">Rua Manoel Fernandes, Jundiapeba, Mogi das Cruzes - SP</p>
-              <p className="footer-end">
-                <a href="https://www.instagram.com/imperio_festas12" target="_blank" rel="noopener noreferrer" className="footer-link">
-                  Instagram
-                </a>
-              </p>
+            {/* Links */}
+            <div className="col-lg-3 col-md-6">
+              <div className="ft-h">Navegação</div>
+              <ul className="ft-links">
+                {links.map((l, i) => (
+                  <li key={i}>
+                    <a className="ft-link" href={l.url}>
+                      <span className="ft-link-left">
+                        <span className="ft-link-ico">
+                          <span className="ft-dot" style={{ width: 8, height: 8, boxShadow: "0 0 0 5px rgba(212,175,55,.10)" }} />
+                        </span>
+                        {l.titulo}
+                      </span>
+                      <span className="ft-link-arrow">→</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
             </div>
 
+            {/* Contato */}
+            <div className="col-lg-4 col-md-6">
+              <div className="ft-h">Contato</div>
+
+              <div className="ft-contact">
+                <div className="ft-contact-item">
+                  <div className="ft-ico"><FaPhoneAlt /></div>
+                  <div>
+                    <p className="ft-ct-title">Telefone</p>
+                    <p className="ft-ct-text">
+                      <a href="tel:+5511991483834">(11) 99148-3834</a>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="ft-contact-item">
+                  <div className="ft-ico"><FaEnvelope /></div>
+                  <div>
+                    <p className="ft-ct-title">E-mail</p>
+                    <p className="ft-ct-text">
+                      <a href="mailto:imperiofestasecestas@gmail.com">imperiofestasecestas@gmail.com</a>
+                    </p>
+                  </div>
+                </div>
+
+                <div className="ft-contact-item">
+                  <div className="ft-ico"><FaMapMarkerAlt /></div>
+                  <div>
+                    <p className="ft-ct-title">Endereço</p>
+                    <p className="ft-ct-text">
+                      Rua Manoel Fernandes, Jundiapeba, Mogi das Cruzes - SP
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
-          <hr className="footer-divider" />
+          <div className="ft-divider" />
 
-          <div className="text-center footer-copy">
-            &copy; {new Date().getFullYear()} Imperio Store. Todos os direitos reservados.
+          <div className="ft-bottom">
+            <div>© {new Date().getFullYear()} Universo Império. Todos os direitos reservados.</div>
+            <div>
+              <a href="/politica">Privacidade</a> • <a href="/faq">Ajuda</a>
+            </div>
           </div>
         </div>
       </footer>

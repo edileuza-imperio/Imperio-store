@@ -1,10 +1,12 @@
 'use client';
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import CategoryBar from "../categoria/CategoryBar";
 import SearchBar from "../Pesquisa/SearchBar";
 import useUsuario from "@/hooks/Auth/useUsuario";
+import api from "@/Api/conectar";
 
 interface NavbarMobileProps {
   menus: any[];
@@ -12,51 +14,60 @@ interface NavbarMobileProps {
   searchPlaceholder?: string;
 }
 
-export default function NavbarMobile({
-  menus,
-  categorias,
-  searchPlaceholder,
-}: NavbarMobileProps) {
+export default function NavbarMobile({ menus, categorias, searchPlaceholder }: NavbarMobileProps) {
+  const router = useRouter();
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
   const { usuario, loading, logado } = useUsuario();
-
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const ui = useMemo(() => ({
-    bgA: "#fffaf0",
-    bgB: "#fdf4f4",
-    border: "rgba(212,175,55,0.26)",
-    accent: "#c97a7e",
-    gold: "#d4af37",
-    text: "#2b2b2b",
-    muted: "#6c757d",
-    shadow: "0 18px 45px rgba(0,0,0,0.12)",
-    shadowSoft: "0 10px 26px rgba(0,0,0,0.06)",
-  }), []);
+  const ui = useMemo(
+    () => ({
+      bgA: "#fffaf0",
+      bgB: "#fdf4f4",
+      border: "rgba(212,175,55,0.26)",
+      accent: "#c97a7e",
+      gold: "#d4af37",
+      text: "#2b2b2b",
+      muted: "#6c757d",
+      shadow: "0 18px 45px rgba(0,0,0,0.12)",
+      shadowSoft: "0 10px 26px rgba(0,0,0,0.06)",
+    }),
+    []
+  );
 
   const searchItem = menus?.find((m) => m.pesquisa_placeholder) || null;
 
   // remove login se estiver logado
-  const menuItems = menus
-    ?.filter((m) => !m.pesquisa_placeholder)
-    ?.filter((m) => !(logado && m.nome.toLowerCase() === "login")) || [];
+  const menuItems =
+    menus
+      ?.filter((m) => !m.pesquisa_placeholder)
+      ?.filter((m) => !(logado && m.nome?.toLowerCase() === "login")) || [];
 
-  const carrinhoItem = menuItems.find(
-    (item) => item.nome.toLowerCase() === "carrinho"
-  );
-
-  const sidebarItems = menuItems.filter(
-    (item) => item.nome.toLowerCase() !== "carrinho"
-  );
+  const carrinhoItem = menuItems.find((item) => item.nome?.toLowerCase() === "carrinho");
+  const sidebarItems = menuItems.filter((item) => item.nome?.toLowerCase() !== "carrinho");
 
   const closeAll = () => {
     setSidebarOpen(false);
     setUserDropdownOpen(false);
   };
 
-  // fecha dropdown do usuário clicando fora
+  // ✅ logout real: POST /logout
+  const handleLogout = async () => {
+    try {
+      await api.post("/logout", {}, { withCredentials: true });
+    } catch (e) {
+      console.warn("Logout falhou, seguindo fluxo.", e);
+    } finally {
+      closeAll();
+      router.replace("/login"); // ou '/' se preferir
+      router.refresh();
+    }
+  };
+
+  // fecha dropdown clicando fora
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       if (!userDropdownOpen) return;
@@ -68,24 +79,21 @@ export default function NavbarMobile({
     return () => document.removeEventListener("mousedown", onDown);
   }, [userDropdownOpen]);
 
-  // trava scroll do body quando sidebar abrir
+  // trava scroll quando sidebar abrir
   useEffect(() => {
-    if (sidebarOpen) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = "hidden";
-      return () => {
-        document.body.style.overflow = prev;
-      };
-    }
+    const prev = document.body.style.overflow;
+    if (sidebarOpen) document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, [sidebarOpen]);
 
-  // largura responsiva do offcanvas (inline)
+  // largura responsiva do offcanvas
   const getSidebarWidth = () => {
-    // sem window no SSR: fallback seguro
     if (typeof window === "undefined") return 320;
     const w = window.innerWidth;
-    if (w <= 360) return Math.min(300, Math.floor(w * 0.9));
-    if (w <= 480) return Math.min(340, Math.floor(w * 0.85));
+    if (w <= 360) return Math.min(300, Math.floor(w * 0.92));
+    if (w <= 480) return Math.min(340, Math.floor(w * 0.88));
     return 360;
   };
 
@@ -112,14 +120,7 @@ export default function NavbarMobile({
           boxShadow: ui.shadowSoft,
         }}
       >
-        <div
-          style={{
-            padding: 12,
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
-        >
+        <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
           {/* ROW TOP */}
           <div
             style={{
@@ -209,6 +210,7 @@ export default function NavbarMobile({
                 alignItems: "center",
                 gap: 10,
                 justifyContent: "flex-end",
+                position: "relative",
               }}
               ref={dropdownRef}
             >
@@ -245,7 +247,7 @@ export default function NavbarMobile({
                     aria-label="Abrir menu do usuário"
                     style={{
                       height: 44,
-                      maxWidth: 170, // evita quebrar layout
+                      maxWidth: 170,
                       borderRadius: 14,
                       padding: "0 10px",
                       background: "#fff",
@@ -301,14 +303,15 @@ export default function NavbarMobile({
                 )
               )}
 
-              {/* DROPDOWN USUÁRIO */}
+              {/* ✅ DROPDOWN USUÁRIO (PROFISSIONAL + LOGOUT REAL) */}
               {userDropdownOpen && logado && (
                 <div
+                  role="menu"
                   style={{
                     position: "absolute",
-                    right: 12,
-                    top: 62,
-                    minWidth: 220,
+                    right: 0,
+                    top: 52,
+                    minWidth: 240,
                     maxWidth: "calc(100vw - 24px)",
                     background: ui.bgA,
                     border: `1px solid ${ui.border}`,
@@ -326,7 +329,16 @@ export default function NavbarMobile({
                     }}
                   >
                     <div style={{ fontSize: 12, color: ui.muted, fontWeight: 800 }}>Minha conta</div>
-                    <div style={{ fontSize: 14, color: ui.text, fontWeight: 900, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        color: ui.text,
+                        fontWeight: 900,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {usuario?.nome}
                     </div>
                   </div>
@@ -351,8 +363,6 @@ export default function NavbarMobile({
                           fontWeight: 900,
                           fontSize: 13,
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(201,122,126,0.08)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                       >
                         <i className={`bi ${x.icon}`} style={{ color: ui.accent }} />
                         {x.label}
@@ -374,8 +384,6 @@ export default function NavbarMobile({
                           fontWeight: 900,
                           fontSize: 13,
                         }}
-                        onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(201,122,126,0.08)")}
-                        onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
                       >
                         <i className="bi bi-speedometer2" style={{ color: ui.accent }} />
                         Painel Administrativo
@@ -384,17 +392,18 @@ export default function NavbarMobile({
 
                     <div style={{ height: 1, background: "rgba(0,0,0,0.06)", margin: "8px 0" }} />
 
-                    <Link
-                      href="/sair"
-                      onClick={() => setUserDropdownOpen(false)}
+                    {/* ✅ BOTÃO LOGOUT REAL */}
+                    <button
+                      type="button"
+                      onClick={handleLogout}
                       style={{
+                        width: "100%",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         gap: 10,
                         padding: "10px 12px",
                         borderRadius: 14,
-                        textDecoration: "none",
                         background: "rgba(220,53,69,0.08)",
                         border: "1px solid rgba(220,53,69,0.22)",
                         color: "#b02a37",
@@ -404,7 +413,7 @@ export default function NavbarMobile({
                     >
                       <i className="bi bi-box-arrow-right" />
                       Sair
-                    </Link>
+                    </button>
                   </div>
                 </div>
               )}
@@ -424,7 +433,8 @@ export default function NavbarMobile({
       {/* ================= SIDEBAR (CUSTOM) ================= */}
       {/* Backdrop */}
       {sidebarOpen && (
-        <div
+        <button
+          type="button"
           onClick={() => setSidebarOpen(false)}
           aria-label="Fechar menu"
           style={{
@@ -433,6 +443,7 @@ export default function NavbarMobile({
             background: "rgba(0,0,0,0.45)",
             backdropFilter: "blur(3px)",
             zIndex: 70,
+            border: "none",
           }}
         />
       )}
@@ -448,6 +459,7 @@ export default function NavbarMobile({
           width: sidebarWidth,
           maxWidth: "92vw",
           background: `linear-gradient(180deg, ${ui.bgA}, #fff)`,
+
           borderRight: `1px solid ${ui.border}`,
           boxShadow: ui.shadow,
           zIndex: 80,
@@ -511,13 +523,7 @@ export default function NavbarMobile({
         </div>
 
         {/* Body */}
-        <div
-          style={{
-            padding: 12,
-            overflowY: "auto",
-            flex: 1,
-          }}
-        >
+        <div style={{ padding: 12, overflowY: "auto", flex: 1 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {sidebarItems.map((item) => (
               <Link
@@ -527,7 +533,7 @@ export default function NavbarMobile({
                 style={{
                   textDecoration: "none",
                   color: ui.text,
-                  background: "rgba(255,255,255,0.85)",
+                  background: "rgba(255,255,255,0.92)",
                   border: `1px solid rgba(0,0,0,0.06)`,
                   borderRadius: 16,
                   padding: "12px 12px",
