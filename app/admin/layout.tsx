@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState, useEffect } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import useAutenticado from "@/hooks/Usuario/useAutenticado";
 
@@ -24,8 +24,9 @@ type GroupItem = {
 
 type MenuItem = SimpleItem | GroupItem;
 
+/** Fecha quando clicar fora */
 function useClickOutside(
-  refs: React.RefObject<HTMLElement>[],
+  refs: Array<React.RefObject<HTMLElement | null>>,
   onOutside: () => void,
   enabled: boolean
 ) {
@@ -34,7 +35,11 @@ function useClickOutside(
 
     function handler(e: MouseEvent) {
       const target = e.target as Node;
-      const clickedInside = refs.some((r) => r.current?.contains(target));
+
+      const clickedInside = refs.some(
+        (ref) => ref.current && ref.current.contains(target)
+      );
+
       if (!clickedInside) onOutside();
     }
 
@@ -55,8 +60,8 @@ export default function AdminLayout({ children }: Props) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  const notifRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
+  const notifRef = useRef<HTMLDivElement | null>(null);
 
   useClickOutside([userMenuRef], () => setUserMenuOpen(false), userMenuOpen);
   useClickOutside([notifRef], () => setNotifOpen(false), notifOpen);
@@ -195,7 +200,10 @@ export default function AdminLayout({ children }: Props) {
               const opened = openGroup === item.label;
 
               return (
-                <div key={item.label} className={`adm-group ${anyActive ? "group-active" : ""}`}>
+                <div
+                  key={item.label}
+                  className={`adm-group ${anyActive ? "group-active" : ""}`}
+                >
                   <button
                     type="button"
                     className={`adm-item adm-item--btn ${opened ? "open" : ""}`}
@@ -280,7 +288,10 @@ export default function AdminLayout({ children }: Props) {
                 <button
                   type="button"
                   className="adm-iconbtn"
-                  onClick={() => setNotifOpen((v) => !v)}
+                  onClick={() => {
+                    setNotifOpen((v) => !v);
+                    setUserMenuOpen(false);
+                  }}
                   aria-label="Notificações"
                 >
                   <i className="bi bi-bell" />
@@ -293,7 +304,11 @@ export default function AdminLayout({ children }: Props) {
                       <div className="adm-pop__title">Notificações</div>
                       <div className="adm-pop__sub">{unreadCount} novas</div>
                     </div>
-                    <button type="button" className="adm-linkbtn" onClick={() => setNotifOpen(false)}>
+                    <button
+                      type="button"
+                      className="adm-linkbtn"
+                      onClick={() => setNotifOpen(false)}
+                    >
                       Fechar
                     </button>
                   </div>
@@ -336,7 +351,10 @@ export default function AdminLayout({ children }: Props) {
                 <button
                   type="button"
                   className="adm-userbtn"
-                  onClick={() => setUserMenuOpen((v) => !v)}
+                  onClick={() => {
+                    setUserMenuOpen((v) => !v);
+                    setNotifOpen(false);
+                  }}
                 >
                   <div className="adm-avatar">{loading ? "…" : iniciais}</div>
                   <div className="adm-usertext d-none d-sm-block">
@@ -715,7 +733,7 @@ export default function AdminLayout({ children }: Props) {
           line-height:1;
         }
 
-        /* Dropdowns (popovers) */
+        /* Dropdowns */
         .adm-dd{ position:relative; }
 
         .adm-pop{
