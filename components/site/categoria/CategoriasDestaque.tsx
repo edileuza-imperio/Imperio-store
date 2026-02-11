@@ -11,140 +11,233 @@ export default function CategoriasDestaque() {
 
   return (
     <>
-      {/* CSS INLINE */}
+      {/* CSS INLINE (PRO) */}
       <style jsx>{`
-        .cat-section {
-          padding: 60px 0;
-          text-align: center;
+        :global(:root) {
+          --brand: #b5486d;       /* rosa queimado */
+          --brandHover: #9f3d5f;
+          --text: #111827;
+          --muted: #6b7280;
+          --border: #e5e7eb;
+          --bg: #f7f7f8;
+          --card: #ffffff;
+          --radius: 16px;
+          --shadow: 0 10px 24px rgba(17, 24, 39, 0.08);
+          --shadowHover: 0 16px 36px rgba(17, 24, 39, 0.12);
         }
 
-        .cat-title {
-          font-size: 1.9rem;
-          font-weight: 700;
-          margin-bottom: 40px;
-          color: #1f2937;
+        /* Evita depender de bootstrap container */
+        .wrap {
+          width: min(1200px, 92vw);
+          margin: 0 auto;
+          padding: 28px 0;
         }
 
-        .cat-grid {
+        .section {
+          padding: 10px 0 22px;
+        }
+
+        .head {
           display: flex;
-          flex-wrap: wrap;
-          justify-content: center;
-          gap: 28px;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 16px;
         }
 
-        .cat-item {
-          width: 130px;
+        .titleBlock h2 {
+          margin: 0;
+          font-size: 22px;
+          letter-spacing: -0.02em;
+          color: var(--text);
+        }
+
+        .titleBlock p {
+          margin: 6px 0 0;
+          color: var(--muted);
+          font-size: 13px;
+          line-height: 1.4;
+        }
+
+        .hint {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          border-radius: 999px;
+          border: 1px solid var(--border);
+          background: var(--card);
+          color: var(--muted);
+          font-size: 12px;
+          white-space: nowrap;
+        }
+
+        .dot {
+          width: 9px;
+          height: 9px;
+          border-radius: 999px;
+          background: var(--brand);
+          box-shadow: 0 0 0 4px rgba(181, 72, 109, 0.14);
+        }
+
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+        }
+
+        /* card */
+        .item {
+          background: var(--card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+          box-shadow: var(--shadow);
+          padding: 14px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+          transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+          user-select: none;
+        }
+
+        .item:hover {
+          transform: translateY(-2px);
+          box-shadow: var(--shadowHover);
+          border-color: rgba(181, 72, 109, 0.22);
+        }
+
+        .iconWrap {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          display: grid;
+          place-items: center;
+          background: linear-gradient(
+            135deg,
+            rgba(181, 72, 109, 0.14),
+            rgba(17, 24, 39, 0.03)
+          );
+          border: 1px solid rgba(181, 72, 109, 0.18);
+          flex: 0 0 auto;
+        }
+
+        /* bootstrap icon */
+        .icon {
+          font-size: 22px;
+          color: var(--brand);
+          line-height: 1;
+        }
+
+        .nameBlock {
+          min-width: 0;
           display: flex;
           flex-direction: column;
-          align-items: center;
-          cursor: pointer;
-          transition: transform 0.25s ease;
+          gap: 2px;
         }
 
-        .cat-item:hover {
-          transform: translateY(-6px);
+        .name {
+          font-size: 14px;
+          font-weight: 800;
+          color: var(--text);
+          letter-spacing: -0.01em;
+          line-height: 1.2;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
-        .cat-circle {
-          width: 110px;
-          height: 110px;
-          border-radius: 50%;
-          background: linear-gradient(
-            135deg,
-            rgba(183, 110, 121, 0.14),
-            rgba(30, 58, 138, 0.14)
-          );
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: all 0.3s ease;
+        .sub {
+          font-size: 12px;
+          color: var(--muted);
+          line-height: 1.2;
         }
 
-        .cat-item:hover .cat-circle {
-          background: linear-gradient(
-            135deg,
-            rgba(183, 110, 121, 0.26),
-            rgba(30, 58, 138, 0.26)
-          );
-        }
-
-        .cat-icon {
-          font-size: 42px;
-          color: #b76e79;
-        }
-
-        .cat-name {
-          margin-top: 14px;
-          font-size: 0.95rem;
-          font-weight: 600;
-          color: #374151;
-          line-height: 1.3;
-          max-width: 120px;
-        }
-
-        /* 📱 Mobile */
-        @media (max-width: 575px) {
-          .cat-item {
-            width: 100px;
-          }
-
-          .cat-circle {
-            width: 85px;
-            height: 85px;
-          }
-
-          .cat-icon {
-            font-size: 30px;
-          }
-
-          .cat-name {
-            font-size: 0.8rem;
+        /* Responsivo */
+        @media (min-width: 640px) {
+          .grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
           }
         }
 
-        /* 💻 Desktop grande */
-        @media (min-width: 1200px) {
-          .cat-item {
-            width: 150px;
+        @media (min-width: 980px) {
+          .grid {
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 16px;
           }
 
-          .cat-circle {
-            width: 125px;
-            height: 125px;
+          .item {
+            padding: 16px;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+            min-height: 130px;
           }
 
-          .cat-icon {
-            font-size: 48px;
+          .iconWrap {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
           }
 
-          .cat-name {
-            font-size: 1rem;
+          .icon {
+            font-size: 24px;
           }
+
+          .name {
+            white-space: normal;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+          }
+
+          .sub {
+            margin-top: 2px;
+          }
+        }
+
+        /* Acessibilidade */
+        .item:focus-visible {
+          outline: 3px solid rgba(181, 72, 109, 0.25);
+          outline-offset: 2px;
         }
       `}</style>
 
-      {/* CATEGORIAS */}
-      <section className="container cat-section">
-        <h2 className="cat-title">Categorias em destaque</h2>
-
-        <div className="cat-grid">
-          {categorias.slice(0, 6).map((categoria) => (
-            <div
-              key={categoria.id_categoria}
-              className="cat-item"
-              onClick={() =>
-                router.push(`/catalogo?categoria=${categoria.id_categoria}`)
-              }
-            >
-              <div className="cat-circle">
-                <i className={`bi ${categoria.icone} cat-icon`} />
-              </div>
-
-              <div className="cat-name">
-                {categoria.nome}
-              </div>
+      <section className="section">
+        <div className="wrap">
+          <div className="head">
+            <div className="titleBlock">
+              <h2>Categorias em destaque</h2>
+              <p>Encontre rápido o que você procura</p>
             </div>
-          ))}
+
+            <div className="hint" aria-hidden="true">
+              <span className="dot" />
+              Toque para filtrar
+            </div>
+          </div>
+
+          <div className="grid">
+            {categorias.slice(0, 6).map((categoria) => (
+              <button
+                key={categoria.id_categoria}
+                type="button"
+                className="item"
+                onClick={() => router.push(`/catalogo?categoria=${categoria.id_categoria}`)}
+                aria-label={`Ver produtos da categoria ${categoria.nome}`}
+              >
+                <div className="iconWrap" aria-hidden="true">
+                  <i className={`bi ${categoria.icone} icon`} />
+                </div>
+
+                <div className="nameBlock">
+                  <div className="name">{categoria.nome}</div>
+                  <div className="sub">Ver produtos</div>
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       </section>
     </>
