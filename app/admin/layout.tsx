@@ -11,7 +11,7 @@ type SimpleItem = {
   type: "link";
   label: string;
   href: string;
-  icon: string; // "bi bi-..."
+  icon: string;
   match?: string;
 };
 
@@ -24,7 +24,7 @@ type GroupItem = {
 
 type MenuItem = SimpleItem | GroupItem;
 
-/** Fecha quando clicar fora */
+/** Fecha dropdown ao clicar fora */
 function useClickOutside(
   refs: Array<React.RefObject<HTMLElement | null>>,
   onOutside: () => void,
@@ -414,7 +414,7 @@ export default function AdminLayout({ children }: Props) {
                     className="adm-menuitem danger"
                     onClick={() => {
                       setUserMenuOpen(false);
-                      router.push("/login"); // troque pelo logout real
+                      router.push("/login");
                     }}
                   >
                     <i className="bi bi-box-arrow-right" />
@@ -436,7 +436,6 @@ export default function AdminLayout({ children }: Props) {
         </div>
       </div>
 
-      {/* CSS */}
       <style jsx global>{`
         :root{
           --bg:#f4f6fb;
@@ -455,10 +454,8 @@ export default function AdminLayout({ children }: Props) {
         }
 
         body{ background: var(--bg); }
-
         .adm-shell{ min-height:100vh; display:flex; }
 
-        /* Sidebar */
         .adm-sidebar{
           width:292px;
           position:fixed;
@@ -558,7 +555,6 @@ export default function AdminLayout({ children }: Props) {
         }
 
         .adm-item__label{ font-weight:650; }
-
         .adm-item__pill{
           position:absolute;
           right:10px;
@@ -636,7 +632,6 @@ export default function AdminLayout({ children }: Props) {
           text-overflow:ellipsis;
         }
 
-        /* Backdrop / Mobile */
         .adm-backdrop{ display:none; }
         @media (max-width: 991.98px){
           .adm-sidebar{ transform: translateX(-105%); transition: transform .22s ease; }
@@ -652,7 +647,6 @@ export default function AdminLayout({ children }: Props) {
           .adm-backdrop.show{ opacity:1; pointer-events:auto; }
         }
 
-        /* Main */
         .adm-main{
           margin-left:292px;
           width: calc(100% - 292px);
@@ -733,7 +727,6 @@ export default function AdminLayout({ children }: Props) {
           line-height:1;
         }
 
-        /* Dropdowns */
         .adm-dd{ position:relative; }
 
         .adm-pop{
@@ -797,7 +790,6 @@ export default function AdminLayout({ children }: Props) {
 
         .adm-pop__foot{ padding:10px; border-top:1px solid rgba(2,6,23,.06); }
 
-        /* User button */
         .adm-userbtn{
           display:flex;
           align-items:center;
@@ -856,7 +848,6 @@ export default function AdminLayout({ children }: Props) {
         .adm-menuitem.danger{ color:#dc3545; }
         .adm-sep{ height:1px; background: rgba(2,6,23,.08); margin:6px 12px; }
 
-        /* Content */
         .adm-content{ padding: 22px; flex:1; }
         .adm-content__inner{
           background: linear-gradient(180deg, rgba(255,255,255,.92), #fff);
