@@ -26,7 +26,7 @@ export default function GerenciarLoginPage() {
   async function carregarConfigs() {
     setLoading(true);
     try {
-      const res = await api.get('/admin/configu/login/todas');
+      const res = await api.get('/admin/configuracoes/login');
       setConfigs(res.data?.dados ?? []);
     } catch (e) {
       console.error('Erro ao carregar configs de login:', e);

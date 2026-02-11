@@ -1,20 +1,19 @@
-"use client";
+// app/login/page.tsx
+'use client';
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { FaUser, FaLock, FaKey, FaEnvelope, FaPhone } from "react-icons/fa";
+import { FaUser, FaLock, FaKey, FaUserPlus, FaArrowLeft } from "react-icons/fa";
 import { useLoginConfig } from "@/hooks/useLoginConfig";
-import api from "@/Api/conectar";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const router = useRouter();
+
   const [usuario, setUsuario] = useState("");
   const [senha, setSenha] = useState("");
   const [pin, setPin] = useState("");
-  const [nome, setNome] = useState("");
-  const [email, setEmail] = useState("");
-  const [telefone, setTelefone] = useState("");
-  const [cpf, setCpf] = useState("");
 
   const {
     config,
@@ -27,462 +26,471 @@ export default function LoginPage() {
     handleValidarPin,
   } = useLoginConfig();
 
-  const handleCadastro = async () => {
-    try {
-      const res = await api.post("/usuarios", {
-        nome,
-        email,
-        senha,
-        telefone,
-        cpf,
-      });
+  const theme = useMemo(() => {
+    const base = config?.fundo || "#7b1e3a";
+    return { base };
+  }, [config?.fundo]);
 
-      if (res.status === 201 || res.status === 200) {
-        alert("Usuário criado com sucesso!");
-        setStep("login");
-      } else {
-        alert(res.data.mensagem || "Erro ao criar usuário.");
-      }
-    } catch (err: any) {
-      console.error(err);
-      alert(err.response?.data?.mensagem || "Erro de conexão.");
-    }
-  };
+  if (loading) return <p className="loading">Carregando...</p>;
 
-  if (loading)
-    return <p className="text-white text-center mt-5">Carregando...</p>;
+  const titulo = config?.titulo || "Bem-vindo";
+  const mensagem =
+    config?.mensagem_personalizada || "Entre com suas credenciais.";
+  const logo = config?.logo || "";
 
   return (
     <>
       <ToastContainer position="top-right" autoClose={4000} />
 
-      <div className="login-bg">
-        {/* PASSO INICIAL */}
-        {step === "inicio" && (
-          <div className="login-container">
-            <img src={config?.logo} alt="Logo" className="logo-login" />
-            <h1>{config?.titulo}</h1>
-            {config?.mensagem_personalizada && (
-              <p className="message">{config.mensagem_personalizada}</p>
-            )}
-            <button
-              className="btn-primary"
-              onClick={() => setStep("login")}
-              disabled={loadingBtn}
-            >
-              Entrar
-            </button>
-            <button className="voltar" onClick={() => setStep("cadastro")}>
-              Criar conta
-            </button>
+      <div className="page" style={{ background: theme.base }}>
+        <div className="overlay" />
+
+        <div className="shell">
+          {/* ESQUERDA */}
+          <div className="left">
+            <div className="panel">
+              {/* INICIO */}
+              {step === "inicio" && (
+                <>
+                  <h2 className="h2">{titulo}</h2>
+                  <p className="p">{mensagem}</p>
+
+                  <button
+                    className="btnPrimary"
+                    onClick={() => setStep("login")}
+                    disabled={loadingBtn}
+                  >
+                    Entrar
+                  </button>
+
+                  <button
+                    className="btnSecondary"
+                    type="button"
+                    onClick={() => router.push("/cadastro")}
+                    disabled={loadingBtn}
+                  >
+                    <FaUserPlus />
+                    Criar conta
+                  </button>
+                </>
+              )}
+
+              {/* LOGIN */}
+              {step === "login" && (
+                <>
+                  <h2 className="h2">Login</h2>
+                  <p className="p">{mensagem}</p>
+
+                  {errorMsg && <p className="error">{errorMsg}</p>}
+
+                  <div className="inputWrap">
+                    <span className="icon">
+                      <FaUser />
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="Usuário ou Email"
+                      value={usuario}
+                      onChange={(e) => setUsuario(e.target.value)}
+                      autoComplete="username"
+                    />
+                  </div>
+
+                  <div className="inputWrap">
+                    <span className="icon">
+                      <FaLock />
+                    </span>
+                    <input
+                      type="password"
+                      placeholder="Senha"
+                      value={senha}
+                      onChange={(e) => setSenha(e.target.value)}
+                      autoComplete="current-password"
+                    />
+                  </div>
+
+                  <button
+                    className="btnPrimary"
+                    onClick={() => handleLogin(usuario, senha)}
+                    disabled={loadingBtn}
+                  >
+                    {loadingBtn ? <span className="spinner" /> : "Entrar"}
+                  </button>
+
+                  <div className="row">
+                    <button
+                      className="btnLink"
+                      type="button"
+                      onClick={() => setStep("inicio")}
+                    >
+                      <FaArrowLeft />
+                      Voltar
+                    </button>
+
+                    <button
+                      className="btnLink"
+                      type="button"
+                      onClick={() => alert("Recuperação depois 😊")}
+                    >
+                      Esqueci minha senha
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* PIN */}
+              {step === "pin" && (
+                <>
+                  <h2 className="h2">Verificação</h2>
+                  <p className="p">Digite o PIN para continuar.</p>
+
+                  {errorMsg && <p className="error">{errorMsg}</p>}
+
+                  <div className="inputWrap">
+                    <span className="icon">
+                      <FaKey />
+                    </span>
+                    <input
+                      type="password"
+                      maxLength={6}
+                      value={pin}
+                      onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+                      placeholder="PIN (4 a 6 dígitos)"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                    />
+                  </div>
+
+                  <button
+                    className="btnPrimary"
+                    onClick={() => handleValidarPin(pin)}
+                    disabled={pin.length < 4 || loadingBtn}
+                  >
+                    {loadingBtn ? (
+                      <span className="spinner" />
+                    ) : (
+                      "Validar PIN"
+                    )}
+                  </button>
+
+                  <button
+                    className="btnGhost"
+                    onClick={() => setStep("login")}
+                    disabled={loadingBtn}
+                    type="button"
+                  >
+                    Voltar para login
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-        )}
 
-        {/* LOGIN */}
-        {step === "login" && (
-          <div className="login-container">
-            <img src={config?.logo} alt="Logo" className="logo-login" />
-            <h1>Login</h1>
-            {errorMsg && <p className="error-msg">{errorMsg}</p>}
+          {/* DIREITA */}
+          <div className="right">
+            <div className="brand">
+              {logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logo} alt="Logo" className="logo" />
+              ) : (
+                <div className="logoFallback">IMPÉRIO</div>
+              )}
 
-            <div className="input-wrapper">
-              <div className="input-icon">
-                <FaUser />
+              <h1 className="title">{titulo}</h1>
+              <p className="message">{mensagem}</p>
+
+              <div className="hint">
+                <span className="dot" />
+                Dica: se você é administrador, pode ser solicitado o PIN.
               </div>
-              <input
-                type="text"
-                placeholder="Usuário ou Email"
-                value={usuario}
-                onChange={(e) => setUsuario(e.target.value)}
-              />
-            </div>
-
-            <div className="input-wrapper">
-              <div className="input-icon">
-                <FaLock />
-              </div>
-              <input
-                type="password"
-                placeholder="Senha"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-              />
-            </div>
-
-            <button
-              className="btn-primary"
-              onClick={() => handleLogin(usuario, senha)}
-              disabled={loadingBtn}
-            >
-              {loadingBtn ? <div className="spinner"></div> : "Entrar"}
-            </button>
-
-            <div className="links">
-              <a href="#">Esqueci minha senha</a>
-              <button className="voltar" onClick={() => setStep("cadastro")}>
-                Criar conta
-              </button>
             </div>
           </div>
-        )}
-
-        {/* PIN */}
-        {step === "pin" && (
-          <div className="login-container">
-            <img src={config?.logo} alt="Logo" className="logo-login" />
-            <h1>Digite o PIN</h1>
-            {errorMsg && <p className="error-msg">{errorMsg}</p>}
-
-            <div className="input-wrapper">
-              <div className="input-icon">
-                <FaKey />
-              </div>
-              <input
-                type="password"
-                maxLength={6}
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-                placeholder="••••"
-              />
-            </div>
-
-            <button
-              className="btn-primary"
-              onClick={() => handleValidarPin(pin)}
-              disabled={pin.length < 4 || loadingBtn}
-            >
-              {loadingBtn ? <div className="spinner"></div> : "Validar PIN"}
-            </button>
-
-            <button className="voltar" onClick={() => setStep("login")}>
-              Voltar
-            </button>
-          </div>
-        )}
-
-        {/* CADASTRO */}
-        {step === "cadastro" && (
-          <div className="login-container">
-            <img src={config?.logo} alt="Logo" className="logo-login" />
-            <h1>Criar Conta</h1>
-            {errorMsg && <p className="error-msg">{errorMsg}</p>}
-
-            <div className="input-wrapper">
-              <div className="input-icon">
-                <FaUser />
-              </div>
-              <input
-                type="text"
-                placeholder="Nome completo"
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-              />
-            </div>
-
-            <div className="input-wrapper">
-              <div className="input-icon">
-                <FaEnvelope />
-              </div>
-              <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-
-            <div className="input-wrapper">
-              <div className="input-icon">
-                <FaLock />
-              </div>
-              <input
-                type="password"
-                placeholder="Senha"
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-              />
-            </div>
-
-            <div className="input-wrapper">
-              <div className="input-icon">
-                <FaPhone />
-              </div>
-              <input
-                type="text"
-                placeholder="Telefone"
-                value={telefone}
-                onChange={(e) => setTelefone(e.target.value)}
-              />
-            </div>
-
-            <div className="input-wrapper">
-              <div className="input-icon">
-                <FaKey />
-              </div>
-              <input
-                type="text"
-                placeholder="CPF"
-                value={cpf}
-                onChange={(e) => setCpf(e.target.value)}
-              />
-            </div>
-
-            <button
-              className="btn-primary"
-              onClick={handleCadastro}
-              disabled={loadingBtn}
-            >
-              {loadingBtn ? <div className="spinner"></div> : "Criar Conta"}
-            </button>
-
-            <button className="voltar" onClick={() => setStep("login")}>
-              Voltar
-            </button>
-          </div>
-        )}
+        </div>
       </div>
 
       <style jsx>{`
-        /* ====== MESMO CSS QUE VOCÊ JÁ TINHA ====== */
-        html,
-        body,
-        .login-bg {
-          margin: 0;
-          padding: 0;
-          height: 100vh;
-          width: 100%;
-          overflow: hidden;
-          font-family: "Segoe UI", sans-serif;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          background-color: ${config?.fundo || "#000"};
-          position: relative;
+        .loading {
+          color: white;
+          text-align: center;
+          margin-top: 24px;
+          font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
         }
 
-        .login-bg::before {
-          content: "";
+        .page {
+          min-height: 100vh;
+          width: 100%;
+          display: grid;
+          place-items: center;
+          padding: 22px;
+          position: relative;
+          overflow: hidden;
+          font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        }
+
+        .overlay {
           position: absolute;
-          top: -50%;
-          left: -50%;
-          width: 200%;
-          height: 200%;
-          background: radial-gradient(
-              circle at 25% 25%,
-              rgba(255, 90, 95, 0.06),
-              transparent 70%
-            ),
-            radial-gradient(
-              circle at 75% 75%,
-              rgba(255, 190, 0, 0.04),
-              transparent 70%
-            );
-          animation: animateBackground 25s linear infinite;
+          inset: 0;
+          background: radial-gradient(circle at 18% 12%, rgba(255, 190, 205, 0.22), transparent 55%),
+            radial-gradient(circle at 85% 85%, rgba(255, 140, 165, 0.18), transparent 50%),
+            radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.08), transparent 60%);
+          filter: blur(2px);
+          animation: floatBg 18s linear infinite;
           z-index: 0;
         }
 
-        @keyframes animateBackground {
-          0% {
-            transform: rotate(0deg) scale(1);
-          }
-          50% {
-            transform: rotate(180deg) scale(1.05);
-          }
-          100% {
-            transform: rotate(360deg) scale(1);
-          }
+        @keyframes floatBg {
+          0% { transform: rotate(0deg) scale(1); }
+          50% { transform: rotate(180deg) scale(1.04); }
+          100% { transform: rotate(360deg) scale(1); }
         }
 
-        .login-container {
+        .shell {
           position: relative;
           z-index: 1;
-          max-width: 400px;
-          width: 90%;
-          padding: 50px 30px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          text-align: center;
+          width: min(1120px, 100%);
+          min-height: 580px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          border-radius: 26px;
+          overflow: hidden;
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          box-shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
+          background: rgba(0, 0, 0, 0.10);
+          backdrop-filter: blur(16px);
+        }
+
+        .left {
+          padding: 38px;
+          display: grid;
+          place-items: center;
+          background: rgba(0, 0, 0, 0.28);
+        }
+
+        .right {
+          padding: 38px;
+          display: grid;
+          place-items: center;
+          background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+        }
+
+        .panel { width: min(420px, 100%); }
+
+        .h2 {
+          margin: 0 0 8px 0;
+          font-size: 30px;
+          font-weight: 900;
           color: #fff;
-          backdrop-filter: blur(22px);
-          border-radius: 22px;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7);
-          background: rgba(0, 0, 0, 0.35);
-          animation: fadeIn 0.8s ease-in-out;
+          letter-spacing: -0.5px;
         }
 
-        .logo-login {
-          width: 140px;
-          margin-bottom: 25px;
-          animation: fadeInDown 1s ease-out;
+        .p {
+          margin: 0 0 18px 0;
+          color: rgba(255, 255, 255, 0.82);
+          font-size: 14px;
+          line-height: 1.6;
         }
 
-        h1 {
-          font-size: 2rem;
-          font-weight: 700;
-          margin-bottom: 15px;
-          background: linear-gradient(90deg, #d36f92, #2f3c95);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
+        .error {
+          margin: 0 0 10px 0;
+          color: #ffd1d1;
+          background: rgba(255, 0, 0, 0.10);
+          border: 1px solid rgba(255, 120, 120, 0.22);
+          padding: 10px 12px;
+          border-radius: 12px;
+          font-size: 13px;
         }
 
-        .input-wrapper {
+        .inputWrap {
           width: 100%;
           display: flex;
           align-items: center;
-          background: rgba(255, 255, 255, 0.05);
-          border: 2px solid #333;
-          border-radius: 12px;
-          padding: 0 12px;
-          margin-bottom: 15px;
-          transition: all 0.3s ease;
+          gap: 10px;
+          padding: 12px 14px;
+          border-radius: 14px;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          margin-bottom: 12px;
+          transition: 0.2s ease;
         }
 
-        .input-wrapper:focus-within {
-          border-color: #6c63ff;
+        .inputWrap:focus-within {
+          border-color: rgba(255, 255, 255, 0.35);
           background: rgba(255, 255, 255, 0.12);
+          transform: translateY(-1px);
         }
 
-        .input-icon {
-          color: #aaa;
-          font-size: 1.2rem;
-          margin-right: 10px;
-          display: flex;
-          align-items: center;
+        .icon {
+          color: rgba(255, 255, 255, 0.85);
+          font-size: 16px;
+          display: grid;
+          place-items: center;
+          width: 22px;
         }
 
-        .input-wrapper input {
-          flex: 1;
-          padding: 12px 0;
-          border: none;
-          outline: none;
+        .inputWrap input {
+          width: 100%;
+          border: 0;
+          outline: 0;
           background: transparent;
           color: #fff;
-          font-size: 1rem;
+          font-size: 15px;
         }
 
-        .input-wrapper input::placeholder {
-          color: #aaa;
-        }
-
-        .btn-primary {
+        .btnPrimary {
           width: 100%;
-          padding: 14px;
-          font-size: 1.1rem;
-          border-radius: 12px;
-          border: none;
+          border: 0;
           cursor: pointer;
-          background: linear-gradient(90deg, #d36f92, #2f3c95);
-          color: #fff;
-          font-weight: 600;
-          transition: all 0.3s ease;
+          padding: 12px 14px;
+          border-radius: 14px;
+          font-weight: 900;
+          font-size: 15px;
+          color: #2b0c16;
+          background: linear-gradient(90deg, #ffd0db, #ff9fb3);
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+          transition: 0.2s ease;
           display: flex;
-          align-items: center;
           justify-content: center;
+          align-items: center;
+          gap: 8px;
+          margin-top: 6px;
+        }
+
+        .btnPrimary:hover { transform: translateY(-1px); filter: brightness(1.02); }
+        .btnPrimary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .btnSecondary {
+          width: 100%;
           margin-top: 10px;
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+          border: 1px solid rgba(255, 255, 255, 0.22);
+          background: rgba(255, 255, 255, 0.08);
+          color: #fff;
+          cursor: pointer;
+          padding: 12px 14px;
+          border-radius: 14px;
+          font-weight: 900;
+          font-size: 15px;
+          transition: 0.2s ease;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 10px;
         }
 
-        .btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 22px rgba(0, 0, 0, 0.6);
+        .btnSecondary:hover { transform: translateY(-1px); background: rgba(255, 255, 255, 0.12); }
+        .btnSecondary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .btnGhost {
+          width: 100%;
+          margin-top: 10px;
+          padding: 11px 14px;
+          border-radius: 14px;
+          border: 1px solid rgba(255, 255, 255, 0.22);
+          background: rgba(0, 0, 0, 0.12);
+          color: #fff;
+          cursor: pointer;
+          transition: 0.2s ease;
         }
 
-        .spinner {
-          border: 3px solid rgba(255, 255, 255, 0.3);
-          border-top: 3px solid #fff;
-          border-radius: 50%;
-          width: 18px;
-          height: 18px;
-          animation: spin 1s linear infinite;
-          margin-right: 8px;
-        }
+        .btnGhost:hover { background: rgba(0, 0, 0, 0.18); transform: translateY(-1px); }
 
-        .links {
-          margin-top: 15px;
+        .row {
+          margin-top: 10px;
           display: flex;
           justify-content: space-between;
-          width: 100%;
+          gap: 12px;
         }
 
-        .links a,
-        .voltar {
-          color: #aaa;
-          font-size: 0.9rem;
-          text-decoration: none;
-          transition: all 0.2s ease;
-          background: none;
-          border: none;
-        }
-
-        .links a:hover,
-        .voltar:hover {
-          color: #fff;
-        }
-
-        .error-msg {
-          color: #ff6b6b;
-          font-weight: 500;
-          margin-bottom: 10px;
-        }
-
-        .voltar {
-          margin-top: 10px;
-          border: 1px solid #fff;
-          color: #fff;
-          border-radius: 8px;
-          padding: 10px 0;
+        .btnLink {
+          border: 0;
+          background: transparent;
+          color: rgba(255, 255, 255, 0.88);
           cursor: pointer;
-          width: 100%;
+          font-size: 13px;
+          padding: 6px 0;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
         }
 
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-        @keyframes fadeInDown {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        @keyframes spin {
-          0% {
-            transform: rotate(0deg);
-          }
-          100% {
-            transform: rotate(360deg);
-          }
+        .btnLink:hover { color: #fff; text-decoration: underline; }
+
+        .spinner {
+          width: 18px;
+          height: 18px;
+          border-radius: 999px;
+          border: 3px solid rgba(0, 0, 0, 0.18);
+          border-top: 3px solid rgba(0, 0, 0, 0.55);
+          animation: spin 0.9s linear infinite;
         }
 
-        @media (max-width: 768px) {
-          .login-container {
-            padding: 40px 25px;
-          }
-          h1 {
-            font-size: 1.8rem;
-          }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .brand {
+          width: min(480px, 100%);
+          text-align: left;
+          color: #fff;
         }
-        @media (max-width: 480px) {
-          .login-container {
-            padding: 35px 20px;
-          }
-          h1 {
-            font-size: 1.6rem;
-          }
-          .links {
-            flex-direction: column;
-            gap: 10px;
-            align-items: center;
-          }
+
+        .logo {
+          width: 140px;
+          height: auto;
+          margin-bottom: 14px;
+          filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.35));
+        }
+
+        .logoFallback {
+          width: 140px;
+          height: 70px;
+          border-radius: 18px;
+          display: grid;
+          place-items: center;
+          font-weight: 900;
+          letter-spacing: 1px;
+          background: rgba(0, 0, 0, 0.22);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          margin-bottom: 14px;
+        }
+
+        .title {
+          margin: 0 0 8px 0;
+          font-size: 34px;
+          font-weight: 950;
+          letter-spacing: -0.9px;
+          line-height: 1.1;
+        }
+
+        .message {
+          margin: 0;
+          color: rgba(255, 255, 255, 0.88);
+          line-height: 1.55;
+          max-width: 42ch;
+        }
+
+        .hint {
+          margin-top: 18px;
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          border-radius: 14px;
+          background: rgba(0, 0, 0, 0.18);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 13px;
+        }
+
+        .dot {
+          width: 10px;
+          height: 10px;
+          border-radius: 999px;
+          background: rgba(255, 209, 219, 0.95);
+          box-shadow: 0 0 0 4px rgba(255, 209, 219, 0.12);
+        }
+
+        @media (max-width: 900px) {
+          .shell { grid-template-columns: 1fr; }
+          .right { order: -1; }
+          .title { font-size: 30px; }
         }
       `}</style>
     </>
