@@ -70,7 +70,7 @@ function pickUserId(me: any): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-function pickCarrinho(resp: any): { itens: CarrinhoItem[]; endereco: Endereco | null } {
+function pickCarrinho(resp: any): { itens: CarrinhoItem[]; endereco: any | null } {
   const base = resp?.dados ?? resp?.data ?? resp;
   const itens = Array.isArray(base?.itens) ? base.itens : [];
   const endereco = base?.endereco ?? null;
@@ -80,7 +80,6 @@ function pickCarrinho(resp: any): { itens: CarrinhoItem[]; endereco: Endereco | 
 /** ✅ URL robusta para imagens */
 function imagemUrl(path?: string) {
   if (!path) return "/placeholder.png";
-
   if (/^https?:\/\//i.test(path)) return path;
 
   const base = (api.defaults.baseURL || "").replace(/\/+$/, "");
@@ -88,10 +87,22 @@ function imagemUrl(path?: string) {
 
   if (clean.startsWith("upload/")) return `${base}/${clean}`;
   if (clean.startsWith("/upload/")) return `${base}${clean}`;
-
   if (clean.includes("/")) return `${base}/${clean}`;
-
   return `${base}/upload/${clean}`;
+}
+
+function sameEndereco(a: EnderecoDB, b: Endereco): boolean {
+  const norm = (s?: string) => String(s ?? "").trim().toLowerCase();
+  const digits = (s?: string) => String(s ?? "").replace(/\D/g, "");
+
+  return (
+    digits(a.cep) === digits(b.cep) &&
+    norm(a.rua) === norm(b.rua) &&
+    norm(a.numero) === norm(b.numero) &&
+    norm(a.bairro) === norm(b.bairro) &&
+    norm(a.cidade) === norm(b.cidade) &&
+    norm(a.estado) === norm(b.estado)
+  );
 }
 
 export default function CarrinhoPage() {
@@ -123,7 +134,7 @@ export default function CarrinhoPage() {
 
   // endereços salvos
   const [enderecos, setEnderecos] = React.useState<EnderecoDB[]>([]);
-  const [enderecoSelecionadoId, setEnderecoSelecionadoId] = React.useState<number | "novo" | null>("novo");
+  const [enderecoSelecionadoId, setEnderecoSelecionadoId] = React.useState<number | "novo">("novo");
   const [enderecosLoading, setEnderecosLoading] = React.useState(false);
 
   const itensArray = Array.isArray(itens) ? itens : [];
@@ -140,28 +151,34 @@ export default function CarrinhoPage() {
 
   const total = Math.max(subtotal - descontoValor, 0);
 
-  async function carregarEnderecosSalvos(uid: number) {
+  // ✅ agora retorna a lista (não depende do setState)
+  async function carregarEnderecosSalvos(uid: number): Promise<EnderecoDB[]> {
     setEnderecosLoading(true);
     try {
-      // ✅ TROQUE se sua rota for outra:
-      // Ex: const resp = await api.get(`/usuario/${uid}/enderecos`);
-      const resp = await api.get(`/enderecos/${uid}`);
-
+      // ✅ SUA ROTA NOVA
+      const resp = await api.get(`/carrinho/enderecos/${uid}`);
       const base = resp.data?.dados ?? resp.data?.data ?? resp.data;
-      const list: EnderecoDB[] =
-        Array.isArray(base) ? base : Array.isArray(base?.enderecos) ? base.enderecos : [];
+
+      const list: EnderecoDB[] = Array.isArray(base)
+        ? base
+        : Array.isArray(base?.enderecos)
+        ? base.enderecos
+        : [];
 
       setEnderecos(list);
 
+      // default do select
       if (list.length > 0) {
-        setEnderecoSelecionadoId((prev) => (prev && prev !== "novo" ? prev : list[0].id_endereco));
+        setEnderecoSelecionadoId((prev) => (prev !== "novo" ? prev : list[0].id_endereco));
       } else {
         setEnderecoSelecionadoId("novo");
       }
+
+      return list;
     } catch {
-      // Se não existir endpoint ainda, não quebra
       setEnderecos([]);
       setEnderecoSelecionadoId("novo");
+      return [];
     } finally {
       setEnderecosLoading(false);
     }
@@ -186,8 +203,8 @@ export default function CarrinhoPage() {
 
       setUsuarioId(uid);
 
-      // carrega endereços salvos (para o select)
-      await carregarEnderecosSalvos(uid);
+      // ✅ pega lista e usa ela aqui (sem depender do state)
+      const listaEnderecos = await carregarEnderecosSalvos(uid);
 
       const carrinhoRes = await api.get(`/carrinho/${uid}`);
       const parsed = pickCarrinho(carrinhoRes.data);
@@ -205,15 +222,11 @@ export default function CarrinhoPage() {
           cidade: parsed.endereco.cidade ?? "",
           estado: parsed.endereco.estado ?? "SP",
         };
+
         setEndereco(endFromCarrinho);
 
-        // tenta selecionar algum endereço salvo igual
-        const found = (enderecos || []).find(
-          (e) =>
-            (e.cep ?? "") === (endFromCarrinho.cep ?? "") &&
-            (e.rua ?? "") === (endFromCarrinho.rua ?? "") &&
-            (e.numero ?? "") === (endFromCarrinho.numero ?? "")
-        );
+        // ✅ tenta marcar no select um endereço igual ao do carrinho
+        const found = listaEnderecos.find((e) => sameEndereco(e, endFromCarrinho));
         if (found?.id_endereco) setEnderecoSelecionadoId(found.id_endereco);
       }
     } catch (e: any) {
@@ -230,7 +243,8 @@ export default function CarrinhoPage() {
 
   // quando seleciona um endereço salvo, preenche o formulário
   React.useEffect(() => {
-    if (!enderecoSelecionadoId || enderecoSelecionadoId === "novo") return;
+    if (enderecoSelecionadoId === "novo") return;
+
     const chosen = enderecos.find((e) => e.id_endereco === enderecoSelecionadoId);
     if (!chosen) return;
 
@@ -297,8 +311,8 @@ export default function CarrinhoPage() {
   async function salvarEndereco(): Promise<boolean> {
     if (!usuarioId) return false;
 
-    // ✅ Se usuário escolheu um endereço salvo, tente setar pelo ID (backend deve aceitar)
-    if (enderecoSelecionadoId && enderecoSelecionadoId !== "novo") {
+    // ✅ se escolheu um endereço salvo, aplica por ID
+    if (enderecoSelecionadoId !== "novo") {
       try {
         await api.post("/carrinho/endereco", {
           usuarioId,
@@ -307,7 +321,7 @@ export default function CarrinhoPage() {
         toast.success("Endereço selecionado!");
         return true;
       } catch {
-        // fallback abaixo (salva campos)
+        // fallback para salvar campos
       }
     }
 
@@ -330,6 +344,8 @@ export default function CarrinhoPage() {
     try {
       await api.post("/carrinho/endereco", payload);
       toast.success("Endereço salvo!");
+      // ✅ atualiza lista de endereços após salvar
+      await carregarEnderecosSalvos(usuarioId);
       return true;
     } catch {
       toast.error("Erro ao salvar endereço.");
@@ -375,7 +391,7 @@ export default function CarrinhoPage() {
     setProcessing(true);
 
     try {
-      // ✅ NÃO manda enderecoFinal string. O backend usa carrinho_endereco_id
+      // ✅ backend usa o endereço do carrinho, então não manda string de endereco
       const payload: any = {
         usuario_id: usuarioId,
         total,
@@ -612,22 +628,12 @@ export default function CarrinhoPage() {
             </div>
 
             <div className="col-lg-4">
-              <div
-                className="surface p-4"
-                style={{
-                  background: "rgba(255,255,255,0.10)",
-                  borderColor: "rgba(255,255,255,0.16)",
-                }}
-              >
+              <div className="surface p-4" style={{ background: "rgba(255,255,255,0.10)", borderColor: "rgba(255,255,255,0.16)" }}>
                 <div style={{ fontWeight: 900, opacity: 0.9 }}>Total</div>
                 <div style={{ fontSize: 28, fontWeight: 1000, letterSpacing: "-0.02em" }}>{formatBRL(total)}</div>
                 <div style={{ opacity: 0.8, marginTop: 6, fontSize: 14 }}>{itensArray.length} item(ns) no carrinho</div>
 
-                <button
-                  className="btn btn-brand w-100 mt-3"
-                  onClick={() => setEtapa((prev) => (prev < 4 ? ((prev + 1) as any) : prev))}
-                  disabled={itensArray.length === 0 || processing || etapa === 4}
-                >
+                <button className="btn btn-brand w-100 mt-3" onClick={() => setEtapa((p) => (p < 4 ? ((p + 1) as any) : p))} disabled={itensArray.length === 0 || processing || etapa === 4}>
                   {etapa === 1 ? "Ir para Endereço" : etapa === 2 ? "Ir para Pagamento" : etapa === 3 ? "Finalizar" : "Concluído"}
                 </button>
 
@@ -645,7 +651,6 @@ export default function CarrinhoPage() {
           <div className="alert alert-warning">{erro}</div>
         ) : (
           <div className="row g-4">
-            {/* LEFT */}
             <div className="col-lg-8">
               <div className="surface p-4">
                 <div className="stepper mb-3">
@@ -668,14 +673,7 @@ export default function CarrinhoPage() {
                       <div className="d-grid gap-3">
                         {itensArray.map((item) => (
                           <div key={item.id_item} className="itemCard">
-                            <img
-                              className="productImg"
-                              src={imagemUrl(item.imagem)}
-                              alt={item.nome_produto}
-                              onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src = "/placeholder.png";
-                              }}
-                            />
+                            <img className="productImg" src={imagemUrl(item.imagem)} alt={item.nome_produto} onError={(e) => ((e.currentTarget as HTMLImageElement).src = "/placeholder.png")} />
 
                             <div>
                               <div style={{ fontWeight: 1000 }}>{item.nome_produto}</div>
@@ -683,8 +681,7 @@ export default function CarrinhoPage() {
                                 {formatBRL(num(item.preco_unitario))}
                               </div>
                               <div className="text-muted small">
-                                Subtotal:{" "}
-                                <strong>{formatBRL(num(item.preco_unitario) * (item.quantidade || 1))}</strong>
+                                Subtotal: <strong>{formatBRL(num(item.preco_unitario) * (item.quantidade || 1))}</strong>
                               </div>
                             </div>
 
@@ -726,12 +723,12 @@ export default function CarrinhoPage() {
                       Endereço de entrega
                     </h4>
 
-                    {/* ✅ SELECT DE ENDEREÇOS SALVOS */}
+                    {/* ✅ SELECT ENDEREÇOS */}
                     <div className="mb-3">
                       <label className="form-label fw-bold">Endereço salvo</label>
                       <select
                         className="form-select pillInput"
-                        value={enderecoSelecionadoId ?? "novo"}
+                        value={enderecoSelecionadoId}
                         onChange={(e) => {
                           const v = e.target.value;
                           if (v === "novo") {
@@ -762,12 +759,7 @@ export default function CarrinhoPage() {
                     <div className="row g-3">
                       <div className="col-md-4">
                         <label className="form-label fw-bold">CEP</label>
-                        <input
-                          className="form-control pillInput"
-                          value={endereco.cep ?? ""}
-                          onChange={(e) => setEndereco((p) => ({ ...p, cep: e.target.value.replace(/\D/g, "").slice(0, 8) }))}
-                          placeholder="00000000"
-                        />
+                        <input className="form-control pillInput" value={endereco.cep ?? ""} onChange={(e) => setEndereco((p) => ({ ...p, cep: e.target.value.replace(/\D/g, "").slice(0, 8) }))} placeholder="00000000" />
                       </div>
 
                       <div className="col-md-8">
@@ -927,7 +919,7 @@ export default function CarrinhoPage() {
               </div>
             </div>
 
-            {/* RIGHT */}
+            {/* RIGHT (seu resumo continua igual — se quiser eu re-colo aqui também) */}
             <div className="col-lg-4">
               <div className="surface p-4 summarySticky">
                 <h5 className="mb-3" style={{ fontWeight: 1000 }}>
@@ -945,8 +937,7 @@ export default function CarrinhoPage() {
                   <div className="mb-3 p-3" style={{ background: "#fff", borderRadius: 14, border: "1px solid rgba(0,0,0,0.06)" }}>
                     <div className="fw-bold">{cupomAplicado.codigo}</div>
                     <div className="text-muted small">
-                      {cupomAplicado.descricao ||
-                        (cupomAplicado.tipo === "percentual" ? `${cupomAplicado.valor}% off` : `${formatBRL(cupomAplicado.valor)} off`)}
+                      {cupomAplicado.descricao || (cupomAplicado.tipo === "percentual" ? `${cupomAplicado.valor}% off` : `${formatBRL(cupomAplicado.valor)} off`)}
                     </div>
                     <div className="text-success fw-bold mt-1">- {formatBRL(descontoValor)}</div>
 
@@ -985,11 +976,7 @@ export default function CarrinhoPage() {
                   <span style={{ fontWeight: 1000 }}>{formatBRL(total)}</span>
                 </div>
 
-                <button
-                  className="btn btn-brand w-100 mt-3"
-                  onClick={() => setEtapa((prev) => (prev < 4 ? ((prev + 1) as any) : prev))}
-                  disabled={itensArray.length === 0 || processing || etapa === 4}
-                >
+                <button className="btn btn-brand w-100 mt-3" onClick={() => setEtapa((p) => (p < 4 ? ((p + 1) as any) : p))} disabled={itensArray.length === 0 || processing || etapa === 4}>
                   {etapa === 1 ? "Ir para Endereço" : etapa === 2 ? "Ir para Pagamento" : etapa === 3 ? "Finalizar" : "Concluído"}
                 </button>
 
