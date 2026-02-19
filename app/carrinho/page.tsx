@@ -28,6 +28,18 @@ type Endereco = {
   estado?: string;
 };
 
+type EnderecoDB = {
+  id_endereco: number;
+  cep?: string;
+  rua?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+  nome?: string; // opcional
+};
+
 type Cupom = {
   codigo: string;
   tipo: "percentual" | "fixo";
@@ -69,27 +81,16 @@ function pickCarrinho(resp: any): { itens: CarrinhoItem[]; endereco: Endereco | 
 function imagemUrl(path?: string) {
   if (!path) return "/placeholder.png";
 
-  // URL completa
   if (/^https?:\/\//i.test(path)) return path;
 
   const base = (api.defaults.baseURL || "").replace(/\/+$/, "");
   const clean = String(path).replace(/^\/+/, "");
 
-  // se já vier "upload/xxx"
   if (clean.startsWith("upload/")) return `${base}/${clean}`;
-
-  // se vier "/upload/xxx"
   if (clean.startsWith("/upload/")) return `${base}${clean}`;
 
-  // se vier "uploads/xxx" (ou qualquer outra pasta), tenta direto
-  // MAS como sua rota pública é /upload/{arquivo}, preferimos forçar upload/
-  // para arquivo simples:
-  if (clean.includes("/")) {
-    // se o backend manda tipo "produto/arquivo.jpg", tenta abrir direto:
-    return `${base}/${clean}`;
-  }
+  if (clean.includes("/")) return `${base}/${clean}`;
 
-  // caso comum: "arquivo.jpg" => /upload/arquivo.jpg
   return `${base}/upload/${clean}`;
 }
 
@@ -120,6 +121,11 @@ export default function CarrinhoPage() {
   // pix
   const [pixPayload, setPixPayload] = React.useState<{ qrUrl?: string; payload?: string } | null>(null);
 
+  // endereços salvos
+  const [enderecos, setEnderecos] = React.useState<EnderecoDB[]>([]);
+  const [enderecoSelecionadoId, setEnderecoSelecionadoId] = React.useState<number | "novo" | null>("novo");
+  const [enderecosLoading, setEnderecosLoading] = React.useState(false);
+
   const itensArray = Array.isArray(itens) ? itens : [];
 
   const subtotal = React.useMemo(() => {
@@ -133,6 +139,33 @@ export default function CarrinhoPage() {
   }, [cupomAplicado, subtotal]);
 
   const total = Math.max(subtotal - descontoValor, 0);
+
+  async function carregarEnderecosSalvos(uid: number) {
+    setEnderecosLoading(true);
+    try {
+      // ✅ TROQUE se sua rota for outra:
+      // Ex: const resp = await api.get(`/usuario/${uid}/enderecos`);
+      const resp = await api.get(`/enderecos/${uid}`);
+
+      const base = resp.data?.dados ?? resp.data?.data ?? resp.data;
+      const list: EnderecoDB[] =
+        Array.isArray(base) ? base : Array.isArray(base?.enderecos) ? base.enderecos : [];
+
+      setEnderecos(list);
+
+      if (list.length > 0) {
+        setEnderecoSelecionadoId((prev) => (prev && prev !== "novo" ? prev : list[0].id_endereco));
+      } else {
+        setEnderecoSelecionadoId("novo");
+      }
+    } catch {
+      // Se não existir endpoint ainda, não quebra
+      setEnderecos([]);
+      setEnderecoSelecionadoId("novo");
+    } finally {
+      setEnderecosLoading(false);
+    }
+  }
 
   /* ===================== LOAD ===================== */
   async function carregarTudo() {
@@ -153,13 +186,17 @@ export default function CarrinhoPage() {
 
       setUsuarioId(uid);
 
+      // carrega endereços salvos (para o select)
+      await carregarEnderecosSalvos(uid);
+
       const carrinhoRes = await api.get(`/carrinho/${uid}`);
       const parsed = pickCarrinho(carrinhoRes.data);
 
       setItens(parsed.itens || []);
 
+      // endereço do carrinho (se existir)
       if (parsed.endereco) {
-        setEndereco({
+        const endFromCarrinho: Endereco = {
           cep: parsed.endereco.cep ?? "",
           rua: parsed.endereco.rua ?? "",
           numero: parsed.endereco.numero ?? "",
@@ -167,7 +204,17 @@ export default function CarrinhoPage() {
           bairro: parsed.endereco.bairro ?? "",
           cidade: parsed.endereco.cidade ?? "",
           estado: parsed.endereco.estado ?? "SP",
-        });
+        };
+        setEndereco(endFromCarrinho);
+
+        // tenta selecionar algum endereço salvo igual
+        const found = (enderecos || []).find(
+          (e) =>
+            (e.cep ?? "") === (endFromCarrinho.cep ?? "") &&
+            (e.rua ?? "") === (endFromCarrinho.rua ?? "") &&
+            (e.numero ?? "") === (endFromCarrinho.numero ?? "")
+        );
+        if (found?.id_endereco) setEnderecoSelecionadoId(found.id_endereco);
       }
     } catch (e: any) {
       setErro(e?.response?.data?.mensagem || e?.message || "Erro ao carregar carrinho.");
@@ -181,6 +228,23 @@ export default function CarrinhoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // quando seleciona um endereço salvo, preenche o formulário
+  React.useEffect(() => {
+    if (!enderecoSelecionadoId || enderecoSelecionadoId === "novo") return;
+    const chosen = enderecos.find((e) => e.id_endereco === enderecoSelecionadoId);
+    if (!chosen) return;
+
+    setEndereco({
+      cep: chosen.cep ?? "",
+      rua: chosen.rua ?? "",
+      numero: chosen.numero ?? "",
+      complemento: chosen.complemento ?? "",
+      bairro: chosen.bairro ?? "",
+      cidade: chosen.cidade ?? "",
+      estado: chosen.estado ?? "SP",
+    });
+  }, [enderecoSelecionadoId, enderecos]);
+
   /* ===================== CART ACTIONS ===================== */
   async function alterarQuantidade(itemId: number, qtd: number) {
     if (qtd < 1) return;
@@ -188,7 +252,7 @@ export default function CarrinhoPage() {
     try {
       await api.put(`/carrinho/atualizar/${itemId}`, { quantidade: qtd });
       setItens((prev) => prev.map((i) => (i.id_item === itemId ? { ...i, quantidade: qtd } : i)));
-    } catch (e: any) {
+    } catch {
       toast.error("Erro ao atualizar quantidade.");
     }
   }
@@ -198,7 +262,7 @@ export default function CarrinhoPage() {
       await api.delete(`/carrinho/remover/${itemId}`);
       setItens((prev) => prev.filter((i) => i.id_item !== itemId));
       toast.success("Item removido do carrinho.");
-    } catch (e: any) {
+    } catch {
       toast.error("Erro ao remover item.");
     }
   }
@@ -221,7 +285,7 @@ export default function CarrinhoPage() {
 
       setCupomAplicado(base);
       toast.success("Cupom aplicado!");
-    } catch (e: any) {
+    } catch {
       setCupomAplicado(null);
       toast.error("Erro ao validar cupom.");
     } finally {
@@ -230,9 +294,24 @@ export default function CarrinhoPage() {
   }
 
   /* ===================== ADDRESS ===================== */
-  async function salvarEndereco() {
+  async function salvarEndereco(): Promise<boolean> {
     if (!usuarioId) return false;
 
+    // ✅ Se usuário escolheu um endereço salvo, tente setar pelo ID (backend deve aceitar)
+    if (enderecoSelecionadoId && enderecoSelecionadoId !== "novo") {
+      try {
+        await api.post("/carrinho/endereco", {
+          usuarioId,
+          enderecoId: enderecoSelecionadoId,
+        });
+        toast.success("Endereço selecionado!");
+        return true;
+      } catch {
+        // fallback abaixo (salva campos)
+      }
+    }
+
+    // novo / fallback: salva campos digitados
     const payload = {
       usuarioId,
       cep: (endereco.cep ?? "").replace(/\D/g, "").slice(0, 8),
@@ -252,7 +331,7 @@ export default function CarrinhoPage() {
       await api.post("/carrinho/endereco", payload);
       toast.success("Endereço salvo!");
       return true;
-    } catch (e: any) {
+    } catch {
       toast.error("Erro ao salvar endereço.");
       return false;
     }
@@ -296,18 +375,13 @@ export default function CarrinhoPage() {
     setProcessing(true);
 
     try {
-      const enderecoFinal =
-        `${endereco.rua}, ${endereco.numero}` +
-        `${endereco.complemento ? ` - ${endereco.complemento}` : ""}` +
-        ` | ${endereco.bairro} | ${endereco.cidade} - ${endereco.estado} | CEP: ${endereco.cep}`;
-
+      // ✅ NÃO manda enderecoFinal string. O backend usa carrinho_endereco_id
       const payload: any = {
         usuario_id: usuarioId,
         total,
         frete: 0,
-        endereco: enderecoFinal,
         metodo_pagamento: metodoPagamento,
-        pagamento_info: "",
+        pagamento_info: null,
       };
 
       if (metodoPagamento === "cartao") {
@@ -498,7 +572,7 @@ export default function CarrinhoPage() {
           width: 36px;
           height: 36px;
           border-radius: 12px;
-          border: 1px solid rgba(11, 18, 32, 0.10);
+          border: 1px solid rgba(11, 18, 32, 0.1);
           background: #fff;
           font-weight: 900;
         }
@@ -512,7 +586,7 @@ export default function CarrinhoPage() {
         .pillInput {
           border-radius: 14px !important;
           padding: 12px 12px !important;
-          border: 1px solid rgba(0, 0, 0, 0.10) !important;
+          border: 1px solid rgba(0, 0, 0, 0.1) !important;
           background: #fff !important;
         }
 
@@ -528,9 +602,7 @@ export default function CarrinhoPage() {
           <div className="row g-3 align-items-center">
             <div className="col-lg-8">
               <div className="heroTitle">Carrinho & Checkout</div>
-              <p className="heroSub mt-2">
-                Revise seus itens, confirme o endereço e finalize o pagamento com segurança.
-              </p>
+              <p className="heroSub mt-2">Revise seus itens, confirme o endereço e finalize o pagamento com segurança.</p>
 
               <div className="heroPills">
                 <span className="heroPill">🛡️ Compra segura</span>
@@ -540,25 +612,25 @@ export default function CarrinhoPage() {
             </div>
 
             <div className="col-lg-4">
-              <div className="surface p-4" style={{ background: "rgba(255,255,255,0.10)", borderColor: "rgba(255,255,255,0.16)" }}>
+              <div
+                className="surface p-4"
+                style={{
+                  background: "rgba(255,255,255,0.10)",
+                  borderColor: "rgba(255,255,255,0.16)",
+                }}
+              >
                 <div style={{ fontWeight: 900, opacity: 0.9 }}>Total</div>
                 <div style={{ fontSize: 28, fontWeight: 1000, letterSpacing: "-0.02em" }}>{formatBRL(total)}</div>
-                <div style={{ opacity: 0.8, marginTop: 6, fontSize: 14 }}>
-                  {itensArray.length} item(ns) no carrinho
-                </div>
+                <div style={{ opacity: 0.8, marginTop: 6, fontSize: 14 }}>{itensArray.length} item(ns) no carrinho</div>
+
                 <button
                   className="btn btn-brand w-100 mt-3"
                   onClick={() => setEtapa((prev) => (prev < 4 ? ((prev + 1) as any) : prev))}
                   disabled={itensArray.length === 0 || processing || etapa === 4}
                 >
-                  {etapa === 1
-                    ? "Ir para Endereço"
-                    : etapa === 2
-                    ? "Ir para Pagamento"
-                    : etapa === 3
-                    ? "Finalizar"
-                    : "Concluído"}
+                  {etapa === 1 ? "Ir para Endereço" : etapa === 2 ? "Ir para Pagamento" : etapa === 3 ? "Finalizar" : "Concluído"}
                 </button>
+
                 <button className="btn btn-outline-brand w-100 mt-2" onClick={carregarTudo}>
                   Atualizar carrinho
                 </button>
@@ -612,27 +684,17 @@ export default function CarrinhoPage() {
                               </div>
                               <div className="text-muted small">
                                 Subtotal:{" "}
-                                <strong>
-                                  {formatBRL(num(item.preco_unitario) * (item.quantidade || 1))}
-                                </strong>
+                                <strong>{formatBRL(num(item.preco_unitario) * (item.quantidade || 1))}</strong>
                               </div>
                             </div>
 
                             <div className="d-grid gap-2" style={{ justifyItems: "end" }}>
                               <div className="qtdBox">
-                                <button
-                                  className="qtdBtn"
-                                  onClick={() => alterarQuantidade(item.id_item, item.quantidade - 1)}
-                                  aria-label="Diminuir"
-                                >
+                                <button className="qtdBtn" onClick={() => alterarQuantidade(item.id_item, item.quantidade - 1)} aria-label="Diminuir">
                                   −
                                 </button>
                                 <div className="qtdNum">{item.quantidade}</div>
-                                <button
-                                  className="qtdBtn"
-                                  onClick={() => alterarQuantidade(item.id_item, item.quantidade + 1)}
-                                  aria-label="Aumentar"
-                                >
+                                <button className="qtdBtn" onClick={() => alterarQuantidade(item.id_item, item.quantidade + 1)} aria-label="Aumentar">
                                   +
                                 </button>
                               </div>
@@ -664,71 +726,78 @@ export default function CarrinhoPage() {
                       Endereço de entrega
                     </h4>
 
+                    {/* ✅ SELECT DE ENDEREÇOS SALVOS */}
+                    <div className="mb-3">
+                      <label className="form-label fw-bold">Endereço salvo</label>
+                      <select
+                        className="form-select pillInput"
+                        value={enderecoSelecionadoId ?? "novo"}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v === "novo") {
+                            setEnderecoSelecionadoId("novo");
+                            setEndereco({ estado: "SP" });
+                            return;
+                          }
+                          setEnderecoSelecionadoId(Number(v));
+                        }}
+                        disabled={enderecosLoading}
+                      >
+                        <option value="novo">+ Usar um novo endereço</option>
+                        {enderecos.map((e) => {
+                          const label =
+                            (e.nome ? `${e.nome} — ` : "") +
+                            `${e.rua ?? ""}, ${e.numero ?? ""} - ${e.bairro ?? ""} - ${e.cidade ?? ""}/${e.estado ?? ""}`;
+                          return (
+                            <option key={e.id_endereco} value={e.id_endereco}>
+                              {label}
+                            </option>
+                          );
+                        })}
+                      </select>
+
+                      {enderecosLoading ? <div className="text-muted small mt-1">Carregando endereços...</div> : null}
+                    </div>
+
                     <div className="row g-3">
                       <div className="col-md-4">
                         <label className="form-label fw-bold">CEP</label>
                         <input
                           className="form-control pillInput"
                           value={endereco.cep ?? ""}
-                          onChange={(e) =>
-                            setEndereco((p) => ({ ...p, cep: e.target.value.replace(/\D/g, "").slice(0, 8) }))
-                          }
+                          onChange={(e) => setEndereco((p) => ({ ...p, cep: e.target.value.replace(/\D/g, "").slice(0, 8) }))}
                           placeholder="00000000"
                         />
                       </div>
 
                       <div className="col-md-8">
                         <label className="form-label fw-bold">Rua</label>
-                        <input
-                          className="form-control pillInput"
-                          value={endereco.rua ?? ""}
-                          onChange={(e) => setEndereco((p) => ({ ...p, rua: e.target.value }))}
-                        />
+                        <input className="form-control pillInput" value={endereco.rua ?? ""} onChange={(e) => setEndereco((p) => ({ ...p, rua: e.target.value }))} />
                       </div>
 
                       <div className="col-md-3">
                         <label className="form-label fw-bold">Número</label>
-                        <input
-                          className="form-control pillInput"
-                          value={endereco.numero ?? ""}
-                          onChange={(e) => setEndereco((p) => ({ ...p, numero: e.target.value }))}
-                        />
+                        <input className="form-control pillInput" value={endereco.numero ?? ""} onChange={(e) => setEndereco((p) => ({ ...p, numero: e.target.value }))} />
                       </div>
 
                       <div className="col-md-3">
                         <label className="form-label fw-bold">Complemento</label>
-                        <input
-                          className="form-control pillInput"
-                          value={endereco.complemento ?? ""}
-                          onChange={(e) => setEndereco((p) => ({ ...p, complemento: e.target.value }))}
-                        />
+                        <input className="form-control pillInput" value={endereco.complemento ?? ""} onChange={(e) => setEndereco((p) => ({ ...p, complemento: e.target.value }))} />
                       </div>
 
                       <div className="col-md-4">
                         <label className="form-label fw-bold">Bairro</label>
-                        <input
-                          className="form-control pillInput"
-                          value={endereco.bairro ?? ""}
-                          onChange={(e) => setEndereco((p) => ({ ...p, bairro: e.target.value }))}
-                        />
+                        <input className="form-control pillInput" value={endereco.bairro ?? ""} onChange={(e) => setEndereco((p) => ({ ...p, bairro: e.target.value }))} />
                       </div>
 
                       <div className="col-md-6">
                         <label className="form-label fw-bold">Cidade</label>
-                        <input
-                          className="form-control pillInput"
-                          value={endereco.cidade ?? ""}
-                          onChange={(e) => setEndereco((p) => ({ ...p, cidade: e.target.value }))}
-                        />
+                        <input className="form-control pillInput" value={endereco.cidade ?? ""} onChange={(e) => setEndereco((p) => ({ ...p, cidade: e.target.value }))} />
                       </div>
 
                       <div className="col-md-6">
                         <label className="form-label fw-bold">Estado</label>
-                        <select
-                          className="form-select pillInput"
-                          value={endereco.estado ?? "SP"}
-                          onChange={(e) => setEndereco((p) => ({ ...p, estado: e.target.value }))}
-                        >
+                        <select className="form-select pillInput" value={endereco.estado ?? "SP"} onChange={(e) => setEndereco((p) => ({ ...p, estado: e.target.value }))}>
                           <option value="SP">SP</option>
                           <option value="RJ">RJ</option>
                           <option value="MG">MG</option>
@@ -757,25 +826,17 @@ export default function CarrinhoPage() {
                     </h4>
 
                     <div className="d-flex gap-2 mb-3">
-                      <button
-                        className={metodoPagamento === "pix" ? "btn btn-brand" : "btn btn-outline-brand"}
-                        onClick={() => setMetodoPagamento("pix")}
-                      >
+                      <button className={metodoPagamento === "pix" ? "btn btn-brand" : "btn btn-outline-brand"} onClick={() => setMetodoPagamento("pix")}>
                         Pix
                       </button>
-                      <button
-                        className={metodoPagamento === "cartao" ? "btn btn-brand" : "btn btn-outline-brand"}
-                        onClick={() => setMetodoPagamento("cartao")}
-                      >
+                      <button className={metodoPagamento === "cartao" ? "btn btn-brand" : "btn btn-outline-brand"} onClick={() => setMetodoPagamento("cartao")}>
                         Cartão
                       </button>
                     </div>
 
                     {metodoPagamento === "pix" && (
                       <div className="surface p-3" style={{ background: "#fff" }}>
-                        <div className="text-muted">
-                          Ao finalizar, vamos gerar o Pix (se sua API retornar payload).
-                        </div>
+                        <div className="text-muted">Ao finalizar, vamos gerar o Pix (se sua API retornar payload).</div>
 
                         {pixPayload?.qrUrl ? (
                           <div className="mt-3 text-center">
@@ -801,39 +862,22 @@ export default function CarrinhoPage() {
 
                         <div className="col-12">
                           <label className="form-label fw-bold">Número</label>
-                          <input
-                            className="form-control pillInput"
-                            value={cardNumber}
-                            onChange={(e) => setCardNumber(maskCardNumber(e.target.value))}
-                            placeholder="4242 4242 4242 4242"
-                          />
+                          <input className="form-control pillInput" value={cardNumber} onChange={(e) => setCardNumber(maskCardNumber(e.target.value))} placeholder="4242 4242 4242 4242" />
                         </div>
 
                         <div className="col-md-4">
                           <label className="form-label fw-bold">Validade</label>
-                          <input
-                            className="form-control pillInput"
-                            value={cardExpiry}
-                            onChange={(e) => setCardExpiry(maskExpiry(e.target.value))}
-                            placeholder="MM/YY"
-                          />
+                          <input className="form-control pillInput" value={cardExpiry} onChange={(e) => setCardExpiry(maskExpiry(e.target.value))} placeholder="MM/YY" />
                         </div>
 
                         <div className="col-md-4">
                           <label className="form-label fw-bold">CVV</label>
-                          <input
-                            className="form-control pillInput"
-                            value={cardCVV}
-                            onChange={(e) => setCardCVV(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                            placeholder="123"
-                          />
+                          <input className="form-control pillInput" value={cardCVV} onChange={(e) => setCardCVV(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="123" />
                         </div>
 
                         <div className="col-md-4">
                           <label className="form-label fw-bold">Validação</label>
-                          <div className="form-control pillInput bg-light">
-                            {isCardValid() ? "✅ Ok" : "❌ inválido"}
-                          </div>
+                          <div className="form-control pillInput bg-light">{isCardValid() ? "✅ Ok" : "❌ inválido"}</div>
                         </div>
                       </div>
                     )}
@@ -868,9 +912,7 @@ export default function CarrinhoPage() {
                     </div>
 
                     <h4 style={{ fontWeight: 1000 }}>Obrigado pela compra!</h4>
-                    <p className="text-muted mb-4">
-                      Você pode acompanhar seus pedidos na página “Meus Pedidos”.
-                    </p>
+                    <p className="text-muted mb-4">Você pode acompanhar seus pedidos na página “Meus Pedidos”.</p>
 
                     <div className="d-flex gap-2 justify-content-center flex-wrap">
                       <button className="btn btn-outline-brand" onClick={() => (window.location.href = "/pedidos")}>
@@ -904,9 +946,7 @@ export default function CarrinhoPage() {
                     <div className="fw-bold">{cupomAplicado.codigo}</div>
                     <div className="text-muted small">
                       {cupomAplicado.descricao ||
-                        (cupomAplicado.tipo === "percentual"
-                          ? `${cupomAplicado.valor}% off`
-                          : `${formatBRL(cupomAplicado.valor)} off`)}
+                        (cupomAplicado.tipo === "percentual" ? `${cupomAplicado.valor}% off` : `${formatBRL(cupomAplicado.valor)} off`)}
                     </div>
                     <div className="text-success fw-bold mt-1">- {formatBRL(descontoValor)}</div>
 
@@ -918,12 +958,7 @@ export default function CarrinhoPage() {
                   <div className="mb-3">
                     <label className="form-label fw-bold">Cupom</label>
                     <div className="input-group">
-                      <input
-                        className="form-control pillInput"
-                        value={cupomInput}
-                        onChange={(e) => setCupomInput(e.target.value)}
-                        placeholder="Digite o cupom"
-                      />
+                      <input className="form-control pillInput" value={cupomInput} onChange={(e) => setCupomInput(e.target.value)} placeholder="Digite o cupom" />
                       <button className="btn btn-outline-secondary" onClick={aplicarCupom} disabled={cupomLoading}>
                         {cupomLoading ? "..." : "Aplicar"}
                       </button>
@@ -955,13 +990,7 @@ export default function CarrinhoPage() {
                   onClick={() => setEtapa((prev) => (prev < 4 ? ((prev + 1) as any) : prev))}
                   disabled={itensArray.length === 0 || processing || etapa === 4}
                 >
-                  {etapa === 1
-                    ? "Ir para Endereço"
-                    : etapa === 2
-                    ? "Ir para Pagamento"
-                    : etapa === 3
-                    ? "Finalizar"
-                    : "Concluído"}
+                  {etapa === 1 ? "Ir para Endereço" : etapa === 2 ? "Ir para Pagamento" : etapa === 3 ? "Finalizar" : "Concluído"}
                 </button>
 
                 <button className="btn btn-outline-brand w-100 mt-2" onClick={carregarTudo}>
