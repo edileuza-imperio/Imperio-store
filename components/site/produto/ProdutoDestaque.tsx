@@ -5,18 +5,18 @@ import { useRouter } from "next/navigation";
 import api from "@/Api/conectar";
 import { useProdutoDestaque } from "@/hooks/produto/useProdutoDestaque";
 import {
-  Star,
-  ShoppingCart,
-  Eye,
   Sparkles,
   ArrowRight,
-  Check,
-  Loader2,
+  ShieldCheck,
   BadgeCheck,
+  Star,
+  Eye,
+  ShoppingCart,
+  Loader2,
+  Check,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
-// ✅ Toast
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -34,64 +34,56 @@ function formatBRL(v: any) {
 
 function SkeletonCard() {
   return (
-    <div className="pcard pcard--skeleton">
-      <div className="pcard__media">
-        <div className="sk sk-media" />
+    <div className="impCard impCard--sk">
+      <div className="impCard__media">
+        <div className="impSk impSk--img" />
       </div>
-      <div className="pcard__body">
-        <div className="sk sk-title" />
-        <div className="sk sk-line" />
-        <div className="sk sk-line sm" />
-        <div className="pcard__footer">
-          <div className="sk sk-price" />
-          <div className="sk sk-btn" />
-        </div>
+      <div className="impCard__body">
+        <div className="impSk impSk--t" />
+        <div className="impSk impSk--l" />
+        <div className="impSk impSk--l sm" />
+        <div className="impSk impSk--b" />
       </div>
 
       <style jsx>{`
-        .pcard--skeleton {
+        .impCard--sk {
           pointer-events: none;
         }
-        .sk {
+        .impSk {
+          border-radius: 14px;
           background: linear-gradient(
             90deg,
-            rgba(255, 255, 255, 0.14),
-            rgba(255, 255, 255, 0.26),
-            rgba(255, 255, 255, 0.14)
+            rgba(0, 0, 0, 0.06),
+            rgba(0, 0, 0, 0.10),
+            rgba(0, 0, 0, 0.06)
           );
           background-size: 220% 100%;
-          animation: shimmer 1.1s linear infinite;
-          border-radius: 14px;
+          animation: sh 1.05s linear infinite;
         }
-        .sk-media {
-          width: 78%;
-          height: 72%;
+        .impSk--img {
+          height: 180px;
+          width: 100%;
           border-radius: 18px;
         }
-        .sk-title {
-          width: 70%;
+        .impSk--t {
           height: 16px;
-          margin-bottom: 10px;
+          width: 70%;
+          margin: 14px 0 10px;
         }
-        .sk-line {
-          width: 100%;
+        .impSk--l {
           height: 10px;
+          width: 100%;
           margin-bottom: 8px;
         }
-        .sk-line.sm {
-          width: 75%;
+        .impSk--l.sm {
+          width: 80%;
         }
-        .sk-price {
-          width: 110px;
-          height: 18px;
-          border-radius: 12px;
-        }
-        .sk-btn {
-          width: 140px;
+        .impSk--b {
           height: 44px;
-          border-radius: 16px;
+          width: 100%;
+          margin-top: 14px;
         }
-        @keyframes shimmer {
+        @keyframes sh {
           0% {
             background-position: 0% 0%;
           }
@@ -113,13 +105,9 @@ export default function ProdutoDestaque() {
 
   if (error) return null;
 
-  const LIMITE_VITRINE = 8;
-  const mostrarBotao = (destaques?.length || 0) > LIMITE_VITRINE;
-
-  const vitrine = useMemo(
-    () => (destaques || []).slice(0, LIMITE_VITRINE),
-    [destaques]
-  );
+  const LIMITE = 8;
+  const lista = useMemo(() => (destaques || []).slice(0, LIMITE), [destaques]);
+  const mostrarVerTodos = (destaques?.length || 0) > LIMITE;
 
   async function getUsuarioId(): Promise<number | null> {
     try {
@@ -148,7 +136,7 @@ export default function ProdutoDestaque() {
     const precoUnitario = Number(item?.produto_preco ?? item?.preco ?? 0);
 
     if (!Number.isFinite(produtoId) || produtoId <= 0) {
-      toast.error("Produto inválido para adicionar ao carrinho.");
+      toast.error("Produto inválido.");
       return;
     }
 
@@ -174,7 +162,7 @@ export default function ProdutoDestaque() {
         { withCredentials: true }
       );
 
-      setAdded((prev) => ({ ...prev, [produtoId]: true }));
+      setAdded((p) => ({ ...p, [produtoId]: true }));
 
       toast.success(
         <div style={{ display: "grid", gap: 6 }}>
@@ -186,8 +174,8 @@ export default function ProdutoDestaque() {
       );
 
       window.setTimeout(() => {
-        setAdded((prev) => ({ ...prev, [produtoId]: false }));
-      }, 1600);
+        setAdded((p) => ({ ...p, [produtoId]: false }));
+      }, 1500);
     } catch (e: any) {
       const msg =
         e?.response?.data?.mensagem ||
@@ -200,227 +188,189 @@ export default function ProdutoDestaque() {
   }
 
   return (
-    <section className="pdestaque">
+    <section className="impWrap">
       <ToastContainer
         position="top-right"
-        autoClose={2600}
+        autoClose={2400}
         newestOnTop
         closeOnClick
         pauseOnHover
         theme="dark"
       />
 
-      <div className="container">
-        <div className="wrap">
-          {/* ===== HEADER ===== */}
-          <header className="head">
-            <div className="head__left">
-              <div className="badge">
-                <Sparkles size={16} />
-                Destaques selecionados
-              </div>
-
-              <h2 className="head__title">Vitrine Premium</h2>
-              <p className="head__sub">
-                Curadoria com acabamento superior — escolha com confiança e
-                compre em segundos.
-              </p>
-
-              <div className="trust">
-                <span className="trust__item">
-                  <BadgeCheck size={16} /> Compra segura
-                </span>
-                <span className="trust__dot" />
-                <span className="trust__item">
-                  <BadgeCheck size={16} /> Produtos selecionados
-                </span>
-              </div>
+      <div className="impContainer">
+        {/* HEADER */}
+        <div className="impHead">
+          <div className="impHead__left">
+            <div className="impKicker">
+              <Sparkles size={16} />
+              Vitrine Premium
             </div>
 
-            {mostrarBotao && (
-              <Link href="/produtos/destaques" className="head__cta">
-                Ver todos <ArrowRight size={18} />
-              </Link>
-            )}
-          </header>
+            <h2 className="impTitle">Destaques selecionados</h2>
+            <p className="impSub">
+              Curadoria com acabamento superior — escolha com confiança e compre
+              em segundos.
+            </p>
 
-          <div className="row g-4">
-            {/* ===== CARD EDITORIAL ===== */}
-            <div className="col-lg-3 col-md-4">
-              <div className="editorial">
-                <div className="editorial__top">
-                  <div className="editorial__icon">
-                    <Sparkles size={24} />
-                  </div>
-                  <div className="editorial__chip">Curadoria Império</div>
-                </div>
+            <div className="impTrust">
+              <span className="impTrust__pill">
+                <ShieldCheck size={16} /> Compra segura
+              </span>
+              <span className="impTrust__pill">
+                <BadgeCheck size={16} /> Produtos selecionados
+              </span>
+            </div>
+          </div>
 
-                <h3 className="editorial__title">Elegância pronta para você</h3>
-                <p className="editorial__text">
-                  Destaques com visual marcante e excelente custo-benefício.
-                </p>
+          {mostrarVerTodos && (
+            <Link href="/produtos/destaques" className="impAll">
+              Ver todos <ArrowRight size={18} />
+            </Link>
+          )}
+        </div>
 
-                <div className="editorial__bullets">
-                  <span>✓ Seleção exclusiva</span>
-                  <span>✓ Qualidade premium</span>
-                  <span>✓ Compra rápida</span>
-                </div>
-
-                <Link href="/produtos/destaques" className="editorial__cta">
-                  Explorar destaques <ArrowRight size={18} />
-                </Link>
-
-                <div className="editorial__glow" />
-                <div className="editorial__noise" />
+        {/* GRID */}
+        <div className="impGrid">
+          {/* Editorial */}
+          <aside className="impEditorial">
+            <div className="impEditorial__top">
+              <div className="impEditorial__icon">
+                <Sparkles size={22} />
               </div>
+              <div className="impEditorial__chip">Curadoria Império</div>
             </div>
 
-            {/* ===== GRID ===== */}
-            <div className="col-lg-9 col-md-8">
-              <div className="row g-4">
-                {loading
-                  ? Array.from({ length: LIMITE_VITRINE }).map((_, i) => (
-                      <div key={i} className="col-6 col-md-4 col-lg-3">
-                        <SkeletonCard />
+            <h3 className="impEditorial__title">Elegância pronta para você</h3>
+            <p className="impEditorial__text">
+              Destaques com visual marcante e excelente custo-benefício.
+            </p>
+
+            <div className="impEditorial__bullets">
+              <span>✓ Seleção exclusiva</span>
+              <span>✓ Qualidade premium</span>
+              <span>✓ Compra rápida</span>
+            </div>
+
+            <Link href="/produtos/destaques" className="impEditorial__cta">
+              Explorar destaques <ArrowRight size={18} />
+            </Link>
+
+            <div className="impEditorial__glow" />
+          </aside>
+
+          {/* Cards */}
+          <div className="impCards">
+            {loading ? (
+              Array.from({ length: LIMITE }).map((_, i) => (
+                <SkeletonCard key={i} />
+              ))
+            ) : (
+              <>
+                {lista.map((item: any) => {
+                  const produtoId = Number(
+                    item?.produto_id ??
+                      item?.id_produto ??
+                      item?.produtoId ??
+                      item?.id
+                  );
+                  const isAdding = addingId === produtoId;
+                  const isAdded = !!added[produtoId];
+
+                  return (
+                    <article className="impCard" key={item.id_destaque ?? produtoId}>
+                      <div className="impBadge">
+                        <Star size={14} />
+                        Destaque
                       </div>
-                    ))
-                  : vitrine.map((item: any) => {
-                      const produtoId = Number(
-                        item?.produto_id ??
-                          item?.id_produto ??
-                          item?.produtoId ??
-                          item?.id
-                      );
-                      const isAdding = addingId === produtoId;
-                      const isAdded = !!added[produtoId];
 
-                      return (
-                        <div
-                          key={item.id_destaque ?? item.produto_id ?? item.id}
-                          className="col-6 col-md-4 col-lg-3"
-                        >
-                          <article className="pcard">
-                            {/* glow border */}
-                            <div className="pcard__border" />
-
-                            {/* badge */}
-                            <div className="pcard__ribbon">
-                              <Star size={14} />
-                              Destaque
-                            </div>
-
-                            {/* media */}
-                            <Link
-                              href={`/produto/${item.produto_slug}`}
-                              className="pcard__media"
-                            >
-                              <div className="pcard__plate">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={getImagemUrl(item.produto_imagem)}
-                                  alt={item.produto_nome}
-                                  loading="lazy"
-                                />
-                              </div>
-
-                              {/* overlay (efeito profissional) */}
-                              <div className="pcard__hoverOverlay">
-                                <div className="pcard__hoverPill">
-                                  <Eye size={16} />
-                                  Ver detalhes
-                                </div>
-                              </div>
-                            </Link>
-
-                            {/* body */}
-                            <div className="pcard__body">
-                              <h6 className="pcard__name" title={item.produto_nome}>
-                                {item.produto_nome}
-                              </h6>
-
-                              <p className="pcard__desc">
-                                {item.produto_descricao
-                                  ? item.produto_descricao.slice(0, 70) + "…"
-                                  : "Destaque selecionado com acabamento premium."}
-                              </p>
-
-                              <div className="pcard__bottom">
-                                <div className="pcard__pricebox">
-                                  <span className="pcard__price">
-                                    {formatBRL(item.produto_preco)}
-                                  </span>
-                                  <span className="pcard__tag">Em alta</span>
-                                </div>
-
-                                {/* ✅ BOTÕES PROFISSIONAIS */}
-                                <div className="btnRow">
-                                  <Link
-                                    href={`/produto/${item.produto_slug}`}
-                                    className="btnPro btnPro--view"
-                                    title="Ver produto"
-                                  >
-                                    <span className="btnPro__icon">
-                                      <Eye size={16} />
-                                    </span>
-                                    <span className="btnPro__label">Ver produto</span>
-                                  </Link>
-
-                                  <button
-                                    type="button"
-                                    className={`btnPro btnPro--cart ${
-                                      isAdded ? "btnPro--ok" : ""
-                                    }`}
-                                    title="Adicionar ao carrinho"
-                                    onClick={() => adicionarAoCarrinho(item)}
-                                    disabled={isAdding}
-                                  >
-                                    <span className="btnPro__icon">
-                                      {isAdding ? (
-                                        <Loader2 size={16} className="spin" />
-                                      ) : isAdded ? (
-                                        <Check size={16} />
-                                      ) : (
-                                        <ShoppingCart size={16} />
-                                      )}
-                                    </span>
-                                    <span className="btnPro__label">
-                                      {isAdding
-                                        ? "Adicionando"
-                                        : isAdded
-                                        ? "Adicionado"
-                                        : "Adicionar"}
-                                    </span>
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </article>
+                      <Link
+                        href={`/produto/${item.produto_slug}`}
+                        className="impCard__media"
+                        aria-label={`Ver ${item.produto_nome}`}
+                      >
+                        <div className="impImgPlate">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={getImagemUrl(item.produto_imagem)}
+                            alt={item.produto_nome}
+                            loading="lazy"
+                          />
                         </div>
-                      );
-                    })}
-              </div>
 
-              {mostrarBotao && (
-                <div className="more d-md-none">
-                  <Link href="/produtos/destaques" className="more__btn">
-                    Ver todos os destaques <ArrowRight size={18} />
-                  </Link>
-                </div>
-              )}
-            </div>
+                        <div className="impHover">
+                          <span className="impHover__pill">
+                            <Eye size={16} /> Ver detalhes
+                          </span>
+                        </div>
+                      </Link>
+
+                      <div className="impCard__body">
+                        <h4 className="impName" title={item.produto_nome}>
+                          {item.produto_nome}
+                        </h4>
+
+                        <p className="impDesc">
+                          {item.produto_descricao
+                            ? item.produto_descricao.slice(0, 70) + "…"
+                            : "Destaque selecionado com acabamento premium."}
+                        </p>
+
+                        <div className="impMeta">
+                          <div className="impPrice">{formatBRL(item.produto_preco)}</div>
+                          <div className="impTag">Em alta</div>
+                        </div>
+
+                        <div className="impActions">
+                          <Link
+                            href={`/produto/${item.produto_slug}`}
+                            className="impBtn impBtn--ghost"
+                          >
+                            <Eye size={16} />
+                            Ver produto
+                          </Link>
+
+                          <button
+                            type="button"
+                            className={`impBtn impBtn--solid ${isAdded ? "ok" : ""}`}
+                            onClick={() => adicionarAoCarrinho(item)}
+                            disabled={isAdding}
+                          >
+                            {isAdding ? (
+                              <>
+                                <Loader2 size={16} className="spin" />
+                                Adicionando
+                              </>
+                            ) : isAdded ? (
+                              <>
+                                <Check size={16} />
+                                Adicionado
+                              </>
+                            ) : (
+                              <>
+                                <ShoppingCart size={16} />
+                                Adicionar
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </>
+            )}
           </div>
         </div>
       </div>
 
       <style jsx>{`
-        /* ===== FUNDO PREMIUM ===== */
-        .pdestaque {
+        /* ==== container ==== */
+        .impWrap {
           padding: 34px 0;
           position: relative;
-          overflow: hidden;
         }
-
-        .pdestaque::before {
+        .impWrap::before {
           content: "";
           position: absolute;
           inset: -40%;
@@ -431,31 +381,34 @@ export default function ProdutoDestaque() {
             ),
             radial-gradient(
               760px 340px at 92% 10%,
-              rgba(122, 41, 65, 0.2),
+              rgba(122, 41, 65, 0.18),
               transparent 58%
             ),
             radial-gradient(
               620px 300px at 70% 85%,
-              rgba(17, 24, 39, 0.16),
+              rgba(17, 24, 39, 0.14),
               transparent 60%
             );
-          filter: blur(12px);
+          filter: blur(14px);
           pointer-events: none;
+          z-index: 0;
         }
 
-        .wrap {
+        .impContainer {
           position: relative;
-          border-radius: 34px;
+          z-index: 1;
+          width: min(1180px, 100%);
+          margin: 0 auto;
           padding: 22px;
-          background: rgba(255, 255, 255, 0.64);
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
-          border: 1px solid rgba(255, 255, 255, 0.78);
+          border-radius: 28px;
+          background: rgba(255, 255, 255, 0.72);
+          backdrop-filter: blur(14px);
+          border: 1px solid rgba(17, 24, 39, 0.08);
           box-shadow: 0 24px 80px rgba(17, 24, 39, 0.10);
         }
 
-        /* ===== HEADER ===== */
-        .head {
+        /* ==== head ==== */
+        .impHead {
           display: flex;
           align-items: flex-end;
           justify-content: space-between;
@@ -463,63 +416,56 @@ export default function ProdutoDestaque() {
           margin-bottom: 18px;
         }
 
-        .badge {
+        .impKicker {
           display: inline-flex;
           align-items: center;
           gap: 8px;
           padding: 7px 12px;
           border-radius: 999px;
-          font-weight: 900;
+          font-weight: 1000;
           font-size: 0.82rem;
           color: #7a2941;
           background: rgba(122, 41, 65, 0.10);
           border: 1px solid rgba(122, 41, 65, 0.14);
+          width: fit-content;
         }
 
-        .head__title {
+        .impTitle {
           margin: 10px 0 6px;
-          font-size: 2.10rem;
-          font-weight: 1000;
+          font-size: clamp(1.6rem, 2.6vw, 2.2rem);
+          font-weight: 1100;
           letter-spacing: -0.03em;
           color: #0b1220;
         }
 
-        .head__sub {
+        .impSub {
           margin: 0;
-          max-width: 640px;
+          max-width: 68ch;
           color: rgba(11, 18, 32, 0.70);
-          font-size: 1rem;
+          line-height: 1.5;
         }
 
-        .trust {
-          margin-top: 10px;
-          display: inline-flex;
-          align-items: center;
+        .impTrust {
+          margin-top: 12px;
+          display: flex;
           gap: 10px;
-          padding: 8px 12px;
-          border-radius: 999px;
-          background: rgba(17, 24, 39, 0.05);
-          border: 1px solid rgba(17, 24, 39, 0.08);
-          width: fit-content;
+          flex-wrap: wrap;
         }
 
-        .trust__item {
+        .impTrust__pill {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          font-weight: 900;
-          font-size: 0.86rem;
-          color: rgba(11, 18, 32, 0.78);
-        }
-
-        .trust__dot {
-          width: 6px;
-          height: 6px;
+          padding: 8px 12px;
           border-radius: 999px;
-          background: rgba(11, 18, 32, 0.20);
+          background: rgba(11, 18, 32, 0.04);
+          border: 1px solid rgba(11, 18, 32, 0.08);
+          font-weight: 900;
+          color: rgba(11, 18, 32, 0.78);
+          font-size: 0.88rem;
         }
 
-        .head__cta {
+        .impAll {
           display: inline-flex;
           align-items: center;
           gap: 10px;
@@ -530,48 +476,56 @@ export default function ProdutoDestaque() {
           font-weight: 1000;
           background: linear-gradient(135deg, #0b1220, #1f2937);
           box-shadow: 0 14px 42px rgba(17, 24, 39, 0.18);
-          transition: transform 0.25s ease, box-shadow 0.25s ease;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
           white-space: nowrap;
         }
-        .head__cta:hover {
+        .impAll:hover {
           transform: translateY(-2px);
           box-shadow: 0 22px 58px rgba(17, 24, 39, 0.22);
         }
 
-        /* ===== EDITORIAL ===== */
-        .editorial {
-          height: 100%;
-          border-radius: 28px;
-          padding: 22px;
+        /* ==== layout grid ==== */
+        .impGrid {
+          display: grid;
+          grid-template-columns: 320px 1fr;
+          gap: 16px;
+          align-items: stretch;
+        }
+
+        /* ==== editorial ==== */
+        .impEditorial {
+          border-radius: 22px;
+          padding: 18px;
           color: #fff;
           position: relative;
           overflow: hidden;
           background: linear-gradient(160deg, #0b1220 0%, #7a2941 55%, #b08d57 120%);
-          box-shadow: 0 22px 72px rgba(122, 41, 65, 0.22);
-          border: 1px solid rgba(255, 255, 255, 0.18);
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          box-shadow: 0 18px 60px rgba(122, 41, 65, 0.18);
+          min-height: 100%;
         }
 
-        .editorial__top {
+        .impEditorial__top {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 12px;
+          gap: 10px;
           position: relative;
           z-index: 2;
-          margin-bottom: 14px;
+          margin-bottom: 12px;
         }
 
-        .editorial__icon {
-          width: 52px;
-          height: 52px;
-          border-radius: 18px;
+        .impEditorial__icon {
+          width: 44px;
+          height: 44px;
+          border-radius: 16px;
           display: grid;
           place-items: center;
           background: rgba(255, 255, 255, 0.14);
-          border: 1px solid rgba(255, 255, 255, 0.20);
+          border: 1px solid rgba(255, 255, 255, 0.18);
         }
 
-        .editorial__chip {
+        .impEditorial__chip {
           font-size: 0.78rem;
           font-weight: 1000;
           padding: 7px 12px;
@@ -580,16 +534,16 @@ export default function ProdutoDestaque() {
           border: 1px solid rgba(255, 255, 255, 0.18);
         }
 
-        .editorial__title {
+        .impEditorial__title {
           position: relative;
           z-index: 2;
+          margin: 10px 0 8px;
           font-size: 1.25rem;
-          font-weight: 1000;
-          margin: 8px 0 8px;
+          font-weight: 1100;
           letter-spacing: -0.02em;
         }
 
-        .editorial__text {
+        .impEditorial__text {
           position: relative;
           z-index: 2;
           margin: 0 0 14px;
@@ -598,188 +552,160 @@ export default function ProdutoDestaque() {
           font-size: 0.95rem;
         }
 
-        .editorial__bullets {
+        .impEditorial__bullets {
           position: relative;
           z-index: 2;
           display: grid;
           gap: 6px;
           margin-bottom: 16px;
-          font-weight: 800;
-          font-size: 0.9rem;
+          font-weight: 900;
           opacity: 0.95;
         }
 
-        .editorial__cta {
+        .impEditorial__cta {
           position: relative;
           z-index: 2;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 10px;
-          padding: 12px 16px;
-          border-radius: 999px;
+          width: 100%;
+          height: 46px;
+          border-radius: 16px;
           color: #0b1220;
           background: #fff;
           text-decoration: none;
-          font-weight: 1000;
-          transition: transform 0.25s ease, filter 0.25s ease;
+          font-weight: 1100;
+          transition: transform 0.2s ease, filter 0.2s ease;
         }
-        .editorial__cta:hover {
+        .impEditorial__cta:hover {
           transform: translateY(-2px);
           filter: brightness(0.98);
         }
 
-        .editorial__glow {
+        .impEditorial__glow {
           position: absolute;
-          inset: -35%;
-          background: radial-gradient(circle, rgba(255, 255, 255, 0.22), transparent 58%);
+          inset: -40%;
+          background: radial-gradient(circle, rgba(255, 255, 255, 0.18), transparent 60%);
           transform: rotate(18deg);
           z-index: 1;
         }
 
-        .editorial__noise {
-          position: absolute;
-          inset: 0;
-          background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)' opacity='.12'/%3E%3C/svg%3E");
-          mix-blend-mode: overlay;
-          opacity: 0.35;
-          pointer-events: none;
-          z-index: 1;
+        /* ==== cards grid ==== */
+        .impCards {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 14px;
+          align-content: start;
         }
 
-        /* ===== PRODUCT CARD ===== */
-        .pcard {
+        /* ==== card ==== */
+        .impCard {
           position: relative;
-          height: 100%;
-          border-radius: 24px;
-          overflow: hidden;
-          background: rgba(255, 255, 255, 0.82);
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.90);
           border: 1px solid rgba(11, 18, 32, 0.08);
-          box-shadow: 0 18px 58px rgba(11, 18, 32, 0.10);
-          transition: transform 0.28s ease, box-shadow 0.28s ease;
+          box-shadow: 0 14px 44px rgba(11, 18, 32, 0.08);
+          overflow: hidden;
+          transition: transform 0.22s ease, box-shadow 0.22s ease;
+          display: grid;
+          grid-template-rows: auto 1fr;
+          min-height: 340px;
+        }
+        .impCard:hover {
+          transform: translateY(-6px);
+          box-shadow: 0 26px 74px rgba(11, 18, 32, 0.14);
         }
 
-        .pcard:hover {
-          transform: translateY(-8px);
-          box-shadow: 0 30px 84px rgba(11, 18, 32, 0.16);
-        }
-
-        .pcard__border {
+        .impBadge {
           position: absolute;
-          inset: 0;
-          background: linear-gradient(
-            135deg,
-            rgba(176, 141, 87, 0.32),
-            rgba(122, 41, 65, 0.22),
-            rgba(11, 18, 32, 0.12)
-          );
-          opacity: 0;
-          pointer-events: none;
-          transition: opacity 0.28s ease;
-        }
-        .pcard:hover .pcard__border {
-          opacity: 1;
-        }
-
-        .pcard__ribbon {
-          position: absolute;
-          top: 14px;
-          left: 14px;
+          top: 12px;
+          left: 12px;
           z-index: 5;
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          padding: 7px 12px;
+          padding: 7px 10px;
           border-radius: 999px;
           color: #fff;
           font-size: 0.74rem;
-          font-weight: 1000;
+          font-weight: 1100;
           background: linear-gradient(135deg, #7a2941, #b08d57);
-          box-shadow: 0 14px 36px rgba(122, 41, 65, 0.22);
-          border: 1px solid rgba(255, 255, 255, 0.18);
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          box-shadow: 0 12px 34px rgba(122, 41, 65, 0.18);
         }
 
-        .pcard__media {
+        .impCard__media {
+          position: relative;
           display: block;
           text-decoration: none;
-          color: inherit;
-          position: relative;
-          padding: 18px 14px 0;
-          background: radial-gradient(360px 170px at 30% 20%, rgba(176, 141, 87, 0.18), transparent 55%),
-            radial-gradient(340px 160px at 80% 10%, rgba(122, 41, 65, 0.14), transparent 55%),
+          padding: 12px;
+          background: radial-gradient(360px 170px at 30% 20%, rgba(176, 141, 87, 0.16), transparent 55%),
+            radial-gradient(340px 160px at 80% 10%, rgba(122, 41, 65, 0.12), transparent 55%),
             rgba(11, 18, 32, 0.02);
           border-bottom: 1px solid rgba(11, 18, 32, 0.06);
         }
 
-        .pcard__plate {
+        .impImgPlate {
           height: 170px;
-          border-radius: 18px;
-          background: rgba(255, 255, 255, 0.72);
-          border: 1px solid rgba(255, 255, 255, 0.92);
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.78);
+          border: 1px solid rgba(11, 18, 32, 0.06);
           display: grid;
           place-items: center;
-          box-shadow: inset 0 0 0 1px rgba(11, 18, 32, 0.05);
           overflow: hidden;
         }
 
-        .pcard__plate img {
+        .impImgPlate img {
           width: 86%;
           height: 86%;
           object-fit: contain;
-          transition: transform 0.45s ease, filter 0.45s ease;
+          transition: transform 0.35s ease, filter 0.35s ease;
           filter: saturate(1.02);
         }
 
-        .pcard:hover .pcard__plate img {
-          transform: scale(1.12);
-          filter: saturate(1.06) brightness(1.03);
+        .impCard:hover .impImgPlate img {
+          transform: scale(1.08);
+          filter: saturate(1.06) brightness(1.02);
         }
 
-        /* ✅ overlay “ver detalhes” elegante */
-        .pcard__hoverOverlay {
+        .impHover {
           position: absolute;
           inset: 0;
           display: grid;
           place-items: center;
           opacity: 0;
-          transition: opacity 0.25s ease;
-          background: radial-gradient(circle, rgba(11,18,32,0.10), rgba(11,18,32,0.00) 55%);
+          transition: opacity 0.18s ease;
           pointer-events: none;
+          background: radial-gradient(circle, rgba(11,18,32,0.10), rgba(11,18,32,0.00) 60%);
         }
-
-        .pcard:hover .pcard__hoverOverlay {
+        .impCard:hover .impHover {
           opacity: 1;
         }
 
-        .pcard__hoverPill {
+        .impHover__pill {
           display: inline-flex;
           align-items: center;
           gap: 10px;
           padding: 10px 14px;
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.92);
+          background: rgba(255, 255, 255, 0.96);
           border: 1px solid rgba(11, 18, 32, 0.10);
-          box-shadow: 0 18px 60px rgba(11, 18, 32, 0.18);
-          font-weight: 1000;
+          box-shadow: 0 18px 60px rgba(11, 18, 32, 0.16);
+          font-weight: 1100;
           color: #0b1220;
-          transform: translateY(6px);
-          transition: transform 0.25s ease;
         }
 
-        .pcard:hover .pcard__hoverPill {
-          transform: translateY(0px);
+        .impCard__body {
+          padding: 12px 12px 14px;
+          display: grid;
+          gap: 10px;
         }
 
-        .pcard__body {
-          position: relative;
-          z-index: 3;
-          padding: 14px 14px 16px;
-        }
-
-        .pcard__name {
-          margin: 0 0 6px;
+        .impName {
+          margin: 0;
           font-size: 0.98rem;
-          font-weight: 1000;
+          font-weight: 1100;
           letter-spacing: -0.02em;
           color: #0b1220;
           display: -webkit-box;
@@ -788,211 +714,141 @@ export default function ProdutoDestaque() {
           overflow: hidden;
         }
 
-        .pcard__desc {
-          margin: 0 0 12px;
+        .impDesc {
+          margin: 0;
           font-size: 0.84rem;
           color: rgba(11, 18, 32, 0.72);
           line-height: 1.25rem;
-          min-height: 44px;
+          min-height: 40px;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
 
-        .pcard__bottom {
-          display: grid;
-          gap: 12px;
-        }
-
-        .pcard__pricebox {
+        .impMeta {
           display: flex;
-          align-items: flex-end;
+          align-items: center;
           justify-content: space-between;
           gap: 10px;
         }
 
-        .pcard__price {
-          font-weight: 1100;
+        .impPrice {
+          font-weight: 1200;
           color: #7a2941;
-          font-size: 1.05rem;
           letter-spacing: -0.01em;
         }
 
-        .pcard__tag {
-          width: fit-content;
+        .impTag {
           padding: 6px 10px;
           border-radius: 999px;
           font-size: 0.72rem;
-          font-weight: 1000;
+          font-weight: 1100;
           color: #0b1220;
           background: rgba(176, 141, 87, 0.16);
           border: 1px solid rgba(176, 141, 87, 0.22);
+          white-space: nowrap;
         }
 
-        /* ✅ BOTÕES PROFISSIONAIS */
-        .btnRow {
+        .impActions {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: 1fr;
           gap: 10px;
+          margin-top: 2px;
         }
 
-        .btnPro {
+        .impBtn {
           height: 44px;
           border-radius: 16px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 10px;
-          padding: 0 12px;
-          font-weight: 1000;
-          letter-spacing: -0.01em;
-          cursor: pointer;
-          border: 1px solid rgba(11, 18, 32, 0.10);
-          transition: transform 0.18s ease, box-shadow 0.22s ease, filter 0.22s ease, background 0.22s ease;
+          font-weight: 1100;
           text-decoration: none;
+          border: 1px solid rgba(11, 18, 32, 0.10);
+          cursor: pointer;
+          transition: transform 0.18s ease, box-shadow 0.22s ease, filter 0.22s ease;
           user-select: none;
           outline: none;
-          position: relative;
-          overflow: hidden;
+          width: 100%;
         }
 
-        .btnPro:hover {
+        .impBtn:hover {
           transform: translateY(-2px);
         }
 
-        .btnPro__icon {
-          width: 30px;
-          height: 30px;
-          border-radius: 12px;
-          display: grid;
-          place-items: center;
-        }
-
-        .btnPro__label {
-          font-size: 0.90rem;
-          white-space: nowrap;
-        }
-
-        /* ✅ “Ver produto” agora fica premium */
-        .btnPro--view {
-          background: rgba(255, 255, 255, 0.92);
+        .impBtn--ghost {
           color: #0b1220;
+          background: rgba(255, 255, 255, 0.92);
         }
-        .btnPro--view .btnPro__icon {
-          background: rgba(11, 18, 32, 0.06);
-          border: 1px solid rgba(11, 18, 32, 0.08);
-        }
-        .btnPro--view:hover {
-          box-shadow: 0 18px 60px rgba(11, 18, 32, 0.14);
-          background: rgba(255, 255, 255, 0.98);
-        }
-        .btnPro--view::after {
-          content: "";
-          position: absolute;
-          inset: -80%;
-          background: radial-gradient(circle, rgba(122,41,65,0.14), transparent 62%);
-          transform: rotate(18deg);
-          opacity: 0;
-          transition: opacity 0.22s ease;
-        }
-        .btnPro--view:hover::after {
-          opacity: 1;
+        .impBtn--ghost:hover {
+          box-shadow: 0 18px 50px rgba(11, 18, 32, 0.12);
         }
 
-        /* ✅ “Adicionar” premium com brilho */
-        .btnPro--cart {
+        .impBtn--solid {
           color: #fff;
-          border: 1px solid rgba(255, 255, 255, 0.18);
           background: linear-gradient(135deg, #7a2941, #b08d57);
-          box-shadow: 0 16px 50px rgba(122, 41, 65, 0.18);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          box-shadow: 0 16px 48px rgba(122, 41, 65, 0.16);
         }
-        .btnPro--cart .btnPro__icon {
-          background: rgba(255, 255, 255, 0.14);
-          border: 1px solid rgba(255, 255, 255, 0.16);
-        }
-        .btnPro--cart:hover {
-          box-shadow: 0 22px 70px rgba(122, 41, 65, 0.24);
+        .impBtn--solid:hover {
+          box-shadow: 0 22px 70px rgba(122, 41, 65, 0.22);
           filter: brightness(1.02);
         }
-        .btnPro--cart::before {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(110deg, transparent, rgba(255,255,255,0.24), transparent);
-          transform: translateX(-120%);
-          transition: transform 0.55s ease;
-        }
-        .btnPro--cart:hover::before {
-          transform: translateX(120%);
+        .impBtn--solid.ok {
+          background: linear-gradient(135deg, #166534, #22c55e);
+          box-shadow: 0 16px 48px rgba(34, 197, 94, 0.14);
         }
 
-        .btnPro--cart:disabled {
+        .impBtn:disabled {
           opacity: 0.75;
           cursor: not-allowed;
           transform: none;
         }
 
-        .btnPro--ok {
-          background: linear-gradient(135deg, #166534, #22c55e);
-          box-shadow: 0 16px 50px rgba(34, 197, 94, 0.16);
-        }
-
         .spin {
-          animation: spin 0.9s linear infinite;
+          animation: sp 0.9s linear infinite;
         }
-        @keyframes spin {
+        @keyframes sp {
           to {
             transform: rotate(360deg);
           }
         }
 
-        /* mobile more */
-        .more {
-          margin-top: 18px;
-          text-align: center;
-        }
-        .more__btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-          padding: 14px 26px;
-          border-radius: 999px;
-          background: linear-gradient(135deg, #0b1220, #1f2937);
-          color: #fff;
-          text-decoration: none;
-          font-weight: 1000;
-          transition: transform 0.25s ease;
-        }
-        .more__btn:hover {
-          transform: translateY(-2px);
+        /* ==== responsivo ==== */
+        @media (max-width: 1100px) {
+          .impGrid {
+            grid-template-columns: 1fr;
+          }
+          .impEditorial {
+            order: 0;
+          }
+          .impCards {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+          }
         }
 
-        @media (max-width: 768px) {
-          .wrap {
-            padding: 16px;
-            border-radius: 28px;
-          }
-          .head {
+        @media (max-width: 780px) {
+          .impHead {
             flex-direction: column;
             align-items: flex-start;
           }
-          .head__cta {
-            display: none;
+          .impAll {
+            width: 100%;
+            justify-content: center;
           }
-          .editorial {
-            margin-bottom: 6px;
+          .impCards {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
         }
 
-        @media (max-width: 576px) {
-          .pcard__plate {
-            height: 140px;
+        @media (max-width: 520px) {
+          .impContainer {
+            padding: 14px;
+            border-radius: 22px;
           }
-          .pcard__desc {
-            min-height: 38px;
-          }
-          .btnRow {
+          .impCards {
             grid-template-columns: 1fr;
           }
         }
