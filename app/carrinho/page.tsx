@@ -7,6 +7,9 @@ import api from "@/Api/conectar";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { maskCardNumber, maskExpiry } from "@/hooks/useCarrinhoCheckout";
 
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 type CarrinhoItem = {
   id_item: number;
   nome_produto: string;
@@ -41,10 +44,6 @@ function formatBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-/**
- * Seu /me pode vir em formatos diferentes.
- * Aqui tentamos achar o id em vários lugares comuns.
- */
 function pickUserId(me: any): number | null {
   const root = me?.dados ?? me?.data ?? me;
 
@@ -59,29 +58,39 @@ function pickUserId(me: any): number | null {
   return Number.isFinite(n) && n > 0 ? n : null;
 }
 
-/**
- * Seu CarrinhoController::listar retorna:
- * Mensagemjson("Carrinho carregado", 200, ["itens" => $itens, "endereco" => $endereco])
- * Então o payload costuma estar em resp.dados
- */
 function pickCarrinho(resp: any): { itens: CarrinhoItem[]; endereco: Endereco | null } {
   const base = resp?.dados ?? resp?.data ?? resp;
-
   const itens = Array.isArray(base?.itens) ? base.itens : [];
   const endereco = base?.endereco ?? null;
-
   return { itens, endereco };
 }
 
+/** ✅ URL robusta para imagens */
 function imagemUrl(path?: string) {
   if (!path) return "/placeholder.png";
-  try {
-    if (path.startsWith("http")) return path;
-    // usa sua rota: /upload/{arquivo}
-    return `${api.defaults.baseURL}upload/${path}`;
-  } catch {
-    return path;
+
+  // URL completa
+  if (/^https?:\/\//i.test(path)) return path;
+
+  const base = (api.defaults.baseURL || "").replace(/\/+$/, "");
+  const clean = String(path).replace(/^\/+/, "");
+
+  // se já vier "upload/xxx"
+  if (clean.startsWith("upload/")) return `${base}/${clean}`;
+
+  // se vier "/upload/xxx"
+  if (clean.startsWith("/upload/")) return `${base}${clean}`;
+
+  // se vier "uploads/xxx" (ou qualquer outra pasta), tenta direto
+  // MAS como sua rota pública é /upload/{arquivo}, preferimos forçar upload/
+  // para arquivo simples:
+  if (clean.includes("/")) {
+    // se o backend manda tipo "produto/arquivo.jpg", tenta abrir direto:
+    return `${base}/${clean}`;
   }
+
+  // caso comum: "arquivo.jpg" => /upload/arquivo.jpg
+  return `${base}/upload/${clean}`;
 }
 
 export default function CarrinhoPage() {
@@ -91,9 +100,7 @@ export default function CarrinhoPage() {
   const [usuarioId, setUsuarioId] = React.useState<number | null>(null);
 
   const [itens, setItens] = React.useState<CarrinhoItem[]>([]);
-  const [endereco, setEndereco] = React.useState<Endereco>({
-    estado: "SP",
-  });
+  const [endereco, setEndereco] = React.useState<Endereco>({ estado: "SP" });
 
   const [etapa, setEtapa] = React.useState<1 | 2 | 3 | 4>(1);
 
@@ -132,31 +139,22 @@ export default function CarrinhoPage() {
     setLoading(true);
     setErro(null);
 
-    console.log("🚀 [Carrinho] carregarTudo() iniciou");
-
     try {
       const meRes = await api.get("/me");
-      console.log("👤 [Carrinho] /me response:", meRes.data);
-
       const uid = pickUserId(meRes.data);
-      console.log("🆔 [Carrinho] userId detectado:", uid);
 
       if (!uid) {
-        console.warn("⚠️ [Carrinho] usuário não logado (uid inválido)");
         setErro("Você precisa estar logado para ver o carrinho.");
         setUsuarioId(null);
         setItens([]);
+        setLoading(false);
         return;
       }
 
       setUsuarioId(uid);
 
       const carrinhoRes = await api.get(`/carrinho/${uid}`);
-      console.log(`🛒 [Carrinho] /carrinho/${uid} response:`, carrinhoRes.data);
-
       const parsed = pickCarrinho(carrinhoRes.data);
-      console.log("📦 [Carrinho] itens parseados:", parsed.itens);
-      console.log("🏠 [Carrinho] endereço parseado:", parsed.endereco);
 
       setItens(parsed.itens || []);
 
@@ -171,15 +169,10 @@ export default function CarrinhoPage() {
           estado: parsed.endereco.estado ?? "SP",
         });
       }
-
-      console.log("✅ [Carrinho] state final -> itens:", parsed.itens?.length ?? 0);
     } catch (e: any) {
-      console.error("❌ [Carrinho] erro ao carregar:", e);
-      console.log("❌ [Carrinho] erro response:", e?.response?.data);
       setErro(e?.response?.data?.mensagem || e?.message || "Erro ao carregar carrinho.");
     } finally {
       setLoading(false);
-      console.log("🏁 [Carrinho] carregarTudo() finalizou");
     }
   }
 
@@ -190,65 +183,47 @@ export default function CarrinhoPage() {
 
   /* ===================== CART ACTIONS ===================== */
   async function alterarQuantidade(itemId: number, qtd: number) {
-    console.log("➕➖ [Carrinho] alterarQuantidade:", { itemId, qtd });
-
     if (qtd < 1) return;
 
     try {
-      const res = await api.put(`/carrinho/atualizar/${itemId}`, { quantidade: qtd });
-      console.log("✅ [Carrinho] atualizar response:", res.data);
-
+      await api.put(`/carrinho/atualizar/${itemId}`, { quantidade: qtd });
       setItens((prev) => prev.map((i) => (i.id_item === itemId ? { ...i, quantidade: qtd } : i)));
     } catch (e: any) {
-      console.error("❌ [Carrinho] erro atualizar:", e);
-      console.log("❌ [Carrinho] erro response:", e?.response?.data);
-      alert("Erro ao atualizar quantidade");
+      toast.error("Erro ao atualizar quantidade.");
     }
   }
 
   async function removerItem(itemId: number) {
-    console.log("🗑️ [Carrinho] removerItem:", itemId);
-
     try {
-      const res = await api.delete(`/carrinho/remover/${itemId}`);
-      console.log("✅ [Carrinho] remover response:", res.data);
-
+      await api.delete(`/carrinho/remover/${itemId}`);
       setItens((prev) => prev.filter((i) => i.id_item !== itemId));
+      toast.success("Item removido do carrinho.");
     } catch (e: any) {
-      console.error("❌ [Carrinho] erro remover:", e);
-      console.log("❌ [Carrinho] erro response:", e?.response?.data);
-      alert("Erro ao remover item");
+      toast.error("Erro ao remover item.");
     }
   }
 
   /* ===================== CUPOM ===================== */
   async function aplicarCupom() {
     const code = cupomInput.trim();
-    console.log("🎟️ [Carrinho] aplicarCupom:", code);
-
-    if (!code) {
-      alert("Digite um cupom");
-      return;
-    }
+    if (!code) return toast.info("Digite um cupom.");
 
     setCupomLoading(true);
     try {
       const resp = await api.get(`/cupom/${encodeURIComponent(code)}`);
-      console.log("🎟️ [Carrinho] /cupom response:", resp.data);
-
       const base = resp.data?.dados ?? resp.data?.data ?? resp.data;
+
       if (!base || !base.codigo) {
         setCupomAplicado(null);
-        alert("Cupom não encontrado");
+        toast.error("Cupom não encontrado.");
         return;
       }
+
       setCupomAplicado(base);
-      console.log("✅ [Carrinho] cupomAplicado:", base);
+      toast.success("Cupom aplicado!");
     } catch (e: any) {
-      console.error("❌ [Carrinho] erro cupom:", e);
-      console.log("❌ [Carrinho] erro response:", e?.response?.data);
       setCupomAplicado(null);
-      alert("Erro ao validar cupom");
+      toast.error("Erro ao validar cupom.");
     } finally {
       setCupomLoading(false);
     }
@@ -269,19 +244,16 @@ export default function CarrinhoPage() {
       estado: endereco.estado ?? "SP",
     };
 
-    console.log("🏠 [Carrinho] salvarEndereco payload:", payload);
-
-    if (!payload.cep || payload.cep.length !== 8) return alert("CEP inválido"), false;
-    if (!payload.rua || !payload.numero || !payload.bairro || !payload.cidade) return alert("Preencha o endereço completo"), false;
+    if (!payload.cep || payload.cep.length !== 8) return toast.error("CEP inválido."), false;
+    if (!payload.rua || !payload.numero || !payload.bairro || !payload.cidade)
+      return toast.error("Preencha o endereço completo."), false;
 
     try {
-      const res = await api.post("/carrinho/endereco", payload);
-      console.log("✅ [Carrinho] salvarEndereco response:", res.data);
+      await api.post("/carrinho/endereco", payload);
+      toast.success("Endereço salvo!");
       return true;
     } catch (e: any) {
-      console.error("❌ [Carrinho] erro salvarEndereco:", e);
-      console.log("❌ [Carrinho] erro response:", e?.response?.data);
-      alert("Erro ao salvar endereço");
+      toast.error("Erro ao salvar endereço.");
       return false;
     }
   }
@@ -307,23 +279,17 @@ export default function CarrinhoPage() {
 
   /* ===================== FINALIZE ===================== */
   async function finalizarPedido() {
-    console.log("🧾 [Carrinho] finalizarPedido iniciado");
-    console.log("🧾 [Carrinho] usuarioId:", usuarioId);
-    console.log("🧾 [Carrinho] itensArray:", itensArray);
-
-    if (!usuarioId) return alert("Usuário não logado");
-    if (itensArray.length === 0) return alert("Carrinho vazio");
+    if (!usuarioId) return toast.error("Usuário não logado.");
+    if (itensArray.length === 0) return toast.info("Seu carrinho está vazio.");
 
     const okEnd = await salvarEndereco();
     if (!okEnd) {
-      console.warn("⚠️ [Carrinho] endereço inválido");
       setEtapa(2);
       return;
     }
 
     if (metodoPagamento === "cartao" && !isCardValid()) {
-      console.warn("⚠️ [Carrinho] cartão inválido");
-      alert("Dados do cartão inválidos");
+      toast.error("Dados do cartão inválidos.");
       return;
     }
 
@@ -353,18 +319,11 @@ export default function CarrinhoPage() {
         };
       }
 
-      console.log("📤 [Carrinho] /pedido/finalizar payload:", payload);
-
       const resp = await api.post("/pedido/finalizar", payload);
-      console.log("✅ [Carrinho] /pedido/finalizar response:", resp.data);
-
       const base = resp.data?.dados ?? resp.data?.data ?? resp.data;
-      console.log("📦 [Carrinho] dados normalizados:", base);
 
       if (metodoPagamento === "pix") {
         const info = base?.pagamento_info ?? null;
-        console.log("💠 [Carrinho] pix pagamento_info:", info);
-
         setPixPayload({
           qrUrl: info?.qrUrl,
           payload: info?.payload ?? "000201...pix-copia-cola",
@@ -372,13 +331,11 @@ export default function CarrinhoPage() {
       }
 
       setEtapa(4);
+      toast.success("Pedido finalizado!");
     } catch (e: any) {
-      console.error("❌ [Carrinho] erro finalizarPedido:", e);
-      console.log("❌ [Carrinho] erro response:", e?.response?.data);
-      alert(e?.response?.data?.mensagem || "Erro ao finalizar pedido");
+      toast.error(e?.response?.data?.mensagem || "Erro ao finalizar pedido.");
     } finally {
       setProcessing(false);
-      console.log("🏁 [Carrinho] finalizarPedido fim");
     }
   }
 
@@ -398,21 +355,69 @@ export default function CarrinhoPage() {
   return (
     <>
       <Navbar />
+      <ToastContainer position="top-right" autoClose={2400} theme="dark" />
 
-      <style jsx>{`
+      <style jsx global>{`
         :root {
           --cream: #fff3ea;
           --cream-2: #fffaf5;
           --line: #eadfd3;
+          --text: #2a2a2a;
+
           --brand: #15373e;
+          --brand-2: #0e2328;
           --gold: #c7a16a;
         }
 
         body {
           background: linear-gradient(180deg, var(--cream), #ffffff 65%);
+          color: var(--text);
         }
 
-        .card-surface {
+        .cart-hero {
+          background: radial-gradient(900px 480px at 15% 20%, rgba(199, 161, 106, 0.22), transparent 55%),
+            radial-gradient(800px 420px at 85% 10%, rgba(255, 255, 255, 0.12), transparent 55%),
+            linear-gradient(135deg, var(--brand), var(--brand-2));
+          color: #fff;
+          border-bottom-left-radius: 28px;
+          border-bottom-right-radius: 28px;
+          margin-bottom: 18px;
+        }
+
+        .heroTitle {
+          font-size: clamp(1.7rem, 3vw, 2.4rem);
+          font-weight: 900;
+          line-height: 1.05;
+          letter-spacing: -0.02em;
+          text-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+        }
+
+        .heroSub {
+          color: rgba(255, 255, 255, 0.82);
+          max-width: 68ch;
+          margin: 0;
+        }
+
+        .heroPills {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin-top: 14px;
+        }
+
+        .heroPill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.12);
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          font-weight: 900;
+          font-size: 0.86rem;
+        }
+
+        .surface {
           background: var(--cream-2);
           border: 1px solid var(--line);
           border-radius: 18px;
@@ -421,99 +426,221 @@ export default function CarrinhoPage() {
 
         .btn-brand {
           background: linear-gradient(180deg, #1c434b, var(--brand));
-          color: #fff;
+          color: #fff !important;
           border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 12px;
-          font-weight: 800;
+          border-radius: 14px;
+          font-weight: 900;
+          padding: 12px 14px;
         }
 
         .btn-outline-brand {
           background: transparent;
           border: 1px solid rgba(21, 55, 62, 0.35);
           color: var(--brand);
-          border-radius: 12px;
-          font-weight: 800;
+          border-radius: 14px;
+          font-weight: 900;
+          padding: 12px 14px;
         }
 
-        .product-img {
-          width: 84px;
-          height: 84px;
-          border-radius: 12px;
+        .stepper {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+        .step {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 9px 12px;
+          border-radius: 999px;
+          border: 1px solid var(--line);
+          background: rgba(255, 243, 234, 0.55);
+          font-weight: 900;
+          color: rgba(11, 18, 32, 0.78);
+        }
+        .stepActive {
+          background: rgba(199, 161, 106, 0.14);
+          border: 1px solid rgba(199, 161, 106, 0.25);
+          color: #6b4b1b;
+        }
+
+        .itemCard {
+          background: #fff;
+          border: 1px solid rgba(0, 0, 0, 0.06);
+          border-radius: 16px;
+          padding: 14px;
+          display: grid;
+          grid-template-columns: 88px 1fr auto;
+          gap: 14px;
+          align-items: center;
+        }
+
+        .productImg {
+          width: 88px;
+          height: 88px;
+          border-radius: 14px;
           object-fit: cover;
           border: 1px solid var(--line);
           background: #fff;
         }
 
-        .pill {
-          border-radius: 12px;
-          padding: 10px 12px;
-        }
-
-        .badge-soft {
-          border-radius: 999px;
-          padding: 8px 10px;
-          font-weight: 800;
-          background: rgba(199, 161, 106, 0.14);
-          border: 1px solid rgba(199, 161, 106, 0.22);
-          color: #6b4b1b;
-        }
-
-        .step {
+        .qtdBox {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          padding: 8px 10px;
-          border-radius: 999px;
-          border: 1px solid var(--line);
-          background: rgba(255, 243, 234, 0.55);
-          font-weight: 800;
+          gap: 10px;
+          padding: 10px 12px;
+          border-radius: 14px;
+          background: rgba(11, 18, 32, 0.04);
+          border: 1px solid rgba(11, 18, 32, 0.08);
+        }
+
+        .qtdBtn {
+          width: 36px;
+          height: 36px;
+          border-radius: 12px;
+          border: 1px solid rgba(11, 18, 32, 0.10);
+          background: #fff;
+          font-weight: 900;
+        }
+
+        .qtdNum {
+          width: 26px;
+          text-align: center;
+          font-weight: 900;
+        }
+
+        .pillInput {
+          border-radius: 14px !important;
+          padding: 12px 12px !important;
+          border: 1px solid rgba(0, 0, 0, 0.10) !important;
+          background: #fff !important;
+        }
+
+        .summarySticky {
+          position: sticky;
+          top: 92px;
         }
       `}</style>
 
-      <main className="container py-4 py-lg-5">
+      {/* HERO */}
+      <header className="cart-hero">
+        <div className="container py-5">
+          <div className="row g-3 align-items-center">
+            <div className="col-lg-8">
+              <div className="heroTitle">Carrinho & Checkout</div>
+              <p className="heroSub mt-2">
+                Revise seus itens, confirme o endereço e finalize o pagamento com segurança.
+              </p>
+
+              <div className="heroPills">
+                <span className="heroPill">🛡️ Compra segura</span>
+                <span className="heroPill">🚚 Entrega organizada</span>
+                <span className="heroPill">💳 Pix ou cartão</span>
+              </div>
+            </div>
+
+            <div className="col-lg-4">
+              <div className="surface p-4" style={{ background: "rgba(255,255,255,0.10)", borderColor: "rgba(255,255,255,0.16)" }}>
+                <div style={{ fontWeight: 900, opacity: 0.9 }}>Total</div>
+                <div style={{ fontSize: 28, fontWeight: 1000, letterSpacing: "-0.02em" }}>{formatBRL(total)}</div>
+                <div style={{ opacity: 0.8, marginTop: 6, fontSize: 14 }}>
+                  {itensArray.length} item(ns) no carrinho
+                </div>
+                <button
+                  className="btn btn-brand w-100 mt-3"
+                  onClick={() => setEtapa((prev) => (prev < 4 ? ((prev + 1) as any) : prev))}
+                  disabled={itensArray.length === 0 || processing || etapa === 4}
+                >
+                  {etapa === 1
+                    ? "Ir para Endereço"
+                    : etapa === 2
+                    ? "Ir para Pagamento"
+                    : etapa === 3
+                    ? "Finalizar"
+                    : "Concluído"}
+                </button>
+                <button className="btn btn-outline-brand w-100 mt-2" onClick={carregarTudo}>
+                  Atualizar carrinho
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main className="container pb-5">
         {erro ? (
           <div className="alert alert-warning">{erro}</div>
         ) : (
           <div className="row g-4">
             {/* LEFT */}
             <div className="col-lg-8">
-              <div className="card-surface p-4 mb-4">
-                <div className="d-flex flex-wrap gap-2 mb-3">
-                  <span className={`step ${etapa === 1 ? "badge-soft" : ""}`}>1. Carrinho</span>
-                  <span className={`step ${etapa === 2 ? "badge-soft" : ""}`}>2. Endereço</span>
-                  <span className={`step ${etapa === 3 ? "badge-soft" : ""}`}>3. Pagamento</span>
-                  <span className={`step ${etapa === 4 ? "badge-soft" : ""}`}>4. Confirmado</span>
+              <div className="surface p-4">
+                <div className="stepper mb-3">
+                  <span className={`step ${etapa === 1 ? "stepActive" : ""}`}>1. Carrinho</span>
+                  <span className={`step ${etapa === 2 ? "stepActive" : ""}`}>2. Endereço</span>
+                  <span className={`step ${etapa === 3 ? "stepActive" : ""}`}>3. Pagamento</span>
+                  <span className={`step ${etapa === 4 ? "stepActive" : ""}`}>4. Confirmado</span>
                 </div>
 
+                {/* ETAPA 1 */}
                 {etapa === 1 && (
                   <>
-                    <h4 className="mb-3">Seu Carrinho</h4>
+                    <h4 className="mb-3" style={{ fontWeight: 1000 }}>
+                      Seu carrinho
+                    </h4>
 
                     {itensArray.length === 0 ? (
                       <div className="alert alert-warning mb-0">Seu carrinho está vazio.</div>
                     ) : (
-                      <div className="d-flex flex-column gap-3">
+                      <div className="d-grid gap-3">
                         {itensArray.map((item) => (
-                          <div key={item.id_item} className="d-flex align-items-center gap-3">
-                            <img className="product-img" src={imagemUrl(item.imagem)} alt={item.nome_produto} />
-                            <div className="flex-grow-1">
-                              <div className="fw-bold">{item.nome_produto}</div>
-                              <div className="text-muted">{formatBRL(num(item.preco_unitario))}</div>
+                          <div key={item.id_item} className="itemCard">
+                            <img
+                              className="productImg"
+                              src={imagemUrl(item.imagem)}
+                              alt={item.nome_produto}
+                              onError={(e) => {
+                                (e.currentTarget as HTMLImageElement).src = "/placeholder.png";
+                              }}
+                            />
+
+                            <div>
+                              <div style={{ fontWeight: 1000 }}>{item.nome_produto}</div>
+                              <div className="text-muted" style={{ fontWeight: 800 }}>
+                                {formatBRL(num(item.preco_unitario))}
+                              </div>
+                              <div className="text-muted small">
+                                Subtotal:{" "}
+                                <strong>
+                                  {formatBRL(num(item.preco_unitario) * (item.quantidade || 1))}
+                                </strong>
+                              </div>
                             </div>
 
-                            <div className="d-flex align-items-center gap-2">
-                              <button className="btn btn-outline-secondary" onClick={() => alterarQuantidade(item.id_item, item.quantidade - 1)}>
-                                -
-                              </button>
-                              <div style={{ width: 26, textAlign: "center" }}>{item.quantidade}</div>
-                              <button className="btn btn-outline-secondary" onClick={() => alterarQuantidade(item.id_item, item.quantidade + 1)}>
-                                +
+                            <div className="d-grid gap-2" style={{ justifyItems: "end" }}>
+                              <div className="qtdBox">
+                                <button
+                                  className="qtdBtn"
+                                  onClick={() => alterarQuantidade(item.id_item, item.quantidade - 1)}
+                                  aria-label="Diminuir"
+                                >
+                                  −
+                                </button>
+                                <div className="qtdNum">{item.quantidade}</div>
+                                <button
+                                  className="qtdBtn"
+                                  onClick={() => alterarQuantidade(item.id_item, item.quantidade + 1)}
+                                  aria-label="Aumentar"
+                                >
+                                  +
+                                </button>
+                              </div>
+
+                              <button className="btn btn-outline-danger" onClick={() => removerItem(item.id_item)}>
+                                Remover
                               </button>
                             </div>
-
-                            <button className="btn btn-outline-danger" onClick={() => removerItem(item.id_item)}>
-                              Remover
-                            </button>
                           </div>
                         ))}
                       </div>
@@ -530,48 +657,78 @@ export default function CarrinhoPage() {
                   </>
                 )}
 
+                {/* ETAPA 2 */}
                 {etapa === 2 && (
                   <>
-                    <h4 className="mb-3">Endereço de Entrega</h4>
+                    <h4 className="mb-3" style={{ fontWeight: 1000 }}>
+                      Endereço de entrega
+                    </h4>
 
                     <div className="row g-3">
                       <div className="col-md-4">
                         <label className="form-label fw-bold">CEP</label>
                         <input
-                          className="form-control pill"
+                          className="form-control pillInput"
                           value={endereco.cep ?? ""}
-                          onChange={(e) => setEndereco((p) => ({ ...p, cep: e.target.value.replace(/\D/g, "").slice(0, 8) }))}
+                          onChange={(e) =>
+                            setEndereco((p) => ({ ...p, cep: e.target.value.replace(/\D/g, "").slice(0, 8) }))
+                          }
                           placeholder="00000000"
                         />
                       </div>
+
                       <div className="col-md-8">
                         <label className="form-label fw-bold">Rua</label>
-                        <input className="form-control pill" value={endereco.rua ?? ""} onChange={(e) => setEndereco((p) => ({ ...p, rua: e.target.value }))} />
+                        <input
+                          className="form-control pillInput"
+                          value={endereco.rua ?? ""}
+                          onChange={(e) => setEndereco((p) => ({ ...p, rua: e.target.value }))}
+                        />
                       </div>
 
                       <div className="col-md-3">
                         <label className="form-label fw-bold">Número</label>
-                        <input className="form-control pill" value={endereco.numero ?? ""} onChange={(e) => setEndereco((p) => ({ ...p, numero: e.target.value }))} />
+                        <input
+                          className="form-control pillInput"
+                          value={endereco.numero ?? ""}
+                          onChange={(e) => setEndereco((p) => ({ ...p, numero: e.target.value }))}
+                        />
                       </div>
 
                       <div className="col-md-3">
                         <label className="form-label fw-bold">Complemento</label>
-                        <input className="form-control pill" value={endereco.complemento ?? ""} onChange={(e) => setEndereco((p) => ({ ...p, complemento: e.target.value }))} />
+                        <input
+                          className="form-control pillInput"
+                          value={endereco.complemento ?? ""}
+                          onChange={(e) => setEndereco((p) => ({ ...p, complemento: e.target.value }))}
+                        />
                       </div>
 
                       <div className="col-md-4">
                         <label className="form-label fw-bold">Bairro</label>
-                        <input className="form-control pill" value={endereco.bairro ?? ""} onChange={(e) => setEndereco((p) => ({ ...p, bairro: e.target.value }))} />
+                        <input
+                          className="form-control pillInput"
+                          value={endereco.bairro ?? ""}
+                          onChange={(e) => setEndereco((p) => ({ ...p, bairro: e.target.value }))}
+                        />
                       </div>
 
                       <div className="col-md-6">
                         <label className="form-label fw-bold">Cidade</label>
-                        <input className="form-control pill" value={endereco.cidade ?? ""} onChange={(e) => setEndereco((p) => ({ ...p, cidade: e.target.value }))} />
+                        <input
+                          className="form-control pillInput"
+                          value={endereco.cidade ?? ""}
+                          onChange={(e) => setEndereco((p) => ({ ...p, cidade: e.target.value }))}
+                        />
                       </div>
 
                       <div className="col-md-6">
                         <label className="form-label fw-bold">Estado</label>
-                        <select className="form-select pill" value={endereco.estado ?? "SP"} onChange={(e) => setEndereco((p) => ({ ...p, estado: e.target.value }))}>
+                        <select
+                          className="form-select pillInput"
+                          value={endereco.estado ?? "SP"}
+                          onChange={(e) => setEndereco((p) => ({ ...p, estado: e.target.value }))}
+                        >
                           <option value="SP">SP</option>
                           <option value="RJ">RJ</option>
                           <option value="MG">MG</option>
@@ -586,28 +743,39 @@ export default function CarrinhoPage() {
                         Voltar
                       </button>
                       <button className="btn btn-brand" onClick={async () => (await salvarEndereco()) && setEtapa(3)}>
-                        Salvar e ir para Pagamento
+                        Salvar e ir para pagamento
                       </button>
                     </div>
                   </>
                 )}
 
+                {/* ETAPA 3 */}
                 {etapa === 3 && (
                   <>
-                    <h4 className="mb-3">Pagamento</h4>
+                    <h4 className="mb-3" style={{ fontWeight: 1000 }}>
+                      Pagamento
+                    </h4>
 
                     <div className="d-flex gap-2 mb-3">
-                      <button className={metodoPagamento === "pix" ? "btn btn-brand" : "btn btn-outline-brand"} onClick={() => setMetodoPagamento("pix")}>
+                      <button
+                        className={metodoPagamento === "pix" ? "btn btn-brand" : "btn btn-outline-brand"}
+                        onClick={() => setMetodoPagamento("pix")}
+                      >
                         Pix
                       </button>
-                      <button className={metodoPagamento === "cartao" ? "btn btn-brand" : "btn btn-outline-brand"} onClick={() => setMetodoPagamento("cartao")}>
+                      <button
+                        className={metodoPagamento === "cartao" ? "btn btn-brand" : "btn btn-outline-brand"}
+                        onClick={() => setMetodoPagamento("cartao")}
+                      >
                         Cartão
                       </button>
                     </div>
 
                     {metodoPagamento === "pix" && (
-                      <div className="card-surface p-3" style={{ background: "#fff" }}>
-                        <div className="text-muted">Ao finalizar, vamos gerar o Pix (se sua API retornar payload).</div>
+                      <div className="surface p-3" style={{ background: "#fff" }}>
+                        <div className="text-muted">
+                          Ao finalizar, vamos gerar o Pix (se sua API retornar payload).
+                        </div>
 
                         {pixPayload?.qrUrl ? (
                           <div className="mt-3 text-center">
@@ -618,7 +786,7 @@ export default function CarrinhoPage() {
                         {pixPayload?.payload ? (
                           <div className="mt-3">
                             <label className="form-label fw-bold">Pix copia e cola</label>
-                            <input className="form-control pill" readOnly value={pixPayload.payload} />
+                            <input className="form-control pillInput" readOnly value={pixPayload.payload} />
                           </div>
                         ) : null}
                       </div>
@@ -628,27 +796,44 @@ export default function CarrinhoPage() {
                       <div className="row g-3">
                         <div className="col-12">
                           <label className="form-label fw-bold">Nome no cartão</label>
-                          <input className="form-control pill" value={cardName} onChange={(e) => setCardName(e.target.value)} />
+                          <input className="form-control pillInput" value={cardName} onChange={(e) => setCardName(e.target.value)} />
                         </div>
 
                         <div className="col-12">
                           <label className="form-label fw-bold">Número</label>
-                          <input className="form-control pill" value={cardNumber} onChange={(e) => setCardNumber(maskCardNumber(e.target.value))} placeholder="4242 4242 4242 4242" />
+                          <input
+                            className="form-control pillInput"
+                            value={cardNumber}
+                            onChange={(e) => setCardNumber(maskCardNumber(e.target.value))}
+                            placeholder="4242 4242 4242 4242"
+                          />
                         </div>
 
                         <div className="col-md-4">
                           <label className="form-label fw-bold">Validade</label>
-                          <input className="form-control pill" value={cardExpiry} onChange={(e) => setCardExpiry(maskExpiry(e.target.value))} placeholder="MM/YY" />
+                          <input
+                            className="form-control pillInput"
+                            value={cardExpiry}
+                            onChange={(e) => setCardExpiry(maskExpiry(e.target.value))}
+                            placeholder="MM/YY"
+                          />
                         </div>
 
                         <div className="col-md-4">
                           <label className="form-label fw-bold">CVV</label>
-                          <input className="form-control pill" value={cardCVV} onChange={(e) => setCardCVV(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="123" />
+                          <input
+                            className="form-control pillInput"
+                            value={cardCVV}
+                            onChange={(e) => setCardCVV(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                            placeholder="123"
+                          />
                         </div>
 
                         <div className="col-md-4">
                           <label className="form-label fw-bold">Validação</label>
-                          <div className="form-control pill bg-light">{isCardValid() ? "✅ Ok" : "❌ inválido"}</div>
+                          <div className="form-control pillInput bg-light">
+                            {isCardValid() ? "✅ Ok" : "❌ inválido"}
+                          </div>
                         </div>
                       </div>
                     )}
@@ -658,18 +843,36 @@ export default function CarrinhoPage() {
                         Voltar
                       </button>
                       <button className="btn btn-brand" onClick={finalizarPedido} disabled={processing}>
-                        {processing ? "Processando..." : "Finalizar Pedido"}
+                        {processing ? "Processando..." : "Finalizar pedido"}
                       </button>
                     </div>
                   </>
                 )}
 
+                {/* ETAPA 4 */}
                 {etapa === 4 && (
                   <div className="text-center py-3">
-                    <div className="badge-soft mb-3">Pedido confirmado ✅</div>
-                    <h4>Obrigado pela compra!</h4>
-                    <p className="text-muted mb-4">Você pode acompanhar seus pedidos na página “Meus Pedidos”.</p>
-                    <div className="d-flex gap-2 justify-content-center">
+                    <div
+                      style={{
+                        display: "inline-flex",
+                        padding: "10px 14px",
+                        borderRadius: 999,
+                        fontWeight: 1000,
+                        background: "rgba(34,197,94,0.12)",
+                        border: "1px solid rgba(34,197,94,0.20)",
+                        color: "#166534",
+                      }}
+                      className="mb-3"
+                    >
+                      Pedido confirmado ✅
+                    </div>
+
+                    <h4 style={{ fontWeight: 1000 }}>Obrigado pela compra!</h4>
+                    <p className="text-muted mb-4">
+                      Você pode acompanhar seus pedidos na página “Meus Pedidos”.
+                    </p>
+
+                    <div className="d-flex gap-2 justify-content-center flex-wrap">
                       <button className="btn btn-outline-brand" onClick={() => (window.location.href = "/pedidos")}>
                         Ver meus pedidos
                       </button>
@@ -684,8 +887,10 @@ export default function CarrinhoPage() {
 
             {/* RIGHT */}
             <div className="col-lg-4">
-              <div className="card-surface p-4">
-                <h5 className="mb-3">Resumo</h5>
+              <div className="surface p-4 summarySticky">
+                <h5 className="mb-3" style={{ fontWeight: 1000 }}>
+                  Resumo
+                </h5>
 
                 <div className="d-flex justify-content-between">
                   <span className="text-muted">Itens</span>
@@ -695,7 +900,7 @@ export default function CarrinhoPage() {
                 <hr />
 
                 {cupomAplicado ? (
-                  <div className="mb-3 p-3" style={{ background: "#fff", borderRadius: 12, border: "1px solid rgba(0,0,0,0.06)" }}>
+                  <div className="mb-3 p-3" style={{ background: "#fff", borderRadius: 14, border: "1px solid rgba(0,0,0,0.06)" }}>
                     <div className="fw-bold">{cupomAplicado.codigo}</div>
                     <div className="text-muted small">
                       {cupomAplicado.descricao ||
@@ -705,7 +910,7 @@ export default function CarrinhoPage() {
                     </div>
                     <div className="text-success fw-bold mt-1">- {formatBRL(descontoValor)}</div>
 
-                    <button className="btn btn-outline-secondary btn-sm mt-2" onClick={() => setCupomAplicado(null)}>
+                    <button className="btn btn-outline-secondary btn-sm mt-2" onClick={() => (setCupomAplicado(null), toast.info("Cupom removido."))}>
                       Remover cupom
                     </button>
                   </div>
@@ -713,7 +918,12 @@ export default function CarrinhoPage() {
                   <div className="mb-3">
                     <label className="form-label fw-bold">Cupom</label>
                     <div className="input-group">
-                      <input className="form-control pill" value={cupomInput} onChange={(e) => setCupomInput(e.target.value)} placeholder="Digite o cupom" />
+                      <input
+                        className="form-control pillInput"
+                        value={cupomInput}
+                        onChange={(e) => setCupomInput(e.target.value)}
+                        placeholder="Digite o cupom"
+                      />
                       <button className="btn btn-outline-secondary" onClick={aplicarCupom} disabled={cupomLoading}>
                         {cupomLoading ? "..." : "Aplicar"}
                       </button>
@@ -736,8 +946,8 @@ export default function CarrinhoPage() {
                 <hr />
 
                 <div className="d-flex justify-content-between">
-                  <span className="fw-bold">Total</span>
-                  <span className="fw-bold">{formatBRL(total)}</span>
+                  <span style={{ fontWeight: 1000 }}>Total</span>
+                  <span style={{ fontWeight: 1000 }}>{formatBRL(total)}</span>
                 </div>
 
                 <button
@@ -745,7 +955,13 @@ export default function CarrinhoPage() {
                   onClick={() => setEtapa((prev) => (prev < 4 ? ((prev + 1) as any) : prev))}
                   disabled={itensArray.length === 0 || processing || etapa === 4}
                 >
-                  {etapa === 1 ? "Ir para Endereço" : etapa === 2 ? "Ir para Pagamento" : etapa === 3 ? "Finalizar" : "Concluído"}
+                  {etapa === 1
+                    ? "Ir para Endereço"
+                    : etapa === 2
+                    ? "Ir para Pagamento"
+                    : etapa === 3
+                    ? "Finalizar"
+                    : "Concluído"}
                 </button>
 
                 <button className="btn btn-outline-brand w-100 mt-2" onClick={carregarTudo}>
