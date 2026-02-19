@@ -29,11 +29,8 @@ type Endereco = {
 };
 
 type EnderecoDB = {
-  // sua tabela carrinho_endereco provavelmente tem id_endereco ou id_carrinho_endereco
-  // aqui deixei flexível:
-  id_endereco?: number;
-  id_carrinho_endereco?: number;
-
+  id_endereco: number;
+  carrinho_id?: number;
   cep?: string;
   rua?: string;
   numero?: string;
@@ -41,6 +38,8 @@ type EnderecoDB = {
   bairro?: string;
   cidade?: string;
   estado?: string;
+  criado?: string;
+  atualizado?: string;
   nome?: string; // opcional
 };
 
@@ -96,18 +95,12 @@ function imagemUrl(path?: string) {
   return `${base}/upload/${clean}`;
 }
 
-function getEnderecoId(e: EnderecoDB): number | null {
-  const id = e.id_endereco ?? e.id_carrinho_endereco;
-  const n = Number(id);
-  return Number.isFinite(n) && n > 0 ? n : null;
-}
-
-function enderecoLabel(e: EnderecoDB) {
-  const titulo = e.nome ? e.nome : "Endereço";
-  const linha1 = `${e.rua ?? ""}, ${e.numero ?? ""}${e.complemento ? ` - ${e.complemento}` : ""}`.trim();
-  const linha2 = `${e.bairro ?? ""} • ${e.cidade ?? ""}/${e.estado ?? ""}`.trim();
+function enderecoResumo(e: EnderecoDB) {
+  const linha1 =
+    `${e.rua ?? ""}, ${e.numero ?? ""}` + (e.complemento ? ` - ${e.complemento}` : "");
+  const linha2 = `${e.bairro ?? ""} • ${e.cidade ?? ""}/${e.estado ?? ""}`;
   const linha3 = e.cep ? `CEP: ${e.cep}` : "";
-  return { titulo, linha1, linha2, linha3 };
+  return { linha1: linha1.trim(), linha2: linha2.trim(), linha3 };
 }
 
 export default function CarrinhoPage() {
@@ -135,12 +128,19 @@ export default function CarrinhoPage() {
   const [cardCVV, setCardCVV] = React.useState("");
 
   // pix
-  const [pixPayload, setPixPayload] = React.useState<{ qrUrl?: string; payload?: string } | null>(null);
+  const [pixPayload, setPixPayload] = React.useState<{ qrUrl?: string; payload?: string } | null>(
+    null
+  );
 
   // endereços salvos
   const [enderecos, setEnderecos] = React.useState<EnderecoDB[]>([]);
-  const [enderecoSelecionadoId, setEnderecoSelecionadoId] = React.useState<number | "novo">("novo");
   const [enderecosLoading, setEnderecosLoading] = React.useState(false);
+
+  // ✅ seleção por CARD
+  const [enderecoSelecionadoId, setEnderecoSelecionadoId] = React.useState<number | null>(null);
+
+  // ✅ controla se mostra formulário (novo endereço)
+  const [mostrarFormularioEndereco, setMostrarFormularioEndereco] = React.useState(false);
 
   const itensArray = Array.isArray(itens) ? itens : [];
 
@@ -159,11 +159,11 @@ export default function CarrinhoPage() {
   async function carregarEnderecosSalvos(uid: number) {
     setEnderecosLoading(true);
     try {
-      // ✅ SUA ROTA NOVA DO BACKEND:
-      // roteamento::get("/carrinho/enderecos/{usuarioId}", "CarrinhoController@listarEnderecos");
+      // ✅ SUA ROTA DO BACKEND
       const resp = await api.get(`/carrinho/enderecos/${uid}`);
       const base = resp.data?.dados ?? resp.data?.data ?? resp.data;
 
+      // Mensagemjson pode retornar diretamente array em "dados"
       const list: EnderecoDB[] = Array.isArray(base)
         ? base
         : Array.isArray(base?.enderecos)
@@ -172,16 +172,32 @@ export default function CarrinhoPage() {
 
       setEnderecos(list);
 
-      // se tiver endereço(s), seleciona o primeiro automaticamente
       if (list.length > 0) {
-        const firstId = getEnderecoId(list[0]);
-        setEnderecoSelecionadoId(firstId ?? "novo");
+        // ✅ se tem endereço, NÃO mostra form, só cards
+        setMostrarFormularioEndereco(false);
+        setEnderecoSelecionadoId(list[0].id_endereco);
+
+        // opcional: preenche state endereco com o primeiro
+        setEndereco({
+          cep: list[0].cep ?? "",
+          rua: list[0].rua ?? "",
+          numero: list[0].numero ?? "",
+          complemento: list[0].complemento ?? "",
+          bairro: list[0].bairro ?? "",
+          cidade: list[0].cidade ?? "",
+          estado: list[0].estado ?? "SP",
+        });
       } else {
-        setEnderecoSelecionadoId("novo");
+        // ✅ se não tem endereço, mostra formulário
+        setEnderecoSelecionadoId(null);
+        setMostrarFormularioEndereco(true);
+        setEndereco({ estado: "SP" });
       }
-    } catch (e) {
+    } catch {
       setEnderecos([]);
-      setEnderecoSelecionadoId("novo");
+      setEnderecoSelecionadoId(null);
+      setMostrarFormularioEndereco(true);
+      setEndereco({ estado: "SP" });
     } finally {
       setEnderecosLoading(false);
     }
@@ -206,17 +222,18 @@ export default function CarrinhoPage() {
 
       setUsuarioId(uid);
 
-      // 1) endereços salvos do usuário (cards)
+      // ✅ carrega endereços em cards
       await carregarEnderecosSalvos(uid);
 
-      // 2) carrinho (itens + endereço do carrinho)
+      // ✅ carrega carrinho
       const carrinhoRes = await api.get(`/carrinho/${uid}`);
       const parsed = pickCarrinho(carrinhoRes.data);
 
       setItens(parsed.itens || []);
 
-      // se o backend retornar endereço do carrinho, tenta usar como default no form (quando "novo")
-      if (parsed.endereco) {
+      // ✅ se seu carrinho tem endereço salvo, e ainda NÃO há endereços listados,
+      // mantém no formulário como default (não força cards)
+      if (parsed.endereco && enderecos.length === 0) {
         setEndereco({
           cep: parsed.endereco.cep ?? "",
           rua: parsed.endereco.rua ?? "",
@@ -239,11 +256,10 @@ export default function CarrinhoPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // quando seleciona card, preenche o "endereco" (se quiser exibir algo em tela, ou usar no fallback)
+  // ✅ ao clicar no card, marca selecionado e atualiza state endereco
   React.useEffect(() => {
-    if (enderecoSelecionadoId === "novo") return;
-
-    const chosen = enderecos.find((x) => getEnderecoId(x) === enderecoSelecionadoId);
+    if (!enderecoSelecionadoId) return;
+    const chosen = enderecos.find((e) => e.id_endereco === enderecoSelecionadoId);
     if (!chosen) return;
 
     setEndereco({
@@ -309,8 +325,8 @@ export default function CarrinhoPage() {
   async function salvarEndereco(): Promise<boolean> {
     if (!usuarioId) return false;
 
-    // ✅ Se escolheu um endereço salvo (card), aplica no carrinho usando enderecoId
-    if (enderecoSelecionadoId !== "novo") {
+    // ✅ se tem cards e não está no modo formulário, aplica o enderecoId
+    if (!mostrarFormularioEndereco && enderecoSelecionadoId) {
       try {
         await api.post("/carrinho/endereco", {
           usuarioId,
@@ -318,12 +334,13 @@ export default function CarrinhoPage() {
         });
         toast.success("Endereço selecionado!");
         return true;
-      } catch (e) {
-        // fallback para salvar campos
+      } catch {
+        toast.error("Erro ao aplicar endereço selecionado.");
+        return false;
       }
     }
 
-    // ✅ caso "novo": salva campos digitados
+    // ✅ modo formulário: salva campos
     const payload = {
       usuarioId,
       cep: (endereco.cep ?? "").replace(/\D/g, "").slice(0, 8),
@@ -342,6 +359,10 @@ export default function CarrinhoPage() {
     try {
       await api.post("/carrinho/endereco", payload);
       toast.success("Endereço salvo!");
+
+      // ✅ depois de salvar, recarrega lista para virar card
+      if (usuarioId) await carregarEnderecosSalvos(usuarioId);
+
       return true;
     } catch {
       toast.error("Erro ao salvar endereço.");
@@ -387,7 +408,6 @@ export default function CarrinhoPage() {
     setProcessing(true);
 
     try {
-      // ✅ NÃO manda endereco em string. Backend deve usar carrinho_endereco_id do carrinho.
       const payload: any = {
         usuario_id: usuarioId,
         total,
@@ -606,6 +626,41 @@ export default function CarrinhoPage() {
           position: sticky;
           top: 92px;
         }
+
+        /* ✅ cards */
+        .addrCard {
+          background: #fff;
+          border-radius: 16px;
+          padding: 14px;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
+          cursor: pointer;
+          transition: transform 0.08s ease, box-shadow 0.12s ease, border 0.12s ease;
+        }
+        .addrCard:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 14px 28px rgba(0, 0, 0, 0.08);
+        }
+        .addrCardSelected {
+          border: 2px solid rgba(199, 161, 106, 0.95);
+          box-shadow: 0 16px 34px rgba(199, 161, 106, 0.16);
+        }
+        .addrBadge {
+          width: 34px;
+          height: 34px;
+          border-radius: 999px;
+          display: grid;
+          place-items: center;
+          font-weight: 1000;
+          border: 1px solid rgba(0, 0, 0, 0.12);
+          color: rgba(0, 0, 0, 0.45);
+          background: #fff;
+        }
+        .addrBadgeSelected {
+          border: 2px solid rgba(199, 161, 106, 0.95);
+          background: rgba(199, 161, 106, 0.14);
+          color: #6b4b1b;
+        }
       `}</style>
 
       {/* HERO */}
@@ -628,10 +683,7 @@ export default function CarrinhoPage() {
             <div className="col-lg-4">
               <div
                 className="surface p-4"
-                style={{
-                  background: "rgba(255,255,255,0.10)",
-                  borderColor: "rgba(255,255,255,0.16)",
-                }}
+                style={{ background: "rgba(255,255,255,0.10)", borderColor: "rgba(255,255,255,0.16)" }}
               >
                 <div style={{ fontWeight: 900, opacity: 0.9 }}>Total</div>
                 <div style={{ fontSize: 28, fontWeight: 1000, letterSpacing: "-0.02em" }}>
@@ -646,13 +698,7 @@ export default function CarrinhoPage() {
                   onClick={() => setEtapa((prev) => (prev < 4 ? ((prev + 1) as any) : prev))}
                   disabled={itensArray.length === 0 || processing || etapa === 4}
                 >
-                  {etapa === 1
-                    ? "Ir para Endereço"
-                    : etapa === 2
-                    ? "Ir para Pagamento"
-                    : etapa === 3
-                    ? "Finalizar"
-                    : "Concluído"}
+                  {etapa === 1 ? "Ir para Endereço" : etapa === 2 ? "Ir para Pagamento" : etapa === 3 ? "Finalizar" : "Concluído"}
                 </button>
 
                 <button className="btn btn-outline-brand w-100 mt-2" onClick={carregarTudo}>
@@ -708,9 +754,7 @@ export default function CarrinhoPage() {
                               </div>
                               <div className="text-muted small">
                                 Subtotal:{" "}
-                                <strong>
-                                  {formatBRL(num(item.preco_unitario) * (item.quantidade || 1))}
-                                </strong>
+                                <strong>{formatBRL(num(item.preco_unitario) * (item.quantidade || 1))}</strong>
                               </div>
                             </div>
 
@@ -733,10 +777,7 @@ export default function CarrinhoPage() {
                                 </button>
                               </div>
 
-                              <button
-                                className="btn btn-outline-danger"
-                                onClick={() => removerItem(item.id_item)}
-                              >
+                              <button className="btn btn-outline-danger" onClick={() => removerItem(item.id_item)}>
                                 Remover
                               </button>
                             </div>
@@ -746,24 +787,17 @@ export default function CarrinhoPage() {
                     )}
 
                     <div className="d-flex justify-content-between mt-4">
-                      <button
-                        className="btn btn-outline-secondary"
-                        onClick={() => (window.location.href = "/home")}
-                      >
+                      <button className="btn btn-outline-secondary" onClick={() => (window.location.href = "/home")}>
                         Voltar
                       </button>
-                      <button
-                        className="btn btn-brand"
-                        onClick={() => setEtapa(2)}
-                        disabled={itensArray.length === 0}
-                      >
+                      <button className="btn btn-brand" onClick={() => setEtapa(2)} disabled={itensArray.length === 0}>
                         Continuar
                       </button>
                     </div>
                   </>
                 )}
 
-                {/* ETAPA 2 (CARDS se tiver endereço, FORM se não tiver ou se clicar em "novo") */}
+                {/* ETAPA 2 */}
                 {etapa === 2 && (
                   <>
                     <h4 className="mb-3" style={{ fontWeight: 1000 }}>
@@ -772,41 +806,29 @@ export default function CarrinhoPage() {
 
                     {enderecosLoading ? (
                       <div className="text-muted">Carregando endereços...</div>
-                    ) : enderecos.length > 0 && enderecoSelecionadoId !== "novo" ? (
+                    ) : enderecos.length > 0 && !mostrarFormularioEndereco ? (
                       <>
+                        {/* ✅ CARDS */}
                         <div className="row g-3">
                           {enderecos.map((e) => {
-                            const id = getEnderecoId(e);
-                            if (!id) return null;
-
-                            const selected = enderecoSelecionadoId === id;
-                            const info = enderecoLabel(e);
+                            const sel = enderecoSelecionadoId === e.id_endereco;
+                            const info = enderecoResumo(e);
 
                             return (
-                              <div key={id} className="col-12">
-                                <button
-                                  type="button"
-                                  onClick={() => setEnderecoSelecionadoId(id)}
-                                  className="w-100 text-start"
-                                  style={{
-                                    background: "#fff",
-                                    borderRadius: 16,
-                                    padding: 14,
-                                    border: selected
-                                      ? "2px solid rgba(199,161,106,0.9)"
-                                      : "1px solid rgba(0,0,0,0.08)",
-                                    boxShadow: selected
-                                      ? "0 14px 30px rgba(199,161,106,0.18)"
-                                      : "0 10px 22px rgba(0,0,0,0.06)",
-                                    cursor: "pointer",
-                                  }}
+                              <div className="col-12" key={e.id_endereco}>
+                                <div
+                                  className={`addrCard ${sel ? "addrCardSelected" : ""}`}
+                                  onClick={() => setEnderecoSelecionadoId(e.id_endereco)}
+                                  role="button"
+                                  aria-label="Selecionar endereço"
                                 >
                                   <div className="d-flex justify-content-between align-items-start gap-2">
                                     <div>
                                       <div style={{ fontWeight: 1000, fontSize: 15 }}>
-                                        {info.titulo}
+                                        {e.nome ? e.nome : `Endereço #${e.id_endereco}`}
                                       </div>
-                                      <div style={{ fontWeight: 900, marginTop: 6 }}>{info.linha1}</div>
+
+                                      <div style={{ fontWeight: 900, marginTop: 8 }}>{info.linha1}</div>
                                       <div className="text-muted" style={{ fontWeight: 800, marginTop: 4 }}>
                                         {info.linha2}
                                       </div>
@@ -817,26 +839,11 @@ export default function CarrinhoPage() {
                                       ) : null}
                                     </div>
 
-                                    <div
-                                      style={{
-                                        minWidth: 34,
-                                        height: 34,
-                                        borderRadius: 999,
-                                        display: "grid",
-                                        placeItems: "center",
-                                        border: selected
-                                          ? "2px solid rgba(199,161,106,0.9)"
-                                          : "1px solid rgba(0,0,0,0.12)",
-                                        background: selected ? "rgba(199,161,106,0.14)" : "#fff",
-                                        fontWeight: 1000,
-                                        color: selected ? "#6b4b1b" : "rgba(0,0,0,0.45)",
-                                      }}
-                                      aria-hidden="true"
-                                    >
-                                      {selected ? "✓" : ""}
+                                    <div className={`addrBadge ${sel ? "addrBadgeSelected" : ""}`}>
+                                      {sel ? "✓" : ""}
                                     </div>
                                   </div>
-                                </button>
+                                </div>
                               </div>
                             );
                           })}
@@ -851,7 +858,8 @@ export default function CarrinhoPage() {
                             <button
                               className="btn btn-outline-brand"
                               onClick={() => {
-                                setEnderecoSelecionadoId("novo");
+                                setMostrarFormularioEndereco(true);
+                                setEnderecoSelecionadoId(null);
                                 setEndereco({ estado: "SP" });
                               }}
                             >
@@ -869,18 +877,19 @@ export default function CarrinhoPage() {
                       </>
                     ) : (
                       <>
+                        {/* ✅ FORMULÁRIO só quando não tem endereço OU quando clicou em "Cadastrar novo" */}
                         {enderecos.length === 0 ? (
                           <div className="alert alert-warning">
                             Você ainda não tem endereço cadastrado. Preencha abaixo para cadastrar.
                           </div>
                         ) : (
-                          <div className="mb-3">
+                          <div className="mb-3 d-flex gap-2 flex-wrap">
                             <button
                               className="btn btn-outline-brand"
                               onClick={() => {
+                                setMostrarFormularioEndereco(false);
                                 // volta pro primeiro card
-                                const first = enderecos[0] ? getEnderecoId(enderecos[0]) : null;
-                                setEnderecoSelecionadoId(first ?? "novo");
+                                setEnderecoSelecionadoId(enderecos[0]?.id_endereco ?? null);
                               }}
                             >
                               Voltar para endereços salvos
@@ -927,9 +936,7 @@ export default function CarrinhoPage() {
                             <input
                               className="form-control pillInput"
                               value={endereco.complemento ?? ""}
-                              onChange={(e) =>
-                                setEndereco((p) => ({ ...p, complemento: e.target.value }))
-                              }
+                              onChange={(e) => setEndereco((p) => ({ ...p, complemento: e.target.value }))}
                             />
                           </div>
 
@@ -956,9 +963,7 @@ export default function CarrinhoPage() {
                             <select
                               className="form-select pillInput"
                               value={endereco.estado ?? "SP"}
-                              onChange={(e) =>
-                                setEndereco((p) => ({ ...p, estado: e.target.value }))
-                              }
+                              onChange={(e) => setEndereco((p) => ({ ...p, estado: e.target.value }))}
                             >
                               <option value="SP">SP</option>
                               <option value="RJ">RJ</option>
@@ -1032,48 +1037,27 @@ export default function CarrinhoPage() {
                       <div className="row g-3">
                         <div className="col-12">
                           <label className="form-label fw-bold">Nome no cartão</label>
-                          <input
-                            className="form-control pillInput"
-                            value={cardName}
-                            onChange={(e) => setCardName(e.target.value)}
-                          />
+                          <input className="form-control pillInput" value={cardName} onChange={(e) => setCardName(e.target.value)} />
                         </div>
 
                         <div className="col-12">
                           <label className="form-label fw-bold">Número</label>
-                          <input
-                            className="form-control pillInput"
-                            value={cardNumber}
-                            onChange={(e) => setCardNumber(maskCardNumber(e.target.value))}
-                            placeholder="4242 4242 4242 4242"
-                          />
+                          <input className="form-control pillInput" value={cardNumber} onChange={(e) => setCardNumber(maskCardNumber(e.target.value))} placeholder="4242 4242 4242 4242" />
                         </div>
 
                         <div className="col-md-4">
                           <label className="form-label fw-bold">Validade</label>
-                          <input
-                            className="form-control pillInput"
-                            value={cardExpiry}
-                            onChange={(e) => setCardExpiry(maskExpiry(e.target.value))}
-                            placeholder="MM/YY"
-                          />
+                          <input className="form-control pillInput" value={cardExpiry} onChange={(e) => setCardExpiry(maskExpiry(e.target.value))} placeholder="MM/YY" />
                         </div>
 
                         <div className="col-md-4">
                           <label className="form-label fw-bold">CVV</label>
-                          <input
-                            className="form-control pillInput"
-                            value={cardCVV}
-                            onChange={(e) => setCardCVV(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                            placeholder="123"
-                          />
+                          <input className="form-control pillInput" value={cardCVV} onChange={(e) => setCardCVV(e.target.value.replace(/\D/g, "").slice(0, 4))} placeholder="123" />
                         </div>
 
                         <div className="col-md-4">
                           <label className="form-label fw-bold">Validação</label>
-                          <div className="form-control pillInput bg-light">
-                            {isCardValid() ? "✅ Ok" : "❌ inválido"}
-                          </div>
+                          <div className="form-control pillInput bg-light">{isCardValid() ? "✅ Ok" : "❌ inválido"}</div>
                         </div>
                       </div>
                     )}
@@ -1108,9 +1092,7 @@ export default function CarrinhoPage() {
                     </div>
 
                     <h4 style={{ fontWeight: 1000 }}>Obrigado pela compra!</h4>
-                    <p className="text-muted mb-4">
-                      Você pode acompanhar seus pedidos na página “Meus Pedidos”.
-                    </p>
+                    <p className="text-muted mb-4">Você pode acompanhar seus pedidos na página “Meus Pedidos”.</p>
 
                     <div className="d-flex gap-2 justify-content-center flex-wrap">
                       <button className="btn btn-outline-brand" onClick={() => (window.location.href = "/pedidos")}>
@@ -1140,14 +1122,7 @@ export default function CarrinhoPage() {
                 <hr />
 
                 {cupomAplicado ? (
-                  <div
-                    className="mb-3 p-3"
-                    style={{
-                      background: "#fff",
-                      borderRadius: 14,
-                      border: "1px solid rgba(0,0,0,0.06)",
-                    }}
-                  >
+                  <div className="mb-3 p-3" style={{ background: "#fff", borderRadius: 14, border: "1px solid rgba(0,0,0,0.06)" }}>
                     <div className="fw-bold">{cupomAplicado.codigo}</div>
                     <div className="text-muted small">
                       {cupomAplicado.descricao ||
@@ -1157,10 +1132,7 @@ export default function CarrinhoPage() {
                     </div>
                     <div className="text-success fw-bold mt-1">- {formatBRL(descontoValor)}</div>
 
-                    <button
-                      className="btn btn-outline-secondary btn-sm mt-2"
-                      onClick={() => (setCupomAplicado(null), toast.info("Cupom removido."))}
-                    >
+                    <button className="btn btn-outline-secondary btn-sm mt-2" onClick={() => (setCupomAplicado(null), toast.info("Cupom removido."))}>
                       Remover cupom
                     </button>
                   </div>
@@ -1168,12 +1140,7 @@ export default function CarrinhoPage() {
                   <div className="mb-3">
                     <label className="form-label fw-bold">Cupom</label>
                     <div className="input-group">
-                      <input
-                        className="form-control pillInput"
-                        value={cupomInput}
-                        onChange={(e) => setCupomInput(e.target.value)}
-                        placeholder="Digite o cupom"
-                      />
+                      <input className="form-control pillInput" value={cupomInput} onChange={(e) => setCupomInput(e.target.value)} placeholder="Digite o cupom" />
                       <button className="btn btn-outline-secondary" onClick={aplicarCupom} disabled={cupomLoading}>
                         {cupomLoading ? "..." : "Aplicar"}
                       </button>
@@ -1205,13 +1172,7 @@ export default function CarrinhoPage() {
                   onClick={() => setEtapa((prev) => (prev < 4 ? ((prev + 1) as any) : prev))}
                   disabled={itensArray.length === 0 || processing || etapa === 4}
                 >
-                  {etapa === 1
-                    ? "Ir para Endereço"
-                    : etapa === 2
-                    ? "Ir para Pagamento"
-                    : etapa === 3
-                    ? "Finalizar"
-                    : "Concluído"}
+                  {etapa === 1 ? "Ir para Endereço" : etapa === 2 ? "Ir para Pagamento" : etapa === 3 ? "Finalizar" : "Concluído"}
                 </button>
 
                 <button className="btn btn-outline-brand w-100 mt-2" onClick={carregarTudo}>
