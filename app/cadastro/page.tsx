@@ -4,7 +4,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { FaUser, FaEnvelope, FaLock, FaPhoneAlt, FaIdCard, FaArrowLeft } from "react-icons/fa";
+import {
+  FaUser,
+  FaEnvelope,
+  FaLock,
+  FaPhoneAlt,
+  FaIdCard,
+  FaArrowLeft
+} from "react-icons/fa";
 import api from "@/Api/conectar";
 import { useRouter } from "next/navigation";
 
@@ -36,7 +43,6 @@ export default function CadastroPage() {
         const res = await api.get("/admin/configuracoes/login", { withCredentials: true });
         setConfig(res.data?.dados?.[0] ?? null);
       } catch {
-        // fallback
         setConfig({
           fundo: "#7b1e3a",
           titulo: "Império Loja",
@@ -79,16 +85,36 @@ export default function CadastroPage() {
     const ddd = d.slice(0, 2);
     const n1 = d.slice(2, 7);
     const n2 = d.slice(7, 11);
+    if (d.length === 0) return "";
     if (d.length <= 2) return `(${ddd}`;
     if (d.length <= 7) return `(${ddd}) ${n1}`;
     return `(${ddd}) ${n1}-${n2}`;
   };
 
+  const isValidEmail = (v: string) => {
+    // simples e ok pra client-side
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+  };
+
   const handleCadastro = async () => {
-    if (!nome || !email || !senha || !senha2) {
+    const nomeTrim = nome.trim();
+    const emailTrim = email.trim().toLowerCase();
+
+    if (!nomeTrim || !emailTrim || !senha || !senha2) {
       toast.error("Preencha nome, email e senha.");
       return;
     }
+
+    if (!isValidEmail(emailTrim)) {
+      toast.error("E-mail inválido.");
+      return;
+    }
+
+    if (senha.length < 6) {
+      toast.error("A senha precisa ter no mínimo 6 caracteres.");
+      return;
+    }
+
     if (senha !== senha2) {
       toast.error("As senhas não conferem.");
       return;
@@ -109,15 +135,16 @@ export default function CadastroPage() {
 
     setLoadingBtn(true);
     try {
-      // ✅ Seu backend já gera PIN automaticamente aqui
+      // ✅ NOVA MUDANÇA: cadastro público sempre nível 3
       await api.post(
         "/usuarios",
         {
-          nome,
-          email,
+          nome: nomeTrim,
+          email: emailTrim,
           senha,
           telefone: telDigits || null,
           cpf: cpfDigits || null,
+          nivelid: 3, // 🔥 aqui é o ponto principal
         },
         { withCredentials: true }
       );
@@ -215,14 +242,29 @@ export default function CadastroPage() {
                 />
               </div>
 
-              <button className="btnPrimary" onClick={handleCadastro} disabled={loadingBtn} type="button">
+              <button
+                className="btnPrimary"
+                onClick={handleCadastro}
+                disabled={loadingBtn}
+                type="button"
+              >
                 {loadingBtn ? <span className="spinner" /> : "Cadastrar"}
               </button>
 
-              <button className="btnGhost" type="button" onClick={() => router.push("/login")} disabled={loadingBtn}>
+              <button
+                className="btnGhost"
+                type="button"
+                onClick={() => router.push("/login")}
+                disabled={loadingBtn}
+              >
                 <FaArrowLeft />
                 Voltar para login
               </button>
+
+              {/* Opcional: só pra você lembrar visualmente (não manda pro backend) */}
+              <div className="hint">
+                <span>Nível do cadastro:</span> <b>3</b>
+              </div>
             </div>
           </div>
 
@@ -451,6 +493,19 @@ export default function CadastroPage() {
           color: rgba(255, 255, 255, 0.88);
           line-height: 1.55;
           max-width: 42ch;
+        }
+
+        .hint{
+          margin-top: 14px;
+          font-size: 12px;
+          color: rgba(255,255,255,0.75);
+          display:flex;
+          gap:8px;
+          align-items:center;
+          justify-content:center;
+        }
+        .hint b{
+          color: rgba(255,255,255,0.95);
         }
 
         @media (max-width: 900px) {
