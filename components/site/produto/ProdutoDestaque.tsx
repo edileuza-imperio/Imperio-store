@@ -15,6 +15,10 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
+// ✅ Toast
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+
 const getImagemUrl = (caminho?: string) => {
   if (!caminho) return "/placeholder.png";
   const base = api.defaults.baseURL || "";
@@ -82,7 +86,7 @@ function SkeletonCard() {
           border-radius: 12px;
         }
         .sk-btn {
-          width: 92px;
+          width: 120px;
           height: 40px;
           border-radius: 999px;
         }
@@ -103,7 +107,6 @@ export default function ProdutoDestaque() {
   const router = useRouter();
   const { destaques, loading, error } = useProdutoDestaque();
 
-  // loading por produto (não trava a vitrine toda)
   const [addingId, setAddingId] = useState<number | null>(null);
   const [added, setAdded] = useState<Record<number, boolean>>({});
 
@@ -138,11 +141,13 @@ export default function ProdutoDestaque() {
   }
 
   async function adicionarAoCarrinho(item: any) {
-    const produtoId = Number(item?.produto_id ?? item?.id_produto ?? item?.produtoId ?? item?.produto ?? item?.id);
+    const produtoId = Number(
+      item?.produto_id ?? item?.id_produto ?? item?.produtoId ?? item?.id
+    );
     const precoUnitario = Number(item?.produto_preco ?? item?.preco ?? 0);
 
     if (!Number.isFinite(produtoId) || produtoId <= 0) {
-      alert("Produto inválido para adicionar ao carrinho.");
+      toast.error("Produto inválido para adicionar ao carrinho.");
       return;
     }
 
@@ -151,6 +156,7 @@ export default function ProdutoDestaque() {
     const usuarioId = await getUsuarioId();
     if (!usuarioId) {
       setAddingId(null);
+      toast.info("Faça login para adicionar ao carrinho.");
       router.push("/login");
       return;
     }
@@ -168,6 +174,8 @@ export default function ProdutoDestaque() {
       );
 
       setAdded((prev) => ({ ...prev, [produtoId]: true }));
+      toast.success("Adicionado ao carrinho!");
+
       window.setTimeout(() => {
         setAdded((prev) => ({ ...prev, [produtoId]: false }));
       }, 1600);
@@ -176,7 +184,7 @@ export default function ProdutoDestaque() {
         e?.response?.data?.mensagem ||
         e?.message ||
         "Erro ao adicionar no carrinho.";
-      alert(String(msg));
+      toast.error(String(msg));
     } finally {
       setAddingId(null);
     }
@@ -184,6 +192,16 @@ export default function ProdutoDestaque() {
 
   return (
     <section className="pdestaque">
+      {/* ✅ Toasts (fica só nesse componente) */}
+      <ToastContainer
+        position="top-right"
+        autoClose={2600}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        theme="dark"
+      />
+
       <div className="container">
         <div className="wrap">
           {/* ===== HEADER EDITORIAL ===== */}
@@ -250,7 +268,10 @@ export default function ProdutoDestaque() {
                     ))
                   : vitrine.map((item: any) => {
                       const produtoId = Number(
-                        item?.produto_id ?? item?.id_produto ?? item?.produtoId ?? item?.id
+                        item?.produto_id ??
+                          item?.id_produto ??
+                          item?.produtoId ??
+                          item?.id
                       );
                       const isAdding = addingId === produtoId;
                       const isAdded = !!added[produtoId];
@@ -261,16 +282,13 @@ export default function ProdutoDestaque() {
                           className="col-6 col-md-4 col-lg-3"
                         >
                           <article className="pcard">
-                            {/* glow border */}
                             <div className="pcard__border" />
 
-                            {/* ribbon */}
                             <div className="pcard__ribbon">
                               <Star size={14} />
                               Destaque
                             </div>
 
-                            {/* media */}
                             <Link
                               href={`/produto/${item.produto_slug}`}
                               className="pcard__media"
@@ -285,7 +303,6 @@ export default function ProdutoDestaque() {
                               </div>
                             </Link>
 
-                            {/* body */}
                             <div className="pcard__body">
                               <h6 className="pcard__name" title={item.produto_nome}>
                                 {item.produto_nome}
@@ -304,26 +321,31 @@ export default function ProdutoDestaque() {
                                   </span>
                                   <span className="pcard__tag">Em alta</span>
                                 </div>
+                              </div>
 
-                                <div className="pcard__actions">
-                                  <Link
-                                    href={`/produto/${item.produto_slug}`}
-                                    className="btnicon btnicon--ghost"
-                                    title="Ver produto"
-                                  >
+                              {/* ✅ BOTÕES MAIS BONITOS (Ver Produto + Adicionar) */}
+                              <div className="pcard__ctaRow">
+                                <Link
+                                  href={`/produto/${item.produto_slug}`}
+                                  className="actionBtn actionBtn--view"
+                                  title="Ver detalhes do produto"
+                                >
+                                  <span className="actionBtn__icon">
                                     <Eye size={16} />
-                                  </Link>
+                                  </span>
+                                  <span className="actionBtn__text">Ver</span>
+                                </Link>
 
-                                  {/* ✅ AGORA ADICIONA NO BANCO */}
-                                  <button
-                                    type="button"
-                                    className={`btnicon btnicon--solid ${
-                                      isAdded ? "btnicon--ok" : ""
-                                    }`}
-                                    title="Adicionar ao carrinho"
-                                    onClick={() => adicionarAoCarrinho(item)}
-                                    disabled={isAdding}
-                                  >
+                                <button
+                                  type="button"
+                                  className={`actionBtn actionBtn--cart ${
+                                    isAdded ? "actionBtn--ok" : ""
+                                  }`}
+                                  title="Adicionar ao carrinho"
+                                  onClick={() => adicionarAoCarrinho(item)}
+                                  disabled={isAdding}
+                                >
+                                  <span className="actionBtn__icon">
                                     {isAdding ? (
                                       <Loader2 size={16} className="spin" />
                                     ) : isAdded ? (
@@ -331,8 +353,16 @@ export default function ProdutoDestaque() {
                                     ) : (
                                       <ShoppingCart size={16} />
                                     )}
-                                  </button>
-                                </div>
+                                  </span>
+
+                                  <span className="actionBtn__text">
+                                    {isAdding
+                                      ? "Adicionando..."
+                                      : isAdded
+                                      ? "Adicionado"
+                                      : "Adicionar"}
+                                  </span>
+                                </button>
                               </div>
                             </div>
                           </article>
@@ -699,6 +729,7 @@ export default function ProdutoDestaque() {
           align-items: flex-end;
           justify-content: space-between;
           gap: 10px;
+          margin-bottom: 10px;
         }
 
         .pcard__pricebox {
@@ -725,54 +756,84 @@ export default function ProdutoDestaque() {
           border: 1px solid rgba(176, 141, 87, 0.22);
         }
 
-        .pcard__actions {
-          display: flex;
-          gap: 8px;
+        /* ✅ CTA Row */
+        .pcard__ctaRow {
+          display: grid;
+          grid-template-columns: 1fr 1.25fr;
+          gap: 10px;
         }
 
-        .btnicon {
-          width: 40px;
-          height: 40px;
+        .actionBtn {
+          height: 44px;
           border-radius: 14px;
-          display: grid;
-          place-items: center;
-          transition: transform 0.22s ease, box-shadow 0.22s ease,
-            background 0.22s ease;
-          border: 0;
+          border: 1px solid rgba(17, 24, 39, 0.12);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          padding: 0 12px;
+          font-weight: 1000;
+          letter-spacing: -0.01em;
           cursor: pointer;
+          transition: transform 0.18s ease, box-shadow 0.22s ease,
+            filter 0.22s ease, background 0.22s ease;
+          text-decoration: none;
+          user-select: none;
+          outline: none;
         }
-        .btnicon:hover {
+        .actionBtn:hover {
           transform: translateY(-2px);
         }
 
-        .btnicon--ghost {
-          color: #111827;
-          background: rgba(17, 24, 39, 0.06);
-          border: 1px solid rgba(17, 24, 39, 0.1);
-          text-decoration: none;
-        }
-        .btnicon--ghost:hover {
-          background: rgba(17, 24, 39, 0.1);
+        .actionBtn__icon {
+          width: 28px;
+          height: 28px;
+          border-radius: 10px;
+          display: grid;
+          place-items: center;
         }
 
-        .btnicon--solid {
-          color: #fff;
+        .actionBtn__text {
+          font-size: 0.92rem;
+          white-space: nowrap;
+        }
+
+        .actionBtn--view {
+          background: rgba(17, 24, 39, 0.04);
+          color: #111827;
+        }
+        .actionBtn--view:hover {
+          background: rgba(17, 24, 39, 0.07);
+          box-shadow: 0 14px 34px rgba(17, 24, 39, 0.12);
+        }
+        .actionBtn--view .actionBtn__icon {
+          background: rgba(17, 24, 39, 0.08);
+          border: 1px solid rgba(17, 24, 39, 0.10);
+        }
+
+        .actionBtn--cart {
+          border: 1px solid rgba(255, 255, 255, 0.16);
           background: linear-gradient(135deg, #7a2941, #b08d57);
-          box-shadow: 0 16px 40px rgba(122, 41, 65, 0.2);
+          color: #fff;
+          box-shadow: 0 16px 44px rgba(122, 41, 65, 0.18);
+        }
+        .actionBtn--cart:hover {
+          box-shadow: 0 22px 60px rgba(122, 41, 65, 0.24);
+          filter: brightness(1.02);
+        }
+        .actionBtn--cart .actionBtn__icon {
+          background: rgba(255, 255, 255, 0.12);
           border: 1px solid rgba(255, 255, 255, 0.16);
         }
-        .btnicon--solid:hover {
-          box-shadow: 0 22px 55px rgba(122, 41, 65, 0.26);
-        }
-        .btnicon--solid:disabled {
-          opacity: 0.7;
+        .actionBtn--cart:disabled {
+          opacity: 0.72;
           cursor: not-allowed;
           transform: none;
         }
 
-        .btnicon--ok {
+        .actionBtn--ok {
           background: linear-gradient(135deg, #166534, #22c55e);
-          box-shadow: 0 16px 40px rgba(34, 197, 94, 0.18);
+          box-shadow: 0 16px 44px rgba(34, 197, 94, 0.16);
         }
 
         .spin {
@@ -828,6 +889,9 @@ export default function ProdutoDestaque() {
           }
           .pcard__desc {
             min-height: 38px;
+          }
+          .pcard__ctaRow {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
