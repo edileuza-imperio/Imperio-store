@@ -63,10 +63,10 @@ function formatDate(d?: string) {
 }
 
 // ✅ Mapeia status (pode vir por id ou texto)
-function resolveStatus(p: PedidoApi): { label: string; tone: "ok" | "warn" | "info" | "brand" | "danger" } {
-  const s =
-    (p.status_nome || p.status || "").toString().trim().toLowerCase();
-
+function resolveStatus(
+  p: PedidoApi
+): { label: string; tone: "ok" | "warn" | "info" | "brand" | "danger" } {
+  const s = (p.status_nome || p.status || "").toString().trim().toLowerCase();
   const id = (p.statusid ?? p.status_id) ?? 0;
 
   // tenta por texto
@@ -165,9 +165,7 @@ export default function PedidosPage() {
       setPedidos(normalized);
     } catch (e: any) {
       const msg =
-        e?.response?.data?.mensagem ||
-        e?.message ||
-        "Erro ao carregar pedidos.";
+        e?.response?.data?.mensagem || e?.message || "Erro ao carregar pedidos.";
       setErro(String(msg));
     } finally {
       setLoading(false);
@@ -224,7 +222,9 @@ export default function PedidosPage() {
                   <div className="d-flex align-items-center justify-content-between">
                     <div>
                       <div className="hero-card-label">Pedidos (últimos)</div>
-                      <div className="hero-card-value">{loading ? "…" : totalPedidos}</div>
+                      <div className="hero-card-value">
+                        {loading ? "…" : totalPedidos}
+                      </div>
                     </div>
                     <div className="hero-card-icon" aria-hidden>
                       🧾
@@ -252,7 +252,9 @@ export default function PedidosPage() {
                       className="btn btn-ghost"
                       type="button"
                       title="Ajuda"
-                      onClick={() => alert("Fale com o suporte e informe o número do pedido.")}
+                      onClick={() =>
+                        alert("Fale com o suporte e informe o número do pedido.")
+                      }
                     >
                       ?
                     </button>
@@ -343,7 +345,9 @@ export default function PedidosPage() {
                                 <div>
                                   <div className="fw-semibold">#{id}</div>
                                   <div className="text-muted small">
-                                    {p.metodo_pagamento ? `Pagamento: ${p.metodo_pagamento}` : "Compra online"}
+                                    {p.metodo_pagamento
+                                      ? `Pagamento: ${p.metodo_pagamento}`
+                                      : "Compra online"}
                                   </div>
                                 </div>
                               </div>
@@ -374,7 +378,11 @@ export default function PedidosPage() {
                               <button
                                 className="btn btn-sm btn-brand"
                                 type="button"
-                                onClick={() => alert("Rastreamento: implemente quando tiver o código/transportadora.")}
+                                onClick={() =>
+                                  alert(
+                                    "Rastreamento: implemente quando tiver o código/transportadora."
+                                  )
+                                }
                               >
                                 Rastrear
                               </button>
@@ -388,15 +396,21 @@ export default function PedidosPage() {
               )}
             </div>
 
-            <div className="card-footer bg-transparent border-0 p-4 d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-between">
-              <small className="text-muted">
-                Seus pedidos são carregados da API: <strong>/me</strong> e <strong>/pedido/{`{usuarioId}`}</strong>.
-              </small>
+            {/* ✅ FOOTER SEM EXPOR ROTAS/API */}
+            <div className="card-footer bg-transparent border-0 p-4 d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-end">
               <div className="d-flex gap-2">
-                <button className="btn btn-outline-brand btn-sm" type="button" disabled>
+                <button
+                  className="btn btn-outline-brand btn-sm"
+                  type="button"
+                  disabled
+                >
                   Anterior
                 </button>
-                <button className="btn btn-outline-brand btn-sm" type="button" disabled>
+                <button
+                  className="btn btn-outline-brand btn-sm"
+                  type="button"
+                  disabled
+                >
                   Próximo
                 </button>
               </div>
@@ -412,11 +426,16 @@ export default function PedidosPage() {
                 <div>
                   <div className="ui-modal-title">Detalhes do Pedido</div>
                   <div className="ui-modal-subtitle text-muted">
-                    {detLoading ? "Carregando..." : `Pedido #${detalhes?.id ?? ""}`}
+                    {detLoading
+                      ? "Carregando..."
+                      : `Pedido #${detalhes?.id ?? ""}`}
                   </div>
                 </div>
 
-                <button className="btn btn-ghost-dark" onClick={() => setModalOpen(false)}>
+                <button
+                  className="btn btn-ghost-dark"
+                  onClick={() => setModalOpen(false)}
+                >
                   ✕
                 </button>
               </div>
@@ -434,7 +453,9 @@ export default function PedidosPage() {
                       <div className="detail-card">
                         <div className="detail-label">Status</div>
                         <div className="detail-value">
-                          <span className={`badge badge-soft badge-${resolveStatus(detalhes).tone}`}>
+                          <span
+                            className={`badge badge-soft badge-${resolveStatus(detalhes).tone}`}
+                          >
                             {resolveStatus(detalhes).label}
                           </span>
                         </div>
@@ -457,7 +478,11 @@ export default function PedidosPage() {
                       <div className="detail-card detail-wide">
                         <div className="detail-label">Endereço</div>
                         <div className="detail-value">
-                          {detalhes.endereco ? detalhes.endereco : <span className="text-muted">-</span>}
+                          {detalhes.endereco ? (
+                            detalhes.endereco
+                          ) : (
+                            <span className="text-muted">-</span>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -465,7 +490,8 @@ export default function PedidosPage() {
                     <hr className="my-3" />
 
                     <div className="fw-semibold mb-2">Itens</div>
-                    {Array.isArray(detalhes.itens) && detalhes.itens.length > 0 ? (
+                    {Array.isArray(detalhes.itens) &&
+                    detalhes.itens.length > 0 ? (
                       <div className="table-responsive">
                         <table className="table table-sm align-middle mb-0">
                           <thead className="table-head">
@@ -478,7 +504,10 @@ export default function PedidosPage() {
                           </thead>
                           <tbody>
                             {detalhes.itens.map((it, idx) => {
-                              const nome = it.nome || it.titulo || `Produto #${it.produto_id ?? ""}`;
+                              const nome =
+                                it.nome ||
+                                it.titulo ||
+                                `Produto #${it.produto_id ?? ""}`;
                               const qtd = Number(it.quantidade ?? 0);
                               const unit = toNumber(it.preco_unitario);
                               const sub = toNumber(it.subtotal) || unit * qtd;
@@ -487,8 +516,12 @@ export default function PedidosPage() {
                                 <tr key={idx}>
                                   <td>{nome}</td>
                                   <td className="text-center">{qtd}</td>
-                                  <td className="text-end">{formatBRL(unit)}</td>
-                                  <td className="text-end fw-semibold">{formatBRL(sub)}</td>
+                                  <td className="text-end">
+                                    {formatBRL(unit)}
+                                  </td>
+                                  <td className="text-end fw-semibold">
+                                    {formatBRL(sub)}
+                                  </td>
                                 </tr>
                               );
                             })}
@@ -505,7 +538,10 @@ export default function PedidosPage() {
               </div>
 
               <div className="ui-modal-footer">
-                <button className="btn btn-outline-brand" onClick={() => setModalOpen(false)}>
+                <button
+                  className="btn btn-outline-brand"
+                  onClick={() => setModalOpen(false)}
+                >
                   Fechar
                 </button>
               </div>
@@ -535,9 +571,16 @@ export default function PedidosPage() {
         }
 
         .pedidos-hero {
-          background:
-            radial-gradient(900px 480px at 15% 20%, rgba(199, 161, 106, 0.22), transparent 55%),
-            radial-gradient(800px 420px at 85% 10%, rgba(255, 255, 255, 0.12), transparent 55%),
+          background: radial-gradient(
+              900px 480px at 15% 20%,
+              rgba(199, 161, 106, 0.22),
+              transparent 55%
+            ),
+            radial-gradient(
+              800px 420px at 85% 10%,
+              rgba(255, 255, 255, 0.12),
+              transparent 55%
+            ),
             linear-gradient(135deg, var(--brand), var(--brand-2));
           color: #fff;
           border-bottom-left-radius: 28px;
@@ -570,7 +613,7 @@ export default function PedidosPage() {
         }
 
         .hero-card {
-          background: rgba(255, 255, 255, 0.10);
+          background: rgba(255, 255, 255, 0.1);
           border: 1px solid rgba(255, 255, 255, 0.16);
           border-radius: 22px;
           backdrop-filter: blur(10px);
@@ -678,7 +721,7 @@ export default function PedidosPage() {
         }
 
         .btn-ghost {
-          background: rgba(255, 255, 255, 0.10);
+          background: rgba(255, 255, 255, 0.1);
           border: 1px solid rgba(255, 255, 255, 0.18);
           color: #fff;
           border-radius: 12px;
@@ -746,15 +789,19 @@ export default function PedidosPage() {
           margin-bottom: 12px;
         }
         @keyframes shimmer {
-          0% { background-position: 200% 0; }
-          100% { background-position: -200% 0; }
+          0% {
+            background-position: 200% 0;
+          }
+          100% {
+            background-position: -200% 0;
+          }
         }
 
         /* Modal */
         .ui-modal-backdrop {
           position: fixed;
           inset: 0;
-          background: rgba(0,0,0,0.45);
+          background: rgba(0, 0, 0, 0.45);
           display: grid;
           place-items: center;
           padding: 16px;
@@ -765,7 +812,7 @@ export default function PedidosPage() {
           background: var(--cream-2);
           border: 1px solid var(--line);
           border-radius: 20px;
-          box-shadow: 0 30px 120px rgba(0,0,0,0.35);
+          box-shadow: 0 30px 120px rgba(0, 0, 0, 0.35);
           overflow: hidden;
         }
         .ui-modal-header {
@@ -775,7 +822,7 @@ export default function PedidosPage() {
           justify-content: space-between;
           gap: 12px;
           border-bottom: 1px solid var(--line);
-          background: rgba(255,243,234,0.7);
+          background: rgba(255, 243, 234, 0.7);
         }
         .ui-modal-title {
           font-weight: 900;
@@ -790,7 +837,7 @@ export default function PedidosPage() {
           display: flex;
           justify-content: flex-end;
           gap: 10px;
-          background: rgba(255,243,234,0.7);
+          background: rgba(255, 243, 234, 0.7);
         }
 
         .detail-grid {
