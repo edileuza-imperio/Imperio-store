@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Check,
   Loader2,
+  BadgeCheck,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -54,9 +55,9 @@ function SkeletonCard() {
         .sk {
           background: linear-gradient(
             90deg,
-            rgba(255, 255, 255, 0.12),
-            rgba(255, 255, 255, 0.22),
-            rgba(255, 255, 255, 0.12)
+            rgba(255, 255, 255, 0.14),
+            rgba(255, 255, 255, 0.26),
+            rgba(255, 255, 255, 0.14)
           );
           background-size: 220% 100%;
           animation: shimmer 1.1s linear infinite;
@@ -81,14 +82,14 @@ function SkeletonCard() {
           width: 75%;
         }
         .sk-price {
-          width: 96px;
+          width: 110px;
           height: 18px;
           border-radius: 12px;
         }
         .sk-btn {
-          width: 120px;
-          height: 40px;
-          border-radius: 999px;
+          width: 140px;
+          height: 44px;
+          border-radius: 16px;
         }
         @keyframes shimmer {
           0% {
@@ -174,7 +175,15 @@ export default function ProdutoDestaque() {
       );
 
       setAdded((prev) => ({ ...prev, [produtoId]: true }));
-      toast.success("Adicionado ao carrinho!");
+
+      toast.success(
+        <div style={{ display: "grid", gap: 6 }}>
+          <div style={{ fontWeight: 900 }}>Adicionado ao carrinho</div>
+          <div style={{ opacity: 0.9, fontSize: 13 }}>
+            Você pode finalizar quando quiser.
+          </div>
+        </div>
+      );
 
       window.setTimeout(() => {
         setAdded((prev) => ({ ...prev, [produtoId]: false }));
@@ -192,7 +201,6 @@ export default function ProdutoDestaque() {
 
   return (
     <section className="pdestaque">
-      {/* ✅ Toasts (fica só nesse componente) */}
       <ToastContainer
         position="top-right"
         autoClose={2600}
@@ -204,7 +212,7 @@ export default function ProdutoDestaque() {
 
       <div className="container">
         <div className="wrap">
-          {/* ===== HEADER EDITORIAL ===== */}
+          {/* ===== HEADER ===== */}
           <header className="head">
             <div className="head__left">
               <div className="badge">
@@ -214,9 +222,19 @@ export default function ProdutoDestaque() {
 
               <h2 className="head__title">Vitrine Premium</h2>
               <p className="head__sub">
-                Curadoria com estilo e acabamento superior — escolha rápida,
-                compra segura.
+                Curadoria com acabamento superior — escolha com confiança e
+                compre em segundos.
               </p>
+
+              <div className="trust">
+                <span className="trust__item">
+                  <BadgeCheck size={16} /> Compra segura
+                </span>
+                <span className="trust__dot" />
+                <span className="trust__item">
+                  <BadgeCheck size={16} /> Produtos selecionados
+                </span>
+              </div>
             </div>
 
             {mostrarBotao && (
@@ -227,7 +245,7 @@ export default function ProdutoDestaque() {
           </header>
 
           <div className="row g-4">
-            {/* ===== CARD EDITORIAL (mini banner) ===== */}
+            {/* ===== CARD EDITORIAL ===== */}
             <div className="col-lg-3 col-md-4">
               <div className="editorial">
                 <div className="editorial__top">
@@ -239,7 +257,7 @@ export default function ProdutoDestaque() {
 
                 <h3 className="editorial__title">Elegância pronta para você</h3>
                 <p className="editorial__text">
-                  Produtos em destaque com visual marcante e ótimo custo-benefício.
+                  Destaques com visual marcante e excelente custo-benefício.
                 </p>
 
                 <div className="editorial__bullets">
@@ -282,13 +300,16 @@ export default function ProdutoDestaque() {
                           className="col-6 col-md-4 col-lg-3"
                         >
                           <article className="pcard">
+                            {/* glow border */}
                             <div className="pcard__border" />
 
+                            {/* badge */}
                             <div className="pcard__ribbon">
                               <Star size={14} />
                               Destaque
                             </div>
 
+                            {/* media */}
                             <Link
                               href={`/produto/${item.produto_slug}`}
                               className="pcard__media"
@@ -301,8 +322,17 @@ export default function ProdutoDestaque() {
                                   loading="lazy"
                                 />
                               </div>
+
+                              {/* overlay (efeito profissional) */}
+                              <div className="pcard__hoverOverlay">
+                                <div className="pcard__hoverPill">
+                                  <Eye size={16} />
+                                  Ver detalhes
+                                </div>
+                              </div>
                             </Link>
 
+                            {/* body */}
                             <div className="pcard__body">
                               <h6 className="pcard__name" title={item.produto_nome}>
                                 {item.produto_nome}
@@ -314,55 +344,54 @@ export default function ProdutoDestaque() {
                                   : "Destaque selecionado com acabamento premium."}
                               </p>
 
-                              <div className="pcard__footer">
+                              <div className="pcard__bottom">
                                 <div className="pcard__pricebox">
                                   <span className="pcard__price">
                                     {formatBRL(item.produto_preco)}
                                   </span>
                                   <span className="pcard__tag">Em alta</span>
                                 </div>
-                              </div>
 
-                              {/* ✅ BOTÕES MAIS BONITOS (Ver Produto + Adicionar) */}
-                              <div className="pcard__ctaRow">
-                                <Link
-                                  href={`/produto/${item.produto_slug}`}
-                                  className="actionBtn actionBtn--view"
-                                  title="Ver detalhes do produto"
-                                >
-                                  <span className="actionBtn__icon">
-                                    <Eye size={16} />
-                                  </span>
-                                  <span className="actionBtn__text">Ver</span>
-                                </Link>
+                                {/* ✅ BOTÕES PROFISSIONAIS */}
+                                <div className="btnRow">
+                                  <Link
+                                    href={`/produto/${item.produto_slug}`}
+                                    className="btnPro btnPro--view"
+                                    title="Ver produto"
+                                  >
+                                    <span className="btnPro__icon">
+                                      <Eye size={16} />
+                                    </span>
+                                    <span className="btnPro__label">Ver produto</span>
+                                  </Link>
 
-                                <button
-                                  type="button"
-                                  className={`actionBtn actionBtn--cart ${
-                                    isAdded ? "actionBtn--ok" : ""
-                                  }`}
-                                  title="Adicionar ao carrinho"
-                                  onClick={() => adicionarAoCarrinho(item)}
-                                  disabled={isAdding}
-                                >
-                                  <span className="actionBtn__icon">
-                                    {isAdding ? (
-                                      <Loader2 size={16} className="spin" />
-                                    ) : isAdded ? (
-                                      <Check size={16} />
-                                    ) : (
-                                      <ShoppingCart size={16} />
-                                    )}
-                                  </span>
-
-                                  <span className="actionBtn__text">
-                                    {isAdding
-                                      ? "Adicionando..."
-                                      : isAdded
-                                      ? "Adicionado"
-                                      : "Adicionar"}
-                                  </span>
-                                </button>
+                                  <button
+                                    type="button"
+                                    className={`btnPro btnPro--cart ${
+                                      isAdded ? "btnPro--ok" : ""
+                                    }`}
+                                    title="Adicionar ao carrinho"
+                                    onClick={() => adicionarAoCarrinho(item)}
+                                    disabled={isAdding}
+                                  >
+                                    <span className="btnPro__icon">
+                                      {isAdding ? (
+                                        <Loader2 size={16} className="spin" />
+                                      ) : isAdded ? (
+                                        <Check size={16} />
+                                      ) : (
+                                        <ShoppingCart size={16} />
+                                      )}
+                                    </span>
+                                    <span className="btnPro__label">
+                                      {isAdding
+                                        ? "Adicionando"
+                                        : isAdded
+                                        ? "Adicionado"
+                                        : "Adicionar"}
+                                    </span>
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </article>
@@ -410,7 +439,7 @@ export default function ProdutoDestaque() {
               rgba(17, 24, 39, 0.16),
               transparent 60%
             );
-          filter: blur(10px);
+          filter: blur(12px);
           pointer-events: none;
         }
 
@@ -418,11 +447,11 @@ export default function ProdutoDestaque() {
           position: relative;
           border-radius: 34px;
           padding: 22px;
-          background: rgba(255, 255, 255, 0.65);
-          backdrop-filter: blur(14px);
-          -webkit-backdrop-filter: blur(14px);
-          border: 1px solid rgba(255, 255, 255, 0.75);
-          box-shadow: 0 24px 80px rgba(17, 24, 39, 0.1);
+          background: rgba(255, 255, 255, 0.64);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.78);
+          box-shadow: 0 24px 80px rgba(17, 24, 39, 0.10);
         }
 
         /* ===== HEADER ===== */
@@ -443,23 +472,51 @@ export default function ProdutoDestaque() {
           font-weight: 900;
           font-size: 0.82rem;
           color: #7a2941;
-          background: rgba(122, 41, 65, 0.1);
+          background: rgba(122, 41, 65, 0.10);
           border: 1px solid rgba(122, 41, 65, 0.14);
         }
 
         .head__title {
           margin: 10px 0 6px;
-          font-size: 2.05rem;
+          font-size: 2.10rem;
           font-weight: 1000;
           letter-spacing: -0.03em;
-          color: #111827;
+          color: #0b1220;
         }
 
         .head__sub {
           margin: 0;
-          max-width: 620px;
-          color: rgba(17, 24, 39, 0.72);
+          max-width: 640px;
+          color: rgba(11, 18, 32, 0.70);
           font-size: 1rem;
+        }
+
+        .trust {
+          margin-top: 10px;
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: rgba(17, 24, 39, 0.05);
+          border: 1px solid rgba(17, 24, 39, 0.08);
+          width: fit-content;
+        }
+
+        .trust__item {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 900;
+          font-size: 0.86rem;
+          color: rgba(11, 18, 32, 0.78);
+        }
+
+        .trust__dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 999px;
+          background: rgba(11, 18, 32, 0.20);
         }
 
         .head__cta {
@@ -470,15 +527,15 @@ export default function ProdutoDestaque() {
           border-radius: 999px;
           color: #fff;
           text-decoration: none;
-          font-weight: 900;
-          background: linear-gradient(135deg, #111827, #1f2937);
-          box-shadow: 0 14px 40px rgba(17, 24, 39, 0.2);
+          font-weight: 1000;
+          background: linear-gradient(135deg, #0b1220, #1f2937);
+          box-shadow: 0 14px 42px rgba(17, 24, 39, 0.18);
           transition: transform 0.25s ease, box-shadow 0.25s ease;
           white-space: nowrap;
         }
         .head__cta:hover {
           transform: translateY(-2px);
-          box-shadow: 0 22px 55px rgba(17, 24, 39, 0.25);
+          box-shadow: 0 22px 58px rgba(17, 24, 39, 0.22);
         }
 
         /* ===== EDITORIAL ===== */
@@ -489,13 +546,8 @@ export default function ProdutoDestaque() {
           color: #fff;
           position: relative;
           overflow: hidden;
-          background: linear-gradient(
-            160deg,
-            #111827 0%,
-            #7a2941 55%,
-            #b08d57 120%
-          );
-          box-shadow: 0 22px 70px rgba(122, 41, 65, 0.24);
+          background: linear-gradient(160deg, #0b1220 0%, #7a2941 55%, #b08d57 120%);
+          box-shadow: 0 22px 72px rgba(122, 41, 65, 0.22);
           border: 1px solid rgba(255, 255, 255, 0.18);
         }
 
@@ -516,7 +568,7 @@ export default function ProdutoDestaque() {
           display: grid;
           place-items: center;
           background: rgba(255, 255, 255, 0.14);
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          border: 1px solid rgba(255, 255, 255, 0.20);
         }
 
         .editorial__chip {
@@ -562,10 +614,11 @@ export default function ProdutoDestaque() {
           z-index: 2;
           display: inline-flex;
           align-items: center;
+          justify-content: center;
           gap: 10px;
           padding: 12px 16px;
           border-radius: 999px;
-          color: #111827;
+          color: #0b1220;
           background: #fff;
           text-decoration: none;
           font-weight: 1000;
@@ -579,11 +632,7 @@ export default function ProdutoDestaque() {
         .editorial__glow {
           position: absolute;
           inset: -35%;
-          background: radial-gradient(
-            circle,
-            rgba(255, 255, 255, 0.22),
-            transparent 58%
-          );
+          background: radial-gradient(circle, rgba(255, 255, 255, 0.22), transparent 58%);
           transform: rotate(18deg);
           z-index: 1;
         }
@@ -604,15 +653,15 @@ export default function ProdutoDestaque() {
           height: 100%;
           border-radius: 24px;
           overflow: hidden;
-          background: rgba(255, 255, 255, 0.78);
-          border: 1px solid rgba(17, 24, 39, 0.08);
-          box-shadow: 0 18px 55px rgba(17, 24, 39, 0.1);
+          background: rgba(255, 255, 255, 0.82);
+          border: 1px solid rgba(11, 18, 32, 0.08);
+          box-shadow: 0 18px 58px rgba(11, 18, 32, 0.10);
           transition: transform 0.28s ease, box-shadow 0.28s ease;
         }
 
         .pcard:hover {
           transform: translateY(-8px);
-          box-shadow: 0 28px 75px rgba(17, 24, 39, 0.18);
+          box-shadow: 0 30px 84px rgba(11, 18, 32, 0.16);
         }
 
         .pcard__border {
@@ -620,9 +669,9 @@ export default function ProdutoDestaque() {
           inset: 0;
           background: linear-gradient(
             135deg,
-            rgba(176, 141, 87, 0.34),
-            rgba(122, 41, 65, 0.24),
-            rgba(17, 24, 39, 0.1)
+            rgba(176, 141, 87, 0.32),
+            rgba(122, 41, 65, 0.22),
+            rgba(11, 18, 32, 0.12)
           );
           opacity: 0;
           pointer-events: none;
@@ -636,7 +685,7 @@ export default function ProdutoDestaque() {
           position: absolute;
           top: 14px;
           left: 14px;
-          z-index: 4;
+          z-index: 5;
           display: inline-flex;
           align-items: center;
           gap: 6px;
@@ -656,28 +705,20 @@ export default function ProdutoDestaque() {
           color: inherit;
           position: relative;
           padding: 18px 14px 0;
-          background: radial-gradient(
-              350px 160px at 30% 20%,
-              rgba(176, 141, 87, 0.18),
-              transparent 55%
-            ),
-            radial-gradient(
-              320px 150px at 80% 10%,
-              rgba(122, 41, 65, 0.14),
-              transparent 55%
-            ),
-            rgba(17, 24, 39, 0.02);
-          border-bottom: 1px solid rgba(17, 24, 39, 0.06);
+          background: radial-gradient(360px 170px at 30% 20%, rgba(176, 141, 87, 0.18), transparent 55%),
+            radial-gradient(340px 160px at 80% 10%, rgba(122, 41, 65, 0.14), transparent 55%),
+            rgba(11, 18, 32, 0.02);
+          border-bottom: 1px solid rgba(11, 18, 32, 0.06);
         }
 
         .pcard__plate {
           height: 170px;
           border-radius: 18px;
-          background: rgba(255, 255, 255, 0.65);
-          border: 1px solid rgba(255, 255, 255, 0.9);
+          background: rgba(255, 255, 255, 0.72);
+          border: 1px solid rgba(255, 255, 255, 0.92);
           display: grid;
           place-items: center;
-          box-shadow: inset 0 0 0 1px rgba(17, 24, 39, 0.05);
+          box-shadow: inset 0 0 0 1px rgba(11, 18, 32, 0.05);
           overflow: hidden;
         }
 
@@ -686,12 +727,47 @@ export default function ProdutoDestaque() {
           height: 86%;
           object-fit: contain;
           transition: transform 0.45s ease, filter 0.45s ease;
-          filter: saturate(1.03);
+          filter: saturate(1.02);
         }
 
         .pcard:hover .pcard__plate img {
           transform: scale(1.12);
           filter: saturate(1.06) brightness(1.03);
+        }
+
+        /* ✅ overlay “ver detalhes” elegante */
+        .pcard__hoverOverlay {
+          position: absolute;
+          inset: 0;
+          display: grid;
+          place-items: center;
+          opacity: 0;
+          transition: opacity 0.25s ease;
+          background: radial-gradient(circle, rgba(11,18,32,0.10), rgba(11,18,32,0.00) 55%);
+          pointer-events: none;
+        }
+
+        .pcard:hover .pcard__hoverOverlay {
+          opacity: 1;
+        }
+
+        .pcard__hoverPill {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 14px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid rgba(11, 18, 32, 0.10);
+          box-shadow: 0 18px 60px rgba(11, 18, 32, 0.18);
+          font-weight: 1000;
+          color: #0b1220;
+          transform: translateY(6px);
+          transition: transform 0.25s ease;
+        }
+
+        .pcard:hover .pcard__hoverPill {
+          transform: translateY(0px);
         }
 
         .pcard__body {
@@ -705,7 +781,7 @@ export default function ProdutoDestaque() {
           font-size: 0.98rem;
           font-weight: 1000;
           letter-spacing: -0.02em;
-          color: #111827;
+          color: #0b1220;
           display: -webkit-box;
           -webkit-line-clamp: 1;
           -webkit-box-orient: vertical;
@@ -715,7 +791,7 @@ export default function ProdutoDestaque() {
         .pcard__desc {
           margin: 0 0 12px;
           font-size: 0.84rem;
-          color: rgba(17, 24, 39, 0.74);
+          color: rgba(11, 18, 32, 0.72);
           line-height: 1.25rem;
           min-height: 44px;
           display: -webkit-box;
@@ -724,49 +800,46 @@ export default function ProdutoDestaque() {
           overflow: hidden;
         }
 
-        .pcard__footer {
-          display: flex;
-          align-items: flex-end;
-          justify-content: space-between;
-          gap: 10px;
-          margin-bottom: 10px;
+        .pcard__bottom {
+          display: grid;
+          gap: 12px;
         }
 
         .pcard__pricebox {
           display: flex;
-          flex-direction: column;
-          gap: 4px;
+          align-items: flex-end;
+          justify-content: space-between;
+          gap: 10px;
         }
 
         .pcard__price {
           font-weight: 1100;
           color: #7a2941;
-          font-size: 1.06rem;
+          font-size: 1.05rem;
           letter-spacing: -0.01em;
         }
 
         .pcard__tag {
           width: fit-content;
-          padding: 4px 10px;
+          padding: 6px 10px;
           border-radius: 999px;
           font-size: 0.72rem;
           font-weight: 1000;
-          color: #111827;
-          background: rgba(176, 141, 87, 0.18);
+          color: #0b1220;
+          background: rgba(176, 141, 87, 0.16);
           border: 1px solid rgba(176, 141, 87, 0.22);
         }
 
-        /* ✅ CTA Row */
-        .pcard__ctaRow {
+        /* ✅ BOTÕES PROFISSIONAIS */
+        .btnRow {
           display: grid;
-          grid-template-columns: 1fr 1.25fr;
+          grid-template-columns: 1fr 1fr;
           gap: 10px;
         }
 
-        .actionBtn {
+        .btnPro {
           height: 44px;
-          border-radius: 14px;
-          border: 1px solid rgba(17, 24, 39, 0.12);
+          border-radius: 16px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -775,65 +848,94 @@ export default function ProdutoDestaque() {
           font-weight: 1000;
           letter-spacing: -0.01em;
           cursor: pointer;
-          transition: transform 0.18s ease, box-shadow 0.22s ease,
-            filter 0.22s ease, background 0.22s ease;
+          border: 1px solid rgba(11, 18, 32, 0.10);
+          transition: transform 0.18s ease, box-shadow 0.22s ease, filter 0.22s ease, background 0.22s ease;
           text-decoration: none;
           user-select: none;
           outline: none;
+          position: relative;
+          overflow: hidden;
         }
-        .actionBtn:hover {
+
+        .btnPro:hover {
           transform: translateY(-2px);
         }
 
-        .actionBtn__icon {
-          width: 28px;
-          height: 28px;
-          border-radius: 10px;
+        .btnPro__icon {
+          width: 30px;
+          height: 30px;
+          border-radius: 12px;
           display: grid;
           place-items: center;
         }
 
-        .actionBtn__text {
-          font-size: 0.92rem;
+        .btnPro__label {
+          font-size: 0.90rem;
           white-space: nowrap;
         }
 
-        .actionBtn--view {
-          background: rgba(17, 24, 39, 0.04);
-          color: #111827;
+        /* ✅ “Ver produto” agora fica premium */
+        .btnPro--view {
+          background: rgba(255, 255, 255, 0.92);
+          color: #0b1220;
         }
-        .actionBtn--view:hover {
-          background: rgba(17, 24, 39, 0.07);
-          box-shadow: 0 14px 34px rgba(17, 24, 39, 0.12);
+        .btnPro--view .btnPro__icon {
+          background: rgba(11, 18, 32, 0.06);
+          border: 1px solid rgba(11, 18, 32, 0.08);
         }
-        .actionBtn--view .actionBtn__icon {
-          background: rgba(17, 24, 39, 0.08);
-          border: 1px solid rgba(17, 24, 39, 0.10);
+        .btnPro--view:hover {
+          box-shadow: 0 18px 60px rgba(11, 18, 32, 0.14);
+          background: rgba(255, 255, 255, 0.98);
+        }
+        .btnPro--view::after {
+          content: "";
+          position: absolute;
+          inset: -80%;
+          background: radial-gradient(circle, rgba(122,41,65,0.14), transparent 62%);
+          transform: rotate(18deg);
+          opacity: 0;
+          transition: opacity 0.22s ease;
+        }
+        .btnPro--view:hover::after {
+          opacity: 1;
         }
 
-        .actionBtn--cart {
-          border: 1px solid rgba(255, 255, 255, 0.16);
-          background: linear-gradient(135deg, #7a2941, #b08d57);
+        /* ✅ “Adicionar” premium com brilho */
+        .btnPro--cart {
           color: #fff;
-          box-shadow: 0 16px 44px rgba(122, 41, 65, 0.18);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          background: linear-gradient(135deg, #7a2941, #b08d57);
+          box-shadow: 0 16px 50px rgba(122, 41, 65, 0.18);
         }
-        .actionBtn--cart:hover {
-          box-shadow: 0 22px 60px rgba(122, 41, 65, 0.24);
+        .btnPro--cart .btnPro__icon {
+          background: rgba(255, 255, 255, 0.14);
+          border: 1px solid rgba(255, 255, 255, 0.16);
+        }
+        .btnPro--cart:hover {
+          box-shadow: 0 22px 70px rgba(122, 41, 65, 0.24);
           filter: brightness(1.02);
         }
-        .actionBtn--cart .actionBtn__icon {
-          background: rgba(255, 255, 255, 0.12);
-          border: 1px solid rgba(255, 255, 255, 0.16);
+        .btnPro--cart::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(110deg, transparent, rgba(255,255,255,0.24), transparent);
+          transform: translateX(-120%);
+          transition: transform 0.55s ease;
         }
-        .actionBtn--cart:disabled {
-          opacity: 0.72;
+        .btnPro--cart:hover::before {
+          transform: translateX(120%);
+        }
+
+        .btnPro--cart:disabled {
+          opacity: 0.75;
           cursor: not-allowed;
           transform: none;
         }
 
-        .actionBtn--ok {
+        .btnPro--ok {
           background: linear-gradient(135deg, #166534, #22c55e);
-          box-shadow: 0 16px 44px rgba(34, 197, 94, 0.16);
+          box-shadow: 0 16px 50px rgba(34, 197, 94, 0.16);
         }
 
         .spin {
@@ -856,7 +958,7 @@ export default function ProdutoDestaque() {
           gap: 10px;
           padding: 14px 26px;
           border-radius: 999px;
-          background: linear-gradient(135deg, #111827, #1f2937);
+          background: linear-gradient(135deg, #0b1220, #1f2937);
           color: #fff;
           text-decoration: none;
           font-weight: 1000;
@@ -890,7 +992,7 @@ export default function ProdutoDestaque() {
           .pcard__desc {
             min-height: 38px;
           }
-          .pcard__ctaRow {
+          .btnRow {
             grid-template-columns: 1fr;
           }
         }
