@@ -15,6 +15,7 @@ import {
   FaEnvelope,
   FaCopy,
   FaSyncAlt,
+  FaTimes,
 } from "react-icons/fa";
 
 interface Usuario {
@@ -29,7 +30,7 @@ export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // modal de exclusão
+  // modal excluir
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Usuario | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -37,6 +38,26 @@ export default function UsuariosPage() {
   useEffect(() => {
     carregar();
   }, []);
+
+  // trava scroll quando modal abre
+  useEffect(() => {
+    if (!deleteOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [deleteOpen]);
+
+  // ESC fecha modal
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") fecharModal();
+    }
+    if (deleteOpen) window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deleteOpen, deleting]);
 
   async function carregar() {
     try {
@@ -59,6 +80,12 @@ export default function UsuariosPage() {
     setDeleteOpen(true);
   }
 
+  function fecharModal() {
+    if (deleting) return;
+    setDeleteOpen(false);
+    setDeleteTarget(null);
+  }
+
   async function confirmarExcluir() {
     if (!deleteTarget) return;
 
@@ -67,8 +94,7 @@ export default function UsuariosPage() {
       await api.delete(`/admin/usuarios/${deleteTarget.id_usuario}`);
       setUsuarios((prev) => prev.filter((u) => u.id_usuario !== deleteTarget.id_usuario));
       toast.success("Usuário excluído");
-      setDeleteOpen(false);
-      setDeleteTarget(null);
+      fecharModal();
     } catch (e: any) {
       toast.error(e?.response?.data?.mensagem || "Ação não permitida");
     } finally {
@@ -82,7 +108,6 @@ export default function UsuariosPage() {
       return;
     }
     toast.info(`Reset de PIN solicitado para ${usuario.nome}`);
-    // depois: chamar rota real /admin/usuarios/{id}/reset-pin
   }
 
   async function copiarTexto(texto: string, okMsg: string) {
@@ -113,7 +138,6 @@ export default function UsuariosPage() {
     <div className="page">
       <ToastContainer position="top-right" autoClose={2400} newestOnTop theme="light" />
 
-      {/* Header */}
       <div className="head">
         <div className="headLeft">
           <div className="kicker">
@@ -143,7 +167,6 @@ export default function UsuariosPage() {
         </div>
       </div>
 
-      {/* Conteúdo */}
       {loading ? (
         <div className="grid">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -180,7 +203,6 @@ export default function UsuariosPage() {
 
             return (
               <div key={user.id_usuario} className="card">
-                {/* topo */}
                 <div className="top">
                   <div className="who">
                     <div className="avatar" aria-hidden>
@@ -206,7 +228,6 @@ export default function UsuariosPage() {
                   )}
                 </div>
 
-                {/* PIN */}
                 <div className="pinRow">
                   <div className="pinLeft">
                     <div className="pinLabel">PIN</div>
@@ -224,7 +245,6 @@ export default function UsuariosPage() {
                   </button>
                 </div>
 
-                {/* Ações */}
                 <div className="actions">
                   <button className="btn btnSoft" onClick={() => mailtoUsuario(user)}>
                     <FaEnvelope /> Enviar email
@@ -268,29 +288,42 @@ export default function UsuariosPage() {
         </div>
       )}
 
-      {/* Modal excluir */}
+      {/* Modal Excluir (overlay mais claro + fecha ao clicar fora) */}
       {deleteOpen && (
-        <div className="modalOverlay" role="dialog" aria-modal="true">
-          <div className="modal">
-            <div className="modalTitle">Excluir usuário</div>
-            <div className="modalText">
-              Tem certeza que deseja excluir{" "}
-              <strong>{deleteTarget?.nome}</strong>?
+        <div className="modalOverlay" onMouseDown={fecharModal}>
+          <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="modalHead">
+              <div>
+                <div className="modalTitle">Excluir usuário</div>
+                <div className="modalSub">Confirme para remover permanentemente.</div>
+              </div>
+
+              <button className="xBtn" onClick={fecharModal} aria-label="Fechar" title="Fechar">
+                <FaTimes />
+              </button>
+            </div>
+
+            <div className="modalBody">
+              <div className="modalText">
+                Tem certeza que deseja excluir <strong>{deleteTarget?.nome}</strong>?
+              </div>
               <div className="modalHint">Essa ação não pode ser desfeita.</div>
+
+              <div className="modalUser">
+                <div className="muAvatar" aria-hidden>
+                  {String(deleteTarget?.nome || "?").trim().slice(0, 1).toUpperCase()}
+                </div>
+                <div className="muText">
+                  <div className="muName">{deleteTarget?.nome}</div>
+                  <div className="muEmail">{deleteTarget?.email}</div>
+                </div>
+              </div>
             </div>
 
             <div className="modalActions">
-              <button
-                className="btn btnGhost"
-                onClick={() => {
-                  if (deleting) return;
-                  setDeleteOpen(false);
-                  setDeleteTarget(null);
-                }}
-              >
+              <button className="btn btnGhost" onClick={fecharModal} disabled={deleting}>
                 Cancelar
               </button>
-
               <button className="btn btnDangerSolid" onClick={confirmarExcluir} disabled={deleting}>
                 {deleting ? "Excluindo..." : "Excluir"}
               </button>
@@ -304,7 +337,6 @@ export default function UsuariosPage() {
           padding: 18px 18px 28px;
         }
 
-        /* Head */
         .head {
           display: flex;
           align-items: flex-end;
@@ -351,7 +383,7 @@ export default function UsuariosPage() {
 
         .meta {
           margin-left: 8px;
-          color: rgba(17, 24, 39, 0.50);
+          color: rgba(17, 24, 39, 0.5);
           font-weight: 700;
         }
 
@@ -362,7 +394,6 @@ export default function UsuariosPage() {
           justify-content: flex-end;
         }
 
-        /* Buttons */
         .btn {
           height: 44px;
           padding: 0 14px;
@@ -380,7 +411,6 @@ export default function UsuariosPage() {
           background: #fff;
           color: #111827;
         }
-
         .btn:hover {
           transform: translateY(-1px);
         }
@@ -399,7 +429,7 @@ export default function UsuariosPage() {
 
         .btnGhost {
           background: rgba(17, 24, 39, 0.04);
-          border-color: rgba(17, 24, 39, 0.10);
+          border-color: rgba(17, 24, 39, 0.1);
           color: rgba(17, 24, 39, 0.86);
         }
 
@@ -411,7 +441,7 @@ export default function UsuariosPage() {
 
         .btnSoft2 {
           background: rgba(17, 24, 39, 0.05);
-          border-color: rgba(17, 24, 39, 0.10);
+          border-color: rgba(17, 24, 39, 0.1);
           color: rgba(17, 24, 39, 0.86);
         }
 
@@ -450,15 +480,12 @@ export default function UsuariosPage() {
           box-shadow: 0 10px 30px rgba(239, 68, 68, 0.18);
         }
 
-        /* Grid */
         .grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
           gap: 18px;
-          align-items: stretch;
         }
 
-        /* Cards */
         .card {
           position: relative;
           border-radius: 18px;
@@ -477,11 +504,7 @@ export default function UsuariosPage() {
           position: absolute;
           inset: 0;
           pointer-events: none;
-          background: radial-gradient(
-            700px 220px at 15% 0%,
-            rgba(99, 102, 241, 0.08),
-            transparent 55%
-          );
+          background: radial-gradient(700px 220px at 15% 0%, rgba(99, 102, 241, 0.08), transparent 55%);
           opacity: 0.9;
         }
 
@@ -494,7 +517,6 @@ export default function UsuariosPage() {
         .top {
           position: relative;
           display: flex;
-          align-items: flex-start;
           justify-content: space-between;
           gap: 10px;
         }
@@ -516,7 +538,6 @@ export default function UsuariosPage() {
           color: #3730a3;
           background: rgba(79, 70, 229, 0.10);
           border: 1px solid rgba(79, 70, 229, 0.14);
-          flex: 0 0 auto;
         }
 
         .whoText {
@@ -528,7 +549,6 @@ export default function UsuariosPage() {
         .name {
           font-weight: 950;
           color: #111827;
-          letter-spacing: -0.01em;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -543,7 +563,6 @@ export default function UsuariosPage() {
         }
 
         .badge {
-          position: relative;
           display: inline-flex;
           align-items: center;
           gap: 8px;
@@ -552,7 +571,6 @@ export default function UsuariosPage() {
           font-size: 0.75rem;
           font-weight: 900;
           white-space: nowrap;
-          flex: 0 0 auto;
         }
 
         .badgeSystem {
@@ -567,9 +585,7 @@ export default function UsuariosPage() {
           color: #166534;
         }
 
-        /* PIN */
         .pinRow {
-          position: relative;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -622,132 +638,18 @@ export default function UsuariosPage() {
           box-shadow: none;
         }
 
-        /* Actions */
         .actions {
-          position: relative;
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 10px;
-          align-items: center;
-          margin-top: 2px;
         }
 
-        /* em cards normais a linha de baixo vira 3 colunas */
-        .actions > :nth-child(3),
-        .actions > :nth-child(4),
-        .actions > :nth-child(5) {
-          grid-column: auto;
-        }
-
-        /* Quando tem 5 itens, deixa 3 na linha de baixo */
-        .actions {
-          grid-auto-flow: row;
-        }
-
-        /* Empty */
-        .empty {
-          display: grid;
-          place-items: center;
-          padding: 24px 0 0;
-        }
-
-        .emptyCard {
-          width: min(560px, 100%);
-          border-radius: 18px;
-          background: rgba(255, 255, 255, 0.92);
-          border: 1px solid rgba(17, 24, 39, 0.10);
-          box-shadow: 0 12px 36px rgba(17, 24, 39, 0.08);
-          padding: 18px;
-          display: grid;
-          gap: 10px;
-        }
-
-        .emptyTitle {
-          font-size: 1.05rem;
-          font-weight: 950;
-          color: #111827;
-        }
-
-        .emptySub {
-          color: rgba(17, 24, 39, 0.62);
-          line-height: 1.45;
-        }
-
-        /* Skeleton */
-        .sk .skTop,
-        .sk .skLine,
-        .sk .skAvatar,
-        .sk .skPill,
-        .sk .skBox,
-        .sk .skBtns {
-          border-radius: 12px;
-          background: linear-gradient(
-            90deg,
-            rgba(17, 24, 39, 0.06),
-            rgba(17, 24, 39, 0.10),
-            rgba(17, 24, 39, 0.06)
-          );
-          background-size: 220% 100%;
-          animation: sh 1.05s linear infinite;
-        }
-
-        .skTop {
-          display: grid;
-          grid-template-columns: 42px 1fr 72px;
-          gap: 10px;
-          align-items: center;
-        }
-
-        .skAvatar {
-          width: 42px;
-          height: 42px;
-          border-radius: 14px;
-        }
-
-        .skLines {
-          display: grid;
-          gap: 8px;
-        }
-
-        .skLine {
-          height: 12px;
-        }
-
-        .w70 {
-          width: 70%;
-        }
-        .w90 {
-          width: 90%;
-        }
-
-        .skPill {
-          height: 22px;
-          border-radius: 999px;
-        }
-
-        .skBox {
-          height: 54px;
-          border-radius: 14px;
-        }
-
-        .skBtns {
-          height: 44px;
-        }
-
-        @keyframes sh {
-          0% {
-            background-position: 0% 0%;
-          }
-          100% {
-            background-position: -220% 0%;
-          }
-        }
-
-        /* Modal */
+        /* Modal (overlay CLARO - sem tela preta) */
         .modalOverlay {
           position: fixed;
           inset: 0;
-          background: rgba(17, 24, 39, 0.42);
+          background: rgba(15, 23, 42, 0.18); /* <- aqui estava “preto”, agora é suave */
+          backdrop-filter: blur(2px);
           display: grid;
           place-items: center;
           padding: 16px;
@@ -757,28 +659,110 @@ export default function UsuariosPage() {
         .modal {
           width: min(520px, 100%);
           border-radius: 18px;
-          background: rgba(255, 255, 255, 0.96);
+          background: rgba(255, 255, 255, 0.98);
           border: 1px solid rgba(17, 24, 39, 0.12);
-          box-shadow: 0 20px 80px rgba(17, 24, 39, 0.22);
+          box-shadow: 0 22px 90px rgba(17, 24, 39, 0.18);
           padding: 16px;
+          animation: pop 0.14s ease-out;
+        }
+
+        @keyframes pop {
+          from {
+            transform: translateY(6px) scale(0.98);
+            opacity: 0.6;
+          }
+          to {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+          }
+        }
+
+        .modalHead {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 12px;
         }
 
         .modalTitle {
           font-size: 1.05rem;
           font-weight: 950;
           color: #111827;
-          margin-bottom: 8px;
+        }
+
+        .modalSub {
+          margin-top: 2px;
+          color: rgba(17, 24, 39, 0.60);
+          font-size: 0.92rem;
+        }
+
+        .xBtn {
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
+          border: 1px solid rgba(17, 24, 39, 0.10);
+          background: rgba(17, 24, 39, 0.04);
+          cursor: pointer;
+          display: grid;
+          place-items: center;
+          color: rgba(17, 24, 39, 0.70);
+        }
+
+        .modalBody {
+          display: grid;
+          gap: 10px;
         }
 
         .modalText {
-          color: rgba(17, 24, 39, 0.70);
+          color: rgba(17, 24, 39, 0.74);
           line-height: 1.45;
         }
 
         .modalHint {
-          margin-top: 8px;
-          font-size: 0.9rem;
           color: rgba(17, 24, 39, 0.55);
+          font-size: 0.9rem;
+        }
+
+        .modalUser {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px;
+          border-radius: 16px;
+          background: rgba(17, 24, 39, 0.04);
+          border: 1px solid rgba(17, 24, 39, 0.08);
+        }
+
+        .muAvatar {
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          display: grid;
+          place-items: center;
+          font-weight: 1000;
+          color: #991b1b;
+          background: rgba(239, 68, 68, 0.10);
+          border: 1px solid rgba(239, 68, 68, 0.14);
+        }
+
+        .muText {
+          min-width: 0;
+          display: grid;
+          gap: 2px;
+        }
+
+        .muName {
+          font-weight: 950;
+          color: #111827;
+        }
+
+        .muEmail {
+          color: rgba(17, 24, 39, 0.62);
+          font-size: 0.9rem;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .modalActions {
