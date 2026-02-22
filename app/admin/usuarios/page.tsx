@@ -6,6 +6,8 @@ import api from "@/Api/conectar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+import { createPortal } from "react-dom";
+
 import {
   FaTrash,
   FaEdit,
@@ -30,14 +32,23 @@ export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // portal
+  const [mounted, setMounted] = useState(false);
+
+  // modal excluir
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Usuario | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     carregar();
   }, []);
 
+  // trava scroll quando modal abre
   useEffect(() => {
     if (!deleteOpen) return;
     const prev = document.body.style.overflow;
@@ -47,6 +58,7 @@ export default function UsuariosPage() {
     };
   }, [deleteOpen]);
 
+  // ESC fecha
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") fecharModal();
@@ -136,6 +148,7 @@ export default function UsuariosPage() {
     <div className="page">
       <ToastContainer position="top-right" autoClose={2400} newestOnTop theme="light" />
 
+      {/* HEADER */}
       <div className="head">
         <div className="headLeft">
           <div className="kicker">
@@ -165,6 +178,7 @@ export default function UsuariosPage() {
         </div>
       </div>
 
+      {/* BODY */}
       {loading ? (
         <div className="grid">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -186,7 +200,9 @@ export default function UsuariosPage() {
         <div className="empty">
           <div className="emptyCard">
             <div className="emptyTitle">Nenhum usuário encontrado</div>
-            <div className="emptySub">Crie o primeiro usuário para começar a gerenciar acessos.</div>
+            <div className="emptySub">
+              Crie o primeiro usuário para começar a gerenciar acessos.
+            </div>
             <Link href="/admin/usuarios/novo" className="btn btnPrimary">
               <FaUserPlus /> Novo Usuário
             </Link>
@@ -267,7 +283,6 @@ export default function UsuariosPage() {
                         <FaKey /> Reset PIN
                       </button>
 
-                      {/* excluir discreto (não “grita”) */}
                       <button
                         className="trashMini"
                         onClick={() => abrirExcluir(user)}
@@ -285,59 +300,66 @@ export default function UsuariosPage() {
         </div>
       )}
 
-      {/* Modal excluir (overlay leve) */}
-      {deleteOpen && (
-        <div className="modalOverlay" onMouseDown={fecharModal}>
-          <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
-            <div className="modalHead">
-              <div>
-                <div className="modalTitle">Excluir usuário</div>
-                <div className="modalSub">Confirme para remover permanentemente.</div>
-              </div>
-
-              <button className="xBtn" onClick={fecharModal} aria-label="Fechar" title="Fechar">
-                <FaTimes />
-              </button>
-            </div>
-
-            <div className="modalBody">
-              <div className="modalText">
-                Tem certeza que deseja excluir <strong>{deleteTarget?.nome}</strong>?
-              </div>
-              <div className="modalHint">Essa ação não pode ser desfeita.</div>
-
-              <div className="modalUser">
-                <div className="muAvatar" aria-hidden>
-                  {String(deleteTarget?.nome || "?").trim().slice(0, 1).toUpperCase()}
+      {/* MODAL via Portal (resolve “fundo fica blur e modal some”) */}
+      {mounted &&
+        deleteOpen &&
+        createPortal(
+          <div className="modalOverlay" onMouseDown={fecharModal}>
+            <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
+              <div className="modalHead">
+                <div>
+                  <div className="modalTitle">Excluir usuário</div>
+                  <div className="modalSub">Confirme para remover permanentemente.</div>
                 </div>
-                <div className="muText">
-                  <div className="muName">{deleteTarget?.nome}</div>
-                  <div className="muEmail">{deleteTarget?.email}</div>
+
+                <button
+                  className="xBtn"
+                  onClick={fecharModal}
+                  aria-label="Fechar"
+                  title="Fechar"
+                  disabled={deleting}
+                >
+                  <FaTimes />
+                </button>
+              </div>
+
+              <div className="modalBody">
+                <div className="modalText">
+                  Tem certeza que deseja excluir <strong>{deleteTarget?.nome}</strong>?
+                </div>
+                <div className="modalHint">Essa ação não pode ser desfeita.</div>
+
+                <div className="modalUser">
+                  <div className="muAvatar" aria-hidden>
+                    {String(deleteTarget?.nome || "?").trim().slice(0, 1).toUpperCase()}
+                  </div>
+                  <div className="muText">
+                    <div className="muName">{deleteTarget?.nome}</div>
+                    <div className="muEmail">{deleteTarget?.email}</div>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="modalActions">
-              <button className="btn btnGhost" onClick={fecharModal} disabled={deleting}>
-                Cancelar
-              </button>
-              <button className="btn btnDangerSolid" onClick={confirmarExcluir} disabled={deleting}>
-                {deleting ? "Excluindo..." : "Excluir"}
-              </button>
+              <div className="modalActions">
+                <button className="btn btnGhost" onClick={fecharModal} disabled={deleting}>
+                  Cancelar
+                </button>
+                <button className="btn btnDangerSolid" onClick={confirmarExcluir} disabled={deleting}>
+                  {deleting ? "Excluindo..." : "Excluir"}
+                </button>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
 
       <style jsx>{`
-        /* página com fundo “soft” (sem global) */
         .page {
           padding: 18px 18px 28px;
           background: linear-gradient(180deg, rgba(17, 24, 39, 0.03), transparent 45%);
           border-radius: 18px;
         }
 
-        /* header */
         .head {
           display: flex;
           align-items: flex-end;
@@ -394,7 +416,6 @@ export default function UsuariosPage() {
           justify-content: flex-end;
         }
 
-        /* botões */
         .btn {
           height: 44px;
           padding: 0 14px;
@@ -470,14 +491,12 @@ export default function UsuariosPage() {
           box-shadow: 0 10px 30px rgba(239, 68, 68, 0.18);
         }
 
-        /* grid */
         .grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
           gap: 18px;
         }
 
-        /* card (mais clean) */
         .card {
           border-radius: 18px;
           background: rgba(255, 255, 255, 0.88);
@@ -487,6 +506,7 @@ export default function UsuariosPage() {
           display: grid;
           gap: 12px;
           transition: transform 0.18s ease, box-shadow 0.2s ease;
+          position: relative;
         }
         .card:hover {
           transform: translateY(-2px);
@@ -564,7 +584,6 @@ export default function UsuariosPage() {
           color: #166534;
         }
 
-        /* pin */
         .pinRow {
           display: flex;
           align-items: center;
@@ -611,7 +630,6 @@ export default function UsuariosPage() {
           cursor: not-allowed;
         }
 
-        /* actions (igual print: 2 colunas) */
         .actions {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -620,7 +638,6 @@ export default function UsuariosPage() {
           padding-bottom: 6px;
         }
 
-        /* Excluir discreto */
         .trashMini {
           position: absolute;
           left: 0;
@@ -669,25 +686,36 @@ export default function UsuariosPage() {
           line-height: 1.45;
         }
 
-        /* modal overlay (bem leve) */
+        /* Modal (SEM blur / sem “tela preta” pesada) */
         .modalOverlay {
           position: fixed;
           inset: 0;
-          background: rgba(15, 23, 42, 0.14);
-          backdrop-filter: blur(2px);
+          background: rgba(15, 23, 42, 0.22);
           display: grid;
           place-items: center;
           padding: 16px;
-          z-index: 9999;
+          z-index: 999999;
         }
 
         .modal {
           width: min(520px, 100%);
           border-radius: 18px;
-          background: rgba(255, 255, 255, 0.98);
+          background: #fff;
           border: 1px solid rgba(17, 24, 39, 0.12);
-          box-shadow: 0 22px 90px rgba(17, 24, 39, 0.18);
+          box-shadow: 0 22px 90px rgba(17, 24, 39, 0.22);
           padding: 16px;
+          animation: pop 0.14s ease-out;
+        }
+
+        @keyframes pop {
+          from {
+            transform: translateY(10px) scale(0.98);
+            opacity: 0.6;
+          }
+          to {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+          }
         }
 
         .modalHead {
@@ -720,6 +748,10 @@ export default function UsuariosPage() {
           display: grid;
           place-items: center;
           color: rgba(17, 24, 39, 0.70);
+        }
+        .xBtn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
 
         .modalBody {
@@ -786,7 +818,7 @@ export default function UsuariosPage() {
           flex-wrap: wrap;
         }
 
-        /* skeleton */
+        /* Skeleton */
         .sk .skTop,
         .sk .skLine,
         .sk .skAvatar,
@@ -803,41 +835,50 @@ export default function UsuariosPage() {
           background-size: 220% 100%;
           animation: sh 1.05s linear infinite;
         }
+
         .skTop {
           display: grid;
           grid-template-columns: 42px 1fr 72px;
           gap: 10px;
           align-items: center;
         }
+
         .skAvatar {
           width: 42px;
           height: 42px;
           border-radius: 14px;
         }
+
         .skLines {
           display: grid;
           gap: 8px;
         }
+
         .skLine {
           height: 12px;
         }
+
         .w70 {
           width: 70%;
         }
         .w90 {
           width: 90%;
         }
+
         .skPill {
           height: 22px;
           border-radius: 999px;
         }
+
         .skBox {
           height: 54px;
           border-radius: 14px;
         }
+
         .skBtns {
           height: 44px;
         }
+
         @keyframes sh {
           0% {
             background-position: 0% 0%;
