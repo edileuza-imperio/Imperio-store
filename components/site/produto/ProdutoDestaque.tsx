@@ -34,51 +34,51 @@ function formatBRL(v: any) {
 
 function SkeletonCard() {
   return (
-    <div className="impCard impCard--sk">
-      <div className="impCard__media">
-        <div className="impSk impSk--img" />
+    <div className="pdCard pdCard--sk">
+      <div className="pdMedia">
+        <div className="pdSk pdSk--img" />
       </div>
-      <div className="impCard__body">
-        <div className="impSk impSk--t" />
-        <div className="impSk impSk--l" />
-        <div className="impSk impSk--l sm" />
-        <div className="impSk impSk--b" />
+      <div className="pdBody">
+        <div className="pdSk pdSk--t" />
+        <div className="pdSk pdSk--l" />
+        <div className="pdSk pdSk--l sm" />
+        <div className="pdSk pdSk--b" />
       </div>
 
       <style jsx>{`
-        .impCard--sk {
+        .pdCard--sk {
           pointer-events: none;
         }
-        .impSk {
+        .pdSk {
           border-radius: 14px;
           background: linear-gradient(
             90deg,
             rgba(0, 0, 0, 0.06),
-            rgba(0, 0, 0, 0.10),
+            rgba(0, 0, 0, 0.11),
             rgba(0, 0, 0, 0.06)
           );
           background-size: 220% 100%;
           animation: sh 1.05s linear infinite;
         }
-        .impSk--img {
-          height: 180px;
+        .pdSk--img {
+          height: 170px;
           width: 100%;
           border-radius: 18px;
         }
-        .impSk--t {
+        .pdSk--t {
           height: 16px;
           width: 70%;
           margin: 14px 0 10px;
         }
-        .impSk--l {
+        .pdSk--l {
           height: 10px;
           width: 100%;
           margin-bottom: 8px;
         }
-        .impSk--l.sm {
+        .pdSk--l.sm {
           width: 80%;
         }
-        .impSk--b {
+        .pdSk--b {
           height: 44px;
           width: 100%;
           margin-top: 14px;
@@ -188,7 +188,7 @@ export default function ProdutoDestaque() {
   }
 
   return (
-    <section className="impWrap">
+    <section className="pdWrap">
       <ToastContainer
         position="top-right"
         autoClose={2400}
@@ -198,69 +198,67 @@ export default function ProdutoDestaque() {
         theme="dark"
       />
 
-      <div className="impContainer">
+      <div className="pdContainer">
         {/* HEADER */}
-        <div className="impHead">
-          <div className="impHead__left">
-            <div className="impKicker">
+        <div className="pdHead">
+          <div className="pdHeadLeft">
+            <div className="pdKicker">
               <Sparkles size={16} />
-              Vitrine Premium
+              Destaques
             </div>
 
-            <h2 className="impTitle">Destaques selecionados</h2>
-            <p className="impSub">
-              Curadoria com acabamento superior — escolha com confiança e compre
-              em segundos.
+            <h2 className="pdTitle">Selecionados para você</h2>
+            <p className="pdSub">
+              Produtos em alta com qualidade e entrega rápida. Escolha, veja os
+              detalhes e compre em poucos cliques.
             </p>
 
-            <div className="impTrust">
-              <span className="impTrust__pill">
+            <div className="pdTrust">
+              <span className="pdPill">
                 <ShieldCheck size={16} /> Compra segura
               </span>
-              <span className="impTrust__pill">
-                <BadgeCheck size={16} /> Produtos selecionados
+              <span className="pdPill">
+                <BadgeCheck size={16} /> Curadoria da loja
               </span>
             </div>
           </div>
 
           {mostrarVerTodos && (
-            <Link href="/produtos/destaques" className="impAll">
+            <Link href="/produtos/destaques" className="pdAll">
               Ver todos <ArrowRight size={18} />
             </Link>
           )}
         </div>
 
         {/* GRID */}
-        <div className="impGrid">
-          {/* Editorial */}
-          <aside className="impEditorial">
-            <div className="impEditorial__top">
-              <div className="impEditorial__icon">
-                <Sparkles size={22} />
+        <div className="pdGrid">
+          {/* HERO / LATERAL */}
+          <aside className="pdHero">
+            <div className="pdHeroTop">
+              <div className="pdHeroIcon">
+                <Star size={18} />
               </div>
-              <div className="impEditorial__chip">Curadoria Império</div>
+              <span className="pdHeroChip">Seleção Premium</span>
             </div>
 
-            <h3 className="impEditorial__title">Elegância pronta para você</h3>
-            <p className="impEditorial__text">
-              Destaques com visual marcante e excelente custo-benefício.
+            <h3 className="pdHeroTitle">Destaques com visual limpo</h3>
+            <p className="pdHeroText">
+              Cards modernos e responsivos — sem estourar a tela.
             </p>
 
-            <div className="impEditorial__bullets">
-              <span>✓ Seleção exclusiva</span>
-              <span>✓ Qualidade premium</span>
-              <span>✓ Compra rápida</span>
+            <div className="pdHeroBullets">
+              <span>✓ Layout responsivo</span>
+              <span>✓ Preço em destaque</span>
+              <span>✓ CTA claro</span>
             </div>
 
-            <Link href="/produtos/destaques" className="impEditorial__cta">
+            <Link href="/produtos/destaques" className="pdHeroCta">
               Explorar destaques <ArrowRight size={18} />
             </Link>
-
-            <div className="impEditorial__glow" />
           </aside>
 
-          {/* Cards */}
-          <div className="impCards">
+          {/* CARDS */}
+          <div className="pdCards">
             {loading ? (
               Array.from({ length: LIMITE }).map((_, i) => (
                 <SkeletonCard key={i} />
@@ -278,18 +276,21 @@ export default function ProdutoDestaque() {
                   const isAdded = !!added[produtoId];
 
                   return (
-                    <article className="impCard" key={item.id_destaque ?? produtoId}>
-                      <div className="impBadge">
-                        <Star size={14} />
-                        Destaque
+                    <article
+                      className="pdCard"
+                      key={item.id_destaque ?? produtoId}
+                    >
+                      <div className="pdBadge">
+                        <Sparkles size={14} />
+                        Em destaque
                       </div>
 
                       <Link
                         href={`/produto/${item.produto_slug}`}
-                        className="impCard__media"
+                        className="pdMedia"
                         aria-label={`Ver ${item.produto_nome}`}
                       >
-                        <div className="impImgPlate">
+                        <div className="pdImageShell">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={getImagemUrl(item.produto_imagem)}
@@ -298,41 +299,51 @@ export default function ProdutoDestaque() {
                           />
                         </div>
 
-                        <div className="impHover">
-                          <span className="impHover__pill">
+                        <div className="pdQuick">
+                          <span className="pdQuickPill">
                             <Eye size={16} /> Ver detalhes
                           </span>
                         </div>
                       </Link>
 
-                      <div className="impCard__body">
-                        <h4 className="impName" title={item.produto_nome}>
-                          {item.produto_nome}
-                        </h4>
-
-                        <p className="impDesc">
-                          {item.produto_descricao
-                            ? item.produto_descricao.slice(0, 70) + "…"
-                            : "Destaque selecionado com acabamento premium."}
-                        </p>
-
-                        <div className="impMeta">
-                          <div className="impPrice">{formatBRL(item.produto_preco)}</div>
-                          <div className="impTag">Em alta</div>
+                      <div className="pdBody">
+                        <div className="pdTopLine">
+                          <h4 className="pdName" title={item.produto_nome}>
+                            {item.produto_nome}
+                          </h4>
+                          <span className="pdTag">Em alta</span>
                         </div>
 
-                        <div className="impActions">
+                        <p className="pdDesc">
+                          {item.produto_descricao
+                            ? item.produto_descricao.slice(0, 76) + "…"
+                            : "Destaque selecionado com ótimo custo-benefício."}
+                        </p>
+
+                        <div className="pdPriceRow">
+                          <div className="pdPrice">
+                            {formatBRL(item.produto_preco)}
+                          </div>
+                          <div className="pdMini">
+                            <span className="pdDot" />
+                            Pronta entrega
+                          </div>
+                        </div>
+
+                        <div className="pdActions">
                           <Link
                             href={`/produto/${item.produto_slug}`}
-                            className="impBtn impBtn--ghost"
+                            className="pdBtn pdBtnGhost"
                           >
                             <Eye size={16} />
-                            Ver produto
+                            Ver
                           </Link>
 
                           <button
                             type="button"
-                            className={`impBtn impBtn--solid ${isAdded ? "ok" : ""}`}
+                            className={`pdBtn pdBtnSolid ${
+                              isAdded ? "ok" : ""
+                            }`}
                             onClick={() => adicionarAoCarrinho(item)}
                             disabled={isAdding}
                           >
@@ -349,7 +360,7 @@ export default function ProdutoDestaque() {
                             ) : (
                               <>
                                 <ShoppingCart size={16} />
-                                Adicionar
+                                Carrinho
                               </>
                             )}
                           </button>
@@ -365,107 +376,116 @@ export default function ProdutoDestaque() {
       </div>
 
       <style jsx>{`
-        /* ==== container ==== */
-        .impWrap {
-          padding: 34px 0;
+        /* ===== Base anti-overflow ===== */
+        .pdWrap {
           position: relative;
+          padding: 34px 0;
+          overflow-x: clip;
         }
-        .impWrap::before {
+        @supports not (overflow: clip) {
+          .pdWrap {
+            overflow-x: hidden;
+          }
+        }
+
+        /* fundo discreto (sem inset gigante pra não estourar viewport) */
+        .pdWrap::before {
           content: "";
           position: absolute;
-          inset: -40%;
+          inset: 0;
           background: radial-gradient(
-              900px 380px at 15% 5%,
-              rgba(176, 141, 87, 0.22),
+              700px 320px at 10% 0%,
+              rgba(176, 141, 87, 0.16),
               transparent 60%
             ),
             radial-gradient(
-              760px 340px at 92% 10%,
-              rgba(122, 41, 65, 0.18),
+              640px 300px at 100% 10%,
+              rgba(122, 41, 65, 0.14),
               transparent 58%
             ),
             radial-gradient(
-              620px 300px at 70% 85%,
-              rgba(17, 24, 39, 0.14),
+              620px 320px at 70% 100%,
+              rgba(11, 18, 32, 0.10),
               transparent 60%
             );
-          filter: blur(14px);
           pointer-events: none;
           z-index: 0;
         }
 
-        .impContainer {
+        .pdContainer {
           position: relative;
           z-index: 1;
-          width: min(1180px, 100%);
+          width: min(1200px, calc(100% - 24px));
           margin: 0 auto;
-          padding: 22px;
-          border-radius: 28px;
-          background: rgba(255, 255, 255, 0.72);
-          backdrop-filter: blur(14px);
-          border: 1px solid rgba(17, 24, 39, 0.08);
-          box-shadow: 0 24px 80px rgba(17, 24, 39, 0.10);
+          padding: clamp(14px, 2.2vw, 22px);
+          border-radius: 26px;
+          background: rgba(255, 255, 255, 0.78);
+          border: 1px solid rgba(17, 24, 39, 0.10);
+          backdrop-filter: blur(12px);
+          box-shadow: 0 18px 70px rgba(17, 24, 39, 0.10);
+          overflow: hidden;
         }
 
-        /* ==== head ==== */
-        .impHead {
+        /* ===== Header ===== */
+        .pdHead {
           display: flex;
-          align-items: flex-end;
           justify-content: space-between;
-          gap: 18px;
+          align-items: flex-end;
+          gap: 16px;
+          flex-wrap: wrap;
           margin-bottom: 18px;
         }
 
-        .impKicker {
+        .pdKicker {
           display: inline-flex;
           align-items: center;
           gap: 8px;
           padding: 7px 12px;
           border-radius: 999px;
-          font-weight: 1000;
+          font-weight: 800;
           font-size: 0.82rem;
           color: #7a2941;
           background: rgba(122, 41, 65, 0.10);
-          border: 1px solid rgba(122, 41, 65, 0.14);
+          border: 1px solid rgba(122, 41, 65, 0.16);
           width: fit-content;
         }
 
-        .impTitle {
+        .pdTitle {
           margin: 10px 0 6px;
-          font-size: clamp(1.6rem, 2.6vw, 2.2rem);
-          font-weight: 1100;
+          font-size: clamp(1.55rem, 2.4vw, 2.15rem);
+          font-weight: 900;
           letter-spacing: -0.03em;
           color: #0b1220;
         }
 
-        .impSub {
+        .pdSub {
           margin: 0;
-          max-width: 68ch;
-          color: rgba(11, 18, 32, 0.70);
-          line-height: 1.5;
+          max-width: 70ch;
+          color: rgba(11, 18, 32, 0.72);
+          line-height: 1.55;
         }
 
-        .impTrust {
+        .pdTrust {
           margin-top: 12px;
           display: flex;
-          gap: 10px;
           flex-wrap: wrap;
+          gap: 10px;
         }
 
-        .impTrust__pill {
+        .pdPill {
           display: inline-flex;
           align-items: center;
           gap: 8px;
           padding: 8px 12px;
           border-radius: 999px;
           background: rgba(11, 18, 32, 0.04);
-          border: 1px solid rgba(11, 18, 32, 0.08);
-          font-weight: 900;
+          border: 1px solid rgba(11, 18, 32, 0.10);
           color: rgba(11, 18, 32, 0.78);
+          font-weight: 700;
           font-size: 0.88rem;
         }
 
-        .impAll {
+        .pdAll {
           display: inline-flex;
           align-items: center;
           gap: 10px;
@@ -473,49 +493,47 @@ export default function ProdutoDestaque() {
           border-radius: 999px;
           color: #fff;
           text-decoration: none;
-          font-weight: 1000;
+          font-weight: 800;
           background: linear-gradient(135deg, #0b1220, #1f2937);
-          box-shadow: 0 14px 42px rgba(17, 24, 39, 0.18);
+          box-shadow: 0 14px 42px rgba(17, 24, 39, 0.16);
           transition: transform 0.2s ease, box-shadow 0.2s ease;
           white-space: nowrap;
         }
-        .impAll:hover {
+
+        .pdAll:hover {
           transform: translateY(-2px);
           box-shadow: 0 22px 58px rgba(17, 24, 39, 0.22);
         }
 
-        /* ==== layout grid ==== */
-        .impGrid {
+        /* ===== Layout ===== */
+        .pdGrid {
           display: grid;
-          grid-template-columns: 320px 1fr;
+          grid-template-columns: minmax(260px, 340px) 1fr;
           gap: 16px;
           align-items: stretch;
         }
 
-        /* ==== editorial ==== */
-        .impEditorial {
+        /* ===== Hero ===== */
+        .pdHero {
+          position: relative;
           border-radius: 22px;
           padding: 18px;
-          color: #fff;
-          position: relative;
           overflow: hidden;
+          color: #fff;
           background: linear-gradient(160deg, #0b1220 0%, #7a2941 55%, #b08d57 120%);
           border: 1px solid rgba(255, 255, 255, 0.16);
-          box-shadow: 0 18px 60px rgba(122, 41, 65, 0.18);
-          min-height: 100%;
+          box-shadow: 0 18px 56px rgba(122, 41, 65, 0.16);
         }
 
-        .impEditorial__top {
+        .pdHeroTop {
           display: flex;
-          align-items: center;
           justify-content: space-between;
+          align-items: center;
           gap: 10px;
-          position: relative;
-          z-index: 2;
           margin-bottom: 12px;
         }
 
-        .impEditorial__icon {
+        .pdHeroIcon {
           width: 44px;
           height: 44px;
           border-radius: 16px;
@@ -525,46 +543,38 @@ export default function ProdutoDestaque() {
           border: 1px solid rgba(255, 255, 255, 0.18);
         }
 
-        .impEditorial__chip {
+        .pdHeroChip {
           font-size: 0.78rem;
-          font-weight: 1000;
+          font-weight: 800;
           padding: 7px 12px;
           border-radius: 999px;
           background: rgba(255, 255, 255, 0.14);
           border: 1px solid rgba(255, 255, 255, 0.18);
         }
 
-        .impEditorial__title {
-          position: relative;
-          z-index: 2;
-          margin: 10px 0 8px;
-          font-size: 1.25rem;
-          font-weight: 1100;
+        .pdHeroTitle {
+          margin: 8px 0 8px;
+          font-size: 1.22rem;
+          font-weight: 900;
           letter-spacing: -0.02em;
         }
 
-        .impEditorial__text {
-          position: relative;
-          z-index: 2;
+        .pdHeroText {
           margin: 0 0 14px;
           opacity: 0.92;
-          line-height: 1.35rem;
+          line-height: 1.4rem;
           font-size: 0.95rem;
         }
 
-        .impEditorial__bullets {
-          position: relative;
-          z-index: 2;
+        .pdHeroBullets {
           display: grid;
           gap: 6px;
           margin-bottom: 16px;
-          font-weight: 900;
+          font-weight: 700;
           opacity: 0.95;
         }
 
-        .impEditorial__cta {
-          position: relative;
-          z-index: 2;
+        .pdHeroCta {
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -575,101 +585,97 @@ export default function ProdutoDestaque() {
           color: #0b1220;
           background: #fff;
           text-decoration: none;
-          font-weight: 1100;
+          font-weight: 900;
           transition: transform 0.2s ease, filter 0.2s ease;
         }
-        .impEditorial__cta:hover {
+        .pdHeroCta:hover {
           transform: translateY(-2px);
           filter: brightness(0.98);
         }
 
-        .impEditorial__glow {
-          position: absolute;
-          inset: -40%;
-          background: radial-gradient(circle, rgba(255, 255, 255, 0.18), transparent 60%);
-          transform: rotate(18deg);
-          z-index: 1;
-        }
-
-        /* ==== cards grid ==== */
-        .impCards {
+        /* ===== Cards grid (responsivo sem estourar) ===== */
+        .pdCards {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
           gap: 14px;
           align-content: start;
+          min-width: 0;
         }
 
-        /* ==== card ==== */
-        .impCard {
+        /* ===== Card ===== */
+        .pdCard {
           position: relative;
           border-radius: 20px;
-          background: rgba(255, 255, 255, 0.90);
-          border: 1px solid rgba(11, 18, 32, 0.08);
-          box-shadow: 0 14px 44px rgba(11, 18, 32, 0.08);
           overflow: hidden;
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid rgba(11, 18, 32, 0.10);
+          box-shadow: 0 12px 38px rgba(11, 18, 32, 0.08);
           transition: transform 0.22s ease, box-shadow 0.22s ease;
           display: grid;
           grid-template-rows: auto 1fr;
           min-height: 340px;
         }
-        .impCard:hover {
+
+        .pdCard:hover {
           transform: translateY(-6px);
-          box-shadow: 0 26px 74px rgba(11, 18, 32, 0.14);
+          box-shadow: 0 22px 66px rgba(11, 18, 32, 0.14);
         }
 
-        .impBadge {
+        .pdBadge {
           position: absolute;
           top: 12px;
           left: 12px;
-          z-index: 5;
+          z-index: 3;
           display: inline-flex;
           align-items: center;
           gap: 6px;
           padding: 7px 10px;
           border-radius: 999px;
-          color: #fff;
           font-size: 0.74rem;
-          font-weight: 1100;
-          background: linear-gradient(135deg, #7a2941, #b08d57);
-          border: 1px solid rgba(255, 255, 255, 0.16);
-          box-shadow: 0 12px 34px rgba(122, 41, 65, 0.18);
+          font-weight: 800;
+          color: #0b1220;
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid rgba(11, 18, 32, 0.10);
+          backdrop-filter: blur(8px);
         }
 
-        .impCard__media {
+        .pdMedia {
           position: relative;
           display: block;
           text-decoration: none;
           padding: 12px;
-          background: radial-gradient(360px 170px at 30% 20%, rgba(176, 141, 87, 0.16), transparent 55%),
-            radial-gradient(340px 160px at 80% 10%, rgba(122, 41, 65, 0.12), transparent 55%),
-            rgba(11, 18, 32, 0.02);
+          background: linear-gradient(
+            180deg,
+            rgba(11, 18, 32, 0.02),
+            rgba(11, 18, 32, 0.00)
+          );
           border-bottom: 1px solid rgba(11, 18, 32, 0.06);
         }
 
-        .impImgPlate {
+        .pdImageShell {
           height: 170px;
-          border-radius: 16px;
-          background: rgba(255, 255, 255, 0.78);
-          border: 1px solid rgba(11, 18, 32, 0.06);
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.88);
+          border: 1px solid rgba(11, 18, 32, 0.08);
           display: grid;
           place-items: center;
           overflow: hidden;
         }
 
-        .impImgPlate img {
+        .pdImageShell img {
           width: 86%;
           height: 86%;
           object-fit: contain;
           transition: transform 0.35s ease, filter 0.35s ease;
-          filter: saturate(1.02);
+          filter: saturate(1.03);
         }
 
-        .impCard:hover .impImgPlate img {
-          transform: scale(1.08);
+        .pdCard:hover .pdImageShell img {
+          transform: scale(1.06);
           filter: saturate(1.06) brightness(1.02);
         }
 
-        .impHover {
+        .pdQuick {
           position: absolute;
           inset: 0;
           display: grid;
@@ -677,13 +683,17 @@ export default function ProdutoDestaque() {
           opacity: 0;
           transition: opacity 0.18s ease;
           pointer-events: none;
-          background: radial-gradient(circle, rgba(11,18,32,0.10), rgba(11,18,32,0.00) 60%);
+          background: radial-gradient(
+            circle,
+            rgba(11, 18, 32, 0.10),
+            rgba(11, 18, 32, 0.00) 60%
+          );
         }
-        .impCard:hover .impHover {
+        .pdCard:hover .pdQuick {
           opacity: 1;
         }
 
-        .impHover__pill {
+        .pdQuickPill {
           display: inline-flex;
           align-items: center;
           gap: 10px;
@@ -692,29 +702,51 @@ export default function ProdutoDestaque() {
           background: rgba(255, 255, 255, 0.96);
           border: 1px solid rgba(11, 18, 32, 0.10);
           box-shadow: 0 18px 60px rgba(11, 18, 32, 0.16);
-          font-weight: 1100;
+          font-weight: 900;
           color: #0b1220;
         }
 
-        .impCard__body {
+        .pdBody {
           padding: 12px 12px 14px;
           display: grid;
           gap: 10px;
+          min-width: 0;
         }
 
-        .impName {
+        .pdTopLine {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 10px;
+          min-width: 0;
+        }
+
+        .pdName {
           margin: 0;
           font-size: 0.98rem;
-          font-weight: 1100;
+          font-weight: 900;
           letter-spacing: -0.02em;
           color: #0b1220;
           display: -webkit-box;
           -webkit-line-clamp: 1;
           -webkit-box-orient: vertical;
           overflow: hidden;
+          min-width: 0;
         }
 
-        .impDesc {
+        .pdTag {
+          flex: 0 0 auto;
+          padding: 6px 10px;
+          border-radius: 999px;
+          font-size: 0.72rem;
+          font-weight: 800;
+          color: #0b1220;
+          background: rgba(176, 141, 87, 0.16);
+          border: 1px solid rgba(176, 141, 87, 0.22);
+          white-space: nowrap;
+        }
+
+        .pdDesc {
           margin: 0;
           font-size: 0.84rem;
           color: rgba(11, 18, 32, 0.72);
@@ -726,82 +758,91 @@ export default function ProdutoDestaque() {
           overflow: hidden;
         }
 
-        .impMeta {
+        .pdPriceRow {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 10px;
+          gap: 12px;
+          min-width: 0;
         }
 
-        .impPrice {
-          font-weight: 1200;
+        .pdPrice {
+          font-weight: 950;
           color: #7a2941;
-          letter-spacing: -0.01em;
+          letter-spacing: -0.02em;
         }
 
-        .impTag {
-          padding: 6px 10px;
-          border-radius: 999px;
-          font-size: 0.72rem;
-          font-weight: 1100;
-          color: #0b1220;
-          background: rgba(176, 141, 87, 0.16);
-          border: 1px solid rgba(176, 141, 87, 0.22);
+        .pdMini {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.78rem;
+          color: rgba(11, 18, 32, 0.66);
+          font-weight: 700;
           white-space: nowrap;
         }
 
-        .impActions {
+        .pdDot {
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          background: #22c55e;
+          box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
+        }
+
+        .pdActions {
           display: grid;
-          grid-template-columns: 1fr;
+          grid-template-columns: 1fr 1fr;
           gap: 10px;
           margin-top: 2px;
         }
 
-        .impBtn {
+        .pdBtn {
           height: 44px;
           border-radius: 16px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 10px;
-          font-weight: 1100;
+          font-weight: 900;
           text-decoration: none;
           border: 1px solid rgba(11, 18, 32, 0.10);
           cursor: pointer;
-          transition: transform 0.18s ease, box-shadow 0.22s ease, filter 0.22s ease;
+          transition: transform 0.18s ease, box-shadow 0.22s ease,
+            filter 0.22s ease;
           user-select: none;
           outline: none;
           width: 100%;
         }
 
-        .impBtn:hover {
+        .pdBtn:hover {
           transform: translateY(-2px);
         }
 
-        .impBtn--ghost {
+        .pdBtnGhost {
           color: #0b1220;
           background: rgba(255, 255, 255, 0.92);
         }
-        .impBtn--ghost:hover {
-          box-shadow: 0 18px 50px rgba(11, 18, 32, 0.12);
+        .pdBtnGhost:hover {
+          box-shadow: 0 16px 44px rgba(11, 18, 32, 0.12);
         }
 
-        .impBtn--solid {
+        .pdBtnSolid {
           color: #fff;
           background: linear-gradient(135deg, #7a2941, #b08d57);
           border: 1px solid rgba(255, 255, 255, 0.18);
-          box-shadow: 0 16px 48px rgba(122, 41, 65, 0.16);
+          box-shadow: 0 14px 44px rgba(122, 41, 65, 0.16);
         }
-        .impBtn--solid:hover {
+        .pdBtnSolid:hover {
           box-shadow: 0 22px 70px rgba(122, 41, 65, 0.22);
           filter: brightness(1.02);
         }
-        .impBtn--solid.ok {
+        .pdBtnSolid.ok {
           background: linear-gradient(135deg, #166534, #22c55e);
-          box-shadow: 0 16px 48px rgba(34, 197, 94, 0.14);
+          box-shadow: 0 14px 44px rgba(34, 197, 94, 0.14);
         }
 
-        .impBtn:disabled {
+        .pdBtn:disabled {
           opacity: 0.75;
           cursor: not-allowed;
           transform: none;
@@ -816,39 +857,25 @@ export default function ProdutoDestaque() {
           }
         }
 
-        /* ==== responsivo ==== */
+        /* ===== Responsivo ===== */
         @media (max-width: 1100px) {
-          .impGrid {
+          .pdGrid {
             grid-template-columns: 1fr;
-          }
-          .impEditorial {
-            order: 0;
-          }
-          .impCards {
-            grid-template-columns: repeat(3, minmax(0, 1fr));
           }
         }
 
         @media (max-width: 780px) {
-          .impHead {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-          .impAll {
+          .pdAll {
             width: 100%;
             justify-content: center;
-          }
-          .impCards {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
           }
         }
 
         @media (max-width: 520px) {
-          .impContainer {
-            padding: 14px;
+          .pdContainer {
             border-radius: 22px;
           }
-          .impCards {
+          .pdActions {
             grid-template-columns: 1fr;
           }
         }
