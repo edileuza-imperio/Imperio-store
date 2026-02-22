@@ -30,7 +30,6 @@ export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // modal excluir
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Usuario | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -39,7 +38,6 @@ export default function UsuariosPage() {
     carregar();
   }, []);
 
-  // trava scroll quando modal abre
   useEffect(() => {
     if (!deleteOpen) return;
     const prev = document.body.style.overflow;
@@ -49,7 +47,6 @@ export default function UsuariosPage() {
     };
   }, [deleteOpen]);
 
-  // ESC fecha modal
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") fecharModal();
@@ -108,6 +105,7 @@ export default function UsuariosPage() {
       return;
     }
     toast.info(`Reset de PIN solicitado para ${usuario.nome}`);
+    // depois: chamar rota real
   }
 
   async function copiarTexto(texto: string, okMsg: string) {
@@ -188,9 +186,7 @@ export default function UsuariosPage() {
         <div className="empty">
           <div className="emptyCard">
             <div className="emptyTitle">Nenhum usuário encontrado</div>
-            <div className="emptySub">
-              Crie o primeiro usuário para começar a gerenciar acessos.
-            </div>
+            <div className="emptySub">Crie o primeiro usuário para começar a gerenciar acessos.</div>
             <Link href="/admin/usuarios/novo" className="btn btnPrimary">
               <FaUserPlus /> Novo Usuário
             </Link>
@@ -271,8 +267,9 @@ export default function UsuariosPage() {
                         <FaKey /> Reset PIN
                       </button>
 
+                      {/* excluir discreto (não “grita”) */}
                       <button
-                        className="btn btnDanger"
+                        className="trashMini"
                         onClick={() => abrirExcluir(user)}
                         aria-label="Excluir usuário"
                         title="Excluir"
@@ -288,7 +285,7 @@ export default function UsuariosPage() {
         </div>
       )}
 
-      {/* Modal Excluir (overlay mais claro + fecha ao clicar fora) */}
+      {/* Modal excluir (overlay leve) */}
       {deleteOpen && (
         <div className="modalOverlay" onMouseDown={fecharModal}>
           <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
@@ -333,10 +330,14 @@ export default function UsuariosPage() {
       )}
 
       <style jsx>{`
+        /* página com fundo “soft” (sem global) */
         .page {
           padding: 18px 18px 28px;
+          background: linear-gradient(180deg, rgba(17, 24, 39, 0.03), transparent 45%);
+          border-radius: 18px;
         }
 
+        /* header */
         .head {
           display: flex;
           align-items: flex-end;
@@ -380,7 +381,6 @@ export default function UsuariosPage() {
           margin: 0;
           color: rgba(17, 24, 39, 0.62);
         }
-
         .meta {
           margin-left: 8px;
           color: rgba(17, 24, 39, 0.5);
@@ -394,14 +394,15 @@ export default function UsuariosPage() {
           justify-content: flex-end;
         }
 
+        /* botões */
         .btn {
           height: 44px;
           padding: 0 14px;
           border-radius: 14px;
           font-weight: 900;
-          border: 1px solid rgba(17, 24, 39, 0.12);
+          border: 1px solid rgba(17, 24, 39, 0.10);
           cursor: pointer;
-          transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+          transition: transform 0.15s ease, box-shadow 0.2s ease;
           white-space: nowrap;
           display: inline-flex;
           align-items: center;
@@ -413,24 +414,24 @@ export default function UsuariosPage() {
         }
         .btn:hover {
           transform: translateY(-1px);
+          box-shadow: 0 12px 30px rgba(17, 24, 39, 0.10);
         }
         .btn:disabled {
           opacity: 0.7;
           cursor: not-allowed;
           transform: none;
+          box-shadow: none;
         }
 
         .btnPrimary {
           color: #fff;
           background: linear-gradient(135deg, #4f46e5, #6366f1);
-          box-shadow: 0 10px 30px rgba(79, 70, 229, 0.22);
           border-color: rgba(255, 255, 255, 0.22);
+          box-shadow: 0 10px 30px rgba(79, 70, 229, 0.22);
         }
-
         .btnGhost {
-          background: rgba(17, 24, 39, 0.04);
-          border-color: rgba(17, 24, 39, 0.1);
-          color: rgba(17, 24, 39, 0.86);
+          background: rgba(255, 255, 255, 0.75);
+          border-color: rgba(17, 24, 39, 0.10);
         }
 
         .btnSoft {
@@ -438,31 +439,20 @@ export default function UsuariosPage() {
           border-color: rgba(79, 70, 229, 0.14);
           color: #3730a3;
         }
-
         .btnSoft2 {
           background: rgba(17, 24, 39, 0.05);
-          border-color: rgba(17, 24, 39, 0.1);
+          border-color: rgba(17, 24, 39, 0.10);
           color: rgba(17, 24, 39, 0.86);
         }
-
         .btnSoftInfo {
           background: rgba(14, 165, 233, 0.10);
           border-color: rgba(14, 165, 233, 0.18);
           color: #075985;
         }
-
         .btnSoftWarn {
           background: rgba(245, 158, 11, 0.12);
           border-color: rgba(245, 158, 11, 0.22);
           color: #92400e;
-        }
-
-        .btnDanger {
-          width: 44px;
-          padding: 0;
-          background: rgba(239, 68, 68, 0.10);
-          border-color: rgba(239, 68, 68, 0.18);
-          color: #991b1b;
         }
 
         .btnLocked {
@@ -480,42 +470,30 @@ export default function UsuariosPage() {
           box-shadow: 0 10px 30px rgba(239, 68, 68, 0.18);
         }
 
+        /* grid */
         .grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
           gap: 18px;
         }
 
+        /* card (mais clean) */
         .card {
-          position: relative;
           border-radius: 18px;
-          background: rgba(255, 255, 255, 0.92);
+          background: rgba(255, 255, 255, 0.88);
           border: 1px solid rgba(17, 24, 39, 0.10);
           box-shadow: 0 10px 28px rgba(17, 24, 39, 0.06);
           padding: 16px;
           display: grid;
           gap: 12px;
-          overflow: hidden;
-          transition: transform 0.18s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+          transition: transform 0.18s ease, box-shadow 0.2s ease;
         }
-
-        .card::before {
-          content: "";
-          position: absolute;
-          inset: 0;
-          pointer-events: none;
-          background: radial-gradient(700px 220px at 15% 0%, rgba(99, 102, 241, 0.08), transparent 55%);
-          opacity: 0.9;
-        }
-
         .card:hover {
-          transform: translateY(-3px);
-          border-color: rgba(99, 102, 241, 0.22);
-          box-shadow: 0 18px 50px rgba(17, 24, 39, 0.10);
+          transform: translateY(-2px);
+          box-shadow: 0 18px 44px rgba(17, 24, 39, 0.10);
         }
 
         .top {
-          position: relative;
           display: flex;
           justify-content: space-between;
           gap: 10px;
@@ -538,6 +516,7 @@ export default function UsuariosPage() {
           color: #3730a3;
           background: rgba(79, 70, 229, 0.10);
           border: 1px solid rgba(79, 70, 229, 0.14);
+          flex: 0 0 auto;
         }
 
         .whoText {
@@ -585,13 +564,14 @@ export default function UsuariosPage() {
           color: #166534;
         }
 
+        /* pin */
         .pinRow {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 10px;
           padding: 12px;
-          border-radius: 14px;
+          border-radius: 16px;
           background: rgba(17, 24, 39, 0.04);
           border: 1px solid rgba(17, 24, 39, 0.08);
         }
@@ -625,30 +605,75 @@ export default function UsuariosPage() {
           cursor: pointer;
           display: grid;
           place-items: center;
-          transition: transform 0.15s ease, box-shadow 0.2s ease;
-        }
-        .iconBtn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 10px 24px rgba(17, 24, 39, 0.10);
         }
         .iconBtn:disabled {
           opacity: 0.55;
           cursor: not-allowed;
-          transform: none;
-          box-shadow: none;
         }
 
+        /* actions (igual print: 2 colunas) */
         .actions {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 10px;
+          position: relative;
+          padding-bottom: 6px;
         }
 
-        /* Modal (overlay CLARO - sem tela preta) */
+        /* Excluir discreto */
+        .trashMini {
+          position: absolute;
+          left: 0;
+          bottom: 0;
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
+          border: 1px solid rgba(239, 68, 68, 0.18);
+          background: rgba(239, 68, 68, 0.10);
+          color: #991b1b;
+          cursor: pointer;
+          display: grid;
+          place-items: center;
+          transition: transform 0.15s ease;
+        }
+        .trashMini:hover {
+          transform: translateY(-1px);
+        }
+
+        /* Empty */
+        .empty {
+          display: grid;
+          place-items: center;
+          padding: 24px 0 0;
+        }
+
+        .emptyCard {
+          width: min(560px, 100%);
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid rgba(17, 24, 39, 0.10);
+          box-shadow: 0 12px 36px rgba(17, 24, 39, 0.08);
+          padding: 18px;
+          display: grid;
+          gap: 10px;
+        }
+
+        .emptyTitle {
+          font-size: 1.05rem;
+          font-weight: 950;
+          color: #111827;
+        }
+
+        .emptySub {
+          color: rgba(17, 24, 39, 0.62);
+          line-height: 1.45;
+        }
+
+        /* modal overlay (bem leve) */
         .modalOverlay {
           position: fixed;
           inset: 0;
-          background: rgba(15, 23, 42, 0.18); /* <- aqui estava “preto”, agora é suave */
+          background: rgba(15, 23, 42, 0.14);
           backdrop-filter: blur(2px);
           display: grid;
           place-items: center;
@@ -663,18 +688,6 @@ export default function UsuariosPage() {
           border: 1px solid rgba(17, 24, 39, 0.12);
           box-shadow: 0 22px 90px rgba(17, 24, 39, 0.18);
           padding: 16px;
-          animation: pop 0.14s ease-out;
-        }
-
-        @keyframes pop {
-          from {
-            transform: translateY(6px) scale(0.98);
-            opacity: 0.6;
-          }
-          to {
-            transform: translateY(0) scale(1);
-            opacity: 1;
-          }
         }
 
         .modalHead {
@@ -773,7 +786,67 @@ export default function UsuariosPage() {
           flex-wrap: wrap;
         }
 
-        /* Responsive */
+        /* skeleton */
+        .sk .skTop,
+        .sk .skLine,
+        .sk .skAvatar,
+        .sk .skPill,
+        .sk .skBox,
+        .sk .skBtns {
+          border-radius: 12px;
+          background: linear-gradient(
+            90deg,
+            rgba(17, 24, 39, 0.06),
+            rgba(17, 24, 39, 0.10),
+            rgba(17, 24, 39, 0.06)
+          );
+          background-size: 220% 100%;
+          animation: sh 1.05s linear infinite;
+        }
+        .skTop {
+          display: grid;
+          grid-template-columns: 42px 1fr 72px;
+          gap: 10px;
+          align-items: center;
+        }
+        .skAvatar {
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+        }
+        .skLines {
+          display: grid;
+          gap: 8px;
+        }
+        .skLine {
+          height: 12px;
+        }
+        .w70 {
+          width: 70%;
+        }
+        .w90 {
+          width: 90%;
+        }
+        .skPill {
+          height: 22px;
+          border-radius: 999px;
+        }
+        .skBox {
+          height: 54px;
+          border-radius: 14px;
+        }
+        .skBtns {
+          height: 44px;
+        }
+        @keyframes sh {
+          0% {
+            background-position: 0% 0%;
+          }
+          100% {
+            background-position: -220% 0%;
+          }
+        }
+
         @media (max-width: 520px) {
           .page {
             padding: 14px 14px 24px;
@@ -790,9 +863,10 @@ export default function UsuariosPage() {
           .actions {
             grid-template-columns: 1fr;
           }
-          .btnDanger {
+          .trashMini {
+            position: static;
             width: 100%;
-            padding: 0 14px;
+            height: 44px;
           }
         }
       `}</style>
