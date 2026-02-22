@@ -6,8 +6,6 @@ import api from "@/Api/conectar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-import { createPortal } from "react-dom";
-
 import {
   FaTrash,
   FaEdit,
@@ -17,7 +15,6 @@ import {
   FaEnvelope,
   FaCopy,
   FaSyncAlt,
-  FaTimes,
 } from "react-icons/fa";
 
 interface Usuario {
@@ -32,41 +29,12 @@ export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // portal
-  const [mounted, setMounted] = useState(false);
-
-  // modal excluir
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<Usuario | null>(null);
-  const [deleting, setDeleting] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // loading por ID (pra não travar todos)
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
     carregar();
   }, []);
-
-  // trava scroll quando modal abre
-  useEffect(() => {
-    if (!deleteOpen) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [deleteOpen]);
-
-  // ESC fecha
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") fecharModal();
-    }
-    if (deleteOpen) window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [deleteOpen, deleting]);
 
   async function carregar() {
     try {
@@ -80,34 +48,27 @@ export default function UsuariosPage() {
     }
   }
 
-  function abrirExcluir(user: Usuario) {
+  async function excluirUsuario(user: Usuario) {
     if (user.nivel_id === 1) {
       toast.error("Usuário do sistema não pode ser excluído.");
       return;
     }
-    setDeleteTarget(user);
-    setDeleteOpen(true);
-  }
 
-  function fecharModal() {
-    if (deleting) return;
-    setDeleteOpen(false);
-    setDeleteTarget(null);
-  }
-
-  async function confirmarExcluir() {
-    if (!deleteTarget) return;
+    // Sem modal: se você quiser uma confirmação simples sem “tela preta”, usa confirm:
+    // if (!confirm(`Excluir o usuário "${user.nome}"?`)) return;
 
     try {
-      setDeleting(true);
-      await api.delete(`/admin/usuarios/${deleteTarget.id_usuario}`);
-      setUsuarios((prev) => prev.filter((u) => u.id_usuario !== deleteTarget.id_usuario));
-      toast.success("Usuário excluído");
-      fecharModal();
+      setDeletingId(user.id_usuario);
+
+      await api.delete(`/admin/usuarios/${user.id_usuario}`);
+
+      setUsuarios((prev) => prev.filter((u) => u.id_usuario !== user.id_usuario));
+
+      toast.success(`Usuário "${user.nome}" excluído!`);
     } catch (e: any) {
       toast.error(e?.response?.data?.mensagem || "Ação não permitida");
     } finally {
-      setDeleting(false);
+      setDeletingId(null);
     }
   }
 
@@ -212,6 +173,7 @@ export default function UsuariosPage() {
         <div className="grid">
           {usuarios.map((user) => {
             const isSistema = user.nivel_id === 1;
+            const isDeleting = deletingId === user.id_usuario;
 
             return (
               <div key={user.id_usuario} className="card">
@@ -285,9 +247,10 @@ export default function UsuariosPage() {
 
                       <button
                         className="trashMini"
-                        onClick={() => abrirExcluir(user)}
+                        onClick={() => excluirUsuario(user)}
+                        disabled={isDeleting}
                         aria-label="Excluir usuário"
-                        title="Excluir"
+                        title={isDeleting ? "Excluindo..." : "Excluir"}
                       >
                         <FaTrash />
                       </button>
@@ -299,59 +262,6 @@ export default function UsuariosPage() {
           })}
         </div>
       )}
-
-      {/* MODAL via Portal (resolve “fundo fica blur e modal some”) */}
-      {mounted &&
-        deleteOpen &&
-        createPortal(
-          <div className="modalOverlay" onMouseDown={fecharModal}>
-            <div className="modal" onMouseDown={(e) => e.stopPropagation()}>
-              <div className="modalHead">
-                <div>
-                  <div className="modalTitle">Excluir usuário</div>
-                  <div className="modalSub">Confirme para remover permanentemente.</div>
-                </div>
-
-                <button
-                  className="xBtn"
-                  onClick={fecharModal}
-                  aria-label="Fechar"
-                  title="Fechar"
-                  disabled={deleting}
-                >
-                  <FaTimes />
-                </button>
-              </div>
-
-              <div className="modalBody">
-                <div className="modalText">
-                  Tem certeza que deseja excluir <strong>{deleteTarget?.nome}</strong>?
-                </div>
-                <div className="modalHint">Essa ação não pode ser desfeita.</div>
-
-                <div className="modalUser">
-                  <div className="muAvatar" aria-hidden>
-                    {String(deleteTarget?.nome || "?").trim().slice(0, 1).toUpperCase()}
-                  </div>
-                  <div className="muText">
-                    <div className="muName">{deleteTarget?.nome}</div>
-                    <div className="muEmail">{deleteTarget?.email}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="modalActions">
-                <button className="btn btnGhost" onClick={fecharModal} disabled={deleting}>
-                  Cancelar
-                </button>
-                <button className="btn btnDangerSolid" onClick={confirmarExcluir} disabled={deleting}>
-                  {deleting ? "Excluindo..." : "Excluir"}
-                </button>
-              </div>
-            </div>
-          </div>,
-          document.body
-        )}
 
       <style jsx>{`
         .page {
@@ -482,13 +392,6 @@ export default function UsuariosPage() {
           color: rgba(17, 24, 39, 0.55);
           cursor: not-allowed;
           grid-column: 1 / -1;
-        }
-
-        .btnDangerSolid {
-          background: linear-gradient(135deg, #ef4444, #dc2626);
-          border-color: rgba(255, 255, 255, 0.22);
-          color: #fff;
-          box-shadow: 0 10px 30px rgba(239, 68, 68, 0.18);
         }
 
         .grid {
@@ -656,6 +559,11 @@ export default function UsuariosPage() {
         .trashMini:hover {
           transform: translateY(-1px);
         }
+        .trashMini:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+        }
 
         /* Empty */
         .empty {
@@ -684,138 +592,6 @@ export default function UsuariosPage() {
         .emptySub {
           color: rgba(17, 24, 39, 0.62);
           line-height: 1.45;
-        }
-
-        /* Modal (SEM blur / sem “tela preta” pesada) */
-        .modalOverlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(15, 23, 42, 0.22);
-          display: grid;
-          place-items: center;
-          padding: 16px;
-          z-index: 999999;
-        }
-
-        .modal {
-          width: min(520px, 100%);
-          border-radius: 18px;
-          background: #fff;
-          border: 1px solid rgba(17, 24, 39, 0.12);
-          box-shadow: 0 22px 90px rgba(17, 24, 39, 0.22);
-          padding: 16px;
-          animation: pop 0.14s ease-out;
-        }
-
-        @keyframes pop {
-          from {
-            transform: translateY(10px) scale(0.98);
-            opacity: 0.6;
-          }
-          to {
-            transform: translateY(0) scale(1);
-            opacity: 1;
-          }
-        }
-
-        .modalHead {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 12px;
-          margin-bottom: 12px;
-        }
-
-        .modalTitle {
-          font-size: 1.05rem;
-          font-weight: 950;
-          color: #111827;
-        }
-
-        .modalSub {
-          margin-top: 2px;
-          color: rgba(17, 24, 39, 0.60);
-          font-size: 0.92rem;
-        }
-
-        .xBtn {
-          width: 40px;
-          height: 40px;
-          border-radius: 12px;
-          border: 1px solid rgba(17, 24, 39, 0.10);
-          background: rgba(17, 24, 39, 0.04);
-          cursor: pointer;
-          display: grid;
-          place-items: center;
-          color: rgba(17, 24, 39, 0.70);
-        }
-        .xBtn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .modalBody {
-          display: grid;
-          gap: 10px;
-        }
-
-        .modalText {
-          color: rgba(17, 24, 39, 0.74);
-          line-height: 1.45;
-        }
-
-        .modalHint {
-          color: rgba(17, 24, 39, 0.55);
-          font-size: 0.9rem;
-        }
-
-        .modalUser {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px;
-          border-radius: 16px;
-          background: rgba(17, 24, 39, 0.04);
-          border: 1px solid rgba(17, 24, 39, 0.08);
-        }
-
-        .muAvatar {
-          width: 42px;
-          height: 42px;
-          border-radius: 14px;
-          display: grid;
-          place-items: center;
-          font-weight: 1000;
-          color: #991b1b;
-          background: rgba(239, 68, 68, 0.10);
-          border: 1px solid rgba(239, 68, 68, 0.14);
-        }
-
-        .muText {
-          min-width: 0;
-          display: grid;
-          gap: 2px;
-        }
-
-        .muName {
-          font-weight: 950;
-          color: #111827;
-        }
-
-        .muEmail {
-          color: rgba(17, 24, 39, 0.62);
-          font-size: 0.9rem;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .modalActions {
-          display: flex;
-          justify-content: flex-end;
-          gap: 10px;
-          margin-top: 14px;
-          flex-wrap: wrap;
         }
 
         /* Skeleton */
