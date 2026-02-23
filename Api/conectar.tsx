@@ -1,7 +1,7 @@
 import axios, { AxiosInstance } from "axios";
 
 const api: AxiosInstance = axios.create({
-  baseURL: "https://lightgrey-cattle-160990.hostingersite.com/",
+  baseURL: "https://lightgrey-cattle-160990.hostingersite.com",
   headers: {
     "Content-Type": "application/json",
   },

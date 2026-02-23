@@ -25,24 +25,45 @@ interface Usuario {
   nivel_id: number;
 }
 
+type ApiUsuariosResponse =
+  | {
+      dados?: Usuario[]; // fallback caso algum endpoint antigo mande direto
+      data?: any;
+    }
+  | any;
+
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // loading por ID (pra não travar todos)
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
   useEffect(() => {
     carregar();
   }, []);
 
+  function extrairListaUsuarios(resData: ApiUsuariosResponse): Usuario[] {
+    // tenta vários formatos, porque seu backend tem variações
+    const d = resData?.dados ?? resData?.data ?? resData;
+
+    // formato do seu UsuarioController@listar: dados: { total, usuarios: [] }
+    if (Array.isArray(d?.usuarios)) return d.usuarios;
+
+    // formatos alternativos
+    if (Array.isArray(d)) return d;
+    if (Array.isArray(resData?.dados)) return resData.dados;
+
+    return [];
+  }
+
   async function carregar() {
     try {
       setLoading(true);
-      const res = await api.get("/admin/usuarios");
-      setUsuarios(res.data.dados || []);
-    } catch {
+      const res = await api.get("/admin/usuarios", { withCredentials: true });
+      const lista = extrairListaUsuarios(res.data);
+      setUsuarios(lista);
+    } catch (e) {
       toast.error("Erro ao carregar usuários");
+      setUsuarios([]);
     } finally {
       setLoading(false);
     }
@@ -54,19 +75,23 @@ export default function UsuariosPage() {
       return;
     }
 
-    // Sem modal: se você quiser uma confirmação simples sem “tela preta”, usa confirm:
-    // if (!confirm(`Excluir o usuário "${user.nome}"?`)) return;
+    // confirmação simples do navegador (não cria overlay/tela preta)
+    const ok = confirm(`Excluir o usuário "${user.nome}"?`);
+    if (!ok) return;
 
     try {
       setDeletingId(user.id_usuario);
 
-      await api.delete(`/admin/usuarios/${user.id_usuario}`);
-
-      setUsuarios((prev) => prev.filter((u) => u.id_usuario !== user.id_usuario));
+      await api.delete(`/admin/usuarios/${user.id_usuario}`, {
+        withCredentials: true,
+      });
 
       toast.success(`Usuário "${user.nome}" excluído!`);
+
+      // ✅ garante que não “volte”
+      await carregar();
     } catch (e: any) {
-      toast.error(e?.response?.data?.mensagem || "Ação não permitida");
+      toast.error(e?.response?.data?.mensagem || "Erro ao excluir usuário");
     } finally {
       setDeletingId(null);
     }
@@ -78,7 +103,7 @@ export default function UsuariosPage() {
       return;
     }
     toast.info(`Reset de PIN solicitado para ${usuario.nome}`);
-    // depois: chamar rota real
+    // depois: chamar /admin/usuarios/{id}/reset-pin
   }
 
   async function copiarTexto(texto: string, okMsg: string) {
@@ -565,7 +590,6 @@ export default function UsuariosPage() {
           transform: none;
         }
 
-        /* Empty */
         .empty {
           display: grid;
           place-items: center;

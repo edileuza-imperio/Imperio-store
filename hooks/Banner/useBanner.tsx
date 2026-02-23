@@ -1,64 +1,67 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import api from "@/Api/conectar";
+import { rotas } from "@/components/Bibioteca/config/rotas";
 
-// Interface para representar um Banner
 export interface Banner {
+  id_banner?: number;
   titulo: string;
   descricao: string;
   imagem: string;
-  link?: string;
+  link?: string | null;
   visualizacoes: number;
   cliques: number;
+  statusid?: number;
 }
 
 interface UseBannerReturn {
-  banners: Banner[] | null;
+  banners: Banner[];
   loading: boolean;
   erro: string | null;
-  refetch: () => void;
+  refetch: () => Promise<void>;
 }
 
 /**
- * Hook para consumir banners do backend
- * @param tipo 'ativos' | 'todos'
+ * Hook genérico de banner
+ * Agora recebe diretamente a rota
  */
-export default function useBanner(tipo: "ativos" | "todos" = "ativos"): UseBannerReturn {
-  const [banners, setBanners] = useState<Banner[] | null>(null);
+export default function useBanner(
+  endpoint: string = rotas.banners.ativos
+): UseBannerReturn {
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [erro, setErro] = useState<string | null>(null);
 
-  const fetchBanners = async () => {
+  const fetchBanners = useCallback(async () => {
     setLoading(true);
     setErro(null);
 
     try {
-      const url = tipo === "ativos" ? "/banners/ativos" : "/banners";
-      const res = await api.get(url);
+      const res = await api.get(endpoint);
 
-      // Verifica status da API
-      const status = res.data?.status;
-      const dados = res.data?.dados || res.data?.banners || [];
-
-      if (status !== 200) {
-        setErro(res.data?.mensagem || "Erro desconhecido");
+      if (res.data?.status !== 200) {
+        setErro(res.data?.mensagem || "Erro ao buscar banners");
         setBanners([]);
-      } else {
-        setBanners(dados);
+        return;
       }
 
+      setBanners(Array.isArray(res.data?.dados) ? res.data.dados : []);
     } catch (e: any) {
-      setErro(e.message || "Erro ao buscar banners");
+      setErro(
+        e?.response?.data?.mensagem ||
+        e?.message ||
+        "Erro ao buscar banners"
+      );
       setBanners([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [endpoint]);
 
   useEffect(() => {
     fetchBanners();
-  }, [tipo]);
+  }, [fetchBanners]);
 
   return { banners, loading, erro, refetch: fetchBanners };
 }

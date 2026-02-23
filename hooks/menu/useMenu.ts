@@ -1,42 +1,41 @@
-// src/hooks/useMenu.ts
-'use client'
-import { useState, useEffect } from "react";
+// src/hooks/menu/useMenu.ts
+import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
+import { rotas } from "@/components/Bibioteca/config/rotas";
+import { Menu } from "@/components/Bibioteca/Bibiotecas";
 
-export interface Menu {
-  id?: number;
-  nome: string;
-  icone: string;
-  rota: string;
-  pesquisa_placeholder?: string | null;
-}
 
-interface UseMenuReturn {
-  menus: Menu[] | null;
-  mensagem: string;
-  loading: boolean;
-  error: string | null;
-}
-
-/**
- * Hook para consumir menus da API
- * @param endpoint Rota do controller Menu (ex: 'ativos' ou 'listar')
- */
-export function useMenu(endpoint: "ativos" | "listar" = "ativos"): UseMenuReturn {
-  const [menus, setMenus] = useState<Menu[] | null>(null);
-  const [mensagem, setMensagem] = useState<string>("");
+export function useMenu(endpoint: string = rotas.menu.ativos) {
+  const [menus, setMenus] = useState<Menu[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchMenus = async () => {
       try {
-        const response = await api.get(`/menu/${endpoint}`);
-        setMenus(response.data.dados || []);
-        setMensagem(response.data.mensagem || "");
+        setLoading(true);
+
+        const response = await api.get(endpoint);
+        const data = response.data;
+
+        if (!data || data.status !== 200) {
+          throw new Error(data?.mensagem || "Erro ao buscar menus");
+        }
+
+        const cards = data.dados?.cards ?? [];
+
+        // 🔥 converte do backend (titulo) para o frontend (nome)
+        const normalized: Menu[] = cards.map((m: any) => ({
+          id: m.id,
+          nome: m.titulo, // <- aqui resolve
+          icone: m.icone,
+          rota: m.rota,
+          pesquisa_placeholder: m.pesquisa_placeholder ?? null,
+        }));
+
+        setMenus(normalized);
       } catch (err: any) {
-        setError("Erro ao carregar menus");
-        console.error(err);
+        setError(err.message || "Erro ao buscar menus");
       } finally {
         setLoading(false);
       }
@@ -45,5 +44,5 @@ export function useMenu(endpoint: "ativos" | "listar" = "ativos"): UseMenuReturn
     fetchMenus();
   }, [endpoint]);
 
-  return { menus, mensagem, loading, error };
+  return { menus, loading, error };
 }

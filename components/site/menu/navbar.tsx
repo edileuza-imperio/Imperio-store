@@ -6,7 +6,7 @@ import NavbarDesktop from "./NavbarDesktop";
 import NavbarMobile from "./NavbarMobile";
 
 export default function Navbar() {
-  const { menus, loading, error } = useMenu("ativos");
+  const { menus, loading, error } = useMenu(); // ✅ sem "ativos"
   const { categorias } = useCategoria(1);
 
   if (loading) return null;
@@ -23,6 +23,7 @@ export default function Navbar() {
       />
       <NavbarDesktop
         menus={menus || []}
+        categorias={categorias}
         searchPlaceholder={searchItem?.pesquisa_placeholder || ""}
       />
     </>

@@ -1,5 +1,5 @@
 // app/cadastro/page.tsx
-'use client';
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
@@ -10,10 +10,11 @@ import {
   FaLock,
   FaPhoneAlt,
   FaIdCard,
-  FaArrowLeft
+  FaArrowLeft,
 } from "react-icons/fa";
 import api from "@/Api/conectar";
 import { useRouter } from "next/navigation";
+import { rotas } from "@/components/Bibioteca/config/rotas"; // ✅ rotas centralizadas
 
 type LoginConfig = {
   fundo?: string;
@@ -40,8 +41,17 @@ export default function CadastroPage() {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const res = await api.get("/admin/configuracoes/login", { withCredentials: true });
-        setConfig(res.data?.dados?.[0] ?? null);
+        // ✅ agora puxa da rota centralizada
+        const res = await api.get(rotas.admin.configLogin, {
+          withCredentials: true,
+        });
+
+        /**
+         * Seu endpoint /configuracoes/login (LoginController@loginAtiva)
+         * retorna 1 objeto (não um array).
+         * Então aqui é res.data?.dados (sem [0]).
+         */
+        setConfig(res.data?.dados ?? null);
       } catch {
         setConfig({
           fundo: "#7b1e3a",
@@ -63,7 +73,8 @@ export default function CadastroPage() {
   }, [config?.fundo]);
 
   const titulo = config?.titulo || "Criar conta";
-  const mensagem = config?.mensagem_personalizada || "Preencha os dados para criar seu acesso.";
+  const mensagem =
+    config?.mensagem_personalizada || "Preencha os dados para criar seu acesso.";
   const logo = config?.logo || "";
 
   const onlyDigits = (v: string) => v.replace(/\D/g, "");
@@ -92,7 +103,6 @@ export default function CadastroPage() {
   };
 
   const isValidEmail = (v: string) => {
-    // simples e ok pra client-side
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
   };
 
@@ -135,16 +145,20 @@ export default function CadastroPage() {
 
     setLoadingBtn(true);
     try {
-      // ✅ NOVA MUDANÇA: cadastro público sempre nível 3
+      /**
+       * ✅ agora usa rotas centralizadas
+       * OBS: aqui você está cadastrando "usuário sistema".
+       * Se quiser cadastro público separado no backend depois, criamos rotas.public.cadastro.
+       */
       await api.post(
-        "/usuarios",
+        rotas.usuariosSistema.criar,
         {
           nome: nomeTrim,
           email: emailTrim,
           senha,
           telefone: telDigits || null,
           cpf: cpfDigits || null,
-          nivelid: 3, // 🔥 aqui é o ponto principal
+          nivelid: 3,
         },
         { withCredentials: true }
       );
@@ -175,7 +189,9 @@ export default function CadastroPage() {
               <p className="p">Crie sua conta para continuar.</p>
 
               <div className="inputWrap">
-                <span className="icon"><FaUser /></span>
+                <span className="icon">
+                  <FaUser />
+                </span>
                 <input
                   type="text"
                   placeholder="Nome completo"
@@ -186,7 +202,9 @@ export default function CadastroPage() {
               </div>
 
               <div className="inputWrap">
-                <span className="icon"><FaEnvelope /></span>
+                <span className="icon">
+                  <FaEnvelope />
+                </span>
                 <input
                   type="email"
                   placeholder="E-mail"
@@ -197,7 +215,9 @@ export default function CadastroPage() {
               </div>
 
               <div className="inputWrap">
-                <span className="icon"><FaPhoneAlt /></span>
+                <span className="icon">
+                  <FaPhoneAlt />
+                </span>
                 <input
                   type="tel"
                   placeholder="Telefone (DDD + número)"
@@ -209,7 +229,9 @@ export default function CadastroPage() {
               </div>
 
               <div className="inputWrap">
-                <span className="icon"><FaIdCard /></span>
+                <span className="icon">
+                  <FaIdCard />
+                </span>
                 <input
                   type="text"
                   placeholder="CPF"
@@ -221,7 +243,9 @@ export default function CadastroPage() {
               </div>
 
               <div className="inputWrap">
-                <span className="icon"><FaLock /></span>
+                <span className="icon">
+                  <FaLock />
+                </span>
                 <input
                   type="password"
                   placeholder="Senha"
@@ -232,7 +256,9 @@ export default function CadastroPage() {
               </div>
 
               <div className="inputWrap">
-                <span className="icon"><FaLock /></span>
+                <span className="icon">
+                  <FaLock />
+                </span>
                 <input
                   type="password"
                   placeholder="Confirmar senha"
@@ -261,7 +287,6 @@ export default function CadastroPage() {
                 Voltar para login
               </button>
 
-              {/* Opcional: só pra você lembrar visualmente (não manda pro backend) */}
               <div className="hint">
                 <span>Nível do cadastro:</span> <b>3</b>
               </div>
@@ -307,19 +332,36 @@ export default function CadastroPage() {
         .overlay {
           position: absolute;
           inset: 0;
-          background:
-            radial-gradient(circle at 18% 12%, rgba(255, 190, 205, 0.22), transparent 55%),
-            radial-gradient(circle at 85% 85%, rgba(255, 140, 165, 0.18), transparent 50%),
-            radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.08), transparent 60%);
+          background: radial-gradient(
+              circle at 18% 12%,
+              rgba(255, 190, 205, 0.22),
+              transparent 55%
+            ),
+            radial-gradient(
+              circle at 85% 85%,
+              rgba(255, 140, 165, 0.18),
+              transparent 50%
+            ),
+            radial-gradient(
+              circle at 50% 50%,
+              rgba(255, 255, 255, 0.08),
+              transparent 60%
+            );
           filter: blur(2px);
           animation: floatBg 18s linear infinite;
           z-index: 0;
         }
 
         @keyframes floatBg {
-          0% { transform: rotate(0deg) scale(1); }
-          50% { transform: rotate(180deg) scale(1.04); }
-          100% { transform: rotate(360deg) scale(1); }
+          0% {
+            transform: rotate(0deg) scale(1);
+          }
+          50% {
+            transform: rotate(180deg) scale(1.04);
+          }
+          100% {
+            transform: rotate(360deg) scale(1);
+          }
         }
 
         .shell {
@@ -333,7 +375,7 @@ export default function CadastroPage() {
           overflow: hidden;
           border: 1px solid rgba(255, 255, 255, 0.14);
           box-shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
-          background: rgba(0, 0, 0, 0.10);
+          background: rgba(0, 0, 0, 0.1);
           backdrop-filter: blur(16px);
         }
 
@@ -348,10 +390,16 @@ export default function CadastroPage() {
           padding: 38px;
           display: grid;
           place-items: center;
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
+          background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.12),
+            rgba(255, 255, 255, 0.04)
+          );
         }
 
-        .panel { width: min(420px, 100%); }
+        .panel {
+          width: min(420px, 100%);
+        }
 
         .h2 {
           margin: 0 0 8px 0;
@@ -422,8 +470,14 @@ export default function CadastroPage() {
           margin-top: 6px;
         }
 
-        .btnPrimary:hover { transform: translateY(-1px); filter: brightness(1.02); }
-        .btnPrimary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .btnPrimary:hover {
+          transform: translateY(-1px);
+          filter: brightness(1.02);
+        }
+        .btnPrimary:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
 
         .btnGhost {
           width: 100%;
@@ -441,7 +495,10 @@ export default function CadastroPage() {
           justify-content: center;
         }
 
-        .btnGhost:hover { background: rgba(0, 0, 0, 0.18); transform: translateY(-1px); }
+        .btnGhost:hover {
+          background: rgba(0, 0, 0, 0.18);
+          transform: translateY(-1px);
+        }
 
         .spinner {
           width: 18px;
@@ -452,7 +509,11 @@ export default function CadastroPage() {
           animation: spin 0.9s linear infinite;
         }
 
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
 
         .brand {
           width: min(480px, 100%);
@@ -495,23 +556,29 @@ export default function CadastroPage() {
           max-width: 42ch;
         }
 
-        .hint{
+        .hint {
           margin-top: 14px;
           font-size: 12px;
-          color: rgba(255,255,255,0.75);
-          display:flex;
-          gap:8px;
-          align-items:center;
-          justify-content:center;
+          color: rgba(255, 255, 255, 0.75);
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          justify-content: center;
         }
-        .hint b{
-          color: rgba(255,255,255,0.95);
+        .hint b {
+          color: rgba(255, 255, 255, 0.95);
         }
 
         @media (max-width: 900px) {
-          .shell { grid-template-columns: 1fr; }
-          .right { order: -1; }
-          .title { font-size: 30px; }
+          .shell {
+            grid-template-columns: 1fr;
+          }
+          .right {
+            order: -1;
+          }
+          .title {
+            font-size: 30px;
+          }
         }
       `}</style>
     </>

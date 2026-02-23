@@ -1,15 +1,32 @@
 // /hooks/useLoginConfig.ts
+"use client";
+
 import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { rotas } from "@/components/Bibioteca/config/rotas"; // ajuste o caminho se necessário
 
 type Step = "inicio" | "login" | "pin" | "cadastro";
+
+type LoginConfig = {
+  fundo: string;
+  logo: string;
+  titulo: string;
+  mensagem_personalizada: string;
+};
+
+const DEFAULT_CONFIG: LoginConfig = {
+  fundo: "#000000",
+  logo: "/images/logo.png",
+  titulo: "Imperio Loja",
+  mensagem_personalizada: "Entre com suas credenciais.",
+};
 
 export const useLoginConfig = () => {
   const router = useRouter();
 
-  const [config, setConfig] = useState<any>(null);
+  const [config, setConfig] = useState<LoginConfig | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [step, setStep] = useState<Step>("inicio");
@@ -19,22 +36,21 @@ export const useLoginConfig = () => {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const response = await api.get("/admin/configuracoes/login", {
+        const response = await api.get(rotas.admin.configLogin, {
           withCredentials: true,
         });
-        setConfig(response.data.dados[0]);
+
+        // sua API parece retornar dados[0]
+        const cfg = response.data?.dados?.[0];
+        setConfig(cfg ?? DEFAULT_CONFIG);
       } catch {
         toast.error("Erro ao carregar configuração de login");
-        setConfig({
-          fundo: "#000000",
-          logo: "/images/logo.png",
-          titulo: "Imperio Loja",
-          mensagem_personalizada: "Entre com suas credenciais.",
-        });
+        setConfig(DEFAULT_CONFIG);
       } finally {
         setLoading(false);
       }
     };
+
     fetchConfig();
   }, []);
 
@@ -42,17 +58,23 @@ export const useLoginConfig = () => {
   useEffect(() => {
     const checkSession = async () => {
       try {
-        const res = await api.get("/me", { withCredentials: true });
-        if (res.data?.dados?.usuario && !res.data?.dados?.pedir_pin) {
+        const res = await api.get(rotas.auth.me, { withCredentials: true });
+        const usuario = res.data?.dados?.usuario;
+
+        // Se você não usa mais pedir_pin no /me, pode remover essa parte depois.
+        const pedirPin = res.data?.dados?.pedir_pin;
+
+        if (usuario && !pedirPin) {
           router.push("/");
-        } else if (res.data?.dados?.usuario && res.data?.dados?.pedir_pin) {
-          setUsuarioTempId(res.data.dados.usuario.id);
+        } else if (usuario && pedirPin) {
+          setUsuarioTempId(usuario.id);
           setStep("pin");
         }
       } catch {
         // não autenticado
       }
     };
+
     checkSession();
   }, [router]);
 
@@ -68,6 +90,7 @@ export const useLoginConfig = () => {
         toast.warning("Atalho bloqueado!");
       }
     };
+
     const handleContextMenu = (e: MouseEvent) => e.preventDefault();
 
     document.addEventListener("keydown", handleKeyDown);
@@ -90,15 +113,18 @@ export const useLoginConfig = () => {
     }
 
     setLoadingBtn(true);
+    setErrorMsg("");
+
     try {
       const res = await api.post(
-        "/login/etapa1",
+        rotas.auth.loginEtapa1,
         { usuario, senha },
         { withCredentials: true }
       );
-      const data = res.data.dados;
 
-      if (data.acao === "pedir_pin") {
+      const data = res.data?.dados;
+
+      if (data?.acao === "pedir_pin") {
         setUsuarioTempId(data.id_usuario);
         setStep("pin");
         toast.info("Digite o PIN enviado.");
@@ -120,12 +146,15 @@ export const useLoginConfig = () => {
     }
 
     setLoadingBtn(true);
+    setErrorMsg("");
+
     try {
       await api.post(
-        "/login/etapa2",
+        rotas.auth.loginEtapa2,
         { id_usuario: usuarioTempId, pin },
         { withCredentials: true }
       );
+
       toast.success("PIN confirmado! Acesso liberado.");
       router.push("/");
     } catch (err: any) {
