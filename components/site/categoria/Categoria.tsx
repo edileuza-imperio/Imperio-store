@@ -4,7 +4,7 @@
 import useCategoria from "@/hooks/categoria/useCategoria";
 import { useRouter } from "next/navigation";
 
-export default function CategoriasDestaque() {
+export default function Categoria() {
   // ✅ nova mudança: sem parâmetro
   const { categorias, loading, erro } = useCategoria();
   const router = useRouter();

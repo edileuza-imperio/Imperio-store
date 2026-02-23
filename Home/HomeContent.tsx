@@ -1,7 +1,8 @@
 'use client';
 
 import Banner from "@/components/site/Banner/Principal";
-import CategoriasDestaque from "@/components/site/categoria/CategoriasDestaque";
+import Categoria from "@/components/site/categoria/Categoria";
+
 
 import Navbar from "@/components/site/menu/navbar";
 
@@ -12,7 +13,7 @@ export default function HomeContent() {
     <>
     <Navbar />
     <Banner />
-    <CategoriasDestaque />
+    <Categoria />
     </>
   );
 }
