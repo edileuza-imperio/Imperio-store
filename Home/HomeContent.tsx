@@ -2,8 +2,7 @@
 
 import Banner from "@/components/site/Banner/Principal";
 import Categoria from "@/components/site/categoria/Categoria";
-import Cupons from "@/components/site/Faixa/FaixaChamada";
-
+import Cupons from "@/components/site/Cupons/Cupons";
 
 import Navbar from "@/components/site/menu/navbar";
 import ProdutoDestaque from "@/components/site/produto/ProdutoDestaque";
@@ -18,7 +17,7 @@ export default function HomeContent() {
       <Banner />
       <Categoria />
       <ProdutoDestaque />
-      
+      <Cupons />
       <FooterPrincipal />
     </>
   );
