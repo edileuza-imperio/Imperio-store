@@ -7,20 +7,24 @@ import NavbarDesktop from "./NavbarDesktop";
 import NavbarMobile from "./NavbarMobile";
 
 export default function Navbar() {
-  const { menus, loading, error } = useMenu(); // ✅ sem "ativos"
-  const { categorias, loading: catLoading, erro: catErro } = useCategoria(); // ✅ sem (1)
+  const { menus, loading, error } = useMenu();
+  const { categorias, loading: catLoading, erro: catErro } = useCategoria();
 
-  // Se quiser, pode renderizar mesmo sem categorias (não bloqueia a navbar inteira)
-  if (loading) return null;
-  if (error) return <div className="text-danger text-center py-8">{error}</div>;
-
-  // categorias podem falhar sem derrubar navbar
-  const safeCategorias = !catLoading && !catErro ? categorias : [];
-
+  // ✅ Hooks SEMPRE antes de qualquer return condicional
   const searchItem = useMemo(
-    () => (menus?.find((m) => m.pesquisa_placeholder) ?? null),
+    () => menus?.find((m) => m.pesquisa_placeholder) ?? null,
     [menus]
   );
+
+  // ✅ categorias podem falhar sem quebrar a navbar
+  const safeCategorias = useMemo(() => {
+    if (catLoading || catErro) return [];
+    return categorias ?? [];
+  }, [catLoading, catErro, categorias]);
+
+  // ✅ Agora pode retornar condicionalmente sem quebrar a ordem dos hooks
+  if (loading) return null;
+  if (error) return <div className="text-danger text-center py-8">{error}</div>;
 
   return (
     <>
