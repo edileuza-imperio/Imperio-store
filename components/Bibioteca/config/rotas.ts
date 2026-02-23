@@ -1,3 +1,5 @@
+// src/config/rotas.ts  (ou o caminho que você usa)
+
 export const rotas = {
   menu: {
     listar: "/menu",
@@ -46,5 +48,16 @@ export const rotas = {
 
     incrementarView: (id: number | string) => `/banners/${id}/view`,
     incrementarClick: (id: number | string) => `/banners/${id}/click`,
+  },
+
+  categorias: {
+    listar: "/categorias",
+    ativas: "/categorias/ativas",
+    ordenadas: "/categorias/ordenadas",
+
+    buscar: (id: number | string) => `/categorias/${id}`,
+    criar: "/categorias",
+    atualizar: (id: number | string) => `/categorias/${id}`,
+    deletar: (id: number | string) => `/categorias/${id}`,
   },
 } as const;

@@ -1,10 +1,12 @@
+// app/components/CategoriasDestaque.tsx (ou onde estiver)
 "use client";
 
 import useCategoria from "@/hooks/categoria/useCategoria";
 import { useRouter } from "next/navigation";
 
 export default function CategoriasDestaque() {
-  const { categorias, loading, erro } = useCategoria(1);
+  // ✅ nova mudança: sem parâmetro
+  const { categorias, loading, erro } = useCategoria();
   const router = useRouter();
 
   if (loading || erro || categorias.length === 0) return null;
@@ -314,7 +316,10 @@ export default function CategoriasDestaque() {
           <div className="head">
             <div className="titleBlock">
               <h2>Categorias em destaque</h2>
-              <p>Encontre rápido o que você procura — selecione uma categoria para filtrar o catálogo.</p>
+              <p>
+                Encontre rápido o que você procura — selecione uma categoria para
+                filtrar o catálogo.
+              </p>
             </div>
 
             <div className="hint" aria-hidden="true">
@@ -329,7 +334,9 @@ export default function CategoriasDestaque() {
                 key={categoria.id_categoria}
                 type="button"
                 className="item"
-                onClick={() => router.push(`/catalogo?categoria=${categoria.id_categoria}`)}
+                onClick={() =>
+                  router.push(`/catalogo?categoria=${categoria.id_categoria}`)
+                }
                 aria-label={`Ver produtos da categoria ${categoria.nome}`}
               >
                 <div className="iconWrap" aria-hidden="true">

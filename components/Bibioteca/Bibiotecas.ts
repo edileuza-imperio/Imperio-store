@@ -34,3 +34,11 @@ export interface Banner {
   cliques: number;
   statusid?: number;
 }
+
+export interface Categoria {
+  id_categoria: number;
+  nome: string;
+  icone: string;
+  statusid: number;
+  criado: string;
+}
