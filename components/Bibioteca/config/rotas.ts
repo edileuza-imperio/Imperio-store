@@ -1,4 +1,4 @@
-// src/config/rotas.ts  (ou o caminho que você usa)
+// src/config/rotas.ts
 
 export const rotas = {
   menu: {
@@ -59,5 +59,13 @@ export const rotas = {
     criar: "/categorias",
     atualizar: (id: number | string) => `/categorias/${id}`,
     deletar: (id: number | string) => `/categorias/${id}`,
+  },
+
+  cupons: {
+    listar: "/cupons",
+    ativos: "/cupons/ativos",
+    inativos: "/cupons/inativos",
+
+    buscarPorCodigo: (codigo: string) => `/cupom/${codigo}`,
   },
 } as const;
