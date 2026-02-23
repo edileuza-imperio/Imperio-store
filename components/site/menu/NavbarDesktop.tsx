@@ -485,18 +485,7 @@ export default function NavbarDesktop({ menus, categorias, searchPlaceholder }: 
         </nav>
       </div>
 
-      {/* CATEGORIAS */}
-      {categorias && categorias.length > 0 && (
-        <div
-          style={{
-            borderTop: `1px solid ${ui.border}`,
-            padding: '10px 48px',
-            background: 'rgba(255,250,240,0.8)',
-          }}
-        >
-          <CategoryBar />
-        </div>
-      )}
+      
 
       {/* clique fora */}
       {(openDropdown !== null || userDropdownOpen) && (
