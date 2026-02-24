@@ -26,18 +26,33 @@ interface Produto {
   id_destaque?: number;
   statusNome?: string;
   statusCor?: string;
-  catalogo?: number;
+  catalogo?: number; // 1 = no catálogo, 0 = não
 }
 
 type ApiResponse<T> = {
+  status?: number;
+  mensagem?: string;
+  message?: string;
   dados?: any;
   data?: any;
 };
 
+// ✅ resolve básico
+function resolveApi<T>(payload: ApiResponse<T>): any {
+  return payload?.dados ?? payload?.data ?? payload;
+}
+
+// ✅ garante array de qualquer formato: [...], {dados:[...]}, {dados:{dados:[...]}}
 function resolveArray<T>(payload: any): T[] {
-  const root = payload?.dados ?? payload?.data ?? payload;
+  const root = resolveApi<T[]>(payload);
+
   if (Array.isArray(root)) return root;
-  if (root?.dados && Array.isArray(root.dados)) return root.dados;
+
+  if (root && typeof root === "object") {
+    if (Array.isArray(root.dados)) return root.dados;
+    if (root.dados && Array.isArray(root.dados.dados)) return root.dados.dados;
+  }
+
   return [];
 }
 
@@ -55,6 +70,7 @@ export default function ProdutosPage() {
 
   useEffect(() => {
     carregarDados();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const carregarDados = async () => {
@@ -70,29 +86,93 @@ export default function ProdutosPage() {
       const listaProdutos = resolveArray<any>(produtosRes.data);
 
       const produtosConvertidos: Produto[] = listaProdutos.map((p: any) => {
-        const status = statuses.find(
-          (s) => Number(s.id_status) === Number(p.statusid)
-        );
+        const statusId = Number(p.statusid);
+        const status = statuses.find((s) => Number(s.id_status) === statusId);
 
         return {
           ...p,
           preco: Number(p.preco || 0),
           estoque: Number(p.estoque || 0),
           destaque: Boolean(p.destaque),
-          catalogo: Number(p.catalogo ?? 0),
-          imagem: getImagemUrl(p.imagem),
+          id_destaque: p.id_destaque,
           statusNome: status?.nome ?? "Inativo",
           statusCor: status?.cor ?? "#999",
+          imagem: getImagemUrl(p.imagem),
+          catalogo: Number(p.catalogo ?? 0),
         };
       });
 
       setProdutos(produtosConvertidos);
     } catch (err: any) {
-      console.error(err);
-      toast.error("Erro ao carregar produtos");
+      console.error("❌ Erro ao carregar produtos:", err?.response?.data || err?.message || err);
+      toast.error("Erro ao carregar produtos, veja o console");
       setProdutos([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const toggleDestaque = async (produto: Produto) => {
+    try {
+      if (produto.destaque && produto.id_destaque) {
+        await api.delete(rotas.admin.api.destaqueRemover(produto.id_destaque));
+
+        setProdutos((p) =>
+          p.map((i) =>
+            i.id_produto === produto.id_produto
+              ? { ...i, destaque: false, id_destaque: undefined }
+              : i
+          )
+        );
+
+        toast.success("Produto removido do destaque");
+      } else {
+        const res = await api.post<ApiResponse<{ id_destaque?: number }>>(
+          rotas.admin.api.destaquesCriar,
+          { produto_id: produto.id_produto }
+        );
+
+        const payload = resolveApi<{ id_destaque?: number }>(res.data);
+        const idDestaque = payload?.id_destaque ?? payload?.dados?.id_destaque;
+
+        setProdutos((p) =>
+          p.map((i) =>
+            i.id_produto === produto.id_produto
+              ? { ...i, destaque: true, id_destaque: idDestaque }
+              : i
+          )
+        );
+
+        toast.success("Produto adicionado ao destaque");
+      }
+    } catch (err: any) {
+      console.error("❌ Erro ao atualizar destaque:", err?.response?.data || err?.message || err);
+      toast.error("Erro ao atualizar destaque, veja o console");
+    }
+  };
+
+  const toggleCatalogo = async (produto: Produto) => {
+    try {
+      if (produto.catalogo === 1) {
+        await api.put(rotas.admin.api.catalogoNao(produto.id_produto));
+
+        setProdutos((p) =>
+          p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 0 } : i))
+        );
+
+        toast.success("Produto removido do catálogo");
+      } else {
+        await api.put(rotas.admin.api.catalogoSim(produto.id_produto));
+
+        setProdutos((p) =>
+          p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 1 } : i))
+        );
+
+        toast.success("Produto adicionado ao catálogo");
+      }
+    } catch (err: any) {
+      console.error("❌ Erro ao atualizar catálogo:", err?.response?.data || err?.message || err);
+      toast.error("Erro ao atualizar catálogo, veja o console");
     }
   };
 
@@ -103,8 +183,9 @@ export default function ProdutosPage() {
       await api.delete(rotas.admin.api.produtoRemover(id));
       setProdutos((p) => p.filter((i) => i.id_produto !== id));
       toast.success("Produto excluído");
-    } catch {
-      toast.error("Erro ao excluir produto");
+    } catch (err: any) {
+      console.error("❌ Erro ao excluir produto:", err?.response?.data || err?.message || err);
+      toast.error("Erro ao excluir produto, veja o console");
     }
   };
 
@@ -118,105 +199,118 @@ export default function ProdutosPage() {
           <p className="text-muted">Gerencie os produtos cadastrados</p>
         </div>
 
-        <Link href="/admin/produto/novo" className="btn btn-gold">
-          <FaPlus /> Novo Produto
-        </Link>
+        <div className="d-flex gap-2">
+          <Link href="/admin/produto/novo" className="btn btn-gold">
+            <FaPlus /> Novo Produto
+          </Link>
+
+          <Link href="/admin/catalogo" className="btn btn-dark-soft">
+            <FaBook /> Catálogo
+          </Link>
+        </div>
       </div>
 
       {loading ? (
         <div className="text-center py-5">Carregando...</div>
       ) : (
         <div className="row g-4">
-          {produtos.map((prod) => {
-            const isEspecial = prod.destaque || prod.catalogo === 1;
+          {produtos.map((prod) => (
+            <div key={prod.id_produto} className="col-12 col-sm-6 col-md-4 col-xl-3">
+              <div className="produto-card">
+                <div className="card-image">
+                  {prod.imagem ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={prod.imagem} alt={prod.nome} />
+                  ) : (
+                    <div className="no-image">Sem imagem</div>
+                  )}
 
-            return (
-              <div key={prod.id_produto} className="col-12 col-sm-6 col-md-4 col-xl-3">
-                <div className="produto-card">
-                  <div className="card-image">
-                    {prod.imagem ? (
-                      <img src={prod.imagem} alt={prod.nome} />
-                    ) : (
-                      <div className="no-image">Sem imagem</div>
-                    )}
-
-                    {prod.destaque && (
-                      <span className="badge destaque">Destaque</span>
-                    )}
-
-                    {prod.catalogo === 1 && (
-                      <span className="badge catalogo">Catálogo</span>
-                    )}
+                  {/* ✅ BADGES (sempre que tiver) */}
+                  <div className="badges">
+                    {prod.destaque && <span className="badgex badge-destaque">Destaque</span>}
+                    {prod.catalogo === 1 && <span className="badgex badge-catalogo">Catálogo</span>}
                   </div>
+                </div>
 
-                  <div className="card-body">
-                    <h6 className="produto-nome">{prod.nome}</h6>
+                <div className="card-body">
+                  <h6 className="produto-nome">{prod.nome}</h6>
 
-                    <span
-                      className="status-badge"
-                      style={{ backgroundColor: prod.statusCor }}
+                  <span className="status-badge" style={{ backgroundColor: prod.statusCor }}>
+                    {prod.statusNome}
+                  </span>
+
+                  <p className="preco">R$ {Number(prod.preco || 0).toFixed(2)}</p>
+                  <small className="estoque">Estoque: {Number(prod.estoque || 0)}</small>
+
+                  {/* ✅ SOME OS BOTÕES (só aparece se passar o mouse no card) */}
+                  <div className="acoes acoes-hide">
+                    <Link href={`/admin/produto/${encodeURIComponent(prod.slug)}`} title="Editar">
+                      <FaEdit />
+                    </Link>
+
+                    <button onClick={() => toggleDestaque(prod)} title="Destaque">
+                      <FaStar />
+                    </button>
+
+                    <button
+                      onClick={() => toggleCatalogo(prod)}
+                      title={prod.catalogo === 1 ? "Remover do catálogo" : "Adicionar ao catálogo"}
+                      className={prod.catalogo === 1 ? "catalogo-on" : "catalogo-off"}
                     >
-                      {prod.statusNome}
-                    </span>
+                      <FaBook />
+                    </button>
 
-                    <p className="preco">
-                      R$ {Number(prod.preco).toFixed(2)}
-                    </p>
-
-                    <small className="estoque">
-                      Estoque: {Number(prod.estoque)}
-                    </small>
-
-                    {/* ❌ Se for destaque ou catálogo some os botões */}
-                    {!isEspecial && (
-                      <div className="acoes acoes-hide">
-                        <Link
-                          href={`/admin/produto/${encodeURIComponent(prod.slug)}`}
-                        >
-                          <FaEdit />
-                        </Link>
-
-                        <button
-                          onClick={() => excluirProduto(prod.id_produto)}
-                          className="danger"
-                        >
-                          <FaTrash />
-                        </button>
-                      </div>
-                    )}
+                    <button
+                      onClick={() => excluirProduto(prod.id_produto)}
+                      title="Excluir"
+                      className="danger"
+                    >
+                      <FaTrash />
+                    </button>
                   </div>
                 </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
 
           {!produtos.length && (
             <div className="col-12">
-              <div className="alert alert-light border">
-                Nenhum produto encontrado.
-              </div>
+              <div className="alert alert-light border">Nenhum produto encontrado.</div>
             </div>
           )}
         </div>
       )}
 
       <style jsx global>{`
-        .dashboard-bg { background: #f5f6fa; min-height: 100vh; }
-        .title { color: #6b4c4f; }
-        .btn-gold { background: #d4af37; color: #fff; border: none; }
+        .dashboard-bg {
+          background: #f5f6fa;
+          min-height: 100vh;
+        }
+        .title {
+          color: #6b4c4f;
+        }
+        .btn-gold {
+          background: #d4af37;
+          color: #fff;
+          border: none;
+        }
+        .btn-dark-soft {
+          background: #6b4c4f;
+          color: #fff;
+          border: none;
+        }
 
         .produto-card {
           background: #fff;
           border-radius: 14px;
           overflow: hidden;
-          box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-          transition: 0.2s;
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+          transition: transform 0.2s, box-shadow 0.2s;
           height: 100%;
         }
-
         .produto-card:hover {
           transform: translateY(-4px);
-          box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
         }
 
         .card-image {
@@ -224,31 +318,51 @@ export default function ProdutosPage() {
           height: 160px;
           background: #eee;
         }
-
-        .card-image img, .no-image {
+        .card-image img,
+        .no-image {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          display:flex;
-          align-items:center;
-          justify-content:center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
-        .badge {
+        /* ✅ badges topo */
+        .badges {
           position: absolute;
           top: 10px;
-          padding: 4px 10px;
-          font-size: 11px;
-          border-radius: 999px;
-          color: #fff;
+          right: 10px;
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
         }
 
-        .badge.destaque { right: 10px; background: #e74c3c; }
-        .badge.catalogo { left: 10px; background: #22c55e; }
+        .badgex {
+          font-size: 11px;
+          padding: 4px 10px;
+          border-radius: 999px;
+          color: #fff;
+          font-weight: 700;
+          box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+        }
 
-        .card-body { padding: 14px; }
-        .produto-nome { color: #6b4c4f; margin-bottom: 4px; }
+        .badge-destaque {
+          background: #e74c3c;
+        }
 
+        .badge-catalogo {
+          background: #22c55e;
+        }
+
+        .card-body {
+          padding: 14px;
+        }
+        .produto-nome {
+          color: #6b4c4f;
+          margin-bottom: 4px;
+        }
         .status-badge {
           display: inline-block;
           margin-bottom: 8px;
@@ -257,44 +371,60 @@ export default function ProdutosPage() {
           border-radius: 999px;
           color: #fff;
         }
-
-        .preco { font-weight: 600; margin-bottom: 2px; }
-        .estoque { color: #888; font-size: 12px; }
+        .preco {
+          font-weight: 600;
+          margin-bottom: 2px;
+        }
+        .estoque {
+          color: #888;
+          font-size: 12px;
+        }
 
         .acoes {
           margin-top: 12px;
           display: flex;
           gap: 14px;
           font-size: 1.1rem;
+          align-items: center;
         }
-
-        .acoes a, .acoes button {
+        .acoes a,
+        .acoes button {
           background: none;
           border: none;
           cursor: pointer;
           color: #6b4c4f;
+          padding: 0;
+        }
+        .acoes .danger {
+          color: #e74c3c;
+        }
+        .acoes a:hover,
+        .acoes button:hover {
+          color: #d4af37;
         }
 
-        .acoes .danger { color: #e74c3c; }
-
-        /* ✅ MOBILE: sempre visível */
+        /* ✅ some por padrão / aparece no hover */
         .acoes-hide {
+          opacity: 0;
+          transform: translateY(6px);
+          pointer-events: none;
+          transition: 0.18s ease;
+        }
+        .produto-card:hover .acoes-hide {
           opacity: 1;
           transform: translateY(0);
+          pointer-events: auto;
         }
 
-        /* ✅ DESKTOP: hover */
-        @media (hover: hover) and (pointer: fine) {
-          .acoes-hide {
-            opacity: 0;
-            transform: translateY(6px);
-            transition: 0.18s ease;
-          }
-
-          .produto-card:hover .acoes-hide {
-            opacity: 1;
-            transform: translateY(0);
-          }
+        .catalogo-on {
+          color: #22c55e;
+        }
+        .catalogo-off {
+          color: #888;
+        }
+        .catalogo-on:hover,
+        .catalogo-off:hover {
+          color: #d4af37;
         }
       `}</style>
     </div>
