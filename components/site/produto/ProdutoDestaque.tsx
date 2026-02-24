@@ -33,7 +33,7 @@ function formatBRL(v: any) {
 
 function SkeletonCard() {
   return (
-    <div className="pdCard pdCard--sk">
+    <div className="pdCard pdCard--sk" aria-hidden>
       <div className="pdMedia">
         <div className="pdSk pdSk--img" />
       </div>
@@ -52,9 +52,9 @@ function SkeletonCard() {
           border-radius: 14px;
           background: linear-gradient(
             90deg,
-            rgba(0, 0, 0, 0.06),
-            rgba(0, 0, 0, 0.11),
-            rgba(0, 0, 0, 0.06)
+            rgba(122, 41, 65, 0.06),
+            rgba(176, 141, 87, 0.10),
+            rgba(122, 41, 65, 0.06)
           );
           background-size: 220% 100%;
           animation: sh 1.05s linear infinite;
@@ -239,7 +239,8 @@ export default function ProdutoDestaque() {
 
             <h3 className="pdHeroTitle">Destaques com acabamento premium</h3>
             <p className="pdHeroText">
-              Cards mais limpos, com foco na imagem e no preço.
+              Visual mais “e-commerce”: fundo creme, cards limpos e foco no
+              produto.
             </p>
 
             <div className="pdHeroBullets">
@@ -273,7 +274,10 @@ export default function ProdutoDestaque() {
                   const href = `/produto/${item.produto_slug}`;
 
                   return (
-                    <div className="pdCardOuter" key={item.id_destaque ?? produtoId}>
+                    <div
+                      className="pdCardOuter"
+                      key={item.id_destaque ?? produtoId}
+                    >
                       {/* CARD INTEIRO CLICÁVEL */}
                       <Link
                         href={href}
@@ -362,10 +366,13 @@ export default function ProdutoDestaque() {
       </div>
 
       <style jsx>{`
+        /* base */
         .pdWrap {
           position: relative;
           padding: 34px 0;
           overflow-x: clip;
+          /* fundo creme geral (e-commerce) */
+          background: #fbf7f0;
         }
         @supports not (overflow: clip) {
           .pdWrap {
@@ -373,29 +380,31 @@ export default function ProdutoDestaque() {
           }
         }
 
+        /* textura/aurora suave em creme */
         .pdWrap::before {
           content: "";
           position: absolute;
           inset: 0;
           background: radial-gradient(
-              700px 320px at 10% 0%,
-              rgba(176, 141, 87, 0.16),
+              900px 380px at 10% 0%,
+              rgba(176, 141, 87, 0.18),
               transparent 60%
             ),
             radial-gradient(
-              640px 300px at 100% 10%,
-              rgba(122, 41, 65, 0.14),
+              760px 340px at 100% 10%,
+              rgba(122, 41, 65, 0.12),
               transparent 58%
             ),
             radial-gradient(
-              620px 320px at 70% 100%,
-              rgba(11, 18, 32, 0.10),
-              transparent 60%
+              900px 420px at 50% 100%,
+              rgba(249, 245, 239, 0.92),
+              rgba(249, 245, 239, 0) 65%
             );
           pointer-events: none;
           z-index: 0;
         }
 
+        /* container (tirando “card branco” / glass) */
         .pdContainer {
           position: relative;
           z-index: 1;
@@ -403,10 +412,12 @@ export default function ProdutoDestaque() {
           margin: 0 auto;
           padding: clamp(14px, 2.2vw, 22px);
           border-radius: 26px;
-          background: rgba(255, 255, 255, 0.78);
-          border: 1px solid rgba(17, 24, 39, 0.10);
-          backdrop-filter: blur(12px);
-          box-shadow: 0 18px 70px rgba(17, 24, 39, 0.10);
+
+          background: rgba(249, 245, 239, 0.92); /* creme */
+          border: 1px solid rgba(122, 41, 65, 0.10);
+          backdrop-filter: none; /* remove glass */
+          box-shadow: 0 16px 50px rgba(11, 18, 32, 0.08);
+
           overflow: hidden;
         }
 
@@ -597,7 +608,7 @@ export default function ProdutoDestaque() {
           min-width: 0;
         }
 
-        /* Card clicável */
+        /* Card clicável (agora creme, não branco) */
         .pdCard {
           position: relative;
           display: grid;
@@ -607,9 +618,9 @@ export default function ProdutoDestaque() {
           overflow: hidden;
           text-decoration: none;
 
-          background: rgba(255, 255, 255, 0.92);
-          border: 1px solid rgba(11, 18, 32, 0.10);
-          box-shadow: 0 12px 38px rgba(11, 18, 32, 0.08);
+          background: rgba(252, 248, 242, 0.96); /* creme */
+          border: 1px solid rgba(122, 41, 65, 0.10);
+          box-shadow: 0 10px 30px rgba(11, 18, 32, 0.07);
           transition: transform 0.22s ease, box-shadow 0.22s ease;
         }
 
@@ -622,9 +633,9 @@ export default function ProdutoDestaque() {
           padding: 1px;
           background: linear-gradient(
             135deg,
-            rgba(122, 41, 65, 0.45),
-            rgba(176, 141, 87, 0.35),
-            rgba(11, 18, 32, 0.12)
+            rgba(122, 41, 65, 0.40),
+            rgba(176, 141, 87, 0.32),
+            rgba(11, 18, 32, 0.10)
           );
           -webkit-mask: linear-gradient(#000 0 0) content-box,
             linear-gradient(#000 0 0);
@@ -636,7 +647,7 @@ export default function ProdutoDestaque() {
 
         .pdCard:hover {
           transform: translateY(-6px);
-          box-shadow: 0 22px 66px rgba(11, 18, 32, 0.14);
+          box-shadow: 0 22px 66px rgba(11, 18, 32, 0.12);
         }
 
         .pdBadge {
@@ -652,26 +663,27 @@ export default function ProdutoDestaque() {
           font-size: 0.74rem;
           font-weight: 850;
           color: #0b1220;
-          background: rgba(255, 255, 255, 0.92);
-          border: 1px solid rgba(11, 18, 32, 0.10);
+          background: rgba(249, 245, 239, 0.92); /* creme */
+          border: 1px solid rgba(122, 41, 65, 0.12);
           backdrop-filter: blur(8px);
         }
 
+        /* header do card (menos “branco”) */
         .pdMedia {
           padding: 12px;
           background: linear-gradient(
             180deg,
-            rgba(11, 18, 32, 0.02),
-            rgba(11, 18, 32, 0)
+            rgba(176, 141, 87, 0.10),
+            rgba(176, 141, 87, 0.00)
           );
-          border-bottom: 1px solid rgba(11, 18, 32, 0.06);
+          border-bottom: 1px solid rgba(122, 41, 65, 0.06);
         }
 
         .pdImageShell {
           height: 178px;
           border-radius: 18px;
-          background: rgba(255, 255, 255, 0.90);
-          border: 1px solid rgba(11, 18, 32, 0.08);
+          background: rgba(255, 255, 255, 0.55); /* bem leve */
+          border: 1px solid rgba(122, 41, 65, 0.08);
           display: grid;
           place-items: center;
           overflow: hidden;
@@ -725,7 +737,7 @@ export default function ProdutoDestaque() {
           font-size: 0.72rem;
           font-weight: 800;
           color: #0b1220;
-          background: rgba(176, 141, 87, 0.16);
+          background: rgba(176, 141, 87, 0.14);
           border: 1px solid rgba(176, 141, 87, 0.22);
           white-space: nowrap;
         }
