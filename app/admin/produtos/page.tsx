@@ -37,6 +37,8 @@ type ApiResponse<T> = {
   data?: any;
 };
 
+// resolve: pega dados do Mensagemjson (às vezes vem em dados ou data)
+// backend pode mandar { dados: { dados: [...] } } OU { dados: [...] }
 function resolveApi<T>(payload: ApiResponse<T>): T {
   const root: any = payload?.dados ?? payload?.data ?? payload;
   return (root?.dados ?? root) as T;
@@ -45,7 +47,7 @@ function resolveApi<T>(payload: ApiResponse<T>): T {
 export const getImagemUrl = (caminho?: string) => {
   if (!caminho) return undefined;
   const base = api.defaults.baseURL || "";
-  const caminhoLimpo = caminho.replace(/^\/+/, "");
+  const caminhoLimpo = String(caminho).replace(/^\/+/, "");
   const baseFinal = base.endsWith("/") ? base : `${base}/`;
   return `${baseFinal}${caminhoLimpo}`;
 };
@@ -55,11 +57,21 @@ export default function ProdutosPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    carregarDados();
+    let alive = true;
+
+    const run = async () => {
+      await carregarDados(alive);
+    };
+
+    run();
+
+    return () => {
+      alive = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const carregarDados = async () => {
+  const carregarDados = async (alive = true) => {
     try {
       setLoading(true);
 
@@ -68,30 +80,32 @@ export default function ProdutosPage() {
         api.get<ApiResponse<any[]>>(rotas.admin.api.produtos),
       ]);
 
-      const statuses = resolveApi<Status[]>(statusRes.data) || [];
-      const listaProdutos = resolveApi<any[]>(produtosRes.data) || [];
+      const statuses = resolveApi<Status[]>(statusRes.data);
+      const listaProdutos = resolveApi<any[]>(produtosRes.data);
 
-      const produtosConvertidos: Produto[] = (Array.isArray(listaProdutos) ? listaProdutos : []).map(
-        (p: any) => {
-          const status = statuses.find((s) => s.id_status === Number(p.statusid));
-          return {
-            ...p,
-            preco: Number(p.preco || 0),
-            estoque: Number(p.estoque || 0),
-            destaque: Boolean(p.destaque),
-            id_destaque: p.id_destaque,
-            statusNome: status?.nome ?? "Inativo",
-            statusCor: status?.cor ?? "#999",
-            imagem: getImagemUrl(p.imagem),
-            catalogo: Number(p.catalogo ?? 0),
-          };
-        }
-      );
+      const statusesSafe = Array.isArray(statuses) ? statuses : [];
+      const produtosSafe = Array.isArray(listaProdutos) ? listaProdutos : [];
 
-      setProdutos(produtosConvertidos);
+      const produtosConvertidos: Produto[] = produtosSafe.map((p: any) => {
+        const status = statusesSafe.find((s) => s.id_status === Number(p.statusid));
+
+        return {
+          ...p,
+          preco: Number(p.preco || 0),
+          estoque: Number(p.estoque || 0),
+          destaque: Boolean(p.destaque),
+          id_destaque: p.id_destaque ? Number(p.id_destaque) : undefined,
+          statusNome: status?.nome ?? "Inativo",
+          statusCor: status?.cor ?? "#999",
+          imagem: getImagemUrl(p.imagem),
+          catalogo: Number(p.catalogo ?? 0),
+        };
+      });
+
+      if (alive) setProdutos(produtosConvertidos);
     } catch (err: any) {
       console.error("❌ Erro ao carregar produtos:", err.response?.data || err.message || err);
-      toast.error("Erro ao carregar produtos, veja o console");
+      toast.error("Erro ao carregar produtos (veja o console)");
       setProdutos([]);
     } finally {
       setLoading(false);
@@ -100,54 +114,63 @@ export default function ProdutosPage() {
 
   const toggleDestaque = async (produto: Produto) => {
     try {
+      // ✅ se seu backend AINDA não tem essas rotas, vai dar 404 aqui.
       if (produto.destaque && produto.id_destaque) {
         await api.delete(rotas.admin.api.destaqueRemover(produto.id_destaque));
-        setProdutos((p) =>
-          p.map((i) =>
-            i.id_produto === produto.id_produto ? { ...i, destaque: false, id_destaque: undefined } : i
+
+        setProdutos((prev) =>
+          prev.map((i) =>
+            i.id_produto === produto.id_produto
+              ? { ...i, destaque: false, id_destaque: undefined }
+              : i
           )
         );
         toast.success("Produto removido do destaque");
       } else {
-        const res = await api.post<ApiResponse<{ id_destaque?: number }>>(rotas.admin.api.destaquesCriar, {
-          produto_id: produto.id_produto,
-        });
+        const res = await api.post<ApiResponse<{ id_destaque?: number }>>(
+          rotas.admin.api.destaquesCriar,
+          { produto_id: produto.id_produto }
+        );
 
         const payload = resolveApi<{ id_destaque?: number }>(res.data);
 
-        setProdutos((p) =>
-          p.map((i) =>
+        setProdutos((prev) =>
+          prev.map((i) =>
             i.id_produto === produto.id_produto
               ? { ...i, destaque: true, id_destaque: payload?.id_destaque }
               : i
           )
         );
+
         toast.success("Produto adicionado ao destaque");
       }
     } catch (err: any) {
       console.error("❌ Erro ao atualizar destaque:", err.response?.data || err.message || err);
-      toast.error("Erro ao atualizar destaque, veja o console");
+      toast.error("Erro ao atualizar destaque (veja o console)");
     }
   };
 
   const toggleCatalogo = async (produto: Produto) => {
     try {
+      // ✅ se seu backend AINDA não tem essas rotas, vai dar 404 aqui.
       if (produto.catalogo === 1) {
         await api.put(rotas.admin.api.catalogoNao(produto.id_produto));
-        setProdutos((p) =>
-          p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 0 } : i))
+
+        setProdutos((prev) =>
+          prev.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 0 } : i))
         );
         toast.success("Produto removido do catálogo");
       } else {
         await api.put(rotas.admin.api.catalogoSim(produto.id_produto));
-        setProdutos((p) =>
-          p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 1 } : i))
+
+        setProdutos((prev) =>
+          prev.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 1 } : i))
         );
         toast.success("Produto adicionado ao catálogo");
       }
     } catch (err: any) {
       console.error("❌ Erro ao atualizar catálogo:", err.response?.data || err.message || err);
-      toast.error("Erro ao atualizar catálogo, veja o console");
+      toast.error("Erro ao atualizar catálogo (veja o console)");
     }
   };
 
@@ -155,12 +178,14 @@ export default function ProdutosPage() {
     if (!confirm("Deseja excluir este produto?")) return;
 
     try {
+      // ✅ se seu backend AINDA não tem essa rota, vai dar 404 aqui.
       await api.delete(rotas.admin.api.produtoRemover(id));
-      setProdutos((p) => p.filter((i) => i.id_produto !== id));
+
+      setProdutos((prev) => prev.filter((i) => i.id_produto !== id));
       toast.success("Produto excluído");
     } catch (err: any) {
       console.error("❌ Erro ao excluir produto:", err.response?.data || err.message || err);
-      toast.error("Erro ao excluir produto, veja o console");
+      toast.error("Erro ao excluir produto (veja o console)");
     }
   };
 
@@ -230,11 +255,7 @@ export default function ProdutosPage() {
                       <FaBook />
                     </button>
 
-                    <button
-                      onClick={() => excluirProduto(prod.id_produto)}
-                      title="Excluir"
-                      className="danger"
-                    >
+                    <button onClick={() => excluirProduto(prod.id_produto)} title="Excluir" className="danger">
                       <FaTrash />
                     </button>
                   </div>
