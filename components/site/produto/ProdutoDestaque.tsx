@@ -1,102 +1,136 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import api from "@/Api/conectar";
+
+import { useProdutoDestaque } from "@/hooks/produto/useProdutoDestaque";
+import {
+  Sparkles,
+  ArrowRight,
+  ShieldCheck,
+  BadgeCheck,
+  Star,
+  ShoppingCart,
+  Loader2,
+  Check,
+} from "lucide-react";
+import { useCallback, useMemo, useState } from "react";
+
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { rotas } from "@/components/Bibioteca/config/rotas";
-import { ShoppingCart, ArrowRight, Check, Loader2 } from "lucide-react";
+
+const LIMITE = 8;
 
 const getImagemUrl = (caminho?: string) => {
   if (!caminho) return "/placeholder.png";
+  if (/^https?:\/\//i.test(caminho)) return caminho;
+
   const base = api.defaults.baseURL || "";
-  return `${base.replace(/\/+$/, "")}/${String(caminho).replace(/^\/+/, "")}`;
+  const b = base.replace(/\/+$/, "");
+  const c = String(caminho).replace(/^\/+/, "");
+  return b ? `${b}/${c}` : `/${c}`;
 };
 
-function formatBRL(v: any) {
+function formatBRL(v: unknown) {
   const n = Number(v);
   const safe = Number.isFinite(n) ? n : 0;
   return safe.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function normalizeLista(payload: any) {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.dados)) return payload.dados;
-  if (Array.isArray(payload?.itens)) return payload.itens;
-  return [];
+function getProdutoId(item: any): number | null {
+  const id = Number(
+    item?.produto_id ?? item?.id_produto ?? item?.produtoId ?? item?.id
+  );
+  return Number.isFinite(id) && id > 0 ? id : null;
 }
 
-// deixa tudo padronizado independente do nome das colunas que vierem
-function mapProduto(p: any) {
-  const id = Number(p?.produto_id ?? p?.id_produto ?? p?.id ?? 0);
-  const nome = String(p?.produto_nome ?? p?.nome ?? "Produto");
-  const descricao = String(p?.produto_descricao ?? p?.descricao ?? "");
-  const preco = Number(p?.produto_preco ?? p?.preco ?? p?.preco_promocional ?? 0);
-  const slug = String(p?.produto_slug ?? p?.slug ?? "");
-  const imagem = String(p?.produto_imagem ?? p?.imagem ?? "");
-  const estoque = Number(p?.estoque ?? p?.produto_estoque ?? 0);
-  const ilimitado = Number(p?.ilimitado ?? p?.produto_ilimitado ?? 0);
-
-  const emEstoque = ilimitado === 1 || estoque > 0;
-
-  return { id, nome, descricao, preco, slug, imagem, estoque, ilimitado, emEstoque, raw: p };
+function getPreco(item: any): number {
+  const n = Number(item?.produto_preco ?? item?.preco ?? 0);
+  return Number.isFinite(n) ? n : 0;
 }
 
-function clampText(text: string, max = 80) {
-  const s = (text || "").trim();
-  if (!s) return "";
-  return s.length > max ? s.slice(0, max) + "…" : s;
+function getSlug(item: any): string | null {
+  const slug = String(item?.produto_slug ?? "").trim();
+  return slug ? slug : null;
+}
+
+function SkeletonCard() {
+  return (
+    <div className="pdCard pdCard--sk">
+      <div className="pdMedia">
+        <div className="pdSk pdSk--img" />
+      </div>
+      <div className="pdBody">
+        <div className="pdSk pdSk--t" />
+        <div className="pdSk pdSk--l" />
+        <div className="pdSk pdSk--l sm" />
+        <div className="pdSk pdSk--b" />
+      </div>
+
+      <style jsx>{`
+        .pdCard--sk {
+          pointer-events: none;
+        }
+        .pdSk {
+          border-radius: 14px;
+          background: linear-gradient(
+            90deg,
+            rgba(0, 0, 0, 0.06),
+            rgba(0, 0, 0, 0.11),
+            rgba(0, 0, 0, 0.06)
+          );
+          background-size: 220% 100%;
+          animation: sh 1.05s linear infinite;
+        }
+        .pdSk--img {
+          height: 170px;
+          width: 100%;
+          border-radius: 18px;
+        }
+        .pdSk--t {
+          height: 16px;
+          width: 70%;
+          margin: 14px 0 10px;
+        }
+        .pdSk--l {
+          height: 10px;
+          width: 100%;
+          margin-bottom: 8px;
+        }
+        .pdSk--l.sm {
+          width: 80%;
+        }
+        .pdSk--b {
+          height: 44px;
+          width: 100%;
+          margin-top: 14px;
+        }
+        @keyframes sh {
+          0% {
+            background-position: 0% 0%;
+          }
+          100% {
+            background-position: -220% 0%;
+          }
+        }
+      `}</style>
+    </div>
+  );
 }
 
 export default function ProdutoDestaque() {
   const router = useRouter();
-
-  const [itens, setItens] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const { destaques, loading, error } = useProdutoDestaque();
 
   const [addingId, setAddingId] = useState<number | null>(null);
   const [added, setAdded] = useState<Record<number, boolean>>({});
 
-  useEffect(() => {
-    let alive = true;
+  const lista = useMemo(() => (destaques || []).slice(0, LIMITE), [destaques]);
+  const mostrarVerTodos = (destaques?.length || 0) > LIMITE;
 
-    (async () => {
-      try {
-        setLoading(true);
-        setErro(null);
-
-        const res = await api.get(rotas.produtos.destaques.ativos, {
-          withCredentials: true,
-        });
-
-        const payload = res?.data?.data ?? res?.data?.dados ?? res?.data;
-        const lista = normalizeLista(payload);
-
-        if (alive) setItens(lista);
-      } catch (e: any) {
-        if (alive) {
-          setErro(
-            e?.response?.data?.mensagem ||
-              e?.message ||
-              "Erro ao buscar produtos em destaque."
-          );
-          setItens([]);
-        }
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-
-    return () => {
-      alive = false;
-    };
-  }, []);
-
-  const lista = useMemo(() => itens.slice(0, 8).map(mapProduto), [itens]);
-
-  async function getUsuarioId(): Promise<number | null> {
+  const getUsuarioId = useCallback(async (): Promise<number | null> => {
     try {
       const meRes = await api.get(rotas.auth.me, { withCredentials: true });
       const payload = meRes?.data?.data ?? meRes?.data?.dados ?? meRes?.data;
@@ -114,296 +148,595 @@ export default function ProdutoDestaque() {
     } catch {
       return null;
     }
-  }
+  }, []);
 
-  async function adicionarAoCarrinho(itemRaw: any, produtoId: number, precoUnitario: number) {
-    if (!produtoId) return;
+  const adicionarAoCarrinho = useCallback(
+    async (item: any) => {
+      const produtoId = getProdutoId(item);
+      const precoUnitario = getPreco(item);
 
-    setAddingId(produtoId);
+      if (!produtoId) {
+        toast.error("Produto inválido.");
+        return;
+      }
 
-    const usuarioId = await getUsuarioId();
-    if (!usuarioId) {
-      setAddingId(null);
-      router.push("/login");
-      return;
-    }
+      setAddingId(produtoId);
 
-    try {
-      await api.post(
-        "/carrinho/adicionar",
-        { usuarioId, produtoId, quantidade: 1, precoUnitario: Number.isFinite(precoUnitario) ? precoUnitario : 0 },
-        { withCredentials: true }
-      );
+      const usuarioId = await getUsuarioId();
+      if (!usuarioId) {
+        setAddingId(null);
+        toast.info("Faça login para adicionar ao carrinho.");
+        router.push(rotas.paginas.login);
+        return;
+      }
 
-      setAdded((p) => ({ ...p, [produtoId]: true }));
-      window.setTimeout(() => {
-        setAdded((p) => ({ ...p, [produtoId]: false }));
-      }, 1400);
-    } finally {
-      setAddingId(null);
-    }
-  }
+      try {
+        await api.post(
+          rotas.carrinho.adicionar,
+          { usuarioId, produtoId, quantidade: 1, precoUnitario },
+          { withCredentials: true }
+        );
+
+        setAdded((p) => ({ ...p, [produtoId]: true }));
+
+        toast.success(
+          <div style={{ display: "grid", gap: 6 }}>
+            <div style={{ fontWeight: 900 }}>Adicionado ao carrinho</div>
+            <div style={{ opacity: 0.9, fontSize: 13 }}>
+              Você pode finalizar quando quiser.
+            </div>
+          </div>
+        );
+
+        window.setTimeout(() => {
+          setAdded((p) => ({ ...p, [produtoId]: false }));
+        }, 1500);
+      } catch (e: any) {
+        const msg =
+          e?.response?.data?.mensagem ||
+          e?.message ||
+          "Erro ao adicionar no carrinho.";
+        toast.error(String(msg));
+      } finally {
+        setAddingId(null);
+      }
+    },
+    [getUsuarioId, router]
+  );
+
+  if (error) return null;
 
   return (
-    <section className="wrap">
-      <div className="container">
-        <header className="head">
-          <div>
-            <span className="kicker">Destaques</span>
-            <h2 className="title">Selecionados para você</h2>
-            <p className="sub">Vitrine compacta, alinhada e com foco em compra.</p>
+    <section className="pdWrap">
+      <ToastContainer
+        position="top-right"
+        autoClose={2400}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        theme="dark"
+      />
+
+      <div className="pdContainer">
+        <div className="pdHead">
+          <div className="pdHeadLeft">
+            <div className="pdKicker">
+              <Sparkles size={16} />
+              Destaques
+            </div>
+
+            <h2 className="pdTitle">Selecionados para você</h2>
+            <p className="pdSub">
+              Produtos em alta com qualidade e entrega rápida. Clique em um card
+              para ver os detalhes.
+            </p>
+
+            <div className="pdTrust">
+              <span className="pdPill">
+                <ShieldCheck size={16} /> Compra segura
+              </span>
+              <span className="pdPill">
+                <BadgeCheck size={16} /> Curadoria da loja
+              </span>
+            </div>
           </div>
 
-          <Link className="all" href={rotas.produtos.paginas.destaques}>
-            Ver todos <ArrowRight size={18} />
-          </Link>
-        </header>
+          {mostrarVerTodos && (
+            <Link href={rotas.produtos.paginas.destaques} className="pdAll">
+              Ver todos <ArrowRight size={18} />
+            </Link>
+          )}
+        </div>
 
-        {loading && <div className="state">Carregando destaques…</div>}
-        {erro && <div className="state err">{erro}</div>}
+        <div className="pdGrid">
+          <aside className="pdHero">
+            <div className="pdHeroTop">
+              <div className="pdHeroIcon">
+                <Star size={18} />
+              </div>
+              <span className="pdHeroChip">Seleção Premium</span>
+            </div>
 
-        {!loading && !erro && lista.length === 0 && (
-          <div className="state">Nenhum destaque no momento.</div>
-        )}
+            <h3 className="pdHeroTitle">Destaques com acabamento premium</h3>
+            <p className="pdHeroText">
+              Cards mais limpos, com foco na imagem e no preço.
+            </p>
 
-        {!loading && !erro && lista.length > 0 && (
-          <div className="grid">
-            {lista.map((p) => {
-              const href = p.slug
-                ? rotas.produtos.paginas.produto(p.slug)
-                : rotas.produtos.paginas.destaques;
+            <div className="pdHeroBullets">
+              <span>✓ Card inteiro clicável</span>
+              <span>✓ CTA único para carrinho</span>
+              <span>✓ Responsivo sem overflow</span>
+            </div>
 
-              const isAdding = addingId === p.id;
-              const isAdded = !!added[p.id];
+            <Link
+              href={rotas.produtos.paginas.destaques}
+              className="pdHeroCta"
+            >
+              Explorar destaques <ArrowRight size={18} />
+            </Link>
+          </aside>
 
-              return (
-                <article className="card" key={p.id}>
-                  <Link href={href} className="top" aria-label={`Ver ${p.nome}`}>
-                    <div className="imgTile">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={getImagemUrl(p.imagem)} alt={p.nome} />
-                    </div>
+          <div className="pdCards">
+            {loading ? (
+              Array.from({ length: LIMITE }).map((_, i) => (
+                <SkeletonCard key={i} />
+              ))
+            ) : (
+              <>
+                {lista.map((item: any) => {
+                  const produtoId = getProdutoId(item) ?? 0;
+                  const isAdding = addingId === produtoId;
+                  const isAdded = !!added[produtoId];
 
-                    <div className="meta">
-                      <span className={`badge ${p.emEstoque ? "ok" : "no"}`}>
-                        {p.emEstoque ? "Em estoque" : "Esgotado"}
-                      </span>
+                  const slug = getSlug(item);
+                  const href = slug
+                    ? rotas.produtos.paginas.produto(slug)
+                    : rotas.produtos.paginas.destaques;
 
-                      <span className="chip">Em alta</span>
-                    </div>
+                  return (
+                    <div
+                      className="pdCardOuter"
+                      key={item?.id_destaque ?? produtoId ?? href}
+                    >
+                      {/* CARD INTEIRO CLICÁVEL */}
+                      <Link
+                        href={href}
+                        className="pdCard"
+                        aria-label={`Ver detalhes de ${
+                          item?.produto_nome ?? "produto"
+                        }`}
+                      >
+                        <div className="pdBorder" />
+                        <div className="pdBadge">
+                          <Sparkles size={14} />
+                          Destaque
+                        </div>
 
-                    <h3 className="name" title={p.nome}>{p.nome}</h3>
-                    <p className="desc">
-                      {p.descricao ? clampText(p.descricao, 84) : "Produto em destaque selecionado para você."}
-                    </p>
-                  </Link>
+                        <div className="pdMedia">
+                          <div className="pdImageShell">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={getImagemUrl(item?.produto_imagem)}
+                              alt={item?.produto_nome ?? "Produto"}
+                              loading="lazy"
+                            />
+                          </div>
+                        </div>
 
-                  <div className="bottom">
-                    <div className="priceRow">
-                      <div className="price">{formatBRL(p.preco)}</div>
-                      <div className="mini">{p.emEstoque ? "Pronta entrega" : "Indisponível"}</div>
-                    </div>
+                        <div className="pdBody">
+                          <div className="pdTopLine">
+                            <h4 className="pdName" title={item?.produto_nome}>
+                              {item?.produto_nome ?? "Produto"}
+                            </h4>
+                            <span className="pdTag">Em alta</span>
+                          </div>
 
-                    <div className="actions">
-                      <Link className="btn ghost" href={href}>
-                        Detalhes <ArrowRight size={16} />
+                          <p className="pdDesc">
+                            {item?.produto_descricao
+                              ? String(item.produto_descricao).slice(0, 76) +
+                                "…"
+                              : "Destaque selecionado com ótimo custo-benefício."}
+                          </p>
+
+                          <div className="pdPriceRow">
+                            <div className="pdPrice">
+                              {formatBRL(item?.produto_preco)}
+                            </div>
+                            <div className="pdMini">
+                              <span className="pdDot" /> pronta entrega
+                            </div>
+                          </div>
+
+                          <div className="pdHint">
+                            Clique no card para ver detalhes
+                          </div>
+                        </div>
                       </Link>
 
-                      <button
-                        type="button"
-                        className={`btn solid ${isAdded ? "added" : ""}`}
-                        onClick={() => adicionarAoCarrinho(p.raw, p.id, p.preco)}
-                        disabled={!p.emEstoque || isAdding}
-                      >
-                        {isAdding ? (
-                          <>
-                            <Loader2 size={16} className="spin" />
-                            Adicionando
-                          </>
-                        ) : isAdded ? (
-                          <>
-                            <Check size={16} />
-                            Adicionado
-                          </>
-                        ) : (
-                          <>
-                            <ShoppingCart size={16} />
-                            Carrinho
-                          </>
-                        )}
-                      </button>
+                      {/* BOTÃO DO CARRINHO (fora do link) */}
+                      <div className="pdFooter">
+                        <button
+                          type="button"
+                          className={`pdBtn pdBtnSolid ${
+                            isAdded ? "ok" : ""
+                          }`}
+                          onClick={() => adicionarAoCarrinho(item)}
+                          disabled={isAdding}
+                        >
+                          {isAdding ? (
+                            <>
+                              <Loader2 size={16} className="spin" />
+                              Adicionando
+                            </>
+                          ) : isAdded ? (
+                            <>
+                              <Check size={16} />
+                              Adicionado
+                            </>
+                          ) : (
+                            <>
+                              <ShoppingCart size={16} />
+                              Adicionar ao carrinho
+                            </>
+                          )}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </article>
-              );
-            })}
+                  );
+                })}
+              </>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
       <style jsx>{`
-        /* fundo creme */
-        .wrap {
-          padding: 44px 0;
-          background: linear-gradient(180deg, #f8f3ea 0%, #f6efe4 100%);
+        .pdWrap {
+          position: relative;
+          padding: 34px 0;
+          overflow-x: clip;
         }
-        .container {
-          width: min(1200px, calc(100% - 28px));
-          margin: 0 auto;
+        @supports not (overflow: clip) {
+          .pdWrap {
+            overflow-x: hidden;
+          }
         }
 
-        /* header menor e mais alinhado */
-        .head {
+        .pdWrap::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background: radial-gradient(
+              700px 320px at 10% 0%,
+              rgba(176, 141, 87, 0.16),
+              transparent 60%
+            ),
+            radial-gradient(
+              640px 300px at 100% 10%,
+              rgba(122, 41, 65, 0.14),
+              transparent 58%
+            ),
+            radial-gradient(
+              620px 320px at 70% 100%,
+              rgba(11, 18, 32, 0.1),
+              transparent 60%
+            );
+          pointer-events: none;
+          z-index: 0;
+        }
+
+        .pdContainer {
+          position: relative;
+          z-index: 1;
+          width: min(1200px, calc(100% - 24px));
+          margin: 0 auto;
+          padding: clamp(14px, 2.2vw, 22px);
+          border-radius: 26px;
+          background: rgba(255, 255, 255, 0.78);
+          border: 1px solid rgba(17, 24, 39, 0.1);
+          backdrop-filter: blur(12px);
+          box-shadow: 0 18px 70px rgba(17, 24, 39, 0.1);
+          overflow: hidden;
+        }
+
+        /* head */
+        .pdHead {
           display: flex;
           justify-content: space-between;
           align-items: flex-end;
-          gap: 12px;
+          gap: 16px;
           flex-wrap: wrap;
-          margin-bottom: 14px;
+          margin-bottom: 18px;
         }
-        .kicker {
+
+        .pdKicker {
           display: inline-flex;
-          padding: 6px 10px;
+          align-items: center;
+          gap: 8px;
+          padding: 7px 12px;
           border-radius: 999px;
-          font-weight: 950;
-          font-size: 0.78rem;
+          font-weight: 800;
+          font-size: 0.82rem;
           color: #7a2941;
-          background: rgba(122, 41, 65, 0.10);
-          border: 1px solid rgba(122, 41, 65, 0.14);
+          background: rgba(122, 41, 65, 0.1);
+          border: 1px solid rgba(122, 41, 65, 0.16);
+          width: fit-content;
         }
-        .title {
-          margin: 8px 0 4px;
-          font-size: clamp(1.5rem, 2vw, 2rem);
-          font-weight: 950;
+
+        .pdTitle {
+          margin: 10px 0 6px;
+          font-size: clamp(1.55rem, 2.4vw, 2.15rem);
+          font-weight: 900;
           letter-spacing: -0.03em;
           color: #0b1220;
         }
-        .sub {
+
+        .pdSub {
           margin: 0;
-          color: rgba(11, 18, 32, 0.68);
-          line-height: 1.5;
+          max-width: 70ch;
+          color: rgba(11, 18, 32, 0.72);
+          line-height: 1.55;
         }
-        .all {
+
+        .pdTrust {
+          margin-top: 12px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        .pdPill {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: rgba(11, 18, 32, 0.04);
+          border: 1px solid rgba(11, 18, 32, 0.1);
+          color: rgba(11, 18, 32, 0.78);
+          font-weight: 700;
+          font-size: 0.88rem;
+        }
+
+        .pdAll {
           display: inline-flex;
           align-items: center;
           gap: 10px;
-          padding: 10px 14px;
+          padding: 12px 18px;
           border-radius: 999px;
+          color: #fff;
           text-decoration: none;
-          font-weight: 950;
-          color: #0b1220;
-          background: rgba(255, 250, 242, 0.85);
-          border: 1px solid rgba(11, 18, 32, 0.10);
-          box-shadow: 0 10px 22px rgba(11, 18, 32, 0.06);
-          transition: transform 0.18s ease, box-shadow 0.18s ease;
+          font-weight: 800;
+          background: linear-gradient(135deg, #0b1220, #1f2937);
+          box-shadow: 0 14px 42px rgba(17, 24, 39, 0.16);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
           white-space: nowrap;
         }
-        .all:hover {
+        .pdAll:hover {
           transform: translateY(-2px);
-          box-shadow: 0 14px 30px rgba(11, 18, 32, 0.08);
+          box-shadow: 0 22px 58px rgba(17, 24, 39, 0.22);
         }
 
-        .state {
-          padding: 12px 14px;
-          border-radius: 12px;
-          background: rgba(255, 250, 242, 0.85);
-          border: 1px solid rgba(11, 18, 32, 0.08);
-          color: rgba(11, 18, 32, 0.78);
-          font-weight: 900;
-        }
-        .state.err {
-          background: rgba(122, 41, 65, 0.08);
-          border-color: rgba(122, 41, 65, 0.18);
-          color: #7a2941;
-        }
-
-        /* grid com cards mais “magros” e alinhados */
-        .grid {
+        /* layout */
+        .pdGrid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-          gap: 14px;
+          grid-template-columns: minmax(260px, 340px) 1fr;
+          gap: 16px;
+          align-items: stretch;
         }
 
-        /* card compacto */
-        .card {
-          border-radius: 16px;
+        /* hero */
+        .pdHero {
+          position: relative;
+          border-radius: 22px;
+          padding: 18px;
           overflow: hidden;
-          background: rgba(255, 250, 242, 0.95);
-          border: 1px solid rgba(11, 18, 32, 0.10);
-          box-shadow: 0 10px 22px rgba(11, 18, 32, 0.07);
-          transition: transform 0.18s ease, box-shadow 0.22s ease;
+          color: #fff;
+          background: linear-gradient(
+            160deg,
+            #0b1220 0%,
+            #7a2941 55%,
+            #b08d57 120%
+          );
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          box-shadow: 0 18px 56px rgba(122, 41, 65, 0.16);
+        }
+
+        .pdHeroTop {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+
+        .pdHeroIcon {
+          width: 44px;
+          height: 44px;
+          border-radius: 16px;
+          display: grid;
+          place-items: center;
+          background: rgba(255, 255, 255, 0.14);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .pdHeroChip {
+          font-size: 0.78rem;
+          font-weight: 800;
+          padding: 7px 12px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.14);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .pdHeroTitle {
+          margin: 8px 0 8px;
+          font-size: 1.22rem;
+          font-weight: 900;
+          letter-spacing: -0.02em;
+        }
+
+        .pdHeroText {
+          margin: 0 0 14px;
+          opacity: 0.92;
+          line-height: 1.4rem;
+          font-size: 0.95rem;
+        }
+
+        .pdHeroBullets {
+          display: grid;
+          gap: 6px;
+          margin-bottom: 16px;
+          font-weight: 700;
+          opacity: 0.95;
+        }
+
+        .pdHeroCta {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          width: 100%;
+          height: 46px;
+          border-radius: 16px;
+          color: #0b1220;
+          background: #fff;
+          text-decoration: none;
+          font-weight: 900;
+          transition: transform 0.2s ease, filter 0.2s ease;
+        }
+        .pdHeroCta:hover {
+          transform: translateY(-2px);
+          filter: brightness(0.98);
+        }
+
+        /* cards */
+        .pdCards {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 14px;
+          align-content: start;
+          min-width: 0;
+        }
+
+        .pdCardOuter {
           display: grid;
           grid-template-rows: 1fr auto;
-        }
-        .card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 16px 38px rgba(11, 18, 32, 0.11);
+          gap: 10px;
+          min-width: 0;
         }
 
-        .top {
-          padding: 12px;
+        /* Card clicável */
+        .pdCard {
+          position: relative;
           display: grid;
-          gap: 8px;
+          grid-template-rows: auto 1fr;
+          min-height: 330px;
+          border-radius: 20px;
+          overflow: hidden;
           text-decoration: none;
-          color: inherit;
+
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid rgba(11, 18, 32, 0.1);
+          box-shadow: 0 12px 38px rgba(11, 18, 32, 0.08);
+          transition: transform 0.22s ease, box-shadow 0.22s ease;
         }
 
-        /* IMAGEM COM ALTURA FIXA (evita ficar “gordo” e desigual) */
-        .imgTile {
-          height: 170px;
-          border-radius: 12px;
-          background: linear-gradient(180deg, #f2e7d7, #f8f3ea);
+        /* borda gradiente premium */
+        .pdBorder {
+          content: "";
+          position: absolute;
+          inset: 0;
+          border-radius: 20px;
+          padding: 1px;
+          background: linear-gradient(
+            135deg,
+            rgba(122, 41, 65, 0.45),
+            rgba(176, 141, 87, 0.35),
+            rgba(11, 18, 32, 0.12)
+          );
+          -webkit-mask: linear-gradient(#000 0 0) content-box,
+            linear-gradient(#000 0 0);
+          -webkit-mask-composite: xor;
+          mask-composite: exclude;
+          pointer-events: none;
+          opacity: 0.9;
+        }
+
+        .pdCard:hover {
+          transform: translateY(-6px);
+          box-shadow: 0 22px 66px rgba(11, 18, 32, 0.14);
+        }
+
+        .pdBadge {
+          position: absolute;
+          top: 12px;
+          left: 12px;
+          z-index: 3;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 10px;
+          border-radius: 999px;
+          font-size: 0.74rem;
+          font-weight: 850;
+          color: #0b1220;
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid rgba(11, 18, 32, 0.1);
+          backdrop-filter: blur(8px);
+        }
+
+        .pdMedia {
+          padding: 12px;
+          background: linear-gradient(
+            180deg,
+            rgba(11, 18, 32, 0.02),
+            rgba(11, 18, 32, 0)
+          );
+          border-bottom: 1px solid rgba(11, 18, 32, 0.06);
+        }
+
+        .pdImageShell {
+          height: 178px;
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.9);
           border: 1px solid rgba(11, 18, 32, 0.08);
           display: grid;
           place-items: center;
           overflow: hidden;
         }
-        .imgTile img {
+
+        .pdImageShell img {
           width: 86%;
           height: 86%;
           object-fit: contain;
-          transition: transform 0.28s ease;
-        }
-        .card:hover .imgTile img {
-          transform: scale(1.04);
+          transition: transform 0.35s ease, filter 0.35s ease;
+          filter: saturate(1.03);
         }
 
-        .meta {
+        .pdCard:hover .pdImageShell img {
+          transform: scale(1.06);
+          filter: saturate(1.06) brightness(1.02);
+        }
+
+        .pdBody {
+          padding: 12px 12px 14px;
+          display: grid;
+          gap: 10px;
+          min-width: 0;
+        }
+
+        .pdTopLine {
           display: flex;
-          align-items: center;
+          align-items: flex-start;
           justify-content: space-between;
-          gap: 8px;
-        }
-        .badge {
-          padding: 5px 9px;
-          border-radius: 999px;
-          font-size: 0.72rem;
-          font-weight: 950;
-          background: rgba(255, 250, 242, 0.95);
-          border: 1px solid rgba(11, 18, 32, 0.12);
-          color: rgba(11, 18, 32, 0.86);
-        }
-        .badge.ok {
-          border-color: rgba(34, 197, 94, 0.35);
-        }
-        .badge.no {
-          border-color: rgba(220, 38, 38, 0.35);
-          color: #7f1d1d;
-        }
-        .chip {
-          padding: 5px 9px;
-          border-radius: 999px;
-          font-size: 0.72rem;
-          font-weight: 950;
-          background: rgba(176, 141, 87, 0.16);
-          border: 1px solid rgba(176, 141, 87, 0.28);
-          color: #0b1220;
-          white-space: nowrap;
+          gap: 10px;
+          min-width: 0;
         }
 
-        .name {
+        .pdName {
           margin: 0;
-          font-size: 0.98rem;
+          font-size: 1rem;
           font-weight: 950;
           letter-spacing: -0.02em;
           color: #0b1220;
@@ -411,14 +744,26 @@ export default function ProdutoDestaque() {
           -webkit-line-clamp: 1;
           -webkit-box-orient: vertical;
           overflow: hidden;
+          min-width: 0;
         }
 
-        /* clamp + altura mínima fixa = cards iguais */
-        .desc {
+        .pdTag {
+          flex: 0 0 auto;
+          padding: 6px 10px;
+          border-radius: 999px;
+          font-size: 0.72rem;
+          font-weight: 800;
+          color: #0b1220;
+          background: rgba(176, 141, 87, 0.16);
+          border: 1px solid rgba(176, 141, 87, 0.22);
+          white-space: nowrap;
+        }
+
+        .pdDesc {
           margin: 0;
           font-size: 0.84rem;
-          color: rgba(11, 18, 32, 0.70);
-          line-height: 1.22rem;
+          color: rgba(11, 18, 32, 0.72);
+          line-height: 1.25rem;
           min-height: 40px;
           display: -webkit-box;
           -webkit-line-clamp: 2;
@@ -426,99 +771,117 @@ export default function ProdutoDestaque() {
           overflow: hidden;
         }
 
-        .bottom {
-          padding: 12px;
-          border-top: 1px solid rgba(11, 18, 32, 0.08);
-          background: rgba(248, 243, 234, 0.70);
-        }
-
-        .priceRow {
+        .pdPriceRow {
           display: flex;
-          align-items: baseline;
+          align-items: center;
           justify-content: space-between;
-          gap: 10px;
-          margin-bottom: 10px;
+          gap: 12px;
         }
 
-        .price {
-          font-size: 1.06rem;
+        .pdPrice {
           font-weight: 950;
-          letter-spacing: -0.02em;
           color: #7a2941;
+          letter-spacing: -0.02em;
         }
 
-        .mini {
-          font-size: 0.76rem;
-          font-weight: 900;
-          color: rgba(11, 18, 32, 0.58);
+        .pdMini {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 0.78rem;
+          color: rgba(11, 18, 32, 0.66);
+          font-weight: 750;
           white-space: nowrap;
         }
 
-        .actions {
-          display: grid;
-          grid-template-columns: 1fr 1.15fr;
-          gap: 10px;
+        .pdDot {
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          background: #22c55e;
+          box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
         }
 
-        .btn {
-          height: 40px;
-          border-radius: 12px;
+        .pdHint {
+          margin-top: -2px;
+          font-size: 0.78rem;
+          color: rgba(11, 18, 32, 0.58);
+          font-weight: 700;
+        }
+
+        /* footer com CTA único */
+        .pdFooter {
+          display: grid;
+        }
+
+        .pdBtn {
+          height: 46px;
+          border-radius: 16px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 9px;
-          font-weight: 950;
+          gap: 10px;
+          font-weight: 900;
+          border: 1px solid rgba(11, 18, 32, 0.1);
           cursor: pointer;
+          transition: transform 0.18s ease, box-shadow 0.22s ease,
+            filter 0.22s ease;
           user-select: none;
           outline: none;
           width: 100%;
-          text-decoration: none;
-          transition: transform 0.16s ease, box-shadow 0.2s ease, filter 0.2s ease;
-          font-size: 0.92rem;
         }
-        .btn:hover {
+
+        .pdBtn:hover {
           transform: translateY(-2px);
         }
 
-        .ghost {
-          background: rgba(255, 250, 242, 0.90);
-          border: 1px solid rgba(11, 18, 32, 0.12);
-          color: #0b1220;
-        }
-
-        .solid {
-          border: none;
+        .pdBtnSolid {
           color: #fff;
-          background: linear-gradient(135deg, #0b1220, #1f2937);
-          box-shadow: 0 12px 24px rgba(11, 18, 32, 0.16);
+          background: linear-gradient(135deg, #7a2941, #b08d57);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          box-shadow: 0 14px 44px rgba(122, 41, 65, 0.16);
         }
-        .solid:hover {
-          box-shadow: 0 16px 32px rgba(11, 18, 32, 0.20);
+        .pdBtnSolid:hover {
+          box-shadow: 0 22px 70px rgba(122, 41, 65, 0.22);
           filter: brightness(1.02);
         }
-
-        .solid.added {
+        .pdBtnSolid.ok {
           background: linear-gradient(135deg, #166534, #22c55e);
-          box-shadow: 0 12px 24px rgba(22, 101, 52, 0.16);
+          box-shadow: 0 14px 44px rgba(34, 197, 94, 0.14);
         }
 
-        .btn:disabled {
-          opacity: 0.60;
+        .pdBtn:disabled {
+          opacity: 0.78;
           cursor: not-allowed;
           transform: none;
-          box-shadow: none;
         }
 
         .spin {
           animation: sp 0.9s linear infinite;
         }
         @keyframes sp {
-          to { transform: rotate(360deg); }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        /* responsivo */
+        @media (max-width: 1100px) {
+          .pdGrid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 780px) {
+          .pdAll {
+            width: 100%;
+            justify-content: center;
+          }
         }
 
         @media (max-width: 520px) {
-          .actions {
-            grid-template-columns: 1fr;
+          .pdContainer {
+            border-radius: 22px;
           }
         }
       `}</style>

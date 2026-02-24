@@ -1,35 +1,60 @@
-import api from "@/Api/conectar";
+// src/hooks/produto/useProdutoDestaque.ts
+"use client";
+
 import { useEffect, useState } from "react";
+import api from "@/Api/conectar";
+import { rotas } from "@/components/Bibioteca/config/rotas";
 
 
-export interface ProdutoDestaque {
-  id_destaque: number;
-  ordem: number;
-  produto_id: number;
+type DestaqueItem = any; // se quiser, tipamos depois com seu DTO real
 
-  produto_nome: string;
-  produto_slug: string;
-  produto_imagem?: string;
-  produto_preco: number;
-  produto_descricao?: string;
+function extractArray(resData: any): any[] {
+  const d = resData?.data ?? resData?.dados ?? resData;
+  if (Array.isArray(d)) return d;
+
+  // alguns backends retornam { data: { data: [] } } ou { data: { itens: [] } }
+  const deep =
+    d?.data ??
+    d?.itens ??
+    d?.items ??
+    d?.result ??
+    d?.results ??
+    d?.registros ??
+    d?.lista;
+
+  return Array.isArray(deep) ? deep : [];
 }
 
 export function useProdutoDestaque() {
-  const [destaques, setDestaques] = useState<ProdutoDestaque[]>([]);
+  const [destaques, setDestaques] = useState<DestaqueItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
 
   useEffect(() => {
-    api.get("/produtos/destaques/status")
-      .then(res => {
-        setDestaques(res.data.dados || []);
-      })
-      .catch(() => {
-        setError("Erro ao carregar produtos em destaque");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    let alive = true;
+
+    (async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        // Preferi "ativos", mas se seu backend usa "listar", troque aqui
+        const res = await api.get(rotas.produtos.destaques.ativos, {
+          withCredentials: true,
+        });
+
+        const lista = extractArray(res?.data);
+        if (alive) setDestaques(lista);
+      } catch (e) {
+        if (alive) setError(e);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+
+    return () => {
+      alive = false;
+    };
   }, []);
 
   return { destaques, loading, error };

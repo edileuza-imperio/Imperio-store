@@ -1,15 +1,22 @@
 // src/config/rotas.ts
-
 type Id = number | string;
 
 export const rotas = {
   inicio: "/",
+
+  paginas: {
+    login: "/login",
+  },
 
   auth: {
     me: "/me",
     logout: "/logout",
     loginEtapa1: "/login/etapa1",
     loginEtapa2: "/login/etapa2",
+  },
+
+  carrinho: {
+    adicionar: "/carrinho/adicionar",
   },
 
   admin: {
@@ -65,13 +72,13 @@ export const rotas = {
     deletar: (id: Id) => `/categorias/${id}`,
   },
 
-  // ✅ ADICIONADO: PRODUTOS + DESTAQUES (API)
   produtos: {
     listar: "/produtos",
     buscar: (id: Id) => `/produtos/${id}`,
 
     // backend: /produto/slug/{slug}
-    buscarPorSlugApi: (slug: string) => `/produto/slug/${encodeURIComponent(slug)}`,
+    buscarPorSlugApi: (slug: string) =>
+      `/produto/slug/${encodeURIComponent(slug)}`,
 
     pesquisar: "/produtos/pesquisa",
     catalogo: "/produtos/catalogo",
@@ -90,12 +97,8 @@ export const rotas = {
       deletar: (id: Id) => `/produtos/destaques/${id}`,
     },
 
-    // ✅ ROTAS DO FRONT (PÁGINAS)
     paginas: {
-      // página vitrine de destaques
       destaques: "/produtos/destaques",
-
-      // página de produto por slug (Next)
       produto: (slug: string) => `/produto/${encodeURIComponent(slug)}`,
     },
   },
@@ -105,6 +108,7 @@ export const rotas = {
     ativos: "/cupons/ativos",
     inativos: "/cupons/inativos",
 
-    buscarPorCodigo: (codigo: string) => `/cupom/${encodeURIComponent(codigo)}`,
+    buscarPorCodigo: (codigo: string) =>
+      `/cupom/${encodeURIComponent(codigo)}`,
   },
 } as const;
