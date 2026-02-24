@@ -21,7 +21,7 @@ export const rotas = {
 
   admin: {
     // ✅ backend do admin (PainelAdministrativo@index)
-    dashboard: "/admin",
+    dashboard: "/admin/dashboard",
 
     // ✅ VOCÊ USA ISSO NO app/cadastro/page.tsx
     configLogin: "/configuracoes/login",
