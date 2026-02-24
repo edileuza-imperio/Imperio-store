@@ -104,9 +104,8 @@ export default function ProdutoDestaque() {
   async function adicionarCarrinho(produtoId: number) {
     try {
       setAddingId(produtoId);
-      // ajuste o payload conforme seu backend espera
+      // ajuste o payload se seu backend usar outros nomes
       await api.post(rotas.carrinho.adicionar, { produto_id: produtoId, qtd: 1 });
-      // feedback simples (pode trocar por toast)
       alert("Adicionado ao carrinho!");
     } catch (e: any) {
       alert(
@@ -142,55 +141,52 @@ export default function ProdutoDestaque() {
         (ilimitado ?? 0) !== 1 && estoque != null && estoque <= 0;
 
       return (
-        <article key={`${item.produto_id}-${item.ordem ?? ""}`} className="pd-card">
-          <a className="pd-media" href={detalhesHref} aria-label={`Ver ${item.produto_nome}`}>
+        <article key={`${item.produto_id}-${item.ordem ?? ""}`} className="pdCard">
+          <a className="pdMedia" href={detalhesHref} aria-label={`Detalhes ${item.produto_nome}`}>
             {imagemUrl ? (
-              <img className="pd-img" src={imagemUrl} alt={item.produto_nome} loading="lazy" />
+              <img className="pdImg" src={imagemUrl} alt={item.produto_nome} loading="lazy" />
             ) : (
-              <div className="pd-imgFallback">Sem imagem</div>
+              <div className="pdImgFallback">Sem imagem</div>
             )}
 
             {descontoPct > 0 ? (
-              <div className="pd-badge">
+              <div className="pdBadge">
                 <span>-{descontoPct}%</span>
               </div>
             ) : null}
 
-            {semEstoque ? <div className="pd-stock">Esgotado</div> : null}
+            {semEstoque ? <div className="pdStock">Esgotado</div> : null}
           </a>
 
-          <div className="pd-body">
-            <div className="pd-top">
-              <h3 className="pd-title">{item.produto_nome}</h3>
+          <div className="pdBody">
+            <div className="pdTitle">{item.produto_nome}</div>
 
-              {item.produto_descricao ? (
-                <p className="pd-desc">{item.produto_descricao}</p>
-              ) : (
-                <p className="pd-desc pd-descEmpty"> </p>
-              )}
+            <div className="pdDesc">
+              {item.produto_descricao || " "}
             </div>
 
-            <div className="pd-priceRow">
-              <div className="pd-prices">
-                <div className="pd-price">
+            <div className="pdPriceRow">
+              <div className="pdPrices">
+                <div className="pdPrice">
                   {precoFinal != null ? formatBRL(precoFinal) : "Preço sob consulta"}
                 </div>
-
                 {temPromo && preco != null ? (
-                  <div className="pd-oldPrice">{formatBRL(preco)}</div>
+                  <div className="pdOldPrice">{formatBRL(preco)}</div>
                 ) : null}
               </div>
 
-              {temPromo ? <div className="pd-tag">Oferta</div> : <div className="pd-tag pd-tagMuted">Destaque</div>}
+              <div className={`pdTag ${temPromo ? "pdTagOffer" : ""}`}>
+                {temPromo ? "Oferta" : "Destaque"}
+              </div>
             </div>
 
-            <div className="pd-actions">
-              <a href={detalhesHref} className="pd-btn pd-btnGhost">
+            <div className="pdActions">
+              <a href={detalhesHref} className="pdBtn pdBtnGhost">
                 Detalhes
               </a>
 
               <button
-                className="pd-btn pd-btnPrimary"
+                className="pdBtn pdBtnPrimary"
                 onClick={() => adicionarCarrinho(item.produto_id)}
                 disabled={semEstoque || addingId === item.produto_id}
               >
@@ -208,120 +204,264 @@ export default function ProdutoDestaque() {
   }, [itens, addingId]);
 
   return (
-    <section className="pd-wrap">
-      <div className="pd-header">
-        <div>
-          <h2 className="pd-h2">Destaques</h2>
-          <p className="pd-sub">Selecionados com carinho • tons creme</p>
+    <section className="pdWrap">
+      <div className="pdContainer">
+        <div className="pdHeader">
+          <div>
+            <h2 className="pdH2">Destaques</h2>
+            <p className="pdSub">Selecionados com carinho • tons creme</p>
+          </div>
+
+          <div className="pdCount">
+            {!loading && !erro ? `${itens.length} item(ns)` : ""}
+          </div>
         </div>
 
-        <div className="pd-count">{!loading && !erro ? `${itens.length} item(ns)` : ""}</div>
-      </div>
+        {/* Layout: banner esquerda + produtos direita */}
+        <div className="pdLayout">
+          {/* MINI BANNER (ESQUERDA) */}
+          <aside className="pdBanner">
+            <div className="pdBannerInner">
+              <div className="pdBannerTop">
+                <div className="pdBannerChip">Novidades</div>
+                <div className="pdBannerChip pdBannerChip2">Frete</div>
+              </div>
 
-      {loading ? (
-        <div className="pd-grid">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="pd-skelCard">
-              <div className="pd-skelImg" />
-              <div className="pd-skelBody">
-                <div className="pd-skelLine pd-skelLine1" />
-                <div className="pd-skelLine pd-skelLine2" />
-                <div className="pd-skelLine pd-skelLine3" />
-                <div className="pd-skelBtns">
-                  <div className="pd-skelBtn" />
-                  <div className="pd-skelBtn pd-skelBtn2" />
+              <div className="pdBannerTitle">Coleção Creme</div>
+              <div className="pdBannerText">
+                Produtos selecionados para presentear — delicados, elegantes e com
+                preço especial.
+              </div>
+
+              <div className="pdBannerCTA">
+                <a className="pdBannerBtn" href={rotas.produtos.catalogo}>
+                  Ver catálogo
+                </a>
+                <div className="pdBannerHint">Atualizado diariamente</div>
+              </div>
+
+              <div className="pdBannerMini">
+                <div className="pdBannerMiniBox">
+                  <div className="pdMiniLabel">Oferta do dia</div>
+                  <div className="pdMiniValue">até 30% OFF</div>
+                </div>
+                <div className="pdBannerMiniBox">
+                  <div className="pdMiniLabel">Pagamento</div>
+                  <div className="pdMiniValue">Pix / Cartão</div>
                 </div>
               </div>
             </div>
-          ))}
+          </aside>
+
+          {/* PRODUTOS (DIREITA) */}
+          <div className="pdRight">
+            {loading ? (
+              <div className="pdAlert">Carregando…</div>
+            ) : erro ? (
+              <div className="pdAlert pdAlertErr">{erro}</div>
+            ) : itens.length === 0 ? (
+              <div className="pdAlert">Nenhum destaque ativo no momento.</div>
+            ) : (
+              <div className="pdGrid">
+                {cards}
+              </div>
+            )}
+          </div>
         </div>
-      ) : erro ? (
-        <div className="pd-alert pd-alertErr">{erro}</div>
-      ) : itens.length === 0 ? (
-        <div className="pd-alert">Nenhum destaque ativo no momento.</div>
-      ) : (
-        <div className="pd-grid">{cards}</div>
-      )}
+      </div>
 
       <style>{`
-        /* =========================
-           Paleta creme (premium)
-           ========================= */
-        .pd-wrap{
-          padding: 34px 18px 40px;
-          background: radial-gradient(1200px 500px at 20% 0%, #fffaf1 0%, #f6efe4 60%, #f1e7d9 100%);
+        /* ===== Fundo creme premium ===== */
+        .pdWrap{
+          padding: 34px 16px 46px;
+          background: radial-gradient(1200px 520px at 18% 0%, #fffaf1 0%, #f6efe4 55%, #f1e7d9 100%);
+        }
+        .pdContainer{
+          max-width: 1140px;
+          margin: 0 auto;
         }
 
-        .pd-header{
-          max-width: 1120px;
-          margin: 0 auto 18px;
+        /* ===== Header ===== */
+        .pdHeader{
           display:flex;
           align-items:flex-end;
           justify-content:space-between;
           gap:16px;
+          margin-bottom: 16px;
         }
-
-        .pd-h2{
+        .pdH2{
           margin:0;
           font-size: 28px;
-          letter-spacing: -0.5px;
+          letter-spacing: -0.6px;
           color:#3f3327;
-          font-weight: 900;
+          font-weight: 950;
         }
-
-        .pd-sub{
+        .pdSub{
           margin:6px 0 0;
           font-size: 13px;
           color:#6b5a49;
-          opacity: .9;
-          font-weight: 600;
+          font-weight: 650;
         }
-
-        .pd-count{
+        .pdCount{
           font-size: 12px;
           color:#6b5a49;
-          font-weight: 800;
-          background: rgba(255,255,255,.55);
-          border: 1px solid rgba(111, 92, 73, .15);
+          font-weight: 900;
+          background: rgba(255,255,255,.62);
+          border: 1px solid rgba(111, 92, 73, .14);
           padding: 8px 12px;
           border-radius: 999px;
           backdrop-filter: blur(6px);
+          white-space: nowrap;
         }
 
-        .pd-grid{
-          max-width: 1120px;
-          margin: 0 auto;
-          display:grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        /* ===== Layout 2 colunas ===== */
+        .pdLayout{
+          display: grid;
+          grid-template-columns: 320px 1fr;
           gap: 16px;
+          align-items: start;
         }
 
-        /* =========================
-           Card (premium)
-           ========================= */
-        .pd-card{
-          border-radius: 20px;
+        /* ===== Banner esquerdo ===== */
+        .pdBanner{
+          position: sticky;
+          top: 14px;
+        }
+        .pdBannerInner{
+          border-radius: 22px;
+          overflow: hidden;
+          border: 1px solid rgba(111, 92, 73, .18);
+          background: linear-gradient(160deg, rgba(255,253,247,1) 0%, rgba(255,244,227,1) 45%, rgba(240,226,205,1) 100%);
+          box-shadow: 0 14px 40px rgba(0,0,0,.10);
+          padding: 16px;
+        }
+        .pdBannerTop{
+          display:flex;
+          gap:10px;
+          align-items:center;
+          margin-bottom: 12px;
+        }
+        .pdBannerChip{
+          font-size: 12px;
+          font-weight: 950;
+          padding: 6px 10px;
+          border-radius: 999px;
+          color:#3f3327;
+          background: rgba(255,255,255,.65);
+          border: 1px solid rgba(111, 92, 73, .14);
+        }
+        .pdBannerChip2{
+          opacity: .92;
+        }
+        .pdBannerTitle{
+          font-size: 22px;
+          font-weight: 980;
+          letter-spacing: -0.4px;
+          color:#2f261e;
+          margin-bottom: 6px;
+        }
+        .pdBannerText{
+          font-size: 13px;
+          line-height: 1.45;
+          color:#6b5a49;
+          font-weight: 650;
+          opacity: .95;
+          margin-bottom: 14px;
+        }
+        .pdBannerCTA{
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap:12px;
+          margin-bottom: 14px;
+        }
+        .pdBannerBtn{
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          padding: 10px 12px;
+          border-radius: 14px;
+          text-decoration:none;
+          color:#ffffff;
+          font-weight: 950;
+          font-size: 13px;
+          background: linear-gradient(135deg, #d1a67f 0%, #b88962 100%);
+          box-shadow: 0 12px 24px rgba(184,137,98,.35);
+          border: 1px solid rgba(255,255,255,.18);
+        }
+        .pdBannerBtn:hover{ filter: brightness(1.02); }
+        .pdBannerHint{
+          font-size: 12px;
+          color:#6b5a49;
+          font-weight: 800;
+          opacity: .9;
+          text-align: right;
+        }
+        .pdBannerMini{
+          display:grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+        .pdBannerMiniBox{
+          border-radius: 16px;
+          background: rgba(255,255,255,.55);
+          border: 1px solid rgba(111, 92, 73, .12);
+          padding: 10px;
+        }
+        .pdMiniLabel{
+          font-size: 11px;
+          font-weight: 900;
+          color:#6b5a49;
+          opacity: .9;
+          margin-bottom: 6px;
+        }
+        .pdMiniValue{
+          font-size: 13px;
+          font-weight: 980;
+          color:#2f261e;
+          letter-spacing: -0.2px;
+        }
+
+        /* ===== Área direita ===== */
+        .pdRight{
+          min-width: 0;
+        }
+
+        /* ===== Grid de cards: NÃO ESTICA quando tem poucos =====
+           - usamos repeat(auto-fill, 260px) e justificamos pro começo
+        */
+        .pdGrid{
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(260px, 260px));
+          gap: 16px;
+          justify-content: start;
+        }
+
+        /* ===== Card ===== */
+        .pdCard{
+          width: 260px; /* trava a largura do card */
+          border-radius: 22px;
           overflow:hidden;
           border: 1px solid rgba(111, 92, 73, .16);
-          background: linear-gradient(180deg, rgba(255, 253, 247, 1) 0%, rgba(255, 248, 237, 1) 100%);
-          box-shadow: 0 8px 28px rgba(0,0,0,.08);
+          background: linear-gradient(180deg, rgba(255,253,247,1) 0%, rgba(255,248,237,1) 100%);
+          box-shadow: 0 10px 32px rgba(0,0,0,.09);
           transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
         }
-        .pd-card:hover{
+        .pdCard:hover{
           transform: translateY(-3px);
-          box-shadow: 0 14px 40px rgba(0,0,0,.12);
+          box-shadow: 0 16px 46px rgba(0,0,0,.13);
           border-color: rgba(111, 92, 73, .26);
         }
 
-        .pd-media{
+        .pdMedia{
           position: relative;
           display:block;
-          height: 230px;
+          height: 190px; /* mais compacto, não fica bloco gigante */
           background: #efe3d2;
           overflow:hidden;
+          text-decoration:none;
         }
-
-        .pd-img{
+        .pdImg{
           width:100%;
           height:100%;
           object-fit: cover;
@@ -329,127 +469,120 @@ export default function ProdutoDestaque() {
           transition: transform .35s ease;
           display:block;
         }
-        .pd-card:hover .pd-img{ transform: scale(1.07); }
-
-        .pd-imgFallback{
+        .pdCard:hover .pdImg{ transform: scale(1.07); }
+        .pdImgFallback{
           height:100%;
           display:flex;
           align-items:center;
           justify-content:center;
           color:#7b6a5a;
-          font-weight:800;
+          font-weight:900;
           font-size: 13px;
         }
 
-        .pd-badge{
+        .pdBadge{
           position:absolute;
           top: 12px;
           left: 12px;
           padding: 7px 10px;
           border-radius: 999px;
-          font-weight: 900;
+          font-weight: 980;
           font-size: 12px;
           color: #ffffff;
           background: rgba(30, 20, 12, .92);
           box-shadow: 0 10px 20px rgba(0,0,0,.18);
         }
-
-        .pd-stock{
+        .pdStock{
           position:absolute;
           top: 12px;
           right: 12px;
           padding: 7px 10px;
           border-radius: 999px;
-          font-weight: 900;
+          font-weight: 980;
           font-size: 12px;
           color: #3f3327;
-          background: rgba(255, 255, 255, .75);
+          background: rgba(255, 255, 255, .78);
           border: 1px solid rgba(111, 92, 73, .18);
           backdrop-filter: blur(6px);
         }
 
-        .pd-body{ padding: 14px 14px 16px; }
-
-        .pd-title{
-          margin:0;
+        .pdBody{ padding: 14px 14px 16px; }
+        .pdTitle{
           color:#3f3327;
-          font-weight: 950;
-          font-size: 16px;
+          font-weight: 980;
+          font-size: 15px;
           letter-spacing: -0.2px;
           line-height: 1.15;
         }
-
-        .pd-desc{
-          margin: 8px 0 0;
+        .pdDesc{
+          margin-top: 8px;
           color:#6b5a49;
           font-size: 13px;
           line-height: 1.35;
           opacity: .92;
-
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
           overflow: hidden;
           min-height: 36px;
         }
-        .pd-descEmpty{ opacity: 0; }
 
-        .pd-priceRow{
+        .pdPriceRow{
           margin-top: 12px;
           display:flex;
           align-items:center;
           justify-content:space-between;
-          gap: 12px;
+          gap: 10px;
         }
-
-        .pd-prices{
+        .pdPrices{
           display:flex;
           align-items: baseline;
           gap: 10px;
+          min-width: 0;
         }
-
-        .pd-price{
-          font-weight: 950;
-          font-size: 16px;
+        .pdPrice{
+          font-weight: 980;
+          font-size: 15px;
           color:#2f261e;
           letter-spacing: -0.2px;
+          white-space: nowrap;
         }
-
-        .pd-oldPrice{
-          font-weight: 800;
+        .pdOldPrice{
+          font-weight: 850;
           font-size: 12px;
           color:#8b7a6a;
           text-decoration: line-through;
+          white-space: nowrap;
         }
-
-        .pd-tag{
+        .pdTag{
           font-size: 12px;
-          font-weight: 900;
+          font-weight: 980;
           padding: 6px 10px;
           border-radius: 999px;
           color:#3f3327;
-          background: rgba(255,255,255,.55);
+          background: rgba(255,255,255,.62);
           border: 1px solid rgba(111, 92, 73, .14);
           backdrop-filter: blur(6px);
           white-space: nowrap;
         }
-        .pd-tagMuted{ opacity: .9; }
+        .pdTagOffer{
+          background: rgba(255,255,255,.72);
+          border-color: rgba(184,137,98,.28);
+        }
 
-        .pd-actions{
-          margin-top: 14px;
+        .pdActions{
+          margin-top: 12px;
           display:flex;
           gap: 10px;
         }
-
-        .pd-btn{
+        .pdBtn{
           flex: 1;
           display:inline-flex;
           align-items:center;
           justify-content:center;
-          gap: 8px;
           padding: 10px 12px;
           border-radius: 14px;
-          font-weight: 950;
+          font-weight: 980;
           font-size: 13px;
           border: 1px solid transparent;
           cursor:pointer;
@@ -457,99 +590,66 @@ export default function ProdutoDestaque() {
           transition: transform .12s ease, filter .12s ease, background .12s ease, border-color .12s ease;
           user-select:none;
         }
-        .pd-btn:active{ transform: translateY(1px); }
+        .pdBtn:active{ transform: translateY(1px); }
 
-        .pd-btnGhost{
-          background: rgba(255,255,255,.6);
+        .pdBtnGhost{
+          background: rgba(255,255,255,.72);
           color:#3f3327;
           border-color: rgba(111, 92, 73, .18);
         }
-        .pd-btnGhost:hover{ filter: brightness(0.98); }
+        .pdBtnGhost:hover{ filter: brightness(0.98); }
 
-        .pd-btnPrimary{
+        .pdBtnPrimary{
           background: linear-gradient(135deg, #d1a67f 0%, #b88962 100%);
           color: #ffffff;
-          box-shadow: 0 10px 22px rgba(184, 137, 98, .35);
+          box-shadow: 0 12px 26px rgba(184, 137, 98, .35);
         }
-        .pd-btnPrimary:hover{ filter: brightness(1.02); }
-        .pd-btnPrimary:disabled{
+        .pdBtnPrimary:hover{ filter: brightness(1.02); }
+        .pdBtnPrimary:disabled{
           opacity: .55;
           cursor:not-allowed;
           box-shadow:none;
         }
 
-        /* =========================
-           Alerts / Skeleton
-           ========================= */
-        .pd-alert{
-          max-width: 1120px;
-          margin: 0 auto;
+        .pdAlert{
           border-radius: 18px;
           padding: 14px;
           background: rgba(255,255,255,.65);
           border: 1px solid rgba(111, 92, 73, .16);
           color:#3f3327;
-          font-weight: 800;
+          font-weight: 850;
         }
-        .pd-alertErr{
+        .pdAlertErr{
           color:#8a1f1f;
           background: rgba(185,28,28,.06);
           border-color: rgba(185,28,28,.18);
         }
 
-        .pd-skelCard{
-          border-radius: 20px;
-          overflow:hidden;
-          border: 1px solid rgba(111, 92, 73, .14);
-          background: rgba(255,255,255,.55);
-          box-shadow: 0 8px 28px rgba(0,0,0,.06);
-        }
-        .pd-skelImg{
-          height: 230px;
-          background: linear-gradient(90deg, rgba(239,227,210,.7) 0%, rgba(255,248,237,.9) 50%, rgba(239,227,210,.7) 100%);
-          background-size: 200% 100%;
-          animation: pdShimmer 1.1s infinite linear;
-        }
-        .pd-skelBody{ padding: 14px; }
-        .pd-skelLine{
-          height: 12px;
-          border-radius: 999px;
-          background: linear-gradient(90deg, rgba(231,221,207,.7) 0%, rgba(255,248,237,.9) 50%, rgba(231,221,207,.7) 100%);
-          background-size: 200% 100%;
-          animation: pdShimmer 1.1s infinite linear;
-          margin-bottom: 10px;
-        }
-        .pd-skelLine1{ width: 70%; }
-        .pd-skelLine2{ width: 90%; }
-        .pd-skelLine3{ width: 55%; }
-
-        .pd-skelBtns{
-          display:flex;
-          gap:10px;
-          margin-top: 14px;
-        }
-        .pd-skelBtn{
-          flex:1;
-          height: 38px;
-          border-radius: 14px;
-          background: linear-gradient(90deg, rgba(231,221,207,.7) 0%, rgba(255,248,237,.9) 50%, rgba(231,221,207,.7) 100%);
-          background-size: 200% 100%;
-          animation: pdShimmer 1.1s infinite linear;
-        }
-        .pd-skelBtn2{ opacity: .95; }
-
-        @keyframes pdShimmer{
-          0%{ background-position: 0% 0%; }
-          100%{ background-position: 200% 0%; }
+        /* ===== Responsivo ===== */
+        @media (max-width: 980px){
+          .pdLayout{
+            grid-template-columns: 1fr;
+          }
+          .pdBanner{
+            position: relative;
+            top: 0;
+          }
+          .pdGrid{
+            grid-template-columns: repeat(auto-fill, minmax(240px, 240px));
+          }
+          .pdCard{ width: 240px; }
         }
 
-        /* =========================
-           Responsivo
-           ========================= */
-        @media (max-width: 520px){
-          .pd-wrap{ padding: 26px 14px 34px; }
-          .pd-h2{ font-size: 24px; }
-          .pd-media{ height: 210px; }
+        @media (max-width: 560px){
+          .pdWrap{ padding: 26px 12px 34px; }
+          .pdH2{ font-size: 24px; }
+          .pdHeader{ align-items: flex-start; }
+          .pdCount{ margin-top: 4px; }
+          .pdGrid{
+            grid-template-columns: 1fr; /* no mobile fica 1 por linha */
+            justify-content: stretch;
+          }
+          .pdCard{ width: 100%; }
         }
       `}</style>
     </section>
