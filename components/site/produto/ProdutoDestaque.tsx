@@ -13,6 +13,7 @@ import {
   ShoppingCart,
   Loader2,
   Check,
+  TrendingUp,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -47,17 +48,18 @@ function SkeletonCard() {
       <style jsx>{`
         .pdCard--sk {
           pointer-events: none;
-          border: 1px solid rgba(0, 0, 0, 0.06);
           background: rgba(255, 250, 242, 0.9);
+          border: 1px solid rgba(0, 0, 0, 0.06);
           box-shadow: 0 10px 28px rgba(0, 0, 0, 0.05);
+          border-radius: 18px;
+          overflow: hidden;
         }
-
         .pdSk {
-          border-radius: 14px;
+          border-radius: 12px;
           background: linear-gradient(
             90deg,
             rgba(122, 41, 65, 0.05),
-            rgba(176, 141, 87, 0.12),
+            rgba(176, 141, 87, 0.14),
             rgba(122, 41, 65, 0.05)
           );
           background-size: 220% 100%;
@@ -66,7 +68,7 @@ function SkeletonCard() {
         .pdSk--img {
           height: 170px;
           width: 100%;
-          border-radius: 18px;
+          border-radius: 16px;
         }
         .pdSk--t {
           height: 16px;
@@ -85,7 +87,7 @@ function SkeletonCard() {
           height: 44px;
           width: 100%;
           margin-top: 14px;
-          border-radius: 16px;
+          border-radius: 14px;
         }
         @keyframes sh {
           0% {
@@ -203,6 +205,7 @@ export default function ProdutoDestaque() {
       />
 
       <div className="pdContainer">
+        {/* topo da vitrine */}
         <div className="pdHead">
           <div className="pdHeadLeft">
             <div className="pdKicker">
@@ -233,25 +236,28 @@ export default function ProdutoDestaque() {
           )}
         </div>
 
+        {/* vitrine */}
         <div className="pdGrid">
+          {/* hero menor e mais premium */}
           <aside className="pdHero">
             <div className="pdHeroTop">
               <div className="pdHeroIcon">
                 <Star size={18} />
               </div>
-              <span className="pdHeroChip">Seleção Premium</span>
+              <span className="pdHeroChip">
+                <TrendingUp size={14} /> Em alta
+              </span>
             </div>
 
-            <h3 className="pdHeroTitle">Destaques com acabamento premium</h3>
+            <h3 className="pdHeroTitle">Vitrine premium da semana</h3>
             <p className="pdHeroText">
-              Fundo creme ocupando toda a seção, com visual moderno e foco no
-              produto.
+              Seleção enxuta, elegante e com foco em conversão.
             </p>
 
             <div className="pdHeroBullets">
-              <span>✓ Card inteiro clicável</span>
-              <span>✓ CTA único para carrinho</span>
-              <span>✓ Responsivo sem overflow</span>
+              <span>✓ Imagem em destaque</span>
+              <span>✓ Preço com contraste</span>
+              <span>✓ CTA direto</span>
             </div>
 
             <Link href="/produtos/destaques" className="pdHeroCta">
@@ -259,6 +265,7 @@ export default function ProdutoDestaque() {
             </Link>
           </aside>
 
+          {/* cards */}
           <div className="pdCards">
             {loading ? (
               Array.from({ length: LIMITE }).map((_, i) => (
@@ -279,17 +286,12 @@ export default function ProdutoDestaque() {
                   const href = `/produto/${item.produto_slug}`;
 
                   return (
-                    <div
-                      className="pdCardOuter"
-                      key={item.id_destaque ?? produtoId}
-                    >
+                    <div className="pdCardOuter" key={item.id_destaque ?? produtoId}>
                       <Link
                         href={href}
                         className="pdCard"
                         aria-label={`Ver detalhes de ${item.produto_nome}`}
                       >
-                        <div className="pdBorder" />
-
                         <div className="pdBadge">
                           <Sparkles size={14} />
                           Destaque
@@ -329,9 +331,7 @@ export default function ProdutoDestaque() {
                             </div>
                           </div>
 
-                          <div className="pdHint">
-                            Clique no card para ver detalhes
-                          </div>
+                          <div className="pdHint">Clique para ver detalhes</div>
                         </div>
                       </Link>
 
@@ -355,7 +355,7 @@ export default function ProdutoDestaque() {
                           ) : (
                             <>
                               <ShoppingCart size={16} />
-                              Adicionar ao carrinho
+                              Adicionar
                             </>
                           )}
                         </button>
@@ -370,27 +370,24 @@ export default function ProdutoDestaque() {
       </div>
 
       <style jsx>{`
-        /* =============================== */
-        /* FUNDO CREME PEGANDO A SEÇÃO TODA */
-        /* =============================== */
+        /* fundo geral */
         .pdWrap {
           position: relative;
-          padding: 70px 0;
+          padding: 64px 0;
           background: #f8f3ea;
           overflow: hidden;
         }
-
         .pdWrap::before {
           content: "";
           position: absolute;
           inset: 0;
           background: radial-gradient(
-              820px 420px at 0% 0%,
-              rgba(176, 141, 87, 0.18),
+              900px 420px at 0% 0%,
+              rgba(176, 141, 87, 0.20),
               transparent 60%
             ),
             radial-gradient(
-              640px 340px at 100% 10%,
+              700px 380px at 100% 0%,
               rgba(122, 41, 65, 0.12),
               transparent 60%
             );
@@ -398,23 +395,14 @@ export default function ProdutoDestaque() {
           z-index: 0;
         }
 
-        /* =============================== */
-        /* CONTAINER SEM FUNDO BRANCO      */
-        /* =============================== */
         .pdContainer {
           position: relative;
           z-index: 1;
-          width: min(1200px, calc(100% - 40px));
+          width: min(1220px, calc(100% - 40px));
           margin: 0 auto;
-          padding: 0;
-          background: transparent;
-          border: none;
-          box-shadow: none;
         }
 
-        /* =============================== */
-        /* HEAD                            */
-        /* =============================== */
+        /* head */
         .pdHead {
           display: flex;
           justify-content: space-between;
@@ -423,7 +411,6 @@ export default function ProdutoDestaque() {
           flex-wrap: wrap;
           margin-bottom: 26px;
         }
-
         .pdKicker {
           display: inline-flex;
           align-items: center;
@@ -437,42 +424,38 @@ export default function ProdutoDestaque() {
           border: 1px solid rgba(122, 41, 65, 0.16);
           width: fit-content;
         }
-
         .pdTitle {
-          margin: 12px 0 6px;
-          font-size: clamp(1.85rem, 2.8vw, 2.55rem);
+          margin: 10px 0 6px;
+          font-size: clamp(1.9rem, 2.8vw, 2.6rem);
           font-weight: 950;
           letter-spacing: -0.03em;
           color: #0b1220;
         }
-
         .pdSub {
           margin: 0;
           max-width: 70ch;
           color: rgba(11, 18, 32, 0.72);
           line-height: 1.55;
         }
-
         .pdTrust {
           margin-top: 14px;
           display: flex;
           flex-wrap: wrap;
           gap: 10px;
         }
-
         .pdPill {
           display: inline-flex;
           align-items: center;
           gap: 8px;
           padding: 8px 12px;
           border-radius: 999px;
-          background: rgba(11, 18, 32, 0.04);
-          border: 1px solid rgba(11, 18, 32, 0.10);
-          color: rgba(11, 18, 32, 0.78);
-          font-weight: 800;
+          background: rgba(255, 255, 255, 0.55);
+          border: 1px solid rgba(0, 0, 0, 0.06);
+          color: rgba(11, 18, 32, 0.82);
+          font-weight: 850;
           font-size: 0.88rem;
+          backdrop-filter: blur(8px);
         }
-
         .pdAll {
           display: inline-flex;
           align-items: center;
@@ -481,40 +464,36 @@ export default function ProdutoDestaque() {
           border-radius: 999px;
           color: #fff;
           text-decoration: none;
-          font-weight: 900;
+          font-weight: 950;
           background: linear-gradient(135deg, #0b1220, #1f2937);
           box-shadow: 0 14px 42px rgba(17, 24, 39, 0.16);
           transition: transform 0.2s ease, box-shadow 0.2s ease;
           white-space: nowrap;
         }
-
         .pdAll:hover {
           transform: translateY(-2px);
           box-shadow: 0 22px 58px rgba(17, 24, 39, 0.22);
         }
 
-        /* =============================== */
-        /* GRID                            */
-        /* =============================== */
+        /* vitrine layout */
         .pdGrid {
           display: grid;
-          grid-template-columns: minmax(280px, 340px) 1fr;
+          grid-template-columns: 320px 1fr;
           gap: 22px;
           align-items: start;
         }
 
-        /* =============================== */
-        /* HERO                            */
-        /* =============================== */
+        /* hero */
         .pdHero {
-          border-radius: 26px;
-          padding: 22px;
+          border-radius: 24px;
+          padding: 20px;
           color: #fff;
           background: linear-gradient(160deg, #0b1220, #7a2941, #b08d57);
-          box-shadow: 0 20px 60px rgba(122, 41, 65, 0.22);
+          box-shadow: 0 22px 70px rgba(122, 41, 65, 0.20);
           border: 1px solid rgba(255, 255, 255, 0.18);
+          position: sticky;
+          top: 18px;
         }
-
         .pdHeroTop {
           display: flex;
           justify-content: space-between;
@@ -522,7 +501,6 @@ export default function ProdutoDestaque() {
           gap: 10px;
           margin-bottom: 12px;
         }
-
         .pdHeroIcon {
           width: 44px;
           height: 44px;
@@ -532,38 +510,36 @@ export default function ProdutoDestaque() {
           background: rgba(255, 255, 255, 0.14);
           border: 1px solid rgba(255, 255, 255, 0.18);
         }
-
         .pdHeroChip {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
           font-size: 0.78rem;
-          font-weight: 900;
+          font-weight: 950;
           padding: 7px 12px;
           border-radius: 999px;
           background: rgba(255, 255, 255, 0.14);
           border: 1px solid rgba(255, 255, 255, 0.18);
         }
-
         .pdHeroTitle {
           margin: 8px 0 8px;
-          font-size: 1.25rem;
+          font-size: 1.18rem;
           font-weight: 950;
           letter-spacing: -0.02em;
         }
-
         .pdHeroText {
           margin: 0 0 14px;
           opacity: 0.94;
           line-height: 1.4rem;
           font-size: 0.95rem;
         }
-
         .pdHeroBullets {
           display: grid;
           gap: 7px;
           margin-bottom: 16px;
-          font-weight: 800;
-          opacity: 0.95;
+          font-weight: 850;
+          opacity: 0.96;
         }
-
         .pdHeroCta {
           display: inline-flex;
           align-items: center;
@@ -578,70 +554,40 @@ export default function ProdutoDestaque() {
           font-weight: 950;
           transition: transform 0.2s ease, filter 0.2s ease;
         }
-
         .pdHeroCta:hover {
           transform: translateY(-2px);
           filter: brightness(0.98);
         }
 
-        /* =============================== */
-        /* CARDS                           */
-        /* =============================== */
+        /* cards */
         .pdCards {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
           gap: 18px;
-          align-content: start;
           min-width: 0;
         }
-
         .pdCardOuter {
           display: grid;
           grid-template-rows: 1fr auto;
           gap: 12px;
           min-width: 0;
         }
-
-        /* card com branco quente (combina com creme) */
         .pdCard {
           position: relative;
           display: grid;
           grid-template-rows: auto 1fr;
           min-height: 330px;
-          border-radius: 22px;
+          border-radius: 18px;
           overflow: hidden;
           text-decoration: none;
-
-          background: #fffaf2;
+          background: #fffaf2; /* branco quente */
           border: 1px solid rgba(0, 0, 0, 0.06);
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+          box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
           transition: transform 0.22s ease, box-shadow 0.22s ease;
         }
-
         .pdCard:hover {
           transform: translateY(-7px);
           box-shadow: 0 22px 60px rgba(0, 0, 0, 0.10);
-        }
-
-        /* borda premium */
-        .pdBorder {
-          content: "";
-          position: absolute;
-          inset: 0;
-          border-radius: 22px;
-          padding: 1px;
-          background: linear-gradient(
-            135deg,
-            rgba(122, 41, 65, 0.28),
-            rgba(176, 141, 87, 0.22),
-            rgba(11, 18, 32, 0.10)
-          );
-          -webkit-mask: linear-gradient(#000 0 0) content-box,
-            linear-gradient(#000 0 0);
-          -webkit-mask-composite: xor;
-          mask-composite: exclude;
-          pointer-events: none;
-          opacity: 0.9;
         }
 
         .pdBadge {
@@ -655,7 +601,7 @@ export default function ProdutoDestaque() {
           padding: 7px 10px;
           border-radius: 999px;
           font-size: 0.74rem;
-          font-weight: 900;
+          font-weight: 950;
           color: #0b1220;
           background: #f3e8d8;
           border: 1px solid rgba(0, 0, 0, 0.05);
@@ -673,14 +619,13 @@ export default function ProdutoDestaque() {
 
         .pdImageShell {
           height: 178px;
-          border-radius: 18px;
+          border-radius: 16px;
           background: #ffffff;
           border: 1px solid rgba(0, 0, 0, 0.04);
           display: grid;
           place-items: center;
           overflow: hidden;
         }
-
         .pdImageShell img {
           width: 86%;
           height: 86%;
@@ -688,7 +633,6 @@ export default function ProdutoDestaque() {
           transition: transform 0.35s ease, filter 0.35s ease;
           filter: saturate(1.03);
         }
-
         .pdCard:hover .pdImageShell img {
           transform: scale(1.06);
           filter: saturate(1.06) brightness(1.02);
@@ -700,7 +644,6 @@ export default function ProdutoDestaque() {
           gap: 10px;
           min-width: 0;
         }
-
         .pdTopLine {
           display: flex;
           align-items: flex-start;
@@ -708,7 +651,6 @@ export default function ProdutoDestaque() {
           gap: 10px;
           min-width: 0;
         }
-
         .pdName {
           margin: 0;
           font-size: 1rem;
@@ -721,19 +663,17 @@ export default function ProdutoDestaque() {
           overflow: hidden;
           min-width: 0;
         }
-
         .pdTag {
           flex: 0 0 auto;
           padding: 6px 10px;
           border-radius: 999px;
           font-size: 0.72rem;
-          font-weight: 900;
+          font-weight: 950;
           color: #0b1220;
           background: rgba(176, 141, 87, 0.14);
           border: 1px solid rgba(176, 141, 87, 0.22);
           white-space: nowrap;
         }
-
         .pdDesc {
           margin: 0;
           font-size: 0.84rem;
@@ -745,21 +685,18 @@ export default function ProdutoDestaque() {
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
-
         .pdPriceRow {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 12px;
         }
-
         .pdPrice {
           font-weight: 950;
           color: #7a2941;
           letter-spacing: -0.02em;
           font-size: 1.02rem;
         }
-
         .pdMini {
           display: inline-flex;
           align-items: center;
@@ -769,7 +706,6 @@ export default function ProdutoDestaque() {
           font-weight: 850;
           white-space: nowrap;
         }
-
         .pdDot {
           width: 8px;
           height: 8px;
@@ -777,24 +713,20 @@ export default function ProdutoDestaque() {
           background: #22c55e;
           box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.18);
         }
-
         .pdHint {
           margin-top: -2px;
           font-size: 0.78rem;
           color: rgba(11, 18, 32, 0.58);
-          font-weight: 800;
+          font-weight: 850;
         }
 
-        /* =============================== */
-        /* CTA / BOTÃO                     */
-        /* =============================== */
+        /* botão */
         .pdFooter {
           display: grid;
         }
-
         .pdBtn {
           height: 46px;
-          border-radius: 16px;
+          border-radius: 14px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -808,53 +740,47 @@ export default function ProdutoDestaque() {
           outline: none;
           width: 100%;
         }
-
         .pdBtn:hover {
           transform: translateY(-2px);
         }
-
         .pdBtnSolid {
           color: #fff;
           background: linear-gradient(135deg, #7a2941, #b08d57);
           border: none;
-          box-shadow: 0 15px 40px rgba(122, 41, 65, 0.25);
+          box-shadow: 0 15px 40px rgba(122, 41, 65, 0.22);
         }
-
         .pdBtnSolid:hover {
-          box-shadow: 0 22px 55px rgba(122, 41, 65, 0.35);
+          box-shadow: 0 22px 55px rgba(122, 41, 65, 0.34);
           filter: brightness(1.02);
         }
-
         .pdBtnSolid.ok {
           background: linear-gradient(135deg, #166534, #22c55e);
           box-shadow: 0 14px 44px rgba(34, 197, 94, 0.14);
         }
-
         .pdBtn:disabled {
           opacity: 0.78;
           cursor: not-allowed;
           transform: none;
         }
-
         .spin {
           animation: sp 0.9s linear infinite;
         }
-
         @keyframes sp {
           to {
             transform: rotate(360deg);
           }
         }
 
-        /* =============================== */
-        /* RESPONSIVO                      */
-        /* =============================== */
+        /* responsivo */
         @media (max-width: 1100px) {
           .pdGrid {
             grid-template-columns: 1fr;
           }
+          .pdHero {
+            position: relative;
+            top: auto;
+          }
         }
-
         @media (max-width: 780px) {
           .pdAll {
             width: 100%;
