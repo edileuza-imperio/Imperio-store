@@ -1,29 +1,31 @@
 // src/config/rotas.ts
 
+type Id = number | string;
+
 export const rotas = {
   menu: {
     listar: "/menu",
     ativos: "/menu/ativos",
 
-    buscar: (id: number | string) => `/menu/${id}`,
+    buscar: (id: Id) => `/menu/${id}`,
     criar: "/menu",
-    atualizar: (id: number | string) => `/menu/${id}`,
-    deletar: (id: number | string) => `/menu/${id}`,
+    atualizar: (id: Id) => `/menu/${id}`,
+    deletar: (id: Id) => `/menu/${id}`,
 
     comItens: "/menu/com-itens",
 
-    itensDoMenu: (menuId: number | string) => `/menu/${menuId}/itens`,
-    criarItem: (menuId: number | string) => `/menu/${menuId}/itens`,
-    atualizarItem: (itemId: number | string) => `/menu/item/${itemId}`,
-    deletarItem: (itemId: number | string) => `/menu/item/${itemId}`,
+    itensDoMenu: (menuId: Id) => `/menu/${menuId}/itens`,
+    criarItem: (menuId: Id) => `/menu/${menuId}/itens`,
+    atualizarItem: (itemId: Id) => `/menu/item/${itemId}`,
+    deletarItem: (itemId: Id) => `/menu/item/${itemId}`,
   },
 
   usuariosSistema: {
     listar: "/usuarios-sistema",
-    buscar: (id: number | string) => `/usuarios-sistema/${id}`,
+    buscar: (id: Id) => `/usuarios-sistema/${id}`,
     criar: "/usuarios-sistema",
-    atualizar: (id: number | string) => `/usuarios-sistema/${id}`,
-    deletar: (id: number | string) => `/usuarios-sistema/${id}`,
+    atualizar: (id: Id) => `/usuarios-sistema/${id}`,
+    deletar: (id: Id) => `/usuarios-sistema/${id}`,
   },
 
   auth: {
@@ -41,13 +43,13 @@ export const rotas = {
     listar: "/banners",
     ativos: "/banners/ativos",
 
-    buscar: (id: number | string) => `/banners/${id}`,
+    buscar: (id: Id) => `/banners/${id}`,
     criar: "/banners",
-    atualizar: (id: number | string) => `/banners/${id}`,
-    deletar: (id: number | string) => `/banners/${id}`,
+    atualizar: (id: Id) => `/banners/${id}`,
+    deletar: (id: Id) => `/banners/${id}`,
 
-    incrementarView: (id: number | string) => `/banners/${id}/view`,
-    incrementarClick: (id: number | string) => `/banners/${id}/click`,
+    incrementarView: (id: Id) => `/banners/${id}/view`,
+    incrementarClick: (id: Id) => `/banners/${id}/click`,
   },
 
   categorias: {
@@ -55,10 +57,10 @@ export const rotas = {
     ativas: "/categorias/ativas",
     ordenadas: "/categorias/ordenadas",
 
-    buscar: (id: number | string) => `/categorias/${id}`,
+    buscar: (id: Id) => `/categorias/${id}`,
     criar: "/categorias",
-    atualizar: (id: number | string) => `/categorias/${id}`,
-    deletar: (id: number | string) => `/categorias/${id}`,
+    atualizar: (id: Id) => `/categorias/${id}`,
+    deletar: (id: Id) => `/categorias/${id}`,
   },
 
   cupons: {
@@ -66,6 +68,6 @@ export const rotas = {
     ativos: "/cupons/ativos",
     inativos: "/cupons/inativos",
 
-    buscarPorCodigo: (codigo: string) => `/cupom/${codigo}`,
+    buscarPorCodigo: (codigo: string) => `/cupom/${encodeURIComponent(codigo)}`,
   },
 } as const;
