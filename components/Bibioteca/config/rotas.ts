@@ -75,8 +75,6 @@ export const rotas = {
   produtos: {
     listar: "/produtos",
     buscar: (id: Id) => `/produtos/${id}`,
-
-    // backend: /produto/slug/{slug}
     buscarPorSlugApi: (slug: string) =>
       `/produto/slug/${encodeURIComponent(slug)}`,
 
