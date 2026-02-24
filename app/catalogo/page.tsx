@@ -6,6 +6,9 @@ import Link from "next/link";
 import api from "@/Api/conectar";
 import { rotas } from "@/components/Bibioteca/config/rotas";
 
+import Navbar from "@/components/site/menu/navbar";
+import FooterPrincipal from "@/components/site/Rodape/Footer";
+
 type Produto = {
   id_produto?: number;
   id?: number;
@@ -52,7 +55,6 @@ const STATUS = {
   CATALOGO_NAO: 6,
 } as const;
 
-/** parse robusto: 23.00, 23,00, 1.234,56, 1234.56 */
 function parseNumber(v: unknown): number | null {
   if (v === null || v === undefined) return null;
   if (typeof v === "number") return Number.isFinite(v) ? v : null;
@@ -106,20 +108,20 @@ function buildImageUrl(path: string | null | undefined): string | null {
 function formatEstoque(
   estoque: unknown,
   ilimitado: unknown
-): { texto: string; semEstoque: boolean; ilimitado: boolean } {
+): { texto: string; semEstoque: boolean } {
   const ilimit =
     ilimitado === true ||
     ilimitado === 1 ||
     ilimitado === "1" ||
     ilimitado === "true";
 
-  if (ilimit) return { texto: "Estoque ilimitado", semEstoque: false, ilimitado: true };
+  if (ilimit) return { texto: "Estoque ilimitado", semEstoque: false };
 
   const n = asInt(estoque);
-  if (n === null) return { texto: "Estoque: —", semEstoque: false, ilimitado: false };
-  if (n <= 0) return { texto: "Sem estoque", semEstoque: true, ilimitado: false };
+  if (n === null) return { texto: "Estoque: —", semEstoque: false };
+  if (n <= 0) return { texto: "Sem estoque", semEstoque: true };
 
-  return { texto: `Estoque: ${n}`, semEstoque: false, ilimitado: false };
+  return { texto: `Estoque: ${n}`, semEstoque: false };
 }
 
 function calcDiscountPercent(preco: number, promo: number) {
@@ -156,13 +158,11 @@ export default function CatalogoPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [addingId, setAddingId] = useState<number | null>(null);
 
-  // filtros
   const [q, setQ] = useState("");
-  const [categoria, setCategoria] = useState<string>(""); // id como string
+  const [categoria, setCategoria] = useState<string>("");
   const [precoMin, setPrecoMin] = useState<string>("");
   const [precoMax, setPrecoMax] = useState<string>("");
 
-  // toast
   const [toast, setToast] = useState<{ show: boolean; text: string }>({
     show: false,
     text: "",
@@ -241,21 +241,20 @@ export default function CatalogoPage() {
     const maxN = parseNumber(precoMax);
 
     return produtos.filter((p) => {
-      // filtros catálogo/status (opcional)
       const statusId = asInt(p.statusid);
       const catalogoId = asInt(p.catalogo);
+
       const ativo = statusId === STATUS.ATIVO;
       const noCatalogo = catalogoId === STATUS.CATALOGO_SIM;
+
       if (!ativo || !noCatalogo) return false;
 
       if (categoria) {
         if (String(p.categoria_id ?? "") !== categoria) return false;
       }
 
-      const nomeOk = !qn || (p.nome || "").toLowerCase().includes(qn);
-      if (!nomeOk) return false;
+      if (qn && !(p.nome || "").toLowerCase().includes(qn)) return false;
 
-      // preço: usa promo se existir, senão preço normal
       const precoBase = parseNumber(p.preco_promocional) ?? parseNumber(p.preco);
       if (minN != null && (precoBase ?? 0) < minN) return false;
       if (maxN != null && (precoBase ?? 0) > maxN) return false;
@@ -267,6 +266,13 @@ export default function CatalogoPage() {
   async function addCarrinho(p: Produto) {
     const id = (p.id_produto ?? p.id) as number | undefined;
     if (!id) return;
+
+    // trava por estoque
+    const { semEstoque } = formatEstoque(p.estoque, p.ilimitado);
+    if (semEstoque) {
+      showToast("⚠️ Produto sem estoque");
+      return;
+    }
 
     try {
       setAddingId(id);
@@ -284,10 +290,12 @@ export default function CatalogoPage() {
     setCategoria("");
     setPrecoMin("");
     setPrecoMax("");
+    showToast("🧼 Filtros limpos");
   }
 
   return (
     <>
+      {/* ✅ Estilos (creme) */}
       <style jsx global>{`
         :root{
           --cream-1:#fffaf1;
@@ -300,9 +308,6 @@ export default function CatalogoPage() {
           --accent:#b88962;
           --accent2:#d1a67f;
 
-          --card:#fff8ed;
-          --line: rgba(111, 92, 73, .16);
-
           --shadow: 0 14px 46px rgba(0,0,0,.10);
           --shadow2: 0 20px 62px rgba(0,0,0,.14);
         }
@@ -312,6 +317,26 @@ export default function CatalogoPage() {
           background: radial-gradient(1200px 520px at 18% 0%, var(--cream-1) 0%, var(--cream-2) 55%, var(--cream-3) 100%);
           color: var(--ink);
           font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        }
+
+        .siteShell{
+          min-height: 100vh;
+          display:flex;
+          flex-direction: column;
+        }
+
+        .siteHeader{
+          position: relative;
+          z-index: 9999;
+        }
+
+        /* Se seu Navbar for fixed e ficar por cima, ajuste aqui:
+           --header-safe: 76px; e use padding-top.
+           Se NÃO for fixed, pode ficar 0.
+        */
+        .siteMain{
+          flex:1;
+          padding-top: 0px;
         }
 
         .page{
@@ -384,17 +409,7 @@ export default function CatalogoPage() {
           padding: 16px;
         }
 
-        .filters:before{
-          content:"";
-          position:absolute;
-          inset:-1px;
-          border-radius: 24px;
-          background: radial-gradient(520px 220px at 22% 10%, rgba(255,255,255,.65), transparent 60%);
-          pointer-events:none;
-        }
-
         .filtersTitle{
-          position:relative;
           font-size: 16px;
           font-weight: 1000;
           margin:0 0 10px;
@@ -402,7 +417,6 @@ export default function CatalogoPage() {
         }
 
         .field{
-          position:relative;
           display:flex;
           flex-direction:column;
           gap: 6px;
@@ -461,9 +475,7 @@ export default function CatalogoPage() {
         }
         .btnPrimary:hover{ filter: brightness(1.02); }
 
-        .right{
-          min-width:0;
-        }
+        .right{ min-width:0; }
 
         .grid{
           display:grid;
@@ -481,23 +493,6 @@ export default function CatalogoPage() {
           box-shadow: var(--shadow);
           transition: transform .18s ease, box-shadow .18s ease;
         }
-        .card:before{
-          content:"";
-          position:absolute;
-          inset:0;
-          border-radius: 24px;
-          padding: 1px;
-          background: linear-gradient(135deg,
-            rgba(210, 166, 127, .55),
-            rgba(255,255,255,.55),
-            rgba(184, 137, 98, .35));
-          -webkit-mask:
-            linear-gradient(#000 0 0) content-box,
-            linear-gradient(#000 0 0);
-          -webkit-mask-composite: xor;
-                  mask-composite: exclude;
-          pointer-events:none;
-        }
         .card:hover{
           transform: translateY(-3px);
           box-shadow: var(--shadow2);
@@ -510,18 +505,6 @@ export default function CatalogoPage() {
           overflow:hidden;
           text-decoration:none;
           display:block;
-        }
-
-        .glow{
-          position:absolute;
-          inset:-30px -50px auto auto;
-          width: 180px;
-          height: 180px;
-          background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.7), transparent 60%);
-          filter: blur(2px);
-          opacity: .9;
-          pointer-events:none;
-          z-index: 1;
         }
 
         .img{
@@ -541,7 +524,6 @@ export default function CatalogoPage() {
           background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,.22) 100%);
           opacity: .22;
           pointer-events:none;
-          z-index: 2;
         }
 
         .badges{
@@ -571,13 +553,10 @@ export default function CatalogoPage() {
         .badgeDark{
           background: rgba(30, 20, 12, .92);
           color:#fff;
-          border-color: rgba(0,0,0,.0);
           box-shadow: 0 12px 22px rgba(0,0,0,.20);
         }
 
-        .body{
-          padding: 14px 14px 16px;
-        }
+        .body{ padding: 14px 14px 16px; }
 
         .name{
           margin: 0;
@@ -679,7 +658,7 @@ export default function CatalogoPage() {
         .ghost{
           background: rgba(255,255,255,.78);
           color: var(--ink);
-          border-color: rgba(111,92,73,.18);
+          border: 1px solid rgba(111,92,73,.18);
         }
         .ghost:hover{ filter: brightness(.985); }
 
@@ -740,7 +719,6 @@ export default function CatalogoPage() {
           .layout{ grid-template-columns: 1fr; }
           .filters{ position:relative; top:0; }
         }
-
         @media (max-width: 560px){
           .h1{ font-size: 24px; }
           .grid{ grid-template-columns: 1fr; justify-content: stretch; }
@@ -748,210 +726,211 @@ export default function CatalogoPage() {
         }
       `}</style>
 
-      <main className="page">
-        <div className="top">
-          <div>
-            <h1 className="h1">Catálogo</h1>
-            <p className="sub">Produtos no catálogo (ativos) • tons creme</p>
-          </div>
+      <div className="siteShell">
+        <header className="siteHeader">
+          <Navbar />
+        </header>
 
-          <div className="pillCount">
-            <span className="dot" />
-            {loading ? "Carregando..." : `${filtrados.length} produto(s)`}
-          </div>
-        </div>
-
-        <div className="layout">
-          {/* filtros */}
-          <aside className="filters">
-            <div className="filtersTitle">Filtros</div>
-
-            <div className="field">
-              <div className="label">Buscar</div>
-              <input
-                className="input"
-                placeholder="Ex: cesta, pelúcia..."
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
-            </div>
-
-            <div className="field">
-              <div className="label">Categoria</div>
-              <select
-                className="select"
-                value={categoria}
-                onChange={(e) => setCategoria(e.target.value)}
-              >
-                <option value="">Todas</option>
-                {categorias.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="row2">
-              <div className="field">
-                <div className="label">Preço mín.</div>
-                <input
-                  className="input"
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  value={precoMin}
-                  onChange={(e) => setPrecoMin(e.target.value)}
-                />
+        <div className="siteMain">
+          <main className="page">
+            <div className="top">
+              <div>
+                <h1 className="h1">Catálogo</h1>
+                <p className="sub">Produtos no catálogo (ativos) • tons creme</p>
               </div>
 
-              <div className="field">
-                <div className="label">Preço máx.</div>
-                <input
-                  className="input"
-                  inputMode="decimal"
-                  placeholder="999,00"
-                  value={precoMax}
-                  onChange={(e) => setPrecoMax(e.target.value)}
-                />
+              <div className="pillCount">
+                <span className="dot" />
+                {loading ? "Carregando..." : `${filtrados.length} produto(s)`}
               </div>
             </div>
 
-            <div className="btnRow">
-              <button className="btn" onClick={limparFiltros} type="button">
-                Limpar
-              </button>
-              <button
-                className="btn btnPrimary"
-                onClick={() => showToast("✅ Filtros aplicados")}
-                type="button"
-              >
-                Aplicar
-              </button>
-            </div>
-          </aside>
+            <div className="layout">
+              <aside className="filters">
+                <div className="filtersTitle">Filtros</div>
 
-          {/* produtos */}
-          <section className="right">
-            {erro ? <div className="alert alertErr">❌ {erro}</div> : null}
-            {loading ? <div className="alert">Carregando produtos…</div> : null}
+                <div className="field">
+                  <div className="label">Buscar</div>
+                  <input
+                    className="input"
+                    placeholder="Ex: cesta, pelúcia..."
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                  />
+                </div>
 
-            {!loading && !erro && filtrados.length === 0 ? (
-              <div className="alert">
-                Nenhum produto encontrado com os filtros atuais.
-              </div>
-            ) : null}
+                <div className="field">
+                  <div className="label">Categoria</div>
+                  <select
+                    className="select"
+                    value={categoria}
+                    onChange={(e) => setCategoria(e.target.value)}
+                  >
+                    <option value="">Todas</option>
+                    {categorias.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <div className="grid">
-              {!loading &&
-                !erro &&
-                filtrados.map((p, idx) => {
-                  const id = (p.id_produto ?? p.id ?? idx) as number;
-                  const slug = (p.slug || "").trim();
+                <div className="row2">
+                  <div className="field">
+                    <div className="label">Preço mín.</div>
+                    <input
+                      className="input"
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      value={precoMin}
+                      onChange={(e) => setPrecoMin(e.target.value)}
+                    />
+                  </div>
 
-                  const preco = parseNumber(p.preco);
-                  const promo = parseNumber(p.preco_promocional);
-                  const temPromo = promo != null && preco != null && promo > 0 && promo < preco;
+                  <div className="field">
+                    <div className="label">Preço máx.</div>
+                    <input
+                      className="input"
+                      inputMode="decimal"
+                      placeholder="999,00"
+                      value={precoMax}
+                      onChange={(e) => setPrecoMax(e.target.value)}
+                    />
+                  </div>
+                </div>
 
-                  const precoFinal = temPromo ? promo : preco;
-                  const desconto = temPromo && precoFinal != null ? calcDiscountPercent(preco!, promo!) : 0;
+                <div className="btnRow">
+                  <button className="btn" onClick={limparFiltros} type="button">
+                    Limpar
+                  </button>
+                  <button className="btn btnPrimary" onClick={() => showToast("✅ Filtros aplicados")} type="button">
+                    Aplicar
+                  </button>
+                </div>
+              </aside>
 
-                  const { texto: estoqueTexto, semEstoque } = formatEstoque(p.estoque, p.ilimitado);
+              <section className="right">
+                {erro ? <div className="alert alertErr">❌ {erro}</div> : null}
+                {loading ? <div className="alert">Carregando produtos…</div> : null}
 
-                  const detalhesHref = slug ? rotas.produtos.paginas.produto(slug) : "#";
-                  const podeComprar = !semEstoque;
+                {!loading && !erro && filtrados.length === 0 ? (
+                  <div className="alert">Nenhum produto encontrado com os filtros atuais.</div>
+                ) : null}
 
-                  const img = buildImageUrl(p.imagem);
-                  const catText =
-                    (p.categoria_nome || "").trim() ||
-                    (p.categoria_id != null ? `Categoria #${p.categoria_id}` : "Sem categoria");
+                <div className="grid">
+                  {!loading &&
+                    !erro &&
+                    filtrados.map((p, idx) => {
+                      const id = (p.id_produto ?? p.id ?? idx) as number;
+                      const slug = (p.slug || "").trim();
 
-                  return (
-                    <article className="card" key={id}>
-                      <a className="media" href={detalhesHref} aria-label={`Ver ${p.nome}`}>
-                        <div className="glow" />
-                        {img ? (
-                          <img
-                            className="img"
-                            src={img}
-                            alt={p.nome}
-                            loading="lazy"
-                            onError={(e) => {
-                              const t = e.currentTarget;
-                              if (t.src !== placeholderSvg) t.src = placeholderSvg;
-                            }}
-                          />
-                        ) : (
-                          <img className="img" src={placeholderSvg} alt="Sem imagem" />
-                        )}
-                        <div className="overlay" />
+                      const preco = parseNumber(p.preco);
+                      const promo = parseNumber(p.preco_promocional);
+                      const temPromo = promo != null && preco != null && promo > 0 && promo < preco;
 
-                        <div className="badges">
-                          {desconto > 0 ? (
-                            <div className="badge badgeDark">-{desconto}%</div>
-                          ) : (
-                            <div className="badge">Catálogo</div>
-                          )}
+                      const precoFinal = temPromo ? promo : preco;
+                      const desconto = temPromo && precoFinal != null ? calcDiscountPercent(preco!, promo!) : 0;
 
-                          {semEstoque ? <div className="badge">Esgotado</div> : null}
-                        </div>
-                      </a>
+                      const { texto: estoqueTexto, semEstoque } = formatEstoque(p.estoque, p.ilimitado);
 
-                      <div className="body">
-                        <h3 className="name">{p.nome}</h3>
-                        <p className="desc">{p.descricao || "Sem descrição."}</p>
+                      const detalhesHref = slug ? rotas.produtos.paginas.produto(slug) : "#";
+                      const img = buildImageUrl(p.imagem);
 
-                        <div className="priceRow">
-                          <div className="prices">
-                            <div className="price">
-                              {precoFinal != null ? brl(precoFinal) : "Preço sob consulta"}
+                      const catText =
+                        (p.categoria_nome || "").trim() ||
+                        (p.categoria_id != null ? `Categoria #${p.categoria_id}` : "Sem categoria");
+
+                      return (
+                        <article className="card" key={id}>
+                          <a className="media" href={detalhesHref} aria-label={`Ver ${p.nome}`}>
+                            {img ? (
+                              <img
+                                className="img"
+                                src={img}
+                                alt={p.nome}
+                                loading="lazy"
+                                onError={(e) => {
+                                  const t = e.currentTarget;
+                                  if (t.src !== placeholderSvg) t.src = placeholderSvg;
+                                }}
+                              />
+                            ) : (
+                              <img className="img" src={placeholderSvg} alt="Sem imagem" />
+                            )}
+
+                            <div className="overlay" />
+
+                            <div className="badges">
+                              {desconto > 0 ? (
+                                <div className="badge badgeDark">-{desconto}%</div>
+                              ) : (
+                                <div className="badge">Catálogo</div>
+                              )}
+
+                              {semEstoque ? <div className="badge">Esgotado</div> : null}
                             </div>
-                            {temPromo && preco != null ? <div className="old">{brl(preco)}</div> : null}
+                          </a>
+
+                          <div className="body">
+                            <h3 className="name">{p.nome}</h3>
+                            <p className="desc">{p.descricao || "Sem descrição."}</p>
+
+                            <div className="priceRow">
+                              <div className="prices">
+                                <div className="price">
+                                  {precoFinal != null ? brl(precoFinal) : "Preço sob consulta"}
+                                </div>
+                                {temPromo && preco != null ? <div className="old">{brl(preco)}</div> : null}
+                              </div>
+
+                              <div className="pill">{temPromo ? "Oferta" : "Seleção"}</div>
+                            </div>
+
+                            <div className="meta">
+                              <span title={estoqueTexto}>{estoqueTexto}</span>
+                              <span title={catText}>{catText}</span>
+                            </div>
+
+                            <div className="actions">
+                              {slug ? (
+                                <Link href={detalhesHref} className="aBtn ghost">
+                                  <IconEye />
+                                  Detalhes
+                                </Link>
+                              ) : (
+                                <button className="aBtn ghost" disabled>
+                                  <IconEye />
+                                  Detalhes
+                                </button>
+                              )}
+
+                              <button
+                                className="aBtn primary"
+                                onClick={() => addCarrinho(p)}
+                                disabled={semEstoque || addingId === id}
+                              >
+                                <IconCart />
+                                {semEstoque
+                                  ? "Indisponível"
+                                  : addingId === id
+                                  ? "Adicionando…"
+                                  : "Adicionar"}
+                              </button>
+                            </div>
                           </div>
-
-                          <div className="pill">{temPromo ? "Oferta" : "Seleção"}</div>
-                        </div>
-
-                        <div className="meta">
-                          <span title={estoqueTexto}>{estoqueTexto}</span>
-                          <span title={catText}>{catText}</span>
-                        </div>
-
-                        <div className="actions">
-                          {slug ? (
-                            <Link href={detalhesHref} className="aBtn ghost">
-                              <IconEye />
-                              Detalhes
-                            </Link>
-                          ) : (
-                            <button className="aBtn ghost" disabled>
-                              <IconEye />
-                              Detalhes
-                            </button>
-                          )}
-
-                          <button
-                            className="aBtn primary"
-                            onClick={() => addCarrinho(p)}
-                            disabled={!podeComprar || addingId === id}
-                          >
-                            <IconCart />
-                            {semEstoque
-                              ? "Indisponível"
-                              : addingId === id
-                              ? "Adicionando…"
-                              : "Adicionar"}
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
+                        </article>
+                      );
+                    })}
+                </div>
+              </section>
             </div>
-          </section>
+
+            <div className={`toast ${toast.show ? "toastShow" : ""}`}>{toast.text}</div>
+          </main>
         </div>
 
-        <div className={`toast ${toast.show ? "toastShow" : ""}`}>{toast.text}</div>
-      </main>
+        <FooterPrincipal />
+      </div>
     </>
   );
 }
