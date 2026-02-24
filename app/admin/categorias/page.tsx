@@ -6,6 +6,7 @@ import { FaEdit, FaPlus, FaTrash, FaLayerGroup, FaBox, FaSearch } from "react-ic
 import api from "@/Api/conectar";
 import { toast, ToastContainer } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
+import { rotas } from "@/components/Bibioteca/config/rotas";
 
 interface Categoria {
   id_categoria: number;
@@ -24,14 +25,21 @@ export default function CategoriasPage() {
 
   useEffect(() => {
     carregarCategorias();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const carregarCategorias = async () => {
     try {
-      const res = await api.get("/admin/categorias");
-      setCategorias(res.data.dados || []);
-    } catch {
+      setLoading(true);
+      const res = await api.get(rotas.admin.api.categoriasListar, { withCredentials: true });
+
+      // seu backend usa Mensagemjson("...", 200, $dados)
+      // então geralmente vem { mensagem, status, dados }
+      setCategorias(res.data?.dados ?? []);
+    } catch (err: any) {
+      console.error(err?.response?.data || err?.message || err);
       toast.error("Erro ao carregar categorias");
+      setCategorias([]);
     } finally {
       setLoading(false);
     }
@@ -41,24 +49,40 @@ export default function CategoriasPage() {
     if (!confirm("Deseja realmente excluir esta categoria?")) return;
 
     try {
-      await api.delete(`/admin/categorias/${id}`);
-      setCategorias(prev => prev.filter(c => c.id_categoria !== id));
+      // ✅ nova rota
+      await api.delete(rotas.admin.api.categoriaRemover(id), { withCredentials: true });
+
+      setCategorias((prev) => prev.filter((c) => c.id_categoria !== id));
       toast.success("Categoria excluída com sucesso!");
-    } catch {
+    } catch (err: any) {
+      console.error(err?.response?.data || err?.message || err);
       toast.error("Não foi possível excluir a categoria");
     }
   };
 
+  // (Opcional) soft delete - se você quiser usar desativar ao invés de deletar
+  // const desativarCategoria = async (id: number) => {
+  //   if (!confirm("Deseja desativar esta categoria?")) return;
+  //   try {
+  //     await api.put(rotas.admin.api.categoriaDesativar(id), null, { withCredentials: true });
+  //     toast.info("Categoria desativada");
+  //     await carregarCategorias();
+  //   } catch (err: any) {
+  //     console.error(err?.response?.data || err?.message || err);
+  //     toast.error("Não foi possível desativar a categoria");
+  //   }
+  // };
+
   const categoriasFiltradas = useMemo(() => {
     const term = busca.trim().toLowerCase();
 
-    let lista = categorias.filter(c =>
+    let lista = categorias.filter((c) =>
       term ? c.nome?.toLowerCase().includes(term) : true
     );
 
     lista = [...lista].sort((a, b) => {
       if (ordenar === "produtos") return (b.total_produtos ?? 0) - (a.total_produtos ?? 0);
-      return a.nome.localeCompare(b.nome);
+      return (a.nome ?? "").localeCompare(b.nome ?? "");
     });
 
     return lista;
@@ -145,7 +169,7 @@ export default function CategoriasPage() {
         </div>
       ) : (
         <div className="row g-4">
-          {categoriasFiltradas.map(cat => (
+          {categoriasFiltradas.map((cat) => (
             <div key={cat.id_categoria} className="col-12 col-sm-6 col-md-4 col-xl-3">
               <div className="catui__card">
                 {/* Top */}
@@ -159,13 +183,15 @@ export default function CategoriasPage() {
                   </div>
 
                   <div className="catui__countBox">
-                    <span className="catui__countNum">{cat.total_produtos}</span>
+                    <span className="catui__countNum">{cat.total_produtos ?? 0}</span>
                     <small className="catui__countLabel">produtos</small>
                   </div>
                 </div>
 
                 {/* Nome */}
-                <h5 className="catui__name" title={cat.nome}>{cat.nome}</h5>
+                <h5 className="catui__name" title={cat.nome}>
+                  {cat.nome}
+                </h5>
 
                 {/* Actions */}
                 <div className="catui__actions">
@@ -203,6 +229,7 @@ export default function CategoriasPage() {
 
       {/* ===== ESTILO GLOBAL (isolado por .catui) ===== */}
       <style jsx global>{`
+        /* (seu CSS pode ficar igual — não precisa mexer) */
         .catui{
           min-height: 100vh;
           background: #f6f7fb;
@@ -210,7 +237,6 @@ export default function CategoriasPage() {
           color: #111827;
           font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
         }
-
         .catui *{ box-sizing: border-box; }
 
         .catui__header{
@@ -225,7 +251,6 @@ export default function CategoriasPage() {
           flex-wrap:wrap;
           box-shadow: 0 10px 24px rgba(17,24,39,.06);
         }
-
         .catui__kicker{
           font-size: 12px;
           color: #6b7280;
@@ -233,27 +258,23 @@ export default function CategoriasPage() {
           letter-spacing: .12em;
           text-transform: uppercase;
         }
-
         .catui__title{
           margin: 4px 0 0;
           font-size: 24px;
           font-weight: 900;
           letter-spacing: -.02em;
         }
-
         .catui__subtitle{
           margin: 6px 0 0;
           color: #6b7280;
           font-weight: 600;
         }
-
         .catui__headerActions{
           display:flex;
           align-items:center;
           gap:12px;
           flex-wrap:wrap;
         }
-
         .catui__pill{
           display:flex;
           gap:10px;
@@ -264,7 +285,6 @@ export default function CategoriasPage() {
           background: #fafafa;
           min-width: 240px;
         }
-
         .catui__pillNum{
           width: 38px;
           height: 38px;
@@ -277,7 +297,6 @@ export default function CategoriasPage() {
           border: 1px solid #dbeafe;
           font-weight: 900;
         }
-
         .catui__pillText{
           display:flex;
           flex-direction:column;
@@ -286,7 +305,6 @@ export default function CategoriasPage() {
           color: #6b7280;
           font-weight: 700;
         }
-
         .catui__pillText b{
           font-size: 13px;
           color:#111827;
@@ -300,7 +318,6 @@ export default function CategoriasPage() {
           justify-content:space-between;
           flex-wrap:wrap;
         }
-
         .catui__search{
           flex: 1;
           min-width: 280px;
@@ -313,9 +330,7 @@ export default function CategoriasPage() {
           padding: 10px 12px;
           box-shadow: 0 10px 24px rgba(17,24,39,.06);
         }
-
         .catui__searchIcon{ color:#6b7280; }
-
         .catui__input{
           width:100%;
           border:none;
@@ -336,13 +351,11 @@ export default function CategoriasPage() {
           padding: 10px 12px;
           box-shadow: 0 10px 24px rgba(17,24,39,.06);
         }
-
         .catui__sortLabel{
           color:#6b7280;
           font-size: 12px;
           font-weight: 900;
         }
-
         .catui__chipBtn{
           border: 1px solid #e5e7eb;
           background: #f9fafb;
@@ -361,7 +374,6 @@ export default function CategoriasPage() {
           color:#1d4ed8;
         }
 
-        /* Buttons */
         .catui__btn{
           border: none;
           border-radius: 14px;
@@ -397,7 +409,6 @@ export default function CategoriasPage() {
           border-color:#dbeafe;
         }
 
-        /* Card */
         .catui__card{
           background:#fff;
           border:1px solid #e5e7eb;
@@ -421,7 +432,6 @@ export default function CategoriasPage() {
           align-items:center;
           margin-bottom: 10px;
         }
-
         .catui__icon{
           width: 44px;
           height: 44px;
@@ -488,14 +498,11 @@ export default function CategoriasPage() {
           background:#eff6ff; border-color:#dbeafe;
         }
 
-        .catui__iconBtn--delete{
-          color:#ef4444;
-        }
+        .catui__iconBtn--delete{ color:#ef4444; }
         .catui__iconBtn--delete:hover{
           background:#fef2f2; border-color:#fecaca;
         }
 
-        /* Loading / Empty */
         .catui__loading{
           margin-top: 14px;
           background:#fff;
@@ -507,7 +514,6 @@ export default function CategoriasPage() {
           align-items:center;
           box-shadow: 0 10px 24px rgba(17,24,39,.06);
         }
-
         .catui__spinner{
           width: 18px;
           height: 18px;

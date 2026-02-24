@@ -5,26 +5,60 @@ export const admin = {
   api: {
     base: "/admin",
 
+    // =========================
+    // DASHBOARD
+    // =========================
     index: "/admin",
     dashboard: "/admin/dashboard",
     cards: "/admin/cards",
 
+    // =========================
+    // PRODUTOS
+    // =========================
     produtos: "/admin/produtos",
     produtosStatus: "/admin/produtos/status",
 
-    // ✅ Catálogo
+    produtoCriar: "/admin/produto/criar",
+    produtoRemover: (produtoId: Id) =>
+      `/admin/produto/${produtoId}/remover`,
+
+    // =========================
+    // CATÁLOGO
+    // =========================
     produtosCatalogo: "/admin/produtos/catalogo",
+    catalogoSim: (produtoId: Id) =>
+      `/admin/produtos/${produtoId}/catalogo/sim`,
+    catalogoNao: (produtoId: Id) =>
+      `/admin/produtos/${produtoId}/catalogo/nao`,
 
-    // ✅ Destaques
+    // =========================
+    // DESTAQUES
+    // =========================
+    destaquesListar: "/admin/produtos/destaques",
     destaquesCriar: "/admin/produtos/destaques/criar",
-    destaqueRemover: (idDestaque: Id) => `/admin/produtos/destaques/${idDestaque}/remover`,
+    destaqueRemover: (idDestaque: Id) =>
+      `/admin/produtos/destaques/${idDestaque}/remover`,
 
-    // ✅ Catálogo (sim/não)
-    catalogoSim: (produtoId: Id) => `/admin/produtos/${produtoId}/catalogo/sim`,
-    catalogoNao: (produtoId: Id) => `/admin/produtos/${produtoId}/catalogo/nao`,
+    // =========================
+    // CATEGORIAS (NOVO CRUD)
+    // =========================
+    categoriasListar: "/admin/categorias",
+    categoriasAtivas: "/admin/categorias/ativas",
+    categoriasOrdenadas: "/admin/categorias/ordenadas",
 
-    // ✅ Remover produto
-    produtoRemover: (produtoId: Id) => `/admin/produto/${produtoId}/remover`,
+    categoriaBuscar: (id: Id) =>
+      `/admin/categorias/${id}`,
+
+    categoriaCriar: "/admin/categorias",
+
+    categoriaAtualizar: (id: Id) =>
+      `/admin/categorias/${id}`,
+
+    categoriaDesativar: (id: Id) =>
+      `/admin/categorias/${id}/desativar`,
+
+    categoriaRemover: (id: Id) =>
+      `/admin/categorias/${id}/remover`,
   },
 
   paginas: {
