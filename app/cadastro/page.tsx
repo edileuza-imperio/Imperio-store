@@ -1,4 +1,3 @@
-// app/cadastro/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -41,15 +40,14 @@ export default function CadastroPage() {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        // ✅ agora puxa da rota centralizada
-        const res = await api.get(rotas.admin.configLogin, {
+        // ✅ CORRIGIDO: configLogin está na raiz do rotas.ts
+        const res = await api.get(rotas.configLogin, {
           withCredentials: true,
         });
 
         /**
-         * Seu endpoint /configuracoes/login (LoginController@loginAtiva)
+         * /configuracoes/login (LoginController@loginAtiva)
          * retorna 1 objeto (não um array).
-         * Então aqui é res.data?.dados (sem [0]).
          */
         setConfig(res.data?.dados ?? null);
       } catch {
@@ -145,11 +143,7 @@ export default function CadastroPage() {
 
     setLoadingBtn(true);
     try {
-      /**
-       * ✅ agora usa rotas centralizadas
-       * OBS: aqui você está cadastrando "usuário sistema".
-       * Se quiser cadastro público separado no backend depois, criamos rotas.public.cadastro.
-       */
+      // ✅ mantém como está (usuário sistema)
       await api.post(
         rotas.usuariosSistema.criar,
         {
@@ -164,7 +158,7 @@ export default function CadastroPage() {
       );
 
       toast.success("Cadastro realizado! Agora faça login.");
-      router.push("/login");
+      router.push(rotas.paginas.login);
     } catch (err: any) {
       toast.error(err?.response?.data?.mensagem || "Erro ao cadastrar.");
     } finally {
@@ -280,7 +274,7 @@ export default function CadastroPage() {
               <button
                 className="btnGhost"
                 type="button"
-                onClick={() => router.push("/login")}
+                onClick={() => router.push(rotas.paginas.login)}
                 disabled={loadingBtn}
               >
                 <FaArrowLeft />
@@ -353,15 +347,9 @@ export default function CadastroPage() {
         }
 
         @keyframes floatBg {
-          0% {
-            transform: rotate(0deg) scale(1);
-          }
-          50% {
-            transform: rotate(180deg) scale(1.04);
-          }
-          100% {
-            transform: rotate(360deg) scale(1);
-          }
+          0% { transform: rotate(0deg) scale(1); }
+          50% { transform: rotate(180deg) scale(1.04); }
+          100% { transform: rotate(360deg) scale(1); }
         }
 
         .shell {
@@ -510,9 +498,7 @@ export default function CadastroPage() {
         }
 
         @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
+          to { transform: rotate(360deg); }
         }
 
         .brand {
@@ -570,15 +556,9 @@ export default function CadastroPage() {
         }
 
         @media (max-width: 900px) {
-          .shell {
-            grid-template-columns: 1fr;
-          }
-          .right {
-            order: -1;
-          }
-          .title {
-            font-size: 30px;
-          }
+          .shell { grid-template-columns: 1fr; }
+          .right { order: -1; }
+          .title { font-size: 30px; }
         }
       `}</style>
     </>
