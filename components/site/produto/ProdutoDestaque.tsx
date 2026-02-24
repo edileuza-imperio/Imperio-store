@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 import api from "@/Api/conectar";
-import { rotas } from "@/config/rotas";
+import { rotas } from "@/components/Bibioteca/config/rotas";
 import { useProdutoDestaque } from "@/hooks/produto/useProdutoDestaque";
 import {
   Sparkles,
