@@ -5,13 +5,14 @@ import api from "@/Api/conectar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { rotas } from "@/components/Bibioteca/config/rotas";
+import { FaEye, FaSearch, FaFilter } from "react-icons/fa";
 
 interface ProdutoApi {
   id_produto: number;
   nome: string;
   preco: any;
   estoque: any;
-  catalogo: any; // pode vir 0/1, 5/6, string, bool...
+  catalogo: any;
   categoria_nome?: string;
   slug?: string;
   imagem?: string;
@@ -35,12 +36,6 @@ function getImagemUrl(caminho?: string) {
   return `${baseFinal}${String(caminho).replace(/^\/+/, "")}`;
 }
 
-/**
- * ✅ Normaliza "catalogo" para boolean
- * Aceita:
- * - 1, "1", true, "true", 5, "5" => publicado
- * - 0, "0", false, "false", 6, "6", null => oculto
- */
 function isPublicado(valor: any): boolean {
   if (valor === true) return true;
   if (valor === false) return false;
@@ -50,11 +45,9 @@ function isPublicado(valor: any): boolean {
   if (v === "1" || v === "true") return true;
   if (v === "0" || v === "false" || v === "" || v === "null" || v === "undefined") return false;
 
-  // compat com seu código antigo (5/6)
-  if (v === "5") return true;  // publicado
-  if (v === "6") return false; // oculto
+  if (v === "5") return true;
+  if (v === "6") return false;
 
-  // fallback: tenta número >0 como publicado
   const n = Number(v);
   if (!Number.isNaN(n)) return n > 0;
 
@@ -71,21 +64,22 @@ function resolveLista(resData: any): any[] {
   return [];
 }
 
+type Filtro = "todos" | "publicados" | "ocultos";
+
 export default function CatalogoPage() {
   const [produtos, setProdutos] = useState<ProdutoUI[]>([]);
   const [loading, setLoading] = useState(true);
   const [paginaAtual, setPaginaAtual] = useState(1);
+
+  const [busca, setBusca] = useState("");
+  const [filtro, setFiltro] = useState<Filtro>("todos");
 
   const itensPorPagina = 9;
 
   const fetchProdutos = async () => {
     try {
       setLoading(true);
-
-      const res = await api.get(rotas.admin.api.produtosCatalogo, {
-        withCredentials: true,
-      });
-
+      const res = await api.get(rotas.admin.api.produtosCatalogo, { withCredentials: true });
       const lista = resolveLista(res.data) as ProdutoApi[];
 
       const normalizados: ProdutoUI[] = lista.map((p) => ({
@@ -116,7 +110,6 @@ export default function CatalogoPage() {
 
   const toggleCatalogo = async (produto: ProdutoUI) => {
     try {
-      // ✅ otimista: já muda no UI
       setProdutos((prev) =>
         prev.map((p) =>
           p.id_produto === produto.id_produto ? { ...p, publicado: !produto.publicado } : p
@@ -124,24 +117,18 @@ export default function CatalogoPage() {
       );
 
       if (produto.publicado) {
-        await api.put(rotas.admin.api.catalogoNao(produto.id_produto), null, {
-          withCredentials: true,
-        });
+        await api.put(rotas.admin.api.catalogoNao(produto.id_produto), null, { withCredentials: true });
         toast.info("Produto removido do catálogo");
       } else {
-        await api.put(rotas.admin.api.catalogoSim(produto.id_produto), null, {
-          withCredentials: true,
-        });
+        await api.put(rotas.admin.api.catalogoSim(produto.id_produto), null, { withCredentials: true });
         toast.success("Produto publicado no catálogo");
       }
 
-      // ✅ refetch garante que o valor real do backend volte correto
       await fetchProdutos();
     } catch (err: any) {
       console.error(err?.response?.data || err?.message || err);
       toast.error("Erro ao atualizar catálogo");
 
-      // ✅ desfaz se falhar
       setProdutos((prev) =>
         prev.map((p) =>
           p.id_produto === produto.id_produto ? { ...p, publicado: produto.publicado } : p
@@ -150,63 +137,148 @@ export default function CatalogoPage() {
     }
   };
 
+  // ✅ filtro + busca
+  const produtosFiltrados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return produtos.filter((p) => {
+      const passaFiltro =
+        filtro === "todos" ? true : filtro === "publicados" ? p.publicado : !p.publicado;
+
+      const passaBusca =
+        !q ||
+        p.nome.toLowerCase().includes(q) ||
+        (p.categoria_nome ?? "").toLowerCase().includes(q) ||
+        String(p.id_produto).includes(q);
+
+      return passaFiltro && passaBusca;
+    });
+  }, [produtos, busca, filtro]);
+
   const totalPaginas = useMemo(
-    () => Math.ceil(produtos.length / itensPorPagina),
-    [produtos.length]
+    () => Math.ceil(produtosFiltrados.length / itensPorPagina),
+    [produtosFiltrados.length]
   );
 
   const produtosPagina = useMemo(() => {
     const ini = (paginaAtual - 1) * itensPorPagina;
-    return produtos.slice(ini, ini + itensPorPagina);
-  }, [produtos, paginaAtual]);
+    return produtosFiltrados.slice(ini, ini + itensPorPagina);
+  }, [produtosFiltrados, paginaAtual]);
 
   useEffect(() => {
     if (paginaAtual > totalPaginas && totalPaginas > 0) setPaginaAtual(totalPaginas);
     if (totalPaginas === 0) setPaginaAtual(1);
   }, [totalPaginas, paginaAtual]);
 
-  if (loading) return <div className="loading">Carregando catálogo...</div>;
+  const publicadosCount = useMemo(() => produtos.filter((p) => p.publicado).length, [produtos]);
+
+  if (loading) return <div className="page-loading">Carregando catálogo...</div>;
 
   return (
-    <div className="catalogo-wrapper">
-      <ToastContainer />
+    <div className="page">
+      <ToastContainer position="top-right" />
 
-      <h1 className="title">Gestão de Catálogo</h1>
-      <p className="subtitle">Publicação de produtos no site</p>
+      {/* Header / Summary */}
+      <div className="header">
+        <div className="headerLeft">
+          <h1>Catálogo</h1>
+          <p>Publique/oculte produtos que aparecem no site.</p>
+        </div>
 
-      {produtos.length === 0 ? (
-        <p className="empty">Nenhum produto encontrado</p>
+        <div className="headerStats">
+          <div className="stat">
+            <span className="statLabel">Total</span>
+            <strong className="statValue">{produtos.length}</strong>
+          </div>
+          <div className="stat">
+            <span className="statLabel">Publicados</span>
+            <strong className="statValue">{publicadosCount}</strong>
+          </div>
+          <div className="stat">
+            <span className="statLabel">Ocultos</span>
+            <strong className="statValue">{Math.max(0, produtos.length - publicadosCount)}</strong>
+          </div>
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="toolbar">
+        <div className="search">
+          <FaSearch />
+          <input
+            value={busca}
+            onChange={(e) => {
+              setBusca(e.target.value);
+              setPaginaAtual(1);
+            }}
+            placeholder="Buscar por nome, categoria ou ID…"
+          />
+        </div>
+
+        <div className="filter">
+          <FaFilter />
+          <select
+            value={filtro}
+            onChange={(e) => {
+              setFiltro(e.target.value as Filtro);
+              setPaginaAtual(1);
+            }}
+          >
+            <option value="todos">Todos</option>
+            <option value="publicados">Publicados</option>
+            <option value="ocultos">Ocultos</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Grid */}
+      {produtosFiltrados.length === 0 ? (
+        <div className="empty">
+          <div className="emptyCard">
+            <strong>Nenhum produto encontrado</strong>
+            <span>Tente ajustar a busca ou o filtro.</span>
+          </div>
+        </div>
       ) : (
         <>
           <div className="grid">
             {produtosPagina.map((produto) => (
               <div key={produto.id_produto} className="card">
-                <div className="image-box">
+                <div className="media">
                   {produto.imagem ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={produto.imagem} alt={produto.nome} />
                   ) : (
-                    <span className="no-image">Sem imagem</span>
+                    <div className="noImage">Sem imagem</div>
                   )}
 
-                  <span className={`badge ${produto.publicado ? "on" : "off"}`}>
-                    {produto.publicado ? "Publicado" : "Oculto"}
-                  </span>
+                  <div className="overlay" />
+
+                  <div className="topRow">
+                    <span className={`badge ${produto.publicado ? "on" : "off"}`}>
+                      {produto.publicado ? "Publicado" : "Oculto"}
+                    </span>
+
+                    <span className="idPill">#{produto.id_produto}</span>
+                  </div>
+
+                  <div className="bottomRow">
+                    <span className="category">{produto.categoria_nome || "Sem categoria"}</span>
+                  </div>
                 </div>
 
-                <div className="content">
-                  <h3>{produto.nome}</h3>
-                  <small>{produto.categoria_nome || "Sem categoria"}</small>
+                <div className="body">
+                  <h3 title={produto.nome}>{produto.nome}</h3>
 
-                  <div className="info">
-                    <span>
-                      Preço
+                  <div className="meta">
+                    <div className="chip">
+                      <span>Preço</span>
                       <strong>R$ {Number(produto.preco).toFixed(2)}</strong>
-                    </span>
-                    <span>
-                      Estoque
+                    </div>
+
+                    <div className="chip">
+                      <span>Estoque</span>
                       <strong>{Number(produto.estoque)}</strong>
-                    </span>
+                    </div>
                   </div>
 
                   <div className="actions">
@@ -214,18 +286,20 @@ export default function CatalogoPage() {
                       className={`btn ${produto.publicado ? "danger" : "success"}`}
                       onClick={() => toggleCatalogo(produto)}
                     >
-                      {produto.publicado ? "Remover" : "Publicar"}
+                      {produto.publicado ? "Ocultar" : "Publicar"}
                     </button>
 
                     <button
-                      className="btn outline"
+                      className="btn ghost"
                       onClick={() =>
                         produto.slug
                           ? window.open(`/produto/${produto.slug}`, "_blank")
                           : toast.info("Produto sem página")
                       }
+                      title="Ver página"
                     >
-                      Ver Página
+                      <FaEye />
+                      Ver
                     </button>
                   </div>
                 </div>
@@ -233,135 +307,389 @@ export default function CatalogoPage() {
             ))}
           </div>
 
+          {/* Pagination */}
           {totalPaginas > 1 && (
             <div className="pagination">
+              <button
+                className="pageBtn"
+                disabled={paginaAtual === 1}
+                onClick={() => setPaginaAtual((p) => Math.max(1, p - 1))}
+              >
+                ←
+              </button>
+
               {Array.from({ length: totalPaginas }).map((_, i) => (
                 <button
                   key={i}
-                  className={paginaAtual === i + 1 ? "active" : ""}
+                  className={`pageBtn ${paginaAtual === i + 1 ? "active" : ""}`}
                   onClick={() => setPaginaAtual(i + 1)}
                 >
                   {i + 1}
                 </button>
               ))}
+
+              <button
+                className="pageBtn"
+                disabled={paginaAtual === totalPaginas}
+                onClick={() => setPaginaAtual((p) => Math.min(totalPaginas, p + 1))}
+              >
+                →
+              </button>
             </div>
           )}
         </>
       )}
 
       <style jsx global>{`
-        * { box-sizing: border-box; }
+        :root{
+          --bg: #f6f7fb;
+          --card: #ffffff;
+          --text: #1f2937;
+          --muted: #6b7280;
+          --border: rgba(15, 23, 42, 0.08);
+          --shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+          --shadow2: 0 10px 24px rgba(15, 23, 42, 0.10);
+          --radius: 18px;
 
+          --ok: #22c55e;
+          --bad: #ef4444;
+          --accent: #6b4c4f; /* sua cor */
+        }
+
+        * { box-sizing: border-box; }
         body {
           margin: 0;
-          background: #f4f6fb;
-          font-family: Inter, system-ui, sans-serif;
+          background: var(--bg);
+          font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+          color: var(--text);
         }
 
-        .catalogo-wrapper { padding: 24px; min-height: 100vh; }
+        .page { padding: 28px; min-height: 100vh; }
 
-        .title {
+        .page-loading{
+          text-align: center;
+          padding: 60px 20px;
+          color: var(--muted);
+        }
+
+        .header{
+          background: linear-gradient(135deg, rgba(107,76,79,0.10), rgba(255,255,255,0.6));
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+          padding: 18px 18px;
+          display: flex;
+          gap: 18px;
+          align-items: center;
+          justify-content: space-between;
+          box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+          margin-bottom: 16px;
+        }
+
+        .headerLeft h1{
+          margin: 0;
           font-size: 26px;
-          font-weight: 700;
-          color: #3a2c2f;
-          margin-bottom: 4px;
+          letter-spacing: -0.3px;
+        }
+        .headerLeft p{
+          margin: 6px 0 0;
+          color: var(--muted);
         }
 
-        .subtitle { color: #7a7a7a; margin-bottom: 24px; }
+        .headerStats{
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+        .stat{
+          background: rgba(255,255,255,0.75);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          padding: 10px 12px;
+          min-width: 110px;
+        }
+        .statLabel{
+          display: block;
+          font-size: 12px;
+          color: var(--muted);
+        }
+        .statValue{
+          font-size: 18px;
+          letter-spacing: -0.3px;
+        }
 
-        .grid {
+        .toolbar{
+          display: flex;
+          gap: 12px;
+          align-items: center;
+          justify-content: space-between;
+          margin: 14px 0 18px;
+          flex-wrap: wrap;
+        }
+
+        .search, .filter{
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: var(--card);
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          padding: 12px 12px;
+          box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+        }
+        .search{
+          flex: 1;
+          min-width: 260px;
+        }
+        .search input{
+          border: none;
+          outline: none;
+          width: 100%;
+          font-size: 14px;
+          background: transparent;
+          color: var(--text);
+        }
+        .filter select{
+          border: none;
+          outline: none;
+          background: transparent;
+          font-size: 14px;
+          color: var(--text);
+          cursor: pointer;
+        }
+
+        .grid{
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 20px;
+          gap: 18px;
         }
 
-        .card {
-          background: #fff;
-          border-radius: 16px;
+        .card{
+          background: var(--card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
           overflow: hidden;
-          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-          transition: transform 0.2s;
+          box-shadow: var(--shadow);
+          transition: transform .18s ease, box-shadow .18s ease;
+        }
+        .card:hover{
+          transform: translateY(-6px);
+          box-shadow: var(--shadow2);
         }
 
-        .card:hover { transform: translateY(-6px); }
-
-        .image-box { position: relative; height: 180px; background: #eee; }
-
-        .image-box img { width: 100%; height: 100%; object-fit: cover; }
-
-        .no-image {
+        .media{
+          position: relative;
+          height: 190px;
+          background: #eef2f7;
+        }
+        .media img{
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transform: scale(1.02);
+        }
+        .noImage{
+          width: 100%;
+          height: 100%;
           display: flex;
           align-items: center;
           justify-content: center;
-          height: 100%;
-          color: #999;
+          color: var(--muted);
+          font-weight: 600;
+        }
+        .overlay{
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(180deg, rgba(0,0,0,0.18), rgba(0,0,0,0.40));
+          pointer-events: none;
         }
 
-        .badge {
+        .topRow{
           position: absolute;
           top: 12px;
+          left: 12px;
           right: 12px;
-          padding: 4px 10px;
-          border-radius: 20px;
-          font-size: 12px;
-          font-weight: 600;
-          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
         }
 
-        .badge.on { background: #2ecc71; }
-        .badge.off { background: #e74c3c; }
+        .badge{
+          padding: 6px 10px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 800;
+          color: #fff;
+          letter-spacing: 0.2px;
+          box-shadow: 0 10px 22px rgba(0,0,0,0.25);
+        }
+        .badge.on{ background: rgba(34,197,94,0.95); }
+        .badge.off{ background: rgba(239,68,68,0.95); }
 
-        .content { padding: 16px; }
-        .content h3 { margin: 0 0 4px; font-size: 16px; }
-        .content small { color: #888; }
+        .idPill{
+          padding: 6px 10px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 800;
+          color: #111827;
+          background: rgba(255,255,255,0.85);
+          border: 1px solid rgba(255,255,255,0.55);
+          backdrop-filter: blur(6px);
+        }
 
-        .info { display: flex; justify-content: space-between; margin: 16px 0; }
-        .info span { font-size: 13px; color: #666; }
-        .info strong { display: block; color: #000; font-size: 15px; }
+        .bottomRow{
+          position: absolute;
+          bottom: 12px;
+          left: 12px;
+          right: 12px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 10px;
+        }
+        .category{
+          color: rgba(255,255,255,0.92);
+          font-size: 13px;
+          font-weight: 700;
+          text-shadow: 0 10px 22px rgba(0,0,0,0.35);
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
 
-        .actions { display: flex; gap: 10px; }
+        .body{ padding: 14px 14px 16px; }
 
-        .btn {
-          flex: 1;
-          padding: 10px;
-          border-radius: 8px;
+        .body h3{
+          margin: 0 0 10px;
+          font-size: 16px;
+          letter-spacing: -0.2px;
+          overflow: hidden;
+          white-space: nowrap;
+          text-overflow: ellipsis;
+        }
+
+        .meta{
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          margin-bottom: 12px;
+        }
+        .chip{
+          border: 1px solid var(--border);
+          border-radius: 14px;
+          padding: 10px 10px;
+          background: rgba(15, 23, 42, 0.02);
+        }
+        .chip span{
+          display:block;
+          font-size: 12px;
+          color: var(--muted);
+          margin-bottom: 2px;
+        }
+        .chip strong{
+          font-size: 14px;
+          letter-spacing: -0.2px;
+        }
+
+        .actions{
+          display: grid;
+          grid-template-columns: 1fr 0.8fr;
+          gap: 10px;
+        }
+
+        .btn{
           border: none;
           cursor: pointer;
-          font-weight: 600;
-          transition: 0.2s;
+          padding: 11px 12px;
+          border-radius: 14px;
+          font-weight: 800;
+          transition: transform .12s ease, opacity .12s ease, box-shadow .12s ease;
+          outline: none;
+        }
+        .btn:active{ transform: scale(0.98); }
+        .btn:hover{ opacity: 0.95; }
+
+        .btn.success{
+          background: rgba(34,197,94,0.95);
+          color: #fff;
+          box-shadow: 0 12px 22px rgba(34,197,94,0.22);
+        }
+        .btn.danger{
+          background: rgba(239,68,68,0.95);
+          color: #fff;
+          box-shadow: 0 12px 22px rgba(239,68,68,0.22);
         }
 
-        .btn.success { background: #2ecc71; color: #fff; }
-        .btn.danger { background: #e74c3c; color: #fff; }
-        .btn.outline { background: transparent; border: 1px solid #ccc; }
+        .btn.ghost{
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          background: rgba(107,76,79,0.08);
+          color: var(--accent);
+          border: 1px solid rgba(107,76,79,0.18);
+        }
+        .btn.ghost:hover{
+          background: rgba(107,76,79,0.12);
+        }
 
-        .btn:hover { opacity: 0.9; }
-
-        .pagination {
-          margin-top: 30px;
+        .pagination{
+          margin-top: 22px;
           display: flex;
           justify-content: center;
           gap: 8px;
+          flex-wrap: wrap;
         }
-
-        .pagination button {
-          padding: 8px 12px;
-          border-radius: 6px;
-          border: 1px solid #ccc;
-          background: #fff;
+        .pageBtn{
+          min-width: 38px;
+          padding: 10px 12px;
+          border-radius: 12px;
+          border: 1px solid var(--border);
+          background: var(--card);
           cursor: pointer;
+          font-weight: 800;
+          color: var(--text);
+          box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+          transition: .15s ease;
         }
-
-        .pagination button.active {
-          background: #6b4c4f;
+        .pageBtn:hover{ transform: translateY(-2px); }
+        .pageBtn:disabled{
+          opacity: 0.45;
+          cursor: not-allowed;
+          transform: none;
+        }
+        .pageBtn.active{
+          background: var(--accent);
           color: #fff;
-          border-color: #6b4c4f;
+          border-color: rgba(107,76,79,0.35);
         }
 
-        .loading, .empty {
+        .empty{
+          padding: 24px 0;
+          display: flex;
+          justify-content: center;
+        }
+        .emptyCard{
+          width: min(520px, 100%);
+          background: var(--card);
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+          padding: 18px;
           text-align: center;
-          padding: 40px;
-          color: #777;
+          box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
+          color: var(--muted);
+        }
+        .emptyCard strong{
+          display:block;
+          color: var(--text);
+          margin-bottom: 6px;
+        }
+
+        @media (max-width: 520px){
+          .header{ flex-direction: column; align-items: stretch; }
+          .headerStats{ justify-content: flex-start; }
+          .actions{ grid-template-columns: 1fr; }
         }
       `}</style>
     </div>
