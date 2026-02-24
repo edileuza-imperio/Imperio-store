@@ -63,7 +63,6 @@ function useClickOutside(
 }
 
 function normalizePath(p: string) {
-  // remove barra final (exceto "/")
   if (p.length > 1 && p.endsWith("/")) return p.slice(0, -1);
   return p;
 }
@@ -94,7 +93,7 @@ export default function AdminLayout({ children }: Props) {
   useClickOutside([userMenuRef], () => setUserMenuOpen(false), userMenuOpen);
   useClickOutside([notifRef], () => setNotifOpen(false), notifOpen);
 
-  // ✅ menu do backend (agora com groups)
+  // ✅ menu do backend (PainelAdministrativo@index)
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [menuLoading, setMenuLoading] = useState(true);
 
@@ -105,35 +104,38 @@ export default function AdminLayout({ children }: Props) {
       setMenuLoading(true);
 
       try {
-        // rota do backend do admin (PainelAdministrativo@index)
-        const res = await api.get<ApiResponse<any>>(rotas.admin.dashboard);
+        // ✅ CORRIGIDO: agora dashboard está dentro de admin.api
+        const res = await api.get<ApiResponse<any>>(rotas.admin.api.dashboard);
 
         // Mensagemjson: { dados: ... } (às vezes vem { dados: { dados: ... } })
         const root = resolveApi<any>(res.data);
         const payload = root?.dados ?? root;
 
-        const arr = Array.isArray(payload) ? payload : Array.isArray(payload?.dados) ? payload.dados : [];
+        const arr = Array.isArray(payload)
+          ? payload
+          : Array.isArray(payload?.dados)
+          ? payload.dados
+          : [];
 
         const items = arr.filter(isMenuItem) as MenuItem[];
 
         if (!alive) return;
         setMenu(items);
 
-        // abre o primeiro grupo por padrão
         const firstGroup = items.find((it) => it.type === "group") as GroupItem | undefined;
         if (firstGroup) setOpenGroup(firstGroup.label);
       } catch (e) {
         console.error("❌ Erro ao carregar menu admin:", e);
 
-        // ✅ fallback já em grupos
+        // ✅ fallback usando rotas centralizadas (paginas)
         if (!alive) return;
         setMenu([
           {
             type: "link",
             label: "Dashboard",
-            href: "/admin",
+            href: rotas.admin.paginas.index, // "/admin"
             icon: "fa-solid fa-chart-line",
-            match: "/admin",
+            match: rotas.admin.paginas.index, // "/admin"
           },
           {
             type: "group",
@@ -142,7 +144,7 @@ export default function AdminLayout({ children }: Props) {
             children: [
               {
                 label: "Usuários",
-                href: "/admin/usuarios",
+                href: rotas.admin.paginas.usuarios,
                 icon: "fa-solid fa-users",
                 match: "/usuarios",
               },
@@ -155,13 +157,13 @@ export default function AdminLayout({ children }: Props) {
             children: [
               {
                 label: "Produtos",
-                href: "/admin/produtos",
+                href: rotas.admin.paginas.produtos,
                 icon: "fa-solid fa-box",
                 match: "/produtos",
               },
               {
                 label: "Categorias",
-                href: "/admin/categorias",
+                href: rotas.admin.paginas.categorias,
                 icon: "fa-solid fa-tags",
                 match: "/categorias",
               },
@@ -184,9 +186,9 @@ export default function AdminLayout({ children }: Props) {
 
   const notifications = useMemo(
     () => [
-      { id: 1, title: "Novo pedido recebido", time: "Agora", href: "/admin/pedidos" },
-      { id: 2, title: "Cupom prestes a expirar", time: "Há 1h", href: "/admin/cupons" },
-      { id: 3, title: "Novo usuário cadastrado", time: "Hoje", href: "/admin/usuarios" },
+      { id: 1, title: "Novo pedido recebido", time: "Agora", href: rotas.admin.paginas.pedidos },
+      { id: 2, title: "Cupom prestes a expirar", time: "Há 1h", href: rotas.admin.paginas.cupons },
+      { id: 3, title: "Novo usuário cadastrado", time: "Hoje", href: rotas.admin.paginas.usuarios },
     ],
     []
   );
@@ -206,10 +208,10 @@ export default function AdminLayout({ children }: Props) {
   async function sair() {
     try {
       await api.post(rotas.auth.logout);
-    } catch (e) {
+    } catch {
       // ignora
     } finally {
-      router.push("/login");
+      router.push(rotas.paginas.login);
     }
   }
 
@@ -412,7 +414,7 @@ export default function AdminLayout({ children }: Props) {
                       className="btn btn-sm btn-outline-primary w-100"
                       onClick={() => {
                         setNotifOpen(false);
-                        router.push("/admin/pedidos");
+                        router.push(rotas.admin.paginas.pedidos);
                       }}
                     >
                       Ver tudo
@@ -463,7 +465,7 @@ export default function AdminLayout({ children }: Props) {
                     className="adm-menuitem"
                     onClick={() => {
                       setUserMenuOpen(false);
-                      router.push("/admin/configuracoes");
+                      router.push(rotas.admin.paginas.configuracoes);
                     }}
                   >
                     <i className="bi bi-person" />
@@ -475,7 +477,7 @@ export default function AdminLayout({ children }: Props) {
                     className="adm-menuitem"
                     onClick={() => {
                       setUserMenuOpen(false);
-                      router.push("/admin/configuracoes");
+                      router.push(rotas.admin.paginas.configuracoes);
                     }}
                   >
                     <i className="bi bi-gear" />
