@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import api from "@/Api/conectar";
 import { useProdutoDestaque } from "@/hooks/produto/useProdutoDestaque";
+ // ✅ usa o arquivo de rotas
 import {
   Sparkles,
   ArrowRight,
@@ -19,6 +20,7 @@ import { useMemo, useState } from "react";
 
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { rotas } from "@/components/Bibioteca/config/rotas";
 
 const getImagemUrl = (caminho?: string) => {
   if (!caminho) return "/placeholder.png";
@@ -117,7 +119,8 @@ export default function ProdutoDestaque() {
 
   async function getUsuarioId(): Promise<number | null> {
     try {
-      const meRes = await api.get("/me", { withCredentials: true });
+      // ✅ usa a rota do arquivo de rotas (API)
+      const meRes = await api.get(rotas.auth.me, { withCredentials: true });
       const payload = meRes?.data?.data ?? meRes?.data?.dados ?? meRes?.data;
 
       const id =
@@ -230,7 +233,8 @@ export default function ProdutoDestaque() {
           </div>
 
           {mostrarVerTodos && (
-            <Link href="/produtos/destaques" className="pdAll">
+            // ✅ usa rota de página do arquivo rotas
+            <Link href={rotas.produtos.paginas.destaques} className="pdAll">
               Ver todos <ArrowRight size={18} />
             </Link>
           )}
@@ -260,8 +264,12 @@ export default function ProdutoDestaque() {
               <span>✓ CTA direto</span>
             </div>
 
-            <Link href="/produtos/destaques" className="pdHeroCta">
-              Explorar destaques <ArrowRight size={18} />
+            {/* ✅ CTA com brilho + seta animada */}
+            <Link href={rotas.produtos.paginas.destaques} className="pdHeroCta">
+              Explorar destaques{" "}
+              <span className="pdHeroCtaIcon">
+                <ArrowRight size={18} />
+              </span>
             </Link>
           </aside>
 
@@ -283,10 +291,14 @@ export default function ProdutoDestaque() {
                   const isAdding = addingId === produtoId;
                   const isAdded = !!added[produtoId];
 
-                  const href = `/produto/${item.produto_slug}`;
+                  // ✅ usa rota de página do arquivo rotas
+                  const href = rotas.produtos.paginas.produto(item.produto_slug);
 
                   return (
-                    <div className="pdCardOuter" key={item.id_destaque ?? produtoId}>
+                    <div
+                      className="pdCardOuter"
+                      key={item.id_destaque ?? produtoId}
+                    >
                       <Link
                         href={href}
                         className="pdCard"
@@ -383,7 +395,7 @@ export default function ProdutoDestaque() {
           inset: 0;
           background: radial-gradient(
               900px 420px at 0% 0%,
-              rgba(176, 141, 87, 0.20),
+              rgba(176, 141, 87, 0.2),
               transparent 60%
             ),
             radial-gradient(
@@ -420,7 +432,7 @@ export default function ProdutoDestaque() {
           font-weight: 900;
           font-size: 0.82rem;
           color: #7a2941;
-          background: rgba(122, 41, 65, 0.10);
+          background: rgba(122, 41, 65, 0.1);
           border: 1px solid rgba(122, 41, 65, 0.16);
           width: fit-content;
         }
@@ -489,7 +501,7 @@ export default function ProdutoDestaque() {
           padding: 20px;
           color: #fff;
           background: linear-gradient(160deg, #0b1220, #7a2941, #b08d57);
-          box-shadow: 0 22px 70px rgba(122, 41, 65, 0.20);
+          box-shadow: 0 22px 70px rgba(122, 41, 65, 0.2);
           border: 1px solid rgba(255, 255, 255, 0.18);
           position: sticky;
           top: 18px;
@@ -540,23 +552,64 @@ export default function ProdutoDestaque() {
           font-weight: 850;
           opacity: 0.96;
         }
+
+        /* ✅ CTA HERO MAIS “DESTAQUE” */
         .pdHeroCta {
+          position: relative;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 10px;
           width: 100%;
-          height: 46px;
+          height: 48px;
           border-radius: 16px;
+
+          background: linear-gradient(135deg, #ffffff, #fff3df);
           color: #0b1220;
-          background: #fff;
-          text-decoration: none;
           font-weight: 950;
-          transition: transform 0.2s ease, filter 0.2s ease;
+          text-decoration: none;
+
+          box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25),
+            0 0 0 1px rgba(255, 255, 255, 0.22) inset;
+
+          transition: transform 0.18s ease, box-shadow 0.22s ease,
+            filter 0.22s ease;
+          overflow: hidden;
         }
+
+        .pdHeroCta::before {
+          content: "";
+          position: absolute;
+          inset: -2px;
+          background: linear-gradient(
+            120deg,
+            transparent 0%,
+            rgba(255, 255, 255, 0.55) 35%,
+            transparent 70%
+          );
+          transform: translateX(-120%);
+          transition: transform 0.7s ease;
+        }
+
         .pdHeroCta:hover {
           transform: translateY(-2px);
-          filter: brightness(0.98);
+          filter: brightness(1.03);
+          box-shadow: 0 24px 70px rgba(0, 0, 0, 0.33),
+            0 0 0 1px rgba(255, 255, 255, 0.26) inset;
+        }
+        .pdHeroCta:hover::before {
+          transform: translateX(120%);
+        }
+        .pdHeroCta:active {
+          transform: translateY(0px);
+        }
+
+        .pdHeroCtaIcon {
+          display: inline-flex;
+          transition: transform 0.18s ease;
+        }
+        .pdHeroCta:hover .pdHeroCtaIcon {
+          transform: translateX(4px);
         }
 
         /* cards */
@@ -580,14 +633,14 @@ export default function ProdutoDestaque() {
           border-radius: 18px;
           overflow: hidden;
           text-decoration: none;
-          background: #fffaf2; /* branco quente */
+          background: #fffaf2;
           border: 1px solid rgba(0, 0, 0, 0.06);
           box-shadow: 0 10px 28px rgba(0, 0, 0, 0.06);
           transition: transform 0.22s ease, box-shadow 0.22s ease;
         }
         .pdCard:hover {
           transform: translateY(-7px);
-          box-shadow: 0 22px 60px rgba(0, 0, 0, 0.10);
+          box-shadow: 0 22px 60px rgba(0, 0, 0, 0.1);
         }
 
         .pdBadge {
@@ -611,8 +664,8 @@ export default function ProdutoDestaque() {
           padding: 12px;
           background: linear-gradient(
             180deg,
-            rgba(176, 141, 87, 0.10),
-            rgba(176, 141, 87, 0.00)
+            rgba(176, 141, 87, 0.1),
+            rgba(176, 141, 87, 0)
           );
           border-bottom: 1px solid rgba(0, 0, 0, 0.05);
         }
@@ -720,7 +773,7 @@ export default function ProdutoDestaque() {
           font-weight: 850;
         }
 
-        /* botão */
+        /* botão carrinho */
         .pdFooter {
           display: grid;
         }
@@ -732,7 +785,7 @@ export default function ProdutoDestaque() {
           justify-content: center;
           gap: 10px;
           font-weight: 950;
-          border: 1px solid rgba(11, 18, 32, 0.10);
+          border: 1px solid rgba(11, 18, 32, 0.1);
           cursor: pointer;
           transition: transform 0.18s ease, box-shadow 0.22s ease,
             filter 0.22s ease;

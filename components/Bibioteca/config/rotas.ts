@@ -3,6 +3,19 @@
 type Id = number | string;
 
 export const rotas = {
+  inicio: "/",
+
+  auth: {
+    me: "/me",
+    logout: "/logout",
+    loginEtapa1: "/login/etapa1",
+    loginEtapa2: "/login/etapa2",
+  },
+
+  admin: {
+    configLogin: "/configuracoes/login",
+  },
+
   menu: {
     listar: "/menu",
     ativos: "/menu/ativos",
@@ -28,17 +41,6 @@ export const rotas = {
     deletar: (id: Id) => `/usuarios-sistema/${id}`,
   },
 
-  auth: {
-    me: "/me",
-    logout: "/logout",
-    loginEtapa1: "/login/etapa1",
-    loginEtapa2: "/login/etapa2",
-  },
-
-  admin: {
-    configLogin: "/configuracoes/login",
-  },
-
   banners: {
     listar: "/banners",
     ativos: "/banners/ativos",
@@ -61,6 +63,41 @@ export const rotas = {
     criar: "/categorias",
     atualizar: (id: Id) => `/categorias/${id}`,
     deletar: (id: Id) => `/categorias/${id}`,
+  },
+
+  // ✅ ADICIONADO: PRODUTOS + DESTAQUES (API)
+  produtos: {
+    listar: "/produtos",
+    buscar: (id: Id) => `/produtos/${id}`,
+
+    // backend: /produto/slug/{slug}
+    buscarPorSlugApi: (slug: string) => `/produto/slug/${encodeURIComponent(slug)}`,
+
+    pesquisar: "/produtos/pesquisa",
+    catalogo: "/produtos/catalogo",
+
+    criar: "/produtos",
+    atualizar: (id: Id) => `/produtos/${id}`,
+    deletar: (id: Id) => `/produtos/${id}`,
+
+    destaques: {
+      listar: "/produtos/destaques",
+      ativos: "/produtos/destaques/ativos",
+      status: "/produtos/destaques/status",
+
+      criar: "/produtos/destaques",
+      atualizar: (id: Id) => `/produtos/destaques/${id}`,
+      deletar: (id: Id) => `/produtos/destaques/${id}`,
+    },
+
+    // ✅ ROTAS DO FRONT (PÁGINAS)
+    paginas: {
+      // página vitrine de destaques
+      destaques: "/produtos/destaques",
+
+      // página de produto por slug (Next)
+      produto: (slug: string) => `/produto/${encodeURIComponent(slug)}`,
+    },
   },
 
   cupons: {
