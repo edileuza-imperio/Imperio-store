@@ -18,13 +18,20 @@ export const rotas = {
   carrinho: {
     adicionar: "/carrinho/adicionar",
   },
-  admin: {
-    // ✅ backend do admin (PainelAdministrativo@index)
-    dashboard: "/admin/",
 
-    // ✅ VOCÊ USA ISSO NO app/cadastro/page.tsx
+  admin: {
+    // ✅ base do módulo admin (backend)
+    base: "/admin",
+
+    // ✅ endpoints do backend (Admin module)
+    index: "/admin",            // GET /admin
+    dashboard: "/admin/dashboard",
+    cards: "/admin/cards",
+
+    // ✅ endpoint público usado no app/cadastro/page.tsx
     configLogin: "/configuracoes/login",
 
+    // ✅ rotas de páginas (frontend)
     paginas: {
       dashboard: "/admin",
       usuarios: "/admin/usuarios",
@@ -94,7 +101,7 @@ export const rotas = {
 
     pesquisar: "/produtos/pesquisa",
 
-    // ✅ você mudou o backend pra /catalogo (controller CatalogoController@listar)
+    // ✅ catálogo (CatalogoController@listar)
     catalogo: "/catalogo",
 
     criar: "/produtos",

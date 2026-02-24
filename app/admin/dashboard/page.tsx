@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
 import Link from "next/link";
+import { rotas } from "@/components/Bibioteca/config/rotas";
 
 interface Card {
   titulo: string;
@@ -11,12 +12,19 @@ interface Card {
   cor?: string;
 }
 
-interface ApiResponse {
-  status: number;
-  mensagem: string;
-  dados: {
-    dados: Card[];
-  };
+type ApiResponse<T> = {
+  status?: number;
+  mensagem?: string;
+  message?: string;
+  dados?: any;
+  data?: any;
+};
+
+// resolve: pega dados do seu Mensagemjson (às vezes vem em dados ou data)
+function resolveApi<T>(payload: ApiResponse<T>): T {
+  const root: any = payload?.dados ?? payload?.data ?? payload;
+  // seu backend manda: { dados: { dados: [...] } } OU { dados: [...] }
+  return (root?.dados ?? root) as T;
 }
 
 export default function DashboardPage() {
@@ -24,110 +32,122 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let alive = true;
+
     const fetchCards = async () => {
       setLoading(true);
 
       try {
-        const res = await api.get<ApiResponse>("/admin/dash");
+        // ✅ usa rota centralizada
+        const res = await api.get<ApiResponse<Card[]>>(rotas.admin.cards);
 
-        // 🔒 Validação defensiva
-        const lista = res.data?.dados?.dados;
+        const lista = resolveApi<Card[]>(res.data);
 
         if (!Array.isArray(lista)) {
           console.error("Formato inválido da API:", res.data);
-          setCards([]);
+          if (alive) setCards([]);
           return;
         }
 
-        // 🎨 Aplica estilo aos cards
         const dadosComEstilo: Card[] = lista.map((card) => {
+          const t = (card.titulo || "").toLowerCase();
+
           let cor = "#d4af37";
-          let icone = "bi-box-seam";
+          let icone = "bi-grid";
 
-          switch (card.titulo.toLowerCase()) {
-            case "categorias":
-              cor = "#6f42c1";
-              icone = "bi-tags";
-              break;
-
-            case "banners":
-              cor = "#0d6efd";
-              icone = "bi-image";
-              break;
-
-            case "usuarios":
-              cor = "#198754";
-              icone = "bi-people";
-              break;
-
-            case "produtos":
-              cor = "#fd7e14";
-              icone = "bi-bag";
-              break;
+          if (t.includes("categoria")) {
+            cor = "#6f42c1";
+            icone = "bi-tags";
+          } else if (t.includes("banner")) {
+            cor = "#0d6efd";
+            icone = "bi-image";
+          } else if (t.includes("usu")) {
+            cor = "#198754";
+            icone = "bi-people";
+          } else if (t.includes("produto")) {
+            cor = "#fd7e14";
+            icone = "bi-bag";
+          } else if (t.includes("cupom")) {
+            cor = "#dc3545";
+            icone = "bi-ticket-perforated";
+          } else if (t.includes("carrinho")) {
+            cor = "#0aa2c0";
+            icone = "bi-cart3";
           }
 
           return { ...card, cor, icone };
         });
 
-        setCards(dadosComEstilo);
+        if (alive) setCards(dadosComEstilo);
       } catch (err) {
         console.error("Erro ao buscar cards da dashboard:", err);
-        setCards([]);
+        if (alive) setCards([]);
       } finally {
-        setLoading(false);
+        if (alive) setLoading(false);
       }
     };
 
     fetchCards();
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  // ⏳ Loading
-  if (loading) {
-    return <div className="p-4">Carregando dashboard...</div>;
-  }
+  if (loading) return <div className="p-4">Carregando dashboard...</div>;
 
   return (
     <div className="dashboard-wrapper">
-      {/* TÍTULO */}
       <div className="mb-4">
         <h1 className="fw-bold mb-1 title">Dashboard</h1>
         <p className="subtitle">Visão geral do painel administrativo</p>
       </div>
 
-      {/* CARDS */}
       <div className="row g-4 dashboard-grid">
-        {cards.map((card, idx) => (
-          <div key={idx} className="col-12 col-md-6 col-xl-3">
-            <div className="dashboard-card h-100">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <span className="card-label">{card.titulo}</span>
-                  <h2 className="card-value">{card.quantidade}</h2>
+        {cards.map((card, idx) => {
+          // ✅ rota do link baseada no título (mais seguro)
+          const slug = (card.titulo || "")
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, "-");
+
+          // você pode ajustar mapeamento aqui se quiser:
+          const href =
+            card.titulo.toLowerCase().includes("cupom")
+              ? "/admin/cupons"
+              : card.titulo.toLowerCase().includes("carrinho")
+              ? "/admin/pedidos"
+              : `/admin/${slug}`;
+
+          return (
+            <div key={idx} className="col-12 col-md-6 col-xl-3">
+              <div className="dashboard-card h-100">
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <span className="card-label">{card.titulo}</span>
+                    <h2 className="card-value">{card.quantidade}</h2>
+                  </div>
+
+                  <div
+                    className="card-icon"
+                    style={{
+                      background: `${card.cor}22`,
+                      color: card.cor,
+                    }}
+                  >
+                    <i className={`bi ${card.icone}`} />
+                  </div>
                 </div>
 
-                <div
-                  className="card-icon"
-                  style={{
-                    background: `${card.cor}22`,
-                    color: card.cor,
-                  }}
-                >
-                  <i className={`bi ${card.icone}`} />
-                </div>
+                <Link href={href} className="card-link">
+                  Gerenciar → 
+                </Link>
               </div>
-
-              <Link
-                href={`/admin/${card.titulo.toLowerCase()}`}
-                className="card-link"
-              >
-                Gerenciar {card.titulo.toLowerCase()} →
-              </Link>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* ESTILO GLOBAL */}
       <style jsx global>{`
         html,
         body {
