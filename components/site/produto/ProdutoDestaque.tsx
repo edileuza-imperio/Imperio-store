@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import api from "@/Api/conectar";
-import { rotas } from "@/config/rotas";
+
 import {
   ShoppingCart,
   ArrowRight,
@@ -14,6 +14,7 @@ import {
   Loader2,
   Flame,
 } from "lucide-react";
+import { rotas } from "@/components/Bibioteca/config/rotas";
 
 const getImagemUrl = (caminho?: string) => {
   if (!caminho) return "/placeholder.png";

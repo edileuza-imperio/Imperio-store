@@ -3,17 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import api from "@/Api/conectar";
 import { rotas } from "@/components/Bibioteca/config/rotas";
+import { Banner } from "@/components/Bibioteca/Bibiotecas";
 
-export interface Banner {
-  id_banner?: number;
-  titulo: string;
-  descricao: string;
-  imagem: string;
-  link?: string | null;
-  visualizacoes: number;
-  cliques: number;
-  statusid?: number;
-}
+
 
 interface UseBannerReturn {
   banners: Banner[];
