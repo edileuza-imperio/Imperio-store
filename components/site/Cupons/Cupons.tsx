@@ -35,15 +35,15 @@ export default function Cupons() {
 
         const dados: Cupom[] = (res.data?.dados ?? []).map((c: any) => ({
           codigo: String(c.codigo ?? "").trim(),
-          descricao: String(c.descricao ?? ""),
+          descricao: String(c.descricao ?? "").trim(),
           desconto:
             c.tipo_codigo === "frete"
               ? "FRETE GRÁTIS"
               : c.tipo_codigo === "valor"
-              ? `R$ ${c.desconto}`
-              : `${c.desconto}%`,
-          expiracao: c.expiracao ? String(c.expiracao).split("-").reverse().join("/") : "Indefinido",
-          tipo: String(c.tipo_codigo ?? ""),
+              ? `R$ ${Number(c.desconto ?? 0).toFixed(2).replace(".", ",")}`
+              : `${Number(c.desconto ?? 0)}%`,
+          expiracao: c.expiracao ? c.expiracao.split("-").reverse().join("/") : "Indefinido",
+          tipo: String(c.tipo_codigo ?? "padrao"),
         }));
 
         setCupons(dados);
@@ -63,9 +63,10 @@ export default function Cupons() {
     try {
       await navigator.clipboard.writeText(codigo);
       setCopiado(codigo);
-      setTimeout(() => setCopiado(null), 1600);
+      window.setTimeout(() => setCopiado(null), 1800);
     } catch {
-      setErro("Não foi possível copiar. Copie manualmente.");
+      // fallback simples
+      setCopiado(null);
     }
   };
 
@@ -74,14 +75,12 @@ export default function Cupons() {
       rose: "#b76e79",
       roseSoft: "#d9a5ad",
       gold: "#d4af37",
-      ink: "#0b1220",
-      muted: "rgba(31,41,55,.72)",
-      paper: "rgba(255,255,255,.92)",
+      ink: "#1f2937",
+      muted: "rgba(31,41,55,.70)",
       line: "rgba(31,41,55,.10)",
-      shadow: "0 22px 64px rgba(2, 6, 23, .10)",
-      shadowHover: "0 30px 84px rgba(2, 6, 23, .14)",
       cream: "#fff6ee",
       cream2: "#fff1e6",
+      paper: "#ffffff",
     }),
     []
   );
@@ -99,467 +98,488 @@ export default function Cupons() {
 
   if (loading) {
     return (
-      <section className="cx-wrap">
-        <div className="cx-container">
-          <div className="cx-state">Carregando cupons…</div>
+      <section className="cx-section">
+        <div className="cx-wrap">
+          <div className="cx-head">
+            <div className="cx-icon" aria-hidden="true">
+              <Sparkles size={28} />
+            </div>
+            <div className="cx-titles">
+              <div className="cx-titleSkel" />
+              <div className="cx-subSkel" />
+            </div>
+          </div>
+
+          <div className="cx-grid">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="cx-card cx-skel">
+                <div className="cx-skelTop" />
+                <div className="cx-skelBody">
+                  <div className="cx-line" />
+                  <div className="cx-line short" />
+                  <div className="cx-chip" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <style jsx>{styles(theme)}</style>
+        <style jsx>{styles}</style>
       </section>
     );
   }
 
   if (erro) {
     return (
-      <section className="cx-wrap">
-        <div className="cx-container">
-          <div className="cx-state cx-err">{erro}</div>
+      <section className="cx-section">
+        <div className="cx-wrap">
+          <div className="cx-state cx-erro">{erro}</div>
         </div>
-
-        <style jsx>{styles(theme)}</style>
+        <style jsx>{styles}</style>
       </section>
     );
   }
 
   return (
-    <section className="cx-wrap">
-      <div className="cx-container">
-        {/* Header */}
+    <section className="cx-section">
+      <div className="cx-wrap">
+        {/* HEADER */}
         <header className="cx-head">
-          <div className="cx-mark" aria-hidden="true">
-            <Sparkles size={22} />
+          <div className="cx-icon" aria-hidden="true">
+            <Sparkles size={28} />
           </div>
 
           <div className="cx-titles">
             <h2 className="cx-title">
               Cupons <span>Exclusivos</span>
             </h2>
-            <p className="cx-subtitle">
-              Copie o código e aproveite descontos especiais — perfeito para sua festa.
+            <p className="cx-sub">
+              Copie o código e aproveite descontos especiais — com a cara do Universo Império.
             </p>
           </div>
         </header>
 
-        {/* Grid */}
+        {/* EMPTY */}
         {cupons.length === 0 ? (
           <div className="cx-empty">
-            <div className="cx-emptyCard">
+            <div className="cx-emptyBadge">
               <TicketPercent size={18} />
-              <div>
-                <strong>Nenhum cupom disponível</strong>
-                <p>Volte em breve — sempre pintam novidades por aqui.</p>
-              </div>
             </div>
+            <h3>Nenhum cupom disponível</h3>
+            <p>Assim que tivermos promoções ativas, elas aparecem aqui.</p>
           </div>
         ) : (
-          <div className="cx-grid" role="list" aria-label="Lista de cupons">
-            {cupons.map((cupom) => {
-              const isCopied = copiado === cupom.codigo;
+          <div className="cx-grid">
+            {cupons.map((cupom) => (
+              <article key={cupom.codigo} className="cx-card">
+                {/* Top */}
+                <div className="cx-top" style={{ background: corTipo(cupom.tipo) }}>
+                  <span className="cx-pill">
+                    <TicketPercent size={14} /> Cupom
+                  </span>
 
-              return (
-                <article key={cupom.codigo} className="cx-card" role="listitem">
-                  {/* Top bar */}
-                  <div className="cx-top" style={{ background: corTipo(cupom.tipo) }}>
-                    <div className="cx-topLeft">
-                      <span className="cx-pill">
-                        <TicketPercent size={14} />
-                        Cupom
-                      </span>
-                      <span className="cx-kind">{cupom.tipo || "promo"}</span>
-                    </div>
+                  <div className="cx-discount">
+                    <strong>{cupom.desconto}</strong>
+                    {cupom.tipo !== "frete" && <small>OFF</small>}
+                  </div>
+                </div>
 
-                    <div className="cx-discount">
-                      <span className="cx-discountValue">{cupom.desconto}</span>
-                    </div>
+                {/* Body */}
+                <div className="cx-body">
+                  <p className="cx-desc">{cupom.descricao}</p>
 
-                    <div className="cx-topGlow" aria-hidden="true" />
+                  <div className="cx-codeBox">
+                    <span className="cx-code">{cupom.codigo}</span>
+
+                    <button
+                      type="button"
+                      className={`cx-copy ${copiado === cupom.codigo ? "is-copied" : ""}`}
+                      onClick={() => copiar(cupom.codigo)}
+                      aria-label={`Copiar cupom ${cupom.codigo}`}
+                    >
+                      {copiado === cupom.codigo ? (
+                        <>
+                          <Check size={16} /> Copiado
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={16} /> Copiar
+                        </>
+                      )}
+                    </button>
                   </div>
 
-                  {/* Body */}
-                  <div className="cx-body">
-                    <p className="cx-desc">{cupom.descricao}</p>
-
-                    <div className="cx-codeBox" aria-label={`Código do cupom ${cupom.codigo}`}>
-                      <span className="cx-code">{cupom.codigo}</span>
-
-                      <button
-                        type="button"
-                        className={`cx-copy ${isCopied ? "isCopied" : ""}`}
-                        onClick={() => copiar(cupom.codigo)}
-                        aria-label={isCopied ? "Cupom copiado" : `Copiar cupom ${cupom.codigo}`}
-                      >
-                        {isCopied ? (
-                          <>
-                            <Check size={16} />
-                            Copiado
-                          </>
-                        ) : (
-                          <>
-                            <Copy size={16} />
-                            Copiar
-                          </>
-                        )}
-                      </button>
-                    </div>
-
-                    <div className="cx-meta">
-                      <CalendarDays size={14} />
-                      <span>Válido até: {cupom.expiracao}</span>
-                    </div>
+                  <div className="cx-meta">
+                    <CalendarDays size={14} />
+                    <span>Válido até: {cupom.expiracao}</span>
                   </div>
+                </div>
 
-                  {/* Corner decor */}
-                  <div className="cx-corner" aria-hidden="true" />
-                </article>
-              );
-            })}
+                {/* decor */}
+                <div className="cx-corner" aria-hidden="true" />
+              </article>
+            ))}
           </div>
         )}
       </div>
 
-      <style jsx>{styles(theme)}</style>
+      <style jsx>{styles}</style>
     </section>
   );
 }
 
-function styles(theme: ReturnType<typeof getTheme>) {
-  return `
-    :global(:root){
-      --rose:${theme.rose};
-      --roseSoft:${theme.roseSoft};
-      --gold:${theme.gold};
+const styles = `
+  :global(:root){
+    --rose:#b76e79;
+    --roseSoft:#d9a5ad;
+    --gold:#d4af37;
+    --ink:#1f2937;
+    --muted: rgba(31,41,55,.72);
+    --muted2: rgba(31,41,55,.58);
+    --cream:#fff6ee;
+    --cream2:#fff1e6;
+    --paper:#ffffff;
+    --line: rgba(31,41,55,.10);
+    --shadow: 0 24px 60px rgba(31,41,55,.12);
+    --shadowHover: 0 34px 90px rgba(31,41,55,.18);
+    --radius: 26px;
+  }
 
-      --ink:${theme.ink};
-      --muted:${theme.muted};
-      --paper:${theme.paper};
-      --line:${theme.line};
+  .cx-section{
+    background:
+      radial-gradient(1100px 520px at 15% 0%, rgba(183,110,121,.14), transparent 60%),
+      radial-gradient(900px 520px at 85% 0%, rgba(212,175,55,.12), transparent 60%),
+      linear-gradient(135deg, var(--cream), var(--cream2));
+    padding: clamp(22px, 4vw, 44px) 0;
+  }
 
-      --shadow:${theme.shadow};
-      --shadowHover:${theme.shadowHover};
+  .cx-wrap{
+    width: min(1200px, 92vw);
+    margin: 0 auto;
+  }
 
-      --cream:${theme.cream};
-      --cream2:${theme.cream2};
+  /* Header */
+  .cx-head{
+    display:flex;
+    align-items:center;
+    gap: 16px;
+    margin-bottom: clamp(18px, 3vw, 28px);
+  }
 
-      --r: 24px;
-    }
+  .cx-icon{
+    width: 64px;
+    height: 64px;
+    border-radius: 22px;
+    display:grid;
+    place-items:center;
+    background: rgba(255,255,255,.82);
+    border: 1px solid var(--line);
+    box-shadow: 0 18px 44px rgba(31,41,55,.10);
+    position: relative;
+    overflow:hidden;
+    flex: 0 0 auto;
+  }
+  .cx-icon::before{
+    content:"";
+    position:absolute;
+    inset:-1px;
+    background:
+      radial-gradient(120px 80px at 20% 20%, rgba(183,110,121,.22), transparent 60%),
+      radial-gradient(120px 80px at 80% 30%, rgba(212,175,55,.18), transparent 60%);
+    pointer-events:none;
+  }
+  .cx-icon :global(svg){ position: relative; z-index: 1; color: var(--ink); }
 
-    .cx-wrap{
-      background:
-        radial-gradient(1100px 520px at 12% 0%, rgba(183,110,121,.14), transparent 60%),
-        radial-gradient(900px 520px at 88% 0%, rgba(212,175,55,.12), transparent 60%),
-        linear-gradient(135deg, var(--cream), var(--cream2));
-      padding: clamp(26px, 4vw, 54px) 0;
-    }
+  .cx-title{
+    margin: 0;
+    font-size: clamp(22px, 2.6vw, 34px);
+    font-weight: 950;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+    line-height: 1.1;
+  }
+  .cx-title span{ color: var(--rose); }
 
-    .cx-container{
-      width: min(1200px, 92vw);
-      margin: 0 auto;
-    }
+  .cx-sub{
+    margin: 8px 0 0;
+    color: var(--muted);
+    max-width: 64ch;
+    font-size: 14px;
+    line-height: 1.55;
+  }
 
-    .cx-state{
-      text-align:center;
-      padding: 44px 14px;
-      color: var(--muted);
-      font-weight: 700;
-    }
-    .cx-err{ color: #b4232c; }
+  /* Grid (responsivo top) */
+  .cx-grid{
+    display:grid;
+    gap: 14px;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+  @media (min-width: 560px){
+    .cx-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  }
+  @media (min-width: 980px){
+    .cx-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+    .cx-head{ gap: 18px; }
+    .cx-icon{ width: 74px; height: 74px; }
+  }
 
-    /* Header */
-    .cx-head{
-      display:flex;
-      align-items:flex-start;
-      gap: 14px;
-      margin-bottom: clamp(18px, 2vw, 26px);
-    }
+  /* Card */
+  .cx-card{
+    position: relative;
+    background: rgba(255,255,255,.86);
+    border: 1px solid rgba(31,41,55,.10);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: 0 18px 50px rgba(31,41,55,.10);
+    transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+    min-height: 260px;
+  }
+  .cx-card:hover{
+    transform: translateY(-6px);
+    box-shadow: var(--shadowHover);
+    border-color: rgba(183,110,121,.22);
+  }
 
-    .cx-mark{
-      width: 54px;
-      height: 54px;
-      border-radius: 18px;
-      display:grid;
-      place-items:center;
-      background: rgba(255,255,255,.78);
-      border: 1px solid var(--line);
-      box-shadow: 0 16px 44px rgba(31,41,55,.10);
-      position: relative;
-      overflow:hidden;
-      flex: 0 0 auto;
-    }
-    .cx-mark::before{
-      content:"";
-      position:absolute;
-      inset:-1px;
-      background:
-        radial-gradient(140px 90px at 20% 20%, rgba(183,110,121,.22), transparent 60%),
-        radial-gradient(140px 90px at 80% 30%, rgba(212,175,55,.18), transparent 60%);
-      pointer-events:none;
-    }
-    .cx-mark :global(svg){ position: relative; z-index: 1; }
+  .cx-top{
+    padding: 18px 18px;
+    color: #fff;
+    display:flex;
+    justify-content: space-between;
+    align-items: center;
+    position: relative;
+  }
+  .cx-top::after{
+    content:"";
+    position:absolute;
+    inset:0;
+    background:
+      radial-gradient(420px 140px at 20% 20%, rgba(255,255,255,.22), transparent 60%),
+      radial-gradient(420px 140px at 80% 30%, rgba(0,0,0,.12), transparent 60%);
+    pointer-events:none;
+  }
 
-    .cx-titles{ min-width: 0; }
+  .cx-pill{
+    position: relative;
+    z-index: 1;
+    background: rgba(255,255,255,.22);
+    border: 1px solid rgba(255,255,255,.28);
+    padding: 6px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+    display:inline-flex;
+    align-items:center;
+    gap: 8px;
+    letter-spacing: .6px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
 
-    .cx-title{
-      margin: 0 0 6px;
-      font-weight: 950;
-      color: var(--ink);
-      letter-spacing: -0.04em;
-      font-size: clamp(22px, 2.5vw, 34px);
-      line-height: 1.1;
-    }
-    .cx-title span{ color: var(--rose); }
+  .cx-discount{
+    position: relative;
+    z-index: 1;
+    text-align:right;
+    line-height: 1;
+  }
+  .cx-discount strong{
+    font-size: 28px;
+    font-weight: 950;
+  }
+  .cx-discount small{
+    display:block;
+    margin-top: 6px;
+    font-size: 11px;
+    letter-spacing: 2px;
+    opacity: .95;
+  }
 
-    .cx-subtitle{
-      margin: 0;
-      color: var(--muted);
-      max-width: 720px;
-      line-height: 1.55;
-      font-size: 14px;
-    }
+  .cx-body{
+    padding: 18px;
+    display:flex;
+    flex-direction: column;
+    gap: 12px;
+  }
 
-    /* Empty */
-    .cx-empty{ padding: 10px 0 6px; }
-    .cx-emptyCard{
-      display:flex;
-      align-items:flex-start;
-      gap: 12px;
-      padding: 16px 18px;
-      border-radius: var(--r);
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,.78);
-      box-shadow: 0 16px 44px rgba(31,41,55,.08);
-      color: var(--ink);
-    }
-    .cx-emptyCard p{
-      margin: 4px 0 0;
-      color: var(--muted);
-      font-size: 13px;
-    }
+  .cx-desc{
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.55;
+    font-size: 14px;
+    min-height: 44px;
+  }
 
-    /* Grid (melhor responsivo) */
-    .cx-grid{
-      display:grid;
-      grid-template-columns: 1fr;
-      gap: 14px;
-    }
-    @media (min-width: 640px){
-      .cx-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-    }
-    @media (min-width: 1024px){
-      .cx-grid{ grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
-    }
+  .cx-codeBox{
+    background: rgba(255,255,255,.92);
+    border: 1.8px dashed rgba(212,175,55,.45);
+    border-radius: 18px;
+    padding: 12px 12px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap: 10px;
+    box-shadow: 0 14px 30px rgba(31,41,55,.08);
+  }
 
-    /* Card */
-    .cx-card{
-      position: relative;
-      border-radius: calc(var(--r) + 2px);
-      overflow: hidden;
-      border: 1px solid rgba(31,41,55,.10);
-      background: rgba(255,255,255,.85);
-      box-shadow: var(--shadow);
-      transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
-      min-height: 100%;
-      display:flex;
-      flex-direction: column;
-    }
-    .cx-card:hover{
-      transform: translateY(-6px);
-      box-shadow: var(--shadowHover);
-      border-color: rgba(183,110,121,.22);
-    }
+  .cx-code{
+    font-weight: 950;
+    letter-spacing: 2px;
+    color: var(--ink);
+    font-size: 15px;
+    text-transform: uppercase;
+    overflow:hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 58%;
+  }
 
-    /* Top */
-    .cx-top{
-      position: relative;
-      padding: 16px 16px 14px;
-      color: #fff;
-      display:flex;
-      align-items:flex-start;
-      justify-content: space-between;
-      gap: 12px;
-    }
+  .cx-copy{
+    border: 0;
+    border-radius: 999px;
+    padding: 10px 12px;
+    font-size: 12px;
+    font-weight: 950;
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    cursor:pointer;
+    color: #1f2937;
+    background: linear-gradient(135deg, rgba(183,110,121,.26), rgba(212,175,55,.22));
+    box-shadow: 0 12px 26px rgba(183,110,121,.14);
+    transition: transform .16s ease, filter .16s ease, box-shadow .16s ease;
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+  .cx-copy:hover{
+    transform: translateY(-1px);
+    filter: brightness(1.02);
+    box-shadow: 0 18px 40px rgba(183,110,121,.20);
+  }
+  .cx-copy.is-copied{
+    background: linear-gradient(135deg, rgba(212,175,55,.35), rgba(183,110,121,.20));
+  }
 
-    .cx-topGlow{
-      position:absolute;
-      inset:0;
-      background:
-        radial-gradient(520px 160px at 18% 20%, rgba(255,255,255,.22), transparent 60%),
-        radial-gradient(520px 160px at 82% 30%, rgba(0,0,0,.14), transparent 60%);
-      pointer-events:none;
-    }
+  .cx-meta{
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    color: var(--muted2);
+    font-size: 13px;
+  }
 
-    .cx-topLeft{
-      position: relative;
-      z-index: 1;
-      display:flex;
-      flex-direction: column;
-      gap: 10px;
-      min-width: 0;
-    }
+  .cx-corner{
+    position:absolute;
+    right:-64px;
+    bottom:-64px;
+    width: 170px;
+    height: 170px;
+    border-radius: 999px;
+    background: radial-gradient(circle at 30% 30%, rgba(212,175,55,.22), rgba(183,110,121,.18), transparent 60%);
+    pointer-events:none;
+  }
 
-    .cx-pill{
-      display:inline-flex;
-      align-items:center;
-      gap: 8px;
-      padding: 7px 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.28);
-      background: rgba(255,255,255,.18);
-      backdrop-filter: blur(8px);
-      font-size: 12px;
-      font-weight: 900;
-      letter-spacing: .8px;
-      text-transform: uppercase;
-      width: fit-content;
-    }
+  /* Empty */
+  .cx-empty{
+    background: rgba(255,255,255,.82);
+    border: 1px solid var(--line);
+    border-radius: 26px;
+    padding: 26px;
+    text-align:center;
+    box-shadow: 0 18px 50px rgba(31,41,55,.10);
+  }
+  .cx-emptyBadge{
+    width: 54px;
+    height: 54px;
+    margin: 0 auto 12px;
+    border-radius: 18px;
+    display:grid;
+    place-items:center;
+    background: linear-gradient(135deg, rgba(183,110,121,.22), rgba(212,175,55,.20));
+    border: 1px solid rgba(31,41,55,.08);
+  }
+  .cx-empty h3{
+    margin: 0 0 6px;
+    font-weight: 950;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+  .cx-empty p{
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.55;
+  }
 
-    .cx-kind{
-      font-size: 12px;
-      opacity: .92;
-      font-weight: 800;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      white-space: nowrap;
-      overflow:hidden;
-      text-overflow: ellipsis;
-      max-width: 220px;
-    }
+  /* Error */
+  .cx-state{
+    text-align:center;
+    padding: 24px 14px;
+    background: rgba(255,255,255,.82);
+    border: 1px solid var(--line);
+    border-radius: 22px;
+    box-shadow: 0 18px 50px rgba(31,41,55,.10);
+    color: var(--muted);
+  }
+  .cx-erro{ color: #b4232c; }
 
-    .cx-discount{
-      position: relative;
-      z-index: 1;
-      text-align: right;
-      line-height: 1;
-      padding-top: 2px;
-    }
-    .cx-discountValue{
-      font-weight: 950;
-      font-size: clamp(20px, 2.2vw, 28px);
-      letter-spacing: -0.02em;
-      text-shadow: 0 18px 40px rgba(0,0,0,.35);
-      white-space: nowrap;
-    }
+  /* Skeleton */
+  .cx-skel{
+    overflow:hidden;
+  }
+  .cx-skelTop{
+    height: 84px;
+    background: linear-gradient(90deg, rgba(31,41,55,.06), rgba(31,41,55,.10), rgba(31,41,55,.06));
+    background-size: 300% 100%;
+    animation: shimmer 1.2s linear infinite;
+  }
+  .cx-skelBody{
+    padding: 18px;
+    display:flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .cx-line{
+    height: 12px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, rgba(31,41,55,.06), rgba(31,41,55,.10), rgba(31,41,55,.06));
+    background-size: 300% 100%;
+    animation: shimmer 1.2s linear infinite;
+  }
+  .cx-line.short{ width: 72%; }
+  .cx-chip{
+    height: 44px;
+    border-radius: 18px;
+    background: linear-gradient(90deg, rgba(31,41,55,.06), rgba(31,41,55,.10), rgba(31,41,55,.06));
+    background-size: 300% 100%;
+    animation: shimmer 1.2s linear infinite;
+    margin-top: 4px;
+  }
+  .cx-titleSkel{
+    width: min(420px, 68vw);
+    height: 26px;
+    border-radius: 14px;
+    background: linear-gradient(90deg, rgba(31,41,55,.06), rgba(31,41,55,.10), rgba(31,41,55,.06));
+    background-size: 300% 100%;
+    animation: shimmer 1.2s linear infinite;
+  }
+  .cx-subSkel{
+    width: min(520px, 76vw);
+    height: 14px;
+    border-radius: 10px;
+    margin-top: 10px;
+    background: linear-gradient(90deg, rgba(31,41,55,.06), rgba(31,41,55,.10), rgba(31,41,55,.06));
+    background-size: 300% 100%;
+    animation: shimmer 1.2s linear infinite;
+  }
 
-    /* Body */
-    .cx-body{
-      padding: 16px 16px 16px;
-      display:flex;
-      flex-direction: column;
-      gap: 12px;
-      flex: 1 1 auto;
-    }
+  @keyframes shimmer{
+    0%{ background-position: 0% 50%; }
+    100%{ background-position: 100% 50%; }
+  }
 
-    .cx-desc{
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.55;
-      font-size: 14px;
-      min-height: 42px;
-    }
-
-    .cx-codeBox{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap: 10px;
-      padding: 12px 12px;
-      border-radius: 18px;
-      border: 1.8px dashed rgba(212,175,55,.45);
-      background: rgba(255,255,255,.92);
-      box-shadow: 0 14px 30px rgba(31,41,55,.08);
-    }
-
-    .cx-code{
-      font-weight: 950;
-      letter-spacing: 2px;
-      color: var(--ink);
-      font-size: 14px;
-      text-transform: uppercase;
-      overflow:hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      max-width: 55%;
-    }
-
-    .cx-copy{
-      border: 0;
-      border-radius: 999px;
-      padding: 8px 12px;
-      font-size: 12px;
-      font-weight: 900;
-      display:inline-flex;
-      align-items:center;
-      gap: 8px;
-      cursor:pointer;
-      color: #1f2937;
-      background: linear-gradient(135deg, rgba(183,110,121,.26), rgba(212,175,55,.22));
-      box-shadow: 0 12px 26px rgba(183,110,121,.14);
-      transition: transform .16s ease, filter .16s ease, box-shadow .16s ease;
-      white-space: nowrap;
-      flex: 0 0 auto;
-    }
-    .cx-copy:hover{
-      transform: translateY(-1px);
-      filter: brightness(1.02);
-      box-shadow: 0 18px 40px rgba(183,110,121,.20);
-    }
-    .cx-copy.isCopied{
-      background: linear-gradient(135deg, rgba(212,175,55,.35), rgba(183,110,121,.20));
-    }
-
-    .cx-meta{
-      display:flex;
-      align-items:center;
-      gap: 8px;
-      color: rgba(31,41,55,.58);
-      font-size: 12.5px;
-      font-weight: 700;
-      margin-top: auto;
-    }
-
-    .cx-corner{
-      position:absolute;
-      right:-60px;
-      bottom:-60px;
-      width: 170px;
-      height: 170px;
-      border-radius: 999px;
-      background: radial-gradient(circle at 30% 30%, rgba(212,175,55,.22), rgba(183,110,121,.18), transparent 62%);
-      pointer-events:none;
-    }
-
-    /* A11y */
-    .cx-card:focus-within{
-      outline: 3px solid rgba(183,110,121,.20);
-      outline-offset: 4px;
-      border-radius: calc(var(--r) + 6px);
-    }
-
-    /* Melhor UX mobile: botões maiores */
-    @media (max-width: 420px){
-      .cx-top{ padding: 14px 14px 12px; }
-      .cx-body{ padding: 14px; }
-      .cx-code{ max-width: 52%; }
-      .cx-copy{ padding: 10px 12px; }
-    }
-
-    @media (prefers-reduced-motion: reduce){
-      .cx-card, .cx-copy{ transition: none; }
-    }
-  `;
-}
-
-function getTheme() {
-  return {
-    rose: "#b76e79",
-    roseSoft: "#d9a5ad",
-    gold: "#d4af37",
-    ink: "#0b1220",
-    muted: "rgba(31,41,55,.72)",
-    paper: "rgba(255,255,255,.92)",
-    line: "rgba(31,41,55,.10)",
-    shadow: "0 22px 64px rgba(2, 6, 23, .10)",
-    shadowHover: "0 30px 84px rgba(2, 6, 23, .14)",
-    cream: "#fff6ee",
-    cream2: "#fff1e6",
-  } as const;
-}
+  /* Mobile micro ajustes */
+  @media (max-width: 420px){
+    .cx-head{ align-items:flex-start; }
+    .cx-icon{ width: 56px; height: 56px; border-radius: 18px; }
+    .cx-sub{ font-size: 13px; }
+    .cx-code{ max-width: 52%; }
+  }
+`;
