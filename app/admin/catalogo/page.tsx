@@ -6,26 +6,73 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { rotas } from "@/components/Bibioteca/config/rotas";
 
-interface Produto {
+interface ProdutoApi {
   id_produto: number;
   nome: string;
-  preco: number;
-  estoque: number;
-  catalogo: number; // ✅ 1 publicado | 0 oculto
+  preco: any;
+  estoque: any;
+  catalogo: any; // pode vir 0/1, 5/6, string, bool...
   categoria_nome?: string;
   slug?: string;
   imagem?: string;
 }
 
-const getImagemUrl = (caminho?: string) => {
+interface ProdutoUI {
+  id_produto: number;
+  nome: string;
+  preco: number;
+  estoque: number;
+  publicado: boolean;
+  categoria_nome?: string;
+  slug?: string;
+  imagem?: string;
+}
+
+function getImagemUrl(caminho?: string) {
   if (!caminho) return undefined;
   const base = api.defaults.baseURL || "";
   const baseFinal = base.endsWith("/") ? base : `${base}/`;
   return `${baseFinal}${String(caminho).replace(/^\/+/, "")}`;
-};
+}
+
+/**
+ * ✅ Normaliza "catalogo" para boolean
+ * Aceita:
+ * - 1, "1", true, "true", 5, "5" => publicado
+ * - 0, "0", false, "false", 6, "6", null => oculto
+ */
+function isPublicado(valor: any): boolean {
+  if (valor === true) return true;
+  if (valor === false) return false;
+
+  const v = String(valor ?? "").trim().toLowerCase();
+
+  if (v === "1" || v === "true") return true;
+  if (v === "0" || v === "false" || v === "" || v === "null" || v === "undefined") return false;
+
+  // compat com seu código antigo (5/6)
+  if (v === "5") return true;  // publicado
+  if (v === "6") return false; // oculto
+
+  // fallback: tenta número >0 como publicado
+  const n = Number(v);
+  if (!Number.isNaN(n)) return n > 0;
+
+  return false;
+}
+
+function resolveLista(resData: any): any[] {
+  const root = resData?.dados ?? resData?.data ?? resData;
+  if (Array.isArray(root)) return root;
+  if (root && typeof root === "object") {
+    if (Array.isArray(root.dados)) return root.dados;
+    if (root.dados && Array.isArray(root.dados.dados)) return root.dados.dados;
+  }
+  return [];
+}
 
 export default function CatalogoPage() {
-  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [produtos, setProdutos] = useState<ProdutoUI[]>([]);
   const [loading, setLoading] = useState(true);
   const [paginaAtual, setPaginaAtual] = useState(1);
 
@@ -34,14 +81,27 @@ export default function CatalogoPage() {
   const fetchProdutos = async () => {
     try {
       setLoading(true);
-      const res = await api.get(rotas.admin.api.produtosCatalogo);
 
-      const root = res.data?.dados ?? res.data?.data ?? res.data;
-      const lista = Array.isArray(root) ? root : Array.isArray(root?.dados) ? root.dados : [];
+      const res = await api.get(rotas.admin.api.produtosCatalogo, {
+        withCredentials: true,
+      });
 
-      setProdutos(lista);
+      const lista = resolveLista(res.data) as ProdutoApi[];
+
+      const normalizados: ProdutoUI[] = lista.map((p) => ({
+        id_produto: Number(p.id_produto),
+        nome: String(p.nome ?? ""),
+        preco: Number(p.preco ?? 0),
+        estoque: Number(p.estoque ?? 0),
+        publicado: isPublicado(p.catalogo),
+        categoria_nome: p.categoria_nome ?? "Sem categoria",
+        slug: p.slug ?? undefined,
+        imagem: getImagemUrl(p.imagem),
+      }));
+
+      setProdutos(normalizados);
     } catch (err: any) {
-      console.error(err);
+      console.error(err?.response?.data || err?.message || err);
       toast.error("Erro ao carregar produtos");
       setProdutos([]);
     } finally {
@@ -51,29 +111,42 @@ export default function CatalogoPage() {
 
   useEffect(() => {
     fetchProdutos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const toggleCatalogo = async (produto: Produto) => {
+  const toggleCatalogo = async (produto: ProdutoUI) => {
     try {
-      const publicado = Number(produto.catalogo) === 1;
+      // ✅ otimista: já muda no UI
+      setProdutos((prev) =>
+        prev.map((p) =>
+          p.id_produto === produto.id_produto ? { ...p, publicado: !produto.publicado } : p
+        )
+      );
 
-      if (publicado) {
-        await api.put(rotas.admin.api.catalogoNao(produto.id_produto));
+      if (produto.publicado) {
+        await api.put(rotas.admin.api.catalogoNao(produto.id_produto), null, {
+          withCredentials: true,
+        });
         toast.info("Produto removido do catálogo");
       } else {
-        await api.put(rotas.admin.api.catalogoSim(produto.id_produto));
+        await api.put(rotas.admin.api.catalogoSim(produto.id_produto), null, {
+          withCredentials: true,
+        });
         toast.success("Produto publicado no catálogo");
       }
 
-      // ✅ atualiza local sem precisar refetch (mais rápido)
+      // ✅ refetch garante que o valor real do backend volte correto
+      await fetchProdutos();
+    } catch (err: any) {
+      console.error(err?.response?.data || err?.message || err);
+      toast.error("Erro ao atualizar catálogo");
+
+      // ✅ desfaz se falhar
       setProdutos((prev) =>
         prev.map((p) =>
-          p.id_produto === produto.id_produto ? { ...p, catalogo: publicado ? 0 : 1 } : p
+          p.id_produto === produto.id_produto ? { ...p, publicado: produto.publicado } : p
         )
       );
-    } catch (err: any) {
-      console.error(err);
-      toast.error("Erro ao atualizar catálogo");
     }
   };
 
@@ -88,7 +161,6 @@ export default function CatalogoPage() {
   }, [produtos, paginaAtual]);
 
   useEffect(() => {
-    // ✅ se apagar itens ou mudar lista e página ficar inválida
     if (paginaAtual > totalPaginas && totalPaginas > 0) setPaginaAtual(totalPaginas);
     if (totalPaginas === 0) setPaginaAtual(1);
   }, [totalPaginas, paginaAtual]);
@@ -107,62 +179,58 @@ export default function CatalogoPage() {
       ) : (
         <>
           <div className="grid">
-            {produtosPagina.map((produto) => {
-              const publicado = Number(produto.catalogo) === 1;
+            {produtosPagina.map((produto) => (
+              <div key={produto.id_produto} className="card">
+                <div className="image-box">
+                  {produto.imagem ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={produto.imagem} alt={produto.nome} />
+                  ) : (
+                    <span className="no-image">Sem imagem</span>
+                  )}
 
-              return (
-                <div key={produto.id_produto} className="card">
-                  <div className="image-box">
-                    {produto.imagem ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={getImagemUrl(produto.imagem)} alt={produto.nome} />
-                    ) : (
-                      <span className="no-image">Sem imagem</span>
-                    )}
+                  <span className={`badge ${produto.publicado ? "on" : "off"}`}>
+                    {produto.publicado ? "Publicado" : "Oculto"}
+                  </span>
+                </div>
 
-                    <span className={`badge ${publicado ? "on" : "off"}`}>
-                      {publicado ? "Publicado" : "Oculto"}
+                <div className="content">
+                  <h3>{produto.nome}</h3>
+                  <small>{produto.categoria_nome || "Sem categoria"}</small>
+
+                  <div className="info">
+                    <span>
+                      Preço
+                      <strong>R$ {Number(produto.preco).toFixed(2)}</strong>
+                    </span>
+                    <span>
+                      Estoque
+                      <strong>{Number(produto.estoque)}</strong>
                     </span>
                   </div>
 
-                  <div className="content">
-                    <h3>{produto.nome}</h3>
-                    <small>{produto.categoria_nome || "Sem categoria"}</small>
+                  <div className="actions">
+                    <button
+                      className={`btn ${produto.publicado ? "danger" : "success"}`}
+                      onClick={() => toggleCatalogo(produto)}
+                    >
+                      {produto.publicado ? "Remover" : "Publicar"}
+                    </button>
 
-                    <div className="info">
-                      <span>
-                        Preço
-                        <strong>R$ {Number(produto.preco).toFixed(2)}</strong>
-                      </span>
-                      <span>
-                        Estoque
-                        <strong>{Number(produto.estoque)}</strong>
-                      </span>
-                    </div>
-
-                    <div className="actions">
-                      <button
-                        className={`btn ${publicado ? "danger" : "success"}`}
-                        onClick={() => toggleCatalogo(produto)}
-                      >
-                        {publicado ? "Remover" : "Publicar"}
-                      </button>
-
-                      <button
-                        className="btn outline"
-                        onClick={() =>
-                          produto.slug
-                            ? window.open(`/produto/${produto.slug}`, "_blank")
-                            : toast.info("Produto sem página")
-                        }
-                      >
-                        Ver Página
-                      </button>
-                    </div>
+                    <button
+                      className="btn outline"
+                      onClick={() =>
+                        produto.slug
+                          ? window.open(`/produto/${produto.slug}`, "_blank")
+                          : toast.info("Produto sem página")
+                      }
+                    >
+                      Ver Página
+                    </button>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
 
           {totalPaginas > 1 && (
