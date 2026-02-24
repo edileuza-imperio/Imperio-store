@@ -48,11 +48,7 @@ type ApiResponse<T> = {
 
 const STATUS = {
   ATIVO: 1,
-  INATIVO: 2,
-  DESTAQUE: 3,
-  BLOQUEADO: 4,
   CATALOGO_SIM: 5,
-  CATALOGO_NAO: 6,
 } as const;
 
 function parseNumber(v: unknown): number | null {
@@ -119,8 +115,7 @@ function formatEstoque(
 
   const n = asInt(estoque);
   if (n === null) return { texto: "Estoque: —", semEstoque: false };
-  if (n <= 0) return { texto: "Sem estoque", semEstoque: true };
-
+  if (n <= 0) return { texto: "Esgotado", semEstoque: true };
   return { texto: `Estoque: ${n}`, semEstoque: false };
 }
 
@@ -130,6 +125,27 @@ function calcDiscountPercent(preco: number, promo: number) {
   return pct > 0 ? pct : 0;
 }
 
+/* ===== Icons (sem libs) ===== */
+function IconSearch() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M10 2a8 8 0 1 1 5.293 13.707l4 4a1 1 0 0 1-1.414 1.414l-4-4A8 8 0 0 1 10 2Zm0 2a6 6 0 1 0 0 12a6 6 0 0 0 0-12Z"
+      />
+    </svg>
+  );
+}
+function IconSpark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        fill="currentColor"
+        d="M12 2l1.6 6.2L20 10l-6.4 1.8L12 18l-1.6-6.2L4 10l6.4-1.8L12 2Zm7 9l.9 3.1L23 15l-3.1.9L19 19l-.9-3.1L15 15l3.1-.9L19 11Z"
+      />
+    </svg>
+  );
+}
 function IconEye() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
@@ -140,7 +156,6 @@ function IconEye() {
     </svg>
   );
 }
-
 function IconCart() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
@@ -158,21 +173,25 @@ export default function CatalogoPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [addingId, setAddingId] = useState<number | null>(null);
 
+  // UI
   const [q, setQ] = useState("");
-  const [categoria, setCategoria] = useState<string>("");
-  const [precoMin, setPrecoMin] = useState<string>("");
-  const [precoMax, setPrecoMax] = useState<string>("");
+  const [sort, setSort] = useState<"relevancia" | "menor" | "maior" | "nome">(
+    "relevancia"
+  );
 
+  // toast
   const [toast, setToast] = useState<{ show: boolean; text: string }>({
     show: false,
     text: "",
   });
   const toastTimer = useRef<number | null>(null);
-
   function showToast(text: string) {
     setToast({ show: true, text });
     if (toastTimer.current) window.clearTimeout(toastTimer.current);
-    toastTimer.current = window.setTimeout(() => setToast({ show: false, text: "" }), 1800);
+    toastTimer.current = window.setTimeout(
+      () => setToast({ show: false, text: "" }),
+      1800
+    );
   }
 
   const placeholderSvg = useMemo(() => {
@@ -196,7 +215,9 @@ export default function CatalogoPage() {
         setLoading(true);
         setErro(null);
 
-        const res = await api.get<ApiResponse<CatalogoPayload>>(rotas.produtos.catalogo);
+        const res = await api.get<ApiResponse<CatalogoPayload>>(
+          rotas.produtos.catalogo
+        );
         const payload = resolveApi<CatalogoPayload>(res.data);
         const lista = payload?.produtos ?? [];
 
@@ -219,58 +240,58 @@ export default function CatalogoPage() {
     };
   }, []);
 
-  const categorias = useMemo(() => {
-    const map = new Map<string, string>();
-    for (const p of produtos) {
-      const id = p.categoria_id != null ? String(p.categoria_id) : "";
-      const nome =
-        (p.categoria_nome || "").trim() ||
-        (id ? `Categoria #${id}` : "Sem categoria");
-
-      if (!id) continue;
-      if (!map.has(id)) map.set(id, nome);
-    }
-    return Array.from(map.entries())
-      .map(([id, nome]) => ({ id, nome }))
-      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-  }, [produtos]);
-
   const filtrados = useMemo(() => {
     const qn = q.trim().toLowerCase();
-    const minN = parseNumber(precoMin);
-    const maxN = parseNumber(precoMax);
 
-    return produtos.filter((p) => {
+    const base = produtos.filter((p) => {
       const statusId = asInt(p.statusid);
       const catalogoId = asInt(p.catalogo);
-
-      const ativo = statusId === STATUS.ATIVO;
-      const noCatalogo = catalogoId === STATUS.CATALOGO_SIM;
-
-      if (!ativo || !noCatalogo) return false;
-
-      if (categoria) {
-        if (String(p.categoria_id ?? "") !== categoria) return false;
-      }
-
-      if (qn && !(p.nome || "").toLowerCase().includes(qn)) return false;
-
-      const precoBase = parseNumber(p.preco_promocional) ?? parseNumber(p.preco);
-      if (minN != null && (precoBase ?? 0) < minN) return false;
-      if (maxN != null && (precoBase ?? 0) > maxN) return false;
-
-      return true;
+      return statusId === STATUS.ATIVO && catalogoId === STATUS.CATALOGO_SIM;
     });
-  }, [produtos, q, categoria, precoMin, precoMax]);
+
+    const searched = !qn
+      ? base
+      : base.filter((p) => (p.nome || "").toLowerCase().includes(qn));
+
+    const sorted = [...searched].sort((a, b) => {
+      const ap = parseNumber(a.preco_promocional) ?? parseNumber(a.preco) ?? 0;
+      const bp = parseNumber(b.preco_promocional) ?? parseNumber(b.preco) ?? 0;
+
+      if (sort === "menor") return ap - bp;
+      if (sort === "maior") return bp - ap;
+      if (sort === "nome")
+        return (a.nome || "").localeCompare(b.nome || "", "pt-BR");
+      return 0; // relevancia
+    });
+
+    return sorted;
+  }, [produtos, q, sort]);
+
+  const stats = useMemo(() => {
+    const total = filtrados.length;
+
+    let promos = 0;
+    let min: number | null = null;
+    for (const p of filtrados) {
+      const preco = parseNumber(p.preco);
+      const promo = parseNumber(p.preco_promocional);
+      const temPromo = promo != null && preco != null && promo > 0 && promo < preco;
+      if (temPromo) promos++;
+
+      const final = promo ?? preco;
+      if (final != null) min = min == null ? final : Math.min(min, final);
+    }
+
+    return { total, promos, min };
+  }, [filtrados]);
 
   async function addCarrinho(p: Produto) {
     const id = (p.id_produto ?? p.id) as number | undefined;
     if (!id) return;
 
-    // trava por estoque
     const { semEstoque } = formatEstoque(p.estoque, p.ilimitado);
     if (semEstoque) {
-      showToast("⚠️ Produto sem estoque");
+      showToast("⚠️ Produto esgotado");
       return;
     }
 
@@ -279,23 +300,16 @@ export default function CatalogoPage() {
       await api.post(rotas.carrinho.adicionar, { produto_id: id, qtd: 1 });
       showToast(`✅ ${p.nome} adicionado ao carrinho`);
     } catch (e: any) {
-      showToast(e?.response?.data?.message || e?.message || "Erro ao adicionar no carrinho");
+      showToast(
+        e?.response?.data?.message || e?.message || "Erro ao adicionar no carrinho"
+      );
     } finally {
       setAddingId(null);
     }
   }
 
-  function limparFiltros() {
-    setQ("");
-    setCategoria("");
-    setPrecoMin("");
-    setPrecoMax("");
-    showToast("🧼 Filtros limpos");
-  }
-
   return (
     <>
-      {/* ✅ Estilos (creme) */}
       <style jsx global>{`
         :root{
           --cream-1:#fffaf1;
@@ -308,6 +322,7 @@ export default function CatalogoPage() {
           --accent:#b88962;
           --accent2:#d1a67f;
 
+          --line: rgba(111,92,73,.16);
           --shadow: 0 14px 46px rgba(0,0,0,.10);
           --shadow2: 0 20px 62px rgba(0,0,0,.14);
         }
@@ -319,25 +334,9 @@ export default function CatalogoPage() {
           font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
         }
 
-        .siteShell{
-          min-height: 100vh;
-          display:flex;
-          flex-direction: column;
-        }
-
-        .siteHeader{
-          position: relative;
-          z-index: 9999;
-        }
-
-        /* Se seu Navbar for fixed e ficar por cima, ajuste aqui:
-           --header-safe: 76px; e use padding-top.
-           Se NÃO for fixed, pode ficar 0.
-        */
-        .siteMain{
-          flex:1;
-          padding-top: 0px;
-        }
+        .siteShell{ min-height:100vh; display:flex; flex-direction:column; }
+        .siteHeader{ position:relative; z-index:9999; }
+        .siteMain{ flex:1; padding-top:0px; }
 
         .page{
           max-width: 1180px;
@@ -345,11 +344,12 @@ export default function CatalogoPage() {
           padding: 0 16px;
         }
 
-        .top{
+        /* header */
+        .hero{
           display:flex;
           align-items:flex-end;
           justify-content:space-between;
-          gap:14px;
+          gap: 14px;
           margin-bottom: 14px;
         }
 
@@ -368,7 +368,7 @@ export default function CatalogoPage() {
           opacity:.95;
         }
 
-        .pillCount{
+        .count{
           font-size: 12px;
           color: var(--muted);
           font-weight: 950;
@@ -382,101 +382,195 @@ export default function CatalogoPage() {
           align-items:center;
           gap:10px;
         }
-
         .dot{
-          width: 8px;
-          height: 8px;
-          border-radius: 999px;
+          width: 8px; height: 8px; border-radius: 999px;
           background: linear-gradient(135deg, var(--accent2), var(--accent));
           box-shadow: 0 6px 14px rgba(184,137,98,.35);
         }
 
-        .layout{
-          display:grid;
-          grid-template-columns: 330px 1fr;
-          gap: 16px;
-          align-items:start;
-        }
-
-        .filters{
-          position: sticky;
-          top: 14px;
-          border-radius: 24px;
-          overflow:hidden;
-          border: 1px solid rgba(111,92,73,.18);
-          background: linear-gradient(160deg, rgba(255,253,247,1) 0%, rgba(255,244,227,1) 45%, rgba(240,226,205,1) 100%);
-          box-shadow: 0 18px 48px rgba(0,0,0,.12);
-          padding: 16px;
-        }
-
-        .filtersTitle{
-          font-size: 16px;
-          font-weight: 1000;
-          margin:0 0 10px;
-          letter-spacing:-0.2px;
-        }
-
-        .field{
+        /* top bar */
+        .bar{
           display:flex;
-          flex-direction:column;
-          gap: 6px;
-          margin-bottom: 10px;
+          gap: 12px;
+          align-items:center;
+          justify-content:space-between;
+          padding: 12px;
+          border-radius: 18px;
+          border: 1px solid rgba(111,92,73,.18);
+          background: rgba(255,255,255,.62);
+          backdrop-filter: blur(8px);
+          box-shadow: 0 18px 46px rgba(0,0,0,.08);
+          margin-bottom: 14px;
         }
 
-        .label{
-          font-size: 12px;
-          font-weight: 950;
-          color: var(--muted);
-          opacity:.95;
-        }
-
-        .input, .select{
-          height: 40px;
+        .search{
+          flex:1;
+          display:flex;
+          align-items:center;
+          gap: 10px;
+          padding: 10px 12px;
           border-radius: 14px;
           border: 1px solid rgba(111,92,73,.18);
-          background: rgba(255,255,255,.75);
-          padding: 0 12px;
+          background: rgba(255,255,255,.78);
+        }
+        .search svg{ color: #6b5a49; }
+        .search input{
+          width:100%;
+          border:0;
           outline:none;
-          font-weight: 800;
+          background: transparent;
+          font-weight: 850;
           color: var(--ink);
         }
 
-        .row2{
-          display:grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-        }
-
-        .btnRow{
+        .rightTools{
           display:flex;
+          align-items:center;
           gap: 10px;
-          margin-top: 6px;
+          flex-wrap: wrap;
         }
 
-        .btn{
-          flex:1;
+        .select{
           height: 40px;
           border-radius: 14px;
           border: 1px solid rgba(111,92,73,.18);
           background: rgba(255,255,255,.78);
+          padding: 0 12px;
+          font-weight: 900;
+          color: var(--ink);
+          outline:none;
+        }
+
+        .chip{
+          height: 40px;
+          padding: 0 12px;
+          border-radius: 14px;
+          border: 1px solid rgba(111,92,73,.18);
+          background: rgba(255,255,255,.78);
+          font-weight: 1000;
+          color: var(--ink);
+          cursor:pointer;
+        }
+
+        /* ===== BANNER HORIZONTAL ===== */
+        .banner{
+          position: relative;
+          border-radius: 22px;
+          overflow:hidden;
+          border: 1px solid rgba(111,92,73,.18);
+          background:
+            linear-gradient(135deg, rgba(255,253,247,1) 0%,
+              rgba(255,244,227,1) 38%,
+              rgba(240,226,205,1) 100%);
+          box-shadow: 0 18px 52px rgba(0,0,0,.12);
+          padding: 16px;
+          margin-bottom: 16px;
+        }
+        .banner:before{
+          content:"";
+          position:absolute;
+          inset:-2px;
+          background: radial-gradient(700px 260px at 20% 10%, rgba(255,255,255,.65), transparent 60%);
+          pointer-events:none;
+        }
+        .bannerInner{
+          position:relative;
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap: 14px;
+        }
+        .bLeft{
+          min-width: 0;
+        }
+        .bTop{
+          display:flex;
+          gap: 10px;
+          align-items:center;
+          margin-bottom: 8px;
+          flex-wrap:wrap;
+        }
+        .bChip{
+          display:inline-flex;
+          align-items:center;
+          gap:8px;
+          padding: 7px 10px;
+          border-radius: 999px;
+          background: rgba(255,255,255,.70);
+          border: 1px solid rgba(111,92,73,.14);
           color: var(--ink);
           font-weight: 1000;
-          cursor:pointer;
-          transition: filter .12s ease, transform .12s ease;
+          font-size: 12px;
+          backdrop-filter: blur(8px);
+          white-space:nowrap;
         }
-        .btn:hover{ filter: brightness(.985); }
-        .btn:active{ transform: translateY(1px); }
+        .bTitle{
+          margin:0;
+          font-size: 20px;
+          font-weight: 1000;
+          letter-spacing:-0.3px;
+          color: var(--ink);
+        }
+        .bText{
+          margin: 6px 0 0;
+          color: var(--muted);
+          font-size: 13px;
+          font-weight: 700;
+          line-height: 1.45;
+          opacity: .96;
+          max-width: 740px;
+        }
+        .bStats{
+          margin-top: 10px;
+          display:flex;
+          gap: 10px;
+          flex-wrap:wrap;
+        }
+        .bStat{
+          padding: 8px 10px;
+          border-radius: 16px;
+          background: rgba(255,255,255,.58);
+          border: 1px solid rgba(111,92,73,.12);
+          font-size: 12px;
+          font-weight: 1000;
+          color: var(--ink);
+        }
 
-        .btnPrimary{
+        .bRight{
+          display:flex;
+          gap: 10px;
+          flex-wrap:wrap;
+          justify-content:flex-end;
+        }
+        .bBtn{
+          height: 42px;
+          padding: 0 14px;
+          border-radius: 14px;
+          border: 1px solid rgba(111,92,73,.18);
+          background: rgba(255,255,255,.78);
+          font-weight: 1000;
+          color: var(--ink);
+          cursor:pointer;
+          text-decoration:none;
+          display:inline-flex;
+          align-items:center;
+          gap: 8px;
+          transition: transform .12s ease, filter .12s ease;
+          user-select:none;
+          white-space:nowrap;
+        }
+        .bBtn:active{ transform: translateY(1px); }
+        .bBtn:hover{ filter: brightness(.985); }
+
+        .bBtnPrimary{
           background: linear-gradient(135deg, var(--accent2) 0%, var(--accent) 100%);
+          border-color: rgba(255,255,255,.18);
           color:#fff;
           box-shadow: 0 14px 28px rgba(184,137,98,.40);
-          border-color: rgba(255,255,255,.18);
         }
-        .btnPrimary:hover{ filter: brightness(1.02); }
+        .bBtnPrimary:hover{ filter: brightness(1.02); }
 
-        .right{ min-width:0; }
-
+        /* grid/cards */
         .grid{
           display:grid;
           grid-template-columns: repeat(auto-fill, minmax(260px, 260px));
@@ -493,10 +587,7 @@ export default function CatalogoPage() {
           box-shadow: var(--shadow);
           transition: transform .18s ease, box-shadow .18s ease;
         }
-        .card:hover{
-          transform: translateY(-3px);
-          box-shadow: var(--shadow2);
-        }
+        .card:hover{ transform: translateY(-3px); box-shadow: var(--shadow2); }
 
         .media{
           position:relative;
@@ -506,7 +597,6 @@ export default function CatalogoPage() {
           text-decoration:none;
           display:block;
         }
-
         .img{
           width:100%;
           height:100%;
@@ -536,7 +626,6 @@ export default function CatalogoPage() {
           align-items:center;
           z-index: 3;
         }
-
         .badge{
           padding: 7px 10px;
           border-radius: 999px;
@@ -549,7 +638,6 @@ export default function CatalogoPage() {
           box-shadow: 0 12px 22px rgba(0,0,0,.10);
           white-space:nowrap;
         }
-
         .badgeDark{
           background: rgba(30, 20, 12, .92);
           color:#fff;
@@ -557,7 +645,6 @@ export default function CatalogoPage() {
         }
 
         .body{ padding: 14px 14px 16px; }
-
         .name{
           margin: 0;
           font-size: 15.5px;
@@ -566,7 +653,6 @@ export default function CatalogoPage() {
           line-height: 1.15;
           color: var(--ink);
         }
-
         .desc{
           margin: 8px 0 0;
           color: var(--muted);
@@ -587,19 +673,16 @@ export default function CatalogoPage() {
           justify-content:space-between;
           gap: 10px;
         }
-
         .prices{
           display:flex;
           align-items:baseline;
           gap: 10px;
         }
-
         .price{
           font-weight: 1000;
           font-size: 15.5px;
           white-space:nowrap;
         }
-
         .old{
           font-weight: 900;
           font-size: 12px;
@@ -607,7 +690,6 @@ export default function CatalogoPage() {
           text-decoration: line-through;
           white-space:nowrap;
         }
-
         .pill{
           font-size: 12px;
           font-weight: 1000;
@@ -618,17 +700,6 @@ export default function CatalogoPage() {
           backdrop-filter: blur(6px);
           color: var(--ink);
           white-space:nowrap;
-        }
-
-        .meta{
-          margin-top: 10px;
-          display:flex;
-          justify-content:space-between;
-          gap: 10px;
-          color: var(--muted);
-          font-size: 12px;
-          font-weight: 850;
-          opacity:.95;
         }
 
         .actions{
@@ -710,15 +781,15 @@ export default function CatalogoPage() {
           z-index: 9999;
           backdrop-filter: blur(8px);
         }
-        .toastShow{
-          opacity: 1;
-          transform: translateY(0);
+        .toastShow{ opacity: 1; transform: translateY(0); }
+
+        @media (max-width: 760px){
+          .hero{ align-items:flex-start; flex-direction:column; }
+          .bar{ flex-direction:column; align-items:stretch; }
+          .bannerInner{ flex-direction:column; align-items:flex-start; }
+          .bRight{ justify-content:flex-start; }
         }
 
-        @media (max-width: 980px){
-          .layout{ grid-template-columns: 1fr; }
-          .filters{ position:relative; top:0; }
-        }
         @media (max-width: 560px){
           .h1{ font-size: 24px; }
           .grid{ grid-template-columns: 1fr; justify-content: stretch; }
@@ -733,197 +804,236 @@ export default function CatalogoPage() {
 
         <div className="siteMain">
           <main className="page">
-            <div className="top">
+            <div className="hero">
               <div>
                 <h1 className="h1">Catálogo</h1>
-                <p className="sub">Produtos no catálogo (ativos) • tons creme</p>
+                <p className="sub">Busca rápida • layout premium em creme</p>
               </div>
 
-              <div className="pillCount">
+              <div className="count">
                 <span className="dot" />
                 {loading ? "Carregando..." : `${filtrados.length} produto(s)`}
               </div>
             </div>
 
-            <div className="layout">
-              <aside className="filters">
-                <div className="filtersTitle">Filtros</div>
+            <div className="bar">
+              <div className="search">
+                <IconSearch />
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Buscar produto..."
+                  aria-label="Buscar produto"
+                />
+              </div>
 
-                <div className="field">
-                  <div className="label">Buscar</div>
-                  <input
-                    className="input"
-                    placeholder="Ex: cesta, pelúcia..."
-                    value={q}
-                    onChange={(e) => setQ(e.target.value)}
-                  />
-                </div>
+              <div className="rightTools">
+                <select
+                  className="select"
+                  value={sort}
+                  onChange={(e) => setSort(e.target.value as any)}
+                >
+                  <option value="relevancia">Relevância</option>
+                  <option value="menor">Menor preço</option>
+                  <option value="maior">Maior preço</option>
+                  <option value="nome">Nome A–Z</option>
+                </select>
 
-                <div className="field">
-                  <div className="label">Categoria</div>
-                  <select
-                    className="select"
-                    value={categoria}
-                    onChange={(e) => setCategoria(e.target.value)}
-                  >
-                    <option value="">Todas</option>
-                    {categorias.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nome}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="row2">
-                  <div className="field">
-                    <div className="label">Preço mín.</div>
-                    <input
-                      className="input"
-                      inputMode="decimal"
-                      placeholder="0,00"
-                      value={precoMin}
-                      onChange={(e) => setPrecoMin(e.target.value)}
-                    />
-                  </div>
-
-                  <div className="field">
-                    <div className="label">Preço máx.</div>
-                    <input
-                      className="input"
-                      inputMode="decimal"
-                      placeholder="999,00"
-                      value={precoMax}
-                      onChange={(e) => setPrecoMax(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div className="btnRow">
-                  <button className="btn" onClick={limparFiltros} type="button">
-                    Limpar
-                  </button>
-                  <button className="btn btnPrimary" onClick={() => showToast("✅ Filtros aplicados")} type="button">
-                    Aplicar
-                  </button>
-                </div>
-              </aside>
-
-              <section className="right">
-                {erro ? <div className="alert alertErr">❌ {erro}</div> : null}
-                {loading ? <div className="alert">Carregando produtos…</div> : null}
-
-                {!loading && !erro && filtrados.length === 0 ? (
-                  <div className="alert">Nenhum produto encontrado com os filtros atuais.</div>
-                ) : null}
-
-                <div className="grid">
-                  {!loading &&
-                    !erro &&
-                    filtrados.map((p, idx) => {
-                      const id = (p.id_produto ?? p.id ?? idx) as number;
-                      const slug = (p.slug || "").trim();
-
-                      const preco = parseNumber(p.preco);
-                      const promo = parseNumber(p.preco_promocional);
-                      const temPromo = promo != null && preco != null && promo > 0 && promo < preco;
-
-                      const precoFinal = temPromo ? promo : preco;
-                      const desconto = temPromo && precoFinal != null ? calcDiscountPercent(preco!, promo!) : 0;
-
-                      const { texto: estoqueTexto, semEstoque } = formatEstoque(p.estoque, p.ilimitado);
-
-                      const detalhesHref = slug ? rotas.produtos.paginas.produto(slug) : "#";
-                      const img = buildImageUrl(p.imagem);
-
-                      const catText =
-                        (p.categoria_nome || "").trim() ||
-                        (p.categoria_id != null ? `Categoria #${p.categoria_id}` : "Sem categoria");
-
-                      return (
-                        <article className="card" key={id}>
-                          <a className="media" href={detalhesHref} aria-label={`Ver ${p.nome}`}>
-                            {img ? (
-                              <img
-                                className="img"
-                                src={img}
-                                alt={p.nome}
-                                loading="lazy"
-                                onError={(e) => {
-                                  const t = e.currentTarget;
-                                  if (t.src !== placeholderSvg) t.src = placeholderSvg;
-                                }}
-                              />
-                            ) : (
-                              <img className="img" src={placeholderSvg} alt="Sem imagem" />
-                            )}
-
-                            <div className="overlay" />
-
-                            <div className="badges">
-                              {desconto > 0 ? (
-                                <div className="badge badgeDark">-{desconto}%</div>
-                              ) : (
-                                <div className="badge">Catálogo</div>
-                              )}
-
-                              {semEstoque ? <div className="badge">Esgotado</div> : null}
-                            </div>
-                          </a>
-
-                          <div className="body">
-                            <h3 className="name">{p.nome}</h3>
-                            <p className="desc">{p.descricao || "Sem descrição."}</p>
-
-                            <div className="priceRow">
-                              <div className="prices">
-                                <div className="price">
-                                  {precoFinal != null ? brl(precoFinal) : "Preço sob consulta"}
-                                </div>
-                                {temPromo && preco != null ? <div className="old">{brl(preco)}</div> : null}
-                              </div>
-
-                              <div className="pill">{temPromo ? "Oferta" : "Seleção"}</div>
-                            </div>
-
-                            <div className="meta">
-                              <span title={estoqueTexto}>{estoqueTexto}</span>
-                              <span title={catText}>{catText}</span>
-                            </div>
-
-                            <div className="actions">
-                              {slug ? (
-                                <Link href={detalhesHref} className="aBtn ghost">
-                                  <IconEye />
-                                  Detalhes
-                                </Link>
-                              ) : (
-                                <button className="aBtn ghost" disabled>
-                                  <IconEye />
-                                  Detalhes
-                                </button>
-                              )}
-
-                              <button
-                                className="aBtn primary"
-                                onClick={() => addCarrinho(p)}
-                                disabled={semEstoque || addingId === id}
-                              >
-                                <IconCart />
-                                {semEstoque
-                                  ? "Indisponível"
-                                  : addingId === id
-                                  ? "Adicionando…"
-                                  : "Adicionar"}
-                              </button>
-                            </div>
-                          </div>
-                        </article>
-                      );
-                    })}
-                </div>
-              </section>
+                <button className="chip" type="button" onClick={() => setQ("")}>
+                  Limpar busca
+                </button>
+              </div>
             </div>
+
+            {/* ✅ Banner Horizontal acima dos cards */}
+            <section className="banner" aria-label="Banner promocional do catálogo">
+              <div className="bannerInner">
+                <div className="bLeft">
+                  <div className="bTop">
+                    <span className="bChip">
+                      <IconSpark />
+                      Coleção em destaque
+                    </span>
+                    <span className="bChip">Tons creme • Premium</span>
+                    {stats.promos > 0 ? (
+                      <span className="bChip">{stats.promos} promo(s) ativa(s)</span>
+                    ) : null}
+                  </div>
+
+                  <h3 className="bTitle">Presentes, cestas e mimos — escolha o seu 💛</h3>
+                  <p className="bText">
+                    Seleção com visual elegante e pronta para surpreender. {stats.min != null
+                      ? `A partir de ${brl(stats.min)}.`
+                      : "Confira as novidades no catálogo."}
+                  </p>
+
+                  <div className="bStats">
+                    <span className="bStat">✅ Produtos ativos</span>
+                    <span className="bStat">🚚 Envio rápido</span>
+                    <span className="bStat">💳 Pix/Cartão</span>
+                  </div>
+                </div>
+
+                <div className="bRight">
+                  <Link className="bBtn bBtnPrimary" href={rotas.produtos.paginas.destaques}>
+                    Ver destaques
+                  </Link>
+
+                  {/* Troque o número abaixo pelo seu Whats */}
+                  <a
+                    className="bBtn"
+                    href="https://wa.me/5599999999999"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Falar no Whats
+                  </a>
+                </div>
+              </div>
+            </section>
+
+            {erro ? <div className="alert alertErr">❌ {erro}</div> : null}
+            {loading ? <div className="alert">Carregando produtos…</div> : null}
+
+            {!loading && !erro && filtrados.length === 0 ? (
+              <div className="alert">Nenhum produto encontrado.</div>
+            ) : null}
+
+            <section className="grid">
+              {!loading &&
+                !erro &&
+                filtrados.map((p, idx) => {
+                  const id = (p.id_produto ?? p.id ?? idx) as number;
+                  const slug = (p.slug || "").trim();
+
+                  const preco = parseNumber(p.preco);
+                  const promo = parseNumber(p.preco_promocional);
+                  const temPromo =
+                    promo != null && preco != null && promo > 0 && promo < preco;
+
+                  const precoFinal = temPromo ? promo : preco;
+                  const desconto = temPromo ? calcDiscountPercent(preco!, promo!) : 0;
+
+                  const { texto: estoqueTexto, semEstoque } = formatEstoque(
+                    p.estoque,
+                    p.ilimitado
+                  );
+
+                  const detalhesHref = slug
+                    ? rotas.produtos.paginas.produto(slug)
+                    : "#";
+
+                  const img = buildImageUrl(p.imagem);
+
+                  return (
+                    <article className="card" key={id}>
+                      <a
+                        className="media"
+                        href={detalhesHref}
+                        aria-label={`Ver ${p.nome}`}
+                      >
+                        {img ? (
+                          <img
+                            className="img"
+                            src={img}
+                            alt={p.nome}
+                            loading="lazy"
+                            onError={(e) => {
+                              const t = e.currentTarget;
+                              if (t.src !== placeholderSvg) t.src = placeholderSvg;
+                            }}
+                          />
+                        ) : (
+                          <img className="img" src={placeholderSvg} alt="Sem imagem" />
+                        )}
+
+                        <div className="overlay" />
+
+                        <div className="badges">
+                          {desconto > 0 ? (
+                            <div className="badge badgeDark">-{desconto}%</div>
+                          ) : (
+                            <div className="badge">Catálogo</div>
+                          )}
+                          {semEstoque ? <div className="badge">Esgotado</div> : null}
+                        </div>
+                      </a>
+
+                      <div className="body">
+                        <h3 className="name">{p.nome}</h3>
+                        <p className="desc">{p.descricao || "Sem descrição."}</p>
+
+                        <div className="priceRow">
+                          <div className="prices">
+                            <div className="price">
+                              {precoFinal != null
+                                ? brl(precoFinal)
+                                : "Preço sob consulta"}
+                            </div>
+                            {temPromo && preco != null ? (
+                              <div className="old">{brl(preco)}</div>
+                            ) : null}
+                          </div>
+                          <div className="pill">{temPromo ? "Oferta" : estoqueTexto}</div>
+                        </div>
+
+                        <div className="actions">
+                          {slug ? (
+                            <Link href={detalhesHref} className="aBtn ghost">
+                              <IconEye />
+                              Detalhes
+                            </Link>
+                          ) : (
+                            <button className="aBtn ghost" disabled>
+                              <IconEye />
+                              Detalhes
+                            </button>
+                          )}
+
+                          <button
+                            className="aBtn primary"
+                            onClick={async () => {
+                              const pid = (p.id_produto ?? p.id) as number | undefined;
+                              if (!pid) return;
+
+                              const { semEstoque } = formatEstoque(p.estoque, p.ilimitado);
+                              if (semEstoque) {
+                                showToast("⚠️ Produto esgotado");
+                                return;
+                              }
+
+                              try {
+                                setAddingId(pid);
+                                await api.post(rotas.carrinho.adicionar, {
+                                  produto_id: pid,
+                                  qtd: 1,
+                                });
+                                showToast(`✅ ${p.nome} adicionado ao carrinho`);
+                              } catch (e: any) {
+                                showToast(
+                                  e?.response?.data?.message ||
+                                    e?.message ||
+                                    "Erro ao adicionar no carrinho"
+                                );
+                              } finally {
+                                setAddingId(null);
+                              }
+                            }}
+                            disabled={semEstoque || addingId === (p.id_produto ?? p.id)}
+                          >
+                            <IconCart />
+                            {semEstoque
+                              ? "Indisponível"
+                              : addingId === (p.id_produto ?? p.id)
+                              ? "Adicionando…"
+                              : "Adicionar"}
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+            </section>
 
             <div className={`toast ${toast.show ? "toastShow" : ""}`}>{toast.text}</div>
           </main>
