@@ -6,6 +6,7 @@ import { FaEdit, FaStar, FaPlus, FaTrash, FaBook } from "react-icons/fa";
 import api from "@/Api/conectar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { rotas } from "@/components/Bibioteca/config/rotas";
 
 interface Status {
   id_status: number;
@@ -28,6 +29,19 @@ interface Produto {
   catalogo?: number; // 1 = no catálogo, 0 = não
 }
 
+type ApiResponse<T> = {
+  status?: number;
+  mensagem?: string;
+  message?: string;
+  dados?: any;
+  data?: any;
+};
+
+function resolveApi<T>(payload: ApiResponse<T>): T {
+  const root: any = payload?.dados ?? payload?.data ?? payload;
+  return (root?.dados ?? root) as T;
+}
+
 export const getImagemUrl = (caminho?: string) => {
   if (!caminho) return undefined;
   const base = api.defaults.baseURL || "";
@@ -42,35 +56,43 @@ export default function ProdutosPage() {
 
   useEffect(() => {
     carregarDados();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const carregarDados = async () => {
     try {
+      setLoading(true);
+
       const [statusRes, produtosRes] = await Promise.all([
-        api.get("/admin/status"),
-        api.get("/admin/produtos"),
+        api.get<ApiResponse<Status[]>>(rotas.admin.api.produtosStatus),
+        api.get<ApiResponse<any[]>>(rotas.admin.api.produtos),
       ]);
 
-      const statuses: Status[] = statusRes.data.dados || [];
+      const statuses = resolveApi<Status[]>(statusRes.data) || [];
+      const listaProdutos = resolveApi<any[]>(produtosRes.data) || [];
 
-      const produtosConvertidos = produtosRes.data.dados.map((p: any) => {
-        const status = statuses.find((s) => s.id_status === p.statusid);
-        return {
-          ...p,
-          preco: Number(p.preco),
-          destaque: Boolean(p.destaque),
-          id_destaque: p.id_destaque,
-          statusNome: status?.nome ?? "Inativo",
-          statusCor: status?.cor ?? "#999",
-          imagem: getImagemUrl(p.imagem),
-          catalogo: p.catalogo ?? 0,
-        };
-      });
+      const produtosConvertidos: Produto[] = (Array.isArray(listaProdutos) ? listaProdutos : []).map(
+        (p: any) => {
+          const status = statuses.find((s) => s.id_status === Number(p.statusid));
+          return {
+            ...p,
+            preco: Number(p.preco || 0),
+            estoque: Number(p.estoque || 0),
+            destaque: Boolean(p.destaque),
+            id_destaque: p.id_destaque,
+            statusNome: status?.nome ?? "Inativo",
+            statusCor: status?.cor ?? "#999",
+            imagem: getImagemUrl(p.imagem),
+            catalogo: Number(p.catalogo ?? 0),
+          };
+        }
+      );
 
       setProdutos(produtosConvertidos);
     } catch (err: any) {
       console.error("❌ Erro ao carregar produtos:", err.response?.data || err.message || err);
       toast.error("Erro ao carregar produtos, veja o console");
+      setProdutos([]);
     } finally {
       setLoading(false);
     }
@@ -79,21 +101,24 @@ export default function ProdutosPage() {
   const toggleDestaque = async (produto: Produto) => {
     try {
       if (produto.destaque && produto.id_destaque) {
-        const res = await api.delete(`/admin/produtos/destaques/${produto.id_destaque}/remover`);
+        await api.delete(rotas.admin.api.destaqueRemover(produto.id_destaque));
         setProdutos((p) =>
           p.map((i) =>
-            i.id_produto === produto.id_produto ? { ...i, destaque: false } : i
+            i.id_produto === produto.id_produto ? { ...i, destaque: false, id_destaque: undefined } : i
           )
         );
         toast.success("Produto removido do destaque");
       } else {
-        const res = await api.post("/admin/produtos/destaques/criar", {
+        const res = await api.post<ApiResponse<{ id_destaque?: number }>>(rotas.admin.api.destaquesCriar, {
           produto_id: produto.id_produto,
         });
+
+        const payload = resolveApi<{ id_destaque?: number }>(res.data);
+
         setProdutos((p) =>
           p.map((i) =>
             i.id_produto === produto.id_produto
-              ? { ...i, destaque: true, id_destaque: res.data.dados?.id_destaque }
+              ? { ...i, destaque: true, id_destaque: payload?.id_destaque }
               : i
           )
         );
@@ -108,21 +133,15 @@ export default function ProdutosPage() {
   const toggleCatalogo = async (produto: Produto) => {
     try {
       if (produto.catalogo === 1) {
-        // Remover do catálogo
-        await api.put(`/admin/produtos/${produto.id_produto}/catalogo/nao`);
+        await api.put(rotas.admin.api.catalogoNao(produto.id_produto));
         setProdutos((p) =>
-          p.map((i) =>
-            i.id_produto === produto.id_produto ? { ...i, catalogo: 0 } : i
-          )
+          p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 0 } : i))
         );
         toast.success("Produto removido do catálogo");
       } else {
-        // Adicionar ao catálogo
-        await api.put(`/admin/produtos/${produto.id_produto}/catalogo/sim`);
+        await api.put(rotas.admin.api.catalogoSim(produto.id_produto));
         setProdutos((p) =>
-          p.map((i) =>
-            i.id_produto === produto.id_produto ? { ...i, catalogo: 1 } : i
-          )
+          p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 1 } : i))
         );
         toast.success("Produto adicionado ao catálogo");
       }
@@ -134,8 +153,9 @@ export default function ProdutosPage() {
 
   const excluirProduto = async (id: number) => {
     if (!confirm("Deseja excluir este produto?")) return;
+
     try {
-      await api.delete(`/admin/produto/${id}/remover`);
+      await api.delete(rotas.admin.api.produtoRemover(id));
       setProdutos((p) => p.filter((i) => i.id_produto !== id));
       toast.success("Produto excluído");
     } catch (err: any) {
@@ -154,17 +174,19 @@ export default function ProdutosPage() {
           <h1 className="fw-bold title">Produtos</h1>
           <p className="text-muted">Gerencie os produtos cadastrados</p>
         </div>
+
         <div className="d-flex gap-2">
           <Link href="/admin/produto/novo" className="btn btn-gold">
             <FaPlus /> Novo Produto
           </Link>
+
           <Link href="/admin/catalogo" className="btn btn-dark-soft">
             <FaBook /> Catálogo
           </Link>
         </div>
       </div>
 
-      {/* LISTA DE PRODUTOS */}
+      {/* LISTA */}
       {loading ? (
         <div className="text-center py-5">Carregando...</div>
       ) : (
@@ -172,23 +194,34 @@ export default function ProdutosPage() {
           {produtos.map((prod) => (
             <div key={prod.id_produto} className="col-12 col-sm-6 col-md-4 col-xl-3">
               <div className="produto-card">
-                {/* IMAGEM */}
                 <div className="card-image">
-                  {prod.imagem ? <img src={prod.imagem} alt={prod.nome} /> : <div className="no-image">Sem imagem</div>}
+                  {prod.imagem ? (
+                    <img src={prod.imagem} alt={prod.nome} />
+                  ) : (
+                    <div className="no-image">Sem imagem</div>
+                  )}
                   {prod.destaque && <span className="badge destaque">Destaque</span>}
                 </div>
 
-                {/* CONTEÚDO */}
                 <div className="card-body">
                   <h6 className="produto-nome">{prod.nome}</h6>
-                  <span className="status-badge" style={{ backgroundColor: prod.statusCor }}>{prod.statusNome}</span>
-                  <p className="preco">R$ {prod.preco.toFixed(2)}</p>
-                  <small className="estoque">Estoque: {prod.estoque}</small>
 
-                  {/* AÇÕES */}
+                  <span className="status-badge" style={{ backgroundColor: prod.statusCor }}>
+                    {prod.statusNome}
+                  </span>
+
+                  <p className="preco">R$ {Number(prod.preco || 0).toFixed(2)}</p>
+                  <small className="estoque">Estoque: {Number(prod.estoque || 0)}</small>
+
                   <div className="acoes">
-                    <Link href={`/admin/produto/${encodeURIComponent(prod.slug)}`} title="Editar"><FaEdit /></Link>
-                    <button onClick={() => toggleDestaque(prod)} title="Destaque"><FaStar /></button>
+                    <Link href={`/admin/produto/${encodeURIComponent(prod.slug)}`} title="Editar">
+                      <FaEdit />
+                    </Link>
+
+                    <button onClick={() => toggleDestaque(prod)} title="Destaque">
+                      <FaStar />
+                    </button>
+
                     <button
                       onClick={() => toggleCatalogo(prod)}
                       title={prod.catalogo === 1 ? "Remover do catálogo" : "Adicionar ao catálogo"}
@@ -196,16 +229,28 @@ export default function ProdutosPage() {
                     >
                       <FaBook />
                     </button>
-                    <button onClick={() => excluirProduto(prod.id_produto)} title="Excluir" className="danger"><FaTrash /></button>
+
+                    <button
+                      onClick={() => excluirProduto(prod.id_produto)}
+                      title="Excluir"
+                      className="danger"
+                    >
+                      <FaTrash />
+                    </button>
                   </div>
                 </div>
               </div>
             </div>
           ))}
+
+          {!produtos.length && (
+            <div className="col-12">
+              <div className="alert alert-light border">Nenhum produto encontrado.</div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* ESTILOS */}
       <style jsx global>{`
         .dashboard-bg { background: #f5f6fa; min-height: 100vh; }
         .title { color: #6b4c4f; }
@@ -216,7 +261,7 @@ export default function ProdutosPage() {
         .produto-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.12); }
 
         .card-image { position: relative; height: 160px; background: #eee; }
-        .card-image img, .no-image { width: 100%; height: 100%; object-fit: cover; }
+        .card-image img, .no-image { width: 100%; height: 100%; object-fit: cover; display:flex; align-items:center; justify-content:center; }
 
         .badge.destaque { position: absolute; top: 10px; right: 10px; background: #e74c3c; color: #fff; font-size: 11px; padding: 4px 10px; border-radius: 999px; }
 

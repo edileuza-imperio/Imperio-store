@@ -11,6 +11,17 @@ export const admin = {
 
     produtos: "/admin/produtos",
     produtosStatus: "/admin/produtos/status",
+
+    // ✅ Destaques
+    destaquesCriar: "/admin/produtos/destaques/criar",
+    destaqueRemover: (idDestaque: Id) => `/admin/produtos/destaques/${idDestaque}/remover`,
+
+    // ✅ Catálogo (sim/não)
+    catalogoSim: (produtoId: Id) => `/admin/produtos/${produtoId}/catalogo/sim`,
+    catalogoNao: (produtoId: Id) => `/admin/produtos/${produtoId}/catalogo/nao`,
+
+    // ✅ Remover produto
+    produtoRemover: (produtoId: Id) => `/admin/produto/${produtoId}/remover`,
   },
 
   paginas: {
