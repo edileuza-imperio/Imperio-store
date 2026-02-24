@@ -82,7 +82,6 @@ export default function ProdutosPage() {
         api.get<ApiResponse<any[]>>(rotas.admin.api.produtos),
       ]);
 
-      // ✅ agora SEMPRE array
       const statuses = resolveArray<Status>(statusRes.data);
       const listaProdutos = resolveArray<any>(produtosRes.data);
 
@@ -225,7 +224,12 @@ export default function ProdutosPage() {
                   ) : (
                     <div className="no-image">Sem imagem</div>
                   )}
-                  {prod.destaque && <span className="badge destaque">Destaque</span>}
+
+                  {/* ✅ BADGES (sempre que tiver) */}
+                  <div className="badges">
+                    {prod.destaque && <span className="badgex badge-destaque">Destaque</span>}
+                    {prod.catalogo === 1 && <span className="badgex badge-catalogo">Catálogo</span>}
+                  </div>
                 </div>
 
                 <div className="card-body">
@@ -238,7 +242,8 @@ export default function ProdutosPage() {
                   <p className="preco">R$ {Number(prod.preco || 0).toFixed(2)}</p>
                   <small className="estoque">Estoque: {Number(prod.estoque || 0)}</small>
 
-                  <div className="acoes">
+                  {/* ✅ SOME OS BOTÕES (só aparece se passar o mouse no card) */}
+                  <div className="acoes acoes-hide">
                     <Link href={`/admin/produto/${encodeURIComponent(prod.slug)}`} title="Editar">
                       <FaEdit />
                     </Link>
@@ -277,33 +282,150 @@ export default function ProdutosPage() {
       )}
 
       <style jsx global>{`
-        .dashboard-bg { background: #f5f6fa; min-height: 100vh; }
-        .title { color: #6b4c4f; }
-        .btn-gold { background: #d4af37; color: #fff; border: none; }
-        .btn-dark-soft { background: #6b4c4f; color: #fff; border: none; }
+        .dashboard-bg {
+          background: #f5f6fa;
+          min-height: 100vh;
+        }
+        .title {
+          color: #6b4c4f;
+        }
+        .btn-gold {
+          background: #d4af37;
+          color: #fff;
+          border: none;
+        }
+        .btn-dark-soft {
+          background: #6b4c4f;
+          color: #fff;
+          border: none;
+        }
 
-        .produto-card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,0.06); transition: transform 0.2s, box-shadow 0.2s; height: 100%; }
-        .produto-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.12); }
+        .produto-card {
+          background: #fff;
+          border-radius: 14px;
+          overflow: hidden;
+          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+          transition: transform 0.2s, box-shadow 0.2s;
+          height: 100%;
+        }
+        .produto-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+        }
 
-        .card-image { position: relative; height: 160px; background: #eee; }
-        .card-image img, .no-image { width: 100%; height: 100%; object-fit: cover; display:flex; align-items:center; justify-content:center; }
+        .card-image {
+          position: relative;
+          height: 160px;
+          background: #eee;
+        }
+        .card-image img,
+        .no-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
 
-        .badge.destaque { position: absolute; top: 10px; right: 10px; background: #e74c3c; color: #fff; font-size: 11px; padding: 4px 10px; border-radius: 999px; }
+        /* ✅ badges topo */
+        .badges {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
 
-        .card-body { padding: 14px; }
-        .produto-nome { color: #6b4c4f; margin-bottom: 4px; }
-        .status-badge { display: inline-block; margin-bottom: 8px; padding: 4px 10px; font-size: 11px; border-radius: 999px; color: #fff; }
-        .preco { font-weight: 600; margin-bottom: 2px; }
-        .estoque { color: #888; font-size: 12px; }
+        .badgex {
+          font-size: 11px;
+          padding: 4px 10px;
+          border-radius: 999px;
+          color: #fff;
+          font-weight: 700;
+          box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+        }
 
-        .acoes { margin-top: 12px; display: flex; gap: 14px; font-size: 1.1rem; }
-        .acoes a, .acoes button { background: none; border: none; cursor: pointer; color: #6b4c4f; }
-        .acoes .danger { color: #e74c3c; }
-        .acoes a:hover, .acoes button:hover { color: #d4af37; }
+        .badge-destaque {
+          background: #e74c3c;
+        }
 
-        .catalogo-on { color: #22c55e; }
-        .catalogo-off { color: #888; }
-        .catalogo-on:hover, .catalogo-off:hover { color: #d4af37; }
+        .badge-catalogo {
+          background: #22c55e;
+        }
+
+        .card-body {
+          padding: 14px;
+        }
+        .produto-nome {
+          color: #6b4c4f;
+          margin-bottom: 4px;
+        }
+        .status-badge {
+          display: inline-block;
+          margin-bottom: 8px;
+          padding: 4px 10px;
+          font-size: 11px;
+          border-radius: 999px;
+          color: #fff;
+        }
+        .preco {
+          font-weight: 600;
+          margin-bottom: 2px;
+        }
+        .estoque {
+          color: #888;
+          font-size: 12px;
+        }
+
+        .acoes {
+          margin-top: 12px;
+          display: flex;
+          gap: 14px;
+          font-size: 1.1rem;
+          align-items: center;
+        }
+        .acoes a,
+        .acoes button {
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: #6b4c4f;
+          padding: 0;
+        }
+        .acoes .danger {
+          color: #e74c3c;
+        }
+        .acoes a:hover,
+        .acoes button:hover {
+          color: #d4af37;
+        }
+
+        /* ✅ some por padrão / aparece no hover */
+        .acoes-hide {
+          opacity: 0;
+          transform: translateY(6px);
+          pointer-events: none;
+          transition: 0.18s ease;
+        }
+        .produto-card:hover .acoes-hide {
+          opacity: 1;
+          transform: translateY(0);
+          pointer-events: auto;
+        }
+
+        .catalogo-on {
+          color: #22c55e;
+        }
+        .catalogo-off {
+          color: #888;
+        }
+        .catalogo-on:hover,
+        .catalogo-off:hover {
+          color: #d4af37;
+        }
       `}</style>
     </div>
   );
