@@ -81,7 +81,7 @@ export const rotas = {
       `/produto/slug/${encodeURIComponent(slug)}`,
 
     pesquisar: "/produtos/pesquisa",
-    catalogo: "/produtos/catalogo",
+    catalogo: "/catalogo",
 
     criar: "/produtos",
     atualizar: (id: Id) => `/produtos/${id}`,
