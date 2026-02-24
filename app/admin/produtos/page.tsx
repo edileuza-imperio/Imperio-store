@@ -37,15 +37,29 @@ type ApiResponse<T> = {
   data?: any;
 };
 
-function resolveApi<T>(payload: ApiResponse<T>): T {
-  const root: any = payload?.dados ?? payload?.data ?? payload;
-  return (root?.dados ?? root) as T;
+// ✅ resolve básico
+function resolveApi<T>(payload: ApiResponse<T>): any {
+  return payload?.dados ?? payload?.data ?? payload;
+}
+
+// ✅ garante array de qualquer formato: [...], {dados:[...]}, {dados:{dados:[...]}}
+function resolveArray<T>(payload: any): T[] {
+  const root = resolveApi<T[]>(payload);
+
+  if (Array.isArray(root)) return root;
+
+  if (root && typeof root === "object") {
+    if (Array.isArray(root.dados)) return root.dados;
+    if (root.dados && Array.isArray(root.dados.dados)) return root.dados.dados;
+  }
+
+  return [];
 }
 
 export const getImagemUrl = (caminho?: string) => {
   if (!caminho) return undefined;
   const base = api.defaults.baseURL || "";
-  const caminhoLimpo = caminho.replace(/^\/+/, "");
+  const caminhoLimpo = String(caminho).replace(/^\/+/, "");
   const baseFinal = base.endsWith("/") ? base : `${base}/`;
   return `${baseFinal}${caminhoLimpo}`;
 };
@@ -68,29 +82,30 @@ export default function ProdutosPage() {
         api.get<ApiResponse<any[]>>(rotas.admin.api.produtos),
       ]);
 
-      const statuses = resolveApi<Status[]>(statusRes.data) || [];
-      const listaProdutos = resolveApi<any[]>(produtosRes.data) || [];
+      // ✅ agora SEMPRE array
+      const statuses = resolveArray<Status>(statusRes.data);
+      const listaProdutos = resolveArray<any>(produtosRes.data);
 
-      const produtosConvertidos: Produto[] = (Array.isArray(listaProdutos) ? listaProdutos : []).map(
-        (p: any) => {
-          const status = statuses.find((s) => s.id_status === Number(p.statusid));
-          return {
-            ...p,
-            preco: Number(p.preco || 0),
-            estoque: Number(p.estoque || 0),
-            destaque: Boolean(p.destaque),
-            id_destaque: p.id_destaque,
-            statusNome: status?.nome ?? "Inativo",
-            statusCor: status?.cor ?? "#999",
-            imagem: getImagemUrl(p.imagem),
-            catalogo: Number(p.catalogo ?? 0),
-          };
-        }
-      );
+      const produtosConvertidos: Produto[] = listaProdutos.map((p: any) => {
+        const statusId = Number(p.statusid);
+        const status = statuses.find((s) => Number(s.id_status) === statusId);
+
+        return {
+          ...p,
+          preco: Number(p.preco || 0),
+          estoque: Number(p.estoque || 0),
+          destaque: Boolean(p.destaque),
+          id_destaque: p.id_destaque,
+          statusNome: status?.nome ?? "Inativo",
+          statusCor: status?.cor ?? "#999",
+          imagem: getImagemUrl(p.imagem),
+          catalogo: Number(p.catalogo ?? 0),
+        };
+      });
 
       setProdutos(produtosConvertidos);
     } catch (err: any) {
-      console.error("❌ Erro ao carregar produtos:", err.response?.data || err.message || err);
+      console.error("❌ Erro ao carregar produtos:", err?.response?.data || err?.message || err);
       toast.error("Erro ao carregar produtos, veja o console");
       setProdutos([]);
     } finally {
@@ -102,30 +117,37 @@ export default function ProdutosPage() {
     try {
       if (produto.destaque && produto.id_destaque) {
         await api.delete(rotas.admin.api.destaqueRemover(produto.id_destaque));
-        setProdutos((p) =>
-          p.map((i) =>
-            i.id_produto === produto.id_produto ? { ...i, destaque: false, id_destaque: undefined } : i
-          )
-        );
-        toast.success("Produto removido do destaque");
-      } else {
-        const res = await api.post<ApiResponse<{ id_destaque?: number }>>(rotas.admin.api.destaquesCriar, {
-          produto_id: produto.id_produto,
-        });
-
-        const payload = resolveApi<{ id_destaque?: number }>(res.data);
 
         setProdutos((p) =>
           p.map((i) =>
             i.id_produto === produto.id_produto
-              ? { ...i, destaque: true, id_destaque: payload?.id_destaque }
+              ? { ...i, destaque: false, id_destaque: undefined }
               : i
           )
         );
+
+        toast.success("Produto removido do destaque");
+      } else {
+        const res = await api.post<ApiResponse<{ id_destaque?: number }>>(
+          rotas.admin.api.destaquesCriar,
+          { produto_id: produto.id_produto }
+        );
+
+        const payload = resolveApi<{ id_destaque?: number }>(res.data);
+        const idDestaque = payload?.id_destaque ?? payload?.dados?.id_destaque;
+
+        setProdutos((p) =>
+          p.map((i) =>
+            i.id_produto === produto.id_produto
+              ? { ...i, destaque: true, id_destaque: idDestaque }
+              : i
+          )
+        );
+
         toast.success("Produto adicionado ao destaque");
       }
     } catch (err: any) {
-      console.error("❌ Erro ao atualizar destaque:", err.response?.data || err.message || err);
+      console.error("❌ Erro ao atualizar destaque:", err?.response?.data || err?.message || err);
       toast.error("Erro ao atualizar destaque, veja o console");
     }
   };
@@ -134,19 +156,23 @@ export default function ProdutosPage() {
     try {
       if (produto.catalogo === 1) {
         await api.put(rotas.admin.api.catalogoNao(produto.id_produto));
+
         setProdutos((p) =>
           p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 0 } : i))
         );
+
         toast.success("Produto removido do catálogo");
       } else {
         await api.put(rotas.admin.api.catalogoSim(produto.id_produto));
+
         setProdutos((p) =>
           p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 1 } : i))
         );
+
         toast.success("Produto adicionado ao catálogo");
       }
     } catch (err: any) {
-      console.error("❌ Erro ao atualizar catálogo:", err.response?.data || err.message || err);
+      console.error("❌ Erro ao atualizar catálogo:", err?.response?.data || err?.message || err);
       toast.error("Erro ao atualizar catálogo, veja o console");
     }
   };
@@ -159,7 +185,7 @@ export default function ProdutosPage() {
       setProdutos((p) => p.filter((i) => i.id_produto !== id));
       toast.success("Produto excluído");
     } catch (err: any) {
-      console.error("❌ Erro ao excluir produto:", err.response?.data || err.message || err);
+      console.error("❌ Erro ao excluir produto:", err?.response?.data || err?.message || err);
       toast.error("Erro ao excluir produto, veja o console");
     }
   };
@@ -168,7 +194,6 @@ export default function ProdutosPage() {
     <div className="container-fluid py-4 dashboard-bg">
       <ToastContainer position="top-right" />
 
-      {/* HEADER */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h1 className="fw-bold title">Produtos</h1>
@@ -186,7 +211,6 @@ export default function ProdutosPage() {
         </div>
       </div>
 
-      {/* LISTA */}
       {loading ? (
         <div className="text-center py-5">Carregando...</div>
       ) : (
@@ -196,6 +220,7 @@ export default function ProdutosPage() {
               <div className="produto-card">
                 <div className="card-image">
                   {prod.imagem ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={prod.imagem} alt={prod.nome} />
                   ) : (
                     <div className="no-image">Sem imagem</div>
