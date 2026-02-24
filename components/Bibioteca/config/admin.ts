@@ -12,6 +12,9 @@ export const admin = {
     produtos: "/admin/produtos",
     produtosStatus: "/admin/produtos/status",
 
+    // ✅ Catálogo
+    produtosCatalogo: "/admin/produtos/catalogo",
+
     // ✅ Destaques
     destaquesCriar: "/admin/produtos/destaques/criar",
     destaqueRemover: (idDestaque: Id) => `/admin/produtos/destaques/${idDestaque}/remover`,
@@ -34,6 +37,7 @@ export const admin = {
     pedidos: "/admin/pedidos",
     cupons: "/admin/cupons",
     configuracoes: "/admin/configuracoes",
+    catalogo: "/admin/catalogo",
   },
 } as const;
 

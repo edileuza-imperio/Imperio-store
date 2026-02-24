@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "@/Api/conectar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { rotas } from "@/components/Bibioteca/config/rotas";
 
 interface Produto {
   id_produto: number;
   nome: string;
   preco: number;
   estoque: number;
-  catalogo: number;
+  catalogo: number; // ✅ 1 publicado | 0 oculto
   categoria_nome?: string;
   slug?: string;
   imagem?: string;
@@ -19,22 +20,30 @@ interface Produto {
 const getImagemUrl = (caminho?: string) => {
   if (!caminho) return undefined;
   const base = api.defaults.baseURL || "";
-  return `${base}${caminho.replace(/^\/+/, "")}`;
+  const baseFinal = base.endsWith("/") ? base : `${base}/`;
+  return `${baseFinal}${String(caminho).replace(/^\/+/, "")}`;
 };
 
 export default function CatalogoPage() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const [paginaAtual, setPaginaAtual] = useState(1);
+
   const itensPorPagina = 9;
 
   const fetchProdutos = async () => {
     try {
-      const res = await api.get("/admin/produtos/catalogo");
-      setProdutos(res.data?.dados || []);
+      setLoading(true);
+      const res = await api.get(rotas.admin.api.produtosCatalogo);
+
+      const root = res.data?.dados ?? res.data?.data ?? res.data;
+      const lista = Array.isArray(root) ? root : Array.isArray(root?.dados) ? root.dados : [];
+
+      setProdutos(lista);
     } catch (err: any) {
       console.error(err);
       toast.error("Erro ao carregar produtos");
+      setProdutos([]);
     } finally {
       setLoading(false);
     }
@@ -46,24 +55,43 @@ export default function CatalogoPage() {
 
   const toggleCatalogo = async (produto: Produto) => {
     try {
-      if (produto.catalogo === 6) {
-        await api.put(`/admin/produtos/${produto.id_produto}/catalogo/sim`);
-        toast.success("Produto publicado");
+      const publicado = Number(produto.catalogo) === 1;
+
+      if (publicado) {
+        await api.put(rotas.admin.api.catalogoNao(produto.id_produto));
+        toast.info("Produto removido do catálogo");
       } else {
-        await api.put(`/admin/produtos/${produto.id_produto}/catalogo/nao`);
-        toast.info("Produto removido");
+        await api.put(rotas.admin.api.catalogoSim(produto.id_produto));
+        toast.success("Produto publicado no catálogo");
       }
-      fetchProdutos();
-    } catch {
+
+      // ✅ atualiza local sem precisar refetch (mais rápido)
+      setProdutos((prev) =>
+        prev.map((p) =>
+          p.id_produto === produto.id_produto ? { ...p, catalogo: publicado ? 0 : 1 } : p
+        )
+      );
+    } catch (err: any) {
+      console.error(err);
       toast.error("Erro ao atualizar catálogo");
     }
   };
 
-  const totalPaginas = Math.ceil(produtos.length / itensPorPagina);
-  const produtosPagina = produtos.slice(
-    (paginaAtual - 1) * itensPorPagina,
-    paginaAtual * itensPorPagina
+  const totalPaginas = useMemo(
+    () => Math.ceil(produtos.length / itensPorPagina),
+    [produtos.length]
   );
+
+  const produtosPagina = useMemo(() => {
+    const ini = (paginaAtual - 1) * itensPorPagina;
+    return produtos.slice(ini, ini + itensPorPagina);
+  }, [produtos, paginaAtual]);
+
+  useEffect(() => {
+    // ✅ se apagar itens ou mudar lista e página ficar inválida
+    if (paginaAtual > totalPaginas && totalPaginas > 0) setPaginaAtual(totalPaginas);
+    if (totalPaginas === 0) setPaginaAtual(1);
+  }, [totalPaginas, paginaAtual]);
 
   if (loading) return <div className="loading">Carregando catálogo...</div>;
 
@@ -79,66 +107,64 @@ export default function CatalogoPage() {
       ) : (
         <>
           <div className="grid">
-            {produtosPagina.map((produto) => (
-              <div key={produto.id_produto} className="card">
-                <div className="image-box">
-                  {produto.imagem ? (
-                    <img src={getImagemUrl(produto.imagem)} alt={produto.nome} />
-                  ) : (
-                    <span className="no-image">Sem imagem</span>
-                  )}
+            {produtosPagina.map((produto) => {
+              const publicado = Number(produto.catalogo) === 1;
 
-                  <span
-                    className={`badge ${
-                      produto.catalogo === 5 ? "on" : "off"
-                    }`}
-                  >
-                    {produto.catalogo === 5 ? "Publicado" : "Oculto"}
-                  </span>
-                </div>
+              return (
+                <div key={produto.id_produto} className="card">
+                  <div className="image-box">
+                    {produto.imagem ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={getImagemUrl(produto.imagem)} alt={produto.nome} />
+                    ) : (
+                      <span className="no-image">Sem imagem</span>
+                    )}
 
-                <div className="content">
-                  <h3>{produto.nome}</h3>
-                  <small>{produto.categoria_nome || "Sem categoria"}</small>
-
-                  <div className="info">
-                    <span>
-                      Preço
-                      <strong>R$ {Number(produto.preco).toFixed(2)}</strong>
-                    </span>
-                    <span>
-                      Estoque
-                      <strong>{produto.estoque}</strong>
+                    <span className={`badge ${publicado ? "on" : "off"}`}>
+                      {publicado ? "Publicado" : "Oculto"}
                     </span>
                   </div>
 
-                  <div className="actions">
-                    <button
-                      className={`btn ${
-                        produto.catalogo === 6 ? "success" : "danger"
-                      }`}
-                      onClick={() => toggleCatalogo(produto)}
-                    >
-                      {produto.catalogo === 6 ? "Publicar" : "Remover"}
-                    </button>
+                  <div className="content">
+                    <h3>{produto.nome}</h3>
+                    <small>{produto.categoria_nome || "Sem categoria"}</small>
 
-                    <button
-                      className="btn outline"
-                      onClick={() =>
-                        produto.slug
-                          ? window.open(`/produto/${produto.slug}`, "_blank")
-                          : toast.info("Produto sem página")
-                      }
-                    >
-                      Ver Página
-                    </button>
+                    <div className="info">
+                      <span>
+                        Preço
+                        <strong>R$ {Number(produto.preco).toFixed(2)}</strong>
+                      </span>
+                      <span>
+                        Estoque
+                        <strong>{Number(produto.estoque)}</strong>
+                      </span>
+                    </div>
+
+                    <div className="actions">
+                      <button
+                        className={`btn ${publicado ? "danger" : "success"}`}
+                        onClick={() => toggleCatalogo(produto)}
+                      >
+                        {publicado ? "Remover" : "Publicar"}
+                      </button>
+
+                      <button
+                        className="btn outline"
+                        onClick={() =>
+                          produto.slug
+                            ? window.open(`/produto/${produto.slug}`, "_blank")
+                            : toast.info("Produto sem página")
+                        }
+                      >
+                        Ver Página
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          {/* PAGINAÇÃO */}
           {totalPaginas > 1 && (
             <div className="pagination">
               {Array.from({ length: totalPaginas }).map((_, i) => (
@@ -156,9 +182,7 @@ export default function CatalogoPage() {
       )}
 
       <style jsx global>{`
-        * {
-          box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
           margin: 0;
@@ -166,10 +190,7 @@ export default function CatalogoPage() {
           font-family: Inter, system-ui, sans-serif;
         }
 
-        .catalogo-wrapper {
-          padding: 24px;
-          min-height: 100vh;
-        }
+        .catalogo-wrapper { padding: 24px; min-height: 100vh; }
 
         .title {
           font-size: 26px;
@@ -178,10 +199,7 @@ export default function CatalogoPage() {
           margin-bottom: 4px;
         }
 
-        .subtitle {
-          color: #7a7a7a;
-          margin-bottom: 24px;
-        }
+        .subtitle { color: #7a7a7a; margin-bottom: 24px; }
 
         .grid {
           display: grid;
@@ -197,21 +215,11 @@ export default function CatalogoPage() {
           transition: transform 0.2s;
         }
 
-        .card:hover {
-          transform: translateY(-6px);
-        }
+        .card:hover { transform: translateY(-6px); }
 
-        .image-box {
-          position: relative;
-          height: 180px;
-          background: #eee;
-        }
+        .image-box { position: relative; height: 180px; background: #eee; }
 
-        .image-box img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
+        .image-box img { width: 100%; height: 100%; object-fit: cover; }
 
         .no-image {
           display: flex;
@@ -232,48 +240,18 @@ export default function CatalogoPage() {
           color: #fff;
         }
 
-        .badge.on {
-          background: #2ecc71;
-        }
+        .badge.on { background: #2ecc71; }
+        .badge.off { background: #e74c3c; }
 
-        .badge.off {
-          background: #e74c3c;
-        }
+        .content { padding: 16px; }
+        .content h3 { margin: 0 0 4px; font-size: 16px; }
+        .content small { color: #888; }
 
-        .content {
-          padding: 16px;
-        }
+        .info { display: flex; justify-content: space-between; margin: 16px 0; }
+        .info span { font-size: 13px; color: #666; }
+        .info strong { display: block; color: #000; font-size: 15px; }
 
-        .content h3 {
-          margin: 0 0 4px;
-          font-size: 16px;
-        }
-
-        .content small {
-          color: #888;
-        }
-
-        .info {
-          display: flex;
-          justify-content: space-between;
-          margin: 16px 0;
-        }
-
-        .info span {
-          font-size: 13px;
-          color: #666;
-        }
-
-        .info strong {
-          display: block;
-          color: #000;
-          font-size: 15px;
-        }
-
-        .actions {
-          display: flex;
-          gap: 10px;
-        }
+        .actions { display: flex; gap: 10px; }
 
         .btn {
           flex: 1;
@@ -285,24 +263,11 @@ export default function CatalogoPage() {
           transition: 0.2s;
         }
 
-        .btn.success {
-          background: #2ecc71;
-          color: #fff;
-        }
+        .btn.success { background: #2ecc71; color: #fff; }
+        .btn.danger { background: #e74c3c; color: #fff; }
+        .btn.outline { background: transparent; border: 1px solid #ccc; }
 
-        .btn.danger {
-          background: #e74c3c;
-          color: #fff;
-        }
-
-        .btn.outline {
-          background: transparent;
-          border: 1px solid #ccc;
-        }
-
-        .btn:hover {
-          opacity: 0.9;
-        }
+        .btn:hover { opacity: 0.9; }
 
         .pagination {
           margin-top: 30px;
@@ -325,8 +290,7 @@ export default function CatalogoPage() {
           border-color: #6b4c4f;
         }
 
-        .loading,
-        .empty {
+        .loading, .empty {
           text-align: center;
           padding: 40px;
           color: #777;
