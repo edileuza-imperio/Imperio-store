@@ -1,4 +1,4 @@
-// src/config/rotas.ts
+// components/Bibioteca/config/rotas.ts
 type Id = number | string;
 
 export const rotas = {
@@ -72,14 +72,22 @@ export const rotas = {
     deletar: (id: Id) => `/categorias/${id}`,
   },
 
+  // ✅ ROTAS DE API (backend)
   produtos: {
     listar: "/produtos",
     buscar: (id: Id) => `/produtos/${id}`,
+
+    // backend: /produto/slug/{slug}
     buscarPorSlugApi: (slug: string) =>
       `/produto/slug/${encodeURIComponent(slug)}`,
 
     pesquisar: "/produtos/pesquisa",
+
+    // ✅ backend: /produtos/catalogo existe também, mas você decidiu usar /catalogo
     catalogo: "/catalogo",
+
+    // ✅ NOVO: backend: /catalogo/destaques (somente em destaque)
+    catalogoDestaques: "/catalogo/destaques",
 
     criar: "/produtos",
     atualizar: (id: Id) => `/produtos/${id}`,
@@ -95,8 +103,15 @@ export const rotas = {
       deletar: (id: Id) => `/produtos/destaques/${id}`,
     },
 
+    // ✅ ROTAS DE PÁGINA (frontend)
     paginas: {
+      // sua página em app/catalogo/page.tsx
+      catalogo: "/catalogo",
+
+      // sua página de destaque (se existir)
       destaques: "/produtos/destaques",
+
+      // sua página dinâmica em app/produto/[slug]/page.tsx
       produto: (slug: string) => `/produto/${encodeURIComponent(slug)}`,
     },
   },
