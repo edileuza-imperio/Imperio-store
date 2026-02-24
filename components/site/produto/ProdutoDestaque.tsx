@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useMemo, useRef, useState } from "react";
 import api from "@/Api/conectar";
-
+import { rotas } from "@/config/rotas";
 import { useProdutoDestaque } from "@/hooks/produto/useProdutoDestaque";
 import {
   Sparkles,
@@ -20,14 +20,16 @@ import {
 
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { rotas } from "@/components/Bibioteca/config/rotas";
 
-const LIMITE = 10;
+const LIMITE = 12;
+const CAROUSEL_MIN = 6; // carrossel só se tiver 6+ (mais de 5)
 
 type AnyObj = Record<string, any>;
 
+const PLACEHOLDER = "/placeholder.png";
+
 const getImagemUrl = (caminho?: string) => {
-  if (!caminho) return "/placeholder.png";
+  if (!caminho) return PLACEHOLDER;
   if (/^https?:\/\//i.test(caminho)) return caminho;
 
   const base = api.defaults.baseURL || "";
@@ -54,16 +56,16 @@ function getSlug(item: AnyObj): string | null {
   return slug || null;
 }
 
-function clampText(s: unknown, max = 90) {
-  const t = String(s ?? "").trim();
-  if (!t) return "";
-  return t.length > max ? t.slice(0, max) + "…" : t;
+function clampText(value: unknown, max = 88) {
+  const s = String(value ?? "").trim();
+  if (!s) return "";
+  return s.length > max ? s.slice(0, max) + "…" : s;
 }
 
 function SkeletonCard() {
   return (
-    <div className="pdSlide" aria-hidden="true">
-      <div className="pdCard pdCard--sk">
+    <div className="pdItem pdItem--sk" aria-hidden="true">
+      <div className="pdCard">
         <div className="pdMedia">
           <div className="pdSk pdSk--img" />
         </div>
@@ -71,14 +73,15 @@ function SkeletonCard() {
           <div className="pdSk pdSk--t" />
           <div className="pdSk pdSk--l" />
           <div className="pdSk pdSk--l sm" />
-          <div className="pdSk pdSk--b" />
+          <div className="pdSk pdSk--p" />
         </div>
       </div>
+      <div className="pdSk pdSk--btn" />
     </div>
   );
 }
 
-function MiniBanner({ mostrarVerTodos }: { mostrarVerTodos: boolean }) {
+function TopBanner({ mostrarVerTodos }: { mostrarVerTodos: boolean }) {
   return (
     <div className="pdBanner">
       <div className="pdBannerLeft">
@@ -89,8 +92,7 @@ function MiniBanner({ mostrarVerTodos }: { mostrarVerTodos: boolean }) {
 
         <h2 className="pdTitle">Selecionados para você</h2>
         <p className="pdSub">
-          Layout creme, cards premium e carrossel suave. Clique no produto para
-          ver detalhes.
+          Visual creme, cards premium e layout limpo. Clique no produto para ver os detalhes.
         </p>
 
         <div className="pdTrust">
@@ -100,18 +102,15 @@ function MiniBanner({ mostrarVerTodos }: { mostrarVerTodos: boolean }) {
           <span className="pdPill">
             <BadgeCheck size={16} /> Curadoria da loja
           </span>
+          <span className="pdPill pdPill--gold">Entrega rápida</span>
         </div>
       </div>
 
-      <div className="pdBannerRight">
-        <div className="pdBannerBadge">Entrega rápida</div>
-
-        {mostrarVerTodos && (
-          <Link href={rotas.produtos.paginas.destaques} className="pdAll">
-            Ver todos <ArrowRight size={18} />
-          </Link>
-        )}
-      </div>
+      {mostrarVerTodos && (
+        <Link href={rotas.produtos.paginas.destaques} className="pdAll">
+          Ver todos <ArrowRight size={18} />
+        </Link>
+      )}
     </div>
   );
 }
@@ -129,7 +128,9 @@ export default function ProdutoDestaque() {
     () => (destaques || []).slice(0, LIMITE),
     [destaques]
   );
+
   const mostrarVerTodos = (destaques?.length || 0) > LIMITE;
+  const usarCarousel = lista.length >= CAROUSEL_MIN;
 
   const getUsuarioId = useCallback(async (): Promise<number | null> => {
     try {
@@ -213,8 +214,7 @@ export default function ProdutoDestaque() {
   const scrollByCards = useCallback((dir: "left" | "right") => {
     const el = trackRef.current;
     if (!el) return;
-    // rola ~1.2 cards (tamanho aproximado) — bem natural
-    const amount = Math.max(320, Math.round(el.clientWidth * 0.55));
+    const amount = Math.max(320, Math.round(el.clientWidth * 0.62));
     el.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
   }, []);
 
@@ -232,12 +232,12 @@ export default function ProdutoDestaque() {
       />
 
       <div className="pdContainer">
-        <MiniBanner mostrarVerTodos={mostrarVerTodos} />
+        <TopBanner mostrarVerTodos={mostrarVerTodos} />
 
-        <div className="pdCarousel">
+        {/* CONTROLES DO CARROSSEL (só aparece se tiver 6+) */}
+        {usarCarousel && (
           <div className="pdCarouselTop">
-            <div className="pdCarouselTitle">Produtos em destaque</div>
-
+            <div className="pdCarouselTitle">Destaques</div>
             <div className="pdNav">
               <button
                 type="button"
@@ -257,111 +257,126 @@ export default function ProdutoDestaque() {
               </button>
             </div>
           </div>
+        )}
 
-          <div className="pdTrack" ref={trackRef}>
-            {loading ? (
-              Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)
-            ) : (
-              lista.map((item: AnyObj) => {
-                const produtoId = getProdutoId(item) ?? 0;
-                const slug = getSlug(item);
-                const href = slug
-                  ? rotas.produtos.paginas.produto(slug)
-                  : rotas.produtos.paginas.destaques;
+        {/* LISTA */}
+        <div
+          className={usarCarousel ? "pdTrack pdTrack--carousel" : "pdTrack pdTrack--grid"}
+          ref={usarCarousel ? trackRef : null}
+        >
+          {loading ? (
+            Array.from({ length: usarCarousel ? 6 : 4 }).map((_, i) => (
+              <SkeletonCard key={i} />
+            ))
+          ) : (
+            lista.map((item: AnyObj) => {
+              const produtoId = getProdutoId(item) ?? 0;
+              const slug = getSlug(item);
+              const href = slug
+                ? rotas.produtos.paginas.produto(slug)
+                : rotas.produtos.paginas.destaques;
 
-                const isAdding = addingId === produtoId;
-                const isAdded = !!added[produtoId];
+              const isAdding = addingId === produtoId;
+              const isAdded = !!added[produtoId];
 
-                return (
-                  <div className="pdSlide" key={item?.id_destaque ?? produtoId ?? href}>
-                    <div className="pdCardWrap">
-                      <Link href={href} className="pdCard" aria-label={`Ver ${item?.produto_nome ?? "produto"}`}>
-                        <div className="pdBadge">
-                          <Sparkles size={14} />
-                          Destaque
+              const nome = item?.produto_nome ?? "Produto";
+              const desc = item?.produto_descricao
+                ? clampText(item.produto_descricao, 92)
+                : "Destaque selecionado com ótimo custo-benefício.";
+
+              const preco = formatBRL(item?.produto_preco);
+
+              return (
+                <div className="pdItem" key={item?.id_destaque ?? produtoId ?? href}>
+                  <div className="pdCardWrap">
+                    <Link href={href} className="pdCard" aria-label={`Ver ${nome}`}>
+                      <div className="pdBadge">
+                        <Sparkles size={14} />
+                        Destaque
+                      </div>
+
+                      {/* IMAGEM SEM “BRANCÃO”: aspect-ratio + fallback */}
+                      <div className="pdMedia">
+                        <div className="pdImageShell" aria-label={`Imagem do produto ${nome}`}>
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={getImagemUrl(item?.produto_imagem)}
+                            alt={nome}
+                            loading="lazy"
+                            onError={(e) => {
+                              const img = e.currentTarget;
+                              if (img.src.endsWith(PLACEHOLDER)) return;
+                              img.src = PLACEHOLDER;
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="pdBody">
+                        <div className="pdTopLine">
+                          <h4 className="pdName" title={nome}>
+                            {nome}
+                          </h4>
+                          <span className="pdTag">Em alta</span>
                         </div>
 
-                        <div className="pdMedia">
-                          <div className="pdImageShell">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={getImagemUrl(item?.produto_imagem)}
-                              alt={item?.produto_nome ?? "Produto"}
-                              loading="lazy"
-                            />
+                        <p className="pdDesc">{desc}</p>
+
+                        <div className="pdPriceRow">
+                          <div className="pdPrice">{preco}</div>
+                          <div className="pdMini">
+                            <span className="pdDot" /> pronta entrega
                           </div>
                         </div>
+                      </div>
+                    </Link>
 
-                        <div className="pdBody">
-                          <div className="pdTopLine">
-                            <h4 className="pdName" title={item?.produto_nome}>
-                              {item?.produto_nome ?? "Produto"}
-                            </h4>
-                            <span className="pdTag">Em alta</span>
-                          </div>
-
-                          <p className="pdDesc">
-                            {item?.produto_descricao
-                              ? clampText(item.produto_descricao, 96)
-                              : "Destaque selecionado com ótimo custo-benefício."}
-                          </p>
-
-                          <div className="pdPriceRow">
-                            <div className="pdPrice">
-                              {formatBRL(item?.produto_preco)}
-                            </div>
-                            <div className="pdMini">
-                              <span className="pdDot" /> pronta entrega
-                            </div>
-                          </div>
-
-                          <div className="pdHint">Clique para ver detalhes</div>
-                        </div>
-                      </Link>
-
-                      <button
-                        type="button"
-                        className={`pdBtn ${isAdded ? "ok" : ""}`}
-                        onClick={() => adicionarAoCarrinho(item)}
-                        disabled={isAdding}
-                      >
-                        {isAdding ? (
-                          <>
-                            <Loader2 size={16} className="spin" />
-                            Adicionando
-                          </>
-                        ) : isAdded ? (
-                          <>
-                            <Check size={16} />
-                            Adicionado
-                          </>
-                        ) : (
-                          <>
-                            <ShoppingCart size={16} />
-                            Adicionar
-                          </>
-                        )}
-                      </button>
-                    </div>
+                    <button
+                      type="button"
+                      className={`pdBtn ${isAdded ? "ok" : ""}`}
+                      onClick={() => adicionarAoCarrinho(item)}
+                      disabled={isAdding}
+                    >
+                      {isAdding ? (
+                        <>
+                          <Loader2 size={16} className="spin" />
+                          Adicionando
+                        </>
+                      ) : isAdded ? (
+                        <>
+                          <Check size={16} />
+                          Adicionado
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingCart size={16} />
+                          Adicionar
+                        </>
+                      )}
+                    </button>
                   </div>
-                );
-              })
-            )}
-          </div>
-
-          <div className="pdFade pdFade--left" aria-hidden="true" />
-          <div className="pdFade pdFade--right" aria-hidden="true" />
+                </div>
+              );
+            })
+          )}
         </div>
+
+        {/* fades só no carrossel */}
+        {usarCarousel && (
+          <>
+            <div className="pdFade pdFade--left" aria-hidden="true" />
+            <div className="pdFade pdFade--right" aria-hidden="true" />
+          </>
+        )}
       </div>
 
       <style jsx>{`
-        /* ===== Base creme premium ===== */
+        /* ===== TEMA CREME PREMIUM ===== */
         .pdWrap {
           position: relative;
           padding: 44px 0;
           background: linear-gradient(180deg, #fbf6ee, #f6efe4);
         }
-
         .pdWrap::before {
           content: "";
           position: absolute;
@@ -395,23 +410,25 @@ export default function ProdutoDestaque() {
           border: 1px solid rgba(27, 27, 31, 0.08);
           backdrop-filter: blur(10px);
           box-shadow: 0 18px 60px rgba(27, 27, 31, 0.08);
+          overflow: hidden;
         }
 
-        /* ===== Mini banner (melhorado) ===== */
+        /* ===== BANNER ===== */
         .pdBanner {
           display: flex;
           justify-content: space-between;
+          align-items: flex-start;
           gap: 16px;
           padding: 16px;
           border-radius: 22px;
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.70), rgba(255, 255, 255, 0.52));
+          background: linear-gradient(
+            135deg,
+            rgba(255, 255, 255, 0.70),
+            rgba(255, 255, 255, 0.52)
+          );
           border: 1px solid rgba(27, 27, 31, 0.08);
           box-shadow: 0 14px 46px rgba(27, 27, 31, 0.06);
           margin-bottom: 14px;
-        }
-
-        .pdBannerLeft {
-          max-width: 76ch;
         }
 
         .pdKicker {
@@ -462,22 +479,9 @@ export default function ProdutoDestaque() {
           font-size: 0.88rem;
         }
 
-        .pdBannerRight {
-          display: grid;
-          align-content: start;
-          justify-items: end;
-          gap: 10px;
-          min-width: 180px;
-        }
-
-        .pdBannerBadge {
-          font-weight: 950;
-          color: rgba(27, 27, 31, 0.78);
-          padding: 8px 12px;
-          border-radius: 999px;
+        .pdPill--gold {
           background: rgba(176, 141, 87, 0.16);
           border: 1px solid rgba(176, 141, 87, 0.20);
-          white-space: nowrap;
         }
 
         .pdAll {
@@ -489,10 +493,15 @@ export default function ProdutoDestaque() {
           color: #fff;
           text-decoration: none;
           font-weight: 950;
-          background: linear-gradient(135deg, rgba(27, 27, 31, 0.92), rgba(27, 27, 31, 0.76));
+          background: linear-gradient(
+            135deg,
+            rgba(27, 27, 31, 0.92),
+            rgba(27, 27, 31, 0.76)
+          );
           box-shadow: 0 16px 46px rgba(27, 27, 31, 0.14);
           transition: transform 0.18s ease, box-shadow 0.18s ease;
           white-space: nowrap;
+          height: fit-content;
         }
 
         .pdAll:hover {
@@ -500,22 +509,13 @@ export default function ProdutoDestaque() {
           box-shadow: 0 22px 60px rgba(27, 27, 31, 0.18);
         }
 
-        /* ===== Carrossel ===== */
-        .pdCarousel {
-          position: relative;
-          border-radius: 22px;
-          padding: 14px 14px 10px;
-          background: rgba(255, 255, 255, 0.38);
-          border: 1px solid rgba(27, 27, 31, 0.08);
-          overflow: hidden;
-        }
-
+        /* ===== CAROUSEL HEADER ===== */
         .pdCarouselTop {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          margin-bottom: 10px;
+          margin: 6px 2px 10px;
         }
 
         .pdCarouselTitle {
@@ -548,29 +548,41 @@ export default function ProdutoDestaque() {
           box-shadow: 0 16px 34px rgba(27, 27, 31, 0.10);
         }
 
+        /* ===== TRACK (GRID ou CAROUSEL) ===== */
         .pdTrack {
+          position: relative;
+          min-width: 0;
+        }
+
+        /* grid quando <=5 */
+        .pdTrack--grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 14px;
+          margin-top: 6px;
+        }
+
+        /* carrossel quando >=6 */
+        .pdTrack--carousel {
           display: grid;
           grid-auto-flow: column;
           grid-auto-columns: minmax(260px, 1fr);
           gap: 14px;
-
           overflow-x: auto;
-          padding: 4px 2px 10px;
-
+          padding: 4px 2px 14px;
           scroll-snap-type: x mandatory;
           scroll-behavior: smooth;
           -webkit-overflow-scrolling: touch;
-
-          scrollbar-width: none; /* Firefox */
+          scrollbar-width: none;
         }
 
-        .pdTrack::-webkit-scrollbar {
-          display: none; /* Chrome/Safari */
+        .pdTrack--carousel::-webkit-scrollbar {
+          display: none;
         }
 
-        .pdSlide {
-          scroll-snap-align: start;
+        .pdItem {
           min-width: 0;
+          scroll-snap-align: start;
         }
 
         .pdCardWrap {
@@ -578,7 +590,7 @@ export default function ProdutoDestaque() {
           gap: 10px;
         }
 
-        /* ===== Cards creme (premium, mais leves) ===== */
+        /* ===== CARD PROFISSIONAL (SEM BRANCÃO) ===== */
         .pdCard {
           position: relative;
           display: block;
@@ -586,8 +598,11 @@ export default function ProdutoDestaque() {
           overflow: hidden;
           text-decoration: none;
 
-          /* creme real */
-          background: linear-gradient(180deg, rgba(255, 251, 245, 0.92), rgba(255, 246, 236, 0.82));
+          background: linear-gradient(
+            180deg,
+            rgba(255, 251, 245, 0.94),
+            rgba(255, 246, 236, 0.84)
+          );
           border: 1px solid rgba(27, 27, 31, 0.10);
           box-shadow: 0 14px 46px rgba(27, 27, 31, 0.10);
           transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
@@ -619,18 +634,27 @@ export default function ProdutoDestaque() {
 
         .pdMedia {
           padding: 12px;
-          background: linear-gradient(180deg, rgba(27, 27, 31, 0.03), rgba(27, 27, 31, 0));
+          background: linear-gradient(
+            180deg,
+            rgba(27, 27, 31, 0.03),
+            rgba(27, 27, 31, 0)
+          );
           border-bottom: 1px solid rgba(27, 27, 31, 0.08);
         }
 
+        /* AQUI some o “card branco”: altura controlada e sempre preenchida */
         .pdImageShell {
-          height: 176px;
           border-radius: 18px;
-          background: rgba(255, 255, 255, 0.72);
           border: 1px solid rgba(27, 27, 31, 0.08);
+          background:
+            radial-gradient(420px 180px at 50% 30%, rgba(176, 141, 87, 0.16), transparent 60%),
+            rgba(255, 255, 255, 0.70);
+          overflow: hidden;
           display: grid;
           place-items: center;
-          overflow: hidden;
+          /* sem altura fixa gigante: */
+          aspect-ratio: 16 / 10;
+          min-height: 150px;
         }
 
         .pdImageShell img {
@@ -687,7 +711,7 @@ export default function ProdutoDestaque() {
           font-size: 0.86rem;
           color: rgba(27, 27, 31, 0.68);
           line-height: 1.3rem;
-          min-height: 42px;
+          min-height: 40px;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
@@ -725,14 +749,7 @@ export default function ProdutoDestaque() {
           box-shadow: 0 0 0 4px rgba(46, 204, 113, 0.18);
         }
 
-        .pdHint {
-          margin-top: -2px;
-          font-size: 0.78rem;
-          color: rgba(27, 27, 31, 0.56);
-          font-weight: 850;
-        }
-
-        /* ===== CTA carrinho ===== */
+        /* ===== BOTÃO ===== */
         .pdBtn {
           height: 46px;
           border-radius: 16px;
@@ -777,27 +794,36 @@ export default function ProdutoDestaque() {
           }
         }
 
-        /* ===== Fades laterais do carrossel ===== */
+        /* ===== fades (só carrossel) ===== */
         .pdFade {
           position: absolute;
-          top: 58px;
-          bottom: 8px;
-          width: 52px;
+          top: 140px;
+          bottom: 0;
+          width: 56px;
           pointer-events: none;
+          z-index: 2;
         }
 
         .pdFade--left {
           left: 0;
-          background: linear-gradient(90deg, rgba(246, 239, 228, 0.98), rgba(246, 239, 228, 0));
+          background: linear-gradient(
+            90deg,
+            rgba(246, 239, 228, 0.98),
+            rgba(246, 239, 228, 0)
+          );
         }
 
         .pdFade--right {
           right: 0;
-          background: linear-gradient(270deg, rgba(246, 239, 228, 0.98), rgba(246, 239, 228, 0));
+          background: linear-gradient(
+            270deg,
+            rgba(246, 239, 228, 0.98),
+            rgba(246, 239, 228, 0)
+          );
         }
 
-        /* ===== Skeleton ===== */
-        .pdCard--sk {
+        /* ===== skeleton ===== */
+        .pdItem--sk {
           pointer-events: none;
         }
 
@@ -814,8 +840,8 @@ export default function ProdutoDestaque() {
         }
 
         .pdSk--img {
-          height: 176px;
           width: 100%;
+          aspect-ratio: 16 / 10;
           border-radius: 18px;
         }
 
@@ -835,10 +861,16 @@ export default function ProdutoDestaque() {
           width: 80%;
         }
 
-        .pdSk--b {
+        .pdSk--p {
+          height: 14px;
+          width: 44%;
+          border-radius: 12px;
+          margin-top: 2px;
+        }
+
+        .pdSk--btn {
           height: 46px;
           width: 100%;
-          margin-top: 10px;
           border-radius: 16px;
         }
 
@@ -851,16 +883,11 @@ export default function ProdutoDestaque() {
           }
         }
 
-        /* ===== Responsivo ===== */
+        /* ===== responsive ===== */
         @media (max-width: 820px) {
           .pdBanner {
             flex-direction: column;
             align-items: stretch;
-          }
-
-          .pdBannerRight {
-            justify-items: start;
-            min-width: 0;
           }
 
           .pdAll {
@@ -877,9 +904,9 @@ export default function ProdutoDestaque() {
           .pdNavBtn {
             width: 40px;
             height: 40px;
-            border-radius: 14px;
           }
-          .pdTrack {
+
+          .pdTrack--carousel {
             grid-auto-columns: minmax(240px, 1fr);
           }
         }
