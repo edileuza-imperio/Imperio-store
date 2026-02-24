@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { rotas } from "@/components/Bibioteca/config/rotas"; // ajuste o caminho se necessário
+import { rotas } from "@/components/Bibioteca/config/rotas";
 
 type Step = "inicio" | "login" | "pin" | "cadastro";
 
@@ -23,6 +23,21 @@ const DEFAULT_CONFIG: LoginConfig = {
   mensagem_personalizada: "Entre com suas credenciais.",
 };
 
+// ✅ resolve: suporta {dados: obj}, {dados: [obj]}, {data: obj}, {data:[obj]}
+function resolveConfig(payload: any): LoginConfig | null {
+  const root = payload?.dados ?? payload?.data ?? payload;
+
+  if (!root) return null;
+
+  // caso venha array
+  if (Array.isArray(root)) return (root[0] ?? null) as LoginConfig | null;
+
+  // caso venha objeto
+  if (typeof root === "object") return root as LoginConfig;
+
+  return null;
+}
+
 export const useLoginConfig = () => {
   const router = useRouter();
 
@@ -34,35 +49,48 @@ export const useLoginConfig = () => {
 
   // 🔹 Busca configuração do login
   useEffect(() => {
+    let alive = true;
+
     const fetchConfig = async () => {
       try {
-        const response = await api.get(rotas.admin.configLogin, {
+        // ✅ agora é na raiz: rotas.configLogin
+        const response = await api.get(rotas.configLogin, {
           withCredentials: true,
         });
 
-        // sua API parece retornar dados[0]
-        const cfg = response.data?.dados?.[0];
+        const cfg = resolveConfig(response.data);
+
+        if (!alive) return;
         setConfig(cfg ?? DEFAULT_CONFIG);
       } catch {
+        if (!alive) return;
         toast.error("Erro ao carregar configuração de login");
         setConfig(DEFAULT_CONFIG);
       } finally {
+        if (!alive) return;
         setLoading(false);
       }
     };
 
     fetchConfig();
+    return () => {
+      alive = false;
+    };
   }, []);
 
   // 🔹 Verifica sessão
   useEffect(() => {
+    let alive = true;
+
     const checkSession = async () => {
       try {
         const res = await api.get(rotas.auth.me, { withCredentials: true });
-        const usuario = res.data?.dados?.usuario;
 
-        // Se você não usa mais pedir_pin no /me, pode remover essa parte depois.
-        const pedirPin = res.data?.dados?.pedir_pin;
+        const dados = res.data?.dados ?? res.data?.data ?? res.data;
+        const usuario = dados?.usuario;
+        const pedirPin = dados?.pedir_pin;
+
+        if (!alive) return;
 
         if (usuario && !pedirPin) {
           router.push("/");
@@ -76,6 +104,9 @@ export const useLoginConfig = () => {
     };
 
     checkSession();
+    return () => {
+      alive = false;
+    };
   }, [router]);
 
   // 🔹 Bloqueio de atalhos
@@ -122,7 +153,7 @@ export const useLoginConfig = () => {
         { withCredentials: true }
       );
 
-      const data = res.data?.dados;
+      const data = res.data?.dados ?? res.data?.data ?? res.data;
 
       if (data?.acao === "pedir_pin") {
         setUsuarioTempId(data.id_usuario);
