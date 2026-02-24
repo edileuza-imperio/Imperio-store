@@ -10,14 +10,6 @@ import { rotas } from "@/components/Bibioteca/config/rotas";
 
 type Props = { children: React.ReactNode };
 
-type BackendSidebarItem = {
-  titulo: string;
-  rota: string;
-  icone: string; // ex: "fa-solid fa-chart-line"
-};
-
-type BackendSidebar = Record<string, BackendSidebarItem>;
-
 type SimpleItem = {
   type: "link";
   label: string;
@@ -59,11 +51,9 @@ function useClickOutside(
 
     function handler(e: MouseEvent) {
       const target = e.target as Node;
-
       const clickedInside = refs.some(
         (ref) => ref.current && ref.current.contains(target)
       );
-
       if (!clickedInside) onOutside();
     }
 
@@ -72,15 +62,22 @@ function useClickOutside(
   }, [refs, onOutside, enabled]);
 }
 
-function matchFromHref(href: string) {
-  // "/admin/produtos" -> "/produtos"
-  const parts = href.split("/").filter(Boolean);
-  const last = parts[parts.length - 1] || "";
-  return `/${last}`;
+function normalizePath(p: string) {
+  // remove barra final (exceto "/")
+  if (p.length > 1 && p.endsWith("/")) return p.slice(0, -1);
+  return p;
+}
+
+function isMenuItem(x: any): x is MenuItem {
+  if (!x || typeof x !== "object") return false;
+  if (x.type === "link") return typeof x.href === "string" && typeof x.label === "string";
+  if (x.type === "group") return Array.isArray(x.children) && typeof x.label === "string";
+  return false;
 }
 
 export default function AdminLayout({ children }: Props) {
-  const pathname = usePathname();
+  const pathnameRaw = usePathname();
+  const pathname = normalizePath(pathnameRaw || "/");
   const router = useRouter();
 
   const { usuario, loading } = useAutenticado([1, 4]);
@@ -97,7 +94,7 @@ export default function AdminLayout({ children }: Props) {
   useClickOutside([userMenuRef], () => setUserMenuOpen(false), userMenuOpen);
   useClickOutside([notifRef], () => setNotifOpen(false), notifOpen);
 
-  // ✅ menu do backend
+  // ✅ menu do backend (agora com groups)
   const [menu, setMenu] = useState<MenuItem[]>([]);
   const [menuLoading, setMenuLoading] = useState(true);
 
@@ -111,26 +108,24 @@ export default function AdminLayout({ children }: Props) {
         // rota do backend do admin (PainelAdministrativo@index)
         const res = await api.get<ApiResponse<any>>(rotas.admin.dashboard);
 
-        // Mensagemjson provavelmente devolve { dados: { dados: sidebar } } OU { dados: sidebar }
+        // Mensagemjson: { dados: ... } (às vezes vem { dados: { dados: ... } })
         const root = resolveApi<any>(res.data);
-        const maybeSidebar = root?.dados ?? root;
+        const payload = root?.dados ?? root;
 
-        const sidebar = (maybeSidebar || {}) as BackendSidebar;
+        const arr = Array.isArray(payload) ? payload : Array.isArray(payload?.dados) ? payload.dados : [];
 
-        const items: MenuItem[] = Object.values(sidebar).map((it) => ({
-          type: "link",
-          label: it.titulo,
-          href: it.rota,
-          icon: it.icone,
-          match: matchFromHref(it.rota),
-        }));
+        const items = arr.filter(isMenuItem) as MenuItem[];
 
         if (!alive) return;
         setMenu(items);
+
+        // abre o primeiro grupo por padrão
+        const firstGroup = items.find((it) => it.type === "group") as GroupItem | undefined;
+        if (firstGroup) setOpenGroup(firstGroup.label);
       } catch (e) {
         console.error("❌ Erro ao carregar menu admin:", e);
 
-        // fallback básico
+        // ✅ fallback já em grupos
         if (!alive) return;
         setMenu([
           {
@@ -141,27 +136,40 @@ export default function AdminLayout({ children }: Props) {
             match: "/admin",
           },
           {
-            type: "link",
-            label: "Usuários",
-            href: "/admin/usuarios",
-            icon: "fa-solid fa-users",
-            match: "/usuarios",
+            type: "group",
+            label: "Gestão",
+            icon: "fa-solid fa-grid-2",
+            children: [
+              {
+                label: "Usuários",
+                href: "/admin/usuarios",
+                icon: "fa-solid fa-users",
+                match: "/usuarios",
+              },
+            ],
           },
           {
-            type: "link",
-            label: "Produtos",
-            href: "/admin/produtos",
-            icon: "fa-solid fa-box",
-            match: "/produtos",
-          },
-          {
-            type: "link",
-            label: "Categorias",
-            href: "/admin/categorias",
-            icon: "fa-solid fa-tags",
-            match: "/categorias",
+            type: "group",
+            label: "Catálogo",
+            icon: "fa-solid fa-boxes-stacked",
+            children: [
+              {
+                label: "Produtos",
+                href: "/admin/produtos",
+                icon: "fa-solid fa-box",
+                match: "/produtos",
+              },
+              {
+                label: "Categorias",
+                href: "/admin/categorias",
+                icon: "fa-solid fa-tags",
+                match: "/categorias",
+              },
+            ],
           },
         ]);
+
+        setOpenGroup("Gestão");
       } finally {
         if (!alive) return;
         setMenuLoading(false);
@@ -186,7 +194,8 @@ export default function AdminLayout({ children }: Props) {
   const unreadCount = notifications.length;
 
   function isActive(match?: string, href?: string) {
-    if (href && pathname === href) return true;
+    const hrefN = href ? normalizePath(href) : undefined;
+    if (hrefN && pathname === hrefN) return true;
     if (match && pathname.includes(match)) return true;
     return false;
   }
@@ -196,10 +205,9 @@ export default function AdminLayout({ children }: Props) {
 
   async function sair() {
     try {
-      // se você tem endpoint de logout real:
       await api.post(rotas.auth.logout);
     } catch (e) {
-      // mesmo se falhar, manda pro login
+      // ignora
     } finally {
       router.push("/login");
     }
@@ -255,7 +263,6 @@ export default function AdminLayout({ children }: Props) {
                       className={`adm-item ${active ? "active" : ""}`}
                       onClick={() => setSidebarOpen(false)}
                     >
-                      {/* ✅ backend manda FA icons, então renderizamos como className normal */}
                       <i className={item.icon} />
                       <span className="adm-item__label">{item.label}</span>
                       {active && <span className="adm-item__pill" />}
@@ -263,7 +270,6 @@ export default function AdminLayout({ children }: Props) {
                   );
                 }
 
-                // se futuramente quiser grupos do backend, pode expandir aqui
                 const anyActive = item.children.some((c) => isActive(c.match, c.href));
                 const opened = openGroup === item.label;
 
@@ -505,6 +511,7 @@ export default function AdminLayout({ children }: Props) {
         </div>
       </div>
 
+      {/* ✅ Seus estilos (mantive exatamente os mesmos) */}
       <style jsx global>{`
         :root{
           --bg:#f4f6fb;
