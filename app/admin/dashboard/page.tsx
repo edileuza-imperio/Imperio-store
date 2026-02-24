@@ -38,8 +38,8 @@ export default function DashboardPage() {
       setLoading(true);
 
       try {
-        // ✅ usa rota centralizada
-        const res = await api.get<ApiResponse<Card[]>>(rotas.admin.cards);
+        // ✅ usa rota centralizada (novo formato)
+        const res = await api.get<ApiResponse<Card[]>>(rotas.admin.api.cards);
 
         const lista = resolveApi<Card[]>(res.data);
 
@@ -95,6 +95,19 @@ export default function DashboardPage() {
 
   if (loading) return <div className="p-4">Carregando dashboard...</div>;
 
+  // ✅ mapeamento melhor (sem depender do título virar slug)
+  function cardHref(titulo: string) {
+    const t = (titulo || "").toLowerCase();
+
+    if (t.includes("usuario")) return rotas.admin.paginas.usuarios;
+    if (t.includes("produto")) return rotas.admin.paginas.produtos;
+    if (t.includes("categoria")) return rotas.admin.paginas.categorias;
+    if (t.includes("cupom")) return rotas.admin.paginas.cupons;
+    if (t.includes("pedido") || t.includes("carrinho")) return rotas.admin.paginas.pedidos;
+
+    return rotas.admin.paginas.dashboard;
+  }
+
   return (
     <div className="dashboard-wrapper">
       <div className="mb-4">
@@ -103,49 +116,32 @@ export default function DashboardPage() {
       </div>
 
       <div className="row g-4 dashboard-grid">
-        {cards.map((card, idx) => {
-          // ✅ rota do link baseada no título (mais seguro)
-          const slug = (card.titulo || "")
-            .toLowerCase()
-            .normalize("NFD")
-            .replace(/[\u0300-\u036f]/g, "")
-            .replace(/\s+/g, "-");
-
-          // você pode ajustar mapeamento aqui se quiser:
-          const href =
-            card.titulo.toLowerCase().includes("cupom")
-              ? "/admin/cupons"
-              : card.titulo.toLowerCase().includes("carrinho")
-              ? "/admin/pedidos"
-              : `/admin/${slug}`;
-
-          return (
-            <div key={idx} className="col-12 col-md-6 col-xl-3">
-              <div className="dashboard-card h-100">
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <span className="card-label">{card.titulo}</span>
-                    <h2 className="card-value">{card.quantidade}</h2>
-                  </div>
-
-                  <div
-                    className="card-icon"
-                    style={{
-                      background: `${card.cor}22`,
-                      color: card.cor,
-                    }}
-                  >
-                    <i className={`bi ${card.icone}`} />
-                  </div>
+        {cards.map((card, idx) => (
+          <div key={idx} className="col-12 col-md-6 col-xl-3">
+            <div className="dashboard-card h-100">
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <span className="card-label">{card.titulo}</span>
+                  <h2 className="card-value">{card.quantidade}</h2>
                 </div>
 
-                <Link href={href} className="card-link">
-                  Gerenciar → 
-                </Link>
+                <div
+                  className="card-icon"
+                  style={{
+                    background: `${card.cor}22`,
+                    color: card.cor,
+                  }}
+                >
+                  <i className={`bi ${card.icone}`} />
+                </div>
               </div>
+
+              <Link href={cardHref(card.titulo)} className="card-link">
+                Gerenciar →
+              </Link>
             </div>
-          );
-        })}
+          </div>
+        ))}
       </div>
 
       <style jsx global>{`
