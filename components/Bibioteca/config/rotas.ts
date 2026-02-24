@@ -18,15 +18,13 @@ export const rotas = {
   carrinho: {
     adicionar: "/carrinho/adicionar",
   },
-
   admin: {
     // ✅ backend do admin (PainelAdministrativo@index)
-    dashboard: "/admin",
+    dashboard: "/admin/",
 
     // ✅ VOCÊ USA ISSO NO app/cadastro/page.tsx
     configLogin: "/configuracoes/login",
 
-    // (opcional) páginas do painel (front)
     paginas: {
       dashboard: "/admin",
       usuarios: "/admin/usuarios",
