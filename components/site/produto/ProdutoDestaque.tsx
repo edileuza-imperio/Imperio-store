@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import api from "@/Api/conectar";
-
 import { rotas } from "@/components/Bibioteca/config/rotas";
 import { ShoppingCart, ArrowRight, Check, Loader2 } from "lucide-react";
 
@@ -18,6 +17,14 @@ function formatBRL(v: any) {
   const n = Number(v);
   const safe = Number.isFinite(n) ? n : 0;
   return safe.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function normalizeLista(payload: any) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.dados)) return payload.dados;
+  if (Array.isArray(payload?.itens)) return payload.itens;
+  return [];
 }
 
 export default function ProdutoDestaque() {
@@ -43,17 +50,7 @@ export default function ProdutoDestaque() {
         });
 
         const payload = res?.data?.data ?? res?.data?.dados ?? res?.data;
-
-        const lista =
-          Array.isArray(payload)
-            ? payload
-            : Array.isArray(payload?.data)
-            ? payload.data
-            : Array.isArray(payload?.dados)
-            ? payload.dados
-            : Array.isArray(payload?.itens)
-            ? payload.itens
-            : [];
+        const lista = normalizeLista(payload);
 
         if (alive) setItens(lista);
       } catch (e: any) {
@@ -135,23 +132,25 @@ export default function ProdutoDestaque() {
   return (
     <section className="wrap">
       <div className="container">
-        <div className="head">
-          <div>
-            <div className="kicker">Destaques</div>
+        <header className="head">
+          <div className="headLeft">
+            <span className="kicker">Destaques</span>
             <h2 className="title">Selecionados para você</h2>
-            <p className="sub">Produtos em alta, com ótima qualidade e entrega rápida.</p>
+            <p className="sub">
+              Visual clean, fundo creme e cards com padrão de e-commerce.
+            </p>
           </div>
 
           <Link className="all" href={rotas.produtos.paginas.destaques}>
             Ver todos <ArrowRight size={18} />
           </Link>
-        </div>
+        </header>
 
-        {loading && <div className="state">Carregando…</div>}
+        {loading && <div className="state">Carregando destaques…</div>}
         {erro && <div className="state err">{erro}</div>}
 
         {!loading && !erro && lista.length === 0 && (
-          <div className="state">Nenhum destaque no momento.</div>
+          <div className="state">Nenhum produto em destaque no momento.</div>
         )}
 
         {!loading && !erro && lista.length > 0 && (
@@ -167,6 +166,7 @@ export default function ProdutoDestaque() {
               const ilimitado = Number(p?.ilimitado ?? 0);
 
               const emEstoque = ilimitado === 1 || estoque > 0;
+
               const href = slug
                 ? rotas.produtos.paginas.produto(slug)
                 : rotas.produtos.paginas.destaques;
@@ -176,24 +176,28 @@ export default function ProdutoDestaque() {
 
               return (
                 <article className="card" key={id}>
-                  <Link href={href} className="media" aria-label={`Ver ${nome}`}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={getImagemUrl(imagem)} alt={nome} />
-                    <span className={`pill ${emEstoque ? "ok" : "no"}`}>
-                      {emEstoque ? "Em estoque" : "Esgotado"}
-                    </span>
+                  <Link href={href} className="top" aria-label={`Ver ${nome}`}>
+                    <div className="imgTile">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={getImagemUrl(imagem)} alt={nome} />
+                    </div>
+
+                    <div className="meta">
+                      <span className={`stock ${emEstoque ? "ok" : "no"}`}>
+                        {emEstoque ? "Em estoque" : "Esgotado"}
+                      </span>
+                      <span className="chip">Em alta</span>
+                    </div>
+
+                    <h3 className="name" title={nome}>
+                      {nome}
+                    </h3>
+
+                    <p className="desc">{desc ? desc : "Produto em destaque selecionado para você."}</p>
                   </Link>
 
-                  <div className="body">
-                    <h3 className="name" title={nome}>{nome}</h3>
-
-                    <p className="desc">
-                      {desc
-                        ? String(desc).slice(0, 90) + (String(desc).length > 90 ? "…" : "")
-                        : "Produto em destaque com ótimo custo-benefício."}
-                    </p>
-
-                    <div className="row">
+                  <div className="bottom">
+                    <div className="priceRow">
                       <div className="price">{formatBRL(preco)}</div>
                       <div className="mini">{emEstoque ? "Pronta entrega" : "Indisponível"}</div>
                     </div>
@@ -236,16 +240,28 @@ export default function ProdutoDestaque() {
       </div>
 
       <style jsx>{`
-        /* fundo creme bem clean */
+        /* ========= Fundo creme (sem cara de “box branco”) ========= */
         .wrap {
-          padding: 54px 0;
-          background: #f8f3ea;
+          padding: 64px 0;
+          background: radial-gradient(
+              900px 420px at 10% 0%,
+              rgba(176, 141, 87, 0.16),
+              transparent 60%
+            ),
+            radial-gradient(
+              820px 420px at 100% 10%,
+              rgba(122, 41, 65, 0.10),
+              transparent 62%
+            ),
+            linear-gradient(180deg, #f8f3ea 0%, #f6efe4 100%);
         }
+
         .container {
           width: min(1200px, calc(100% - 32px));
           margin: 0 auto;
         }
 
+        /* ========= Header ========= */
         .head {
           display: flex;
           justify-content: space-between;
@@ -254,28 +270,33 @@ export default function ProdutoDestaque() {
           flex-wrap: wrap;
           margin-bottom: 18px;
         }
+
         .kicker {
           display: inline-flex;
-          padding: 6px 10px;
+          padding: 7px 12px;
           border-radius: 999px;
-          font-weight: 900;
+          font-weight: 950;
           font-size: 0.8rem;
           color: #7a2941;
           background: rgba(122, 41, 65, 0.10);
           border: 1px solid rgba(122, 41, 65, 0.14);
         }
+
         .title {
           margin: 10px 0 6px;
-          font-size: clamp(1.7rem, 2.3vw, 2.2rem);
+          font-size: clamp(1.9rem, 2.4vw, 2.35rem);
           font-weight: 950;
           letter-spacing: -0.03em;
           color: #0b1220;
         }
+
         .sub {
           margin: 0;
-          color: rgba(11, 18, 32, 0.72);
+          color: rgba(11, 18, 32, 0.70);
           line-height: 1.55;
+          max-width: 70ch;
         }
+
         .all {
           display: inline-flex;
           align-items: center;
@@ -285,22 +306,24 @@ export default function ProdutoDestaque() {
           text-decoration: none;
           font-weight: 950;
           color: #0b1220;
-          background: rgba(255, 255, 255, 0.75);
+          background: rgba(255, 250, 242, 0.82);
           border: 1px solid rgba(11, 18, 32, 0.10);
+          box-shadow: 0 12px 28px rgba(11, 18, 32, 0.06);
           transition: transform 0.2s ease, box-shadow 0.2s ease;
+          white-space: nowrap;
         }
         .all:hover {
           transform: translateY(-2px);
-          box-shadow: 0 16px 34px rgba(11, 18, 32, 0.10);
+          box-shadow: 0 18px 40px rgba(11, 18, 32, 0.09);
         }
 
         .state {
-          padding: 14px;
+          padding: 14px 16px;
           border-radius: 14px;
-          background: rgba(255, 255, 255, 0.65);
+          background: rgba(255, 250, 242, 0.82);
           border: 1px solid rgba(11, 18, 32, 0.08);
-          font-weight: 850;
           color: rgba(11, 18, 32, 0.78);
+          font-weight: 950;
         }
         .state.err {
           background: rgba(122, 41, 65, 0.08);
@@ -308,85 +331,113 @@ export default function ProdutoDestaque() {
           color: #7a2941;
         }
 
+        /* ========= Grid ========= */
         .grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
           gap: 18px;
         }
 
-        /* card padrão ecommerce (clean) */
+        /* ========= Card (ecommerce premium) ========= */
         .card {
-          background: rgba(255, 250, 242, 0.95);
-          border: 1px solid rgba(11, 18, 32, 0.10);
           border-radius: 18px;
           overflow: hidden;
-          box-shadow: 0 10px 26px rgba(11, 18, 32, 0.08);
+          background: rgba(255, 250, 242, 0.92);
+          border: 1px solid rgba(11, 18, 32, 0.10);
+          box-shadow: 0 12px 32px rgba(11, 18, 32, 0.08);
           transition: transform 0.2s ease, box-shadow 0.25s ease;
           display: grid;
-          grid-template-rows: auto 1fr;
+          grid-template-rows: 1fr auto;
         }
         .card:hover {
           transform: translateY(-6px);
-          box-shadow: 0 18px 46px rgba(11, 18, 32, 0.12);
+          box-shadow: 0 20px 54px rgba(11, 18, 32, 0.12);
         }
 
-        .media {
-          position: relative;
+        .top {
+          padding: 14px;
+          display: grid;
+          gap: 10px;
+          text-decoration: none;
+          color: inherit;
+        }
+
+        /* tile creme + borda leve = padrão ecommerce */
+        .imgTile {
+          height: 210px;
+          border-radius: 14px;
+          background: linear-gradient(180deg, #f2e7d7, #f8f3ea);
+          border: 1px solid rgba(11, 18, 32, 0.08);
           display: grid;
           place-items: center;
-          padding: 14px;
-          background: #ffffff;
-          border-bottom: 1px solid rgba(11, 18, 32, 0.08);
-          text-decoration: none;
+          overflow: hidden;
         }
-        .media img {
-          width: 100%;
-          height: 190px;
+
+        .imgTile img {
+          width: 88%;
+          height: 88%;
           object-fit: contain;
+          transition: transform 0.35s ease, filter 0.35s ease;
+          filter: saturate(1.02);
         }
-        .pill {
-          position: absolute;
-          top: 12px;
-          left: 12px;
+
+        .card:hover .imgTile img {
+          transform: scale(1.05);
+          filter: saturate(1.06) brightness(1.02);
+        }
+
+        .meta {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .stock {
           padding: 6px 10px;
           border-radius: 999px;
           font-size: 0.75rem;
           font-weight: 950;
+          background: rgba(255, 250, 242, 0.90);
           border: 1px solid rgba(11, 18, 32, 0.10);
-          background: rgba(255, 255, 255, 0.9);
-          color: rgba(11, 18, 32, 0.85);
+          color: rgba(11, 18, 32, 0.84);
         }
-        .pill.ok {
+        .stock.ok {
           border-color: rgba(34, 197, 94, 0.35);
         }
-        .pill.no {
+        .stock.no {
           border-color: rgba(220, 38, 38, 0.35);
           color: #7f1d1d;
         }
 
-        .body {
-          padding: 14px;
-          display: grid;
-          gap: 10px;
-          align-content: start;
+        .chip {
+          padding: 6px 10px;
+          border-radius: 999px;
+          font-size: 0.75rem;
+          font-weight: 950;
+          background: rgba(176, 141, 87, 0.16);
+          border: 1px solid rgba(176, 141, 87, 0.28);
+          color: #0b1220;
+          white-space: nowrap;
         }
 
         .name {
           margin: 0;
+          font-size: 1.02rem;
           font-weight: 950;
           letter-spacing: -0.02em;
           color: #0b1220;
-          font-size: 1rem;
           display: -webkit-box;
           -webkit-line-clamp: 1;
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
+
         .desc {
           margin: 0;
+          font-size: 0.86rem;
           color: rgba(11, 18, 32, 0.70);
           line-height: 1.25rem;
-          font-size: 0.86rem;
           min-height: 42px;
           display: -webkit-box;
           -webkit-line-clamp: 2;
@@ -394,18 +445,27 @@ export default function ProdutoDestaque() {
           overflow: hidden;
         }
 
-        .row {
+        .bottom {
+          padding: 14px;
+          border-top: 1px solid rgba(11, 18, 32, 0.08);
+          background: rgba(248, 243, 234, 0.70);
+        }
+
+        .priceRow {
           display: flex;
           align-items: baseline;
           justify-content: space-between;
           gap: 10px;
-          margin-top: 2px;
+          margin-bottom: 12px;
         }
+
         .price {
+          font-size: 1.18rem;
           font-weight: 950;
+          letter-spacing: -0.02em;
           color: #7a2941;
-          font-size: 1.12rem;
         }
+
         .mini {
           font-size: 0.78rem;
           font-weight: 900;
@@ -415,11 +475,11 @@ export default function ProdutoDestaque() {
 
         .actions {
           display: grid;
-          grid-template-columns: 1fr 1.15fr;
+          grid-template-columns: 1fr 1.2fr;
           gap: 10px;
-          margin-top: 6px;
         }
 
+        /* botões com padrão ecommerce */
         .btn {
           height: 44px;
           border-radius: 12px;
@@ -440,7 +500,7 @@ export default function ProdutoDestaque() {
         }
 
         .ghost {
-          background: rgba(255, 255, 255, 0.75);
+          background: rgba(255, 250, 242, 0.88);
           border: 1px solid rgba(11, 18, 32, 0.12);
           color: #0b1220;
         }
@@ -448,17 +508,19 @@ export default function ProdutoDestaque() {
         .solid {
           border: none;
           color: #fff;
-          background: #0b1220;
-          box-shadow: 0 14px 30px rgba(11, 18, 32, 0.16);
+          background: linear-gradient(135deg, #0b1220, #1f2937);
+          box-shadow: 0 14px 30px rgba(11, 18, 32, 0.18);
         }
         .solid:hover {
-          box-shadow: 0 18px 40px rgba(11, 18, 32, 0.20);
+          box-shadow: 0 18px 40px rgba(11, 18, 32, 0.22);
           filter: brightness(1.02);
         }
+
         .solid.added {
-          background: #166534;
+          background: linear-gradient(135deg, #166534, #22c55e);
           box-shadow: 0 14px 30px rgba(22, 101, 52, 0.18);
         }
+
         .btn:disabled {
           opacity: 0.65;
           cursor: not-allowed;
@@ -478,6 +540,9 @@ export default function ProdutoDestaque() {
         @media (max-width: 520px) {
           .actions {
             grid-template-columns: 1fr;
+          }
+          .imgTile {
+            height: 200px;
           }
         }
       `}</style>
