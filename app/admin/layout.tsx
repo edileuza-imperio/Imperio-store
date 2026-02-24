@@ -5,7 +5,18 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import useAutenticado from "@/hooks/Usuario/useAutenticado";
 
+import api from "@/Api/conectar";
+import { rotas } from "@/components/Bibioteca/config/rotas";
+
 type Props = { children: React.ReactNode };
+
+type BackendSidebarItem = {
+  titulo: string;
+  rota: string;
+  icone: string; // ex: "fa-solid fa-chart-line"
+};
+
+type BackendSidebar = Record<string, BackendSidebarItem>;
 
 type SimpleItem = {
   type: "link";
@@ -23,6 +34,19 @@ type GroupItem = {
 };
 
 type MenuItem = SimpleItem | GroupItem;
+
+type ApiResponse<T> = {
+  message?: string;
+  status?: number;
+  data?: T;
+  dados?: T;
+};
+
+function resolveApi<T>(payload: any): T {
+  if (payload?.dados != null) return payload.dados as T;
+  if (payload?.data != null) return payload.data as T;
+  return payload as T;
+}
 
 /** Fecha dropdown ao clicar fora */
 function useClickOutside(
@@ -48,6 +72,13 @@ function useClickOutside(
   }, [refs, onOutside, enabled]);
 }
 
+function matchFromHref(href: string) {
+  // "/admin/produtos" -> "/produtos"
+  const parts = href.split("/").filter(Boolean);
+  const last = parts[parts.length - 1] || "";
+  return `/${last}`;
+}
+
 export default function AdminLayout({ children }: Props) {
   const pathname = usePathname();
   const router = useRouter();
@@ -55,7 +86,7 @@ export default function AdminLayout({ children }: Props) {
   const { usuario, loading } = useAutenticado([1, 4]);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [openGroup, setOpenGroup] = useState<string | null>("Gestão");
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
@@ -66,63 +97,82 @@ export default function AdminLayout({ children }: Props) {
   useClickOutside([userMenuRef], () => setUserMenuOpen(false), userMenuOpen);
   useClickOutside([notifRef], () => setNotifOpen(false), notifOpen);
 
-  const menu: MenuItem[] = useMemo(
-    () => [
-      {
-        type: "link",
-        label: "Dashboard",
-        href: "/admin/dashboard",
-        icon: "bi bi-speedometer2",
-        match: "/dashboard",
-      },
-      {
-        type: "group",
-        label: "Gestão",
-        icon: "bi bi-grid-1x2",
-        children: [
+  // ✅ menu do backend
+  const [menu, setMenu] = useState<MenuItem[]>([]);
+  const [menuLoading, setMenuLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function carregarMenu() {
+      setMenuLoading(true);
+
+      try {
+        // rota do backend do admin (PainelAdministrativo@index)
+        const res = await api.get<ApiResponse<any>>(rotas.admin.dashboard);
+
+        // Mensagemjson provavelmente devolve { dados: { dados: sidebar } } OU { dados: sidebar }
+        const root = resolveApi<any>(res.data);
+        const maybeSidebar = root?.dados ?? root;
+
+        const sidebar = (maybeSidebar || {}) as BackendSidebar;
+
+        const items: MenuItem[] = Object.values(sidebar).map((it) => ({
+          type: "link",
+          label: it.titulo,
+          href: it.rota,
+          icon: it.icone,
+          match: matchFromHref(it.rota),
+        }));
+
+        if (!alive) return;
+        setMenu(items);
+      } catch (e) {
+        console.error("❌ Erro ao carregar menu admin:", e);
+
+        // fallback básico
+        if (!alive) return;
+        setMenu([
           {
+            type: "link",
+            label: "Dashboard",
+            href: "/admin",
+            icon: "fa-solid fa-chart-line",
+            match: "/admin",
+          },
+          {
+            type: "link",
             label: "Usuários",
             href: "/admin/usuarios",
-            icon: "bi bi-people",
+            icon: "fa-solid fa-users",
             match: "/usuarios",
           },
           {
-            label: "Pedidos",
-            href: "/admin/pedidos",
-            icon: "bi bi-cart-check",
-            match: "/pedidos",
-          },
-        ],
-      },
-      {
-        type: "group",
-        label: "Catálogo",
-        icon: "bi bi-box-seam",
-        children: [
-          {
+            type: "link",
             label: "Produtos",
             href: "/admin/produtos",
-            icon: "bi bi-box-seam",
+            icon: "fa-solid fa-box",
             match: "/produtos",
           },
           {
-            label: "Cupons",
-            href: "/admin/cupons",
-            icon: "bi bi-ticket-perforated",
-            match: "/cupons",
+            type: "link",
+            label: "Categorias",
+            href: "/admin/categorias",
+            icon: "fa-solid fa-tags",
+            match: "/categorias",
           },
-        ],
-      },
-      {
-        type: "link",
-        label: "Configurações",
-        href: "/admin/configuracoes",
-        icon: "bi bi-gear",
-        match: "/configuracoes",
-      },
-    ],
-    []
-  );
+        ]);
+      } finally {
+        if (!alive) return;
+        setMenuLoading(false);
+      }
+    }
+
+    carregarMenu();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const notifications = useMemo(
     () => [
@@ -136,13 +186,24 @@ export default function AdminLayout({ children }: Props) {
   const unreadCount = notifications.length;
 
   function isActive(match?: string, href?: string) {
-    if (match && pathname.includes(match)) return true;
     if (href && pathname === href) return true;
+    if (match && pathname.includes(match)) return true;
     return false;
   }
 
   const iniciais =
     (usuario?.nome?.trim()?.split(" ")[0]?.[0] || "U").toUpperCase();
+
+  async function sair() {
+    try {
+      // se você tem endpoint de logout real:
+      await api.post(rotas.auth.logout);
+    } catch (e) {
+      // mesmo se falhar, manda pro login
+    } finally {
+      router.push("/login");
+    }
+  }
 
   return (
     <>
@@ -179,60 +240,68 @@ export default function AdminLayout({ children }: Props) {
           <div className="adm-section">MENU</div>
 
           <nav className="adm-nav">
-            {menu.map((item) => {
-              if (item.type === "link") {
-                const active = isActive(item.match, item.href);
+            {menuLoading ? (
+              <div style={{ padding: 12, color: "rgba(255,255,255,.75)" }}>
+                Carregando menu…
+              </div>
+            ) : (
+              menu.map((item) => {
+                if (item.type === "link") {
+                  const active = isActive(item.match, item.href);
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={`adm-item ${active ? "active" : ""}`}
+                      onClick={() => setSidebarOpen(false)}
+                    >
+                      {/* ✅ backend manda FA icons, então renderizamos como className normal */}
+                      <i className={item.icon} />
+                      <span className="adm-item__label">{item.label}</span>
+                      {active && <span className="adm-item__pill" />}
+                    </Link>
+                  );
+                }
+
+                // se futuramente quiser grupos do backend, pode expandir aqui
+                const anyActive = item.children.some((c) => isActive(c.match, c.href));
+                const opened = openGroup === item.label;
+
                 return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`adm-item ${active ? "active" : ""}`}
-                    onClick={() => setSidebarOpen(false)}
+                  <div
+                    key={item.label}
+                    className={`adm-group ${anyActive ? "group-active" : ""}`}
                   >
-                    <i className={item.icon} />
-                    <span className="adm-item__label">{item.label}</span>
-                    {active && <span className="adm-item__pill" />}
-                  </Link>
-                );
-              }
+                    <button
+                      type="button"
+                      className={`adm-item adm-item--btn ${opened ? "open" : ""}`}
+                      onClick={() => setOpenGroup(opened ? null : item.label)}
+                    >
+                      <i className={item.icon} />
+                      <span className="adm-item__label">{item.label}</span>
+                      <i className={`bi bi-chevron-down adm-chevron ${opened ? "rot" : ""}`} />
+                    </button>
 
-              const anyActive = item.children.some((c) => isActive(c.match, c.href));
-              const opened = openGroup === item.label;
-
-              return (
-                <div
-                  key={item.label}
-                  className={`adm-group ${anyActive ? "group-active" : ""}`}
-                >
-                  <button
-                    type="button"
-                    className={`adm-item adm-item--btn ${opened ? "open" : ""}`}
-                    onClick={() => setOpenGroup(opened ? null : item.label)}
-                  >
-                    <i className={item.icon} />
-                    <span className="adm-item__label">{item.label}</span>
-                    <i className={`bi bi-chevron-down adm-chevron ${opened ? "rot" : ""}`} />
-                  </button>
-
-                  <div className={`adm-sub ${opened ? "show" : ""}`}>
-                    {item.children.map((c) => {
-                      const active = isActive(c.match, c.href);
-                      return (
-                        <Link
-                          key={c.href}
-                          href={c.href}
-                          className={`adm-subitem ${active ? "active" : ""}`}
-                          onClick={() => setSidebarOpen(false)}
-                        >
-                          <i className={c.icon} />
-                          <span>{c.label}</span>
-                        </Link>
-                      );
-                    })}
+                    <div className={`adm-sub ${opened ? "show" : ""}`}>
+                      {item.children.map((c) => {
+                        const active = isActive(c.match, c.href);
+                        return (
+                          <Link
+                            key={c.href}
+                            href={c.href}
+                            className={`adm-subitem ${active ? "active" : ""}`}
+                            onClick={() => setSidebarOpen(false)}
+                          >
+                            <i className={c.icon} />
+                            <span>{c.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </nav>
 
           <div className="adm-sidebar__footer">
@@ -412,9 +481,9 @@ export default function AdminLayout({ children }: Props) {
                   <button
                     type="button"
                     className="adm-menuitem danger"
-                    onClick={() => {
+                    onClick={async () => {
                       setUserMenuOpen(false);
-                      router.push("/login");
+                      await sair();
                     }}
                   >
                     <i className="bi bi-box-arrow-right" />
