@@ -20,15 +20,21 @@ export const rotas = {
   },
 
   admin: {
-    // ✅ backend /admin -> PainelAdministrativo@index
+    // ✅ backend do admin (PainelAdministrativo@index)
     dashboard: "/admin",
 
-    // (opcional) páginas/rotas do painel (front)
+    // ✅ VOCÊ USA ISSO NO app/cadastro/page.tsx
+    configLogin: "/configuracoes/login",
+
+    // (opcional) páginas do painel (front)
     paginas: {
       dashboard: "/admin",
       usuarios: "/admin/usuarios",
       produtos: "/admin/produtos",
       categorias: "/admin/categorias",
+      pedidos: "/admin/pedidos",
+      cupons: "/admin/cupons",
+      configuracoes: "/admin/configuracoes",
     },
   },
 
@@ -89,6 +95,8 @@ export const rotas = {
       `/produto/slug/${encodeURIComponent(slug)}`,
 
     pesquisar: "/produtos/pesquisa",
+
+    // ✅ você mudou o backend pra /catalogo (controller CatalogoController@listar)
     catalogo: "/catalogo",
 
     criar: "/produtos",
