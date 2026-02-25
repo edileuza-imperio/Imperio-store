@@ -34,16 +34,12 @@ type ApiResponse<T> = {
 };
 
 type CupomApi = {
-  id?: number;
   codigo?: string;
   valor?: number | string;
   percentual?: number | string;
   ativo?: number;
   descricao?: string;
 };
-
-type Crumb = { label: string; href: string };
-type ImgItem = { src: string; alt: string };
 
 function resolveApi<T>(payload: any): T | null {
   if (!payload) return null;
@@ -64,13 +60,14 @@ function formatBRL(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function onlyDigits(v: string) {
-  return v.replace(/\D+/g, "");
-}
-
-function clampMoney(n: number) {
-  if (!Number.isFinite(n)) return 0;
-  return Math.max(0, n);
+function toNumber(v: unknown): number | null {
+  if (v == null) return null;
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v === "string") {
+    const n = Number(v.replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
 }
 
 export default function ProdutoPage() {
@@ -88,13 +85,14 @@ export default function ProdutoPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
-  // galeria
-  const [activeImg, setActiveImg] = useState<string | null>(null);
+  // Galeria estilo “varejão”
+  const [activeIdx, setActiveIdx] = useState(0);
 
-  // qtd
+  // Qtd + Carrinho
   const [qtd, setQtd] = useState(1);
+  const [adding, setAdding] = useState(false);
 
-  // cupom
+  // Cupom (somente cupom, sem subtotal/resumo)
   const [cupomCodigo, setCupomCodigo] = useState("");
   const [cupomLoading, setCupomLoading] = useState(false);
   const [cupomAplicado, setCupomAplicado] = useState<{
@@ -105,7 +103,6 @@ export default function ProdutoPage() {
   } | null>(null);
   const [cupomErro, setCupomErro] = useState<string | null>(null);
 
-  // carregar produto
   useEffect(() => {
     if (!slug) return;
 
@@ -142,13 +139,11 @@ export default function ProdutoPage() {
         };
 
         setProduto(produtoFinal);
-
-        const primeira =
-          produtoFinal.imagem ||
-          produtoFinal.imagensSecundarias?.[0] ||
-          null;
-
-        setActiveImg(primeira);
+        setActiveIdx(0);
+        setQtd(1);
+        setCupomAplicado(null);
+        setCupomCodigo("");
+        setCupomErro(null);
       } catch (e: any) {
         if (!alive) return;
         setErro(
@@ -170,32 +165,16 @@ export default function ProdutoPage() {
     };
   }, [slug]);
 
-  const imagens = useMemo<ImgItem[]>(() => {
+  const imagens = useMemo(() => {
     if (!produto) return [];
-    const list: ImgItem[] = [];
-
-    if (produto.imagem) list.push({ src: produto.imagem, alt: produto.nome });
-    for (let i = 0; i < (produto.imagensSecundarias?.length || 0); i++) {
-      const src = produto.imagensSecundarias![i];
-      list.push({ src, alt: `${produto.nome} - imagem ${i + 2}` });
-    }
-
-    return Array.from(new Map(list.map((x) => [x.src, x])).values());
+    const list: string[] = [];
+    if (produto.imagem) list.push(produto.imagem);
+    for (const s of produto.imagensSecundarias || []) list.push(s);
+    // unique
+    return Array.from(new Set(list));
   }, [produto]);
 
-  const crumbs = useMemo<Crumb[]>(() => {
-    const categoria = produto?.categoria_nome?.trim();
-    const base: Crumb[] = [
-      { label: "Início", href: "/" },
-      { label: "Catálogo", href: "/catalogo" },
-    ];
-    if (categoria) base.push({ label: categoria, href: "/catalogo" });
-    base.push({
-      label: produto?.nome || "Produto",
-      href: slug ? `/produto/${encodeURIComponent(slug)}` : "/catalogo",
-    });
-    return base;
-  }, [produto, slug]);
+  const activeImg = imagens[activeIdx] || imagens[0] || undefined;
 
   const indisponivel = useMemo(() => {
     if (!produto) return true;
@@ -203,20 +182,39 @@ export default function ProdutoPage() {
     return (produto.estoque ?? 0) <= 0;
   }, [produto]);
 
-  const precoFinal = useMemo(() => {
-    const base = Number(produto?.preco || 0) * Math.max(1, qtd);
-    if (!cupomAplicado) return clampMoney(base);
+  const precoBase = Number(produto?.preco || 0);
+
+  const precoComCupom = useMemo(() => {
+    const base = precoBase * Math.max(1, qtd);
+
+    if (!cupomAplicado) return base;
 
     if (cupomAplicado.tipo === "percentual") {
       const desc = (base * cupomAplicado.valor) / 100;
-      return clampMoney(base - desc);
+      return Math.max(0, base - desc);
     }
-    return clampMoney(base - cupomAplicado.valor);
-  }, [produto, qtd, cupomAplicado]);
+    return Math.max(0, base - cupomAplicado.valor);
+  }, [precoBase, qtd, cupomAplicado]);
+
+  const parcelasTexto = useMemo(() => {
+    const parc = produto?.parcelas ?? 10;
+    if (!parc || parc <= 1) return "";
+    const v = precoComCupom / parc;
+    return `em até ${parc}x de ${formatBRL(v)}`;
+  }, [produto, precoComCupom]);
+
+  const crumbs = useMemo(() => {
+    const categoria = produto?.categoria_nome?.trim();
+    return [
+      { label: "Início", href: "/" },
+      { label: "Catálogo", href: "/catalogo" },
+      ...(categoria ? [{ label: categoria, href: "/catalogo" }] : []),
+      { label: produto?.nome || "Produto", href: slug ? `/produto/${encodeURIComponent(slug)}` : "/catalogo" },
+    ];
+  }, [produto, slug]);
 
   async function aplicarCupom() {
     setCupomErro(null);
-
     const codigo = cupomCodigo.trim();
     if (!codigo) {
       setCupomErro("Digite um cupom.");
@@ -224,30 +222,27 @@ export default function ProdutoPage() {
     }
 
     setCupomLoading(true);
-
     try {
-      const res = await api.get<ApiResponse<CupomApi>>(
-        rotas.cupons.buscarPorCodigo(codigo)
-      );
+      const res = await api.get<ApiResponse<CupomApi>>(rotas.cupons.buscarPorCodigo(codigo));
       const c = resolveApi<CupomApi>(res.data);
 
       if (!c) {
-        setCupomErro("Cupom inválido.");
         setCupomAplicado(null);
+        setCupomErro("Cupom inválido.");
         return;
       }
 
       const ativo = Number((c as any).ativo ?? 1);
       if (ativo === 0) {
-        setCupomErro("Cupom inativo.");
         setCupomAplicado(null);
+        setCupomErro("Cupom inativo.");
         return;
       }
 
-      const perc = Number(String((c as any).percentual ?? "").replace(",", "."));
-      const val = Number(String((c as any).valor ?? "").replace(",", "."));
+      const perc = toNumber((c as any).percentual);
+      const val = toNumber((c as any).valor);
 
-      if (Number.isFinite(perc) && perc > 0) {
+      if (perc != null && perc > 0) {
         setCupomAplicado({
           codigo: (c.codigo || codigo).toUpperCase(),
           tipo: "percentual",
@@ -257,7 +252,7 @@ export default function ProdutoPage() {
         return;
       }
 
-      if (Number.isFinite(val) && val > 0) {
+      if (val != null && val > 0) {
         setCupomAplicado({
           codigo: (c.codigo || codigo).toUpperCase(),
           tipo: "valor",
@@ -267,16 +262,16 @@ export default function ProdutoPage() {
         return;
       }
 
-      setCupomErro("Cupom sem desconto configurado.");
       setCupomAplicado(null);
+      setCupomErro("Cupom sem desconto configurado.");
     } catch (e: any) {
+      setCupomAplicado(null);
       setCupomErro(
         e?.response?.data?.mensagem ||
           e?.response?.data?.message ||
           e?.message ||
           "Erro ao validar cupom"
       );
-      setCupomAplicado(null);
     } finally {
       setCupomLoading(false);
     }
@@ -290,32 +285,37 @@ export default function ProdutoPage() {
 
   async function adicionarCarrinho() {
     if (!produto) return;
+    if (indisponivel) return;
 
-    // ✅ usa seu endpoint do carrinho
-    await api.post(
-      rotas.carrinho.adicionar,
-      { produto_id: produto.id_produto, qtd: Math.max(1, qtd) },
-      { withCredentials: true }
-    );
+    setAdding(true);
+    try {
+      await api.post(
+        rotas.carrinho.adicionar,
+        { produto_id: produto.id_produto, qtd: Math.max(1, qtd) },
+        { withCredentials: true }
+      );
+    } finally {
+      setAdding(false);
+    }
   }
 
   return (
     <>
       <Navbar />
 
-      <main className="pdPage">
-        <div className="pdContainer">
-          {/* Breadcrumb */}
-          <nav className="pdBreadcrumb" aria-label="breadcrumb">
+      <main className="pdp">
+        <div className="wrap">
+          {/* breadcrumb estilo varejo */}
+          <nav className="crumbs" aria-label="breadcrumb">
             {crumbs.map((c, i) => {
               const isLast = i === crumbs.length - 1;
               return (
-                <span key={`${c.label}-${i}`} className="pdCrumb">
-                  {i > 0 ? <span className="pdSep">/</span> : null}
+                <span key={`${c.label}-${i}`} className="crumb">
+                  {i > 0 ? <span className="sep">›</span> : null}
                   {isLast ? (
-                    <span className="pdCrumbActive">{c.label}</span>
+                    <span className="active">{c.label}</span>
                   ) : (
-                    <Link className="pdCrumbLink" href={c.href}>
+                    <Link className="link" href={c.href}>
                       {c.label}
                     </Link>
                   )}
@@ -325,184 +325,168 @@ export default function ProdutoPage() {
           </nav>
 
           {loading ? (
-            <div className="pdBox">Carregando produto…</div>
+            <div className="state">Carregando…</div>
           ) : erro ? (
-            <div className="pdBox pdBoxErr">{erro}</div>
+            <div className="state err">{erro}</div>
           ) : !produto ? (
-            <div className="pdBox pdBoxErr">Produto não encontrado</div>
+            <div className="state err">Produto não encontrado</div>
           ) : (
-            <div className="pdGrid">
-              {/* ESQUERDA */}
-              <section className="pdLeft">
-                <div className="pdMediaCard">
+            <div className="grid">
+              {/* COL 1: thumbnails */}
+              <aside className="thumbCol">
+                {imagens.slice(0, 10).map((src, idx) => (
+                  <button
+                    key={src}
+                    type="button"
+                    className={`thumbBtn ${idx === activeIdx ? "on" : ""}`}
+                    onClick={() => setActiveIdx(idx)}
+                    aria-label="Selecionar imagem"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img className="thumb" src={src} alt={`${produto.nome} ${idx + 1}`} />
+                  </button>
+                ))}
+              </aside>
+
+              {/* COL 2: imagem grande */}
+              <section className="mediaCol">
+                <div className="mediaBox">
+                  {produto.destaque ? <span className="flag">Destaque</span> : null}
+
                   {activeImg ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img className="pdImg" src={activeImg} alt={produto.nome} />
+                    <img className="hero" src={activeImg} alt={produto.nome} />
                   ) : (
-                    <div className="pdImgFallback">Sem imagem</div>
+                    <div className="noimg">Sem imagem</div>
                   )}
-
-                  {produto.destaque ? <div className="pdCornerBadge">Destaque</div> : null}
                 </div>
 
-                {!!imagens.length && (
-                  <div className="pdThumbs">
-                    {imagens.slice(0, 8).map((img) => {
-                      const active = img.src === activeImg;
-                      return (
-                        <button
-                          key={img.src}
-                          type="button"
-                          className={`pdThumbBtn ${active ? "isActive" : ""}`}
-                          onClick={() => setActiveImg(img.src)}
-                          aria-label="Trocar imagem"
-                        >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img className="pdThumb" src={img.src} alt={img.alt} />
-                        </button>
-                      );
-                    })}
+                {!!produto.descricao && (
+                  <div className="descBox">
+                    <div className="descTitle">Descrição</div>
+                    <p className="descText">{produto.descricao}</p>
                   </div>
                 )}
-
-                {produto.descricao ? (
-                  <div className="pdCard">
-                    <div className="pdCardTitle">Descrição</div>
-                    <p className="pdText">{produto.descricao}</p>
-                  </div>
-                ) : null}
               </section>
 
-              {/* DIREITA */}
-              <aside className="pdRight">
-                <div className="pdInfoCard">
-                  <div className="pdTitleRow">
-                    <h1 className="pdTitle">{produto.nome}</h1>
-                  </div>
+              {/* COL 3: caixa compra (sticky) */}
+              <aside className="buyCol">
+                <div className="buyBox">
+                  <h1 className="title">{produto.nome}</h1>
 
-                  <div className="pdMeta">
-                    {produto.status_nome ? (
-                      <span className="pdMetaItem">
-                        Status: <b>{produto.status_nome}</b>
-                      </span>
-                    ) : null}
+                  <div className="metaRow">
                     {produto.categoria_nome ? (
-                      <span className="pdMetaItem">
+                      <span className="meta">
                         Categoria: <b>{produto.categoria_nome}</b>
                       </span>
                     ) : null}
+                    {produto.status_nome ? (
+                      <span className="meta">
+                        Status: <b>{produto.status_nome}</b>
+                      </span>
+                    ) : null}
                   </div>
 
-                  <div className="pdPriceRow">
-                    <div className="pdPrice">{formatBRL(precoFinal)}</div>
-                    <div className="pdSmall">
+                  <div className="priceArea">
+                    <div className="price">{formatBRL(precoComCupom)}</div>
+                    {parcelasTexto ? <div className="install">{parcelasTexto}</div> : null}
+                  </div>
+
+                  <div className="stockLine">
+                    {(produto.ilimitado ?? 0) === 1 ? (
+                      <span className="pill ok">Disponível</span>
+                    ) : produto.estoque > 0 ? (
+                      <span className="pill ok">Em estoque</span>
+                    ) : (
+                      <span className="pill bad">Esgotado</span>
+                    )}
+
+                    {(produto.ilimitado ?? 0) !== 1 && produto.estoque > 0 ? (
+                      <span className="stockSmall">({produto.estoque} un.)</span>
+                    ) : null}
+                  </div>
+
+                  <div className="qtyRow">
+                    <span className="qtyLbl">Quantidade</span>
+                    <div className="qtyCtrl">
+                      <button
+                        type="button"
+                        className="qbtn"
+                        onClick={() => setQtd((v) => Math.max(1, v - 1))}
+                        disabled={qtd <= 1}
+                      >
+                        −
+                      </button>
+                      <span className="qval">{qtd}</span>
+                      <button type="button" className="qbtn" onClick={() => setQtd((v) => Math.min(99, v + 1))}>
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* CUPOM (somente cupom, sem resumo/subtotal) */}
+                  <div className="coupon">
+                    <div className="couponHead">
+                      <span className="couponTitle">Cupom</span>
                       {cupomAplicado ? (
-                        <span className="pdDiscountLine">
-                          Cupom <b>{cupomAplicado.codigo}</b> aplicado
-                        </span>
-                      ) : (
-                        produto.parcelas ? `em até ${produto.parcelas}x` : ""
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pdRow">
-                    <div className="pdQty">
-                      <span className="pdQtyLabel">Quantidade</span>
-                      <div className="pdQtyCtrl">
-                        <button
-                          type="button"
-                          className="pdQtyBtn"
-                          onClick={() => setQtd((v) => Math.max(1, v - 1))}
-                          disabled={qtd <= 1}
-                        >
-                          −
-                        </button>
-                        <span className="pdQtyVal">{qtd}</span>
-                        <button
-                          type="button"
-                          className="pdQtyBtn"
-                          onClick={() => setQtd((v) => Math.min(99, v + 1))}
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="pdStockRow">
-                      {(produto.ilimitado ?? 0) === 1 ? (
-                        <span className="pdPillOk">Disponível</span>
-                      ) : produto.estoque > 0 ? (
-                        <span className="pdPillOk">Em estoque: {produto.estoque}</span>
-                      ) : (
-                        <span className="pdPillBad">Esgotado</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* CUPOM */}
-                  <div className="pdCard pdCardSoft">
-                    <div className="pdCardHead">
-                      <div className="pdCardTitle">Cupom</div>
-                      {cupomAplicado ? (
-                        <button type="button" className="pdLinkBtn" onClick={removerCupom}>
+                        <button type="button" className="couponRemove" onClick={removerCupom}>
                           Remover
                         </button>
                       ) : null}
                     </div>
 
                     {cupomAplicado ? (
-                      <div className="pdApplied">
-                        <span className="pdTag">
+                      <div className="couponApplied">
+                        <span className="couponTag">
                           {cupomAplicado.codigo} •{" "}
                           {cupomAplicado.tipo === "percentual"
                             ? `${cupomAplicado.valor}%`
                             : formatBRL(cupomAplicado.valor)}
                         </span>
                         {cupomAplicado.descricao ? (
-                          <div className="pdHint">{cupomAplicado.descricao}</div>
+                          <div className="couponHint">{cupomAplicado.descricao}</div>
                         ) : null}
                       </div>
                     ) : (
-                      <div className="pdInline">
+                      <div className="couponRow">
                         <input
-                          className="pdInput"
+                          className="couponInput"
                           value={cupomCodigo}
                           onChange={(e) => setCupomCodigo(e.target.value.toUpperCase())}
-                          placeholder="EX: IMPERIO10"
+                          placeholder="Digite seu cupom"
                         />
                         <button
                           type="button"
-                          className="pdBtn pdBtnMini pdBtnPrimary"
+                          className="couponBtn"
                           onClick={aplicarCupom}
                           disabled={cupomLoading}
                         >
-                          {cupomLoading ? "Validando…" : "Aplicar"}
+                          {cupomLoading ? "…" : "Aplicar"}
                         </button>
                       </div>
                     )}
 
-                    {cupomErro ? <div className="pdMsgErr">{cupomErro}</div> : null}
+                    {cupomErro ? <div className="couponErr">{cupomErro}</div> : null}
                   </div>
 
-                  <div className="pdActions">
+                  <div className="cta">
                     <button
-                      className="pdBtn pdBtnPrimary"
                       type="button"
-                      disabled={indisponivel}
+                      className="btn buy"
                       onClick={adicionarCarrinho}
+                      disabled={indisponivel || adding}
                     >
-                      Adicionar ao carrinho
+                      {adding ? "Adicionando…" : "Adicionar ao carrinho"}
                     </button>
 
-                    <button className="pdBtn pdBtnGhost" type="button" disabled={indisponivel}>
+                    <button type="button" className="btn ghost" disabled={indisponivel}>
                       Comprar agora
                     </button>
                   </div>
 
-                  <div className="pdSafeLinks">
-                    <Link className="pdBack" href="/catalogo">
-                      ← Voltar para o catálogo
+                  <div className="backLine">
+                    <Link className="back" href="/catalogo">
+                      ← Voltar ao catálogo
                     </Link>
                   </div>
                 </div>
@@ -512,425 +496,433 @@ export default function ProdutoPage() {
         </div>
 
         <style jsx>{`
-          .pdPage {
-            background: radial-gradient(1200px 520px at 18% 0%, #fffaf1 0%, #f6efe4 55%, #f1e7d9 100%);
-            padding: 18px 0 40px;
+          /* vibe varejão (Americanas/Ponto) */
+          .pdp {
+            background: #f4f6f8;
+            padding: 14px 0 36px;
             min-height: 65vh;
           }
-          .pdContainer {
-            max-width: 1140px;
+          .wrap {
+            max-width: 1200px;
             margin: 0 auto;
             padding: 0 16px;
             font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-            color: #241b12;
+            color: #111827;
           }
 
-          .pdBreadcrumb {
+          .crumbs {
             display: flex;
             flex-wrap: wrap;
-            gap: 6px;
-            font-weight: 800;
+            gap: 8px;
             font-size: 12px;
-            color: #6b5a49;
-            margin: 8px 0 14px;
+            font-weight: 800;
+            color: #6b7280;
+            padding: 10px 0 12px;
           }
-          .pdSep {
-            margin: 0 8px;
-            opacity: 0.6;
+          .sep {
+            margin: 0 6px;
+            opacity: 0.7;
           }
-          .pdCrumbLink {
-            color: #6b5a49;
+          .link {
+            color: #2563eb;
             text-decoration: none;
           }
-          .pdCrumbLink:hover {
+          .link:hover {
             text-decoration: underline;
           }
-          .pdCrumbActive {
-            color: #b88962;
+          .active {
+            color: #111827;
             font-weight: 950;
           }
 
-          .pdBox {
-            background: rgba(255, 255, 255, 0.72);
-            border: 1px solid rgba(111, 92, 73, 0.16);
-            border-radius: 18px;
+          .state {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
             padding: 14px;
-            font-weight: 850;
+            font-weight: 900;
           }
-          .pdBoxErr {
-            color: #8a1f1f;
-            background: rgba(185, 28, 28, 0.06);
-            border-color: rgba(185, 28, 28, 0.18);
+          .err {
+            border-color: rgba(185, 28, 28, 0.3);
+            background: rgba(185, 28, 28, 0.04);
+            color: #991b1b;
           }
 
-          .pdGrid {
+          .grid {
             display: grid;
-            grid-template-columns: 1.1fr 0.9fr;
-            gap: 16px;
+            grid-template-columns: 76px 1fr 380px;
+            gap: 14px;
             align-items: start;
           }
-          @media (max-width: 980px) {
-            .pdGrid {
+          @media (max-width: 1024px) {
+            .grid {
+              grid-template-columns: 76px 1fr;
+            }
+            .buyCol {
+              grid-column: span 2;
+            }
+          }
+          @media (max-width: 680px) {
+            .grid {
               grid-template-columns: 1fr;
+            }
+            .thumbCol {
+              display: none;
             }
           }
 
-          /* esquerda */
-          .pdMediaCard {
-            position: relative;
-            border-radius: 22px;
-            overflow: hidden;
-            border: 1px solid rgba(111, 92, 73, 0.18);
-            background: rgba(255, 255, 255, 0.75);
-            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.1);
-          }
-          .pdImg {
-            width: 100%;
-            height: 520px;
-            object-fit: cover;
-            display: block;
-            transform: scale(1.01);
-            transition: transform 0.35s ease;
-          }
-          .pdMediaCard:hover .pdImg {
-            transform: scale(1.05);
-          }
-          @media (max-width: 980px) {
-            .pdImg {
-              height: 380px;
-            }
-          }
-          .pdImgFallback {
-            height: 520px;
+          /* thumbs */
+          .thumbCol {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 950;
-            color: #7b6a5a;
-          }
-          .pdCornerBadge {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            padding: 7px 10px;
-            border-radius: 999px;
-            font-weight: 980;
-            font-size: 12px;
-            color: #ffffff;
-            background: rgba(30, 20, 12, 0.92);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.18);
-          }
-          .pdThumbs {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
+            flex-direction: column;
             gap: 10px;
-            margin-top: 12px;
+            position: sticky;
+            top: 12px;
+            max-height: calc(100vh - 30px);
+            overflow: auto;
+            padding-right: 2px;
           }
-          @media (max-width: 560px) {
-            .pdThumbs {
-              grid-template-columns: repeat(4, 1fr);
-            }
-          }
-          .pdThumbBtn {
-            border: 1px solid rgba(111, 92, 73, 0.14);
-            background: rgba(255, 255, 255, 0.75);
-            border-radius: 14px;
+          .thumbBtn {
+            border: 1px solid #e5e7eb;
+            background: #fff;
+            border-radius: 10px;
             padding: 0;
             overflow: hidden;
             cursor: pointer;
-            transition: transform 0.12s ease, border-color 0.12s ease;
+            transition: border-color 0.12s ease, transform 0.12s ease;
           }
-          .pdThumbBtn:hover {
+          .thumbBtn:hover {
             transform: translateY(-1px);
-            border-color: rgba(184, 137, 98, 0.45);
+            border-color: #93c5fd;
           }
-          .pdThumbBtn.isActive {
-            border-color: rgba(184, 137, 98, 0.9);
-            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.14);
+          .thumbBtn.on {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
           }
-          .pdThumb {
+          .thumb {
             width: 100%;
-            height: 64px;
+            height: 62px;
             object-fit: cover;
             display: block;
           }
 
-          /* direita */
-          .pdInfoCard {
-            border-radius: 22px;
-            border: 1px solid rgba(111, 92, 73, 0.18);
-            background: rgba(255, 255, 255, 0.78);
-            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.1);
-            padding: 16px;
-            position: sticky;
-            top: 14px;
+          /* media */
+          .mediaBox {
+            position: relative;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            overflow: hidden;
+            min-height: 520px;
           }
-          @media (max-width: 980px) {
-            .pdInfoCard {
+          .flag {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            background: #111827;
+            color: #fff;
+            font-weight: 950;
+            font-size: 12px;
+            padding: 6px 10px;
+            border-radius: 999px;
+            z-index: 2;
+          }
+          .hero {
+            width: 100%;
+            height: 520px;
+            object-fit: contain;
+            background: #fff;
+            display: block;
+          }
+          .noimg {
+            height: 520px;
+            display: grid;
+            place-items: center;
+            font-weight: 950;
+            color: #6b7280;
+          }
+          @media (max-width: 680px) {
+            .mediaBox {
+              min-height: 380px;
+            }
+            .hero,
+            .noimg {
+              height: 380px;
+            }
+          }
+
+          .descBox {
+            margin-top: 12px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 14px;
+          }
+          .descTitle {
+            font-weight: 950;
+            margin-bottom: 8px;
+          }
+          .descText {
+            margin: 0;
+            color: #374151;
+            font-weight: 650;
+            line-height: 1.5;
+            font-size: 13px;
+          }
+
+          /* buy box */
+          .buyBox {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 14px;
+            position: sticky;
+            top: 12px;
+          }
+          @media (max-width: 1024px) {
+            .buyBox {
               position: relative;
               top: 0;
             }
           }
 
-          .pdTitleRow {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 10px;
-          }
-          .pdTitle {
+          .title {
             margin: 0;
-            font-size: 22px;
-            font-weight: 980;
-            letter-spacing: -0.3px;
-            color: #2f261e;
-            line-height: 1.15;
+            font-size: 18px;
+            font-weight: 950;
+            line-height: 1.25;
           }
 
-          .pdMeta {
-            margin-top: 10px;
+          .metaRow {
+            margin-top: 8px;
             display: flex;
             flex-wrap: wrap;
             gap: 10px 14px;
-            color: #6b5a49;
+            color: #6b7280;
             font-size: 12px;
             font-weight: 800;
           }
 
-          .pdPriceRow {
-            margin-top: 14px;
+          .priceArea {
+            margin-top: 12px;
             padding-top: 12px;
-            border-top: 1px solid rgba(111, 92, 73, 0.14);
+            border-top: 1px solid #eef2f7;
           }
-          .pdPrice {
+          .price {
             font-size: 26px;
             font-weight: 980;
-            color: #2f261e;
-            letter-spacing: -0.4px;
+            color: #111827;
+            letter-spacing: -0.3px;
           }
-          .pdSmall {
+          .install {
             margin-top: 4px;
             font-size: 12px;
-            color: #6b5a49;
-            font-weight: 800;
-          }
-          .pdDiscountLine {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
+            font-weight: 850;
+            color: #6b7280;
           }
 
-          .pdRow {
+          .stockLine {
+            margin-top: 10px;
             display: flex;
-            justify-content: space-between;
-            gap: 12px;
-            margin-top: 12px;
             align-items: center;
+            gap: 10px;
             flex-wrap: wrap;
           }
-
-          .pdQtyLabel {
+          .pill {
             font-size: 12px;
-            font-weight: 900;
-            color: #6b5a49;
-            display: block;
-            margin-bottom: 6px;
+            font-weight: 950;
+            padding: 6px 10px;
+            border-radius: 999px;
+            border: 1px solid transparent;
           }
-          .pdQtyCtrl {
+          .ok {
+            color: #065f46;
+            background: rgba(16, 185, 129, 0.12);
+            border-color: rgba(16, 185, 129, 0.22);
+          }
+          .bad {
+            color: #991b1b;
+            background: rgba(185, 28, 28, 0.08);
+            border-color: rgba(185, 28, 28, 0.22);
+          }
+          .stockSmall {
+            color: #6b7280;
+            font-weight: 900;
+            font-size: 12px;
+          }
+
+          .qtyRow {
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+          }
+          .qtyLbl {
+            font-size: 12px;
+            font-weight: 950;
+            color: #374151;
+          }
+          .qtyCtrl {
             display: inline-flex;
             align-items: center;
-            border: 1px solid rgba(111, 92, 73, 0.18);
-            background: rgba(255, 255, 255, 0.78);
+            border: 1px solid #e5e7eb;
             border-radius: 999px;
             overflow: hidden;
           }
-          .pdQtyBtn {
+          .qbtn {
             width: 36px;
             height: 34px;
             border: none;
             background: transparent;
             cursor: pointer;
-            font-weight: 950;
-            color: #3f3327;
+            font-weight: 980;
+            color: #111827;
           }
-          .pdQtyBtn:disabled {
-            opacity: 0.45;
+          .qbtn:disabled {
+            opacity: 0.5;
             cursor: not-allowed;
           }
-          .pdQtyVal {
-            width: 38px;
+          .qval {
+            width: 40px;
             text-align: center;
-            font-weight: 950;
-            color: #2f261e;
+            font-weight: 980;
+            color: #111827;
           }
 
-          .pdPillOk {
-            font-weight: 950;
-            color: #047857;
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.18);
-            padding: 6px 10px;
-            border-radius: 999px;
-            display: inline-block;
-          }
-          .pdPillBad {
-            font-weight: 950;
-            color: #8a1f1f;
-            background: rgba(185, 28, 28, 0.06);
-            border: 1px solid rgba(185, 28, 28, 0.18);
-            padding: 6px 10px;
-            border-radius: 999px;
-            display: inline-block;
-          }
-
-          .pdCard {
+          /* cupom */
+          .coupon {
             margin-top: 12px;
-            border-radius: 18px;
-            border: 1px solid rgba(111, 92, 73, 0.14);
-            background: rgba(255, 255, 255, 0.7);
-            padding: 12px;
+            border-top: 1px solid #eef2f7;
+            padding-top: 12px;
           }
-          .pdCardSoft {
-            background: rgba(255, 255, 255, 0.62);
-          }
-          .pdCardHead {
+          .couponHead {
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: space-between;
             gap: 10px;
           }
-          .pdCardTitle {
-            font-weight: 980;
-            color: #2f261e;
-          }
-          .pdText {
-            margin: 10px 0 0;
-            color: #6b5a49;
-            font-weight: 700;
-            line-height: 1.5;
+          .couponTitle {
+            font-weight: 950;
             font-size: 13px;
           }
-
-          .pdInline {
+          .couponRemove {
+            border: none;
+            background: transparent;
+            color: #2563eb;
+            cursor: pointer;
+            font-weight: 950;
+            text-decoration: underline;
+          }
+          .couponRow {
+            margin-top: 10px;
             display: flex;
             gap: 10px;
-            margin-top: 10px;
           }
-          .pdInput {
+          .couponInput {
             flex: 1;
-            border-radius: 14px;
-            border: 1px solid rgba(111, 92, 73, 0.18);
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
             padding: 10px 12px;
             font-weight: 900;
             outline: none;
-            background: rgba(255, 255, 255, 0.85);
           }
-          .pdInput:focus {
-            border-color: rgba(212, 175, 55, 0.75);
-            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.14);
+          .couponInput:focus {
+            border-color: #93c5fd;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
           }
-
-          .pdBtn {
+          .couponBtn {
             border: none;
-            border-radius: 14px;
-            padding: 12px 12px;
-            font-weight: 980;
+            border-radius: 12px;
+            padding: 10px 12px;
+            font-weight: 950;
             cursor: pointer;
-            transition: transform 0.12s ease, filter 0.12s ease, opacity 0.12s ease;
+            color: #fff;
+            background: #2563eb;
           }
-          .pdBtn:active {
-            transform: translateY(1px);
-          }
-          .pdBtn:disabled {
-            opacity: 0.55;
+          .couponBtn:disabled {
+            opacity: 0.6;
             cursor: not-allowed;
           }
-          .pdBtnMini {
-            padding: 10px 12px;
-            border-radius: 14px;
-          }
-
-          .pdBtnPrimary {
-            color: #fff;
-            background: linear-gradient(135deg, #d1a67f 0%, #b88962 100%);
-            box-shadow: 0 12px 26px rgba(184, 137, 98, 0.35);
-          }
-          .pdBtnPrimary:hover {
-            filter: brightness(1.02);
-          }
-
-          .pdBtnGhost {
-            background: rgba(255, 255, 255, 0.75);
-            border: 1px solid rgba(111, 92, 73, 0.18);
-            color: #3f3327;
-          }
-          .pdBtnGhost:hover {
-            filter: brightness(0.98);
-          }
-
-          .pdActions {
-            display: flex;
-            gap: 10px;
-            margin-top: 12px;
-          }
-
-          .pdHint {
-            margin-top: 8px;
-            font-size: 12px;
-            font-weight: 800;
-            color: #6b5a49;
-            opacity: 0.92;
-          }
-          .pdMsgErr {
-            margin-top: 8px;
-            font-size: 12px;
-            font-weight: 900;
-            color: #8a1f1f;
-            background: rgba(185, 28, 28, 0.06);
-            border: 1px solid rgba(185, 28, 28, 0.18);
-            padding: 8px 10px;
-            border-radius: 14px;
-          }
-
-          .pdApplied {
+          .couponApplied {
             margin-top: 10px;
             display: flex;
             flex-direction: column;
             gap: 8px;
           }
-          .pdTag {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 7px 10px;
-            border-radius: 999px;
-            font-weight: 980;
-            font-size: 12px;
-            color: #3f3327;
-            background: rgba(255, 255, 255, 0.7);
-            border: 1px solid rgba(111, 92, 73, 0.14);
+          .couponTag {
             width: fit-content;
-          }
-          .pdLinkBtn {
-            border: none;
-            background: transparent;
-            cursor: pointer;
+            font-size: 12px;
             font-weight: 950;
-            color: #b88962;
-            text-decoration: underline;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(37, 99, 235, 0.1);
+            border: 1px solid rgba(37, 99, 235, 0.18);
+            color: #1d4ed8;
+          }
+          .couponHint {
+            font-size: 12px;
+            color: #6b7280;
+            font-weight: 800;
+          }
+          .couponErr {
+            margin-top: 10px;
+            font-size: 12px;
+            font-weight: 900;
+            color: #991b1b;
+            background: rgba(185, 28, 28, 0.06);
+            border: 1px solid rgba(185, 28, 28, 0.18);
+            padding: 8px 10px;
+            border-radius: 12px;
           }
 
-          .pdSafeLinks {
+          .cta {
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+          .btn {
+            width: 100%;
+            border: none;
+            border-radius: 12px;
+            padding: 12px 12px;
+            font-weight: 980;
+            cursor: pointer;
+            transition: transform 0.12s ease, opacity 0.12s ease;
+          }
+          .btn:active {
+            transform: translateY(1px);
+          }
+          .btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+          }
+          .buy {
+            background: #16a34a;
+            color: #fff;
+          }
+          .buy:hover {
+            filter: brightness(1.02);
+          }
+          .ghost {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            color: #111827;
+          }
+
+          .backLine {
             margin-top: 12px;
             padding-top: 12px;
-            border-top: 1px solid rgba(111, 92, 73, 0.14);
+            border-top: 1px solid #eef2f7;
           }
-          .pdBack {
-            font-weight: 900;
-            color: #6b5a49;
+          .back {
+            color: #2563eb;
             text-decoration: none;
+            font-weight: 950;
+            font-size: 13px;
           }
-          .pdBack:hover {
+          .back:hover {
             text-decoration: underline;
           }
         `}</style>
