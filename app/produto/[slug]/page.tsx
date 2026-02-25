@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import api from "@/Api/conectar";
 import Navbar from "@/components/site/menu/navbar";
@@ -32,6 +33,7 @@ type ApiResponse<T> = {
 };
 
 type Crumb = { label: string; href: string };
+type ImgItem = { src: string; alt: string };
 
 function resolveApi<T>(payload: any): T | null {
   if (!payload) return null;
@@ -55,11 +57,20 @@ function formatBRL(v: number) {
 export default function ProdutoPage() {
   const params = useParams();
   const slugParam = params?.slug;
-  const slug = typeof slugParam === "string" ? slugParam : Array.isArray(slugParam) ? slugParam[0] : "";
+
+  const slug =
+    typeof slugParam === "string"
+      ? slugParam
+      : Array.isArray(slugParam)
+      ? slugParam[0] ?? ""
+      : "";
 
   const [produto, setProduto] = useState<Produto | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+
+  // imagem selecionada (principal)
+  const [activeImg, setActiveImg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!slug) return;
@@ -71,7 +82,9 @@ export default function ProdutoPage() {
       setErro(null);
 
       try {
-        const res = await api.get<ApiResponse<Produto>>(`/produto/slug/${encodeURIComponent(slug)}`);
+        const res = await api.get<ApiResponse<Produto>>(
+          `/produto/slug/${encodeURIComponent(slug)}`
+        );
         const p = resolveApi<Produto>(res.data);
 
         if (!alive) return;
@@ -95,6 +108,14 @@ export default function ProdutoPage() {
         };
 
         setProduto(produtoFinal);
+
+        // define imagem ativa
+        const primeira =
+          produtoFinal.imagem ||
+          produtoFinal.imagensSecundarias?.[0] ||
+          null;
+
+        setActiveImg(primeira);
       } catch (e: any) {
         if (!alive) return;
         setErro(
@@ -126,7 +147,7 @@ export default function ProdutoPage() {
 
     if (categoria) base.push({ label: categoria, href: "/catalogo" });
 
-    // ✅ href SEMPRE string
+    // o último crumb (produto) será renderizado como texto (sem link)
     base.push({
       label: produto?.nome || "Produto",
       href: slug ? `/produto/${encodeURIComponent(slug)}` : "/catalogo",
@@ -134,6 +155,27 @@ export default function ProdutoPage() {
 
     return base;
   }, [produto, slug]);
+
+  const imagens = useMemo<ImgItem[]>(() => {
+    if (!produto) return [];
+    const list: ImgItem[] = [];
+
+    if (produto.imagem) list.push({ src: produto.imagem, alt: produto.nome });
+    for (let i = 0; i < (produto.imagensSecundarias?.length || 0); i++) {
+      const src = produto.imagensSecundarias![i];
+      list.push({ src, alt: `${produto.nome} - imagem ${i + 2}` });
+    }
+
+    // remove duplicadas
+    const unique = Array.from(new Map(list.map((x) => [x.src, x])).values());
+    return unique;
+  }, [produto]);
+
+  const indisponivel = useMemo(() => {
+    if (!produto) return true;
+    if ((produto.ilimitado ?? 0) === 1) return false;
+    return (produto.estoque ?? 0) <= 0;
+  }, [produto]);
 
   return (
     <>
@@ -143,17 +185,22 @@ export default function ProdutoPage() {
         <div className="pdContainer">
           {/* Breadcrumb */}
           <nav className="pdBreadcrumb" aria-label="breadcrumb">
-            {crumbs.map((c, i) => (
-              <span key={`${c.label}-${i}`} className="pdCrumb">
-                {i > 0 ? <span className="pdSep">/</span> : null}
-                <a
-                  href={c.href}
-                  className={i === crumbs.length - 1 ? "pdCrumbActive" : "pdCrumbLink"}
-                >
-                  {c.label}
-                </a>
-              </span>
-            ))}
+            {crumbs.map((c, i) => {
+              const isLast = i === crumbs.length - 1;
+              return (
+                <span key={`${c.label}-${i}`} className="pdCrumb">
+                  {i > 0 ? <span className="pdSep">/</span> : null}
+
+                  {isLast ? (
+                    <span className="pdCrumbActive">{c.label}</span>
+                  ) : (
+                    <Link className="pdCrumbLink" href={c.href}>
+                      {c.label}
+                    </Link>
+                  )}
+                </span>
+              );
+            })}
           </nav>
 
           {loading ? (
@@ -167,20 +214,35 @@ export default function ProdutoPage() {
               {/* ESQUERDA: IMAGEM */}
               <section className="pdLeft">
                 <div className="pdMediaCard">
-                  {produto.imagem ? (
+                  {activeImg ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img className="pdImg" src={produto.imagem} alt={produto.nome} />
+                    <img className="pdImg" src={activeImg} alt={produto.nome} />
                   ) : (
                     <div className="pdImgFallback">Sem imagem</div>
                   )}
+
+                  {produto.destaque ? (
+                    <div className="pdCornerBadge">Destaque</div>
+                  ) : null}
                 </div>
 
-                {!!produto.imagensSecundarias?.length && (
+                {!!imagens.length && (
                   <div className="pdThumbs">
-                    {produto.imagensSecundarias.slice(0, 6).map((src, idx) => (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img key={idx} className="pdThumb" src={src} alt={`Imagem ${idx + 2}`} />
-                    ))}
+                    {imagens.slice(0, 8).map((img) => {
+                      const active = img.src === activeImg;
+                      return (
+                        <button
+                          key={img.src}
+                          type="button"
+                          className={`pdThumbBtn ${active ? "isActive" : ""}`}
+                          onClick={() => setActiveImg(img.src)}
+                          aria-label="Trocar imagem"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img className="pdThumb" src={img.src} alt={img.alt} />
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </section>
@@ -190,7 +252,6 @@ export default function ProdutoPage() {
                 <div className="pdInfoCard">
                   <div className="pdTitleRow">
                     <h1 className="pdTitle">{produto.nome}</h1>
-                    {produto.destaque ? <span className="pdBadge">Destaque</span> : null}
                   </div>
 
                   <div className="pdMeta">
@@ -199,6 +260,7 @@ export default function ProdutoPage() {
                         Status: <b>{produto.status_nome}</b>
                       </span>
                     ) : null}
+
                     {produto.categoria_nome ? (
                       <span className="pdMetaItem">
                         Categoria: <b>{produto.categoria_nome}</b>
@@ -208,7 +270,9 @@ export default function ProdutoPage() {
 
                   <div className="pdPriceRow">
                     <div className="pdPrice">{formatBRL(Number(produto.preco || 0))}</div>
-                    <div className="pdSmall">{produto.parcelas ? `em até ${produto.parcelas}x` : ""}</div>
+                    <div className="pdSmall">
+                      {produto.parcelas ? `em até ${produto.parcelas}x` : ""}
+                    </div>
                   </div>
 
                   <div className="pdStockRow">
@@ -225,12 +289,12 @@ export default function ProdutoPage() {
                     <button
                       className="pdBtn pdBtnPrimary"
                       type="button"
-                      disabled={(produto.ilimitado ?? 0) !== 1 && produto.estoque <= 0}
+                      disabled={indisponivel}
                     >
                       Adicionar ao carrinho
                     </button>
 
-                    <button className="pdBtn pdBtnGhost" type="button">
+                    <button className="pdBtn pdBtnGhost" type="button" disabled={indisponivel}>
                       Comprar agora
                     </button>
                   </div>
@@ -241,6 +305,12 @@ export default function ProdutoPage() {
                       <p>{produto.descricao}</p>
                     </div>
                   ) : null}
+
+                  <div className="pdSafeLinks">
+                    <Link className="pdBack" href="/catalogo">
+                      ← Voltar para o catálogo
+                    </Link>
+                  </div>
                 </div>
               </aside>
             </div>
@@ -260,6 +330,7 @@ export default function ProdutoPage() {
             font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
             color: #241b12;
           }
+
           .pdBreadcrumb {
             display: flex;
             flex-wrap: wrap;
@@ -284,7 +355,6 @@ export default function ProdutoPage() {
             color: #b88962;
             text-decoration: none;
             font-weight: 950;
-            cursor: default;
           }
 
           .pdLoading,
@@ -314,6 +384,7 @@ export default function ProdutoPage() {
           }
 
           .pdMediaCard {
+            position: relative;
             border-radius: 22px;
             overflow: hidden;
             border: 1px solid rgba(111, 92, 73, 0.18);
@@ -340,9 +411,22 @@ export default function ProdutoPage() {
             color: #7b6a5a;
           }
 
+          .pdCornerBadge {
+            position: absolute;
+            top: 12px;
+            left: 12px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            font-weight: 980;
+            font-size: 12px;
+            color: #ffffff;
+            background: rgba(30, 20, 12, 0.92);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.18);
+          }
+
           .pdThumbs {
             display: grid;
-            grid-template-columns: repeat(6, 1fr);
+            grid-template-columns: repeat(8, 1fr);
             gap: 10px;
             margin-top: 12px;
           }
@@ -351,13 +435,29 @@ export default function ProdutoPage() {
               grid-template-columns: repeat(4, 1fr);
             }
           }
+
+          .pdThumbBtn {
+            border: 1px solid rgba(111, 92, 73, 0.14);
+            background: rgba(255, 255, 255, 0.75);
+            border-radius: 14px;
+            padding: 0;
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.12s ease, border-color 0.12s ease;
+          }
+          .pdThumbBtn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(184, 137, 98, 0.45);
+          }
+          .pdThumbBtn.isActive {
+            border-color: rgba(184, 137, 98, 0.9);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.14);
+          }
           .pdThumb {
             width: 100%;
             height: 64px;
             object-fit: cover;
-            border-radius: 14px;
-            border: 1px solid rgba(111, 92, 73, 0.14);
-            background: #fff;
+            display: block;
           }
 
           .pdInfoCard {
@@ -389,15 +489,6 @@ export default function ProdutoPage() {
             letter-spacing: -0.3px;
             color: #2f261e;
             line-height: 1.15;
-          }
-          .pdBadge {
-            font-size: 12px;
-            font-weight: 980;
-            padding: 6px 10px;
-            border-radius: 999px;
-            color: #ffffff;
-            background: rgba(30, 20, 12, 0.92);
-            white-space: nowrap;
           }
 
           .pdMeta {
@@ -471,7 +562,6 @@ export default function ProdutoPage() {
             opacity: 0.55;
             cursor: not-allowed;
           }
-
           .pdBtnPrimary {
             color: #fff;
             background: linear-gradient(135deg, #d1a67f 0%, #b88962 100%);
@@ -505,6 +595,20 @@ export default function ProdutoPage() {
             font-weight: 700;
             line-height: 1.45;
             font-size: 13px;
+          }
+
+          .pdSafeLinks {
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(111, 92, 73, 0.14);
+          }
+          .pdBack {
+            font-weight: 900;
+            color: #6b5a49;
+            text-decoration: none;
+          }
+          .pdBack:hover {
+            text-decoration: underline;
           }
         `}</style>
       </main>
