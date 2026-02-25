@@ -1,4 +1,6 @@
 // ProdutoDestaque.tsx
+"use client";
+
 import api from "@/Api/conectar";
 import { rotas } from "@/components/Bibioteca/config/rotas";
 import { useEffect, useMemo, useState } from "react";
@@ -29,6 +31,9 @@ function resolveApiData<T>(payload: any): T {
   if (Array.isArray(payload)) return payload as T;
   if (payload?.data != null) return payload.data as T;
   if (payload?.dados != null) return payload.dados as T;
+  // formatos comuns: {dados:{dados:[...]}} etc
+  if (payload?.dados?.dados != null) return payload.dados.dados as T;
+  if (payload?.data?.data != null) return payload.data.data as T;
   return payload as T;
 }
 
@@ -75,20 +80,25 @@ export default function ProdutoDestaque() {
       setErro(null);
 
       try {
+        // ✅ SUA ROTA CORRETA (pública): /produtos/destaques/ativos
         const res = await api.get<ApiResponse<ProdutoDestaqueApi[]>>(
-          rotas.produtos.destaques.ativos
+          rotas.produtos.destaques.ativos,
+          { withCredentials: true }
         );
-        const data = resolveApiData<ProdutoDestaqueApi[]>(res.data);
 
+        const data = resolveApiData<ProdutoDestaqueApi[]>(res.data);
         if (!alive) return;
+
         setItens(Array.isArray(data) ? data : []);
       } catch (e: any) {
         if (!alive) return;
         setErro(
           e?.response?.data?.message ||
+            e?.response?.data?.mensagem ||
             e?.message ||
             "Erro ao carregar produtos em destaque"
         );
+        setItens([]);
       } finally {
         if (!alive) return;
         setLoading(false);
@@ -104,12 +114,20 @@ export default function ProdutoDestaque() {
   async function adicionarCarrinho(produtoId: number) {
     try {
       setAddingId(produtoId);
-      // ajuste o payload se seu backend usar outros nomes
-      await api.post(rotas.carrinho.adicionar, { produto_id: produtoId, qtd: 1 });
+
+      await api.post(
+        rotas.carrinho.adicionar,
+        { produto_id: produtoId, qtd: 1 },
+        { withCredentials: true }
+      );
+
       alert("Adicionado ao carrinho!");
     } catch (e: any) {
       alert(
-        e?.response?.data?.message || e?.message || "Erro ao adicionar no carrinho"
+        e?.response?.data?.message ||
+          e?.response?.data?.mensagem ||
+          e?.message ||
+          "Erro ao adicionar no carrinho"
       );
     } finally {
       setAddingId(null);
@@ -142,8 +160,13 @@ export default function ProdutoDestaque() {
 
       return (
         <article key={`${item.produto_id}-${item.ordem ?? ""}`} className="pdCard">
-          <a className="pdMedia" href={detalhesHref} aria-label={`Detalhes ${item.produto_nome}`}>
+          <a
+            className="pdMedia"
+            href={detalhesHref}
+            aria-label={`Detalhes ${item.produto_nome}`}
+          >
             {imagemUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img className="pdImg" src={imagemUrl} alt={item.produto_nome} loading="lazy" />
             ) : (
               <div className="pdImgFallback">Sem imagem</div>
@@ -161,9 +184,7 @@ export default function ProdutoDestaque() {
           <div className="pdBody">
             <div className="pdTitle">{item.produto_nome}</div>
 
-            <div className="pdDesc">
-              {item.produto_descricao || " "}
-            </div>
+            <div className="pdDesc">{item.produto_descricao || " "}</div>
 
             <div className="pdPriceRow">
               <div className="pdPrices">
@@ -193,8 +214,8 @@ export default function ProdutoDestaque() {
                 {semEstoque
                   ? "Indisponível"
                   : addingId === item.produto_id
-                  ? "Adicionando…"
-                  : "Adicionar"}
+                    ? "Adicionando…"
+                    : "Adicionar"}
               </button>
             </div>
           </div>
@@ -217,9 +238,7 @@ export default function ProdutoDestaque() {
           </div>
         </div>
 
-        {/* Layout: banner esquerda + produtos direita */}
         <div className="pdLayout">
-          {/* MINI BANNER (ESQUERDA) */}
           <aside className="pdBanner">
             <div className="pdBannerInner">
               <div className="pdBannerTop">
@@ -253,7 +272,6 @@ export default function ProdutoDestaque() {
             </div>
           </aside>
 
-          {/* PRODUTOS (DIREITA) */}
           <div className="pdRight">
             {loading ? (
               <div className="pdAlert">Carregando…</div>
@@ -262,9 +280,7 @@ export default function ProdutoDestaque() {
             ) : itens.length === 0 ? (
               <div className="pdAlert">Nenhum destaque ativo no momento.</div>
             ) : (
-              <div className="pdGrid">
-                {cards}
-              </div>
+              <div className="pdGrid">{cards}</div>
             )}
           </div>
         </div>
@@ -276,45 +292,28 @@ export default function ProdutoDestaque() {
           padding: 34px 16px 46px;
           background: radial-gradient(1200px 520px at 18% 0%, #fffaf1 0%, #f6efe4 55%, #f1e7d9 100%);
         }
-        .pdContainer{
-          max-width: 1140px;
-          margin: 0 auto;
-        }
+        .pdContainer{ max-width: 1140px; margin: 0 auto; }
 
-        /* ===== Header ===== */
         .pdHeader{
-          display:flex;
-          align-items:flex-end;
-          justify-content:space-between;
-          gap:16px;
-          margin-bottom: 16px;
+          display:flex; align-items:flex-end; justify-content:space-between;
+          gap:16px; margin-bottom: 16px;
         }
         .pdH2{
-          margin:0;
-          font-size: 28px;
-          letter-spacing: -0.6px;
-          color:#3f3327;
-          font-weight: 950;
+          margin:0; font-size: 28px; letter-spacing: -0.6px;
+          color:#3f3327; font-weight: 950;
         }
         .pdSub{
-          margin:6px 0 0;
-          font-size: 13px;
-          color:#6b5a49;
-          font-weight: 650;
+          margin:6px 0 0; font-size: 13px; color:#6b5a49; font-weight: 650;
         }
         .pdCount{
-          font-size: 12px;
-          color:#6b5a49;
-          font-weight: 900;
+          font-size: 12px; color:#6b5a49; font-weight: 900;
           background: rgba(255,255,255,.62);
           border: 1px solid rgba(111, 92, 73, .14);
-          padding: 8px 12px;
-          border-radius: 999px;
+          padding: 8px 12px; border-radius: 999px;
           backdrop-filter: blur(6px);
           white-space: nowrap;
         }
 
-        /* ===== Layout 2 colunas ===== */
         .pdLayout{
           display: grid;
           grid-template-columns: 320px 1fr;
@@ -322,85 +321,47 @@ export default function ProdutoDestaque() {
           align-items: start;
         }
 
-        /* ===== Banner esquerdo ===== */
-        .pdBanner{
-          position: sticky;
-          top: 14px;
-        }
+        .pdBanner{ position: sticky; top: 14px; }
         .pdBannerInner{
-          border-radius: 22px;
-          overflow: hidden;
+          border-radius: 22px; overflow: hidden;
           border: 1px solid rgba(111, 92, 73, .18);
           background: linear-gradient(160deg, rgba(255,253,247,1) 0%, rgba(255,244,227,1) 45%, rgba(240,226,205,1) 100%);
           box-shadow: 0 14px 40px rgba(0,0,0,.10);
           padding: 16px;
         }
-        .pdBannerTop{
-          display:flex;
-          gap:10px;
-          align-items:center;
-          margin-bottom: 12px;
-        }
+        .pdBannerTop{ display:flex; gap:10px; align-items:center; margin-bottom: 12px; }
         .pdBannerChip{
-          font-size: 12px;
-          font-weight: 950;
-          padding: 6px 10px;
-          border-radius: 999px;
-          color:#3f3327;
-          background: rgba(255,255,255,.65);
+          font-size: 12px; font-weight: 950; padding: 6px 10px; border-radius: 999px;
+          color:#3f3327; background: rgba(255,255,255,.65);
           border: 1px solid rgba(111, 92, 73, .14);
         }
-        .pdBannerChip2{
-          opacity: .92;
-        }
+        .pdBannerChip2{ opacity: .92; }
         .pdBannerTitle{
-          font-size: 22px;
-          font-weight: 980;
-          letter-spacing: -0.4px;
-          color:#2f261e;
-          margin-bottom: 6px;
+          font-size: 22px; font-weight: 980; letter-spacing: -0.4px;
+          color:#2f261e; margin-bottom: 6px;
         }
         .pdBannerText{
-          font-size: 13px;
-          line-height: 1.45;
-          color:#6b5a49;
-          font-weight: 650;
-          opacity: .95;
-          margin-bottom: 14px;
+          font-size: 13px; line-height: 1.45; color:#6b5a49; font-weight: 650;
+          opacity: .95; margin-bottom: 14px;
         }
         .pdBannerCTA{
-          display:flex;
-          align-items:center;
-          justify-content:space-between;
-          gap:12px;
-          margin-bottom: 14px;
+          display:flex; align-items:center; justify-content:space-between;
+          gap:12px; margin-bottom: 14px;
         }
         .pdBannerBtn{
-          display:inline-flex;
-          align-items:center;
-          justify-content:center;
-          padding: 10px 12px;
-          border-radius: 14px;
-          text-decoration:none;
-          color:#ffffff;
-          font-weight: 950;
-          font-size: 13px;
+          display:inline-flex; align-items:center; justify-content:center;
+          padding: 10px 12px; border-radius: 14px;
+          text-decoration:none; color:#ffffff; font-weight: 950; font-size: 13px;
           background: linear-gradient(135deg, #d1a67f 0%, #b88962 100%);
           box-shadow: 0 12px 24px rgba(184,137,98,.35);
           border: 1px solid rgba(255,255,255,.18);
         }
         .pdBannerBtn:hover{ filter: brightness(1.02); }
         .pdBannerHint{
-          font-size: 12px;
-          color:#6b5a49;
-          font-weight: 800;
-          opacity: .9;
-          text-align: right;
+          font-size: 12px; color:#6b5a49; font-weight: 800; opacity: .9; text-align: right;
         }
         .pdBannerMini{
-          display:grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
+          display:grid; grid-template-columns: 1fr 1fr; gap: 10px;
         }
         .pdBannerMiniBox{
           border-radius: 16px;
@@ -408,28 +369,11 @@ export default function ProdutoDestaque() {
           border: 1px solid rgba(111, 92, 73, .12);
           padding: 10px;
         }
-        .pdMiniLabel{
-          font-size: 11px;
-          font-weight: 900;
-          color:#6b5a49;
-          opacity: .9;
-          margin-bottom: 6px;
-        }
-        .pdMiniValue{
-          font-size: 13px;
-          font-weight: 980;
-          color:#2f261e;
-          letter-spacing: -0.2px;
-        }
+        .pdMiniLabel{ font-size: 11px; font-weight: 900; color:#6b5a49; opacity: .9; margin-bottom: 6px; }
+        .pdMiniValue{ font-size: 13px; font-weight: 980; color:#2f261e; letter-spacing: -0.2px; }
 
-        /* ===== Área direita ===== */
-        .pdRight{
-          min-width: 0;
-        }
+        .pdRight{ min-width: 0; }
 
-        /* ===== Grid de cards: NÃO ESTICA quando tem poucos =====
-           - usamos repeat(auto-fill, 260px) e justificamos pro começo
-        */
         .pdGrid{
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(260px, 260px));
@@ -437,9 +381,8 @@ export default function ProdutoDestaque() {
           justify-content: start;
         }
 
-        /* ===== Card ===== */
         .pdCard{
-          width: 260px; /* trava a largura do card */
+          width: 260px;
           border-radius: 22px;
           overflow:hidden;
           border: 1px solid rgba(111, 92, 73, .16);
@@ -454,16 +397,14 @@ export default function ProdutoDestaque() {
         }
 
         .pdMedia{
-          position: relative;
-          display:block;
-          height: 190px; /* mais compacto, não fica bloco gigante */
+          position: relative; display:block;
+          height: 190px;
           background: #efe3d2;
           overflow:hidden;
           text-decoration:none;
         }
         .pdImg{
-          width:100%;
-          height:100%;
+          width:100%; height:100%;
           object-fit: cover;
           transform: scale(1.02);
           transition: transform .35s ease;
@@ -472,34 +413,21 @@ export default function ProdutoDestaque() {
         .pdCard:hover .pdImg{ transform: scale(1.07); }
         .pdImgFallback{
           height:100%;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          color:#7b6a5a;
-          font-weight:900;
-          font-size: 13px;
+          display:flex; align-items:center; justify-content:center;
+          color:#7b6a5a; font-weight:900; font-size: 13px;
         }
 
         .pdBadge{
-          position:absolute;
-          top: 12px;
-          left: 12px;
-          padding: 7px 10px;
-          border-radius: 999px;
-          font-weight: 980;
-          font-size: 12px;
-          color: #ffffff;
-          background: rgba(30, 20, 12, .92);
+          position:absolute; top: 12px; left: 12px;
+          padding: 7px 10px; border-radius: 999px;
+          font-weight: 980; font-size: 12px;
+          color: #ffffff; background: rgba(30, 20, 12, .92);
           box-shadow: 0 10px 20px rgba(0,0,0,.18);
         }
         .pdStock{
-          position:absolute;
-          top: 12px;
-          right: 12px;
-          padding: 7px 10px;
-          border-radius: 999px;
-          font-weight: 980;
-          font-size: 12px;
+          position:absolute; top: 12px; right: 12px;
+          padding: 7px 10px; border-radius: 999px;
+          font-weight: 980; font-size: 12px;
           color: #3f3327;
           background: rgba(255, 255, 255, .78);
           border: 1px solid rgba(111, 92, 73, .18);
@@ -508,11 +436,8 @@ export default function ProdutoDestaque() {
 
         .pdBody{ padding: 14px 14px 16px; }
         .pdTitle{
-          color:#3f3327;
-          font-weight: 980;
-          font-size: 15px;
-          letter-spacing: -0.2px;
-          line-height: 1.15;
+          color:#3f3327; font-weight: 980; font-size: 15px;
+          letter-spacing: -0.2px; line-height: 1.15;
         }
         .pdDesc{
           margin-top: 8px;
@@ -529,61 +454,30 @@ export default function ProdutoDestaque() {
 
         .pdPriceRow{
           margin-top: 12px;
-          display:flex;
-          align-items:center;
-          justify-content:space-between;
+          display:flex; align-items:center; justify-content:space-between;
           gap: 10px;
         }
-        .pdPrices{
-          display:flex;
-          align-items: baseline;
-          gap: 10px;
-          min-width: 0;
-        }
-        .pdPrice{
-          font-weight: 980;
-          font-size: 15px;
-          color:#2f261e;
-          letter-spacing: -0.2px;
-          white-space: nowrap;
-        }
-        .pdOldPrice{
-          font-weight: 850;
-          font-size: 12px;
-          color:#8b7a6a;
-          text-decoration: line-through;
-          white-space: nowrap;
-        }
+        .pdPrices{ display:flex; align-items: baseline; gap: 10px; min-width: 0; }
+        .pdPrice{ font-weight: 980; font-size: 15px; color:#2f261e; letter-spacing: -0.2px; white-space: nowrap; }
+        .pdOldPrice{ font-weight: 850; font-size: 12px; color:#8b7a6a; text-decoration: line-through; white-space: nowrap; }
         .pdTag{
-          font-size: 12px;
-          font-weight: 980;
-          padding: 6px 10px;
-          border-radius: 999px;
+          font-size: 12px; font-weight: 980;
+          padding: 6px 10px; border-radius: 999px;
           color:#3f3327;
           background: rgba(255,255,255,.62);
           border: 1px solid rgba(111, 92, 73, .14);
           backdrop-filter: blur(6px);
           white-space: nowrap;
         }
-        .pdTagOffer{
-          background: rgba(255,255,255,.72);
-          border-color: rgba(184,137,98,.28);
-        }
+        .pdTagOffer{ background: rgba(255,255,255,.72); border-color: rgba(184,137,98,.28); }
 
-        .pdActions{
-          margin-top: 12px;
-          display:flex;
-          gap: 10px;
-        }
+        .pdActions{ margin-top: 12px; display:flex; gap: 10px; }
         .pdBtn{
           flex: 1;
-          display:inline-flex;
-          align-items:center;
-          justify-content:center;
+          display:inline-flex; align-items:center; justify-content:center;
           padding: 10px 12px;
           border-radius: 14px;
-          font-weight: 980;
-          font-size: 13px;
+          font-weight: 980; font-size: 13px;
           border: 1px solid transparent;
           cursor:pointer;
           text-decoration:none;
@@ -605,11 +499,7 @@ export default function ProdutoDestaque() {
           box-shadow: 0 12px 26px rgba(184, 137, 98, .35);
         }
         .pdBtnPrimary:hover{ filter: brightness(1.02); }
-        .pdBtnPrimary:disabled{
-          opacity: .55;
-          cursor:not-allowed;
-          box-shadow:none;
-        }
+        .pdBtnPrimary:disabled{ opacity: .55; cursor:not-allowed; box-shadow:none; }
 
         .pdAlert{
           border-radius: 18px;
@@ -625,30 +515,18 @@ export default function ProdutoDestaque() {
           border-color: rgba(185,28,28,.18);
         }
 
-        /* ===== Responsivo ===== */
         @media (max-width: 980px){
-          .pdLayout{
-            grid-template-columns: 1fr;
-          }
-          .pdBanner{
-            position: relative;
-            top: 0;
-          }
-          .pdGrid{
-            grid-template-columns: repeat(auto-fill, minmax(240px, 240px));
-          }
+          .pdLayout{ grid-template-columns: 1fr; }
+          .pdBanner{ position: relative; top: 0; }
+          .pdGrid{ grid-template-columns: repeat(auto-fill, minmax(240px, 240px)); }
           .pdCard{ width: 240px; }
         }
-
         @media (max-width: 560px){
           .pdWrap{ padding: 26px 12px 34px; }
           .pdH2{ font-size: 24px; }
           .pdHeader{ align-items: flex-start; }
           .pdCount{ margin-top: 4px; }
-          .pdGrid{
-            grid-template-columns: 1fr; /* no mobile fica 1 por linha */
-            justify-content: stretch;
-          }
+          .pdGrid{ grid-template-columns: 1fr; justify-content: stretch; }
           .pdCard{ width: 100%; }
         }
       `}</style>
