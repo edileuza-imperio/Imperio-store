@@ -7,9 +7,9 @@ import api from "@/Api/conectar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { rotas } from "@/components/Bibioteca/config/rotas";
+
 import NovaCategoriaModal from "@/components/Modal/NovaCategoriaModal";
-
-
+import UnificarProdutosModal from "@/components/Modal/UnificarProdutosModal";
 
 interface Categoria {
   id_categoria: number;
@@ -26,8 +26,12 @@ export default function CategoriasPage() {
   const [busca, setBusca] = useState("");
   const [ordenar, setOrdenar] = useState<"nome" | "produtos">("nome");
 
-  // Modal
+  // Modal: Nova Categoria
   const [modalNovaCat, setModalNovaCat] = useState(false);
+
+  // Modal: Unificar
+  const [modalUnificar, setModalUnificar] = useState(false);
+  const [unificarCatId, setUnificarCatId] = useState<number | null>(null);
 
   useEffect(() => {
     carregarCategorias();
@@ -52,8 +56,15 @@ export default function CategoriasPage() {
     if (!confirm("Deseja realmente excluir esta categoria?")) return;
 
     try {
-      // ✅ rota correta: /admin/categorias/{id}/remover
-      const url = rotas.admin.api.categoriaRemover(id);
+      /**
+       * ✅ BACKEND (PHP) ATUAL:
+       * Groups::delete("/categorias/{id}", "Admincontroller@removerCategoria");
+       * então a URL correta é: /admin/categorias/{id}
+       *
+       * (Se você quiser voltar a usar rotas.admin.api.categoriaRemover,
+       * ajuste no admin.ts para retornar `/admin/categorias/${id}`.)
+       */
+      const url = `/admin/categorias/${id}`;
       await api.delete(url, { withCredentials: true });
 
       setCategorias((prev) => prev.filter((c) => c.id_categoria !== id));
@@ -88,13 +99,22 @@ export default function CategoriasPage() {
     <div className="catui container-fluid py-4">
       <ToastContainer position="top-right" />
 
-      {/* ✅ MODAL NOVA CATEGORIA (agora vem do arquivo separado) */}
+      {/* ✅ MODAL NOVA CATEGORIA */}
       <NovaCategoriaModal
         open={modalNovaCat}
         onClose={() => setModalNovaCat(false)}
         onCreated={async () => {
-          // fecha + recarrega lista
           setModalNovaCat(false);
+          await carregarCategorias();
+        }}
+      />
+
+      {/* ✅ MODAL UNIFICAR */}
+      <UnificarProdutosModal
+        open={modalUnificar}
+        categoriaId={unificarCatId}
+        onClose={() => setModalUnificar(false)}
+        onSaved={async () => {
           await carregarCategorias();
         }}
       />
@@ -219,14 +239,19 @@ export default function CategoriasPage() {
                     <FaTrash />
                   </button>
 
-                  <Link
-                    href={`/admin/categorias/${cat.id_categoria}/unificar`}
+                  {/* ✅ UNIFICAR AGORA ABRE MODAL (sem mudar estilo) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUnificarCatId(cat.id_categoria);
+                      setModalUnificar(true);
+                    }}
                     className="catui__btn catui__btn--outline"
                     title="Unificar produtos nesta categoria"
                   >
                     <FaLayerGroup />
                     Unificar
-                  </Link>
+                  </button>
                 </div>
               </div>
             </div>
