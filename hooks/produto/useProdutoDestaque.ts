@@ -5,14 +5,12 @@ import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
 import { rotas } from "@/components/Bibioteca/config/rotas";
 
-
-type DestaqueItem = any; // se quiser, tipamos depois com seu DTO real
+type DestaqueItem = any;
 
 function extractArray(resData: any): any[] {
   const d = resData?.data ?? resData?.dados ?? resData;
   if (Array.isArray(d)) return d;
 
-  // alguns backends retornam { data: { data: [] } } ou { data: { itens: [] } }
   const deep =
     d?.data ??
     d?.itens ??
@@ -38,8 +36,8 @@ export function useProdutoDestaque() {
       setError(null);
 
       try {
-        // Preferi "ativos", mas se seu backend usa "listar", troque aqui
-        const res = await api.get(rotas.produtos.destaques.ativos, {
+        // ✅ seu backend tem /produtos/destaques
+        const res = await api.get(rotas.produtos.destaques.listar, {
           withCredentials: true,
         });
 
