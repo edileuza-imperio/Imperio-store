@@ -7,6 +7,7 @@ import api from "@/Api/conectar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { rotas } from "@/components/Bibioteca/config/rotas";
+import NovoProdutoModal from "@/components/Modal/NovoProdutoModal";
 
 interface Status {
   id_status: number;
@@ -68,6 +69,9 @@ export default function ProdutosPage() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // ✅ modal
+  const [modalNovoProduto, setModalNovoProduto] = useState(false);
+
   useEffect(() => {
     carregarDados();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -78,8 +82,8 @@ export default function ProdutosPage() {
       setLoading(true);
 
       const [statusRes, produtosRes] = await Promise.all([
-        api.get<ApiResponse<Status[]>>(rotas.admin.api.produtosStatus),
-        api.get<ApiResponse<any[]>>(rotas.admin.api.produtos),
+        api.get<ApiResponse<Status[]>>(rotas.admin.api.produtosStatus, { withCredentials: true }),
+        api.get<ApiResponse<any[]>>(rotas.admin.api.produtos, { withCredentials: true }),
       ]);
 
       const statuses = resolveArray<Status>(statusRes.data);
@@ -115,7 +119,7 @@ export default function ProdutosPage() {
   const toggleDestaque = async (produto: Produto) => {
     try {
       if (produto.destaque && produto.id_destaque) {
-        await api.delete(rotas.admin.api.destaqueRemover(produto.id_destaque));
+        await api.delete(rotas.admin.api.destaqueRemover(produto.id_destaque), { withCredentials: true });
 
         setProdutos((p) =>
           p.map((i) =>
@@ -129,7 +133,8 @@ export default function ProdutosPage() {
       } else {
         const res = await api.post<ApiResponse<{ id_destaque?: number }>>(
           rotas.admin.api.destaquesCriar,
-          { produto_id: produto.id_produto }
+          { produto_id: produto.id_produto },
+          { withCredentials: true }
         );
 
         const payload = resolveApi<{ id_destaque?: number }>(res.data);
@@ -154,7 +159,7 @@ export default function ProdutosPage() {
   const toggleCatalogo = async (produto: Produto) => {
     try {
       if (produto.catalogo === 1) {
-        await api.put(rotas.admin.api.catalogoNao(produto.id_produto));
+        await api.put(rotas.admin.api.catalogoNao(produto.id_produto), null, { withCredentials: true });
 
         setProdutos((p) =>
           p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 0 } : i))
@@ -162,7 +167,7 @@ export default function ProdutosPage() {
 
         toast.success("Produto removido do catálogo");
       } else {
-        await api.put(rotas.admin.api.catalogoSim(produto.id_produto));
+        await api.put(rotas.admin.api.catalogoSim(produto.id_produto), null, { withCredentials: true });
 
         setProdutos((p) =>
           p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 1 } : i))
@@ -180,7 +185,7 @@ export default function ProdutosPage() {
     if (!confirm("Deseja excluir este produto?")) return;
 
     try {
-      await api.delete(rotas.admin.api.produtoRemover(id));
+      await api.delete(rotas.admin.api.produtoRemover(id), { withCredentials: true });
       setProdutos((p) => p.filter((i) => i.id_produto !== id));
       toast.success("Produto excluído");
     } catch (err: any) {
@@ -193,6 +198,16 @@ export default function ProdutosPage() {
     <div className="container-fluid py-4 dashboard-bg">
       <ToastContainer position="top-right" />
 
+      {/* ✅ MODAL NOVO PRODUTO */}
+      <NovoProdutoModal
+        open={modalNovoProduto}
+        onClose={() => setModalNovoProduto(false)}
+        onCreated={async () => {
+          setModalNovoProduto(false);
+          await carregarDados();
+        }}
+      />
+
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h1 className="fw-bold title">Produtos</h1>
@@ -200,9 +215,10 @@ export default function ProdutosPage() {
         </div>
 
         <div className="d-flex gap-2">
-          <Link href="/admin/produto/novo" className="btn btn-gold">
+          {/* ✅ Abre modal ao invés de ir pra /admin/produto/novo */}
+          <button type="button" className="btn btn-gold" onClick={() => setModalNovoProduto(true)}>
             <FaPlus /> Novo Produto
-          </Link>
+          </button>
 
           <Link href="/admin/catalogo" className="btn btn-dark-soft">
             <FaBook /> Catálogo
@@ -225,7 +241,7 @@ export default function ProdutosPage() {
                     <div className="no-image">Sem imagem</div>
                   )}
 
-                  {/* ✅ BADGES (sempre que tiver) */}
+                  {/* ✅ BADGES */}
                   <div className="badges">
                     {prod.destaque && <span className="badgex badge-destaque">Destaque</span>}
                     {prod.catalogo === 1 && <span className="badgex badge-catalogo">Catálogo</span>}
@@ -242,13 +258,12 @@ export default function ProdutosPage() {
                   <p className="preco">R$ {Number(prod.preco || 0).toFixed(2)}</p>
                   <small className="estoque">Estoque: {Number(prod.estoque || 0)}</small>
 
-                  {/* ✅ SOME OS BOTÕES (só aparece se passar o mouse no card) */}
                   <div className="acoes acoes-hide">
                     <Link href={`/admin/produto/${encodeURIComponent(prod.slug)}`} title="Editar">
                       <FaEdit />
                     </Link>
 
-                    <button onClick={() => toggleDestaque(prod)} title="Destaque">
+                    <button onClick={() => toggleDestaque(prod)} title="Destaque" type="button">
                       <FaStar />
                     </button>
 
@@ -256,6 +271,7 @@ export default function ProdutosPage() {
                       onClick={() => toggleCatalogo(prod)}
                       title={prod.catalogo === 1 ? "Remover do catálogo" : "Adicionar ao catálogo"}
                       className={prod.catalogo === 1 ? "catalogo-on" : "catalogo-off"}
+                      type="button"
                     >
                       <FaBook />
                     </button>
@@ -264,6 +280,7 @@ export default function ProdutosPage() {
                       onClick={() => excluirProduto(prod.id_produto)}
                       title="Excluir"
                       className="danger"
+                      type="button"
                     >
                       <FaTrash />
                     </button>
@@ -328,7 +345,6 @@ export default function ProdutosPage() {
           justify-content: center;
         }
 
-        /* ✅ badges topo */
         .badges {
           position: absolute;
           top: 10px;
@@ -403,7 +419,6 @@ export default function ProdutosPage() {
           color: #d4af37;
         }
 
-        /* ✅ some por padrão / aparece no hover */
         .acoes-hide {
           opacity: 0;
           transform: translateY(6px);
