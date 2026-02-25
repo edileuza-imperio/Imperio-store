@@ -48,7 +48,7 @@ type ApiResponse<T> = {
 
 const STATUS = {
   ATIVO: 1,
-  CATALOGO_SIM: 5,
+  CATALOGO_SIM: 1, // ✅ ajuste aqui se no seu sistema for 5
 } as const;
 
 function parseNumber(v: unknown): number | null {
@@ -89,6 +89,23 @@ function resolveApi<T>(payload: any): T {
   if (payload?.dados != null) return payload.dados as T;
   if (payload?.data != null) return payload.data as T;
   return payload as T;
+}
+
+// ✅ pega lista mesmo se vier array direto
+function extractProdutos(payload: any): Produto[] {
+  if (!payload) return [];
+
+  // caso payload já seja array
+  if (Array.isArray(payload)) return payload as Produto[];
+
+  // caso payload seja objeto { produtos: [...] }
+  if (Array.isArray(payload?.produtos)) return payload.produtos as Produto[];
+
+  // caso payload venha como { data: [...] } ou { dados: [...] } mas resolveApi não pegou
+  if (Array.isArray(payload?.data)) return payload.data as Produto[];
+  if (Array.isArray(payload?.dados)) return payload.dados as Produto[];
+
+  return [];
 }
 
 function buildImageUrl(path: string | null | undefined): string | null {
@@ -215,11 +232,16 @@ export default function CatalogoPage() {
         setLoading(true);
         setErro(null);
 
-        const res = await api.get<ApiResponse<CatalogoPayload>>(
-          rotas.produtos.catalogo
+        // ✅ rota corrigida (bate com seu backend: ProdutoController@listarCatalogo)
+        const res = await api.get<ApiResponse<CatalogoPayload> | any>(
+          "/produtos/catalogo"
         );
-        const payload = resolveApi<CatalogoPayload>(res.data);
-        const lista = payload?.produtos ?? [];
+
+        // ✅ pega data/dados (ou payload direto)
+        const payload = resolveApi<any>(res.data);
+
+        // ✅ pega a lista independente do formato
+        const lista = extractProdutos(payload);
 
         if (!alive) return;
         setProdutos(Array.isArray(lista) ? lista : []);
@@ -246,7 +268,12 @@ export default function CatalogoPage() {
     const base = produtos.filter((p) => {
       const statusId = asInt(p.statusid);
       const catalogoId = asInt(p.catalogo);
-      return statusId === STATUS.ATIVO && catalogoId === STATUS.CATALOGO_SIM;
+
+      // ✅ mais tolerante: se catalogo vier null/undefined, não elimina à toa
+      const okStatus = statusId === STATUS.ATIVO || statusId == null;
+      const okCatalogo = catalogoId === STATUS.CATALOGO_SIM || catalogoId == null;
+
+      return okStatus && okCatalogo;
     });
 
     const searched = !qn
@@ -284,29 +311,6 @@ export default function CatalogoPage() {
 
     return { total, promos, min };
   }, [filtrados]);
-
-  async function addCarrinho(p: Produto) {
-    const id = (p.id_produto ?? p.id) as number | undefined;
-    if (!id) return;
-
-    const { semEstoque } = formatEstoque(p.estoque, p.ilimitado);
-    if (semEstoque) {
-      showToast("⚠️ Produto esgotado");
-      return;
-    }
-
-    try {
-      setAddingId(id);
-      await api.post(rotas.carrinho.adicionar, { produto_id: id, qtd: 1 });
-      showToast(`✅ ${p.nome} adicionado ao carrinho`);
-    } catch (e: any) {
-      showToast(
-        e?.response?.data?.message || e?.message || "Erro ao adicionar no carrinho"
-      );
-    } finally {
-      setAddingId(null);
-    }
-  }
 
   return (
     <>
@@ -480,9 +484,7 @@ export default function CatalogoPage() {
           justify-content:space-between;
           gap: 14px;
         }
-        .bLeft{
-          min-width: 0;
-        }
+        .bLeft{ min-width: 0; }
         .bTop{
           display:flex;
           gap: 10px;
@@ -845,7 +847,6 @@ export default function CatalogoPage() {
               </div>
             </div>
 
-            {/* ✅ Banner Horizontal acima dos cards */}
             <section className="banner" aria-label="Banner promocional do catálogo">
               <div className="bannerInner">
                 <div className="bLeft">
@@ -862,7 +863,8 @@ export default function CatalogoPage() {
 
                   <h3 className="bTitle">Presentes, cestas e mimos — escolha o seu 💛</h3>
                   <p className="bText">
-                    Seleção com visual elegante e pronta para surpreender. {stats.min != null
+                    Seleção com visual elegante e pronta para surpreender.{" "}
+                    {stats.min != null
                       ? `A partir de ${brl(stats.min)}.`
                       : "Confira as novidades no catálogo."}
                   </p>
@@ -879,7 +881,6 @@ export default function CatalogoPage() {
                     Ver destaques
                   </Link>
 
-                  {/* Troque o número abaixo pelo seu Whats */}
                   <a
                     className="bBtn"
                     href="https://wa.me/5599999999999"
@@ -927,11 +928,7 @@ export default function CatalogoPage() {
 
                   return (
                     <article className="card" key={id}>
-                      <a
-                        className="media"
-                        href={detalhesHref}
-                        aria-label={`Ver ${p.nome}`}
-                      >
+                      <a className="media" href={detalhesHref} aria-label={`Ver ${p.nome}`}>
                         {img ? (
                           <img
                             className="img"
@@ -966,9 +963,7 @@ export default function CatalogoPage() {
                         <div className="priceRow">
                           <div className="prices">
                             <div className="price">
-                              {precoFinal != null
-                                ? brl(precoFinal)
-                                : "Preço sob consulta"}
+                              {precoFinal != null ? brl(precoFinal) : "Preço sob consulta"}
                             </div>
                             {temPromo && preco != null ? (
                               <div className="old">{brl(preco)}</div>
