@@ -58,7 +58,7 @@ export const admin = {
       `/admin/categorias/${id}/desativar`,
 
     categoriaRemover: (id: Id) =>
-      `/admin/categorias/${id}/remover`,
+      `/admin/categorias/${id}`,
   },
 
   paginas: {
