@@ -21,10 +21,8 @@ export const rotas = {
     adicionar: "/carrinho/adicionar",
   },
 
-  // ✅ mantém compatível: rotas.admin.api.cards etc
   admin,
 
-  // ✅ endpoint público usado no app/cadastro/page.tsx
   configLogin: "/configuracoes/login",
 
   menu: {
@@ -73,20 +71,28 @@ export const rotas = {
   produtos: {
     listar: "/produtos",
     buscar: (id: Id) => `/produtos/${id}`,
-    buscarPorSlugApi: (slug: string) => `/produto/slug/${encodeURIComponent(slug)}`,
+
+    buscarPorSlugApi: (slug: string) =>
+      `/produto/slug/${encodeURIComponent(slug)}`,
+
     pesquisar: "/produtos/pesquisa",
-    catalogo: "/catalogo",
+
+    // ✅ AQUI ESTAVA ERRADO:
+    // catalogo: "/catalogo",
+    catalogo: "/produtos/catalogo",
+
     criar: "/produtos",
     atualizar: (id: Id) => `/produtos/${id}`,
     deletar: (id: Id) => `/produtos/${id}`,
+
     destaques: {
       listar: "/produtos/destaques",
-      ativos: "/produtos/destaques/ativos",
       status: "/produtos/destaques/status",
       criar: "/produtos/destaques",
       atualizar: (id: Id) => `/produtos/destaques/${id}`,
       deletar: (id: Id) => `/produtos/destaques/${id}`,
     },
+
     paginas: {
       destaques: "/produtos/destaques",
       produto: (slug: string) => `/produto/${encodeURIComponent(slug)}`,
