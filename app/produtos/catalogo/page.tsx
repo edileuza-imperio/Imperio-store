@@ -9,6 +9,17 @@ import { rotas } from "@/components/Bibioteca/config/rotas";
 import Navbar from "@/components/site/menu/navbar";
 import FooterPrincipal from "@/components/site/Rodape/Footer";
 
+import {
+  BsSearch,
+  BsStars,
+  BsEye,
+  BsCart3,
+  BsImage,
+  BsTrash3,
+  BsArrowRepeat,
+  BsWhatsapp,
+} from "react-icons/bs";
+
 type Produto = {
   id_produto?: number;
   id?: number;
@@ -33,8 +44,6 @@ type Produto = {
   categoria_nome?: string | null;
 };
 
-type CatalogoPayload = Produto[] | { produtos?: Produto[] };
-
 type ApiResponse<T> = {
   mensagem?: string;
   message?: string;
@@ -45,7 +54,7 @@ type ApiResponse<T> = {
 
 const STATUS = {
   ATIVO: 1,
-  CATALOGO_SIM: 1, // ✅ backend retorna catalogo: 1
+  CATALOGO_SIM: 1, // ✅ SEU BACKEND RETORNA catalogo: 1 (não 5)
 } as const;
 
 function parseNumber(v: unknown): number | null {
@@ -68,6 +77,7 @@ function parseNumber(v: unknown): number | null {
     const n = Number(normalized);
     return Number.isFinite(n) ? n : null;
   }
+
   return null;
 }
 
@@ -86,12 +96,6 @@ function resolveApi<T>(payload: any): T {
   if (payload?.dados != null) return payload.dados as T;
   if (payload?.data != null) return payload.data as T;
   return payload as T;
-}
-
-function extractProdutos(payload: any): Produto[] {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.produtos)) return payload.produtos;
-  return [];
 }
 
 function buildImageUrl(path: string | null | undefined): string | null {
@@ -128,67 +132,26 @@ function calcDiscountPercent(preco: number, promo: number) {
   return pct > 0 ? pct : 0;
 }
 
-function getFinalPrice(p: Produto): number | null {
-  const preco = parseNumber(p.preco);
-  const promo = parseNumber(p.preco_promocional);
-
-  const temPromo = promo != null && preco != null && promo > 0 && promo < preco;
-  return temPromo ? promo! : preco;
-}
-
-/* ===== Icons (sem libs) ===== */
-function IconSearch() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M10 2a8 8 0 1 1 5.293 13.707l4 4a1 1 0 0 1-1.414 1.414l-4-4A8 8 0 0 1 10 2Zm0 2a6 6 0 1 0 0 12a6 6 0 0 0 0-12Z"
-      />
-    </svg>
-  );
-}
-function IconSpark() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M12 2l1.6 6.2L20 10l-6.4 1.8L12 18l-1.6-6.2L4 10l6.4-1.8L12 2Zm7 9l.9 3.1L23 15l-3.1.9L19 19l-.9-3.1L15 15l3.1-.9L19 11Z"
-      />
-    </svg>
-  );
-}
-function IconEye() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M12 5c5.5 0 9.6 4.1 10.9 6.3c.2.4.2.9 0 1.3C21.6 14.9 17.5 19 12 19S2.4 14.9 1.1 12.6c-.2-.4-.2-.9 0-1.3C2.4 9.1 6.5 5 12 5Zm0 2C7.6 7 4.1 10.2 3.1 12c1 1.8 4.5 5 8.9 5s7.9-3.2 8.9-5C19.9 10.2 16.4 7 12 7Zm0 2.5A2.5 2.5 0 1 1 12 14a2.5 2.5 0 0 1 0-5Z"
-      />
-    </svg>
-  );
-}
-function IconCart() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="currentColor"
-        d="M7 18a2 2 0 1 0 0 4a2 2 0 0 0 0-4Zm10 0a2 2 0 1 0 0 4a2 2 0 0 0 0-4ZM6.2 6h15.6c.8 0 1.4.7 1.2 1.5l-1.5 7.1c-.1.6-.7 1.1-1.3 1.1H8.2c-.6 0-1.2-.4-1.3-1L5 3H2a1 1 0 1 1 0-2h3c.5 0 .9.3 1 .8L6.2 6Zm.6 2l1.2 6h11.7l1.2-6H6.8Z"
-      />
-    </svg>
-  );
-}
-
 export default function CatalogoPage() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [addingId, setAddingId] = useState<number | null>(null);
 
+  // UI
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"relevancia" | "menor" | "maior" | "nome">(
     "relevancia"
   );
 
+  // banner (placeholder por enquanto – depois você liga com BD)
+  const [bannerText] = useState({
+    chip: "Coleção em destaque",
+    title: "Presentes, cestas e mimos — escolha o seu 💛",
+    desc: "Seleção com visual elegante e pronta para surpreender.",
+  });
+
+  // toast
   const [toast, setToast] = useState<{ show: boolean; text: string }>({
     show: false,
     text: "",
@@ -204,54 +167,54 @@ export default function CatalogoPage() {
     );
   }
 
-  const placeholderSvg = useMemo(() => {
-    const svg = encodeURIComponent(`
-      <svg xmlns="http://www.w3.org/2000/svg" width="900" height="700">
-        <rect width="100%" height="100%" fill="#efe3d2"/>
-        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle"
-          fill="#7b6a5a" font-family="Arial" font-size="28" font-weight="700">
-          Sem imagem
-        </text>
-      </svg>
-    `);
-    return `data:image/svg+xml;charset=utf-8,${svg}`;
-  }, []);
+  // controla erro de imagem por produto
+  const [imgOkMap, setImgOkMap] = useState<Record<number, boolean>>({});
+
+  function markImgBroken(id: number) {
+    setImgOkMap((m) => ({ ...m, [id]: false }));
+  }
+
+  function isImgOk(id: number) {
+    // default true
+    return imgOkMap[id] !== false;
+  }
+
+  async function fetchCatalogo() {
+    try {
+      setLoading(true);
+      setErro(null);
+
+      // ✅ SEU ENDPOINT CERTO (pelo seu teste)
+      const res = await api.get<ApiResponse<Produto[]>>("/produtos/catalogo");
+
+      const lista = resolveApi<Produto[]>(res.data);
+      setProdutos(Array.isArray(lista) ? lista : []);
+    } catch (e) {
+      console.error("❌ Erro ao buscar catálogo:", e);
+      setErro("Não foi possível carregar o catálogo agora.");
+      setProdutos([]);
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
     let alive = true;
-
     (async () => {
-      try {
-        setLoading(true);
-        setErro(null);
-
-        const res = await api.get<ApiResponse<CatalogoPayload>>(rotas.produtos.catalogo);
-        const payload = resolveApi<CatalogoPayload>(res.data);
-        const lista = extractProdutos(payload);
-
-        if (!alive) return;
-        setProdutos(lista);
-      } catch (e: any) {
-        console.error("❌ Erro ao buscar catálogo:", e);
-        if (!alive) return;
-        setErro(e?.response?.data?.mensagem || e?.message || "Não foi possível carregar o catálogo.");
-        setProdutos([]);
-      } finally {
-        if (!alive) return;
-        setLoading(false);
-      }
+      if (!alive) return;
+      await fetchCatalogo();
     })();
-
     return () => {
       alive = false;
       if (toastTimer.current) window.clearTimeout(toastTimer.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const filtrados = useMemo(() => {
     const qn = q.trim().toLowerCase();
 
-    // ✅ filtro correto de catálogo/status
+    // ✅ backend já devolve só catálogo, mas mantive filtro seguro
     const base = produtos.filter((p) => {
       const statusId = asInt(p.statusid);
       const catalogoId = asInt(p.catalogo);
@@ -263,14 +226,14 @@ export default function CatalogoPage() {
       : base.filter((p) => (p.nome || "").toLowerCase().includes(qn));
 
     const sorted = [...searched].sort((a, b) => {
-      const ap = getFinalPrice(a) ?? 0;
-      const bp = getFinalPrice(b) ?? 0;
+      const ap = parseNumber(a.preco_promocional) ?? parseNumber(a.preco) ?? 0;
+      const bp = parseNumber(b.preco_promocional) ?? parseNumber(b.preco) ?? 0;
 
       if (sort === "menor") return ap - bp;
       if (sort === "maior") return bp - ap;
       if (sort === "nome")
         return (a.nome || "").localeCompare(b.nome || "", "pt-BR");
-      return 0;
+      return 0; // relevancia
     });
 
     return sorted;
@@ -286,11 +249,11 @@ export default function CatalogoPage() {
       const temPromo = promo != null && preco != null && promo > 0 && promo < preco;
       if (temPromo) promos++;
 
-      const final = getFinalPrice(p);
-      if (final != null && final > 0) min = min == null ? final : Math.min(min, final);
+      const final = temPromo ? promo : preco;
+      if (final != null) min = min == null ? final : Math.min(min, final);
     }
 
-    return { promos, min };
+    return { total: filtrados.length, promos, min };
   }, [filtrados]);
 
   async function addCarrinho(p: Produto) {
@@ -308,7 +271,12 @@ export default function CatalogoPage() {
       await api.post(rotas.carrinho.adicionar, { produto_id: id, qtd: 1 });
       showToast(`✅ ${p.nome} adicionado ao carrinho`);
     } catch (e: any) {
-      showToast(e?.response?.data?.mensagem || e?.message || "Erro ao adicionar no carrinho");
+      showToast(
+        e?.response?.data?.mensagem ||
+          e?.response?.data?.message ||
+          e?.message ||
+          "Erro ao adicionar no carrinho"
+      );
     } finally {
       setAddingId(null);
     }
@@ -349,6 +317,7 @@ export default function CatalogoPage() {
           padding: 0 16px;
         }
 
+        /* header */
         .hero{
           display:flex;
           align-items:flex-end;
@@ -357,8 +326,20 @@ export default function CatalogoPage() {
           margin-bottom: 14px;
         }
 
-        .h1{ margin:0; font-size: 30px; letter-spacing:-0.7px; font-weight: 1000; }
-        .sub{ margin:6px 0 0; color: var(--muted); font-size: 13px; font-weight: 650; opacity:.95; }
+        .h1{
+          margin:0;
+          font-size: 30px;
+          letter-spacing:-0.7px;
+          font-weight: 1000;
+        }
+
+        .sub{
+          margin:6px 0 0;
+          color: var(--muted);
+          font-size: 13px;
+          font-weight: 650;
+          opacity:.95;
+        }
 
         .count{
           font-size: 12px;
@@ -380,6 +361,7 @@ export default function CatalogoPage() {
           box-shadow: 0 6px 14px rgba(184,137,98,.35);
         }
 
+        /* top bar */
         .bar{
           display:flex;
           gap: 12px;
@@ -404,7 +386,7 @@ export default function CatalogoPage() {
           border: 1px solid rgba(111,92,73,.18);
           background: rgba(255,255,255,.78);
         }
-        .search svg{ color: #6b5a49; }
+        .search :global(svg){ color: #6b5a49; }
         .search input{
           width:100%;
           border:0;
@@ -414,7 +396,12 @@ export default function CatalogoPage() {
           color: var(--ink);
         }
 
-        .rightTools{ display:flex; align-items:center; gap: 10px; flex-wrap: wrap; }
+        .rightTools{
+          display:flex;
+          align-items:center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
 
         .select{
           height: 40px;
@@ -427,7 +414,7 @@ export default function CatalogoPage() {
           outline:none;
         }
 
-        .chip{
+        .chipBtn{
           height: 40px;
           padding: 0 12px;
           border-radius: 14px;
@@ -436,19 +423,31 @@ export default function CatalogoPage() {
           font-weight: 1000;
           color: var(--ink);
           cursor:pointer;
+          display:inline-flex;
+          align-items:center;
+          gap:8px;
         }
 
+        /* banner */
         .banner{
           position: relative;
           border-radius: 22px;
           overflow:hidden;
           border: 1px solid rgba(111,92,73,.18);
-          background: linear-gradient(135deg, rgba(255,253,247,1) 0%,
+          background:
+            linear-gradient(135deg, rgba(255,253,247,1) 0%,
               rgba(255,244,227,1) 38%,
               rgba(240,226,205,1) 100%);
           box-shadow: 0 18px 52px rgba(0,0,0,.12);
           padding: 16px;
           margin-bottom: 16px;
+        }
+        .banner:before{
+          content:"";
+          position:absolute;
+          inset:-2px;
+          background: radial-gradient(700px 260px at 20% 10%, rgba(255,255,255,.65), transparent 60%);
+          pointer-events:none;
         }
         .bannerInner{
           position:relative;
@@ -457,7 +456,14 @@ export default function CatalogoPage() {
           justify-content:space-between;
           gap: 14px;
         }
-        .bChip{
+        .bTop{
+          display:flex;
+          gap: 10px;
+          align-items:center;
+          margin-bottom: 8px;
+          flex-wrap:wrap;
+        }
+        .chipMini{
           display:inline-flex;
           align-items:center;
           gap:8px;
@@ -471,9 +477,43 @@ export default function CatalogoPage() {
           backdrop-filter: blur(8px);
           white-space:nowrap;
         }
-        .bTitle{ margin:0; font-size: 20px; font-weight: 1000; letter-spacing:-0.3px; }
-        .bText{ margin: 6px 0 0; color: var(--muted); font-size: 13px; font-weight: 700; line-height: 1.45; max-width: 740px; }
-        .bRight{ display:flex; gap: 10px; flex-wrap:wrap; justify-content:flex-end; }
+        .bTitle{
+          margin:0;
+          font-size: 20px;
+          font-weight: 1000;
+          letter-spacing:-0.3px;
+          color: var(--ink);
+        }
+        .bText{
+          margin: 6px 0 0;
+          color: var(--muted);
+          font-size: 13px;
+          font-weight: 700;
+          line-height: 1.45;
+          opacity: .96;
+          max-width: 740px;
+        }
+        .bStats{
+          margin-top: 10px;
+          display:flex;
+          gap: 10px;
+          flex-wrap:wrap;
+        }
+        .bStat{
+          padding: 8px 10px;
+          border-radius: 16px;
+          background: rgba(255,255,255,.58);
+          border: 1px solid rgba(111,92,73,.12);
+          font-size: 12px;
+          font-weight: 1000;
+          color: var(--ink);
+        }
+        .bRight{
+          display:flex;
+          gap: 10px;
+          flex-wrap:wrap;
+          justify-content:flex-end;
+        }
         .bBtn{
           height: 42px;
           padding: 0 14px;
@@ -487,9 +527,13 @@ export default function CatalogoPage() {
           display:inline-flex;
           align-items:center;
           gap: 8px;
+          transition: transform .12s ease, filter .12s ease;
           user-select:none;
           white-space:nowrap;
         }
+        .bBtn:active{ transform: translateY(1px); }
+        .bBtn:hover{ filter: brightness(.985); }
+
         .bBtnPrimary{
           background: linear-gradient(135deg, var(--accent2) 0%, var(--accent) 100%);
           border-color: rgba(255,255,255,.18);
@@ -497,6 +541,7 @@ export default function CatalogoPage() {
           box-shadow: 0 14px 28px rgba(184,137,98,.40);
         }
 
+        /* grid/cards */
         .grid{
           display:grid;
           grid-template-columns: repeat(auto-fill, minmax(260px, 260px));
@@ -533,6 +578,35 @@ export default function CatalogoPage() {
         }
         .card:hover .img{ transform: scale(1.09); }
 
+        .imgPlaceholder{
+          width:100%;
+          height:100%;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          background: rgba(239,227,210,.7);
+        }
+        .imgPlaceholderInner{
+          display:flex;
+          align-items:center;
+          gap:10px;
+          padding: 10px 12px;
+          border-radius: 999px;
+          background: rgba(255,255,255,.65);
+          border: 1px solid rgba(111,92,73,.16);
+          font-weight: 1000;
+          color: #6b5a49;
+        }
+
+        .overlay{
+          position:absolute;
+          inset:auto 0 0 0;
+          height: 70%;
+          background: linear-gradient(180deg, transparent 0%, rgba(0,0,0,.22) 100%);
+          opacity: .22;
+          pointer-events:none;
+        }
+
         .badges{
           position:absolute;
           top: 12px;
@@ -562,7 +636,14 @@ export default function CatalogoPage() {
         }
 
         .body{ padding: 14px 14px 16px; }
-        .name{ margin: 0; font-size: 15.5px; font-weight: 1000; letter-spacing: -0.25px; line-height: 1.15; }
+        .name{
+          margin: 0;
+          font-size: 15.5px;
+          font-weight: 1000;
+          letter-spacing: -0.25px;
+          line-height: 1.15;
+          color: var(--ink);
+        }
         .desc{
           margin: 8px 0 0;
           color: var(--muted);
@@ -576,13 +657,48 @@ export default function CatalogoPage() {
           min-height: 36px;
         }
 
-        .priceRow{ margin-top: 12px; display:flex; align-items:center; justify-content:space-between; gap: 10px; }
-        .prices{ display:flex; align-items:baseline; gap: 10px; }
-        .price{ font-weight: 1000; font-size: 15.5px; white-space:nowrap; }
-        .old{ font-weight: 900; font-size: 12px; color:#8b7a6a; text-decoration: line-through; white-space:nowrap; }
-        .pill{ font-size: 12px; font-weight: 1000; padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,.70); border: 1px solid rgba(184, 137, 98, .26); backdrop-filter: blur(6px); white-space:nowrap; }
+        .priceRow{
+          margin-top: 12px;
+          display:flex;
+          align-items:center;
+          justify-content:space-between;
+          gap: 10px;
+        }
+        .prices{
+          display:flex;
+          align-items:baseline;
+          gap: 10px;
+        }
+        .price{
+          font-weight: 1000;
+          font-size: 15.5px;
+          white-space:nowrap;
+        }
+        .old{
+          font-weight: 900;
+          font-size: 12px;
+          color:#8b7a6a;
+          text-decoration: line-through;
+          white-space:nowrap;
+        }
+        .pill{
+          font-size: 12px;
+          font-weight: 1000;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: rgba(255,255,255,.70);
+          border: 1px solid rgba(184, 137, 98, .26);
+          backdrop-filter: blur(6px);
+          color: var(--ink);
+          white-space:nowrap;
+        }
 
-        .actions{ margin-top: 12px; display:flex; gap: 10px; }
+        .actions{
+          margin-top: 12px;
+          display:flex;
+          gap: 10px;
+        }
+
         .aBtn{
           flex: 1;
           display:inline-flex;
@@ -596,26 +712,45 @@ export default function CatalogoPage() {
           border: 1px solid transparent;
           cursor:pointer;
           text-decoration:none;
+          transition: transform .12s ease, filter .12s ease;
           user-select:none;
         }
-        .ghost{ background: rgba(255,255,255,.78); color: var(--ink); border: 1px solid rgba(111,92,73,.18); }
+        .aBtn:active{ transform: translateY(1px); }
+
+        .ghost{
+          background: rgba(255,255,255,.78);
+          color: var(--ink);
+          border: 1px solid rgba(111,92,73,.18);
+        }
+        .ghost:hover{ filter: brightness(.985); }
+
         .primary{
           background: linear-gradient(135deg, var(--accent2) 0%, var(--accent) 100%);
           color: #fff;
           box-shadow: 0 14px 28px rgba(184, 137, 98, .40);
           border: 1px solid rgba(255,255,255,.18);
         }
-        .primary:disabled{ opacity:.6; cursor:not-allowed; box-shadow:none; }
+        .primary:hover{ filter: brightness(1.02); }
+        .primary:disabled{
+          opacity:.6;
+          cursor:not-allowed;
+          box-shadow:none;
+        }
 
         .alert{
           border-radius: 18px;
           padding: 14px;
           background: rgba(255,255,255,.70);
           border: 1px solid rgba(111,92,73,.16);
+          color: var(--ink);
           font-weight: 900;
           margin-bottom: 12px;
         }
-        .alertErr{ color:#8a1f1f; background: rgba(185,28,28,.06); border-color: rgba(185,28,28,.18); }
+        .alertErr{
+          color:#8a1f1f;
+          background: rgba(185,28,28,.06);
+          border-color: rgba(185,28,28,.18);
+        }
 
         .toast{
           position: fixed;
@@ -627,6 +762,7 @@ export default function CatalogoPage() {
           background: rgba(255, 248, 237, .92);
           border: 1px solid rgba(111, 92, 73, .18);
           box-shadow: 0 16px 46px rgba(0,0,0,.16);
+          color: var(--ink);
           font-weight: 950;
           font-size: 13px;
           transform: translateY(10px);
@@ -662,18 +798,18 @@ export default function CatalogoPage() {
             <div className="hero">
               <div>
                 <h1 className="h1">Catálogo</h1>
-                <p className="sub">Produtos em catálogo</p>
+                <p className="sub">Busca rápida • layout premium em creme</p>
               </div>
 
               <div className="count">
                 <span className="dot" />
-                {loading ? "Carregando..." : `${filtrados.length} produto(s)`}
+                {loading ? "Carregando..." : `${stats.total} produto(s)`}
               </div>
             </div>
 
             <div className="bar">
               <div className="search">
-                <IconSearch />
+                <BsSearch size={18} />
                 <input
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
@@ -694,37 +830,59 @@ export default function CatalogoPage() {
                   <option value="nome">Nome A–Z</option>
                 </select>
 
-                <button className="chip" type="button" onClick={() => setQ("")}>
-                  Limpar busca
+                <button className="chipBtn" type="button" onClick={() => setQ("")}>
+                  <BsTrash3 />
+                  Limpar
+                </button>
+
+                <button className="chipBtn" type="button" onClick={fetchCatalogo}>
+                  <BsArrowRepeat />
+                  Recarregar
                 </button>
               </div>
             </div>
 
+            {/* ✅ Banner (placeholder; depois vem do BD) */}
             <section className="banner" aria-label="Banner do catálogo">
               <div className="bannerInner">
                 <div>
-                  <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 8 }}>
-                    <span className="bChip">
-                      <IconSpark />
-                      Catálogo
+                  <div className="bTop">
+                    <span className="chipMini">
+                      <BsStars />
+                      {bannerText.chip}
                     </span>
-                    <span className="bChip">
-                      {stats.promos > 0 ? `${stats.promos} promo(s)` : "Sem promoções"}
-                    </span>
+                    {stats.promos > 0 ? (
+                      <span className="chipMini">{stats.promos} promo(s) ativa(s)</span>
+                    ) : null}
+                    {stats.min != null ? (
+                      <span className="chipMini">A partir de {brl(stats.min)}</span>
+                    ) : null}
                   </div>
 
-                  <h3 className="bTitle">Escolha o seu 💛</h3>
-                  <p className="bText">
-                    {stats.min != null ? `A partir de ${brl(stats.min)}.` : "Confira os produtos disponíveis."}
-                  </p>
+                  <h3 className="bTitle">{bannerText.title}</h3>
+                  <p className="bText">{bannerText.desc}</p>
+
+                  <div className="bStats">
+                    <span className="bStat">✅ Produtos em catálogo</span>
+                    <span className="bStat">🚚 Envio rápido</span>
+                    <span className="bStat">💳 Pix/Cartão</span>
+                  </div>
                 </div>
 
                 <div className="bRight">
                   <Link className="bBtn bBtnPrimary" href={rotas.produtos.paginas.destaques}>
                     Ver destaques
                   </Link>
-                  <a className="bBtn" href="https://wa.me/5599999999999" target="_blank" rel="noreferrer">
-                    Falar no Whats
+
+                  <a
+                    className="bBtn"
+                    href="https://wa.me/5599999999999"
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Falar no WhatsApp"
+                  >
+                    <BsWhatsapp />
+                    WhatsApp
                   </a>
                 </div>
               </div>
@@ -732,6 +890,7 @@ export default function CatalogoPage() {
 
             {erro ? <div className="alert alertErr">❌ {erro}</div> : null}
             {loading ? <div className="alert">Carregando produtos…</div> : null}
+
             {!loading && !erro && filtrados.length === 0 ? (
               <div className="alert">Nenhum produto encontrado.</div>
             ) : null}
@@ -745,12 +904,16 @@ export default function CatalogoPage() {
 
                   const preco = parseNumber(p.preco);
                   const promo = parseNumber(p.preco_promocional);
-                  const temPromo = promo != null && preco != null && promo > 0 && promo < preco;
+                  const temPromo =
+                    promo != null && preco != null && promo > 0 && promo < preco;
 
                   const precoFinal = temPromo ? promo : preco;
                   const desconto = temPromo ? calcDiscountPercent(preco!, promo!) : 0;
 
-                  const { texto: estoqueTexto, semEstoque } = formatEstoque(p.estoque, p.ilimitado);
+                  const { texto: estoqueTexto, semEstoque } = formatEstoque(
+                    p.estoque,
+                    p.ilimitado
+                  );
 
                   const detalhesHref = slug ? rotas.produtos.paginas.produto(slug) : "#";
                   const img = buildImageUrl(p.imagem);
@@ -758,20 +921,24 @@ export default function CatalogoPage() {
                   return (
                     <article className="card" key={id}>
                       <a className="media" href={detalhesHref} aria-label={`Ver ${p.nome}`}>
-                        {img ? (
+                        {img && isImgOk(id) ? (
                           <img
                             className="img"
                             src={img}
                             alt={p.nome}
                             loading="lazy"
-                            onError={(e) => {
-                              const t = e.currentTarget;
-                              if (t.src !== placeholderSvg) t.src = placeholderSvg;
-                            }}
+                            onError={() => markImgBroken(id)}
                           />
                         ) : (
-                          <img className="img" src={placeholderSvg} alt="Sem imagem" />
+                          <div className="imgPlaceholder">
+                            <div className="imgPlaceholderInner">
+                              <BsImage />
+                              Sem imagem
+                            </div>
+                          </div>
                         )}
+
+                        <div className="overlay" />
 
                         <div className="badges">
                           {desconto > 0 ? (
@@ -792,7 +959,9 @@ export default function CatalogoPage() {
                             <div className="price">
                               {precoFinal != null ? brl(precoFinal) : "Preço sob consulta"}
                             </div>
-                            {temPromo && preco != null ? <div className="old">{brl(preco)}</div> : null}
+                            {temPromo && preco != null ? (
+                              <div className="old">{brl(preco)}</div>
+                            ) : null}
                           </div>
                           <div className="pill">{temPromo ? "Oferta" : estoqueTexto}</div>
                         </div>
@@ -800,12 +969,12 @@ export default function CatalogoPage() {
                         <div className="actions">
                           {slug ? (
                             <Link href={detalhesHref} className="aBtn ghost">
-                              <IconEye />
+                              <BsEye />
                               Detalhes
                             </Link>
                           ) : (
                             <button className="aBtn ghost" disabled>
-                              <IconEye />
+                              <BsEye />
                               Detalhes
                             </button>
                           )}
@@ -815,7 +984,7 @@ export default function CatalogoPage() {
                             onClick={() => addCarrinho(p)}
                             disabled={semEstoque || addingId === (p.id_produto ?? p.id)}
                           >
-                            <IconCart />
+                            <BsCart3 />
                             {semEstoque
                               ? "Indisponível"
                               : addingId === (p.id_produto ?? p.id)
