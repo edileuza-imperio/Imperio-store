@@ -78,9 +78,6 @@ export default function ProdutoDestaque() {
   const [erro, setErro] = useState<string | null>(null);
   const [addingId, setAddingId] = useState<number | null>(null);
 
-  // ✅ LOG: render
-  console.log("🧩 Render ProdutoDestaque | itens:", itens);
-
   useEffect(() => {
     let alive = true;
 
@@ -89,38 +86,25 @@ export default function ProdutoDestaque() {
       setErro(null);
 
       try {
-        // ✅ LOG: rota
-        console.log("🔵 Buscando destaques em:", rotas.produtos.destaques.ativos);
+        // ✅ ROTA DO BACKEND: GET /produtos/destaques
+        const endpoint = rotas.produtos.destaques.listar;
 
-        // ✅ SUA ROTA CORRETA: /produtos/destaques/ativos
-        const res = await api.get<ApiResponse<ProdutoDestaqueApi[]>>(
-          rotas.produtos.destaques.ativos,
-          { withCredentials: true }
-        );
-
-        // ✅ LOG: resposta bruta
-        console.log("🟡 Resposta bruta da API (res):", res);
-        console.log("🟡 res.status:", res.status);
-        console.log("🟡 res.data:", res.data);
+        const res = await api.get<ApiResponse<ProdutoDestaqueApi[]>>(endpoint, {
+          withCredentials: true,
+        });
 
         const data = resolveApiData<ProdutoDestaqueApi[]>(res.data);
-
-        // ✅ LOG: dados resolvidos
-        console.log("🟢 Dados resolvidos:", data);
-        console.log("🟢 É array?", Array.isArray(data));
-        console.log("🟢 Quantidade recebida:", Array.isArray(data) ? data.length : "não é array");
-
         if (!alive) return;
 
         const finalArray = Array.isArray(data) ? data : [];
-        console.log("✅ Final array setItens:", finalArray);
+
+        // ✅ opcional: ordena por ordem (se existir)
+        finalArray.sort(
+          (a, b) => Number(a.ordem ?? 9999) - Number(b.ordem ?? 9999)
+        );
 
         setItens(finalArray);
       } catch (e: any) {
-        console.error("🔴 Erro ao carregar destaques:", e);
-        console.error("🔴 e.response:", e?.response);
-        console.error("🔴 e.response.data:", e?.response?.data);
-
         if (!alive) return;
 
         setErro(
@@ -147,8 +131,6 @@ export default function ProdutoDestaque() {
     try {
       setAddingId(produtoId);
 
-      console.log("🛒 Adicionando ao carrinho:", { produtoId, rota: rotas.carrinho.adicionar });
-
       await api.post(
         rotas.carrinho.adicionar,
         { produto_id: produtoId, qtd: 1 },
@@ -157,7 +139,6 @@ export default function ProdutoDestaque() {
 
       alert("Adicionado ao carrinho!");
     } catch (e: any) {
-      console.error("🔴 Erro ao adicionar no carrinho:", e);
       alert(
         e?.response?.data?.message ||
           e?.response?.data?.mensagem ||
@@ -174,27 +155,40 @@ export default function ProdutoDestaque() {
       const preco = toNumber(item.produto_preco);
       const promo = toNumber(item.produto_preco_promocional);
 
-      const temPromo = preco != null && promo != null && promo > 0 && promo < preco;
+      const temPromo =
+        preco != null && promo != null && promo > 0 && promo < preco;
 
       const precoFinal =
         temPromo && promo != null ? promo : preco != null ? preco : null;
 
       const descontoPct =
-        temPromo && preco != null && promo != null ? calcDiscountPercent(preco, promo) : 0;
+        temPromo && preco != null && promo != null
+          ? calcDiscountPercent(preco, promo)
+          : 0;
 
       const imagemUrl = buildImageUrl(item.produto_imagem);
       const detalhesHref = rotas.produtos.paginas.produto(item.produto_slug);
 
       const estoque = toNumber(item.produto_estoque);
       const ilimitado = toNumber(item.produto_ilimitado);
-      const semEstoque = (ilimitado ?? 0) !== 1 && estoque != null && estoque <= 0;
+      const semEstoque =
+        (ilimitado ?? 0) !== 1 && estoque != null && estoque <= 0;
 
       return (
         <article key={`${item.produto_id}-${item.ordem ?? ""}`} className="pdCard">
-          <a className="pdMedia" href={detalhesHref} aria-label={`Detalhes ${item.produto_nome}`}>
+          <a
+            className="pdMedia"
+            href={detalhesHref}
+            aria-label={`Detalhes ${item.produto_nome}`}
+          >
             {imagemUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img className="pdImg" src={imagemUrl} alt={item.produto_nome} loading="lazy" />
+              <img
+                className="pdImg"
+                src={imagemUrl}
+                alt={item.produto_nome}
+                loading="lazy"
+              />
             ) : (
               <div className="pdImgFallback">Sem imagem</div>
             )}
@@ -216,7 +210,9 @@ export default function ProdutoDestaque() {
             <div className="pdPriceRow">
               <div className="pdPrices">
                 <div className="pdPrice">
-                  {precoFinal != null ? formatBRL(precoFinal) : "Preço sob consulta"}
+                  {precoFinal != null
+                    ? formatBRL(precoFinal)
+                    : "Preço sob consulta"}
                 </div>
                 {temPromo && preco != null ? (
                   <div className="pdOldPrice">{formatBRL(preco)}</div>
@@ -260,7 +256,9 @@ export default function ProdutoDestaque() {
             <p className="pdSub">Selecionados com carinho • tons creme</p>
           </div>
 
-          <div className="pdCount">{!loading && !erro ? `${itens.length} item(ns)` : ""}</div>
+          <div className="pdCount">
+            {!loading && !erro ? `${itens.length} item(ns)` : ""}
+          </div>
         </div>
 
         <div className="pdLayout">
@@ -273,7 +271,8 @@ export default function ProdutoDestaque() {
 
               <div className="pdBannerTitle">Coleção Creme</div>
               <div className="pdBannerText">
-                Produtos selecionados para presentear — delicados, elegantes e com preço especial.
+                Produtos selecionados para presentear — delicados, elegantes e com
+                preço especial.
               </div>
 
               <div className="pdBannerCTA">
@@ -311,12 +310,14 @@ export default function ProdutoDestaque() {
       </div>
 
       <style>{`
+        /* ===== Fundo creme premium ===== */
         .pdWrap{
           padding: 34px 16px 46px;
           background: radial-gradient(1200px 520px at 18% 0%, #fffaf1 0%, #f6efe4 55%, #f1e7d9 100%);
         }
         .pdContainer{ max-width: 1140px; margin: 0 auto; }
 
+        /* ===== Header ===== */
         .pdHeader{
           display:flex; align-items:flex-end; justify-content:space-between;
           gap:16px; margin-bottom: 16px;
@@ -335,6 +336,7 @@ export default function ProdutoDestaque() {
           white-space: nowrap;
         }
 
+        /* ===== Layout 2 colunas ===== */
         .pdLayout{
           display: grid;
           grid-template-columns: 320px 1fr;
@@ -342,6 +344,7 @@ export default function ProdutoDestaque() {
           align-items: start;
         }
 
+        /* ===== Banner esquerdo ===== */
         .pdBanner{ position: sticky; top: 14px; }
         .pdBannerInner{
           border-radius: 22px; overflow: hidden;
@@ -389,8 +392,10 @@ export default function ProdutoDestaque() {
         .pdMiniLabel{ font-size: 11px; font-weight: 900; color:#6b5a49; opacity: .9; margin-bottom: 6px; }
         .pdMiniValue{ font-size: 13px; font-weight: 980; color:#2f261e; letter-spacing: -0.2px; }
 
+        /* ===== Área direita ===== */
         .pdRight{ min-width: 0; }
 
+        /* ===== Grid de cards ===== */
         .pdGrid{
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(260px, 260px));
@@ -398,6 +403,7 @@ export default function ProdutoDestaque() {
           justify-content: start;
         }
 
+        /* ===== Card ===== */
         .pdCard{
           width: 260px;
           border-radius: 22px;
@@ -532,6 +538,7 @@ export default function ProdutoDestaque() {
           border-color: rgba(185,28,28,.18);
         }
 
+        /* ===== Responsivo ===== */
         @media (max-width: 980px){
           .pdLayout{ grid-template-columns: 1fr; }
           .pdBanner{ position: relative; top: 0; }
