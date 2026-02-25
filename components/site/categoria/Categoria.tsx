@@ -25,33 +25,48 @@ export default function CategoriasDestaque() {
               <p>Toque em uma categoria para abrir a página da categoria.</p>
             </div>
 
-            <Link className="allBtn" href="/catalogo">
-              Ver catálogo completo <span aria-hidden>→</span>
-            </Link>
+            <div className="rightSide">
+              <Link className="allBtn" href="/catalogo" aria-label="Ver catálogo completo">
+                Ver todas <span aria-hidden>→</span>
+              </Link>
+            </div>
           </header>
 
-          <div className="rail" role="list">
+          {/* círculos com Link */}
+          <div className="rail" role="list" aria-label="Lista de categorias">
             {top.map((c: any) => {
-              const slug = String(c.slug ?? "").trim();
-              if (!slug) return null;
+              const slug = (c?.slug || "").toString().trim();
+
+              // se não tiver slug, evita quebrar build/navegação
+              const href = slug
+                ? `/catalogo/categoria/${encodeURIComponent(slug)}`
+                : "/catalogo";
 
               return (
                 <Link
-                  key={c.id_categoria ?? slug}
-                  href={`/catalogo/categoria/${encodeURIComponent(slug)}`}
-                  className="bubble"
+                  key={slug || c.id_categoria}
                   role="listitem"
-                  aria-label={`Abrir categoria ${c.nome}`}
+                  className={`bubble ${slug ? "" : "bubbleDisabled"}`}
+                  href={href}
+                  aria-label={
+                    slug
+                      ? `Abrir categoria ${c.nome}`
+                      : `Categoria ${c.nome} sem slug (abrindo catálogo)`
+                  }
                 >
-                  <span className="orb" aria-hidden="true">
+                  <span className="orb" aria-hidden>
                     <span className="orbBorder" />
                     <span className="orbGlow" />
+                    <span className="orbShine" />
+
                     <span className="iconWrap">
                       <i className={`bi ${c.icone || "bi-grid"} icon`} />
                     </span>
                   </span>
 
-                  <span className="name">{c.nome}</span>
+                  <span className="name" title={c.nome}>
+                    {c.nome}
+                  </span>
                 </Link>
               );
             })}
@@ -60,12 +75,26 @@ export default function CategoriasDestaque() {
       </section>
 
       <style jsx>{`
+        :global(:root) {
+          --cream: #fff6ee;
+          --paper: #ffffff;
+
+          --rose: #b76e79;
+          --gold: #d4af37;
+
+          --ink: #1f2937;
+          --muted: rgba(31, 41, 55, 0.68);
+
+          --shadow: 0 16px 44px rgba(31, 41, 55, 0.10);
+          --shadowHover: 0 28px 80px rgba(31, 41, 55, 0.16);
+        }
+
         .sec {
-          padding: 60px 0 80px;
+          padding: 54px 0 76px;
           background:
-            radial-gradient(900px 360px at 12% -10%, rgba(183,110,121,.14), transparent 60%),
-            radial-gradient(900px 360px at 88% -10%, rgba(212,175,55,.12), transparent 60%),
-            linear-gradient(180deg, rgba(255,246,238,.55), rgba(255,255,255,1));
+            radial-gradient(1100px 440px at 10% -18%, rgba(183, 110, 121, 0.14), transparent 62%),
+            radial-gradient(950px 440px at 90% -18%, rgba(212, 175, 55, 0.13), transparent 64%),
+            linear-gradient(180deg, rgba(255, 246, 238, 0.0), rgba(255, 246, 238, 0.40));
         }
 
         .wrap {
@@ -76,11 +105,15 @@ export default function CategoriasDestaque() {
 
         .head {
           display: flex;
-          justify-content: space-between;
           align-items: flex-end;
-          margin-bottom: 28px;
+          justify-content: space-between;
+          gap: 16px;
+          margin-bottom: 22px;
           flex-wrap: wrap;
-          gap: 18px;
+        }
+
+        .titleBlock {
+          max-width: 760px;
         }
 
         .kicker {
@@ -89,12 +122,12 @@ export default function CategoriasDestaque() {
           gap: 10px;
           padding: 8px 12px;
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.82);
-          border: 1px solid rgba(31, 41, 55, 0.1);
+          background: rgba(255, 255, 255, 0.78);
+          border: 1px solid rgba(31, 41, 55, 0.10);
           box-shadow: 0 14px 34px rgba(31, 41, 55, 0.08);
           font-size: 12px;
           color: rgba(31, 41, 55, 0.72);
-          font-weight: 900;
+          font-weight: 950;
           letter-spacing: 0.6px;
           text-transform: uppercase;
           width: fit-content;
@@ -105,148 +138,224 @@ export default function CategoriasDestaque() {
           width: 10px;
           height: 10px;
           border-radius: 999px;
-          background: linear-gradient(135deg, #d4af37, #b76e79);
-          box-shadow: 0 0 0 6px rgba(212, 175, 55, 0.1);
+          background: linear-gradient(135deg, var(--gold), var(--rose));
+          box-shadow: 0 0 0 6px rgba(212, 175, 55, 0.10);
         }
 
-        h2 {
+        .titleBlock h2 {
           margin: 0;
           font-size: clamp(24px, 2.3vw, 34px);
           letter-spacing: -0.05em;
-          color: #1f2937;
+          color: var(--ink);
           font-weight: 950;
           line-height: 1.05;
         }
 
         .titleBlock p {
           margin: 10px 0 0;
-          color: rgba(31, 41, 55, 0.68);
+          color: var(--muted);
           font-size: 14px;
           line-height: 1.6;
         }
 
+        .rightSide {
+          margin-left: auto;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+
         .allBtn {
-          text-decoration: none;
-          padding: 11px 16px;
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.85);
           border: 1px solid rgba(31, 41, 55, 0.12);
-          font-weight: 900;
+          background: rgba(255, 255, 255, 0.85);
+          border-radius: 999px;
+          padding: 12px 14px;
           font-size: 12px;
+          font-weight: 950;
           color: rgba(31, 41, 55, 0.82);
           box-shadow: 0 18px 44px rgba(31, 41, 55, 0.08);
           transition: transform 0.18s ease, background 0.18s ease;
+          cursor: pointer;
           white-space: nowrap;
+          text-decoration: none;
         }
         .allBtn:hover {
-          transform: translateY(-2px);
+          transform: translateY(-1px);
           background: rgba(255, 255, 255, 0.95);
         }
 
+        /* ====== BOLHAS ====== */
         .rail {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-          gap: 22px;
+          grid-auto-flow: column;
+          grid-auto-columns: max-content;
+          gap: 14px;
+          overflow-x: auto;
+          padding: 8px 2px 14px;
+          scroll-snap-type: x mandatory;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+        }
+        .rail::-webkit-scrollbar {
+          display: none;
         }
 
         .bubble {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
+          scroll-snap-align: start;
+          width: 132px;
+          display: grid;
+          justify-items: center;
+          gap: 10px;
+          padding: 10px 8px 2px;
+          border-radius: 22px;
           text-decoration: none;
-          color: #1f2937;
-          gap: 12px;
+          color: inherit;
           user-select: none;
+          -webkit-tap-highlight-color: transparent;
+        }
+
+        .bubbleDisabled {
+          opacity: 0.7;
         }
 
         .orb {
-          width: 112px;
-          height: 112px;
-          border-radius: 50%;
+          width: 94px;
+          height: 94px;
+          border-radius: 999px;
           position: relative;
           display: grid;
           place-items: center;
-          background: rgba(255, 255, 255, 0.94);
-          box-shadow: 0 18px 60px rgba(31, 41, 55, 0.1);
-          transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+          background: rgba(255, 255, 255, 0.92);
+          box-shadow: var(--shadow);
           overflow: hidden;
+          transform: translateZ(0);
+          transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
         }
 
         .orbBorder {
           position: absolute;
           inset: -2px;
-          border-radius: 50%;
-          background: linear-gradient(135deg, #d4af37, #b76e79);
-          opacity: 0.35;
+          border-radius: 999px;
+          background: conic-gradient(
+            from 210deg,
+            rgba(212, 175, 55, 0.78),
+            rgba(183, 110, 121, 0.70),
+            rgba(212, 175, 55, 0.22),
+            rgba(183, 110, 121, 0.72),
+            rgba(212, 175, 55, 0.78)
+          );
+          opacity: 0.42;
           pointer-events: none;
         }
 
         .orbGlow {
           position: absolute;
-          inset: -60px;
+          inset: -40px;
           background:
-            radial-gradient(circle at 30% 30%, rgba(212,175,55,0.18), transparent 55%),
-            radial-gradient(circle at 65% 70%, rgba(183,110,121,0.16), transparent 55%);
+            radial-gradient(circle at 30% 30%, rgba(212, 175, 55, 0.20), transparent 55%),
+            radial-gradient(circle at 70% 75%, rgba(183, 110, 121, 0.16), transparent 55%);
+          pointer-events: none;
+        }
+
+        .orbShine {
+          position: absolute;
+          left: 16px;
+          top: 14px;
+          width: 44px;
+          height: 44px;
+          border-radius: 999px;
+          background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0));
+          opacity: 0.55;
           pointer-events: none;
         }
 
         .iconWrap {
           position: relative;
           z-index: 1;
-          width: 62px;
-          height: 62px;
+          width: 74px;
+          height: 74px;
           border-radius: 999px;
           display: grid;
           place-items: center;
-          border: 1px solid rgba(183, 110, 121, 0.18);
           background: linear-gradient(
             135deg,
-            rgba(183, 110, 121, 0.12),
-            rgba(212, 175, 55, 0.1),
-            rgba(255, 255, 255, 0.3)
+            rgba(183, 110, 121, 0.10),
+            rgba(212, 175, 55, 0.08),
+            rgba(255, 255, 255, 0.55)
           );
-          box-shadow: 0 18px 46px rgba(183, 110, 121, 0.12);
+          border: 1px solid rgba(31, 41, 55, 0.08);
         }
 
         .icon {
-          font-size: 26px;
-          color: rgba(31, 41, 55, 0.9);
+          font-size: 30px;
+          color: rgba(31, 41, 55, 0.88);
         }
 
         .name {
+          width: 100%;
+          text-align: center;
           font-size: 13px;
           font-weight: 950;
-          text-align: center;
-          line-height: 1.2;
-          max-width: 160px;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
+          color: rgba(31, 41, 55, 0.90);
+          letter-spacing: -0.01em;
+          line-height: 1.15;
           overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         @media (hover: hover) and (pointer: fine) {
           .bubble:hover .orb {
-            transform: translateY(-5px);
-            box-shadow: 0 30px 90px rgba(31, 41, 55, 0.16);
-            filter: saturate(1.03);
+            transform: translateY(-4px) scale(1.02);
+            box-shadow: var(--shadowHover);
+            filter: saturate(1.04);
           }
+          .bubble:hover .icon {
+            color: rgba(159, 61, 95, 0.92);
+          }
+        }
+
+        .bubble:active .orb {
+          transform: translateY(-1px) scale(0.995);
         }
 
         .bubble:focus-visible {
           outline: 3px solid rgba(183, 110, 121, 0.25);
           outline-offset: 6px;
-          border-radius: 16px;
         }
 
-        @media (max-width: 520px) {
+        @media (min-width: 640px) {
           .rail {
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 16px;
+            grid-auto-flow: initial;
+            grid-auto-columns: initial;
+            overflow: visible;
+            padding: 0;
+            scroll-snap-type: none;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 18px;
+          }
+          .bubble {
+            width: auto;
+          }
+        }
+
+        @media (min-width: 960px) {
+          .rail {
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 22px;
           }
           .orb {
             width: 100px;
             height: 100px;
+          }
+          .iconWrap {
+            width: 78px;
+            height: 78px;
+          }
+          .icon {
+            font-size: 32px;
           }
         }
 
