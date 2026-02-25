@@ -22,18 +22,24 @@ type ProdutoDestaqueApi = {
 
 type ApiResponse<T> = {
   message?: string;
+  mensagem?: string;
   status?: number;
   data?: T;
   dados?: T;
 };
 
 function resolveApiData<T>(payload: any): T {
+  // array direto
   if (Array.isArray(payload)) return payload as T;
+
+  // formatos comuns
   if (payload?.data != null) return payload.data as T;
   if (payload?.dados != null) return payload.dados as T;
-  // formatos comuns: {dados:{dados:[...]}} etc
+
+  // aninhados comuns: {dados:{dados:[...]}} / {data:{data:[...]}}
   if (payload?.dados?.dados != null) return payload.dados.dados as T;
   if (payload?.data?.data != null) return payload.data.data as T;
+
   return payload as T;
 }
 
@@ -72,6 +78,9 @@ export default function ProdutoDestaque() {
   const [erro, setErro] = useState<string | null>(null);
   const [addingId, setAddingId] = useState<number | null>(null);
 
+  // ✅ LOG: render
+  console.log("🧩 Render ProdutoDestaque | itens:", itens);
+
   useEffect(() => {
     let alive = true;
 
@@ -80,18 +89,40 @@ export default function ProdutoDestaque() {
       setErro(null);
 
       try {
-        // ✅ SUA ROTA CORRETA (pública): /produtos/destaques/ativos
+        // ✅ LOG: rota
+        console.log("🔵 Buscando destaques em:", rotas.produtos.destaques.ativos);
+
+        // ✅ SUA ROTA CORRETA: /produtos/destaques/ativos
         const res = await api.get<ApiResponse<ProdutoDestaqueApi[]>>(
           rotas.produtos.destaques.ativos,
           { withCredentials: true }
         );
 
+        // ✅ LOG: resposta bruta
+        console.log("🟡 Resposta bruta da API (res):", res);
+        console.log("🟡 res.status:", res.status);
+        console.log("🟡 res.data:", res.data);
+
         const data = resolveApiData<ProdutoDestaqueApi[]>(res.data);
+
+        // ✅ LOG: dados resolvidos
+        console.log("🟢 Dados resolvidos:", data);
+        console.log("🟢 É array?", Array.isArray(data));
+        console.log("🟢 Quantidade recebida:", Array.isArray(data) ? data.length : "não é array");
+
         if (!alive) return;
 
-        setItens(Array.isArray(data) ? data : []);
+        const finalArray = Array.isArray(data) ? data : [];
+        console.log("✅ Final array setItens:", finalArray);
+
+        setItens(finalArray);
       } catch (e: any) {
+        console.error("🔴 Erro ao carregar destaques:", e);
+        console.error("🔴 e.response:", e?.response);
+        console.error("🔴 e.response.data:", e?.response?.data);
+
         if (!alive) return;
+
         setErro(
           e?.response?.data?.message ||
             e?.response?.data?.mensagem ||
@@ -106,6 +137,7 @@ export default function ProdutoDestaque() {
     }
 
     carregar();
+
     return () => {
       alive = false;
     };
@@ -115,6 +147,8 @@ export default function ProdutoDestaque() {
     try {
       setAddingId(produtoId);
 
+      console.log("🛒 Adicionando ao carrinho:", { produtoId, rota: rotas.carrinho.adicionar });
+
       await api.post(
         rotas.carrinho.adicionar,
         { produto_id: produtoId, qtd: 1 },
@@ -123,6 +157,7 @@ export default function ProdutoDestaque() {
 
       alert("Adicionado ao carrinho!");
     } catch (e: any) {
+      console.error("🔴 Erro ao adicionar no carrinho:", e);
       alert(
         e?.response?.data?.message ||
           e?.response?.data?.mensagem ||
@@ -139,32 +174,24 @@ export default function ProdutoDestaque() {
       const preco = toNumber(item.produto_preco);
       const promo = toNumber(item.produto_preco_promocional);
 
-      const temPromo =
-        preco != null && promo != null && promo > 0 && promo < preco;
+      const temPromo = preco != null && promo != null && promo > 0 && promo < preco;
 
       const precoFinal =
         temPromo && promo != null ? promo : preco != null ? preco : null;
 
       const descontoPct =
-        temPromo && preco != null && promo != null
-          ? calcDiscountPercent(preco, promo)
-          : 0;
+        temPromo && preco != null && promo != null ? calcDiscountPercent(preco, promo) : 0;
 
       const imagemUrl = buildImageUrl(item.produto_imagem);
       const detalhesHref = rotas.produtos.paginas.produto(item.produto_slug);
 
       const estoque = toNumber(item.produto_estoque);
       const ilimitado = toNumber(item.produto_ilimitado);
-      const semEstoque =
-        (ilimitado ?? 0) !== 1 && estoque != null && estoque <= 0;
+      const semEstoque = (ilimitado ?? 0) !== 1 && estoque != null && estoque <= 0;
 
       return (
         <article key={`${item.produto_id}-${item.ordem ?? ""}`} className="pdCard">
-          <a
-            className="pdMedia"
-            href={detalhesHref}
-            aria-label={`Detalhes ${item.produto_nome}`}
-          >
+          <a className="pdMedia" href={detalhesHref} aria-label={`Detalhes ${item.produto_nome}`}>
             {imagemUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img className="pdImg" src={imagemUrl} alt={item.produto_nome} loading="lazy" />
@@ -214,8 +241,8 @@ export default function ProdutoDestaque() {
                 {semEstoque
                   ? "Indisponível"
                   : addingId === item.produto_id
-                    ? "Adicionando…"
-                    : "Adicionar"}
+                  ? "Adicionando…"
+                  : "Adicionar"}
               </button>
             </div>
           </div>
@@ -233,9 +260,7 @@ export default function ProdutoDestaque() {
             <p className="pdSub">Selecionados com carinho • tons creme</p>
           </div>
 
-          <div className="pdCount">
-            {!loading && !erro ? `${itens.length} item(ns)` : ""}
-          </div>
+          <div className="pdCount">{!loading && !erro ? `${itens.length} item(ns)` : ""}</div>
         </div>
 
         <div className="pdLayout">
@@ -248,8 +273,7 @@ export default function ProdutoDestaque() {
 
               <div className="pdBannerTitle">Coleção Creme</div>
               <div className="pdBannerText">
-                Produtos selecionados para presentear — delicados, elegantes e com
-                preço especial.
+                Produtos selecionados para presentear — delicados, elegantes e com preço especial.
               </div>
 
               <div className="pdBannerCTA">
@@ -287,7 +311,6 @@ export default function ProdutoDestaque() {
       </div>
 
       <style>{`
-        /* ===== Fundo creme premium ===== */
         .pdWrap{
           padding: 34px 16px 46px;
           background: radial-gradient(1200px 520px at 18% 0%, #fffaf1 0%, #f6efe4 55%, #f1e7d9 100%);
@@ -302,9 +325,7 @@ export default function ProdutoDestaque() {
           margin:0; font-size: 28px; letter-spacing: -0.6px;
           color:#3f3327; font-weight: 950;
         }
-        .pdSub{
-          margin:6px 0 0; font-size: 13px; color:#6b5a49; font-weight: 650;
-        }
+        .pdSub{ margin:6px 0 0; font-size: 13px; color:#6b5a49; font-weight: 650; }
         .pdCount{
           font-size: 12px; color:#6b5a49; font-weight: 900;
           background: rgba(255,255,255,.62);
@@ -357,12 +378,8 @@ export default function ProdutoDestaque() {
           border: 1px solid rgba(255,255,255,.18);
         }
         .pdBannerBtn:hover{ filter: brightness(1.02); }
-        .pdBannerHint{
-          font-size: 12px; color:#6b5a49; font-weight: 800; opacity: .9; text-align: right;
-        }
-        .pdBannerMini{
-          display:grid; grid-template-columns: 1fr 1fr; gap: 10px;
-        }
+        .pdBannerHint{ font-size: 12px; color:#6b5a49; font-weight: 800; opacity: .9; text-align: right; }
+        .pdBannerMini{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .pdBannerMiniBox{
           border-radius: 16px;
           background: rgba(255,255,255,.55);
