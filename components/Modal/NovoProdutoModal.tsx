@@ -13,6 +13,8 @@ interface Status {
   cor?: string;
 }
 
+type TabKey = "basico" | "precos" | "midia";
+
 export default function NovoProdutoModal({
   open,
   onClose,
@@ -22,6 +24,8 @@ export default function NovoProdutoModal({
   onClose: () => void;
   onCreated?: () => void | Promise<void>;
 }) {
+  const [tab, setTab] = useState<TabKey>("basico");
+
   const [nome, setNome] = useState("");
   const [slug, setSlug] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -109,6 +113,7 @@ export default function NovoProdutoModal({
   useEffect(() => {
     if (!open) return;
 
+    setTab("basico");
     setNome("");
     setSlug("");
     setDescricao("");
@@ -176,20 +181,41 @@ export default function NovoProdutoModal({
     return Number.isFinite(n) ? n : "";
   };
 
+  const validarAntesDeSalvar = (): boolean => {
+    const nomeTrim = nome.trim();
+    if (!nomeTrim) {
+      toast.warning("Informe o nome");
+      setTab("basico");
+      return false;
+    }
+    if (!statusId) {
+      toast.warning("Selecione um status");
+      setTab("basico");
+      return false;
+    }
+    if (preco === "" || Number(preco) <= 0) {
+      toast.warning("Informe um preço válido");
+      setTab("precos");
+      return false;
+    }
+    if (!ilimitado && (estoque === "" || Number(estoque) < 0)) {
+      toast.warning("Informe o estoque");
+      setTab("precos");
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const nomeTrim = nome.trim();
-    if (!nomeTrim) return toast.warning("Informe o nome");
-    if (preco === "" || Number(preco) <= 0) return toast.warning("Informe um preço válido");
-    if (!ilimitado && (estoque === "" || Number(estoque) < 0)) return toast.warning("Informe o estoque");
-    if (!statusId) return toast.warning("Selecione um status");
+    if (!validarAntesDeSalvar()) return;
 
     setLoading(true);
 
     try {
       const formData = new FormData();
-      formData.append("nome", nomeTrim);
+      formData.append("nome", nome.trim());
       formData.append("slug", slug);
       formData.append("descricao", descricao);
       formData.append("preco", String(preco));
@@ -202,7 +228,6 @@ export default function NovoProdutoModal({
       formData.append("statusid", String(statusId));
       if (file) formData.append("imagem", file);
 
-      // ✅ usa sua rota centralizada
       await api.post(rotas.admin.api.produtoCriar, formData, {
         withCredentials: true,
         headers: { "Content-Type": "multipart/form-data" },
@@ -219,6 +244,18 @@ export default function NovoProdutoModal({
     }
   };
 
+  const nextTab = () => {
+    const order: TabKey[] = ["basico", "precos", "midia"];
+    const idx = order.indexOf(tab);
+    setTab(order[Math.min(idx + 1, order.length - 1)]);
+  };
+
+  const prevTab = () => {
+    const order: TabKey[] = ["basico", "precos", "midia"];
+    const idx = order.indexOf(tab);
+    setTab(order[Math.max(idx - 1, 0)]);
+  };
+
   if (!open) return null;
 
   return (
@@ -229,7 +266,7 @@ export default function NovoProdutoModal({
           <div>
             <div className="np__kicker">Admin</div>
             <h2 className="np__title">Novo Produto</h2>
-            <div className="np__sub">Cadastre rapidamente um produto com status e imagem.</div>
+            <div className="np__sub">Preencha por etapas (abas) e salve no final.</div>
           </div>
 
           <button className="np__close" type="button" onClick={onClose} aria-label="Fechar">
@@ -237,199 +274,275 @@ export default function NovoProdutoModal({
           </button>
         </header>
 
+        {/* TABS */}
+        <div className="np__tabs">
+          <button
+            type="button"
+            className={`np__tab ${tab === "basico" ? "isActive" : ""}`}
+            onClick={() => setTab("basico")}
+          >
+            <FaBoxes /> Básico
+          </button>
+          <button
+            type="button"
+            className={`np__tab ${tab === "precos" ? "isActive" : ""}`}
+            onClick={() => setTab("precos")}
+          >
+            R$ Preço & Estoque
+          </button>
+          <button
+            type="button"
+            className={`np__tab ${tab === "midia" ? "isActive" : ""}`}
+            onClick={() => setTab("midia")}
+          >
+            <FaImage /> Mídia
+          </button>
+        </div>
+
         <form onSubmit={handleSubmit}>
-          <div className="np__body">
-            {/* LEFT */}
-            <aside className="np__left">
-              <div className="np__panelTitle">
-                <FaImage /> Imagem
-              </div>
-
-              <label
-                className={`np__upload ${preview ? "has" : ""}`}
-                onDragOver={(e) => e.preventDefault()}
-                onDrop={onDrop}
-              >
-                {preview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={preview} alt="Preview" />
-                ) : (
-                  <div className="np__uploadEmpty">
-                    <div className="np__uploadIcon">
-                      <FaImage />
-                    </div>
-                    <div className="np__uploadText">
-                      <b>Clique para enviar</b> ou arraste a imagem
-                    </div>
-                    <div className="np__hint">Recomendado: 1200×1200</div>
-                  </div>
-                )}
-
-                <input type="file" hidden accept="image/*" onChange={handleImagemChange} />
-              </label>
-
-              <div className="np__miniRow">
-                <div className="np__mini">
-                  <span className="np__miniLabel">Slug</span>
-                  <span className="np__miniValue">{slug || "—"}</span>
-                </div>
-                <div className="np__mini">
-                  <span className="np__miniLabel">SKU</span>
-                  <span className="np__miniValue">{sku || "—"}</span>
-                </div>
-              </div>
-
-              <div className="np__panelTitle np__mt">
-                <FaTag /> Status
-              </div>
-
-              <select
-                className="np__input"
-                value={statusId}
-                onChange={(e) => setStatusId(e.target.value ? Number(e.target.value) : "")}
-                disabled={!statusList.length}
-              >
-                {!statusList.length && <option value="">Carregando...</option>}
-                {statusList.map((s) => (
-                  <option key={s.id_status} value={s.id_status}>
-                    {s.nome}
-                    {s.descricao ? ` — ${s.descricao}` : ""}
-                  </option>
-                ))}
-              </select>
-
-              {statusSelecionado && (
-                <div className="np__statusPreview">
-                  <span
-                    className="np__pill"
-                    style={{
-                      background: statusSelecionado.cor || "#6b4c4f",
-                      color: getContraste(statusSelecionado.cor),
-                    }}
-                  >
-                    {statusSelecionado.nome}
-                  </span>
-                  {statusSelecionado.descricao && (
-                    <div className="np__statusDesc">{statusSelecionado.descricao}</div>
-                  )}
-                </div>
-              )}
-            </aside>
-
-            {/* RIGHT */}
-            <section className="np__right">
-              <div className="np__panelTitle">
-                <FaBoxes /> Dados do produto
-              </div>
-
-              <div className="np__grid">
-                <div className="np__field np__span2">
-                  <label className="np__label">Nome *</label>
-                  <input
-                    className="np__input"
-                    value={nome}
-                    onChange={(e) => setNome(e.target.value)}
-                    placeholder="Ex: Kit Perfume + Hidratante"
-                  />
-                </div>
-
-                <div className="np__field">
-                  <label className="np__label">Modelo</label>
-                  <input
-                    className="np__input"
-                    value={modelo}
-                    onChange={(e) => setModelo(e.target.value)}
-                    placeholder="Ex: 2026"
-                  />
-                </div>
-
-                <div className="np__field np__span3">
-                  <label className="np__label">Descrição</label>
-                  <textarea
-                    className="np__input np__textarea"
-                    value={descricao}
-                    onChange={(e) => setDescricao(e.target.value)}
-                    placeholder="Benefícios, tamanho, detalhes do produto..."
-                    rows={4}
-                  />
-                  <div className="np__hint">Dica: 2–4 linhas com diferencial e público-alvo.</div>
-                </div>
-
-                <div className="np__field">
-                  <label className="np__label">Preço *</label>
-                  <input
-                    type="number"
-                    className="np__input"
-                    value={preco}
-                    onChange={(e) => setPreco(parseNumber(e.target.value))}
-                    min={0}
-                    step="0.01"
-                    placeholder="0,00"
-                  />
-                </div>
-
-                <div className="np__field">
-                  <label className="np__label">Preço promocional</label>
-                  <input
-                    type="number"
-                    className="np__input"
-                    value={precoPromocional}
-                    onChange={(e) => setPrecoPromocional(parseNumber(e.target.value))}
-                    min={0}
-                    step="0.01"
-                    placeholder="0,00"
-                  />
-                </div>
-
-                <div className="np__field">
-                  <label className="np__label">Parcelamento</label>
-                  <input
-                    className="np__input"
-                    value={parcelamento}
-                    onChange={(e) => setParcelamento(e.target.value)}
-                    placeholder="Ex: 10x sem juros"
-                  />
-                </div>
-
-                <div className="np__field">
-                  <label className="np__label">Estoque {!ilimitado ? "*" : ""}</label>
-                  <input
-                    type="number"
-                    className="np__input"
-                    value={estoque}
-                    onChange={(e) => setEstoque(parseNumber(e.target.value))}
-                    disabled={ilimitado}
-                    min={0}
-                    step="1"
-                    placeholder={ilimitado ? "Ilimitado" : "0"}
-                  />
-                </div>
-
-                <div className="np__field np__span2 np__toggleWrap">
-                  <label className="np__toggle">
+          <div className="np__content">
+            {/* ===== ABA: BASICO ===== */}
+            {tab === "basico" && (
+              <div className="np__panel">
+                <div className="np__row">
+                  <div className="np__field np__span2">
+                    <label className="np__label">Nome *</label>
                     <input
-                      type="checkbox"
-                      checked={ilimitado}
-                      onChange={() => setIlimitado((v) => !v)}
+                      className="np__input"
+                      value={nome}
+                      onChange={(e) => setNome(e.target.value)}
+                      placeholder="Ex: Kit Perfume + Hidratante"
                     />
-                    <span>
-                      Produto ilimitado <small>(não controla estoque)</small>
-                    </span>
-                  </label>
+                  </div>
+
+                  <div className="np__field">
+                    <label className="np__label">Modelo</label>
+                    <input
+                      className="np__input"
+                      value={modelo}
+                      onChange={(e) => setModelo(e.target.value)}
+                      placeholder="Ex: 2026"
+                    />
+                  </div>
+
+                  <div className="np__field np__span3">
+                    <label className="np__label">Descrição</label>
+                    <textarea
+                      className="np__input np__textarea"
+                      value={descricao}
+                      onChange={(e) => setDescricao(e.target.value)}
+                      placeholder="Benefícios, tamanho, detalhes..."
+                      rows={4}
+                    />
+                    <div className="np__hint">Dica: 2–4 linhas com diferencial e público-alvo.</div>
+                  </div>
+                </div>
+
+                <div className="np__divider" />
+
+                <div className="np__row">
+                  <div className="np__field np__span2">
+                    <label className="np__label">
+                      <FaTag style={{ marginRight: 8 }} /> Status *
+                    </label>
+                    <select
+                      className="np__input"
+                      value={statusId}
+                      onChange={(e) => setStatusId(e.target.value ? Number(e.target.value) : "")}
+                      disabled={!statusList.length}
+                    >
+                      {!statusList.length && <option value="">Carregando...</option>}
+                      {statusList.map((s) => (
+                        <option key={s.id_status} value={s.id_status}>
+                          {s.nome}
+                          {s.descricao ? ` — ${s.descricao}` : ""}
+                        </option>
+                      ))}
+                    </select>
+
+                    {statusSelecionado && (
+                      <div className="np__statusPreview">
+                        <span
+                          className="np__pill"
+                          style={{
+                            background: statusSelecionado.cor || "#6b4c4f",
+                            color: getContraste(statusSelecionado.cor),
+                          }}
+                        >
+                          {statusSelecionado.nome}
+                        </span>
+                        {statusSelecionado.descricao && (
+                          <div className="np__statusDesc">{statusSelecionado.descricao}</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="np__field">
+                    <label className="np__label">Slug</label>
+                    <div className="np__readonly">{slug || "—"}</div>
+                  </div>
+
+                  <div className="np__field">
+                    <label className="np__label">SKU</label>
+                    <div className="np__readonly">{sku || "—"}</div>
+                  </div>
                 </div>
               </div>
-            </section>
+            )}
+
+            {/* ===== ABA: PRECOS ===== */}
+            {tab === "precos" && (
+              <div className="np__panel">
+                <div className="np__row">
+                  <div className="np__field">
+                    <label className="np__label">Preço *</label>
+                    <input
+                      type="number"
+                      className="np__input"
+                      value={preco}
+                      onChange={(e) => setPreco(parseNumber(e.target.value))}
+                      min={0}
+                      step="0.01"
+                      placeholder="0,00"
+                    />
+                  </div>
+
+                  <div className="np__field">
+                    <label className="np__label">Preço promocional</label>
+                    <input
+                      type="number"
+                      className="np__input"
+                      value={precoPromocional}
+                      onChange={(e) => setPrecoPromocional(parseNumber(e.target.value))}
+                      min={0}
+                      step="0.01"
+                      placeholder="0,00"
+                    />
+                  </div>
+
+                  <div className="np__field">
+                    <label className="np__label">Parcelamento</label>
+                    <input
+                      className="np__input"
+                      value={parcelamento}
+                      onChange={(e) => setParcelamento(e.target.value)}
+                      placeholder="Ex: 10x sem juros"
+                    />
+                  </div>
+
+                  <div className="np__field">
+                    <label className="np__label">Estoque {!ilimitado ? "*" : ""}</label>
+                    <input
+                      type="number"
+                      className="np__input"
+                      value={estoque}
+                      onChange={(e) => setEstoque(parseNumber(e.target.value))}
+                      disabled={ilimitado}
+                      min={0}
+                      step="1"
+                      placeholder={ilimitado ? "Ilimitado" : "0"}
+                    />
+                  </div>
+
+                  <div className="np__field np__span3">
+                    <label className="np__toggle">
+                      <input
+                        type="checkbox"
+                        checked={ilimitado}
+                        onChange={() => setIlimitado((v) => !v)}
+                      />
+                      <span>
+                        Produto ilimitado <small>(não controla estoque)</small>
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ===== ABA: MIDIA ===== */}
+            {tab === "midia" && (
+              <div className="np__panel">
+                <div className="np__mediaRow">
+                  <div className="np__mediaLeft">
+                    <div className="np__panelTitle">
+                      <FaImage /> Imagem
+                    </div>
+
+                    <label
+                      className={`np__upload ${preview ? "has" : ""}`}
+                      onDragOver={(e) => e.preventDefault()}
+                      onDrop={onDrop}
+                    >
+                      {preview ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={preview} alt="Preview" />
+                      ) : (
+                        <div className="np__uploadEmpty">
+                          <div className="np__uploadIcon">
+                            <FaImage />
+                          </div>
+                          <div className="np__uploadText">
+                            <b>Clique para enviar</b> ou arraste a imagem
+                          </div>
+                          <div className="np__hint">Recomendado: 1200×1200</div>
+                        </div>
+                      )}
+
+                      <input type="file" hidden accept="image/*" onChange={handleImagemChange} />
+                    </label>
+                  </div>
+
+                  <div className="np__mediaRight">
+                    <div className="np__mini">
+                      <span className="np__miniLabel">Slug</span>
+                      <span className="np__miniValue">{slug || "—"}</span>
+                    </div>
+                    <div className="np__mini np__mtSmall">
+                      <span className="np__miniLabel">SKU</span>
+                      <span className="np__miniValue">{sku || "—"}</span>
+                    </div>
+
+                    <div className="np__hint np__mtSmall">
+                      Se não enviar imagem, o produto ficará “sem imagem”.
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* FOOTER */}
           <footer className="np__footer">
-            <button type="button" className="np__btn np__btnGhost" onClick={onClose} disabled={loading}>
-              Cancelar
-            </button>
+            <div className="np__footerLeft">
+              <button
+                type="button"
+                className="np__btn np__btnGhost"
+                onClick={prevTab}
+                disabled={tab === "basico"}
+              >
+                Voltar
+              </button>
+            </div>
 
-            <button type="submit" className="np__btn np__btnPrimary" disabled={loading}>
-              <FaSave /> {loading ? "Salvando..." : "Salvar produto"}
-            </button>
+            <div className="np__footerRight">
+              {tab !== "midia" ? (
+                <button type="button" className="np__btn np__btnPrimary" onClick={nextTab}>
+                  Próximo
+                </button>
+              ) : (
+                <>
+                  <button type="button" className="np__btn np__btnGhost" onClick={onClose} disabled={loading}>
+                    Cancelar
+                  </button>
+
+                  <button type="submit" className="np__btn np__btnPrimary" disabled={loading}>
+                    <FaSave /> {loading ? "Salvando..." : "Salvar produto"}
+                  </button>
+                </>
+              )}
+            </div>
           </footer>
         </form>
 
@@ -447,7 +560,7 @@ export default function NovoProdutoModal({
           }
 
           .np__modal{
-            width: min(1100px, 100%);
+            width: min(760px, 100%);
             background:#fff;
             border:1px solid #e5e7eb;
             border-radius: 18px;
@@ -495,27 +608,45 @@ export default function NovoProdutoModal({
             font-weight: 900;
           }
 
-          .np__body{
-            display:grid;
-            grid-template-columns: 360px 1fr;
-            gap: 0;
-          }
-          @media (max-width: 980px){
-            .np__body{ grid-template-columns: 1fr; }
-          }
-
-          .np__left{
-            padding: 14px;
-            border-right:1px solid #e5e7eb;
+          .np__tabs{
+            display:flex;
+            gap:8px;
+            padding: 10px 12px;
+            border-bottom:1px solid #e5e7eb;
             background:#fafafa;
           }
-          @media (max-width: 980px){
-            .np__left{ border-right:none; border-bottom:1px solid #e5e7eb; }
+          .np__tab{
+            border:1px solid #e5e7eb;
+            background:#fff;
+            padding: 8px 10px;
+            border-radius: 999px;
+            font-weight: 950;
+            font-size: 12px;
+            cursor:pointer;
+            display:inline-flex;
+            gap:8px;
+            align-items:center;
+            transition: transform .12s ease, background .12s ease, border-color .12s ease;
+            user-select:none;
+          }
+          .np__tab:active{ transform: translateY(1px); }
+          .np__tab:hover{ background:#f3f4f6; }
+          .np__tab.isActive{
+            background:#fff7db;
+            border-color: rgba(212,175,55,.55);
+            color:#6b4c4f;
           }
 
-          .np__right{
-            padding: 14px;
+          .np__content{
+            padding: 12px;
+          }
+
+          .np__panel{
             background:#fff;
+            border: 1px solid rgba(15,23,42,0.06);
+            border-radius: 16px;
+            padding: 12px;
+            box-shadow: 0 10px 24px rgba(17,24,39,.04);
           }
 
           .np__panelTitle{
@@ -525,71 +656,19 @@ export default function NovoProdutoModal({
             gap:10px;
             margin-bottom: 10px;
           }
-          .np__mt{ margin-top: 14px; }
 
-          .np__upload{
-            height: 240px;
-            border-radius: 16px;
-            border: 1px dashed rgba(15, 23, 42, 0.18);
-            background: linear-gradient(180deg, rgba(245, 246, 250, 0.6), rgba(245, 246, 250, 1));
-            display: grid;
-            place-items: center;
-            cursor: pointer;
-            overflow: hidden;
-            transition: 0.18s ease;
-          }
-          .np__upload:hover{
-            transform: translateY(-1px);
-            box-shadow: 0 16px 40px rgba(2, 6, 23, 0.08);
-            border-color: rgba(212, 175, 55, 0.55);
-          }
-          .np__upload.has{ border-style: solid; }
-          .np__upload img{ width:100%; height:100%; object-fit: cover; }
-
-          .np__uploadEmpty{ text-align:center; padding: 16px; }
-          .np__uploadIcon{
-            width: 56px;
-            height: 56px;
-            border-radius: 18px;
-            background: rgba(212, 175, 55, 0.16);
-            border: 1px solid rgba(212, 175, 55, 0.22);
+          .np__row{
             display:grid;
-            place-items:center;
-            margin: 0 auto 10px;
-            color: #6b4c4f;
-            font-size: 22px;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
           }
-          .np__uploadText{
-            color:#475569;
-            font-size: 14px;
-            margin-bottom: 6px;
-            font-weight: 800;
-          }
+          .np__field{ min-width:0; }
+          .np__span2{ grid-column: span 2; }
+          .np__span3{ grid-column: span 3; }
 
-          .np__miniRow{
-            display:grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 10px;
-          }
-          .np__mini{
-            background: rgba(245, 246, 250, 0.8);
-            border: 1px solid rgba(15, 23, 42, 0.06);
-            border-radius: 14px;
-            padding: 10px 12px;
-          }
-          .np__miniLabel{
-            display:block;
-            font-size: 11px;
-            color:#94a3b8;
-            margin-bottom: 2px;
-            font-weight: 800;
-          }
-          .np__miniValue{
-            font-weight: 900;
-            color:#111827;
-            font-size: 12px;
-            word-break: break-all;
+          @media (max-width: 720px){
+            .np__row{ grid-template-columns: 1fr; }
+            .np__span2, .np__span3{ grid-column: span 1; }
           }
 
           .np__label{
@@ -627,6 +706,23 @@ export default function NovoProdutoModal({
             font-weight: 700;
           }
 
+          .np__divider{
+            height:1px;
+            background: rgba(15,23,42,0.06);
+            margin: 12px 0;
+          }
+
+          .np__readonly{
+            width:100%;
+            border-radius: 12px;
+            padding: 10px 12px;
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            background: rgba(245,246,250,0.8);
+            font-weight: 900;
+            color:#111827;
+            word-break: break-all;
+          }
+
           .np__statusPreview{
             margin-top: 10px;
             padding: 12px;
@@ -648,24 +744,6 @@ export default function NovoProdutoModal({
             font-weight: 700;
           }
 
-          .np__grid{
-            display:grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 12px;
-          }
-          .np__field{ min-width:0; }
-          .np__span2{ grid-column: span 2; }
-          .np__span3{ grid-column: span 3; }
-
-          @media (max-width: 980px){
-            .np__grid{ grid-template-columns: 1fr; }
-            .np__span2, .np__span3{ grid-column: span 1; }
-          }
-
-          .np__toggleWrap{
-            display:flex;
-            align-items:flex-end;
-          }
           .np__toggle{
             display:flex;
             gap: 10px;
@@ -676,6 +754,7 @@ export default function NovoProdutoModal({
             padding: 10px 12px;
             width: 100%;
             font-weight: 900;
+            user-select:none;
           }
           .np__toggle input{ width:18px; height:18px; }
           .np__toggle small{
@@ -684,13 +763,89 @@ export default function NovoProdutoModal({
             margin-left: 6px;
           }
 
+          .np__mediaRow{
+            display:grid;
+            grid-template-columns: 1fr 220px;
+            gap: 12px;
+            align-items:start;
+          }
+          @media (max-width: 720px){
+            .np__mediaRow{ grid-template-columns: 1fr; }
+          }
+
+          .np__upload{
+            height: 260px;
+            border-radius: 16px;
+            border: 1px dashed rgba(15, 23, 42, 0.18);
+            background: linear-gradient(180deg, rgba(245, 246, 250, 0.6), rgba(245, 246, 250, 1));
+            display: grid;
+            place-items: center;
+            cursor: pointer;
+            overflow: hidden;
+            transition: 0.18s ease;
+          }
+          .np__upload:hover{
+            transform: translateY(-1px);
+            box-shadow: 0 16px 40px rgba(2, 6, 23, 0.08);
+            border-color: rgba(212, 175, 55, 0.55);
+          }
+          .np__upload.has{ border-style: solid; }
+          .np__upload img{ width:100%; height:100%; object-fit: cover; }
+
+          .np__uploadEmpty{ text-align:center; padding: 16px; }
+          .np__uploadIcon{
+            width: 56px;
+            height: 56px;
+            border-radius: 18px;
+            background: rgba(212, 175, 55, 0.16);
+            border: 1px solid rgba(212, 175, 55, 0.22);
+            display:grid;
+            place-items:center;
+            margin: 0 auto 10px;
+            color: #6b4c4f;
+            font-size: 22px;
+          }
+          .np__uploadText{
+            color:#475569;
+            font-size: 14px;
+            margin-bottom: 6px;
+            font-weight: 800;
+          }
+
+          .np__mini{
+            background: rgba(245, 246, 250, 0.8);
+            border: 1px solid rgba(15, 23, 42, 0.06);
+            border-radius: 14px;
+            padding: 10px 12px;
+          }
+          .np__miniLabel{
+            display:block;
+            font-size: 11px;
+            color:#94a3b8;
+            margin-bottom: 2px;
+            font-weight: 800;
+          }
+          .np__miniValue{
+            font-weight: 900;
+            color:#111827;
+            font-size: 12px;
+            word-break: break-all;
+          }
+          .np__mtSmall{ margin-top: 10px; }
+
           .np__footer{
             border-top:1px solid #e5e7eb;
-            padding: 12px 14px;
+            padding: 12px 12px;
             display:flex;
-            justify-content:flex-end;
+            justify-content:space-between;
             gap: 10px;
             background:#fff;
+          }
+
+          .np__footerRight{
+            display:flex;
+            gap:10px;
+            align-items:center;
           }
 
           .np__btn{
@@ -703,6 +858,7 @@ export default function NovoProdutoModal({
             align-items:center;
             gap: 10px;
             transition: transform .12s ease, background .12s ease, opacity .12s ease;
+            user-select:none;
           }
           .np__btn:active{ transform: translateY(1px); }
           .np__btn:disabled{ opacity:.6; cursor:not-allowed; }
