@@ -16,16 +16,18 @@ export default function useMenuItems(nivelId?: number) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!nivelId) return; // espera ter nivelId
+    if (!nivelId) return;
 
     const fetchMenuItems = async () => {
       try {
         setLoading(true);
 
-        const response = await api.get(`/menu/itens/${nivelId}`);
+        // ✅ ROTA CORRETA
+        const response = await api.get(`/menu/${nivelId}/itens`);
         const data = response.data;
 
-        if (data.status !== 200) throw new Error(data.mensagem || "Erro ao buscar menu");
+        if (data.status !== 200)
+          throw new Error(data.mensagem || "Erro ao buscar menu");
 
         setMenuItems(data.dados || []);
       } catch (err: any) {
