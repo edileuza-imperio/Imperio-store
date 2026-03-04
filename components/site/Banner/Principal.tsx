@@ -6,8 +6,15 @@ import useBanner from "@/hooks/Banner/useBanner";
 import api from "@/Api/conectar";
 import { rotas } from "@/components/Bibioteca/config/rotas";
 
+type BannerItem = {
+  id_banner?: number;
+  titulo?: string;
+  descricao?: string;
+  imagem?: string;
+  link?: string | null;
+};
+
 export default function Banner() {
-  // ✅ agora passa a rota pronta
   const { banners, loading, erro } = useBanner(rotas.banners.ativos);
 
   const [index, setIndex] = useState(0);
@@ -17,7 +24,7 @@ export default function Banner() {
   const intervalMs = 5000;
   const timerRef = useRef<number | null>(null);
 
-  const safeBanners = banners || [];
+  const safeBanners = (banners || []) as BannerItem[];
   const hasMany = safeBanners.length > 1;
 
   // ✅ garante index válido quando banners mudarem
@@ -29,13 +36,25 @@ export default function Banner() {
   const banner = safeBanners[index];
 
   // ✅ monta url correta: baseURL + "/" + caminho sem "//"
-  const imagemUrl = useMemo(() => {
-    if (!banner?.imagem) return null;
-
+  const makeImageUrl = (img?: string | null) => {
+    if (!img) return null;
     const base = (api.defaults.baseURL || "").replace(/\/+$/, "");
-    const path = String(banner.imagem).replace(/^\/+/, "");
+    const path = String(img).replace(/^\/+/, "");
     return `${base}/${path}`;
-  }, [banner?.imagem]);
+  };
+
+  const imagemUrl = useMemo(() => makeImageUrl(banner?.imagem), [banner?.imagem]);
+
+  // ✅ pré-carrega a próxima imagem para suavizar troca
+  useEffect(() => {
+    if (!hasMany || !safeBanners.length) return;
+    const nextIndex = (index + 1) % safeBanners.length;
+    const nextImg = makeImageUrl(safeBanners[nextIndex]?.imagem);
+    if (!nextImg) return;
+
+    const img = new Image();
+    img.src = nextImg;
+  }, [hasMany, index, safeBanners]);
 
   const goTo = (i: number) => {
     if (!safeBanners.length) return;
@@ -46,24 +65,51 @@ export default function Banner() {
   const next = () => goTo(index + 1);
   const prev = () => goTo(index - 1);
 
-  // ✅ view ao trocar banner (se tiver id_banner)
+  /**
+   * ✅ CONTABILIZAR VISITAS (VIEWS)
+   * - Evita contar view repetida toda hora (autoplay / hover / re-render)
+   * - Faz "cooldown" por banner (ex: 30s)
+   */
+  const viewCooldownMs = 30_000; // 30s (ajuste como quiser)
+  const lastViewRef = useRef<Record<number, number>>({});
+
   useEffect(() => {
-    if (!banner?.id_banner) return;
-    api.put(rotas.banners.incrementarView(banner.id_banner)).catch(() => {});
+    const id = banner?.id_banner;
+    if (!id) return;
+
+    const now = Date.now();
+    const last = lastViewRef.current[id] || 0;
+
+    if (now - last < viewCooldownMs) return; // não conta de novo
+    lastViewRef.current[id] = now;
+
+    api.put(rotas.banners.incrementarView(id)).catch(() => {});
   }, [banner?.id_banner]);
+
+  /**
+   * ✅ CONTABILIZAR CLIQUES
+   * - Garante 1 click por interação (evita duplo click rápido)
+   * - Navega depois
+   */
+  const clickLockRef = useRef(false);
 
   const handleClick = async () => {
     if (!banner?.link) return;
 
-    // ✅ incrementa clique (se tiver id_banner)
-    if (banner?.id_banner) {
-      api.put(rotas.banners.incrementarClick(banner.id_banner)).catch(() => {});
+    const id = banner?.id_banner;
+    if (id && !clickLockRef.current) {
+      clickLockRef.current = true;
+      api.put(rotas.banners.incrementarClick(id)).catch(() => {});
+      // libera lock depois de um tempinho
+      window.setTimeout(() => {
+        clickLockRef.current = false;
+      }, 800);
     }
 
-    router.push(banner.link);
+    router.push(String(banner.link));
   };
 
-  // autoplay (pausa no hover)
+  // ✅ autoplay (pausa no hover e se tiver muitos)
   useEffect(() => {
     if (!hasMany || isHover) return;
 
@@ -77,7 +123,7 @@ export default function Banner() {
     };
   }, [hasMany, isHover, safeBanners.length]);
 
-  // teclado
+  // ✅ teclado
   useEffect(() => {
     if (!hasMany) return;
 
@@ -91,7 +137,43 @@ export default function Banner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMany, index]);
 
-  if (loading) return <div style={{ height: 460, background: "#eef2f7", borderRadius: 22 }} />;
+  // ✅ skeleton melhor
+  if (loading) {
+    return (
+      <div className="hero-skeleton" aria-label="Carregando banners">
+        <div className="hero-skeleton-shine" />
+        <style jsx>{`
+          .hero-skeleton {
+            position: relative;
+            width: 100%;
+            height: 460px;
+            border-radius: 22px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+          }
+          .hero-skeleton-shine {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+              90deg,
+              transparent,
+              rgba(255, 255, 255, 0.10),
+              transparent
+            );
+            transform: translateX(-40%);
+            animation: shine 1.2s linear infinite;
+          }
+          @keyframes shine {
+            to {
+              transform: translateX(40%);
+            }
+          }
+        `}</style>
+      </div>
+    );
+  }
+
   if (erro || !safeBanners.length) return null;
 
   return (
@@ -103,13 +185,11 @@ export default function Banner() {
         aria-label="Banner principal"
       >
         {/* BG */}
-        <div
+        <button
+          type="button"
           className="hero-bg"
-          style={{
-            backgroundImage: imagemUrl ? `url(${imagemUrl})` : "none",
-          }}
-          role="img"
-          aria-label={banner?.titulo ?? "Banner"}
+          style={{ backgroundImage: imagemUrl ? `url(${imagemUrl})` : "none" }}
+          aria-label={banner?.titulo ? `Abrir: ${banner.titulo}` : "Abrir banner"}
           onClick={handleClick}
         />
 
@@ -166,9 +246,9 @@ export default function Banner() {
         {/* Dots */}
         {hasMany && (
           <div className="hero-dots" aria-label="Seleção de banners">
-            {safeBanners.map((_, i) => (
+            {safeBanners.map((b, i) => (
               <button
-                key={i}
+                key={b?.id_banner ?? i}
                 type="button"
                 className={`hero-dot ${i === index ? "active" : ""}`}
                 onClick={() => setIndex(i)}
@@ -201,31 +281,54 @@ export default function Banner() {
           height: 460px;
           border-radius: 22px;
           overflow: hidden;
-          background: linear-gradient(135deg, var(--navy) 0%, var(--navySoft) 40%, #2a1c2a 70%, #000 100%);
+          background: linear-gradient(
+            135deg,
+            var(--navy) 0%,
+            var(--navySoft) 40%,
+            #2a1c2a 70%,
+            #000 100%
+          );
           box-shadow: 0 30px 80px rgba(2, 6, 23, 0.25);
           isolation: isolate;
         }
 
+        /* ✅ virou button pra ficar acessível + click limpo */
         .hero-bg {
           position: absolute;
           inset: 0;
+          border: 0;
+          padding: 0;
+          margin: 0;
+          width: 100%;
+          height: 100%;
           background-size: cover;
           background-position: center;
           transform: scale(1.04);
-          transition: transform 900ms ease;
+          transition: transform 900ms ease, filter 250ms ease;
           filter: saturate(1.05) contrast(1.02);
           cursor: pointer;
         }
-        .hero:hover .hero-bg {
+        .hero-bg:hover {
           transform: scale(1.1);
+          filter: saturate(1.12) contrast(1.05);
         }
 
         .hero-overlay {
           position: absolute;
           inset: 0;
-          background: radial-gradient(900px 420px at 20% 40%, rgba(183, 110, 121, 0.45), transparent 60%),
-            linear-gradient(90deg, rgba(0, 0, 0, 0.82) 0%, rgba(20, 36, 69, 0.65) 45%, rgba(0, 0, 0, 0.35) 100%);
+          background: radial-gradient(
+              900px 420px at 20% 40%,
+              rgba(183, 110, 121, 0.45),
+              transparent 60%
+            ),
+            linear-gradient(
+              90deg,
+              rgba(0, 0, 0, 0.82) 0%,
+              rgba(20, 36, 69, 0.65) 45%,
+              rgba(0, 0, 0, 0.35) 100%
+            );
           z-index: 1;
+          pointer-events: none;
         }
 
         .hero-inner {
@@ -234,6 +337,7 @@ export default function Banner() {
           height: 100%;
           display: flex;
           align-items: center;
+          pointer-events: none; /* só os botões recebem click */
         }
 
         .hero-card {
@@ -243,8 +347,10 @@ export default function Banner() {
           background: rgba(255, 255, 255, 0.08);
           border: 1px solid rgba(183, 110, 121, 0.35);
           backdrop-filter: blur(14px);
-          box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+          box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35),
+            inset 0 0 0 1px rgba(255, 255, 255, 0.06);
           animation: fadeIn 420ms ease;
+          pointer-events: auto;
         }
 
         .hero-kicker {
