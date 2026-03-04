@@ -44,8 +44,8 @@ export default function PainelPage() {
 
     if (t.includes("prod")) return "/painel/produtos";
     if (t.includes("categ")) return "/painel/categorias";
-    if (t.includes("banner")) return "/admin/banners";
-    if (t.includes("usu")) return "/admin/usuarios";
+    if (t.includes("banner")) return "/painel/banners";
+    if (t.includes("usu")) return "/painel/usuarios";
 
     return "#";
   }
