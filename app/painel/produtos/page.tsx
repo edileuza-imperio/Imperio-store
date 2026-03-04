@@ -9,333 +9,334 @@ import "react-toastify/dist/ReactToastify.css";
 import NovoProdutoModal from "@/components/Modal/NovoProdutoModal";
 
 interface Produto {
-  id_produto: number;
-  nome: string;
-  slug: string;
-  preco: number;
-  estoque: number;
-  destaque?: boolean;
-  id_destaque?: number;
-  catalogo?: number;
-  imagem?: string;
+    id_produto: number;
+    nome: string;
+    slug: string;
+    preco: number;
+    estoque: number;
+    destaque?: boolean;
+    id_destaque?: number;
+    catalogo?: number;
+    imagem?: string;
 }
 
 export const getImagemUrl = (caminho?: string) => {
 
-  if (!caminho) return undefined;
+    if (!caminho) return undefined;
 
-  const base = api.defaults.baseURL || "";
+    const base = api.defaults.baseURL || "";
 
-  const caminhoLimpo = String(caminho).replace(/^\/+/, "");
+    const caminhoLimpo = String(caminho).replace(/^\/+/, "");
 
-  const baseFinal = base.endsWith("/") ? base : `${base}/`;
+    const baseFinal = base.endsWith("/") ? base : `${base}/`;
 
-  return `${baseFinal}${caminhoLimpo}`;
+    return `${baseFinal}${caminhoLimpo}`;
 
 };
 
 export default function ProdutosPage() {
 
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [modalNovoProduto, setModalNovoProduto] = useState(false);
+    const [produtos, setProdutos] = useState<Produto[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [modalNovoProduto, setModalNovoProduto] = useState(false);
 
-  useEffect(() => {
-    carregarProdutos();
-  }, []);
+    useEffect(() => {
+        carregarProdutos();
+    }, []);
 
-  const carregarProdutos = async () => {
+    const carregarProdutos = async () => {
 
-    try {
+        try {
 
-      setLoading(true);
+            setLoading(true);
 
-      const res = await api.get("/admin/produtos");
+            const res = await api.get("/admin/produtos");
 
-      let lista = res.data?.dados || res.data;
+            let lista = res.data?.dados || res.data;
 
-      if (lista?.dados) lista = lista.dados;
+            if (lista?.dados) lista = lista.dados;
 
-      if (!Array.isArray(lista)) lista = [];
+            if (!Array.isArray(lista)) lista = [];
 
-      const convertidos = lista.map((p: any) => ({
-        ...p,
-        preco: Number(p.preco || 0),
-        estoque: Number(p.estoque || 0),
-        imagem: getImagemUrl(p.imagem),
-      }));
+            const convertidos = lista.map((p: any) => ({
+                ...p,
+                preco: Number(p.preco || 0),
+                estoque: Number(p.estoque || 0),
+                imagem: getImagemUrl(p.imagem),
+            }));
 
-      setProdutos(convertidos);
+            setProdutos(convertidos);
 
-    } catch (err) {
+        } catch (err) {
 
-      console.error(err);
-      toast.error("Erro ao carregar produtos");
+            console.error(err);
+            toast.error("Erro ao carregar produtos");
 
-    } finally {
+        } finally {
 
-      setLoading(false);
+            setLoading(false);
 
-    }
+        }
 
-  };
+    };
 
-  const toggleDestaque = async (produto: Produto) => {
+    const toggleDestaque = async (produto: Produto) => {
 
-    try {
+        try {
 
-      if (produto.destaque) {
+            if (produto.destaque) {
 
-        await api.delete(`/admin/destaque/${produto.id_destaque}`);
+                await api.delete(`/admin/destaque/${produto.id_destaque}`);
 
-        setProdutos((p) =>
-          p.map((i) =>
-            i.id_produto === produto.id_produto
-              ? { ...i, destaque: false }
-              : i
-          )
-        );
+                setProdutos((p) =>
+                    p.map((i) =>
+                        i.id_produto === produto.id_produto
+                            ? { ...i, destaque: false }
+                            : i
+                    )
+                );
 
-        toast.success("Removido do destaque");
+                toast.success("Removido do destaque");
 
-      } else {
+            } else {
 
-        const res = await api.post("/admin/destaque", {
-          produto_id: produto.id_produto
-        });
+                const res = await api.post("/admin/destaque", {
+                    produto_id: produto.id_produto
+                });
 
-        setProdutos((p) =>
-          p.map((i) =>
-            i.id_produto === produto.id_produto
-              ? {
-                  ...i,
-                  destaque: true,
-                  id_destaque: res.data?.id_destaque
-                }
-              : i
-          )
-        );
+                setProdutos((p) =>
+                    p.map((i) =>
+                        i.id_produto === produto.id_produto
+                            ? {
+                                ...i,
+                                destaque: true,
+                                id_destaque: res.data?.id_destaque
+                            }
+                            : i
+                    )
+                );
 
-        toast.success("Adicionado ao destaque");
+                toast.success("Adicionado ao destaque");
 
-      }
+            }
 
-    } catch {
+        } catch {
 
-      toast.error("Erro ao alterar destaque");
+            toast.error("Erro ao alterar destaque");
 
-    }
+        }
 
-  };
+    };
 
-  const toggleCatalogo = async (produto: Produto) => {
+    const toggleCatalogo = async (produto: Produto) => {
 
-    try {
+        try {
 
-      if (produto.catalogo === 1) {
+            if (produto.catalogo === 1) {
 
-        await api.put(`/admin/catalogo/nao/${produto.id_produto}`);
+                await api.put(`/admin/catalogo/nao/${produto.id_produto}`);
 
-        setProdutos((p) =>
-          p.map((i) =>
-            i.id_produto === produto.id_produto
-              ? { ...i, catalogo: 0 }
-              : i
-          )
-        );
+                setProdutos((p) =>
+                    p.map((i) =>
+                        i.id_produto === produto.id_produto
+                            ? { ...i, catalogo: 0 }
+                            : i
+                    )
+                );
 
-        toast.success("Removido do catálogo");
+                toast.success("Removido do catálogo");
 
-      } else {
+            } else {
 
-        await api.put(`/admin/catalogo/sim/${produto.id_produto}`);
+                await api.put(`/admin/catalogo/sim/${produto.id_produto}`);
 
-        setProdutos((p) =>
-          p.map((i) =>
-            i.id_produto === produto.id_produto
-              ? { ...i, catalogo: 1 }
-              : i
-          )
-        );
+                setProdutos((p) =>
+                    p.map((i) =>
+                        i.id_produto === produto.id_produto
+                            ? { ...i, catalogo: 1 }
+                            : i
+                    )
+                );
 
-        toast.success("Adicionado ao catálogo");
+                toast.success("Adicionado ao catálogo");
 
-      }
+            }
 
-    } catch {
+        } catch {
 
-      toast.error("Erro ao atualizar catálogo");
+            toast.error("Erro ao atualizar catálogo");
 
-    }
+        }
 
-  };
+    };
 
-  const excluirProduto = async (id: number) => {
+    const excluirProduto = async (id: number) => {
 
-    if (!confirm("Deseja excluir este produto?")) return;
+        if (!confirm("Deseja excluir este produto?")) return;
 
-    try {
+        try {
 
-      await api.delete(`/admin/produto/${id}`);
+            await api.delete(`/admin/produto/${id}/remover`);
 
-      setProdutos((p) => p.filter((i) => i.id_produto !== id));
+            setProdutos((p) => p.filter((i) => i.id_produto !== id));
 
-      toast.success("Produto excluído");
+            toast.success("Produto excluído com sucesso");
 
-    } catch {
+        } catch (err) {
 
-      toast.error("Erro ao excluir");
+            console.error(err);
+            toast.error("Erro ao excluir produto");
 
-    }
+        }
 
-  };
+    };
 
-  return (
+    return (
 
-    <div className="container-fluid py-4 dashboard-bg">
+        <div className="container-fluid py-4 dashboard-bg">
 
-      <ToastContainer position="top-right" autoClose={2500} />
+            <ToastContainer position="top-right" autoClose={2500} />
 
-      <NovoProdutoModal
-        open={modalNovoProduto}
-        onClose={() => setModalNovoProduto(false)}
-        onCreated={async () => {
-          setModalNovoProduto(false);
-          await carregarProdutos();
-        }}
-      />
+            <NovoProdutoModal
+                open={modalNovoProduto}
+                onClose={() => setModalNovoProduto(false)}
+                onCreated={async () => {
+                    setModalNovoProduto(false);
+                    await carregarProdutos();
+                }}
+            />
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="d-flex justify-content-between align-items-center mb-4">
 
-        <div>
-          <h2 className="title">Produtos</h2>
-          <p className="text-muted">Gerencie os produtos cadastrados</p>
-        </div>
-
-        <button
-          className="btn btn-gold"
-          onClick={() => setModalNovoProduto(true)}
-        >
-          <FaPlus /> Novo Produto
-        </button>
-
-      </div>
-
-      {loading ? (
-
-        <div className="text-center py-5">
-          Carregando produtos...
-        </div>
-
-      ) : (
-
-        <div className="row g-4">
-
-          {produtos.map((prod) => (
-
-            <div key={prod.id_produto} className="col-xl-3 col-lg-4 col-md-6">
-
-              <div className="produto-card">
-
-                <div className="card-image">
-
-                  {prod.imagem ? (
-                    <img src={prod.imagem} alt={prod.nome} />
-                  ) : (
-                    <div className="no-image">Sem imagem</div>
-                  )}
-
-                  <div className="badges">
-
-                    {prod.destaque && (
-                      <span className="badge badge-destaque">
-                        Destaque
-                      </span>
-                    )}
-
-                    {prod.catalogo === 1 && (
-                      <span className="badge badge-catalogo">
-                        Catálogo
-                      </span>
-                    )}
-
-                  </div>
-
+                <div>
+                    <h2 className="title">Produtos</h2>
+                    <p className="text-muted">Gerencie os produtos cadastrados</p>
                 </div>
 
-                <div className="card-body">
-
-                  <h6 className="produto-nome">
-                    {prod.nome}
-                  </h6>
-
-                  <p className="preco">
-                    R$ {prod.preco.toFixed(2)}
-                  </p>
-
-                  <small className="estoque">
-                    Estoque: {prod.estoque}
-                  </small>
-
-                  <div className="acoes">
-
-                    <Link href={`/admin/produto/${prod.slug}`}>
-                      <FaEdit />
-                    </Link>
-
-                    <button
-                      onClick={() => toggleDestaque(prod)}
-                      title="Destaque"
-                    >
-                      <FaStar />
-                    </button>
-
-                    <button
-                      onClick={() => toggleCatalogo(prod)}
-                      title="Catálogo"
-                      className={
-                        prod.catalogo === 1
-                          ? "catalogo-on"
-                          : "catalogo-off"
-                      }
-                    >
-                      <FaBook />
-                    </button>
-
-                    <button
-                      onClick={() => excluirProduto(prod.id_produto)}
-                      className="danger"
-                    >
-                      <FaTrash />
-                    </button>
-
-                  </div>
-
-                </div>
-
-              </div>
+                <button
+                    className="btn btn-gold"
+                    onClick={() => setModalNovoProduto(true)}
+                >
+                    <FaPlus /> Novo Produto
+                </button>
 
             </div>
 
-          ))}
+            {loading ? (
 
-          {!produtos.length && (
+                <div className="text-center py-5">
+                    Carregando produtos...
+                </div>
 
-            <div className="col-12">
+            ) : (
 
-              <div className="alert alert-light border">
-                Nenhum produto encontrado
-              </div>
+                <div className="row g-4">
 
-            </div>
+                    {produtos.map((prod) => (
 
-          )}
+                        <div key={prod.id_produto} className="col-xl-3 col-lg-4 col-md-6">
 
-        </div>
+                            <div className="produto-card">
 
-      )}
+                                <div className="card-image">
 
-      <style jsx global>{`
+                                    {prod.imagem ? (
+                                        <img src={prod.imagem} alt={prod.nome} />
+                                    ) : (
+                                        <div className="no-image">Sem imagem</div>
+                                    )}
+
+                                    <div className="badges">
+
+                                        {prod.destaque && (
+                                            <span className="badge badge-destaque">
+                                                Destaque
+                                            </span>
+                                        )}
+
+                                        {prod.catalogo === 1 && (
+                                            <span className="badge badge-catalogo">
+                                                Catálogo
+                                            </span>
+                                        )}
+
+                                    </div>
+
+                                </div>
+
+                                <div className="card-body">
+
+                                    <h6 className="produto-nome">
+                                        {prod.nome}
+                                    </h6>
+
+                                    <p className="preco">
+                                        R$ {prod.preco.toFixed(2)}
+                                    </p>
+
+                                    <small className="estoque">
+                                        Estoque: {prod.estoque}
+                                    </small>
+
+                                    <div className="acoes">
+
+                                        <Link href={`/admin/produto/${prod.slug}`}>
+                                            <FaEdit />
+                                        </Link>
+
+                                        <button
+                                            onClick={() => toggleDestaque(prod)}
+                                            title="Destaque"
+                                        >
+                                            <FaStar />
+                                        </button>
+
+                                        <button
+                                            onClick={() => toggleCatalogo(prod)}
+                                            title="Catálogo"
+                                            className={
+                                                prod.catalogo === 1
+                                                    ? "catalogo-on"
+                                                    : "catalogo-off"
+                                            }
+                                        >
+                                            <FaBook />
+                                        </button>
+
+                                        <button
+                                            onClick={() => excluirProduto(prod.id_produto)}
+                                            className="danger"
+                                        >
+                                            <FaTrash />
+                                        </button>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    ))}
+
+                    {!produtos.length && (
+
+                        <div className="col-12">
+
+                            <div className="alert alert-light border">
+                                Nenhum produto encontrado
+                            </div>
+
+                        </div>
+
+                    )}
+
+                </div>
+
+            )}
+
+            <style jsx global>{`
 
 .dashboard-bg{
 background:#f6f7fb;
@@ -462,7 +463,7 @@ color:#d4af37;
 
 `}</style>
 
-    </div>
+        </div>
 
-  );
+    );
 }
