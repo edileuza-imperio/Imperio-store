@@ -2,7 +2,7 @@
 
 import useCategoria from "@/hooks/categoria/useCategoria";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function CategoriasDestaque() {
   const { categorias, loading, erro } = useCategoria();
@@ -19,10 +19,9 @@ export default function CategoriasDestaque() {
   const updateArrows = () => {
     const el = railRef.current;
     if (!el) return;
-    const left = el.scrollLeft;
     const max = el.scrollWidth - el.clientWidth;
-    setCanLeft(left > 4);
-    setCanRight(left < max - 4);
+    setCanLeft(el.scrollLeft > 6);
+    setCanRight(el.scrollLeft < max - 6);
   };
 
   useEffect(() => {
@@ -45,7 +44,7 @@ export default function CategoriasDestaque() {
   const scrollByCards = (dir: "left" | "right") => {
     const el = railRef.current;
     if (!el) return;
-    const amount = Math.max(260, Math.floor(el.clientWidth * 0.72));
+    const amount = Math.max(320, Math.floor(el.clientWidth * 0.78));
     el.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
   };
 
@@ -53,84 +52,91 @@ export default function CategoriasDestaque() {
     <>
       <section className="sec" aria-label="Categorias em destaque">
         <div className="wrap">
-          <header className="head">
-            <div className="titleBlock">
-              <div className="kicker">
-                <span className="kDot" />
-                Categorias
+          <div className="surface">
+            <header className="head">
+              <div className="titleBlock">
+                <div className="kicker">
+                  <span className="kDot" />
+                  CATEGORIAS
+                </div>
+
+                <h2 className="h2">Categorias em destaque</h2>
+                <p className="sub">
+                  Escolha uma categoria para ver os produtos disponíveis.
+                </p>
               </div>
 
-              <h2>Categorias em destaque</h2>
-              <p>Toque em uma categoria para abrir a página da categoria.</p>
-            </div>
+              <div className="rightSide">
+                <Link className="allBtn" href="/catalogo" aria-label="Ver catálogo completo">
+                  Ver todas <span aria-hidden>→</span>
+                </Link>
+              </div>
+            </header>
 
-            <div className="rightSide">
-              <Link className="allBtn" href="/catalogo" aria-label="Ver catálogo completo">
-                Ver todas <span aria-hidden>→</span>
-              </Link>
-            </div>
-          </header>
+            <div className="railWrap">
+              {/* fades para indicar “tem mais” */}
+              <div className={`fade left ${canLeft ? "on" : ""}`} aria-hidden />
+              <div className={`fade right ${canRight ? "on" : ""}`} aria-hidden />
 
-          <div className="railWrap">
-            {/* Fades laterais (dá cara premium) */}
-            <div className={`fade left ${canLeft ? "on" : ""}`} aria-hidden />
-            <div className={`fade right ${canRight ? "on" : ""}`} aria-hidden />
-
-            {/* Setas (só se > 10) */}
-            {showArrows && (
-              <>
-                <button
-                  type="button"
-                  className={`arrow left ${canLeft ? "on" : ""}`}
-                  onClick={() => scrollByCards("left")}
-                  aria-label="Categorias anteriores"
-                >
-                  <span aria-hidden>‹</span>
-                </button>
-
-                <button
-                  type="button"
-                  className={`arrow right ${canRight ? "on" : ""}`}
-                  onClick={() => scrollByCards("right")}
-                  aria-label="Próximas categorias"
-                >
-                  <span aria-hidden>›</span>
-                </button>
-              </>
-            )}
-
-            {/* Lista */}
-            <div ref={railRef} className="rail" role="list" aria-label="Lista de categorias">
-              {top.map((c: any) => {
-                const slug = (c?.slug || "").toString().trim();
-                const href = slug ? `/catalogo/categoria/${encodeURIComponent(slug)}` : "/catalogo";
-
-                return (
-                  <Link
-                    key={slug || c.id_categoria}
-                    role="listitem"
-                    className={`card ${slug ? "" : "disabled"}`}
-                    href={href}
-                    aria-label={
-                      slug
-                        ? `Abrir categoria ${c.nome}`
-                        : `Categoria ${c.nome} sem slug (abrindo catálogo)`
-                    }
+              {/* setas (somente > 10) */}
+              {showArrows && (
+                <>
+                  <button
+                    type="button"
+                    className={`arrow left ${canLeft ? "on" : ""}`}
+                    onClick={() => scrollByCards("left")}
+                    aria-label="Categorias anteriores"
                   >
-                    <span className="orb" aria-hidden>
-                      <span className="orbGlow" />
-                      <span className="orbRing" />
-                      <span className="orbInner">
-                        <i className={`bi ${c.icone || "bi-grid"} icon`} />
-                      </span>
-                    </span>
+                    <span aria-hidden>‹</span>
+                  </button>
 
-                    <span className="name" title={c.nome}>
-                      {c.nome}
-                    </span>
-                  </Link>
-                );
-              })}
+                  <button
+                    type="button"
+                    className={`arrow right ${canRight ? "on" : ""}`}
+                    onClick={() => scrollByCards("right")}
+                    aria-label="Próximas categorias"
+                  >
+                    <span aria-hidden>›</span>
+                  </button>
+                </>
+              )}
+
+              <div ref={railRef} className="rail" role="list" aria-label="Lista de categorias">
+                {top.map((c: any) => {
+                  const slug = (c?.slug || "").toString().trim();
+                  const href = slug ? `/catalogo/categoria/${encodeURIComponent(slug)}` : "/catalogo";
+
+                  return (
+                    <Link
+                      key={slug || c.id_categoria}
+                      role="listitem"
+                      className={`item ${slug ? "" : "disabled"}`}
+                      href={href}
+                      aria-label={
+                        slug
+                          ? `Abrir categoria ${c.nome}`
+                          : `Categoria ${c.nome} sem slug (abrindo catálogo)`
+                      }
+                    >
+                      <span className="orb" aria-hidden>
+                        <span className="orbGlow" />
+                        <span className="orbRing" />
+                        <span className="orbInner">
+                          <i className={`bi ${c.icone || "bi-grid"} icon`} />
+                        </span>
+                      </span>
+
+                      <span className="name" title={c.nome}>
+                        {c.nome}
+                      </span>
+
+                      <span className="hint" aria-hidden>
+                        Ver produtos →
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
@@ -139,23 +145,27 @@ export default function CategoriasDestaque() {
       <style jsx>{`
         :global(:root) {
           --cream: #fff6ee;
-          --ink: #1f2937;
-          --muted: rgba(31, 41, 55, 0.68);
+          --paper: rgba(255, 255, 255, 0.78);
+
+          --ink: #111827;
+          --muted: rgba(17, 24, 39, 0.62);
 
           --rose: #b76e79;
           --rose2: #d9a5ad;
           --gold: #d4af37;
 
-          --shadow: 0 18px 56px rgba(31, 41, 55, 0.10);
-          --shadow2: 0 30px 90px rgba(31, 41, 55, 0.16);
+          --line: rgba(17, 24, 39, 0.10);
+
+          --shadow: 0 18px 54px rgba(17, 24, 39, 0.10);
+          --shadow2: 0 32px 92px rgba(17, 24, 39, 0.18);
         }
 
         .sec {
-          padding: 56px 0 72px;
+          padding: 52px 0 78px;
           background:
-            radial-gradient(1100px 440px at 10% -18%, rgba(183, 110, 121, 0.12), transparent 62%),
-            radial-gradient(950px 440px at 90% -18%, rgba(212, 175, 55, 0.11), transparent 64%),
-            linear-gradient(180deg, rgba(255, 246, 238, 0.0), rgba(255, 246, 238, 0.46));
+            radial-gradient(1100px 480px at 10% -14%, rgba(183, 110, 121, 0.12), transparent 62%),
+            radial-gradient(980px 460px at 90% -14%, rgba(212, 175, 55, 0.10), transparent 64%),
+            linear-gradient(180deg, rgba(255, 246, 238, 0.0), rgba(255, 246, 238, 0.55));
         }
 
         .wrap {
@@ -164,12 +174,36 @@ export default function CategoriasDestaque() {
           padding: 0 clamp(14px, 4vw, 28px);
         }
 
+        /* CARD DA SEÇÃO */
+        .surface {
+          border-radius: 26px;
+          border: 1px solid rgba(255, 255, 255, 0.55);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.52));
+          box-shadow: 0 24px 80px rgba(17, 24, 39, 0.10);
+          backdrop-filter: blur(14px);
+          overflow: hidden;
+          position: relative;
+        }
+
+        /* detalhe premium no topo */
+        .surface::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(700px 240px at 14% 0%, rgba(183, 110, 121, 0.12), transparent 60%),
+            radial-gradient(680px 240px at 86% 0%, rgba(212, 175, 55, 0.10), transparent 60%);
+          pointer-events: none;
+        }
+
         .head {
+          position: relative;
+          z-index: 1;
+          padding: 22px 22px 10px;
           display: flex;
           align-items: flex-end;
           justify-content: space-between;
           gap: 16px;
-          margin-bottom: 18px;
           flex-wrap: wrap;
         }
 
@@ -183,16 +217,15 @@ export default function CategoriasDestaque() {
           gap: 10px;
           padding: 8px 12px;
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.82);
-          border: 1px solid rgba(31, 41, 55, 0.10);
-          box-shadow: 0 14px 34px rgba(31, 41, 55, 0.08);
+          background: rgba(17, 24, 39, 0.04);
+          border: 1px solid rgba(17, 24, 39, 0.08);
           font-size: 12px;
-          color: rgba(31, 41, 55, 0.72);
+          color: rgba(17, 24, 39, 0.70);
           font-weight: 950;
-          letter-spacing: 0.6px;
-          text-transform: uppercase;
+          letter-spacing: 0.9px;
           width: fit-content;
-          margin-bottom: 12px;
+          margin-bottom: 10px;
+          text-transform: uppercase;
         }
 
         .kDot {
@@ -203,16 +236,16 @@ export default function CategoriasDestaque() {
           box-shadow: 0 0 0 6px rgba(212, 175, 55, 0.10);
         }
 
-        .titleBlock h2 {
+        .h2 {
           margin: 0;
-          font-size: clamp(24px, 2.3vw, 34px);
+          font-size: clamp(24px, 2.4vw, 34px);
           letter-spacing: -0.05em;
           color: var(--ink);
           font-weight: 950;
           line-height: 1.05;
         }
 
-        .titleBlock p {
+        .sub {
           margin: 10px 0 0;
           color: var(--muted);
           font-size: 14px;
@@ -229,14 +262,14 @@ export default function CategoriasDestaque() {
         }
 
         .allBtn {
-          border: 1px solid rgba(31, 41, 55, 0.12);
-          background: rgba(255, 255, 255, 0.88);
+          border: 1px solid rgba(17, 24, 39, 0.10);
+          background: rgba(255, 255, 255, 0.72);
           border-radius: 999px;
           padding: 12px 14px;
           font-size: 12px;
           font-weight: 950;
-          color: rgba(31, 41, 55, 0.82);
-          box-shadow: 0 18px 44px rgba(31, 41, 55, 0.08);
+          color: rgba(17, 24, 39, 0.86);
+          box-shadow: 0 18px 44px rgba(17, 24, 39, 0.08);
           transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
           cursor: pointer;
           white-space: nowrap;
@@ -244,22 +277,21 @@ export default function CategoriasDestaque() {
         }
         .allBtn:hover {
           transform: translateY(-1px);
-          background: rgba(255, 255, 255, 0.98);
-          box-shadow: 0 26px 70px rgba(31, 41, 55, 0.14);
+          background: rgba(255, 255, 255, 0.92);
+          box-shadow: 0 28px 70px rgba(17, 24, 39, 0.12);
         }
 
-        /* ====== WRAPPER do rail + setas + fades ====== */
+        /* ====== CARROSSEL / GRID ====== */
         .railWrap {
           position: relative;
-          border-radius: 22px;
-          padding: 8px 0;
+          padding: 8px 0 18px;
         }
 
         .fade {
           position: absolute;
           top: 0;
           bottom: 0;
-          width: 64px;
+          width: 70px;
           opacity: 0;
           transition: opacity 0.2s ease;
           pointer-events: none;
@@ -268,23 +300,24 @@ export default function CategoriasDestaque() {
         .fade.on { opacity: 1; }
         .fade.left {
           left: 0;
-          background: linear-gradient(90deg, rgba(255, 246, 238, 1), rgba(255, 246, 238, 0));
+          background: linear-gradient(90deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0));
         }
         .fade.right {
           right: 0;
-          background: linear-gradient(270deg, rgba(255, 246, 238, 1), rgba(255, 246, 238, 0));
+          background: linear-gradient(270deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0));
         }
 
         .arrow {
           position: absolute;
           top: 50%;
           transform: translateY(-50%);
-          width: 40px;
-          height: 40px;
-          border-radius: 14px;
-          border: 1px solid rgba(31, 41, 55, 0.12);
-          background: rgba(255, 255, 255, 0.78);
-          box-shadow: 0 16px 44px rgba(31, 41, 55, 0.12);
+          width: 44px;
+          height: 44px;
+          border-radius: 16px;
+          border: 1px solid rgba(17, 24, 39, 0.12);
+          background: rgba(255, 255, 255, 0.62);
+          backdrop-filter: blur(14px);
+          box-shadow: 0 18px 56px rgba(17, 24, 39, 0.14);
           display: grid;
           place-items: center;
           cursor: pointer;
@@ -299,57 +332,59 @@ export default function CategoriasDestaque() {
         }
         .arrow:hover {
           transform: translateY(-50%) translateY(-1px);
-          background: rgba(255, 255, 255, 0.92);
+          background: rgba(255, 255, 255, 0.82);
         }
-        .arrow.left { left: 6px; }
-        .arrow.right { right: 6px; }
+        .arrow.left { left: 10px; }
+        .arrow.right { right: 10px; }
         .arrow span {
-          font-size: 22px;
-          font-weight: 900;
-          color: rgba(31, 41, 55, 0.82);
+          font-size: 24px;
+          font-weight: 950;
+          color: rgba(17, 24, 39, 0.78);
           line-height: 1;
         }
 
-        /* ====== LISTA ====== */
         .rail {
+          position: relative;
+          z-index: 1;
           display: grid;
           grid-auto-flow: column;
           grid-auto-columns: max-content;
           gap: 14px;
           overflow-x: auto;
-          padding: 10px 54px 14px; /* espaço pras setas/fade */
+          padding: 10px 60px 6px;
           scroll-snap-type: x mandatory;
           -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
         }
         .rail::-webkit-scrollbar { display: none; }
 
-        /* ====== ITEM ====== */
-        .card {
+        /* ITEM — agora é pill card premium */
+        .item {
           scroll-snap-align: start;
-          width: 136px;
+          width: 160px;
           display: grid;
           justify-items: center;
           gap: 10px;
-          padding: 14px 10px 10px;
+          padding: 16px 12px 14px;
           border-radius: 22px;
           text-decoration: none;
           color: inherit;
           user-select: none;
           -webkit-tap-highlight-color: transparent;
 
-          background: rgba(255, 255, 255, 0.60);
-          border: 1px solid rgba(31, 41, 55, 0.10);
-          box-shadow: 0 16px 48px rgba(31, 41, 55, 0.08);
-          backdrop-filter: blur(10px);
+          border: 1px solid rgba(17, 24, 39, 0.10);
+          background: rgba(255, 255, 255, 0.62);
+          backdrop-filter: blur(14px);
+          box-shadow: 0 16px 48px rgba(17, 24, 39, 0.08);
+
           transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
         }
 
-        .card.disabled { opacity: 0.72; }
+        .item.disabled { opacity: 0.72; }
 
         .orb {
-          width: 94px;
-          height: 94px;
+          width: 96px;
+          height: 96px;
           border-radius: 999px;
           position: relative;
           display: grid;
@@ -360,12 +395,10 @@ export default function CategoriasDestaque() {
 
         .orbGlow {
           position: absolute;
-          inset: -35px;
+          inset: -40px;
           background:
             radial-gradient(circle at 26% 30%, rgba(212, 175, 55, 0.22), transparent 56%),
             radial-gradient(circle at 72% 76%, rgba(183, 110, 121, 0.18), transparent 60%);
-          filter: blur(0px);
-          opacity: 1;
         }
 
         .orbRing {
@@ -374,10 +407,10 @@ export default function CategoriasDestaque() {
           border-radius: 999px;
           background: conic-gradient(
             from 210deg,
-            rgba(212, 175, 55, 0.90),
-            rgba(183, 110, 121, 0.82),
-            rgba(255, 255, 255, 0.25),
-            rgba(183, 110, 121, 0.86),
+            rgba(212, 175, 55, 0.92),
+            rgba(183, 110, 121, 0.84),
+            rgba(255, 255, 255, 0.22),
+            rgba(183, 110, 121, 0.88),
             rgba(212, 175, 55, 0.92)
           );
           opacity: 0.42;
@@ -391,14 +424,14 @@ export default function CategoriasDestaque() {
           border-radius: 999px;
           display: grid;
           place-items: center;
-          background: rgba(255, 255, 255, 0.90);
-          border: 1px solid rgba(31, 41, 55, 0.10);
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid rgba(17, 24, 39, 0.10);
           box-shadow: var(--shadow);
         }
 
         .icon {
           font-size: 30px;
-          color: rgba(31, 41, 55, 0.86);
+          color: rgba(17, 24, 39, 0.84);
           transition: transform 0.18s ease, color 0.18s ease;
         }
 
@@ -407,7 +440,7 @@ export default function CategoriasDestaque() {
           text-align: center;
           font-size: 13px;
           font-weight: 950;
-          color: rgba(31, 41, 55, 0.92);
+          color: rgba(17, 24, 39, 0.92);
           letter-spacing: -0.01em;
           line-height: 1.15;
           overflow: hidden;
@@ -415,28 +448,41 @@ export default function CategoriasDestaque() {
           white-space: nowrap;
         }
 
+        .hint {
+          font-size: 12px;
+          font-weight: 850;
+          color: rgba(17, 24, 39, 0.52);
+          opacity: 0;
+          transform: translateY(-2px);
+          transition: 0.18s ease;
+        }
+
         @media (hover: hover) and (pointer: fine) {
-          .card:hover {
+          .item:hover {
             transform: translateY(-3px);
             box-shadow: var(--shadow2);
-            background: rgba(255, 255, 255, 0.74);
+            background: rgba(255, 255, 255, 0.78);
           }
-          .card:hover .icon {
-            transform: scale(1.05);
+          .item:hover .icon {
+            transform: scale(1.06);
             color: rgba(159, 61, 95, 0.92);
+          }
+          .item:hover .hint {
+            opacity: 1;
+            transform: translateY(0);
           }
         }
 
-        .card:active { transform: translateY(-1px) scale(0.995); }
+        .item:active { transform: translateY(-1px) scale(0.995); }
 
-        .card:focus-visible {
-          outline: 3px solid rgba(183, 110, 121, 0.24);
+        .item:focus-visible {
+          outline: 3px solid rgba(183, 110, 121, 0.22);
           outline-offset: 6px;
         }
 
-        /* Desktop: vira grid bonito */
-        @media (min-width: 860px) {
-          .railWrap { padding: 0; }
+        /* Desktop: vira grid premium (sem setas) */
+        @media (min-width: 920px) {
+          .railWrap { padding: 6px 22px 22px; }
           .fade, .arrow { display: none; }
 
           .rail {
@@ -448,11 +494,18 @@ export default function CategoriasDestaque() {
             grid-template-columns: repeat(6, minmax(0, 1fr));
             gap: 18px;
           }
-          .card { width: auto; }
+
+          .item { width: auto; }
+        }
+
+        @media (max-width: 520px) {
+          .head { padding: 18px 16px 8px; }
+          .rail { padding: 10px 54px 6px; }
+          .item { width: 150px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .card, .allBtn, .arrow, .icon { transition: none !important; }
+          .item, .allBtn, .arrow, .icon, .hint { transition: none !important; }
         }
       `}</style>
     </>
