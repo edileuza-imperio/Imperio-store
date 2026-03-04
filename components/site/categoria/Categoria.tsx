@@ -2,13 +2,52 @@
 
 import useCategoria from "@/hooks/categoria/useCategoria";
 import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function CategoriasDestaque() {
   const { categorias, loading, erro } = useCategoria();
 
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(false);
+
   if (loading || erro || categorias.length === 0) return null;
 
   const top = categorias.slice(0, 12);
+  const showArrows = top.length > 10;
+
+  const updateArrows = () => {
+    const el = railRef.current;
+    if (!el) return;
+    const left = el.scrollLeft;
+    const max = el.scrollWidth - el.clientWidth;
+    setCanLeft(left > 4);
+    setCanRight(left < max - 4);
+  };
+
+  useEffect(() => {
+    updateArrows();
+    const el = railRef.current;
+    if (!el) return;
+
+    const onScroll = () => updateArrows();
+    el.addEventListener("scroll", onScroll, { passive: true });
+
+    const ro = new ResizeObserver(() => updateArrows());
+    ro.observe(el);
+
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+    };
+  }, [top.length]);
+
+  const scrollByCards = (dir: "left" | "right") => {
+    const el = railRef.current;
+    if (!el) return;
+    const amount = Math.max(260, Math.floor(el.clientWidth * 0.72));
+    el.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
+  };
 
   return (
     <>
@@ -32,44 +71,67 @@ export default function CategoriasDestaque() {
             </div>
           </header>
 
-          {/* círculos com Link */}
-          <div className="rail" role="list" aria-label="Lista de categorias">
-            {top.map((c: any) => {
-              const slug = (c?.slug || "").toString().trim();
+          <div className="railWrap">
+            {/* Fades laterais (dá cara premium) */}
+            <div className={`fade left ${canLeft ? "on" : ""}`} aria-hidden />
+            <div className={`fade right ${canRight ? "on" : ""}`} aria-hidden />
 
-              // se não tiver slug, evita quebrar build/navegação
-              const href = slug
-                ? `/catalogo/categoria/${encodeURIComponent(slug)}`
-                : "/catalogo";
-
-              return (
-                <Link
-                  key={slug || c.id_categoria}
-                  role="listitem"
-                  className={`bubble ${slug ? "" : "bubbleDisabled"}`}
-                  href={href}
-                  aria-label={
-                    slug
-                      ? `Abrir categoria ${c.nome}`
-                      : `Categoria ${c.nome} sem slug (abrindo catálogo)`
-                  }
+            {/* Setas (só se > 10) */}
+            {showArrows && (
+              <>
+                <button
+                  type="button"
+                  className={`arrow left ${canLeft ? "on" : ""}`}
+                  onClick={() => scrollByCards("left")}
+                  aria-label="Categorias anteriores"
                 >
-                  <span className="orb" aria-hidden>
-                    <span className="orbBorder" />
-                    <span className="orbGlow" />
-                    <span className="orbShine" />
+                  <span aria-hidden>‹</span>
+                </button>
 
-                    <span className="iconWrap">
-                      <i className={`bi ${c.icone || "bi-grid"} icon`} />
+                <button
+                  type="button"
+                  className={`arrow right ${canRight ? "on" : ""}`}
+                  onClick={() => scrollByCards("right")}
+                  aria-label="Próximas categorias"
+                >
+                  <span aria-hidden>›</span>
+                </button>
+              </>
+            )}
+
+            {/* Lista */}
+            <div ref={railRef} className="rail" role="list" aria-label="Lista de categorias">
+              {top.map((c: any) => {
+                const slug = (c?.slug || "").toString().trim();
+                const href = slug ? `/catalogo/categoria/${encodeURIComponent(slug)}` : "/catalogo";
+
+                return (
+                  <Link
+                    key={slug || c.id_categoria}
+                    role="listitem"
+                    className={`card ${slug ? "" : "disabled"}`}
+                    href={href}
+                    aria-label={
+                      slug
+                        ? `Abrir categoria ${c.nome}`
+                        : `Categoria ${c.nome} sem slug (abrindo catálogo)`
+                    }
+                  >
+                    <span className="orb" aria-hidden>
+                      <span className="orbGlow" />
+                      <span className="orbRing" />
+                      <span className="orbInner">
+                        <i className={`bi ${c.icone || "bi-grid"} icon`} />
+                      </span>
                     </span>
-                  </span>
 
-                  <span className="name" title={c.nome}>
-                    {c.nome}
-                  </span>
-                </Link>
-              );
-            })}
+                    <span className="name" title={c.nome}>
+                      {c.nome}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         </div>
       </section>
@@ -77,24 +139,23 @@ export default function CategoriasDestaque() {
       <style jsx>{`
         :global(:root) {
           --cream: #fff6ee;
-          --paper: #ffffff;
-
-          --rose: #b76e79;
-          --gold: #d4af37;
-
           --ink: #1f2937;
           --muted: rgba(31, 41, 55, 0.68);
 
-          --shadow: 0 16px 44px rgba(31, 41, 55, 0.10);
-          --shadowHover: 0 28px 80px rgba(31, 41, 55, 0.16);
+          --rose: #b76e79;
+          --rose2: #d9a5ad;
+          --gold: #d4af37;
+
+          --shadow: 0 18px 56px rgba(31, 41, 55, 0.10);
+          --shadow2: 0 30px 90px rgba(31, 41, 55, 0.16);
         }
 
         .sec {
-          padding: 54px 0 76px;
+          padding: 56px 0 72px;
           background:
-            radial-gradient(1100px 440px at 10% -18%, rgba(183, 110, 121, 0.14), transparent 62%),
-            radial-gradient(950px 440px at 90% -18%, rgba(212, 175, 55, 0.13), transparent 64%),
-            linear-gradient(180deg, rgba(255, 246, 238, 0.0), rgba(255, 246, 238, 0.40));
+            radial-gradient(1100px 440px at 10% -18%, rgba(183, 110, 121, 0.12), transparent 62%),
+            radial-gradient(950px 440px at 90% -18%, rgba(212, 175, 55, 0.11), transparent 64%),
+            linear-gradient(180deg, rgba(255, 246, 238, 0.0), rgba(255, 246, 238, 0.46));
         }
 
         .wrap {
@@ -108,7 +169,7 @@ export default function CategoriasDestaque() {
           align-items: flex-end;
           justify-content: space-between;
           gap: 16px;
-          margin-bottom: 22px;
+          margin-bottom: 18px;
           flex-wrap: wrap;
         }
 
@@ -122,7 +183,7 @@ export default function CategoriasDestaque() {
           gap: 10px;
           padding: 8px 12px;
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.78);
+          background: rgba(255, 255, 255, 0.82);
           border: 1px solid rgba(31, 41, 55, 0.10);
           box-shadow: 0 14px 34px rgba(31, 41, 55, 0.08);
           font-size: 12px;
@@ -169,56 +230,122 @@ export default function CategoriasDestaque() {
 
         .allBtn {
           border: 1px solid rgba(31, 41, 55, 0.12);
-          background: rgba(255, 255, 255, 0.85);
+          background: rgba(255, 255, 255, 0.88);
           border-radius: 999px;
           padding: 12px 14px;
           font-size: 12px;
           font-weight: 950;
           color: rgba(31, 41, 55, 0.82);
           box-shadow: 0 18px 44px rgba(31, 41, 55, 0.08);
-          transition: transform 0.18s ease, background 0.18s ease;
+          transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
           cursor: pointer;
           white-space: nowrap;
           text-decoration: none;
         }
         .allBtn:hover {
           transform: translateY(-1px);
-          background: rgba(255, 255, 255, 0.95);
+          background: rgba(255, 255, 255, 0.98);
+          box-shadow: 0 26px 70px rgba(31, 41, 55, 0.14);
         }
 
-        /* ====== BOLHAS ====== */
+        /* ====== WRAPPER do rail + setas + fades ====== */
+        .railWrap {
+          position: relative;
+          border-radius: 22px;
+          padding: 8px 0;
+        }
+
+        .fade {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 64px;
+          opacity: 0;
+          transition: opacity 0.2s ease;
+          pointer-events: none;
+          z-index: 2;
+        }
+        .fade.on { opacity: 1; }
+        .fade.left {
+          left: 0;
+          background: linear-gradient(90deg, rgba(255, 246, 238, 1), rgba(255, 246, 238, 0));
+        }
+        .fade.right {
+          right: 0;
+          background: linear-gradient(270deg, rgba(255, 246, 238, 1), rgba(255, 246, 238, 0));
+        }
+
+        .arrow {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 40px;
+          height: 40px;
+          border-radius: 14px;
+          border: 1px solid rgba(31, 41, 55, 0.12);
+          background: rgba(255, 255, 255, 0.78);
+          box-shadow: 0 16px 44px rgba(31, 41, 55, 0.12);
+          display: grid;
+          place-items: center;
+          cursor: pointer;
+          z-index: 3;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.2s ease, transform 0.18s ease, background 0.18s ease;
+        }
+        .arrow.on {
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .arrow:hover {
+          transform: translateY(-50%) translateY(-1px);
+          background: rgba(255, 255, 255, 0.92);
+        }
+        .arrow.left { left: 6px; }
+        .arrow.right { right: 6px; }
+        .arrow span {
+          font-size: 22px;
+          font-weight: 900;
+          color: rgba(31, 41, 55, 0.82);
+          line-height: 1;
+        }
+
+        /* ====== LISTA ====== */
         .rail {
           display: grid;
           grid-auto-flow: column;
           grid-auto-columns: max-content;
           gap: 14px;
           overflow-x: auto;
-          padding: 8px 2px 14px;
+          padding: 10px 54px 14px; /* espaço pras setas/fade */
           scroll-snap-type: x mandatory;
           -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
         }
-        .rail::-webkit-scrollbar {
-          display: none;
-        }
+        .rail::-webkit-scrollbar { display: none; }
 
-        .bubble {
+        /* ====== ITEM ====== */
+        .card {
           scroll-snap-align: start;
-          width: 132px;
+          width: 136px;
           display: grid;
           justify-items: center;
           gap: 10px;
-          padding: 10px 8px 2px;
+          padding: 14px 10px 10px;
           border-radius: 22px;
           text-decoration: none;
           color: inherit;
           user-select: none;
           -webkit-tap-highlight-color: transparent;
+
+          background: rgba(255, 255, 255, 0.60);
+          border: 1px solid rgba(31, 41, 55, 0.10);
+          box-shadow: 0 16px 48px rgba(31, 41, 55, 0.08);
+          backdrop-filter: blur(10px);
+          transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
         }
 
-        .bubbleDisabled {
-          opacity: 0.7;
-        }
+        .card.disabled { opacity: 0.72; }
 
         .orb {
           width: 94px;
@@ -227,70 +354,52 @@ export default function CategoriasDestaque() {
           position: relative;
           display: grid;
           place-items: center;
-          background: rgba(255, 255, 255, 0.92);
-          box-shadow: var(--shadow);
           overflow: hidden;
           transform: translateZ(0);
-          transition: transform 0.22s ease, box-shadow 0.22s ease, filter 0.22s ease;
-        }
-
-        .orbBorder {
-          position: absolute;
-          inset: -2px;
-          border-radius: 999px;
-          background: conic-gradient(
-            from 210deg,
-            rgba(212, 175, 55, 0.78),
-            rgba(183, 110, 121, 0.70),
-            rgba(212, 175, 55, 0.22),
-            rgba(183, 110, 121, 0.72),
-            rgba(212, 175, 55, 0.78)
-          );
-          opacity: 0.42;
-          pointer-events: none;
         }
 
         .orbGlow {
           position: absolute;
-          inset: -40px;
+          inset: -35px;
           background:
-            radial-gradient(circle at 30% 30%, rgba(212, 175, 55, 0.20), transparent 55%),
-            radial-gradient(circle at 70% 75%, rgba(183, 110, 121, 0.16), transparent 55%);
-          pointer-events: none;
+            radial-gradient(circle at 26% 30%, rgba(212, 175, 55, 0.22), transparent 56%),
+            radial-gradient(circle at 72% 76%, rgba(183, 110, 121, 0.18), transparent 60%);
+          filter: blur(0px);
+          opacity: 1;
         }
 
-        .orbShine {
+        .orbRing {
           position: absolute;
-          left: 16px;
-          top: 14px;
-          width: 44px;
-          height: 44px;
+          inset: 0;
           border-radius: 999px;
-          background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0));
-          opacity: 0.55;
-          pointer-events: none;
+          background: conic-gradient(
+            from 210deg,
+            rgba(212, 175, 55, 0.90),
+            rgba(183, 110, 121, 0.82),
+            rgba(255, 255, 255, 0.25),
+            rgba(183, 110, 121, 0.86),
+            rgba(212, 175, 55, 0.92)
+          );
+          opacity: 0.42;
         }
 
-        .iconWrap {
+        .orbInner {
           position: relative;
           z-index: 1;
-          width: 74px;
-          height: 74px;
+          width: 78px;
+          height: 78px;
           border-radius: 999px;
           display: grid;
           place-items: center;
-          background: linear-gradient(
-            135deg,
-            rgba(183, 110, 121, 0.10),
-            rgba(212, 175, 55, 0.08),
-            rgba(255, 255, 255, 0.55)
-          );
-          border: 1px solid rgba(31, 41, 55, 0.08);
+          background: rgba(255, 255, 255, 0.90);
+          border: 1px solid rgba(31, 41, 55, 0.10);
+          box-shadow: var(--shadow);
         }
 
         .icon {
           font-size: 30px;
-          color: rgba(31, 41, 55, 0.88);
+          color: rgba(31, 41, 55, 0.86);
+          transition: transform 0.18s ease, color 0.18s ease;
         }
 
         .name {
@@ -298,7 +407,7 @@ export default function CategoriasDestaque() {
           text-align: center;
           font-size: 13px;
           font-weight: 950;
-          color: rgba(31, 41, 55, 0.90);
+          color: rgba(31, 41, 55, 0.92);
           letter-spacing: -0.01em;
           line-height: 1.15;
           overflow: hidden;
@@ -307,63 +416,43 @@ export default function CategoriasDestaque() {
         }
 
         @media (hover: hover) and (pointer: fine) {
-          .bubble:hover .orb {
-            transform: translateY(-4px) scale(1.02);
-            box-shadow: var(--shadowHover);
-            filter: saturate(1.04);
+          .card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow2);
+            background: rgba(255, 255, 255, 0.74);
           }
-          .bubble:hover .icon {
+          .card:hover .icon {
+            transform: scale(1.05);
             color: rgba(159, 61, 95, 0.92);
           }
         }
 
-        .bubble:active .orb {
-          transform: translateY(-1px) scale(0.995);
-        }
+        .card:active { transform: translateY(-1px) scale(0.995); }
 
-        .bubble:focus-visible {
-          outline: 3px solid rgba(183, 110, 121, 0.25);
+        .card:focus-visible {
+          outline: 3px solid rgba(183, 110, 121, 0.24);
           outline-offset: 6px;
         }
 
-        @media (min-width: 640px) {
+        /* Desktop: vira grid bonito */
+        @media (min-width: 860px) {
+          .railWrap { padding: 0; }
+          .fade, .arrow { display: none; }
+
           .rail {
             grid-auto-flow: initial;
             grid-auto-columns: initial;
             overflow: visible;
             padding: 0;
             scroll-snap-type: none;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-columns: repeat(6, minmax(0, 1fr));
             gap: 18px;
           }
-          .bubble {
-            width: auto;
-          }
-        }
-
-        @media (min-width: 960px) {
-          .rail {
-            grid-template-columns: repeat(6, minmax(0, 1fr));
-            gap: 22px;
-          }
-          .orb {
-            width: 100px;
-            height: 100px;
-          }
-          .iconWrap {
-            width: 78px;
-            height: 78px;
-          }
-          .icon {
-            font-size: 32px;
-          }
+          .card { width: auto; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .orb,
-          .allBtn {
-            transition: none !important;
-          }
+          .card, .allBtn, .arrow, .icon { transition: none !important; }
         }
       `}</style>
     </>
