@@ -1,445 +1,476 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { FaEdit, FaStar, FaPlus, FaTrash, FaBook } from "react-icons/fa";
+import { useEffect, useMemo, useState } from "react";
+import { FiX, FiImage, FiSave } from "react-icons/fi";
 import api from "@/Api/conectar";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { rotas } from "@/components/Bibioteca/config/rotas";
-import NovoProdutoModal from "@/components/Modal/NovoProdutoModal";
+import { toast } from "react-toastify";
 
-interface Status {
-  id_status: number;
-  nome: string;
-  cor?: string;
-}
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  onCreated?: () => void | Promise<void>;
+};
 
-interface Produto {
-  id_produto: number;
+type FormState = {
   nome: string;
   slug: string;
-  preco: number;
-  estoque: number;
-  statusid: number;
-  imagem?: string;
-  destaque?: boolean;
-  id_destaque?: number;
-  statusNome?: string;
-  statusCor?: string;
-  catalogo?: number; // 1 = no catálogo, 0 = não
-}
-
-type ApiResponse<T> = {
-  status?: number;
-  mensagem?: string;
-  message?: string;
-  dados?: any;
-  data?: any;
+  preco: string;   // string pra input
+  estoque: string; // string pra input
+  statusid: string;
+  imagem?: File | null;
 };
 
-// ✅ resolve básico
-function resolveApi<T>(payload: ApiResponse<T>): any {
-  return payload?.dados ?? payload?.data ?? payload;
+function slugify(text: string) {
+  return text
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
 }
 
-// ✅ garante array de qualquer formato: [...], {dados:[...]}, {dados:{dados:[...]}}
-function resolveArray<T>(payload: any): T[] {
-  const root = resolveApi<T[]>(payload);
+export default function NovoProdutoModal({ open, onClose, onCreated }: Props) {
+  const [saving, setSaving] = useState(false);
 
-  if (Array.isArray(root)) return root;
+  const [form, setForm] = useState<FormState>({
+    nome: "",
+    slug: "",
+    preco: "",
+    estoque: "",
+    statusid: "1",
+    imagem: null,
+  });
 
-  if (root && typeof root === "object") {
-    if (Array.isArray(root.dados)) return root.dados;
-    if (root.dados && Array.isArray(root.dados.dados)) return root.dados.dados;
+  const [preview, setPreview] = useState<string | null>(null);
+
+  // fecha com ESC
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && open) onClose();
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, onClose]);
+
+  // trava scroll
+  useEffect(() => {
+    document.body.style.overflow = open ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [open]);
+
+  // preview imagem
+  useEffect(() => {
+    if (!form.imagem) {
+      setPreview(null);
+      return;
+    }
+    const url = URL.createObjectURL(form.imagem);
+    setPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [form.imagem]);
+
+  const canSave = useMemo(() => {
+    return (
+      form.nome.trim().length >= 2 &&
+      form.slug.trim().length >= 2 &&
+      Number(form.preco.replace(",", ".")) >= 0 &&
+      Number(form.estoque) >= 0 &&
+      Number(form.statusid) > 0
+    );
+  }, [form]);
+
+  function reset() {
+    setForm({
+      nome: "",
+      slug: "",
+      preco: "",
+      estoque: "",
+      statusid: "1",
+      imagem: null,
+    });
+    setPreview(null);
   }
 
-  return [];
-}
+  function close() {
+    if (saving) return;
+    reset();
+    onClose();
+  }
 
-export const getImagemUrl = (caminho?: string) => {
-  if (!caminho) return undefined;
-  const base = api.defaults.baseURL || "";
-  const caminhoLimpo = String(caminho).replace(/^\/+/, "");
-  const baseFinal = base.endsWith("/") ? base : `${base}/`;
-  return `${baseFinal}${caminhoLimpo}`;
-};
+  async function handleCreate() {
+    if (!canSave) {
+      toast.info("Preencha nome, slug, preço e estoque.");
+      return;
+    }
 
-export default function ProdutosPage() {
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // ✅ modal
-  const [modalNovoProduto, setModalNovoProduto] = useState(false);
-
-  useEffect(() => {
-    carregarDados();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const carregarDados = async () => {
     try {
-      setLoading(true);
+      setSaving(true);
 
-      const [statusRes, produtosRes] = await Promise.all([
-        api.get<ApiResponse<Status[]>>(rotas.admin.api.produtosStatus, { withCredentials: true }),
-        api.get<ApiResponse<any[]>>(rotas.admin.api.produtos, { withCredentials: true }),
-      ]);
+      // ✅ seu backend cria produto com multipart? você já usa $_POST + $_FILES no PHP
+      // então vamos mandar FormData
+      const fd = new FormData();
+      fd.append("nome", form.nome.trim());
+      fd.append("slug", form.slug.trim());
+      fd.append("preco", String(form.preco).replace(",", "."));
+      fd.append("estoque", String(form.estoque));
+      fd.append("statusid", String(form.statusid));
 
-      const statuses = resolveArray<Status>(statusRes.data);
-      const listaProdutos = resolveArray<any>(produtosRes.data);
+      if (form.imagem) {
+        fd.append("imagem", form.imagem);
+      }
 
-      const produtosConvertidos: Produto[] = listaProdutos.map((p: any) => {
-        const statusId = Number(p.statusid);
-        const status = statuses.find((s) => Number(s.id_status) === statusId);
-
-        return {
-          ...p,
-          preco: Number(p.preco || 0),
-          estoque: Number(p.estoque || 0),
-          destaque: Boolean(p.destaque),
-          id_destaque: p.id_destaque,
-          statusNome: status?.nome ?? "Inativo",
-          statusCor: status?.cor ?? "#999",
-          imagem: getImagemUrl(p.imagem),
-          catalogo: Number(p.catalogo ?? 0),
-        };
+      await api.post("/admin/produto/criar", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+        withCredentials: true,
       });
 
-      setProdutos(produtosConvertidos);
+      toast.success("Produto criado com sucesso!");
+      reset();
+      onClose();
+      await onCreated?.();
     } catch (err: any) {
-      console.error("❌ Erro ao carregar produtos:", err?.response?.data || err?.message || err);
-      toast.error("Erro ao carregar produtos, veja o console");
-      setProdutos([]);
+      console.error("❌ Erro ao criar produto:", err?.response?.data || err?.message || err);
+      toast.error("Erro ao criar produto, veja o console");
     } finally {
-      setLoading(false);
+      setSaving(false);
     }
-  };
+  }
 
-  const toggleDestaque = async (produto: Produto) => {
-    try {
-      if (produto.destaque && produto.id_destaque) {
-        await api.delete(rotas.admin.api.destaqueRemover(produto.id_destaque), { withCredentials: true });
-
-        setProdutos((p) =>
-          p.map((i) =>
-            i.id_produto === produto.id_produto
-              ? { ...i, destaque: false, id_destaque: undefined }
-              : i
-          )
-        );
-
-        toast.success("Produto removido do destaque");
-      } else {
-        const res = await api.post<ApiResponse<{ id_destaque?: number }>>(
-          rotas.admin.api.destaquesCriar,
-          { produto_id: produto.id_produto },
-          { withCredentials: true }
-        );
-
-        const payload = resolveApi<{ id_destaque?: number }>(res.data);
-        const idDestaque = payload?.id_destaque ?? payload?.dados?.id_destaque;
-
-        setProdutos((p) =>
-          p.map((i) =>
-            i.id_produto === produto.id_produto
-              ? { ...i, destaque: true, id_destaque: idDestaque }
-              : i
-          )
-        );
-
-        toast.success("Produto adicionado ao destaque");
-      }
-    } catch (err: any) {
-      console.error("❌ Erro ao atualizar destaque:", err?.response?.data || err?.message || err);
-      toast.error("Erro ao atualizar destaque, veja o console");
-    }
-  };
-
-  const toggleCatalogo = async (produto: Produto) => {
-    try {
-      if (produto.catalogo === 1) {
-        await api.put(rotas.admin.api.catalogoNao(produto.id_produto), null, { withCredentials: true });
-
-        setProdutos((p) =>
-          p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 0 } : i))
-        );
-
-        toast.success("Produto removido do catálogo");
-      } else {
-        await api.put(rotas.admin.api.catalogoSim(produto.id_produto), null, { withCredentials: true });
-
-        setProdutos((p) =>
-          p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 1 } : i))
-        );
-
-        toast.success("Produto adicionado ao catálogo");
-      }
-    } catch (err: any) {
-      console.error("❌ Erro ao atualizar catálogo:", err?.response?.data || err?.message || err);
-      toast.error("Erro ao atualizar catálogo, veja o console");
-    }
-  };
-
-  const excluirProduto = async (id: number) => {
-    if (!confirm("Deseja excluir este produto?")) return;
-
-    try {
-      await api.delete(rotas.admin.api.produtoRemover(id), { withCredentials: true });
-      setProdutos((p) => p.filter((i) => i.id_produto !== id));
-      toast.success("Produto excluído");
-    } catch (err: any) {
-      console.error("❌ Erro ao excluir produto:", err?.response?.data || err?.message || err);
-      toast.error("Erro ao excluir produto, veja o console");
-    }
-  };
+  if (!open) return null;
 
   return (
-    <div className="container-fluid py-4 dashboard-bg">
-      <ToastContainer position="top-right" />
+    <div className={`overlay ${open ? "show" : ""}`} onClick={close}>
+      <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div className="header">
+          <div className="title">
+            <div className="t1">Novo Produto</div>
+            <div className="t2">Cadastre rapidamente um produto no catálogo</div>
+          </div>
 
-      {/* ✅ MODAL NOVO PRODUTO */}
-      <NovoProdutoModal
-        open={modalNovoProduto}
-        onClose={() => setModalNovoProduto(false)}
-        onCreated={async () => {
-          setModalNovoProduto(false);
-          await carregarDados();
-        }}
-      />
-
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h1 className="fw-bold title">Produtos</h1>
-          <p className="text-muted">Gerencie os produtos cadastrados</p>
+          <button className="x" onClick={close} aria-label="Fechar" type="button">
+            <FiX size={18} />
+          </button>
         </div>
 
-        <div className="d-flex gap-2">
-          {/* ✅ Abre modal ao invés de ir pra /admin/produto/novo */}
-          <button type="button" className="btn btn-gold" onClick={() => setModalNovoProduto(true)}>
-            <FaPlus /> Novo Produto
+        <div className="body">
+          <div className="grid">
+            <label className="field">
+              <span>Nome</span>
+              <input
+                value={form.nome}
+                onChange={(e) => {
+                  const nome = e.target.value;
+                  setForm((p) => ({
+                    ...p,
+                    nome,
+                    slug: p.slug ? p.slug : slugify(nome),
+                  }));
+                }}
+                placeholder="Ex: Cesta Luxo"
+              />
+            </label>
+
+            <label className="field">
+              <span>Slug</span>
+              <input
+                value={form.slug}
+                onChange={(e) => setForm((p) => ({ ...p, slug: slugify(e.target.value) }))}
+                placeholder="ex: cesta-luxo"
+              />
+            </label>
+
+            <label className="field">
+              <span>Preço</span>
+              <input
+                inputMode="decimal"
+                value={form.preco}
+                onChange={(e) => setForm((p) => ({ ...p, preco: e.target.value }))}
+                placeholder="Ex: 99.90"
+              />
+            </label>
+
+            <label className="field">
+              <span>Estoque</span>
+              <input
+                inputMode="numeric"
+                value={form.estoque}
+                onChange={(e) => setForm((p) => ({ ...p, estoque: e.target.value }))}
+                placeholder="Ex: 10"
+              />
+            </label>
+
+            <label className="field">
+              <span>Status</span>
+              <select
+                value={form.statusid}
+                onChange={(e) => setForm((p) => ({ ...p, statusid: e.target.value }))}
+              >
+                <option value="1">Ativo</option>
+                <option value="2">Inativo</option>
+              </select>
+            </label>
+
+            <label className="field file">
+              <span>Imagem</span>
+              <div className="fileRow">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => setForm((p) => ({ ...p, imagem: e.target.files?.[0] ?? null }))}
+                />
+                <div className="fileHint">
+                  <FiImage /> JPG/PNG
+                </div>
+              </div>
+            </label>
+          </div>
+
+          <div className="preview">
+            <div className="ph">
+              {preview ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={preview} alt="Preview" />
+              ) : (
+                <div className="empty">
+                  <FiImage size={18} />
+                  <span>Prévia da imagem</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="footer">
+          <button className="btn ghost" type="button" onClick={close} disabled={saving}>
+            Cancelar
           </button>
 
-          <Link href="/admin/catalogo" className="btn btn-dark-soft">
-            <FaBook /> Catálogo
-          </Link>
+          <button className="btn primary" type="button" onClick={handleCreate} disabled={!canSave || saving}>
+            <FiSave size={16} />
+            {saving ? "Salvando..." : "Criar Produto"}
+          </button>
         </div>
       </div>
 
-      {loading ? (
-        <div className="text-center py-5">Carregando...</div>
-      ) : (
-        <div className="row g-4">
-          {produtos.map((prod) => (
-            <div key={prod.id_produto} className="col-12 col-sm-6 col-md-4 col-xl-3">
-              <div className="produto-card">
-                <div className="card-image">
-                  {prod.imagem ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={prod.imagem} alt={prod.nome} />
-                  ) : (
-                    <div className="no-image">Sem imagem</div>
-                  )}
-
-                  {/* ✅ BADGES */}
-                  <div className="badges">
-                    {prod.destaque && <span className="badgex badge-destaque">Destaque</span>}
-                    {prod.catalogo === 1 && <span className="badgex badge-catalogo">Catálogo</span>}
-                  </div>
-                </div>
-
-                <div className="card-body">
-                  <h6 className="produto-nome">{prod.nome}</h6>
-
-                  <span className="status-badge" style={{ backgroundColor: prod.statusCor }}>
-                    {prod.statusNome}
-                  </span>
-
-                  <p className="preco">R$ {Number(prod.preco || 0).toFixed(2)}</p>
-                  <small className="estoque">Estoque: {Number(prod.estoque || 0)}</small>
-
-                  <div className="acoes acoes-hide">
-                    <Link href={`/admin/produto/${encodeURIComponent(prod.slug)}`} title="Editar">
-                      <FaEdit />
-                    </Link>
-
-                    <button onClick={() => toggleDestaque(prod)} title="Destaque" type="button">
-                      <FaStar />
-                    </button>
-
-                    <button
-                      onClick={() => toggleCatalogo(prod)}
-                      title={prod.catalogo === 1 ? "Remover do catálogo" : "Adicionar ao catálogo"}
-                      className={prod.catalogo === 1 ? "catalogo-on" : "catalogo-off"}
-                      type="button"
-                    >
-                      <FaBook />
-                    </button>
-
-                    <button
-                      onClick={() => excluirProduto(prod.id_produto)}
-                      title="Excluir"
-                      className="danger"
-                      type="button"
-                    >
-                      <FaTrash />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-
-          {!produtos.length && (
-            <div className="col-12">
-              <div className="alert alert-light border">Nenhum produto encontrado.</div>
-            </div>
-          )}
-        </div>
-      )}
-
-      <style jsx global>{`
-        .dashboard-bg {
-          background: #f5f6fa;
-          min-height: 100vh;
-        }
-        .title {
-          color: #6b4c4f;
-        }
-        .btn-gold {
-          background: #d4af37;
-          color: #fff;
-          border: none;
-        }
-        .btn-dark-soft {
-          background: #6b4c4f;
-          color: #fff;
-          border: none;
+      <style jsx>{`
+        .overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(2, 6, 23, 0.55);
+          backdrop-filter: blur(3px);
+          z-index: 999999;
+          display: grid;
+          place-items: center;
+          padding: 14px;
         }
 
-        .produto-card {
+        .modal {
+          width: min(420px, 95vw); /* ✅ menor */
           background: #fff;
-          border-radius: 14px;
+          border-radius: 16px;
+          box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
+          border: 1px solid rgba(17, 24, 39, 0.08);
           overflow: hidden;
-          box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
-          transition: transform 0.2s, box-shadow 0.2s;
-          height: 100%;
-        }
-        .produto-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+          transform: translateY(0);
         }
 
-        .card-image {
-          position: relative;
-          height: 160px;
-          background: #eee;
+        .header {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 14px 14px 10px;
+          border-bottom: 1px solid rgba(17, 24, 39, 0.08);
+          background: linear-gradient(180deg, rgba(124, 58, 237, 0.06), rgba(255, 255, 255, 0));
         }
-        .card-image img,
-        .no-image {
+
+        .title {
+          min-width: 0;
+        }
+
+        .t1 {
+          font-size: 14px;
+          font-weight: 950;
+          color: #111827;
+          letter-spacing: -0.01em;
+        }
+
+        .t2 {
+          margin-top: 4px;
+          font-size: 12px;
+          color: #6b7280;
+          font-weight: 700;
+          line-height: 1.2;
+        }
+
+        .x {
+          width: 40px;
+          height: 40px;
+          border-radius: 14px;
+          border: 1px solid rgba(17, 24, 39, 0.1);
+          background: rgba(17, 24, 39, 0.02);
+          cursor: pointer;
+          display: grid;
+          place-items: center;
+        }
+
+        .body {
+          padding: 12px 14px 10px;
+          display: grid;
+          gap: 10px;
+        }
+
+        .grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr; /* ✅ compacto */
+          gap: 10px;
+        }
+
+        .field {
+          display: grid;
+          gap: 6px;
+        }
+
+        .field span {
+          font-size: 11px;
+          font-weight: 900;
+          color: rgba(17, 24, 39, 0.7);
+        }
+
+        input,
+        select {
+          width: 100%;
+          padding: 10px 10px;
+          border-radius: 12px;
+          border: 1px solid rgba(17, 24, 39, 0.12);
+          outline: none;
+          font-size: 13px;
+          background: #fff;
+          transition: 0.2s;
+        }
+
+        input:focus,
+        select:focus {
+          border-color: rgba(124, 58, 237, 0.55);
+          box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
+        }
+
+        .file {
+          grid-column: 1 / -1;
+        }
+
+        .fileRow {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 10px;
+          align-items: center;
+        }
+
+        .fileHint {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 10px 10px;
+          border-radius: 12px;
+          border: 1px solid rgba(17, 24, 39, 0.1);
+          background: rgba(17, 24, 39, 0.02);
+          font-size: 12px;
+          font-weight: 800;
+          color: #6b7280;
+          white-space: nowrap;
+        }
+
+        .preview {
+          grid-column: 1 / -1;
+        }
+
+        .ph {
+          height: 140px;
+          border-radius: 14px;
+          border: 1px dashed rgba(17, 24, 39, 0.22);
+          background: rgba(17, 24, 39, 0.02);
+          overflow: hidden;
+          display: grid;
+          place-items: center;
+        }
+
+        .ph img {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          display: flex;
+          display: block;
+        }
+
+        .empty {
+          display: inline-flex;
           align-items: center;
-          justify-content: center;
-        }
-
-        .badges {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          display: flex;
           gap: 8px;
-          flex-wrap: wrap;
-          justify-content: flex-end;
-        }
-
-        .badgex {
-          font-size: 11px;
-          padding: 4px 10px;
-          border-radius: 999px;
-          color: #fff;
-          font-weight: 700;
-          box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
-        }
-
-        .badge-destaque {
-          background: #e74c3c;
-        }
-
-        .badge-catalogo {
-          background: #22c55e;
-        }
-
-        .card-body {
-          padding: 14px;
-        }
-        .produto-nome {
-          color: #6b4c4f;
-          margin-bottom: 4px;
-        }
-        .status-badge {
-          display: inline-block;
-          margin-bottom: 8px;
-          padding: 4px 10px;
-          font-size: 11px;
-          border-radius: 999px;
-          color: #fff;
-        }
-        .preco {
-          font-weight: 600;
-          margin-bottom: 2px;
-        }
-        .estoque {
-          color: #888;
+          color: #6b7280;
+          font-weight: 800;
           font-size: 12px;
         }
 
-        .acoes {
-          margin-top: 12px;
+        .footer {
+          padding: 12px 14px 14px;
+          border-top: 1px solid rgba(17, 24, 39, 0.08);
           display: flex;
-          gap: 14px;
-          font-size: 1.1rem;
+          justify-content: flex-end;
+          gap: 10px;
+          background: rgba(17, 24, 39, 0.01);
+        }
+
+        .btn {
+          display: inline-flex;
           align-items: center;
-        }
-        .acoes a,
-        .acoes button {
-          background: none;
-          border: none;
+          gap: 8px;
+          padding: 10px 12px;
+          border-radius: 14px;
+          font-weight: 950;
           cursor: pointer;
-          color: #6b4c4f;
-          padding: 0;
-        }
-        .acoes .danger {
-          color: #e74c3c;
-        }
-        .acoes a:hover,
-        .acoes button:hover {
-          color: #d4af37;
+          border: 1px solid transparent;
+          transition: 0.2s;
+          font-size: 13px;
         }
 
-        .acoes-hide {
-          opacity: 0;
-          transform: translateY(6px);
-          pointer-events: none;
-          transition: 0.18s ease;
-        }
-        .produto-card:hover .acoes-hide {
-          opacity: 1;
-          transform: translateY(0);
-          pointer-events: auto;
+        .ghost {
+          background: rgba(17, 24, 39, 0.05);
+          border-color: rgba(17, 24, 39, 0.12);
+          color: #111827;
         }
 
-        .catalogo-on {
-          color: #22c55e;
+        .ghost:hover {
+          background: rgba(17, 24, 39, 0.08);
         }
-        .catalogo-off {
-          color: #888;
+
+        .primary {
+          background: #d4af37;
+          color: #fff;
+          border-color: rgba(212, 175, 55, 0.35);
+          box-shadow: 0 16px 30px rgba(212, 175, 55, 0.22);
         }
-        .catalogo-on:hover,
-        .catalogo-off:hover {
-          color: #d4af37;
+
+        .primary:hover {
+          filter: brightness(0.98);
+          transform: translateY(-1px);
+        }
+
+        .btn:disabled {
+          opacity: 0.65;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        @media (max-width: 520px) {
+          .grid {
+            grid-template-columns: 1fr; /* ✅ mobile */
+          }
+          .fileRow {
+            grid-template-columns: 1fr;
+          }
         }
       `}</style>
     </div>
