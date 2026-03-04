@@ -33,7 +33,7 @@ export default function UsuariosPage() {
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
-  // ✅ busca + paginação
+  // busca + paginação
   const [q, setQ] = useState("");
   const [itensPorPagina, setItensPorPagina] = useState(12);
   const [pagina, setPagina] = useState(1);
@@ -48,11 +48,9 @@ export default function UsuariosPage() {
 
   function extrairListaUsuarios(resData: ApiUsuariosResponse): Usuario[] {
     const d = resData?.dados ?? resData?.data ?? resData;
-
     if (Array.isArray(d?.usuarios)) return d.usuarios;
     if (Array.isArray(d)) return d;
     if (Array.isArray(resData?.dados)) return resData.dados;
-
     return [];
   }
 
@@ -62,7 +60,6 @@ export default function UsuariosPage() {
       const res = await api.get("/admin/usuarios", { withCredentials: true });
       const lista = extrairListaUsuarios(res.data);
 
-      // normaliza
       const norm: Usuario[] = (Array.isArray(lista) ? lista : []).map((u: any) => ({
         id_usuario: Number(u.id_usuario),
         nome: String(u.nome ?? ""),
@@ -107,21 +104,39 @@ export default function UsuariosPage() {
     }
   }
 
-  // opcional: rota no back (se você criar)
-  async function resetPin(usuario: Usuario) {
-    if (usuario.nivel_id === 1) {
+  async function resetPin(user: Usuario) {
+    if (user.nivel_id === 1) {
       toast.error("Usuário do sistema não pode alterar PIN");
       return;
     }
 
-    const ok = confirm(`Resetar PIN do usuário "${usuario.nome}"?`);
+    const ok = confirm(`Resetar PIN do usuário "${user.nome}"?`);
     if (!ok) return;
 
     try {
-      // ✅ se você criar a rota:
-      // await api.post(`/admin/usuarios/${usuario.id_usuario}/reset-pin`, {}, { withCredentials: true });
+      // ✅ se a rota existir no back:
+      const res = await api.post(
+        `/admin/usuarios/${user.id_usuario}/reset-pin`,
+        {},
+        { withCredentials: true }
+      );
 
-      toast.info("Reset de PIN (implemente a rota no back)");
+      const novoPin =
+        res.data?.dados?.pin ??
+        res.data?.pin ??
+        res.data?.dados?.dados?.pin ??
+        null;
+
+      toast.success(novoPin ? `Novo PIN: ${novoPin}` : "PIN resetado com sucesso");
+
+      // atualiza local (sem precisar recarregar tudo)
+      if (novoPin) {
+        setUsuarios((prev) =>
+          prev.map((u) => (u.id_usuario === user.id_usuario ? { ...u, pin: String(novoPin) } : u))
+        );
+      } else {
+        await carregar();
+      }
     } catch (e: any) {
       console.error(e);
       toast.error(e?.response?.data?.mensagem || "Erro ao resetar PIN");
@@ -181,85 +196,96 @@ export default function UsuariosPage() {
   }, [filtrados, pagina, itensPorPagina]);
 
   const paginas = useMemo(() => {
-    // se você tiver muitas páginas e quiser "..." eu deixo bem elegante
+    // numeros simples. Se quiser versão com "..." depois eu faço.
     return Array.from({ length: totalPaginas }, (_, i) => i + 1);
   }, [totalPaginas]);
 
   return (
-    <div className="page">
+    <div className="uPage">
       <ToastContainer position="top-right" autoClose={2400} newestOnTop theme="light" />
 
-      {/* TOPBAR */}
-      <div className="topbar">
-        <div className="topLeft">
-          <div className="kicker">
-            <span className="kdot" />
-            Painel Administrativo
+      {/* HEADER GLASS */}
+      <div className="uHeader">
+        <div className="uHeaderLeft">
+          <div className="uKicker">
+            <span className="uDot" />
+            Administração
           </div>
 
-          <h1 className="title">Usuários</h1>
-
-          <p className="sub">
-            Gerencie acessos, níveis e segurança
-            {usuarios.length > 0 && (
-              <span className="meta">
-                • {usuarios.length} total • {totalSistema} sistema
-              </span>
+          <div className="uTitleRow">
+            <h1 className="uTitle">Usuários</h1>
+            {!loading && (
+              <div className="uStats">
+                <span className="uChip">
+                  Total <b>{usuarios.length}</b>
+                </span>
+                <span className="uChip warn">
+                  Sistema <b>{totalSistema}</b>
+                </span>
+              </div>
             )}
+          </div>
+
+          <p className="uSub">
+            Controle de acessos e segurança. Busque, edite e gerencie PINs.
           </p>
         </div>
 
-        <div className="topRight">
-          <button className="btn ghost" onClick={carregar} disabled={loading}>
+        <div className="uHeaderRight">
+          <button className="uBtn ghost" onClick={carregar} disabled={loading}>
             <FaSyncAlt /> Atualizar
           </button>
 
-          <Link href="/admin/usuarios/novo" className="btn primary">
+          <Link href="/admin/usuarios/novo" className="uBtn primary">
             <FaUserPlus /> Novo Usuário
           </Link>
         </div>
       </div>
 
       {/* TOOLBAR */}
-      <div className="toolbar">
-        <div className="search">
-          <FaSearch className="sIcon" />
+      <div className="uToolbar">
+        <div className="uSearch">
+          <FaSearch className="uSearchIcon" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Buscar por nome, email ou PIN..."
           />
+          {q && (
+            <button className="uClear" onClick={() => setQ("")} aria-label="Limpar busca">
+              ✕
+            </button>
+          )}
         </div>
 
-        <div className="perPage">
-          <span>Por página</span>
-          <select
-            value={itensPorPagina}
-            onChange={(e) => setItensPorPagina(Number(e.target.value))}
-          >
-            <option value={8}>8</option>
-            <option value={12}>12</option>
-            <option value={16}>16</option>
-            <option value={24}>24</option>
-            <option value={48}>48</option>
-          </select>
+        <div className="uRightTools">
+          <div className="uSelect">
+            <span>Por página</span>
+            <select value={itensPorPagina} onChange={(e) => setItensPorPagina(Number(e.target.value))}>
+              <option value={8}>8</option>
+              <option value={12}>12</option>
+              <option value={16}>16</option>
+              <option value={24}>24</option>
+              <option value={48}>48</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      {/* PAGINAÇÃO (SEM PRÓX/ANT) */}
+      {/* PAGINAÇÃO (SÓ NÚMEROS) */}
       {!loading && filtrados.length > 0 && totalPaginas > 1 && (
-        <div className="pagerBar">
-          <div className="pagerInfo">
-            Página <b>{pagina}</b> de <b>{totalPaginas}</b> — Mostrando{" "}
+        <div className="uPager">
+          <div className="uPagerInfo">
+            Página <b>{pagina}</b> de <b>{totalPaginas}</b> — exibindo{" "}
             <b>{paginados.length}</b> de <b>{filtrados.length}</b>
           </div>
 
-          <div className="pagerNumbers" aria-label="Paginação">
+          <div className="uPagerNums" aria-label="Paginação">
             {paginas.map((p) => (
               <button
                 key={p}
                 type="button"
-                className={`pageBtn ${p === pagina ? "active" : ""}`}
+                className={`uPageBtn ${p === pagina ? "active" : ""}`}
                 onClick={() => setPagina(p)}
               >
                 {p}
@@ -269,63 +295,56 @@ export default function UsuariosPage() {
         </div>
       )}
 
-      {/* BODY */}
+      {/* CONTEÚDO */}
       {loading ? (
-        <div className="skeletonWrap">
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div className="skRow" key={i} />
+        <div className="uSkeleton">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <div className="uSkRow" key={i} />
           ))}
         </div>
       ) : filtrados.length === 0 ? (
-        <div className="empty">
-          <div className="emptyCard">
-            <div className="emptyTitle">Nenhum usuário encontrado</div>
-            <div className="emptySub">Tente outra busca ou crie um novo usuário.</div>
-            <Link href="/admin/usuarios/novo" className="btn primary">
+        <div className="uEmpty">
+          <div className="uEmptyCard">
+            <div className="uEmptyTitle">Nenhum usuário encontrado</div>
+            <div className="uEmptySub">Tente outra busca ou crie um novo usuário.</div>
+            <Link href="/admin/usuarios/novo" className="uBtn primary">
               <FaUserPlus /> Novo Usuário
             </Link>
           </div>
         </div>
       ) : (
-        <div className="tableCard">
-          <div className="tableHead">
-            <div className="th name">Usuário</div>
-            <div className="th pin">PIN</div>
-            <div className="th level">Nível</div>
-            <div className="th actions">Ações</div>
-          </div>
+        <>
+          {/* DESKTOP TABLE */}
+          <div className="uTable">
+            <div className="uTHead">
+              <div>Usuário</div>
+              <div>PIN</div>
+              <div>Nível</div>
+              <div className="uTActionsHead">Ações</div>
+            </div>
 
-          {paginados.map((user) => {
-            const isSistema = user.nivel_id === 1;
-            const isDeleting = deletingId === user.id_usuario;
+            {paginados.map((user) => {
+              const isSistema = user.nivel_id === 1;
+              const isDeleting = deletingId === user.id_usuario;
 
-            return (
-              <div className="row" key={user.id_usuario}>
-                <div className="td name">
-                  <div className="who">
-                    <div className={`avatar ${isSistema ? "sys" : ""}`} aria-hidden>
+              return (
+                <div className="uTRow" key={user.id_usuario}>
+                  <div className="uUserCell">
+                    <div className={`uAvatar ${isSistema ? "sys" : ""}`}>
                       {String(user.nome || "?").trim().slice(0, 1).toUpperCase()}
                     </div>
-
-                    <div className="whoText">
-                      <div className="nm" title={user.nome}>
-                        {user.nome}
-                      </div>
-                      <div className="em" title={user.email}>
-                        {user.email}
-                      </div>
+                    <div className="uUserText">
+                      <div className="uName" title={user.nome}>{user.nome}</div>
+                      <div className="uEmail" title={user.email}>{user.email}</div>
                     </div>
                   </div>
-                </div>
 
-                <div className="td pin">
-                  <div className="pinBox">
-                    <span className={`pinValue ${user.pin ? "" : "muted"}`}>
+                  <div className="uPinCell">
+                    <span className={`uPin ${user.pin ? "" : "muted"}`}>
                       {user.pin ?? "— — — —"}
                     </span>
-
                     <button
-                      className="mini"
+                      className="uIconBtn"
                       onClick={() => copiarTexto(user.pin ?? "", "PIN copiado!")}
                       disabled={!user.pin}
                       title={user.pin ? "Copiar PIN" : "Sem PIN"}
@@ -334,47 +353,42 @@ export default function UsuariosPage() {
                       <FaCopy />
                     </button>
                   </div>
-                </div>
 
-                <div className="td level">
-                  {isSistema ? (
-                    <span className="pill danger">
-                      <FaLock /> Sistema
-                    </span>
-                  ) : (
-                    <span className="pill ok">Ativo</span>
-                  )}
-                </div>
+                  <div className="uLevelCell">
+                    {isSistema ? (
+                      <span className="uBadge danger">
+                        <FaLock /> Sistema
+                      </span>
+                    ) : (
+                      <span className="uBadge ok">Ativo</span>
+                    )}
+                  </div>
 
-                <div className="td actions">
-                  <div className="actionsWrap">
-                    <button className="act soft" onClick={() => mailtoUsuario(user)}>
+                  <div className="uActionsCell">
+                    <button className="uSmall soft" onClick={() => mailtoUsuario(user)}>
                       <FaEnvelope /> Email
                     </button>
 
-                    <button
-                      className="act soft2"
-                      onClick={() => copiarTexto(user.email, "Email copiado!")}
-                    >
+                    <button className="uSmall info" onClick={() => copiarTexto(user.email, "Email copiado!")}>
                       <FaCopy /> Copiar
                     </button>
 
                     {isSistema ? (
-                      <button className="act locked" disabled>
+                      <button className="uSmall locked" disabled>
                         <FaLock /> Protegido
                       </button>
                     ) : (
                       <>
-                        <Link href={`/admin/usuarios/${user.id_usuario}`} className="act soft3">
+                        <Link href={`/admin/usuarios/${user.id_usuario}`} className="uSmall neutral">
                           <FaEdit /> Editar
                         </Link>
 
-                        <button className="act warn" onClick={() => resetPin(user)}>
+                        <button className="uSmall warn" onClick={() => resetPin(user)}>
                           <FaKey /> Reset
                         </button>
 
                         <button
-                          className="trash"
+                          className="uTrash"
                           onClick={() => excluirUsuario(user)}
                           disabled={isDeleting}
                           title={isDeleting ? "Excluindo..." : "Excluir"}
@@ -386,138 +400,249 @@ export default function UsuariosPage() {
                     )}
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+
+          {/* MOBILE CARDS */}
+          <div className="uCards">
+            {paginados.map((user) => {
+              const isSistema = user.nivel_id === 1;
+              const isDeleting = deletingId === user.id_usuario;
+
+              return (
+                <div className="uCard" key={`m-${user.id_usuario}`}>
+                  <div className="uCardTop">
+                    <div className="uCardLeft">
+                      <div className={`uAvatar ${isSistema ? "sys" : ""}`}>
+                        {String(user.nome || "?").trim().slice(0, 1).toUpperCase()}
+                      </div>
+                      <div className="uUserText">
+                        <div className="uName">{user.nome}</div>
+                        <div className="uEmail">{user.email}</div>
+                      </div>
+                    </div>
+
+                    {isSistema ? (
+                      <span className="uBadge danger">
+                        <FaLock /> Sistema
+                      </span>
+                    ) : (
+                      <span className="uBadge ok">Ativo</span>
+                    )}
+                  </div>
+
+                  <div className="uCardMid">
+                    <div className="uLabel">PIN</div>
+                    <div className="uPinRow">
+                      <span className={`uPin ${user.pin ? "" : "muted"}`}>
+                        {user.pin ?? "— — — —"}
+                      </span>
+                      <button
+                        className="uIconBtn"
+                        onClick={() => copiarTexto(user.pin ?? "", "PIN copiado!")}
+                        disabled={!user.pin}
+                      >
+                        <FaCopy />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="uCardActions">
+                    <button className="uSmall soft" onClick={() => mailtoUsuario(user)}>
+                      <FaEnvelope /> Email
+                    </button>
+
+                    <button className="uSmall info" onClick={() => copiarTexto(user.email, "Email copiado!")}>
+                      <FaCopy /> Copiar
+                    </button>
+
+                    {isSistema ? (
+                      <button className="uSmall locked" disabled>
+                        <FaLock /> Protegido
+                      </button>
+                    ) : (
+                      <>
+                        <Link href={`/admin/usuarios/${user.id_usuario}`} className="uSmall neutral">
+                          <FaEdit /> Editar
+                        </Link>
+
+                        <button className="uSmall warn" onClick={() => resetPin(user)}>
+                          <FaKey /> Reset
+                        </button>
+
+                        <button
+                          className="uTrash"
+                          onClick={() => excluirUsuario(user)}
+                          disabled={isDeleting}
+                        >
+                          <FaTrash />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       <style jsx>{`
         :global(:root) {
-          --ink: #0f172a;
-          --muted: rgba(15, 23, 42, 0.62);
-          --line: rgba(15, 23, 42, 0.10);
+          --u-ink: #0b1220;
+          --u-muted: rgba(11, 18, 32, 0.62);
+          --u-line: rgba(11, 18, 32, 0.10);
 
-          --bg1: rgba(99, 102, 241, 0.10);
-          --bg2: rgba(212, 175, 55, 0.10);
+          --u-primary: #6d28d9;
+          --u-primary2: #8b5cf6;
 
-          --primary: #4f46e5;
-          --primary2: #6366f1;
+          --u-ok: #22c55e;
+          --u-warn: #f59e0b;
+          --u-danger: #ef4444;
 
-          --ok: #22c55e;
-          --warn: #f59e0b;
-          --danger: #ef4444;
-
-          --card: rgba(255, 255, 255, 0.78);
-          --shadow: 0 18px 60px rgba(15, 23, 42, 0.10);
-          --shadow2: 0 30px 90px rgba(15, 23, 42, 0.14);
+          --u-card: rgba(255, 255, 255, 0.78);
+          --u-shadow: 0 18px 60px rgba(11, 18, 32, 0.10);
+          --u-shadow2: 0 30px 90px rgba(11, 18, 32, 0.14);
         }
 
-        .page {
+        .uPage {
           padding: 18px 18px 28px;
           border-radius: 18px;
-          background:
-            radial-gradient(1200px 520px at 10% -10%, var(--bg1), transparent 60%),
-            radial-gradient(980px 520px at 90% -10%, var(--bg2), transparent 60%),
-            linear-gradient(180deg, rgba(15, 23, 42, 0.03), transparent 50%);
           min-height: 92vh;
+          background:
+            radial-gradient(1200px 520px at 12% -10%, rgba(109, 40, 217, 0.12), transparent 60%),
+            radial-gradient(980px 520px at 90% -10%, rgba(245, 158, 11, 0.10), transparent 60%),
+            linear-gradient(180deg, rgba(11, 18, 32, 0.03), transparent 50%);
         }
 
-        .topbar {
+        .uHeader {
           display: flex;
           align-items: flex-end;
           justify-content: space-between;
           gap: 14px;
           flex-wrap: wrap;
-          margin-bottom: 14px;
+          padding: 16px;
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.68);
+          border: 1px solid var(--u-line);
+          box-shadow: var(--u-shadow);
+          backdrop-filter: blur(14px);
+          margin-bottom: 12px;
         }
 
-        .kicker {
+        .uKicker {
           display: inline-flex;
           align-items: center;
           gap: 10px;
           padding: 7px 11px;
           border-radius: 999px;
-          background: rgba(15, 23, 42, 0.04);
-          border: 1px solid rgba(15, 23, 42, 0.08);
-          color: rgba(15, 23, 42, 0.72);
+          background: rgba(11, 18, 32, 0.04);
+          border: 1px solid rgba(11, 18, 32, 0.08);
+          color: rgba(11, 18, 32, 0.70);
           font-size: 0.82rem;
           font-weight: 950;
           width: fit-content;
         }
-        .kdot {
+        .uDot {
           width: 9px;
           height: 9px;
           border-radius: 999px;
-          background: linear-gradient(135deg, var(--primary), var(--primary2));
-          box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.18);
+          background: linear-gradient(135deg, var(--u-primary), var(--u-primary2));
+          box-shadow: 0 0 0 5px rgba(139, 92, 246, 0.18);
         }
 
-        .title {
-          margin: 10px 0 6px;
+        .uTitleRow {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+          margin-top: 10px;
+        }
+
+        .uTitle {
+          margin: 0;
           font-size: 2rem;
           font-weight: 1000;
           letter-spacing: -0.03em;
-          color: var(--ink);
+          color: var(--u-ink);
         }
 
-        .sub {
-          margin: 0;
-          color: var(--muted);
-        }
-        .meta {
-          margin-left: 8px;
-          color: rgba(15, 23, 42, 0.52);
-          font-weight: 850;
+        .uStats {
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
         }
 
-        .topRight {
+        .uChip {
+          display: inline-flex;
+          gap: 8px;
+          align-items: center;
+          padding: 8px 10px;
+          border-radius: 999px;
+          border: 1px solid rgba(11, 18, 32, 0.10);
+          background: rgba(255, 255, 255, 0.85);
+          color: rgba(11, 18, 32, 0.82);
+          font-weight: 900;
+          font-size: 12px;
+        }
+        .uChip.warn {
+          border-color: rgba(245, 158, 11, 0.20);
+          background: rgba(245, 158, 11, 0.10);
+          color: #92400e;
+        }
+
+        .uSub {
+          margin: 8px 0 0;
+          color: var(--u-muted);
+          font-weight: 650;
+        }
+
+        .uHeaderRight {
           display: flex;
           gap: 10px;
           flex-wrap: wrap;
           justify-content: flex-end;
         }
 
-        .btn {
+        .uBtn {
           height: 44px;
           padding: 0 14px;
           border-radius: 14px;
           font-weight: 950;
-          border: 1px solid var(--line);
+          border: 1px solid var(--u-line);
           cursor: pointer;
-          transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
-          white-space: nowrap;
+          transition: transform 0.15s ease, box-shadow 0.2s ease;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 10px;
           text-decoration: none;
           background: #fff;
-          color: var(--ink);
-          box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+          color: var(--u-ink);
+          box-shadow: 0 10px 26px rgba(11, 18, 32, 0.08);
         }
-        .btn:hover {
+        .uBtn:hover {
           transform: translateY(-1px);
-          box-shadow: var(--shadow);
+          box-shadow: var(--u-shadow);
         }
-        .btn:disabled {
+        .uBtn:disabled {
           opacity: 0.7;
           cursor: not-allowed;
           transform: none;
           box-shadow: none;
         }
 
-        .btn.primary {
+        .uBtn.primary {
           color: #fff;
-          background: linear-gradient(135deg, var(--primary), var(--primary2));
+          background: linear-gradient(135deg, var(--u-primary), var(--u-primary2));
           border-color: rgba(255, 255, 255, 0.22);
         }
-
-        .btn.ghost {
+        .uBtn.ghost {
           background: rgba(255, 255, 255, 0.74);
         }
 
-        .toolbar {
+        .uToolbar {
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -526,7 +651,7 @@ export default function UsuariosPage() {
           margin-bottom: 12px;
         }
 
-        .search {
+        .uSearch {
           flex: 1;
           min-width: 260px;
           display: flex;
@@ -534,224 +659,249 @@ export default function UsuariosPage() {
           gap: 10px;
           padding: 10px 12px;
           border-radius: 14px;
-          border: 1px solid var(--line);
+          border: 1px solid var(--u-line);
           background: rgba(255, 255, 255, 0.84);
-          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+          box-shadow: 0 10px 24px rgba(11, 18, 32, 0.06);
         }
-        .sIcon {
-          color: rgba(15, 23, 42, 0.55);
+
+        .uSearchIcon {
+          color: rgba(11, 18, 32, 0.55);
         }
-        .search input {
+
+        .uSearch input {
           width: 100%;
           border: none;
           outline: none;
           background: transparent;
           font-weight: 750;
-          color: var(--ink);
+          color: var(--u-ink);
         }
 
-        .perPage {
+        .uClear {
+          width: 34px;
+          height: 34px;
+          border-radius: 12px;
+          border: 1px solid rgba(11, 18, 32, 0.10);
+          background: rgba(255, 255, 255, 0.92);
+          cursor: pointer;
+          font-weight: 900;
+          color: rgba(11, 18, 32, 0.75);
+        }
+
+        .uRightTools {
           display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .uSelect {
+          display: inline-flex;
           align-items: center;
           gap: 10px;
-          background: rgba(255, 255, 255, 0.84);
-          border: 1px solid var(--line);
-          border-radius: 999px;
           padding: 10px 12px;
-          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-          color: rgba(15, 23, 42, 0.72);
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.84);
+          border: 1px solid var(--u-line);
+          box-shadow: 0 10px 24px rgba(11, 18, 32, 0.06);
+          color: rgba(11, 18, 32, 0.72);
           font-weight: 950;
           font-size: 12px;
         }
-        .perPage select {
-          border: 1px solid rgba(15, 23, 42, 0.14);
+
+        .uSelect select {
+          border: 1px solid rgba(11, 18, 32, 0.14);
           border-radius: 999px;
           padding: 6px 10px;
           outline: none;
           background: #fff;
           font-weight: 900;
           cursor: pointer;
-          color: var(--ink);
+          color: var(--u-ink);
         }
 
-        .pagerBar {
+        .uPager {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 12px;
           flex-wrap: wrap;
           margin: 12px 0 14px;
-
           background: rgba(255, 255, 255, 0.80);
-          border: 1px solid var(--line);
+          border: 1px solid var(--u-line);
           border-radius: 14px;
           padding: 10px 12px;
-          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+          box-shadow: 0 10px 24px rgba(11, 18, 32, 0.06);
         }
 
-        .pagerInfo {
-          color: rgba(15, 23, 42, 0.78);
+        .uPagerInfo {
+          color: rgba(11, 18, 32, 0.78);
           font-size: 13px;
           font-weight: 750;
         }
 
-        .pagerNumbers {
+        .uPagerNums {
           display: flex;
           flex-wrap: wrap;
           gap: 8px;
           justify-content: flex-end;
         }
 
-        .pageBtn {
+        .uPageBtn {
           min-width: 36px;
           height: 34px;
           padding: 0 10px;
           border-radius: 10px;
-          border: 1px solid rgba(15, 23, 42, 0.12);
+          border: 1px solid rgba(11, 18, 32, 0.12);
           background: #fff;
           font-weight: 950;
-          color: rgba(15, 23, 42, 0.82);
+          color: rgba(11, 18, 32, 0.82);
           cursor: pointer;
           transition: 0.15s;
         }
 
-        .pageBtn:hover {
+        .uPageBtn:hover {
           transform: translateY(-1px);
-          border-color: rgba(15, 23, 42, 0.18);
+          border-color: rgba(11, 18, 32, 0.18);
         }
 
-        .pageBtn.active {
-          background: linear-gradient(135deg, var(--primary), var(--primary2));
+        .uPageBtn.active {
+          background: linear-gradient(135deg, var(--u-primary), var(--u-primary2));
           border-color: rgba(255, 255, 255, 0.22);
           color: #fff;
         }
 
-        .tableCard {
+        /* TABLE */
+        .uTable {
           border-radius: 18px;
-          background: var(--card);
-          border: 1px solid var(--line);
-          box-shadow: var(--shadow);
+          background: var(--u-card);
+          border: 1px solid var(--u-line);
+          box-shadow: var(--u-shadow);
           overflow: hidden;
           backdrop-filter: blur(14px);
         }
 
-        .tableHead {
+        .uTHead {
           display: grid;
-          grid-template-columns: 1.2fr 0.5fr 0.4fr 1fr;
+          grid-template-columns: 1.25fr 0.65fr 0.45fr 1.15fr;
           gap: 10px;
           padding: 14px 14px;
-          background: rgba(15, 23, 42, 0.03);
-          border-bottom: 1px solid var(--line);
+          background: rgba(11, 18, 32, 0.03);
+          border-bottom: 1px solid var(--u-line);
           font-weight: 950;
-          color: rgba(15, 23, 42, 0.72);
+          color: rgba(11, 18, 32, 0.72);
           font-size: 12px;
           text-transform: uppercase;
           letter-spacing: 0.08em;
         }
 
-        .row {
+        .uTActionsHead {
+          text-align: right;
+        }
+
+        .uTRow {
           display: grid;
-          grid-template-columns: 1.2fr 0.5fr 0.4fr 1fr;
+          grid-template-columns: 1.25fr 0.65fr 0.45fr 1.15fr;
           gap: 10px;
           padding: 14px 14px;
-          border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+          border-bottom: 1px solid rgba(11, 18, 32, 0.08);
+          align-items: center;
         }
-        .row:last-child {
+        .uTRow:last-child {
           border-bottom: none;
         }
 
-        .td {
-          display: flex;
-          align-items: center;
-        }
-
-        .who {
+        .uUserCell {
           display: flex;
           align-items: center;
           gap: 12px;
           min-width: 0;
         }
 
-        .avatar {
-          width: 44px;
-          height: 44px;
+        .uAvatar {
+          width: 46px;
+          height: 46px;
           border-radius: 16px;
           display: grid;
           place-items: center;
           font-weight: 1000;
-          color: #3730a3;
-          background: rgba(99, 102, 241, 0.10);
-          border: 1px solid rgba(99, 102, 241, 0.16);
+          color: #4c1d95;
+          background: rgba(139, 92, 246, 0.12);
+          border: 1px solid rgba(139, 92, 246, 0.18);
           flex: 0 0 auto;
         }
-        .avatar.sys {
+        .uAvatar.sys {
           background: rgba(239, 68, 68, 0.10);
           border-color: rgba(239, 68, 68, 0.16);
           color: #991b1b;
         }
 
-        .whoText {
+        .uUserText {
           min-width: 0;
           display: grid;
           gap: 2px;
         }
 
-        .nm {
+        .uName {
           font-weight: 1000;
-          color: var(--ink);
+          color: var(--u-ink);
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        .em {
-          color: var(--muted);
+        .uEmail {
+          color: var(--u-muted);
           font-size: 0.92rem;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        .pinBox {
-          width: 100%;
+        .uPinCell {
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 10px;
           padding: 10px 12px;
           border-radius: 14px;
-          background: rgba(15, 23, 42, 0.04);
-          border: 1px solid rgba(15, 23, 42, 0.08);
+          background: rgba(11, 18, 32, 0.04);
+          border: 1px solid rgba(11, 18, 32, 0.08);
         }
 
-        .pinValue {
+        .uPin {
           font-weight: 1000;
           letter-spacing: 0.14em;
           font-variant-numeric: tabular-nums;
-          color: rgba(15, 23, 42, 0.92);
+          color: rgba(11, 18, 32, 0.92);
         }
-        .pinValue.muted {
-          color: rgba(15, 23, 42, 0.35);
+
+        .uPin.muted {
+          color: rgba(11, 18, 32, 0.35);
           letter-spacing: 0.08em;
         }
 
-        .mini {
+        .uIconBtn {
           width: 38px;
           height: 38px;
           border-radius: 12px;
-          border: 1px solid rgba(15, 23, 42, 0.10);
+          border: 1px solid rgba(11, 18, 32, 0.10);
           background: rgba(255, 255, 255, 0.92);
-          color: rgba(15, 23, 42, 0.75);
+          color: rgba(11, 18, 32, 0.75);
           cursor: pointer;
           display: grid;
           place-items: center;
         }
-        .mini:disabled {
+        .uIconBtn:disabled {
           opacity: 0.55;
           cursor: not-allowed;
         }
 
-        .pill {
+        .uLevelCell {
+          display: flex;
+          align-items: center;
+        }
+
+        .uBadge {
           display: inline-flex;
           align-items: center;
           gap: 8px;
@@ -760,35 +910,38 @@ export default function UsuariosPage() {
           font-size: 12px;
           font-weight: 950;
           white-space: nowrap;
-          border: 1px solid rgba(15, 23, 42, 0.10);
+          border: 1px solid rgba(11, 18, 32, 0.10);
+          background: rgba(255, 255, 255, 0.85);
+          color: rgba(11, 18, 32, 0.85);
         }
-        .pill.ok {
+
+        .uBadge.ok {
           background: rgba(34, 197, 94, 0.10);
           border-color: rgba(34, 197, 94, 0.18);
           color: #166534;
         }
-        .pill.danger {
+
+        .uBadge.danger {
           background: rgba(239, 68, 68, 0.10);
           border-color: rgba(239, 68, 68, 0.18);
           color: #991b1b;
         }
 
-        .actionsWrap {
-          width: 100%;
+        .uActionsCell {
           display: flex;
-          flex-wrap: wrap;
           gap: 10px;
+          flex-wrap: wrap;
           justify-content: flex-end;
           align-items: center;
         }
 
-        .act {
+        .uSmall {
           height: 40px;
           padding: 0 12px;
           border-radius: 12px;
-          border: 1px solid rgba(15, 23, 42, 0.10);
+          border: 1px solid rgba(11, 18, 32, 0.10);
           background: #fff;
-          color: rgba(15, 23, 42, 0.88);
+          color: rgba(11, 18, 32, 0.88);
           font-weight: 950;
           display: inline-flex;
           align-items: center;
@@ -797,39 +950,43 @@ export default function UsuariosPage() {
           text-decoration: none;
           transition: transform 0.15s ease, box-shadow 0.2s ease;
         }
-        .act:hover {
+        .uSmall:hover {
           transform: translateY(-1px);
-          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+          box-shadow: 0 10px 24px rgba(11, 18, 32, 0.08);
         }
 
-        .act.soft {
-          background: rgba(99, 102, 241, 0.10);
-          border-color: rgba(99, 102, 241, 0.18);
-          color: #3730a3;
+        .uSmall.soft {
+          background: rgba(139, 92, 246, 0.12);
+          border-color: rgba(139, 92, 246, 0.20);
+          color: #4c1d95;
         }
-        .act.soft2 {
-          background: rgba(14, 165, 233, 0.10);
-          border-color: rgba(14, 165, 233, 0.18);
+
+        .uSmall.info {
+          background: rgba(14, 165, 233, 0.12);
+          border-color: rgba(14, 165, 233, 0.20);
           color: #075985;
         }
-        .act.soft3 {
-          background: rgba(15, 23, 42, 0.06);
-          border-color: rgba(15, 23, 42, 0.12);
-          color: rgba(15, 23, 42, 0.88);
+
+        .uSmall.neutral {
+          background: rgba(11, 18, 32, 0.06);
+          border-color: rgba(11, 18, 32, 0.12);
+          color: rgba(11, 18, 32, 0.88);
         }
-        .act.warn {
-          background: rgba(245, 158, 11, 0.12);
+
+        .uSmall.warn {
+          background: rgba(245, 158, 11, 0.14);
           border-color: rgba(245, 158, 11, 0.22);
           color: #92400e;
         }
-        .act.locked {
-          background: rgba(15, 23, 42, 0.06);
-          border-color: rgba(15, 23, 42, 0.12);
-          color: rgba(15, 23, 42, 0.55);
+
+        .uSmall.locked {
+          background: rgba(11, 18, 32, 0.06);
+          border-color: rgba(11, 18, 32, 0.12);
+          color: rgba(11, 18, 32, 0.55);
           cursor: not-allowed;
         }
 
-        .trash {
+        .uTrash {
           width: 42px;
           height: 40px;
           border-radius: 12px;
@@ -841,97 +998,162 @@ export default function UsuariosPage() {
           cursor: pointer;
           transition: transform 0.15s ease;
         }
-        .trash:hover {
+        .uTrash:hover {
           transform: translateY(-1px);
         }
-        .trash:disabled {
+        .uTrash:disabled {
           opacity: 0.6;
           cursor: not-allowed;
           transform: none;
         }
 
-        .empty {
+        /* Empty / Skeleton */
+        .uEmpty {
           display: grid;
           place-items: center;
           padding: 22px 0 0;
         }
 
-        .emptyCard {
+        .uEmptyCard {
           width: min(640px, 100%);
           border-radius: 18px;
           background: rgba(255, 255, 255, 0.92);
-          border: 1px solid var(--line);
-          box-shadow: var(--shadow);
+          border: 1px solid var(--u-line);
+          box-shadow: var(--u-shadow);
           padding: 18px;
           display: grid;
           gap: 10px;
         }
 
-        .emptyTitle {
+        .uEmptyTitle {
           font-size: 1.05rem;
           font-weight: 1000;
-          color: var(--ink);
+          color: var(--u-ink);
         }
 
-        .emptySub {
-          color: var(--muted);
+        .uEmptySub {
+          color: var(--u-muted);
           line-height: 1.45;
         }
 
-        .skeletonWrap {
+        .uSkeleton {
           border-radius: 18px;
           background: rgba(255, 255, 255, 0.82);
-          border: 1px solid var(--line);
-          box-shadow: var(--shadow);
+          border: 1px solid var(--u-line);
+          box-shadow: var(--u-shadow);
           overflow: hidden;
         }
 
-        .skRow {
+        .uSkRow {
           height: 56px;
-          border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+          border-bottom: 1px solid rgba(11, 18, 32, 0.08);
           background: linear-gradient(
             90deg,
-            rgba(15, 23, 42, 0.05),
-            rgba(15, 23, 42, 0.10),
-            rgba(15, 23, 42, 0.05)
+            rgba(11, 18, 32, 0.05),
+            rgba(11, 18, 32, 0.10),
+            rgba(11, 18, 32, 0.05)
           );
           background-size: 220% 100%;
-          animation: sh 1.05s linear infinite;
+          animation: uSh 1.05s linear infinite;
         }
-        .skRow:last-child {
+        .uSkRow:last-child {
           border-bottom: none;
         }
 
-        @keyframes sh {
+        @keyframes uSh {
           0% { background-position: 0% 0%; }
           100% { background-position: -220% 0%; }
         }
 
-        @media (max-width: 920px) {
-          .tableHead {
+        /* Mobile cards */
+        .uCards {
+          display: none;
+          margin-top: 12px;
+          gap: 12px;
+        }
+
+        .uCard {
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.82);
+          border: 1px solid var(--u-line);
+          box-shadow: 0 14px 44px rgba(11, 18, 32, 0.10);
+          padding: 14px;
+          display: grid;
+          gap: 12px;
+        }
+
+        .uCardTop {
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .uCardLeft {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+        }
+
+        .uCardMid {
+          padding: 12px;
+          border-radius: 16px;
+          background: rgba(11, 18, 32, 0.04);
+          border: 1px solid rgba(11, 18, 32, 0.08);
+        }
+
+        .uLabel {
+          font-size: 12px;
+          font-weight: 950;
+          color: rgba(11, 18, 32, 0.60);
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          margin-bottom: 8px;
+        }
+
+        .uPinRow {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+        }
+
+        .uCardActions {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+
+        @media (max-width: 980px) {
+          .uTHead {
             display: none;
           }
-          .row {
-            grid-template-columns: 1fr;
-            gap: 10px;
+          .uTable {
+            display: none;
           }
-          .actionsWrap {
-            justify-content: flex-start;
-          }
-          .pinBox {
-            justify-content: space-between;
+          .uCards {
+            display: grid;
           }
         }
 
         @media (max-width: 520px) {
-          .page {
+          .uPage {
             padding: 14px 14px 24px;
           }
-          .topRight {
+          .uHeaderRight {
             width: 100%;
           }
-          .btn.primary {
+          .uBtn.primary {
             flex: 1;
+          }
+          .uSmall,
+          .uTrash {
+            width: 100%;
+            justify-content: center;
+          }
+          .uTrash {
+            height: 44px;
           }
         }
       `}</style>
