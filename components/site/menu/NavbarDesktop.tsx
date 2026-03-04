@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useEffect, useRef } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import SearchBar from "../Pesquisa/SearchBar";
 import useUsuario from "@/hooks/Auth/useUsuario";
 import api from "@/Api/conectar";
@@ -17,67 +17,52 @@ import {
   FiLogOut,
   FiChevronDown,
 } from "react-icons/fi";
-import { rotas } from "@/components/Bibioteca/config/rotas";
+import { Menu, MenuItem } from "@/components/Bibioteca/Bibiotecas";
 
-interface MenuItem {
-  id?: number;
-  titulo: string;
-  rota?: string | null;
+
+
+
+export interface Categoria {
+  id_categoria?: number;
+  nome?: string;
+  slug?: string;
   icone?: string;
-  posicao?: number;
-  permissoes?: string[];
 }
 
-interface Menu {
-  id?: number;
-  titulo: string;
-  icone?: string;
-  rota?: string | null;
-  pesquisa_placeholder?: string | null;
-  permissoes?: string[];
-  itens?: MenuItem[];
-}
+type Props = {
+  menus: Menu[];
+  categorias?: Categoria[]; // se você não usa aqui, pode deixar opcional
+  searchPlaceholder?: string;
+  tituloNavbar?: string | null;
+  subtituloNavbar?: string | null;
+};
 
-export default function NavbarDesktop() {
+export default function NavbarDesktop({
+  menus,
+  categorias,
+  searchPlaceholder,
+  tituloNavbar,
+  subtituloNavbar,
+}: Props) {
   const router = useRouter();
   const { usuario, loading: usuarioLoading, logado } = useUsuario();
-
-  const [menus, setMenus] = useState<Menu[]>([]);
-  const [tituloNavbar, setTituloNavbar] = useState<string | null>(null);
-  const [subtituloNavbar, setSubtituloNavbar] = useState<string | null>(null);
-  const [loadingMenus, setLoadingMenus] = useState(true);
 
   const [openUserDropdown, setOpenUserDropdown] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
 
-  const ui = useMemo(() => ({
-    accent: "#D6A24A",                // dourado
-    accentSoft: "rgba(214, 162, 74, 0.18)",
-    text: "#2b2b2b",
-    muted: "#6c757d",
-    bg: "#f4efe8",
-    borderSoft: "rgba(43, 43, 43, 0.07)",
-    hoverBg: "#fdf4f2",
-    shadowSoft: "0 8px 30px rgba(0,0,0,0.08)",
-  }), []);
-
-  useEffect(() => {
-    const fetchMenus = async () => {
-      try {
-        const { data } = await api.get(rotas.inicio.navbar);
-        if (data?.dados) {
-          setMenus(data.dados.menus || []);
-          setTituloNavbar(data.dados.titulo || null);
-          setSubtituloNavbar(data.dados.subtitulo || null);
-        }
-      } catch (e) {
-        console.error("Erro ao carregar menus:", e);
-      } finally {
-        setLoadingMenus(false);
-      }
-    };
-    fetchMenus();
-  }, []);
+  const ui = useMemo(
+    () => ({
+      accent: "#D6A24A",
+      accentSoft: "rgba(214, 162, 74, 0.18)",
+      text: "#2b2b2b",
+      muted: "#6c757d",
+      bg: "#f4efe8",
+      borderSoft: "rgba(43, 43, 43, 0.07)",
+      hoverBg: "#fdf4f2",
+      shadowSoft: "0 8px 30px rgba(0,0,0,0.08)",
+    }),
+    []
+  );
 
   // Fecha dropdown ao clicar fora + ESC
   useEffect(() => {
@@ -100,6 +85,7 @@ export default function NavbarDesktop() {
   const first = titleParts[0] || "Universo";
   const rest = titleParts.slice(1).join(" ") || "Império";
 
+  // quando você marca um menu pra ser o da search (pesquisa_placeholder)
   const searchMenu = menus.find((m) => m.pesquisa_placeholder);
   const accountMenu = menus.find((m) => (m.titulo || "").toLowerCase() === "login");
   const mainMenus = menus.filter(
@@ -142,8 +128,6 @@ export default function NavbarDesktop() {
     if (item.rota) router.push(item.rota);
   };
 
-  if (loadingMenus) return null;
-
   return (
     <>
       <header
@@ -160,11 +144,11 @@ export default function NavbarDesktop() {
           <div className="ui-subtitle">{subtituloNavbar || "Decorações & Eventos"}</div>
         </div>
 
-        {/* ✅ SEARCH: agora só 1 (a do SearchBar) */}
-        {searchMenu && (
+        {/* SEARCH */}
+        {(searchMenu || searchPlaceholder) && (
           <div className="ui-searchWrap">
             <SearchBar
-              placeholder={searchMenu.pesquisa_placeholder || "Buscar produtos"}
+              placeholder={searchPlaceholder || searchMenu?.pesquisa_placeholder || "Buscar produtos"}
               className="w-100"
             />
           </div>
@@ -198,9 +182,14 @@ export default function NavbarDesktop() {
                 onClick={() => setOpenUserDropdown((v) => !v)}
                 aria-expanded={openUserDropdown}
               >
-                <span className="ui-pillIcon"><FiUser size={18} /></span>
+                <span className="ui-pillIcon">
+                  <FiUser size={18} />
+                </span>
                 <span className="ui-pillText ui-strong">Olá, {usuario?.nome}</span>
-                <FiChevronDown size={16} className={`ui-chevIcon ${openUserDropdown ? "open" : ""}`} />
+                <FiChevronDown
+                  size={16}
+                  className={`ui-chevIcon ${openUserDropdown ? "open" : ""}`}
+                />
               </button>
 
               {openUserDropdown && (
@@ -255,7 +244,9 @@ export default function NavbarDesktop() {
           letter-spacing: -0.4px;
         }
 
-        .ui-titleFirst { color: ${ui.text}; }
+        .ui-titleFirst {
+          color: ${ui.text};
+        }
 
         .ui-titleAccent {
           color: ${ui.accent};
@@ -279,10 +270,9 @@ export default function NavbarDesktop() {
           margin-top: 2px;
         }
 
-        /* ✅ só controla tamanho/posição da SearchBar */
         .ui-searchWrap {
           flex: 1;
-          max-width: 520px; /* menor */
+          max-width: 520px;
           margin: 0 24px;
         }
 
@@ -292,7 +282,9 @@ export default function NavbarDesktop() {
           gap: 12px;
         }
 
-        .ui-link { text-decoration: none; }
+        .ui-link {
+          text-decoration: none;
+        }
 
         .ui-pill {
           display: inline-flex;
@@ -306,15 +298,15 @@ export default function NavbarDesktop() {
           font-weight: 750;
           color: ${ui.text};
           cursor: pointer;
-          transition: transform 0.15s ease, background 0.15s ease,
-            box-shadow 0.15s ease, border-color 0.15s ease;
+          transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease,
+            border-color 0.15s ease;
           user-select: none;
         }
 
         .ui-pill:hover {
           background: ${ui.hoverBg};
           transform: translateY(-1px);
-          box-shadow: 0 10px 22px rgba(0,0,0,0.06);
+          box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
           border-color: rgba(43, 43, 43, 0.12);
         }
 
@@ -323,15 +315,31 @@ export default function NavbarDesktop() {
           border-color: rgba(214, 162, 74, 0.25);
         }
 
-        .ui-pillIcon { display: inline-flex; color: ${ui.accent}; }
-        .ui-pillText { line-height: 1; }
-        .ui-strong { font-weight: 900; }
+        .ui-pillIcon {
+          display: inline-flex;
+          color: ${ui.accent};
+        }
+        .ui-pillText {
+          line-height: 1;
+        }
+        .ui-strong {
+          font-weight: 900;
+        }
 
-        .ui-dropdown { position: relative; }
-        .ui-userBtn { border: 1px solid rgba(214, 162, 74, 0.25); }
+        .ui-dropdown {
+          position: relative;
+        }
+        .ui-userBtn {
+          border: 1px solid rgba(214, 162, 74, 0.25);
+        }
 
-        .ui-chevIcon { opacity: 0.8; transition: transform 0.15s ease; }
-        .ui-chevIcon.open { transform: rotate(180deg); }
+        .ui-chevIcon {
+          opacity: 0.8;
+          transition: transform 0.15s ease;
+        }
+        .ui-chevIcon.open {
+          transform: rotate(180deg);
+        }
 
         .ui-menu {
           position: absolute;
@@ -364,9 +372,17 @@ export default function NavbarDesktop() {
           transition: background 0.15s ease;
         }
 
-        .ui-item:hover { background: ${ui.hoverBg}; }
-        .ui-itemIcon { display: inline-flex; color: ${ui.accent}; }
-        .ui-itemDanger { color: ${ui.accent}; font-weight: 900; }
+        .ui-item:hover {
+          background: ${ui.hoverBg};
+        }
+        .ui-itemIcon {
+          display: inline-flex;
+          color: ${ui.accent};
+        }
+        .ui-itemDanger {
+          color: ${ui.accent};
+          font-weight: 900;
+        }
       `}</style>
     </>
   );

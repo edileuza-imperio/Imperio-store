@@ -9,20 +9,23 @@ export type ApiIndexResponse = {
   dados?: ApiIndexData;
 };
 // src/types/menu.ts
-export interface Menu {
-  id?: number;
-  nome: string;
-  icone?: string;
-  rota?: string;
-  pesquisa_placeholder?: string | null;
-}
 export interface MenuItem {
   id?: number;
-  nome: string;
+  titulo?: string;
+  rota?: string | null;
   icone?: string;
-  rota?: string;
   posicao?: number;
-  menu_id?: number;
+  permissoes?: string[];
+}
+
+export interface Menu {
+  id?: number;
+  titulo?: string; // ✅ agora aceita undefined
+  icone?: string;
+  rota?: string | null;
+  pesquisa_placeholder?: string | null;
+  permissoes?: string[];
+  itens?: MenuItem[];
 }
 export interface Banner {
   id_banner?: number;

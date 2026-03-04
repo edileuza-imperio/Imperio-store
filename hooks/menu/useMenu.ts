@@ -1,14 +1,8 @@
 import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
+import { Menu, MenuItem } from "@/components/Bibioteca/Bibiotecas";
 
-export interface Menu {
-  id?: number;
-  titulo?: string;
-  icone?: string;
-  rota?: string;
-  pesquisa_placeholder?: string | null;
-  itens?: any[];
-}
+
 
 export const useMenu = () => {
   const [menus, setMenus] = useState<Menu[]>([]);
