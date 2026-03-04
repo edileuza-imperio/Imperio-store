@@ -4,7 +4,11 @@ import { admin } from "./admin";
 type Id = number | string;
 
 export const rotas = {
-  inicio: "/",
+  
+  inicio: {
+    home: "/",
+    navbar: "/navbar",
+  },
 
   paginas: {
     login: "/login",

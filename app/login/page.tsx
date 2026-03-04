@@ -1,4 +1,3 @@
-// app/login/page.tsx
 'use client';
 
 import { useMemo, useState } from "react";
@@ -27,15 +26,14 @@ export default function LoginPage() {
   } = useLoginConfig();
 
   const theme = useMemo(() => {
-    const base = config?.fundo || "#7b1e3a";
+    const base = config?.fundo || "#000000";
     return { base };
   }, [config?.fundo]);
 
   if (loading) return <p className="loading">Carregando...</p>;
 
   const titulo = config?.titulo || "Bem-vindo";
-  const mensagem =
-    config?.mensagem_personalizada || "Entre com suas credenciais.";
+  const mensagem = config?.mensagem_personalizada || "Entre com suas credenciais.";
   const logo = config?.logo || "";
 
   return (
@@ -45,9 +43,29 @@ export default function LoginPage() {
       <div className="page" style={{ background: theme.base }}>
         <div className="overlay" />
 
-        <div className="shell">
-          {/* ESQUERDA */}
-          <div className="left">
+        <main className="layout">
+          {/* ✅ ESQUERDA: INFORMAÇÕES */}
+          <section className="leftInfo">
+            <div className="brand">
+              {logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logo} alt="Logo" className="logo" />
+              ) : (
+                <div className="logoFallback">IMPÉRIO</div>
+              )}
+
+              <h1 className="title">{titulo}</h1>
+              <p className="message">{mensagem}</p>
+
+              <div className="hint">
+                <span className="dot" />
+                Se você for administrador poderá ser solicitado um PIN.
+              </div>
+            </div>
+          </section>
+
+          {/* ✅ DIREITA: FORMULÁRIO */}
+          <section className="rightForm">
             <div className="panel">
               {/* INICIO */}
               {step === "inicio" && (
@@ -84,9 +102,7 @@ export default function LoginPage() {
                   {errorMsg && <p className="error">{errorMsg}</p>}
 
                   <div className="inputWrap">
-                    <span className="icon">
-                      <FaUser />
-                    </span>
+                    <FaUser className="icon" />
                     <input
                       type="text"
                       placeholder="Usuário ou Email"
@@ -97,9 +113,7 @@ export default function LoginPage() {
                   </div>
 
                   <div className="inputWrap">
-                    <span className="icon">
-                      <FaLock />
-                    </span>
+                    <FaLock className="icon" />
                     <input
                       type="password"
                       placeholder="Senha"
@@ -147,15 +161,13 @@ export default function LoginPage() {
                   {errorMsg && <p className="error">{errorMsg}</p>}
 
                   <div className="inputWrap">
-                    <span className="icon">
-                      <FaKey />
-                    </span>
+                    <FaKey className="icon" />
                     <input
                       type="password"
                       maxLength={6}
                       value={pin}
                       onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
-                      placeholder="PIN (4 a 6 dígitos)"
+                      placeholder="PIN"
                       inputMode="numeric"
                       autoComplete="one-time-code"
                     />
@@ -166,11 +178,7 @@ export default function LoginPage() {
                     onClick={() => handleValidarPin(pin)}
                     disabled={pin.length < 4 || loadingBtn}
                   >
-                    {loadingBtn ? (
-                      <span className="spinner" />
-                    ) : (
-                      "Validar PIN"
-                    )}
+                    {loadingBtn ? <span className="spinner" /> : "Validar PIN"}
                   </button>
 
                   <button
@@ -184,251 +192,80 @@ export default function LoginPage() {
                 </>
               )}
             </div>
-          </div>
-
-          {/* DIREITA */}
-          <div className="right">
-            <div className="brand">
-              {logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logo} alt="Logo" className="logo" />
-              ) : (
-                <div className="logoFallback">IMPÉRIO</div>
-              )}
-
-              <h1 className="title">{titulo}</h1>
-              <p className="message">{mensagem}</p>
-
-              <div className="hint">
-                <span className="dot" />
-                Dica: se você é administrador, pode ser solicitado o PIN.
-              </div>
-            </div>
-          </div>
-        </div>
+          </section>
+        </main>
       </div>
 
       <style jsx>{`
         .loading {
           color: white;
           text-align: center;
-          margin-top: 24px;
+          margin-top: 40px;
           font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
         }
 
         .page {
           min-height: 100vh;
           width: 100%;
-          display: grid;
-          place-items: center;
-          padding: 22px;
           position: relative;
           overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
         }
 
         .overlay {
           position: absolute;
           inset: 0;
-          background: radial-gradient(circle at 18% 12%, rgba(255, 190, 205, 0.22), transparent 55%),
-            radial-gradient(circle at 85% 85%, rgba(255, 140, 165, 0.18), transparent 50%),
-            radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.08), transparent 60%);
+          background:
+            radial-gradient(circle at 15% 20%, rgba(255, 160, 190, .25), transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(255, 140, 170, .18), transparent 50%),
+            radial-gradient(circle at 50% 50%, rgba(255, 255, 255, .08), transparent 60%);
+          animation: bgmove 18s linear infinite;
           filter: blur(2px);
-          animation: floatBg 18s linear infinite;
-          z-index: 0;
         }
 
-        @keyframes floatBg {
+        @keyframes bgmove {
           0% { transform: rotate(0deg) scale(1); }
           50% { transform: rotate(180deg) scale(1.04); }
           100% { transform: rotate(360deg) scale(1); }
         }
 
-        .shell {
+        .layout {
           position: relative;
-          z-index: 1;
-          width: min(1120px, 100%);
-          min-height: 580px;
+          z-index: 2;
+          width: min(1100px, 100%);
           display: grid;
           grid-template-columns: 1fr 1fr;
-          border-radius: 26px;
-          overflow: hidden;
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          box-shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
-          background: rgba(0, 0, 0, 0.10);
-          backdrop-filter: blur(16px);
+          gap: 44px;
+          padding: 22px;
         }
 
-        .left {
-          padding: 38px;
-          display: grid;
-          place-items: center;
-          background: rgba(0, 0, 0, 0.28);
-        }
-
-        .right {
-          padding: 38px;
-          display: grid;
-          place-items: center;
-          background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04));
-        }
-
-        .panel { width: min(420px, 100%); }
-
-        .h2 {
-          margin: 0 0 8px 0;
-          font-size: 30px;
-          font-weight: 900;
-          color: #fff;
-          letter-spacing: -0.5px;
-        }
-
-        .p {
-          margin: 0 0 18px 0;
-          color: rgba(255, 255, 255, 0.82);
-          font-size: 14px;
-          line-height: 1.6;
-        }
-
-        .error {
-          margin: 0 0 10px 0;
-          color: #ffd1d1;
-          background: rgba(255, 0, 0, 0.10);
-          border: 1px solid rgba(255, 120, 120, 0.22);
-          padding: 10px 12px;
-          border-radius: 12px;
-          font-size: 13px;
-        }
-
-        .inputWrap {
-          width: 100%;
+        /* ✅ Info fundida */
+        .leftInfo {
           display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 12px 14px;
-          border-radius: 14px;
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          margin-bottom: 12px;
-          transition: 0.2s ease;
+          justify-content: flex-start;
+          padding: 10px 8px;
         }
 
-        .inputWrap:focus-within {
-          border-color: rgba(255, 255, 255, 0.35);
-          background: rgba(255, 255, 255, 0.12);
-          transform: translateY(-1px);
-        }
-
-        .icon {
-          color: rgba(255, 255, 255, 0.85);
-          font-size: 16px;
-          display: grid;
-          place-items: center;
-          width: 22px;
-        }
-
-        .inputWrap input {
-          width: 100%;
-          border: 0;
-          outline: 0;
-          background: transparent;
-          color: #fff;
-          font-size: 15px;
-        }
-
-        .btnPrimary {
-          width: 100%;
-          border: 0;
-          cursor: pointer;
-          padding: 12px 14px;
-          border-radius: 14px;
-          font-weight: 900;
-          font-size: 15px;
-          color: #2b0c16;
-          background: linear-gradient(90deg, #ffd0db, #ff9fb3);
-          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
-          transition: 0.2s ease;
+        /* ✅ Form também fundido, sem card */
+        .rightForm {
           display: flex;
-          justify-content: center;
           align-items: center;
-          gap: 8px;
-          margin-top: 6px;
+          justify-content: flex-end;
+          padding: 10px 8px;
         }
 
-        .btnPrimary:hover { transform: translateY(-1px); filter: brightness(1.02); }
-        .btnPrimary:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        .btnSecondary {
+        .panel {
           width: 100%;
-          margin-top: 10px;
-          border: 1px solid rgba(255, 255, 255, 0.22);
-          background: rgba(255, 255, 255, 0.08);
-          color: #fff;
-          cursor: pointer;
-          padding: 12px 14px;
-          border-radius: 14px;
-          font-weight: 900;
-          font-size: 15px;
-          transition: 0.2s ease;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 10px;
+          max-width: 420px;
         }
-
-        .btnSecondary:hover { transform: translateY(-1px); background: rgba(255, 255, 255, 0.12); }
-        .btnSecondary:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        .btnGhost {
-          width: 100%;
-          margin-top: 10px;
-          padding: 11px 14px;
-          border-radius: 14px;
-          border: 1px solid rgba(255, 255, 255, 0.22);
-          background: rgba(0, 0, 0, 0.12);
-          color: #fff;
-          cursor: pointer;
-          transition: 0.2s ease;
-        }
-
-        .btnGhost:hover { background: rgba(0, 0, 0, 0.18); transform: translateY(-1px); }
-
-        .row {
-          margin-top: 10px;
-          display: flex;
-          justify-content: space-between;
-          gap: 12px;
-        }
-
-        .btnLink {
-          border: 0;
-          background: transparent;
-          color: rgba(255, 255, 255, 0.88);
-          cursor: pointer;
-          font-size: 13px;
-          padding: 6px 0;
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-        }
-
-        .btnLink:hover { color: #fff; text-decoration: underline; }
-
-        .spinner {
-          width: 18px;
-          height: 18px;
-          border-radius: 999px;
-          border: 3px solid rgba(0, 0, 0, 0.18);
-          border-top: 3px solid rgba(0, 0, 0, 0.55);
-          animation: spin 0.9s linear infinite;
-        }
-
-        @keyframes spin { to { transform: rotate(360deg); } }
 
         .brand {
-          width: min(480px, 100%);
-          text-align: left;
-          color: #fff;
+          color: white;
+          max-width: 460px;
         }
 
         .logo {
@@ -441,29 +278,30 @@ export default function LoginPage() {
         .logoFallback {
           width: 140px;
           height: 70px;
-          border-radius: 18px;
-          display: grid;
-          place-items: center;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: rgba(255,255,255,.10);
+          border: 1px solid rgba(255,255,255,.14);
+          border-radius: 14px;
+          margin-bottom: 14px;
           font-weight: 900;
           letter-spacing: 1px;
-          background: rgba(0, 0, 0, 0.22);
-          border: 1px solid rgba(255, 255, 255, 0.18);
-          margin-bottom: 14px;
         }
 
         .title {
-          margin: 0 0 8px 0;
-          font-size: 34px;
+          font-size: 40px;
           font-weight: 950;
-          letter-spacing: -0.9px;
+          margin: 0 0 8px 0;
+          letter-spacing: -1px;
           line-height: 1.1;
         }
 
         .message {
+          color: rgba(255,255,255,.85);
           margin: 0;
-          color: rgba(255, 255, 255, 0.88);
-          line-height: 1.55;
-          max-width: 42ch;
+          line-height: 1.6;
+          max-width: 46ch;
         }
 
         .hint {
@@ -471,26 +309,181 @@ export default function LoginPage() {
           display: inline-flex;
           align-items: center;
           gap: 10px;
-          padding: 10px 12px;
-          border-radius: 14px;
-          background: rgba(0, 0, 0, 0.18);
-          border: 1px solid rgba(255, 255, 255, 0.14);
-          color: rgba(255, 255, 255, 0.9);
           font-size: 13px;
+          background: rgba(0,0,0,.18);
+          border: 1px solid rgba(255,255,255,.12);
+          padding: 10px 12px;
+          border-radius: 12px;
+          backdrop-filter: blur(8px);
         }
 
         .dot {
-          width: 10px;
-          height: 10px;
-          border-radius: 999px;
-          background: rgba(255, 209, 219, 0.95);
-          box-shadow: 0 0 0 4px rgba(255, 209, 219, 0.12);
+          width: 8px;
+          height: 8px;
+          background: #ffd0db;
+          border-radius: 50%;
+          box-shadow: 0 0 0 4px rgba(255, 208, 219, 0.14);
         }
 
+        /* FORM TEXT */
+        .h2 {
+          color: white;
+          font-size: 32px;
+          font-weight: 950;
+          margin: 0 0 8px 0;
+          letter-spacing: -0.6px;
+        }
+
+        .p {
+          color: rgba(255,255,255,.8);
+          margin: 0 0 18px 0;
+          line-height: 1.6;
+          font-size: 14px;
+        }
+
+        .error {
+          background: rgba(255,0,0,.10);
+          border: 1px solid rgba(255,0,0,.22);
+          padding: 10px 12px;
+          border-radius: 10px;
+          margin-bottom: 10px;
+          color: #ffd1d1;
+          font-weight: 700;
+          font-size: 13px;
+        }
+
+        .inputWrap {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: rgba(255,255,255,.08);
+          border: 1px solid rgba(255,255,255,.14);
+          padding: 10px 14px;
+          border-radius: 12px;
+          margin-bottom: 10px;
+          transition: transform .12s ease, background .12s ease, border-color .12s ease;
+          backdrop-filter: blur(8px);
+        }
+
+        .inputWrap:focus-within {
+          background: rgba(255,255,255,.12);
+          border-color: rgba(255,255,255,.22);
+          transform: translateY(-1px);
+        }
+
+        .icon {
+          color: rgba(255,255,255,.9);
+          font-size: 14px;
+        }
+
+        .inputWrap input {
+          border: none;
+          background: none;
+          outline: none;
+          color: white;
+          width: 100%;
+          font-size: 15px;
+        }
+
+        .btnPrimary {
+          width: 100%;
+          padding: 10px 12px;
+          border: none;
+          border-radius: 12px;
+          font-weight: 900;
+          cursor: pointer;
+          background: linear-gradient(90deg, #ffd0db, #ff9fb3);
+          color: #2b0c16;
+          margin-top: 6px;
+          box-shadow: 0 10px 22px rgba(0,0,0,.24);
+          transition: transform .12s ease, filter .12s ease;
+        }
+
+        .btnPrimary:hover { transform: translateY(-1px); filter: brightness(1.02); }
+        .btnPrimary:disabled { opacity: .6; cursor: not-allowed; }
+
+        .btnSecondary {
+          width: 100%;
+          margin-top: 8px;
+          border: 1px solid rgba(255,255,255,.18);
+          background: rgba(255,255,255,.06);
+          color: white;
+          padding: 10px 12px;
+          border-radius: 12px;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          transition: transform .12s ease, background .12s ease;
+          backdrop-filter: blur(8px);
+        }
+
+        .btnSecondary:hover { transform: translateY(-1px); background: rgba(255,255,255,.12); }
+        .btnSecondary:disabled { opacity: .6; cursor: not-allowed; }
+
+        .btnGhost {
+          width: 100%;
+          margin-top: 8px;
+          padding: 10px 12px;
+          border-radius: 12px;
+          border: 1px solid rgba(255,255,255,.18);
+          background: rgba(0,0,0,.16);
+          color: white;
+          cursor: pointer;
+          transition: transform .12s ease, background .12s ease;
+          backdrop-filter: blur(8px);
+        }
+
+        .btnGhost:hover { transform: translateY(-1px); background: rgba(0,0,0,.22); }
+
+        .row {
+          display: flex;
+          justify-content: space-between;
+          margin-top: 10px;
+          gap: 12px;
+        }
+
+        .btnLink {
+          background: none;
+          border: none;
+          color: rgba(255,255,255,.9);
+          cursor: pointer;
+          font-size: 13px;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 6px 0;
+        }
+
+        .btnLink:hover { color: #fff; text-decoration: underline; }
+
+        .spinner {
+          width: 18px;
+          height: 18px;
+          border-radius: 50%;
+          border: 3px solid rgba(0,0,0,.20);
+          border-top: 3px solid rgba(0,0,0,.60);
+          animation: spin .9s linear infinite;
+          display: inline-block;
+        }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
         @media (max-width: 900px) {
-          .shell { grid-template-columns: 1fr; }
-          .right { order: -1; }
-          .title { font-size: 30px; }
+          .layout {
+            grid-template-columns: 1fr;
+            gap: 50px;
+            padding: 18px;
+          }
+
+          .rightForm {
+            justify-content: flex-start;
+          }
+
+          .title {
+            font-size: 32px;
+          }
         }
       `}</style>
     </>

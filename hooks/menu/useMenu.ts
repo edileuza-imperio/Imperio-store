@@ -1,12 +1,19 @@
-// src/hooks/menu/useMenu.ts
 import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
-import { rotas } from "@/components/Bibioteca/config/rotas";
-import { Menu } from "@/components/Bibioteca/Bibiotecas";
 
+export interface Menu {
+  id?: number;
+  titulo?: string;
+  icone?: string;
+  rota?: string;
+  pesquisa_placeholder?: string | null;
+  itens?: any[];
+}
 
-export function useMenu(endpoint: string = rotas.menu.ativos) {
+export const useMenu = () => {
   const [menus, setMenus] = useState<Menu[]>([]);
+  const [tituloNavbar, setTituloNavbar] = useState("Universo Império");
+  const [subtituloNavbar, setSubtituloNavbar] = useState("Decorações & Eventos");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -14,35 +21,23 @@ export function useMenu(endpoint: string = rotas.menu.ativos) {
     const fetchMenus = async () => {
       try {
         setLoading(true);
-
-        const response = await api.get(endpoint);
+        const response = await api.get("/navbar");
         const data = response.data;
 
-        if (!data || data.status !== 200) {
-          throw new Error(data?.mensagem || "Erro ao buscar menus");
-        }
+        if (data.status !== 200) throw new Error(data.mensagem || "Erro ao buscar navbar");
 
-        const cards = data.dados?.cards ?? [];
-
-        // 🔥 converte do backend (titulo) para o frontend (nome)
-        const normalized: Menu[] = cards.map((m: any) => ({
-          id: m.id,
-          nome: m.titulo, // <- aqui resolve
-          icone: m.icone,
-          rota: m.rota,
-          pesquisa_placeholder: m.pesquisa_placeholder ?? null,
-        }));
-
-        setMenus(normalized);
+        setMenus(data.dados.menus || []);
+        setTituloNavbar(data.dados.titulo || "Universo Império");
+        setSubtituloNavbar(data.dados.subtitulo || "Decorações & Eventos");
       } catch (err: any) {
-        setError(err.message || "Erro ao buscar menus");
+        setError(err.message || "Erro ao carregar navbar");
       } finally {
         setLoading(false);
       }
     };
 
     fetchMenus();
-  }, [endpoint]);
+  }, []);
 
-  return { menus, loading, error };
-}
+  return { menus, tituloNavbar, subtituloNavbar, loading, error };
+};

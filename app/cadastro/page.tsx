@@ -13,7 +13,7 @@ import {
 } from "react-icons/fa";
 import api from "@/Api/conectar";
 import { useRouter } from "next/navigation";
-import { rotas } from "@/components/Bibioteca/config/rotas"; // ✅ rotas centralizadas
+import { rotas } from "@/components/Bibioteca/config/rotas";
 
 type LoginConfig = {
   fundo?: string;
@@ -40,19 +40,11 @@ export default function CadastroPage() {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        // ✅ CORRIGIDO: configLogin está na raiz do rotas.ts
-        const res = await api.get(rotas.configLogin, {
-          withCredentials: true,
-        });
-
-        /**
-         * /configuracoes/login (LoginController@loginAtiva)
-         * retorna 1 objeto (não um array).
-         */
+        const res = await api.get(rotas.configLogin, { withCredentials: true });
         setConfig(res.data?.dados ?? null);
       } catch {
         setConfig({
-          fundo: "#7b1e3a",
+          fundo: "#000000",
           titulo: "Império Loja",
           mensagem_personalizada: "Crie sua conta para continuar.",
           logo: "",
@@ -66,7 +58,7 @@ export default function CadastroPage() {
   }, []);
 
   const theme = useMemo(() => {
-    const base = config?.fundo || "#7b1e3a";
+    const base = config?.fundo || "#000000";
     return { base };
   }, [config?.fundo]);
 
@@ -100,9 +92,7 @@ export default function CadastroPage() {
     return `(${ddd}) ${n1}-${n2}`;
   };
 
-  const isValidEmail = (v: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
-  };
+  const isValidEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
   const handleCadastro = async () => {
     const nomeTrim = nome.trim();
@@ -143,7 +133,6 @@ export default function CadastroPage() {
 
     setLoadingBtn(true);
     try {
-      // ✅ mantém como está (usuário sistema)
       await api.post(
         rotas.usuariosSistema.criar,
         {
@@ -175,17 +164,35 @@ export default function CadastroPage() {
       <div className="page" style={{ background: theme.base }}>
         <div className="overlay" />
 
-        <div className="shell">
-          {/* ESQUERDA */}
-          <div className="left">
+        <main className="layout">
+          {/* ✅ ESQUERDA: INFORMAÇÕES */}
+          <section className="leftInfo">
+            <div className="brand">
+              {logo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logo} alt="Logo" className="logo" />
+              ) : (
+                <div className="logoFallback">IMPÉRIO</div>
+              )}
+
+              <h1 className="title">{titulo}</h1>
+              <p className="message">{mensagem}</p>
+
+              <div className="hintInfo">
+                <span className="dot" />
+                Dica: use um e-mail válido para receber atualizações de pedidos.
+              </div>
+            </div>
+          </section>
+
+          {/* ✅ DIREITA: FORMULÁRIO */}
+          <section className="rightForm">
             <div className="panel">
               <h2 className="h2">Cadastro</h2>
               <p className="p">Crie sua conta para continuar.</p>
 
               <div className="inputWrap">
-                <span className="icon">
-                  <FaUser />
-                </span>
+                <FaUser className="icon" />
                 <input
                   type="text"
                   placeholder="Nome completo"
@@ -196,9 +203,7 @@ export default function CadastroPage() {
               </div>
 
               <div className="inputWrap">
-                <span className="icon">
-                  <FaEnvelope />
-                </span>
+                <FaEnvelope className="icon" />
                 <input
                   type="email"
                   placeholder="E-mail"
@@ -209,9 +214,7 @@ export default function CadastroPage() {
               </div>
 
               <div className="inputWrap">
-                <span className="icon">
-                  <FaPhoneAlt />
-                </span>
+                <FaPhoneAlt className="icon" />
                 <input
                   type="tel"
                   placeholder="Telefone (DDD + número)"
@@ -223,12 +226,10 @@ export default function CadastroPage() {
               </div>
 
               <div className="inputWrap">
-                <span className="icon">
-                  <FaIdCard />
-                </span>
+                <FaIdCard className="icon" />
                 <input
                   type="text"
-                  placeholder="CPF"
+                  placeholder="CPF (opcional)"
                   value={cpf}
                   onChange={(e) => setCpf(formatCPF(e.target.value))}
                   inputMode="numeric"
@@ -237,9 +238,7 @@ export default function CadastroPage() {
               </div>
 
               <div className="inputWrap">
-                <span className="icon">
-                  <FaLock />
-                </span>
+                <FaLock className="icon" />
                 <input
                   type="password"
                   placeholder="Senha"
@@ -250,9 +249,7 @@ export default function CadastroPage() {
               </div>
 
               <div className="inputWrap">
-                <span className="icon">
-                  <FaLock />
-                </span>
+                <FaLock className="icon" />
                 <input
                   type="password"
                   placeholder="Confirmar senha"
@@ -281,125 +278,155 @@ export default function CadastroPage() {
                 Voltar para login
               </button>
 
-              <div className="hint">
+              <div className="hintForm">
                 <span>Nível do cadastro:</span> <b>3</b>
               </div>
             </div>
-          </div>
-
-          {/* DIREITA */}
-          <div className="right">
-            <div className="brand">
-              {logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logo} alt="Logo" className="logo" />
-              ) : (
-                <div className="logoFallback">IMPÉRIO</div>
-              )}
-
-              <h1 className="title">{titulo}</h1>
-              <p className="message">{mensagem}</p>
-            </div>
-          </div>
-        </div>
+          </section>
+        </main>
       </div>
 
       <style jsx>{`
         .loading {
           color: white;
           text-align: center;
-          margin-top: 24px;
+          margin-top: 40px;
           font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
         }
 
         .page {
           min-height: 100vh;
           width: 100%;
-          display: grid;
-          place-items: center;
-          padding: 22px;
           position: relative;
           overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
         }
 
         .overlay {
           position: absolute;
           inset: 0;
-          background: radial-gradient(
-              circle at 18% 12%,
-              rgba(255, 190, 205, 0.22),
-              transparent 55%
-            ),
-            radial-gradient(
-              circle at 85% 85%,
-              rgba(255, 140, 165, 0.18),
-              transparent 50%
-            ),
-            radial-gradient(
-              circle at 50% 50%,
-              rgba(255, 255, 255, 0.08),
-              transparent 60%
-            );
+          background:
+            radial-gradient(circle at 15% 20%, rgba(255, 160, 190, .25), transparent 50%),
+            radial-gradient(circle at 80% 80%, rgba(255, 140, 170, .18), transparent 50%),
+            radial-gradient(circle at 50% 50%, rgba(255, 255, 255, .08), transparent 60%);
+          animation: bgmove 18s linear infinite;
           filter: blur(2px);
-          animation: floatBg 18s linear infinite;
           z-index: 0;
         }
 
-        @keyframes floatBg {
+        @keyframes bgmove {
           0% { transform: rotate(0deg) scale(1); }
           50% { transform: rotate(180deg) scale(1.04); }
           100% { transform: rotate(360deg) scale(1); }
         }
 
-        .shell {
+        .layout {
           position: relative;
           z-index: 1;
-          width: min(1120px, 100%);
-          min-height: 580px;
+          width: min(1100px, 100%);
           display: grid;
           grid-template-columns: 1fr 1fr;
-          border-radius: 26px;
-          overflow: hidden;
+          gap: 44px;
+          padding: 22px;
+        }
+
+        /* ✅ Info fundida (sem card) */
+        .leftInfo {
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          padding: 10px 8px;
+        }
+
+        /* ✅ Form fundido (sem card) */
+        .rightForm {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          padding: 10px 8px;
+        }
+
+        .brand {
+          color: #fff;
+          max-width: 460px;
+        }
+
+        .logo {
+          width: 140px;
+          height: auto;
+          margin-bottom: 14px;
+          filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.35));
+        }
+
+        .logoFallback {
+          width: 140px;
+          height: 70px;
+          border-radius: 16px;
+          display: grid;
+          place-items: center;
+          font-weight: 900;
+          letter-spacing: 1px;
+          background: rgba(255, 255, 255, 0.10);
           border: 1px solid rgba(255, 255, 255, 0.14);
-          box-shadow: 0 22px 70px rgba(0, 0, 0, 0.45);
-          background: rgba(0, 0, 0, 0.1);
-          backdrop-filter: blur(16px);
+          margin-bottom: 14px;
         }
 
-        .left {
-          padding: 38px;
-          display: grid;
-          place-items: center;
-          background: rgba(0, 0, 0, 0.28);
+        .title {
+          margin: 0 0 8px 0;
+          font-size: 40px;
+          font-weight: 950;
+          letter-spacing: -1px;
+          line-height: 1.1;
         }
 
-        .right {
-          padding: 38px;
-          display: grid;
-          place-items: center;
-          background: linear-gradient(
-            135deg,
-            rgba(255, 255, 255, 0.12),
-            rgba(255, 255, 255, 0.04)
-          );
+        .message {
+          margin: 0;
+          color: rgba(255, 255, 255, 0.85);
+          line-height: 1.6;
+          max-width: 46ch;
+        }
+
+        .hintInfo {
+          margin-top: 18px;
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          border-radius: 12px;
+          background: rgba(0, 0, 0, 0.18);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 13px;
+          backdrop-filter: blur(8px);
+        }
+
+        .dot {
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          background: #ffd0db;
+          box-shadow: 0 0 0 4px rgba(255, 208, 219, 0.14);
         }
 
         .panel {
-          width: min(420px, 100%);
+          width: 100%;
+          max-width: 420px;
         }
 
         .h2 {
           margin: 0 0 8px 0;
-          font-size: 30px;
-          font-weight: 900;
+          font-size: 32px;
+          font-weight: 950;
           color: #fff;
-          letter-spacing: -0.5px;
+          letter-spacing: -0.6px;
         }
 
         .p {
           margin: 0 0 18px 0;
-          color: rgba(255, 255, 255, 0.82);
+          color: rgba(255, 255, 255, 0.8);
           font-size: 14px;
           line-height: 1.6;
         }
@@ -409,26 +436,26 @@ export default function CadastroPage() {
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 12px 14px;
-          border-radius: 14px;
+          padding: 10px 14px;
+          border-radius: 12px;
           background: rgba(255, 255, 255, 0.08);
           border: 1px solid rgba(255, 255, 255, 0.14);
-          margin-bottom: 12px;
-          transition: 0.2s ease;
+          margin-bottom: 10px;
+          transition: transform .12s ease, background .12s ease, border-color .12s ease;
+          backdrop-filter: blur(8px);
         }
 
         .inputWrap:focus-within {
-          border-color: rgba(255, 255, 255, 0.35);
+          border-color: rgba(255, 255, 255, 0.22);
           background: rgba(255, 255, 255, 0.12);
           transform: translateY(-1px);
         }
 
         .icon {
-          color: rgba(255, 255, 255, 0.85);
-          font-size: 16px;
-          display: grid;
-          place-items: center;
-          width: 22px;
+          color: rgba(255, 255, 255, 0.9);
+          font-size: 14px;
+          width: 18px;
+          flex: 0 0 auto;
         }
 
         .inputWrap input {
@@ -444,48 +471,53 @@ export default function CadastroPage() {
           width: 100%;
           border: 0;
           cursor: pointer;
-          padding: 12px 14px;
-          border-radius: 14px;
+          padding: 10px 12px;
+          border-radius: 12px;
           font-weight: 900;
-          font-size: 15px;
+          font-size: 14px;
           color: #2b0c16;
           background: linear-gradient(90deg, #ffd0db, #ff9fb3);
-          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
-          transition: 0.2s ease;
+          box-shadow: 0 10px 22px rgba(0, 0, 0, 0.24);
+          transition: transform .12s ease, filter .12s ease;
           display: flex;
           justify-content: center;
           align-items: center;
           margin-top: 6px;
         }
 
-        .btnPrimary:hover {
-          transform: translateY(-1px);
-          filter: brightness(1.02);
-        }
-        .btnPrimary:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
+        .btnPrimary:hover { transform: translateY(-1px); filter: brightness(1.02); }
+        .btnPrimary:disabled { opacity: 0.6; cursor: not-allowed; }
 
         .btnGhost {
           width: 100%;
-          margin-top: 10px;
-          padding: 11px 14px;
-          border-radius: 14px;
-          border: 1px solid rgba(255, 255, 255, 0.22);
-          background: rgba(0, 0, 0, 0.12);
+          margin-top: 8px;
+          padding: 10px 12px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          background: rgba(0, 0, 0, 0.16);
           color: #fff;
           cursor: pointer;
-          transition: 0.2s ease;
+          transition: transform .12s ease, background .12s ease;
           display: flex;
           gap: 10px;
           align-items: center;
           justify-content: center;
+          backdrop-filter: blur(8px);
         }
 
-        .btnGhost:hover {
-          background: rgba(0, 0, 0, 0.18);
-          transform: translateY(-1px);
+        .btnGhost:hover { transform: translateY(-1px); background: rgba(0, 0, 0, 0.22); }
+
+        .hintForm {
+          margin-top: 14px;
+          font-size: 12px;
+          color: rgba(255, 255, 255, 0.75);
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          justify-content: center;
+        }
+        .hintForm b {
+          color: rgba(255, 255, 255, 0.95);
         }
 
         .spinner {
@@ -497,68 +529,12 @@ export default function CadastroPage() {
           animation: spin 0.9s linear infinite;
         }
 
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        .brand {
-          width: min(480px, 100%);
-          text-align: left;
-          color: #fff;
-        }
-
-        .logo {
-          width: 140px;
-          height: auto;
-          margin-bottom: 14px;
-          filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.35));
-        }
-
-        .logoFallback {
-          width: 140px;
-          height: 70px;
-          border-radius: 18px;
-          display: grid;
-          place-items: center;
-          font-weight: 900;
-          letter-spacing: 1px;
-          background: rgba(0, 0, 0, 0.22);
-          border: 1px solid rgba(255, 255, 255, 0.18);
-          margin-bottom: 14px;
-        }
-
-        .title {
-          margin: 0 0 8px 0;
-          font-size: 34px;
-          font-weight: 950;
-          letter-spacing: -0.9px;
-          line-height: 1.1;
-        }
-
-        .message {
-          margin: 0;
-          color: rgba(255, 255, 255, 0.88);
-          line-height: 1.55;
-          max-width: 42ch;
-        }
-
-        .hint {
-          margin-top: 14px;
-          font-size: 12px;
-          color: rgba(255, 255, 255, 0.75);
-          display: flex;
-          gap: 8px;
-          align-items: center;
-          justify-content: center;
-        }
-        .hint b {
-          color: rgba(255, 255, 255, 0.95);
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         @media (max-width: 900px) {
-          .shell { grid-template-columns: 1fr; }
-          .right { order: -1; }
-          .title { font-size: 30px; }
+          .layout { grid-template-columns: 1fr; gap: 50px; padding: 18px; }
+          .rightForm { justify-content: flex-start; }
+          .title { font-size: 32px; }
         }
       `}</style>
     </>
