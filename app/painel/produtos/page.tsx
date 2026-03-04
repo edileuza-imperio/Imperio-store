@@ -1,478 +1,325 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { FiX, FiImage, FiSave } from "react-icons/fi";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { FaEdit, FaStar, FaPlus, FaTrash, FaBook } from "react-icons/fa";
 import api from "@/Api/conectar";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import NovoProdutoModal from "@/components/Modal/NovoProdutoModal";
 
-type Props = {
-  open: boolean;
-  onClose: () => void;
-  onCreated?: () => void | Promise<void>;
-};
-
-type FormState = {
+interface Produto {
+  id_produto: number;
   nome: string;
   slug: string;
-  preco: string;   // string pra input
-  estoque: string; // string pra input
-  statusid: string;
-  imagem?: File | null;
-};
-
-function slugify(text: string) {
-  return text
-    .toLowerCase()
-    .trim()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
+  preco: number;
+  estoque: number;
+  statusNome?: string;
+  statusCor?: string;
+  destaque?: boolean;
+  id_destaque?: number;
+  catalogo?: number;
+  imagem?: string;
 }
 
-export default function NovoProdutoModal({ open, onClose, onCreated }: Props) {
-  const [saving, setSaving] = useState(false);
+export const getImagemUrl = (caminho?: string) => {
+  if (!caminho) return undefined;
 
-  const [form, setForm] = useState<FormState>({
-    nome: "",
-    slug: "",
-    preco: "",
-    estoque: "",
-    statusid: "1",
-    imagem: null,
-  });
+  const base = api.defaults.baseURL || "";
+  const caminhoLimpo = String(caminho).replace(/^\/+/, "");
+  const baseFinal = base.endsWith("/") ? base : `${base}/`;
 
-  const [preview, setPreview] = useState<string | null>(null);
+  return `${baseFinal}${caminhoLimpo}`;
+};
 
-  // fecha com ESC
+export default function ProdutosPage() {
+
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const [modalNovoProduto, setModalNovoProduto] = useState(false);
+
   useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape" && open) onClose();
-    }
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
+    carregarProdutos();
+  }, []);
 
-  // trava scroll
-  useEffect(() => {
-    document.body.style.overflow = open ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [open]);
-
-  // preview imagem
-  useEffect(() => {
-    if (!form.imagem) {
-      setPreview(null);
-      return;
-    }
-    const url = URL.createObjectURL(form.imagem);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [form.imagem]);
-
-  const canSave = useMemo(() => {
-    return (
-      form.nome.trim().length >= 2 &&
-      form.slug.trim().length >= 2 &&
-      Number(form.preco.replace(",", ".")) >= 0 &&
-      Number(form.estoque) >= 0 &&
-      Number(form.statusid) > 0
-    );
-  }, [form]);
-
-  function reset() {
-    setForm({
-      nome: "",
-      slug: "",
-      preco: "",
-      estoque: "",
-      statusid: "1",
-      imagem: null,
-    });
-    setPreview(null);
-  }
-
-  function close() {
-    if (saving) return;
-    reset();
-    onClose();
-  }
-
-  async function handleCreate() {
-    if (!canSave) {
-      toast.info("Preencha nome, slug, preço e estoque.");
-      return;
-    }
+  const carregarProdutos = async () => {
 
     try {
-      setSaving(true);
 
-      // ✅ seu backend cria produto com multipart? você já usa $_POST + $_FILES no PHP
-      // então vamos mandar FormData
-      const fd = new FormData();
-      fd.append("nome", form.nome.trim());
-      fd.append("slug", form.slug.trim());
-      fd.append("preco", String(form.preco).replace(",", "."));
-      fd.append("estoque", String(form.estoque));
-      fd.append("statusid", String(form.statusid));
+      setLoading(true);
 
-      if (form.imagem) {
-        fd.append("imagem", form.imagem);
+      const res = await api.get("/admin/produtos");
+
+      let lista = res.data?.dados || res.data || [];
+
+      if (lista.dados) lista = lista.dados;
+
+      if (!Array.isArray(lista)) {
+        console.log("API retornou formato inesperado:", lista);
+        lista = [];
       }
 
-      await api.post("/admin/produto/criar", fd, {
-        headers: { "Content-Type": "multipart/form-data" },
-        withCredentials: true,
-      });
+      const convertidos = lista.map((p: any) => ({
+        ...p,
+        preco: Number(p.preco || 0),
+        estoque: Number(p.estoque || 0),
+        imagem: getImagemUrl(p.imagem),
+      }));
 
-      toast.success("Produto criado com sucesso!");
-      reset();
-      onClose();
-      await onCreated?.();
-    } catch (err: any) {
-      console.error("❌ Erro ao criar produto:", err?.response?.data || err?.message || err);
-      toast.error("Erro ao criar produto, veja o console");
+      setProdutos(convertidos);
+
+    } catch (err) {
+
+      console.error("Erro ao carregar produtos", err);
+      toast.error("Erro ao carregar produtos");
+
     } finally {
-      setSaving(false);
-    }
-  }
 
-  if (!open) return null;
+      setLoading(false);
+
+    }
+
+  };
+
+  const excluirProduto = async (id: number) => {
+
+    if (!confirm("Deseja excluir este produto?")) return;
+
+    try {
+
+      await api.delete(`/admin/produto/${id}`);
+
+      setProdutos((p) => p.filter((i) => i.id_produto !== id));
+
+      toast.success("Produto excluído");
+
+    } catch {
+
+      toast.error("Erro ao excluir produto");
+
+    }
+
+  };
 
   return (
-    <div className={`overlay ${open ? "show" : ""}`} onClick={close}>
-      <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        <div className="header">
-          <div className="title">
-            <div className="t1">Novo Produto</div>
-            <div className="t2">Cadastre rapidamente um produto no catálogo</div>
-          </div>
 
-          <button className="x" onClick={close} aria-label="Fechar" type="button">
-            <FiX size={18} />
-          </button>
+    <div className="container-fluid py-4 dashboard-bg">
+
+      <ToastContainer position="top-right" autoClose={2500} theme="colored" />
+
+      {/* MODAL */}
+      <NovoProdutoModal
+        open={modalNovoProduto}
+        onClose={() => setModalNovoProduto(false)}
+        onCreated={async () => {
+          setModalNovoProduto(false);
+          await carregarProdutos();
+        }}
+      />
+
+      {/* HEADER */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+
+        <div>
+          <h1 className="fw-bold title">Produtos</h1>
+          <p className="text-muted">Gerencie os produtos cadastrados</p>
         </div>
 
-        <div className="body">
-          <div className="grid">
-            <label className="field">
-              <span>Nome</span>
-              <input
-                value={form.nome}
-                onChange={(e) => {
-                  const nome = e.target.value;
-                  setForm((p) => ({
-                    ...p,
-                    nome,
-                    slug: p.slug ? p.slug : slugify(nome),
-                  }));
-                }}
-                placeholder="Ex: Cesta Luxo"
-              />
-            </label>
+        <div className="d-flex gap-2">
 
-            <label className="field">
-              <span>Slug</span>
-              <input
-                value={form.slug}
-                onChange={(e) => setForm((p) => ({ ...p, slug: slugify(e.target.value) }))}
-                placeholder="ex: cesta-luxo"
-              />
-            </label>
-
-            <label className="field">
-              <span>Preço</span>
-              <input
-                inputMode="decimal"
-                value={form.preco}
-                onChange={(e) => setForm((p) => ({ ...p, preco: e.target.value }))}
-                placeholder="Ex: 99.90"
-              />
-            </label>
-
-            <label className="field">
-              <span>Estoque</span>
-              <input
-                inputMode="numeric"
-                value={form.estoque}
-                onChange={(e) => setForm((p) => ({ ...p, estoque: e.target.value }))}
-                placeholder="Ex: 10"
-              />
-            </label>
-
-            <label className="field">
-              <span>Status</span>
-              <select
-                value={form.statusid}
-                onChange={(e) => setForm((p) => ({ ...p, statusid: e.target.value }))}
-              >
-                <option value="1">Ativo</option>
-                <option value="2">Inativo</option>
-              </select>
-            </label>
-
-            <label className="field file">
-              <span>Imagem</span>
-              <div className="fileRow">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => setForm((p) => ({ ...p, imagem: e.target.files?.[0] ?? null }))}
-                />
-                <div className="fileHint">
-                  <FiImage /> JPG/PNG
-                </div>
-              </div>
-            </label>
-          </div>
-
-          <div className="preview">
-            <div className="ph">
-              {preview ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={preview} alt="Preview" />
-              ) : (
-                <div className="empty">
-                  <FiImage size={18} />
-                  <span>Prévia da imagem</span>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="footer">
-          <button className="btn ghost" type="button" onClick={close} disabled={saving}>
-            Cancelar
+          <button
+            className="btn btn-gold"
+            onClick={() => setModalNovoProduto(true)}
+          >
+            <FaPlus /> Novo Produto
           </button>
 
-          <button className="btn primary" type="button" onClick={handleCreate} disabled={!canSave || saving}>
-            <FiSave size={16} />
-            {saving ? "Salvando..." : "Criar Produto"}
-          </button>
+          <Link href="/admin/catalogo" className="btn btn-dark-soft">
+            <FaBook /> Catálogo
+          </Link>
+
         </div>
+
       </div>
 
-      <style jsx>{`
-        .overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(2, 6, 23, 0.55);
-          backdrop-filter: blur(3px);
-          z-index: 999999;
-          display: grid;
-          place-items: center;
-          padding: 14px;
-        }
+      {loading ? (
 
-        .modal {
-          width: min(420px, 95vw); /* ✅ menor */
-          background: #fff;
-          border-radius: 16px;
-          box-shadow: 0 24px 80px rgba(0, 0, 0, 0.32);
-          border: 1px solid rgba(17, 24, 39, 0.08);
-          overflow: hidden;
-          transform: translateY(0);
-        }
+        <div className="text-center py-5">
+          Carregando produtos...
+        </div>
 
-        .header {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 12px;
-          padding: 14px 14px 10px;
-          border-bottom: 1px solid rgba(17, 24, 39, 0.08);
-          background: linear-gradient(180deg, rgba(124, 58, 237, 0.06), rgba(255, 255, 255, 0));
-        }
+      ) : (
 
-        .title {
-          min-width: 0;
-        }
+        <div className="row g-4">
 
-        .t1 {
-          font-size: 14px;
-          font-weight: 950;
-          color: #111827;
-          letter-spacing: -0.01em;
-        }
+          {produtos.map((prod) => (
 
-        .t2 {
-          margin-top: 4px;
-          font-size: 12px;
-          color: #6b7280;
-          font-weight: 700;
-          line-height: 1.2;
-        }
+            <div key={prod.id_produto} className="col-12 col-sm-6 col-md-4 col-xl-3">
 
-        .x {
-          width: 40px;
-          height: 40px;
-          border-radius: 14px;
-          border: 1px solid rgba(17, 24, 39, 0.1);
-          background: rgba(17, 24, 39, 0.02);
-          cursor: pointer;
-          display: grid;
-          place-items: center;
-        }
+              <div className="produto-card">
 
-        .body {
-          padding: 12px 14px 10px;
-          display: grid;
-          gap: 10px;
-        }
+                <div className="card-image">
 
-        .grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr; /* ✅ compacto */
-          gap: 10px;
-        }
+                  {prod.imagem ? (
+                    <img src={prod.imagem} alt={prod.nome} />
+                  ) : (
+                    <div className="no-image">Sem imagem</div>
+                  )}
 
-        .field {
-          display: grid;
-          gap: 6px;
-        }
+                </div>
 
-        .field span {
-          font-size: 11px;
-          font-weight: 900;
-          color: rgba(17, 24, 39, 0.7);
-        }
+                <div className="card-body">
 
-        input,
-        select {
-          width: 100%;
-          padding: 10px 10px;
-          border-radius: 12px;
-          border: 1px solid rgba(17, 24, 39, 0.12);
-          outline: none;
-          font-size: 13px;
-          background: #fff;
-          transition: 0.2s;
-        }
+                  <h6 className="produto-nome">
+                    {prod.nome}
+                  </h6>
 
-        input:focus,
-        select:focus {
-          border-color: rgba(124, 58, 237, 0.55);
-          box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.12);
-        }
+                  <p className="preco">
+                    R$ {prod.preco.toFixed(2)}
+                  </p>
 
-        .file {
-          grid-column: 1 / -1;
-        }
+                  <small className="estoque">
+                    Estoque: {prod.estoque}
+                  </small>
 
-        .fileRow {
-          display: grid;
-          grid-template-columns: 1fr auto;
-          gap: 10px;
-          align-items: center;
-        }
+                  <div className="acoes">
 
-        .fileHint {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 10px 10px;
-          border-radius: 12px;
-          border: 1px solid rgba(17, 24, 39, 0.1);
-          background: rgba(17, 24, 39, 0.02);
-          font-size: 12px;
-          font-weight: 800;
-          color: #6b7280;
-          white-space: nowrap;
-        }
+                    <Link href={`/admin/produto/${prod.slug}`}>
+                      <FaEdit />
+                    </Link>
 
-        .preview {
-          grid-column: 1 / -1;
-        }
+                    <button
+                      onClick={() => excluirProduto(prod.id_produto)}
+                      className="danger"
+                    >
+                      <FaTrash />
+                    </button>
 
-        .ph {
-          height: 140px;
-          border-radius: 14px;
-          border: 1px dashed rgba(17, 24, 39, 0.22);
-          background: rgba(17, 24, 39, 0.02);
-          overflow: hidden;
-          display: grid;
-          place-items: center;
-        }
+                  </div>
 
-        .ph img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-        }
+                </div>
 
-        .empty {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          color: #6b7280;
-          font-weight: 800;
-          font-size: 12px;
-        }
+              </div>
 
-        .footer {
-          padding: 12px 14px 14px;
-          border-top: 1px solid rgba(17, 24, 39, 0.08);
-          display: flex;
-          justify-content: flex-end;
-          gap: 10px;
-          background: rgba(17, 24, 39, 0.01);
-        }
+            </div>
 
-        .btn {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 10px 12px;
-          border-radius: 14px;
-          font-weight: 950;
-          cursor: pointer;
-          border: 1px solid transparent;
-          transition: 0.2s;
-          font-size: 13px;
-        }
+          ))}
 
-        .ghost {
-          background: rgba(17, 24, 39, 0.05);
-          border-color: rgba(17, 24, 39, 0.12);
-          color: #111827;
-        }
+          {!produtos.length && (
 
-        .ghost:hover {
-          background: rgba(17, 24, 39, 0.08);
-        }
+            <div className="col-12">
 
-        .primary {
-          background: #d4af37;
-          color: #fff;
-          border-color: rgba(212, 175, 55, 0.35);
-          box-shadow: 0 16px 30px rgba(212, 175, 55, 0.22);
-        }
+              <div className="alert alert-light border">
+                Nenhum produto encontrado
+              </div>
 
-        .primary:hover {
-          filter: brightness(0.98);
-          transform: translateY(-1px);
-        }
+            </div>
 
-        .btn:disabled {
-          opacity: 0.65;
-          cursor: not-allowed;
-          transform: none;
-        }
+          )}
 
-        @media (max-width: 520px) {
-          .grid {
-            grid-template-columns: 1fr; /* ✅ mobile */
-          }
-          .fileRow {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
+        </div>
+
+      )}
+
+      <style jsx global>{`
+
+.dashboard-bg{
+background:#f5f6fa;
+min-height:100vh;
+}
+
+.title{
+color:#6b4c4f;
+}
+
+.btn-gold{
+background:#d4af37;
+color:#fff;
+border:none;
+}
+
+.btn-dark-soft{
+background:#6b4c4f;
+color:#fff;
+border:none;
+}
+
+.produto-card{
+background:#fff;
+border-radius:14px;
+overflow:hidden;
+box-shadow:0 6px 18px rgba(0,0,0,0.06);
+transition:all .2s;
+height:100%;
+}
+
+.produto-card:hover{
+transform:translateY(-4px);
+box-shadow:0 12px 30px rgba(0,0,0,0.12);
+}
+
+.card-image{
+height:180px;
+background:#eee;
+}
+
+.card-image img,
+.no-image{
+width:100%;
+height:100%;
+object-fit:cover;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+.card-body{
+padding:14px;
+}
+
+.produto-nome{
+color:#6b4c4f;
+margin-bottom:6px;
+}
+
+.preco{
+font-weight:600;
+margin-bottom:2px;
+}
+
+.estoque{
+color:#888;
+font-size:12px;
+}
+
+.acoes{
+margin-top:12px;
+display:flex;
+gap:14px;
+font-size:1.1rem;
+}
+
+.acoes button,
+.acoes a{
+border:none;
+background:none;
+cursor:pointer;
+color:#6b4c4f;
+}
+
+.acoes .danger{
+color:#e74c3c;
+}
+
+.acoes button:hover,
+.acoes a:hover{
+color:#d4af37;
+}
+
+`}</style>
+
     </div>
+
   );
 }
