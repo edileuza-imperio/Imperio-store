@@ -2,18 +2,22 @@
 
 import useCategoria from "@/hooks/categoria/useCategoria";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function CategoriasDestaque() {
   const { categorias, loading, erro } = useCategoria();
 
+  // ✅ hooks SEMPRE no topo
   const railRef = useRef<HTMLDivElement | null>(null);
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
 
-  if (loading || erro || categorias.length === 0) return null;
+  // ✅ evita crash quando categorias ainda não veio
+  const top = useMemo(() => {
+    const list = Array.isArray(categorias) ? categorias : [];
+    return list.slice(0, 12);
+  }, [categorias]);
 
-  const top = categorias.slice(0, 12);
   const showArrows = top.length > 10;
 
   const updateArrows = () => {
@@ -24,8 +28,10 @@ export default function CategoriasDestaque() {
     setCanRight(el.scrollLeft < max - 6);
   };
 
+  // ✅ este useEffect agora roda SEMPRE (ordem fixa)
   useEffect(() => {
     updateArrows();
+
     const el = railRef.current;
     if (!el) return;
 
@@ -39,7 +45,6 @@ export default function CategoriasDestaque() {
       el.removeEventListener("scroll", onScroll);
       ro.disconnect();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [top.length]);
 
   const scrollByCards = (dir: "left" | "right") => {
@@ -48,6 +53,9 @@ export default function CategoriasDestaque() {
     const amount = Math.max(320, Math.floor(el.clientWidth * 0.78));
     el.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
   };
+
+  // ✅ AGORA sim: returns condicionais DEPOIS dos hooks
+  if (loading || erro || top.length === 0) return null;
 
   return (
     <>
@@ -73,11 +81,11 @@ export default function CategoriasDestaque() {
             </header>
 
             <div className="railWrap">
-              {/* fades para indicar “tem mais” */}
+              {/* fades */}
               <div className={`fade left ${canLeft ? "on" : ""}`} aria-hidden />
               <div className={`fade right ${canRight ? "on" : ""}`} aria-hidden />
 
-              {/* setas (somente > 10 no mobile/tablet) */}
+              {/* setas */}
               {showArrows && (
                 <>
                   <button
@@ -102,12 +110,11 @@ export default function CategoriasDestaque() {
 
               <div ref={railRef} className="rail" role="list" aria-label="Lista de categorias">
                 {top.map((c: any) => {
-                  const slug = String(c?.slug || "").trim();
+                  const slug = (c?.slug || "").toString().trim();
 
-                  /**
-                   * ✅ ROTA CERTA PARA:
-                   * app/catalogo/categoria/[slug]/page.tsx
-                   */
+                  // ✅ URL correta no Next:
+                  // se seu arquivo é: /catalogo/categoria/[slug]/page.tsx
+                  // o link é: /catalogo/categoria/${slug}
                   const href = slug
                     ? `/catalogo/categoria/${encodeURIComponent(slug)}`
                     : "/catalogo";
@@ -118,11 +125,7 @@ export default function CategoriasDestaque() {
                       role="listitem"
                       className={`item ${slug ? "" : "disabled"}`}
                       href={href}
-                      aria-label={
-                        slug
-                          ? `Abrir categoria ${c.nome}`
-                          : `Categoria ${c.nome} sem slug (abrindo catálogo)`
-                      }
+                      aria-label={slug ? `Abrir categoria ${c.nome}` : `Categoria ${c.nome} sem slug`}
                     >
                       <span className="orb" aria-hidden>
                         <span className="orbGlow" />
@@ -151,23 +154,20 @@ export default function CategoriasDestaque() {
       <style jsx>{`
         :global(:root) {
           --cream: #fff6ee;
-
           --ink: #111827;
           --muted: rgba(17, 24, 39, 0.62);
 
           --rose: #b76e79;
           --gold: #d4af37;
 
-          --shadow: 0 18px 54px rgba(17, 24, 39, 0.10);
           --shadow2: 0 32px 92px rgba(17, 24, 39, 0.18);
         }
 
         .sec {
           padding: 52px 0 78px;
-          background:
-            radial-gradient(1100px 480px at 10% -14%, rgba(183, 110, 121, 0.12), transparent 62%),
-            radial-gradient(980px 460px at 90% -14%, rgba(212, 175, 55, 0.10), transparent 64%),
-            linear-gradient(180deg, rgba(255, 246, 238, 0.0), rgba(255, 246, 238, 0.55));
+          background: radial-gradient(1100px 480px at 10% -14%, rgba(183, 110, 121, 0.12), transparent 62%),
+            radial-gradient(980px 460px at 90% -14%, rgba(212, 175, 55, 0.1), transparent 64%),
+            linear-gradient(180deg, rgba(255, 246, 238, 0), rgba(255, 246, 238, 0.55));
         }
 
         .wrap {
@@ -180,7 +180,7 @@ export default function CategoriasDestaque() {
           border-radius: 26px;
           border: 1px solid rgba(255, 255, 255, 0.55);
           background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.52));
-          box-shadow: 0 24px 80px rgba(17, 24, 39, 0.10);
+          box-shadow: 0 24px 80px rgba(17, 24, 39, 0.1);
           backdrop-filter: blur(14px);
           overflow: hidden;
           position: relative;
@@ -190,9 +190,8 @@ export default function CategoriasDestaque() {
           content: "";
           position: absolute;
           inset: 0;
-          background:
-            radial-gradient(700px 240px at 14% 0%, rgba(183, 110, 121, 0.12), transparent 60%),
-            radial-gradient(680px 240px at 86% 0%, rgba(212, 175, 55, 0.10), transparent 60%);
+          background: radial-gradient(700px 240px at 14% 0%, rgba(183, 110, 121, 0.12), transparent 60%),
+            radial-gradient(680px 240px at 86% 0%, rgba(212, 175, 55, 0.1), transparent 60%);
           pointer-events: none;
         }
 
@@ -207,10 +206,6 @@ export default function CategoriasDestaque() {
           flex-wrap: wrap;
         }
 
-        .titleBlock {
-          max-width: 760px;
-        }
-
         .kicker {
           display: inline-flex;
           align-items: center;
@@ -220,12 +215,12 @@ export default function CategoriasDestaque() {
           background: rgba(17, 24, 39, 0.04);
           border: 1px solid rgba(17, 24, 39, 0.08);
           font-size: 12px;
-          color: rgba(17, 24, 39, 0.70);
+          color: rgba(17, 24, 39, 0.7);
           font-weight: 950;
           letter-spacing: 0.9px;
+          text-transform: uppercase;
           width: fit-content;
           margin-bottom: 10px;
-          text-transform: uppercase;
         }
 
         .kDot {
@@ -233,7 +228,7 @@ export default function CategoriasDestaque() {
           height: 10px;
           border-radius: 999px;
           background: linear-gradient(135deg, var(--gold), var(--rose));
-          box-shadow: 0 0 0 6px rgba(212, 175, 55, 0.10);
+          box-shadow: 0 0 0 6px rgba(212, 175, 55, 0.1);
         }
 
         .h2 {
@@ -256,13 +251,11 @@ export default function CategoriasDestaque() {
           margin-left: auto;
           display: flex;
           align-items: center;
-          gap: 10px;
-          flex-wrap: wrap;
           justify-content: flex-end;
         }
 
         .allBtn {
-          border: 1px solid rgba(17, 24, 39, 0.10);
+          border: 1px solid rgba(17, 24, 39, 0.1);
           background: rgba(255, 255, 255, 0.72);
           border-radius: 999px;
           padding: 12px 14px;
@@ -271,9 +264,8 @@ export default function CategoriasDestaque() {
           color: rgba(17, 24, 39, 0.86);
           box-shadow: 0 18px 44px rgba(17, 24, 39, 0.08);
           transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
-          cursor: pointer;
-          white-space: nowrap;
           text-decoration: none;
+          white-space: nowrap;
         }
         .allBtn:hover {
           transform: translateY(-1px);
@@ -378,7 +370,7 @@ export default function CategoriasDestaque() {
           user-select: none;
           -webkit-tap-highlight-color: transparent;
 
-          border: 1px solid rgba(17, 24, 39, 0.10);
+          border: 1px solid rgba(17, 24, 39, 0.1);
           background: rgba(255, 255, 255, 0.62);
           backdrop-filter: blur(14px);
           box-shadow: 0 16px 48px rgba(17, 24, 39, 0.08);
@@ -432,8 +424,8 @@ export default function CategoriasDestaque() {
           display: grid;
           place-items: center;
           background: rgba(255, 255, 255, 0.92);
-          border: 1px solid rgba(17, 24, 39, 0.10);
-          box-shadow: var(--shadow);
+          border: 1px solid rgba(17, 24, 39, 0.1);
+          box-shadow: 0 18px 54px rgba(17, 24, 39, 0.1);
         }
 
         .icon {
@@ -448,8 +440,6 @@ export default function CategoriasDestaque() {
           font-size: 13px;
           font-weight: 950;
           color: rgba(17, 24, 39, 0.92);
-          letter-spacing: -0.01em;
-          line-height: 1.15;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
@@ -480,16 +470,6 @@ export default function CategoriasDestaque() {
           }
         }
 
-        .item:active {
-          transform: translateY(-1px) scale(0.995);
-        }
-
-        .item:focus-visible {
-          outline: 3px solid rgba(183, 110, 121, 0.22);
-          outline-offset: 6px;
-        }
-
-        /* ✅ Desktop: vira grid premium (sem setas) */
         @media (min-width: 920px) {
           .railWrap {
             padding: 6px 22px 22px;
@@ -511,28 +491,6 @@ export default function CategoriasDestaque() {
 
           .item {
             width: auto;
-          }
-        }
-
-        @media (max-width: 520px) {
-          .head {
-            padding: 18px 16px 8px;
-          }
-          .rail {
-            padding: 10px 54px 6px;
-          }
-          .item {
-            width: 150px;
-          }
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .item,
-          .allBtn,
-          .arrow,
-          .icon,
-          .hint {
-            transition: none !important;
           }
         }
       `}</style>
