@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { FaEdit, FaStar, FaPlus, FaTrash, FaBook } from "react-icons/fa";
 import api from "@/Api/conectar";
@@ -35,16 +35,23 @@ export default function ProdutosPage() {
   const [loading, setLoading] = useState(true);
   const [modalNovoProduto, setModalNovoProduto] = useState(false);
 
+  // ✅ paginação por select + números
+  const [itensPorPagina, setItensPorPagina] = useState<number>(12);
+  const [pagina, setPagina] = useState<number>(1);
+
   useEffect(() => {
     carregarProdutos();
   }, []);
+
+  // quando mudar a quantidade por página, volta pra página 1
+  useEffect(() => {
+    setPagina(1);
+  }, [itensPorPagina]);
 
   const carregarProdutos = async () => {
     try {
       setLoading(true);
 
-      // ✅ NOVA ROTA (continua igual no seu router)
-      // GET /admin/produtos
       const res = await api.get("/admin/produtos");
 
       let lista = res.data?.dados || res.data;
@@ -75,8 +82,6 @@ export default function ProdutosPage() {
           return;
         }
 
-        // ✅ NOVA ROTA
-        // DELETE /admin/produtos/destaques/{id}/remover
         await api.delete(`/admin/produtos/destaques/${produto.id_destaque}/remover`);
 
         setProdutos((p) =>
@@ -89,13 +94,10 @@ export default function ProdutosPage() {
 
         toast.success("Removido do destaque");
       } else {
-        // ✅ NOVA ROTA
-        // POST /admin/produtos/destaques/criar
         const res = await api.post("/admin/produtos/destaques/criar", {
           produto_id: produto.id_produto,
         });
 
-        // tenta pegar o id_destaque em vários formatos possíveis
         const idDestaque =
           res.data?.id_destaque ??
           res.data?.dados?.id_destaque ??
@@ -122,8 +124,6 @@ export default function ProdutosPage() {
   const toggleCatalogo = async (produto: Produto) => {
     try {
       if (produto.catalogo === 1) {
-        // ✅ NOVA ROTA
-        // PUT /admin/produtos/{id}/catalogo/nao
         await api.put(`/admin/produtos/${produto.id_produto}/catalogo/nao`);
 
         setProdutos((p) =>
@@ -134,8 +134,6 @@ export default function ProdutosPage() {
 
         toast.success("Removido do catálogo");
       } else {
-        // ✅ NOVA ROTA
-        // PUT /admin/produtos/{id}/catalogo/sim
         await api.put(`/admin/produtos/${produto.id_produto}/catalogo/sim`);
 
         setProdutos((p) =>
@@ -156,8 +154,6 @@ export default function ProdutosPage() {
     if (!confirm("Deseja excluir este produto?")) return;
 
     try {
-      // ✅ ROTA DO SEU ROUTER
-      // DELETE /admin/produto/{id}/remover
       await api.delete(`/admin/produto/${id}/remover`);
 
       setProdutos((p) => p.filter((i) => i.id_produto !== id));
@@ -167,6 +163,29 @@ export default function ProdutosPage() {
       toast.error("Erro ao excluir produto");
     }
   };
+
+  // ===== paginação (front) =====
+  const totalPaginas = useMemo(() => {
+    const total = Math.ceil((produtos?.length || 0) / itensPorPagina);
+    return Math.max(total, 1);
+  }, [produtos, itensPorPagina]);
+
+  // garante pagina dentro do range
+  useEffect(() => {
+    if (pagina > totalPaginas) setPagina(totalPaginas);
+    if (pagina < 1) setPagina(1);
+  }, [pagina, totalPaginas]);
+
+  const produtosPaginados = useMemo(() => {
+    const start = (pagina - 1) * itensPorPagina;
+    const end = start + itensPorPagina;
+    return produtos.slice(start, end);
+  }, [produtos, pagina, itensPorPagina]);
+
+  const paginas = useMemo(() => {
+    // lista completa de páginas (1..N). Se quiser limitar (tipo 1..10), eu ajusto.
+    return Array.from({ length: totalPaginas }, (_, i) => i + 1);
+  }, [totalPaginas]);
 
   return (
     <div className="container-fluid py-4 dashboard-bg">
@@ -181,22 +200,61 @@ export default function ProdutosPage() {
         }}
       />
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
         <div>
           <h2 className="title">Produtos</h2>
           <p className="text-muted">Gerencie os produtos cadastrados</p>
         </div>
 
-        <button className="btn btn-gold" onClick={() => setModalNovoProduto(true)}>
-          <FaPlus /> Novo Produto
-        </button>
+        <div className="top-actions">
+          <div className="pagerSelect">
+            <span>Por página</span>
+            <select
+              value={itensPorPagina}
+              onChange={(e) => setItensPorPagina(Number(e.target.value))}
+            >
+              <option value={8}>8</option>
+              <option value={12}>12</option>
+              <option value={16}>16</option>
+              <option value={24}>24</option>
+              <option value={48}>48</option>
+            </select>
+          </div>
+
+          <button className="btn btn-gold" onClick={() => setModalNovoProduto(true)}>
+            <FaPlus /> Novo Produto
+          </button>
+        </div>
       </div>
+
+      {/* ✅ numeração sem Próximo/Anterior */}
+      {!loading && produtos.length > 0 && totalPaginas > 1 && (
+        <div className="pagerBar">
+          <div className="pagerInfo">
+            Página <b>{pagina}</b> de <b>{totalPaginas}</b> — Total:{" "}
+            <b>{produtos.length}</b>
+          </div>
+
+          <div className="pagerNumbers" aria-label="Paginação">
+            {paginas.map((p) => (
+              <button
+                key={p}
+                type="button"
+                className={`pageBtn ${p === pagina ? "active" : ""}`}
+                onClick={() => setPagina(p)}
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center py-5">Carregando produtos...</div>
       ) : (
         <div className="row g-4">
-          {produtos.map((prod) => (
+          {produtosPaginados.map((prod) => (
             <div key={prod.id_produto} className="col-xl-3 col-lg-4 col-md-6">
               <div className="produto-card">
                 <div className="card-image">
@@ -275,6 +333,92 @@ export default function ProdutosPage() {
           background: #d4af37;
           color: #fff;
           border: none;
+          display: inline-flex;
+          gap: 8px;
+          align-items: center;
+        }
+
+        .top-actions {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+          flex-wrap: wrap;
+          justify-content: flex-end;
+        }
+
+        .pagerSelect {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          background: #fff;
+          border: 1px solid rgba(0,0,0,0.08);
+          border-radius: 999px;
+          padding: 10px 12px;
+          box-shadow: 0 8px 18px rgba(0,0,0,0.06);
+          color: #6b4c4f;
+          font-weight: 700;
+          font-size: 12px;
+        }
+
+        .pagerSelect select {
+          border: 1px solid rgba(0,0,0,0.12);
+          border-radius: 999px;
+          padding: 6px 10px;
+          outline: none;
+          background: #fff;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
+        .pagerBar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+          margin-bottom: 14px;
+
+          background: rgba(255,255,255,0.78);
+          border: 1px solid rgba(0,0,0,0.08);
+          border-radius: 14px;
+          padding: 10px 12px;
+          box-shadow: 0 10px 24px rgba(0,0,0,0.06);
+        }
+
+        .pagerInfo {
+          color: #6b4c4f;
+          font-size: 13px;
+        }
+
+        .pagerNumbers {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          justify-content: flex-end;
+        }
+
+        .pageBtn {
+          min-width: 36px;
+          height: 34px;
+          padding: 0 10px;
+          border-radius: 10px;
+          border: 1px solid rgba(0,0,0,0.10);
+          background: #fff;
+          font-weight: 800;
+          color: #6b4c4f;
+          cursor: pointer;
+          transition: 0.15s;
+        }
+
+        .pageBtn:hover {
+          transform: translateY(-1px);
+          border-color: rgba(0,0,0,0.18);
+        }
+
+        .pageBtn.active {
+          background: #d4af37;
+          border-color: #d4af37;
+          color: #fff;
         }
 
         .produto-card {
