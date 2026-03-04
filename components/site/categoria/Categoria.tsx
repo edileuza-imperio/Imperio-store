@@ -11,8 +11,6 @@ export default function CategoriasDestaque() {
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
 
-  if (loading || erro || categorias.length === 0) return null;
-
   const top = categorias.slice(0, 12);
   const showArrows = top.length > 10;
 
@@ -48,6 +46,9 @@ export default function CategoriasDestaque() {
     el.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
   };
 
+  // ⚠️ retorno somente depois de todos os hooks
+  if (loading || erro || categorias.length === 0) return null;
+
   return (
     <>
       <section className="sec" aria-label="Categorias em destaque">
@@ -67,58 +68,48 @@ export default function CategoriasDestaque() {
               </div>
 
               <div className="rightSide">
-                <Link className="allBtn" href="/catalogo" aria-label="Ver catálogo completo">
+                <Link className="allBtn" href="/catalogo">
                   Ver todas <span aria-hidden>→</span>
                 </Link>
               </div>
             </header>
 
             <div className="railWrap">
-              {/* fades para indicar “tem mais” */}
-              <div className={`fade left ${canLeft ? "on" : ""}`} aria-hidden />
-              <div className={`fade right ${canRight ? "on" : ""}`} aria-hidden />
+              <div className={`fade left ${canLeft ? "on" : ""}`} />
+              <div className={`fade right ${canRight ? "on" : ""}`} />
 
-              {/* setas (somente > 10) */}
               {showArrows && (
                 <>
                   <button
-                    type="button"
                     className={`arrow left ${canLeft ? "on" : ""}`}
                     onClick={() => scrollByCards("left")}
-                    aria-label="Categorias anteriores"
                   >
-                    <span aria-hidden>‹</span>
+                    <span>‹</span>
                   </button>
 
                   <button
-                    type="button"
                     className={`arrow right ${canRight ? "on" : ""}`}
                     onClick={() => scrollByCards("right")}
-                    aria-label="Próximas categorias"
                   >
-                    <span aria-hidden>›</span>
+                    <span>›</span>
                   </button>
                 </>
               )}
 
-              <div ref={railRef} className="rail" role="list" aria-label="Lista de categorias">
+              <div ref={railRef} className="rail">
                 {top.map((c: any) => {
                   const slug = (c?.slug || "").toString().trim();
-                  const href = slug ? `/catalogo/categoria/${encodeURIComponent(slug)}` : "/catalogo";
+                  const href = slug
+                    ? `/catalogo/categoria/${encodeURIComponent(slug)}`
+                    : "/catalogo";
 
                   return (
                     <Link
                       key={slug || c.id_categoria}
-                      role="listitem"
                       className={`item ${slug ? "" : "disabled"}`}
                       href={href}
-                      aria-label={
-                        slug
-                          ? `Abrir categoria ${c.nome}`
-                          : `Categoria ${c.nome} sem slug (abrindo catálogo)`
-                      }
                     >
-                      <span className="orb" aria-hidden>
+                      <span className="orb">
                         <span className="orbGlow" />
                         <span className="orbRing" />
                         <span className="orbInner">
@@ -126,13 +117,9 @@ export default function CategoriasDestaque() {
                         </span>
                       </span>
 
-                      <span className="name" title={c.nome}>
-                        {c.nome}
-                      </span>
+                      <span className="name">{c.nome}</span>
 
-                      <span className="hint" aria-hidden>
-                        Ver produtos →
-                      </span>
+                      <span className="hint">Ver produtos →</span>
                     </Link>
                   );
                 })}
