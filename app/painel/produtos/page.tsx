@@ -2,18 +2,10 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import {
-  FaEdit,
-  FaStar,
-  FaPlus,
-  FaTrash,
-  FaBook
-} from "react-icons/fa";
-
+import { FaEdit, FaStar, FaPlus, FaTrash, FaBook } from "react-icons/fa";
 import api from "@/Api/conectar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
 import NovoProdutoModal from "@/components/Modal/NovoProdutoModal";
 
 interface Produto {
@@ -28,11 +20,24 @@ interface Produto {
   imagem?: string;
 }
 
+export const getImagemUrl = (caminho?: string) => {
+
+  if (!caminho) return undefined;
+
+  const base = api.defaults.baseURL || "";
+
+  const caminhoLimpo = String(caminho).replace(/^\/+/, "");
+
+  const baseFinal = base.endsWith("/") ? base : `${base}/`;
+
+  return `${baseFinal}${caminhoLimpo}`;
+
+};
+
 export default function ProdutosPage() {
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [modalNovoProduto, setModalNovoProduto] = useState(false);
 
   useEffect(() => {
@@ -57,6 +62,7 @@ export default function ProdutosPage() {
         ...p,
         preco: Number(p.preco || 0),
         estoque: Number(p.estoque || 0),
+        imagem: getImagemUrl(p.imagem),
       }));
 
       setProdutos(convertidos);
@@ -172,9 +178,7 @@ export default function ProdutosPage() {
 
       await api.delete(`/admin/produto/${id}`);
 
-      setProdutos((p) =>
-        p.filter((i) => i.id_produto !== id)
-      );
+      setProdutos((p) => p.filter((i) => i.id_produto !== id));
 
       toast.success("Produto excluído");
 
@@ -201,11 +205,11 @@ export default function ProdutosPage() {
         }}
       />
 
-      <div className="d-flex justify-content-between mb-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
 
         <div>
           <h2 className="title">Produtos</h2>
-          <p className="text-muted">Gerencie os produtos</p>
+          <p className="text-muted">Gerencie os produtos cadastrados</p>
         </div>
 
         <button
@@ -236,7 +240,7 @@ export default function ProdutosPage() {
                 <div className="card-image">
 
                   {prod.imagem ? (
-                    <img src={prod.imagem} />
+                    <img src={prod.imagem} alt={prod.nome} />
                   ) : (
                     <div className="no-image">Sem imagem</div>
                   )}
@@ -299,9 +303,7 @@ export default function ProdutosPage() {
                     </button>
 
                     <button
-                      onClick={() =>
-                        excluirProduto(prod.id_produto)
-                      }
+                      onClick={() => excluirProduto(prod.id_produto)}
                       className="danger"
                     >
                       <FaTrash />
@@ -316,6 +318,18 @@ export default function ProdutosPage() {
             </div>
 
           ))}
+
+          {!produtos.length && (
+
+            <div className="col-12">
+
+              <div className="alert alert-light border">
+                Nenhum produto encontrado
+              </div>
+
+            </div>
+
+          )}
 
         </div>
 
@@ -341,19 +355,19 @@ border:none;
 
 .produto-card{
 background:#fff;
-border-radius:14px;
+border-radius:12px;
 overflow:hidden;
-box-shadow:0 8px 20px rgba(0,0,0,0.06);
+box-shadow:0 6px 16px rgba(0,0,0,0.08);
 transition:.2s;
 }
 
 .produto-card:hover{
-transform:translateY(-4px);
-box-shadow:0 14px 30px rgba(0,0,0,0.12);
+transform:translateY(-3px);
+box-shadow:0 12px 26px rgba(0,0,0,0.12);
 }
 
 .card-image{
-height:180px;
+height:150px;
 position:relative;
 background:#eee;
 }
@@ -362,6 +376,7 @@ background:#eee;
 width:100%;
 height:100%;
 object-fit:cover;
+display:block;
 }
 
 .no-image{
@@ -373,15 +388,15 @@ height:100%;
 
 .badges{
 position:absolute;
-top:10px;
-right:10px;
+top:8px;
+right:8px;
 display:flex;
 gap:6px;
 }
 
 .badge{
-font-size:11px;
-padding:4px 10px;
+font-size:10px;
+padding:4px 8px;
 border-radius:999px;
 color:#fff;
 }
@@ -395,15 +410,17 @@ background:#22c55e;
 }
 
 .card-body{
-padding:14px;
+padding:12px;
 }
 
 .produto-nome{
 margin-bottom:4px;
+font-size:14px;
 }
 
 .preco{
 font-weight:600;
+margin-bottom:2px;
 }
 
 .estoque{
@@ -412,10 +429,10 @@ color:#888;
 }
 
 .acoes{
-margin-top:10px;
+margin-top:8px;
 display:flex;
-gap:14px;
-font-size:18px;
+gap:12px;
+font-size:16px;
 }
 
 .acoes button,
