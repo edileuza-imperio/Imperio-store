@@ -2,17 +2,21 @@
 
 import useCategoria from "@/hooks/categoria/useCategoria";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 export default function CategoriasDestaque() {
   const { categorias, loading, erro } = useCategoria();
 
   const railRef = useRef<HTMLDivElement | null>(null);
+  const isDownRef = useRef(false);
+  const startXRef = useRef(0);
+  const startScrollLeftRef = useRef(0);
+
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
 
-  const top = categorias.slice(0, 12);
-  const showArrows = top.length > 10;
+  const top = useMemo(() => categorias.slice(0, 12), [categorias]);
+  const showArrows = top.length > 6;
 
   const updateArrows = () => {
     const el = railRef.current;
@@ -24,6 +28,7 @@ export default function CategoriasDestaque() {
 
   useEffect(() => {
     updateArrows();
+
     const el = railRef.current;
     if (!el) return;
 
@@ -42,8 +47,43 @@ export default function CategoriasDestaque() {
   const scrollByCards = (dir: "left" | "right") => {
     const el = railRef.current;
     if (!el) return;
-    const amount = Math.max(320, Math.floor(el.clientWidth * 0.78));
+    const amount = Math.max(280, Math.floor(el.clientWidth * 0.75));
     el.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
+  };
+
+  // ===== Drag to scroll (mouse) + touch friendly =====
+  const onMouseDown = (e: React.MouseEvent) => {
+    const el = railRef.current;
+    if (!el) return;
+
+    isDownRef.current = true;
+    startXRef.current = e.pageX;
+    startScrollLeftRef.current = el.scrollLeft;
+
+    el.classList.add("dragging");
+  };
+
+  const onMouseLeave = () => {
+    const el = railRef.current;
+    if (!el) return;
+    isDownRef.current = false;
+    el.classList.remove("dragging");
+  };
+
+  const onMouseUp = () => {
+    const el = railRef.current;
+    if (!el) return;
+    isDownRef.current = false;
+    el.classList.remove("dragging");
+  };
+
+  const onMouseMove = (e: React.MouseEvent) => {
+    const el = railRef.current;
+    if (!el || !isDownRef.current) return;
+
+    e.preventDefault();
+    const dx = e.pageX - startXRef.current;
+    el.scrollLeft = startScrollLeftRef.current - dx;
   };
 
   // ⚠️ retorno somente depois de todos os hooks
@@ -62,9 +102,7 @@ export default function CategoriasDestaque() {
                 </div>
 
                 <h2 className="h2">Categorias em destaque</h2>
-                <p className="sub">
-                  Escolha uma categoria para ver os produtos disponíveis.
-                </p>
+                <p className="sub">Escolha uma categoria para ver os produtos disponíveis.</p>
               </div>
 
               <div className="rightSide">
@@ -81,22 +119,35 @@ export default function CategoriasDestaque() {
               {showArrows && (
                 <>
                   <button
+                    type="button"
                     className={`arrow left ${canLeft ? "on" : ""}`}
                     onClick={() => scrollByCards("left")}
+                    aria-label="Ver categorias anteriores"
                   >
                     <span>‹</span>
                   </button>
 
                   <button
+                    type="button"
                     className={`arrow right ${canRight ? "on" : ""}`}
                     onClick={() => scrollByCards("right")}
+                    aria-label="Ver próximas categorias"
                   >
                     <span>›</span>
                   </button>
                 </>
               )}
 
-              <div ref={railRef} className="rail">
+              <div
+                ref={railRef}
+                className="rail"
+                onMouseDown={onMouseDown}
+                onMouseLeave={onMouseLeave}
+                onMouseUp={onMouseUp}
+                onMouseMove={onMouseMove}
+                role="list"
+                aria-label="Lista de categorias"
+              >
                 {top.map((c: any) => {
                   const slug = (c?.slug || "").toString().trim();
                   const href = slug
@@ -108,6 +159,8 @@ export default function CategoriasDestaque() {
                       key={slug || c.id_categoria}
                       className={`item ${slug ? "" : "disabled"}`}
                       href={href}
+                      draggable={false}
+                      role="listitem"
                     >
                       <span className="orb">
                         <span className="orbGlow" />
@@ -118,7 +171,6 @@ export default function CategoriasDestaque() {
                       </span>
 
                       <span className="name">{c.nome}</span>
-
                       <span className="hint">Ver produtos →</span>
                     </Link>
                   );
@@ -161,7 +213,6 @@ export default function CategoriasDestaque() {
           padding: 0 clamp(14px, 4vw, 28px);
         }
 
-        /* CARD DA SEÇÃO */
         .surface {
           border-radius: 26px;
           border: 1px solid rgba(255, 255, 255, 0.55);
@@ -172,7 +223,6 @@ export default function CategoriasDestaque() {
           position: relative;
         }
 
-        /* detalhe premium no topo */
         .surface::before {
           content: "";
           position: absolute;
@@ -268,7 +318,6 @@ export default function CategoriasDestaque() {
           box-shadow: 0 28px 70px rgba(17, 24, 39, 0.12);
         }
 
-        /* ====== CARROSSEL / GRID ====== */
         .railWrap {
           position: relative;
           padding: 8px 0 18px;
@@ -330,6 +379,7 @@ export default function CategoriasDestaque() {
           line-height: 1;
         }
 
+        /* ====== SEMPRE CARROSSEL (inclusive desktop) ====== */
         .rail {
           position: relative;
           z-index: 1;
@@ -339,13 +389,18 @@ export default function CategoriasDestaque() {
           gap: 14px;
           overflow-x: auto;
           padding: 10px 60px 6px;
+
           scroll-snap-type: x mandatory;
           -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
+
+          cursor: grab;
+          user-select: none;
+          overscroll-behavior-x: contain;
         }
         .rail::-webkit-scrollbar { display: none; }
+        .rail.dragging { cursor: grabbing; }
 
-        /* ITEM — agora é pill card premium */
         .item {
           scroll-snap-align: start;
           width: 160px;
@@ -465,24 +520,6 @@ export default function CategoriasDestaque() {
         .item:focus-visible {
           outline: 3px solid rgba(183, 110, 121, 0.22);
           outline-offset: 6px;
-        }
-
-        /* Desktop: vira grid premium (sem setas) */
-        @media (min-width: 920px) {
-          .railWrap { padding: 6px 22px 22px; }
-          .fade, .arrow { display: none; }
-
-          .rail {
-            grid-auto-flow: initial;
-            grid-auto-columns: initial;
-            overflow: visible;
-            padding: 0;
-            scroll-snap-type: none;
-            grid-template-columns: repeat(6, minmax(0, 1fr));
-            gap: 18px;
-          }
-
-          .item { width: auto; }
         }
 
         @media (max-width: 520px) {

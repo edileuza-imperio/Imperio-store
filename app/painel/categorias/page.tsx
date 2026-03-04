@@ -14,6 +14,8 @@ import {
   FiInfo,
   FiSearch,
   FiTag,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 
 type Categoria = {
@@ -44,6 +46,10 @@ export default function CategoriasPage() {
   // ====== DATA ======
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // ====== PAGINAÇÃO (CARDS) ======
+  const [pageSize, setPageSize] = useState<number>(5); // default 5 por tela
+  const [page, setPage] = useState<number>(1);
 
   // ====== TOAST ======
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -84,6 +90,56 @@ export default function CategoriasPage() {
     if (!q) return produtos;
     return produtos.filter((p) => (p.nome ?? p.titulo ?? "").toLowerCase().includes(q));
   }, [produtos, prodSearch]);
+
+  // ====== PAGINAÇÃO: calcula páginas e lista atual ======
+  const totalItems = categorias.length;
+  const totalPages = useMemo(() => {
+    const n = Math.ceil(totalItems / Math.max(1, pageSize));
+    return n === 0 ? 1 : n;
+  }, [totalItems, pageSize]);
+
+  // se mudar pageSize ou categorias, garante page válida
+  useEffect(() => {
+    setPage((p) => {
+      const clamped = Math.min(Math.max(1, p), totalPages);
+      return clamped;
+    });
+  }, [totalPages]);
+
+  const paginatedCategorias = useMemo(() => {
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+    return categorias.slice(start, end);
+  }, [categorias, page, pageSize]);
+
+  const pageNumbers = useMemo(() => {
+    // mostra no máximo 7 botões de páginas (com "...")
+    const maxButtons = 7;
+    const pages: (number | "...")[] = [];
+
+    if (totalPages <= maxButtons) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+      return pages;
+    }
+
+    const left = Math.max(1, page - 2);
+    const right = Math.min(totalPages, page + 2);
+
+    pages.push(1);
+
+    if (left > 2) pages.push("...");
+
+    for (let i = left; i <= right; i++) {
+      if (i !== 1 && i !== totalPages) pages.push(i);
+    }
+
+    if (right < totalPages - 1) pages.push("...");
+
+    pages.push(totalPages);
+
+    // remove duplicatas quando estiver perto das pontas
+    return pages.filter((v, idx, arr) => arr.indexOf(v) === idx);
+  }, [page, totalPages]);
 
   // ====== HELPERS ======
   function closeDrawer() {
@@ -220,6 +276,13 @@ export default function CategoriasPage() {
         title: "Categoria removida",
         message: nomeCat ? `“${nomeCat}” foi removida.` : "Removida com sucesso.",
       });
+
+      // se remover e a página ficar vazia, volta 1 página
+      setPage((p) => {
+        const nextTotal = totalItems - 1;
+        const nextTotalPages = Math.ceil(nextTotal / Math.max(1, pageSize)) || 1;
+        return Math.min(p, nextTotalPages);
+      });
     } catch (err) {
       console.error("Erro ao remover categoria", err);
       pushToast({ type: "error", title: "Erro ao remover categoria", message: "Veja o console." });
@@ -290,14 +353,19 @@ export default function CategoriasPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // quando mudar o select de pageSize, volta para página 1 (evita página inválida)
+  function onChangePageSize(next: number) {
+    setPageSize(next);
+    setPage(1);
+  }
+
   // ====== UI ======
   return (
     <div className="page">
       {/* TOASTS */}
       <div className="toastWrap" aria-live="polite" aria-atomic="true">
         {toasts.map((t) => {
-          const Icon =
-            t.type === "success" ? FiCheckCircle : t.type === "error" ? FiAlertTriangle : FiInfo;
+          const Icon = t.type === "success" ? FiCheckCircle : t.type === "error" ? FiAlertTriangle : FiInfo;
 
           return (
             <div key={t.id} className={`toast ${t.type}`}>
@@ -336,9 +404,93 @@ export default function CategoriasPage() {
 
       {loading ? <p>Carregando categorias...</p> : null}
 
+      {/* PAGINAÇÃO CONTROLS (top) */}
+      <div className="pagerTop">
+        <div className="pagerLeft">
+          <span className="pagerLabel">Por página</span>
+          <select
+            className="pagerSelect"
+            value={pageSize}
+            onChange={(e) => onChangePageSize(Number(e.target.value))}
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={15}>15</option>
+            <option value={20}>20</option>
+          </select>
+
+          <span className="pagerInfo">
+            Mostrando{" "}
+            <b>
+              {totalItems === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, totalItems)}
+            </b>{" "}
+            de <b>{totalItems}</b>
+          </span>
+        </div>
+
+        <div className="pagerRight">
+          <button
+            className="pagerNav"
+            type="button"
+            onClick={() => setPage(1)}
+            disabled={page === 1}
+            aria-label="Primeira página"
+          >
+            «
+          </button>
+          <button
+            className="pagerNav"
+            type="button"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            aria-label="Página anterior"
+          >
+            <FiChevronLeft size={16} />
+          </button>
+
+          <div className="pagerNums" aria-label="Páginas">
+            {pageNumbers.map((n, idx) =>
+              n === "..." ? (
+                <span key={`dots-${idx}`} className="pagerDots">
+                  …
+                </span>
+              ) : (
+                <button
+                  key={n}
+                  type="button"
+                  className={`pagerNum ${page === n ? "on" : ""}`}
+                  onClick={() => setPage(n)}
+                >
+                  {n}
+                </button>
+              )
+            )}
+          </div>
+
+          <button
+            className="pagerNav"
+            type="button"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page >= totalPages}
+            aria-label="Próxima página"
+          >
+            <FiChevronRight size={16} />
+          </button>
+          <button
+            className="pagerNav"
+            type="button"
+            onClick={() => setPage(totalPages)}
+            disabled={page >= totalPages}
+            aria-label="Última página"
+          >
+            »
+          </button>
+        </div>
+      </div>
+
       {/* CARDS */}
       <div className="grid">
-        {categorias.map((cat) => (
+        {paginatedCategorias.map((cat) => (
           <div key={cat.id_categoria} className="card">
             <div className="cardTop">
               <div className="icon" title={cat.icone}>
@@ -364,13 +516,59 @@ export default function CategoriasPage() {
                 Unificar
               </button>
 
-              <button className="delete" type="button" onClick={() => removerCategoria(cat.id_categoria, cat.nome)}>
+              <button
+                className="delete"
+                type="button"
+                onClick={() => removerCategoria(cat.id_categoria, cat.nome)}
+              >
                 <FiTrash2 size={15} />
                 Remover
               </button>
             </div>
           </div>
         ))}
+      </div>
+
+      {/* PAGINAÇÃO CONTROLS (bottom) */}
+      <div className="pagerBottom">
+        <button
+          className="pagerNav"
+          type="button"
+          onClick={() => setPage((p) => Math.max(1, p - 1))}
+          disabled={page === 1}
+        >
+          <FiChevronLeft size={16} />
+          Anterior
+        </button>
+
+        <div className="pagerNums" aria-label="Páginas (inferior)">
+          {pageNumbers.map((n, idx) =>
+            n === "..." ? (
+              <span key={`dotsb-${idx}`} className="pagerDots">
+                …
+              </span>
+            ) : (
+              <button
+                key={`b-${n}`}
+                type="button"
+                className={`pagerNum ${page === n ? "on" : ""}`}
+                onClick={() => setPage(n)}
+              >
+                {n}
+              </button>
+            )
+          )}
+        </div>
+
+        <button
+          className="pagerNav"
+          type="button"
+          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+          disabled={page >= totalPages}
+        >
+          Próxima
+          <FiChevronRight size={16} />
+        </button>
       </div>
 
       {/* DRAWER (RIGHT) */}
@@ -416,7 +614,6 @@ export default function CategoriasPage() {
                 type="button"
                 className={`tab ${tab === "edit" ? "on" : ""}`}
                 onClick={() => {
-                  // se não tiver categoria selecionada, mostra dica (sem bloquear)
                   setTab("edit");
                 }}
               >
@@ -445,11 +642,7 @@ export default function CategoriasPage() {
                   <div className="form">
                     <label>
                       Nome
-                      <input
-                        placeholder="Ex: Cestas"
-                        value={nome}
-                        onChange={(e) => setNome(e.target.value)}
-                      />
+                      <input placeholder="Ex: Cestas" value={nome} onChange={(e) => setNome(e.target.value)} />
                     </label>
 
                     <label>
@@ -503,11 +696,7 @@ export default function CategoriasPage() {
                       <div className="form">
                         <label>
                           Nome
-                          <input
-                            placeholder="Ex: Cestas"
-                            value={nome}
-                            onChange={(e) => setNome(e.target.value)}
-                          />
+                          <input placeholder="Ex: Cestas" value={nome} onChange={(e) => setNome(e.target.value)} />
                         </label>
 
                         <label>
@@ -680,6 +869,124 @@ export default function CategoriasPage() {
         .btnAdd:hover {
           background: #6d28d9;
           transform: translateY(-1px);
+        }
+
+        /* PAGINATION BAR */
+        .pagerTop {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+          padding: 12px 14px;
+          border-radius: 16px;
+          border: 1px solid rgba(17, 24, 39, 0.08);
+          background: rgba(255, 255, 255, 0.9);
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+        }
+
+        .pagerLeft {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .pagerLabel {
+          font-size: 12px;
+          font-weight: 950;
+          color: #111827;
+        }
+
+        .pagerSelect {
+          padding: 9px 10px;
+          border-radius: 12px;
+          border: 1px solid rgba(17, 24, 39, 0.12);
+          font-weight: 900;
+          outline: none;
+          background: white;
+          cursor: pointer;
+        }
+
+        .pagerInfo {
+          font-size: 12px;
+          color: #64748b;
+          font-weight: 800;
+        }
+
+        .pagerRight {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .pagerNav {
+          width: 40px;
+          height: 40px;
+          border-radius: 14px;
+          border: 1px solid rgba(17, 24, 39, 0.1);
+          background: rgba(17, 24, 39, 0.02);
+          cursor: pointer;
+          display: grid;
+          place-items: center;
+          transition: 0.2s;
+        }
+
+        .pagerNav:hover:not(:disabled) {
+          background: rgba(17, 24, 39, 0.05);
+          transform: translateY(-1px);
+        }
+
+        .pagerNav:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .pagerNums {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 0 4px;
+        }
+
+        .pagerNum {
+          min-width: 38px;
+          height: 40px;
+          padding: 0 10px;
+          border-radius: 14px;
+          border: 1px solid rgba(17, 24, 39, 0.1);
+          background: rgba(17, 24, 39, 0.02);
+          cursor: pointer;
+          font-weight: 950;
+          font-size: 13px;
+          transition: 0.2s;
+        }
+
+        .pagerNum:hover {
+          background: rgba(17, 24, 39, 0.05);
+          transform: translateY(-1px);
+        }
+
+        .pagerNum.on {
+          background: linear-gradient(135deg, rgba(124, 58, 237, 0.18), rgba(147, 51, 234, 0.12));
+          border-color: rgba(124, 58, 237, 0.25);
+          color: #6d28d9;
+        }
+
+        .pagerDots {
+          padding: 0 6px;
+          color: #64748b;
+          font-weight: 950;
+          line-height: 40px;
+        }
+
+        .pagerBottom {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 8px 2px;
+          flex-wrap: wrap;
         }
 
         /* GRID */
