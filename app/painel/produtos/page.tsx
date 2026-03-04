@@ -2,10 +2,18 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FaEdit, FaStar, FaPlus, FaTrash, FaBook } from "react-icons/fa";
+import {
+  FaEdit,
+  FaStar,
+  FaPlus,
+  FaTrash,
+  FaBook
+} from "react-icons/fa";
+
 import api from "@/Api/conectar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+
 import NovoProdutoModal from "@/components/Modal/NovoProdutoModal";
 
 interface Produto {
@@ -14,23 +22,11 @@ interface Produto {
   slug: string;
   preco: number;
   estoque: number;
-  statusNome?: string;
-  statusCor?: string;
   destaque?: boolean;
   id_destaque?: number;
   catalogo?: number;
   imagem?: string;
 }
-
-export const getImagemUrl = (caminho?: string) => {
-  if (!caminho) return undefined;
-
-  const base = api.defaults.baseURL || "";
-  const caminhoLimpo = String(caminho).replace(/^\/+/, "");
-  const baseFinal = base.endsWith("/") ? base : `${base}/`;
-
-  return `${baseFinal}${caminhoLimpo}`;
-};
 
 export default function ProdutosPage() {
 
@@ -51,32 +47,118 @@ export default function ProdutosPage() {
 
       const res = await api.get("/admin/produtos");
 
-      let lista = res.data?.dados || res.data || [];
+      let lista = res.data?.dados || res.data;
 
-      if (lista.dados) lista = lista.dados;
+      if (lista?.dados) lista = lista.dados;
 
-      if (!Array.isArray(lista)) {
-        console.log("API retornou formato inesperado:", lista);
-        lista = [];
-      }
+      if (!Array.isArray(lista)) lista = [];
 
       const convertidos = lista.map((p: any) => ({
         ...p,
         preco: Number(p.preco || 0),
         estoque: Number(p.estoque || 0),
-        imagem: getImagemUrl(p.imagem),
       }));
 
       setProdutos(convertidos);
 
     } catch (err) {
 
-      console.error("Erro ao carregar produtos", err);
+      console.error(err);
       toast.error("Erro ao carregar produtos");
 
     } finally {
 
       setLoading(false);
+
+    }
+
+  };
+
+  const toggleDestaque = async (produto: Produto) => {
+
+    try {
+
+      if (produto.destaque) {
+
+        await api.delete(`/admin/destaque/${produto.id_destaque}`);
+
+        setProdutos((p) =>
+          p.map((i) =>
+            i.id_produto === produto.id_produto
+              ? { ...i, destaque: false }
+              : i
+          )
+        );
+
+        toast.success("Removido do destaque");
+
+      } else {
+
+        const res = await api.post("/admin/destaque", {
+          produto_id: produto.id_produto
+        });
+
+        setProdutos((p) =>
+          p.map((i) =>
+            i.id_produto === produto.id_produto
+              ? {
+                  ...i,
+                  destaque: true,
+                  id_destaque: res.data?.id_destaque
+                }
+              : i
+          )
+        );
+
+        toast.success("Adicionado ao destaque");
+
+      }
+
+    } catch {
+
+      toast.error("Erro ao alterar destaque");
+
+    }
+
+  };
+
+  const toggleCatalogo = async (produto: Produto) => {
+
+    try {
+
+      if (produto.catalogo === 1) {
+
+        await api.put(`/admin/catalogo/nao/${produto.id_produto}`);
+
+        setProdutos((p) =>
+          p.map((i) =>
+            i.id_produto === produto.id_produto
+              ? { ...i, catalogo: 0 }
+              : i
+          )
+        );
+
+        toast.success("Removido do catálogo");
+
+      } else {
+
+        await api.put(`/admin/catalogo/sim/${produto.id_produto}`);
+
+        setProdutos((p) =>
+          p.map((i) =>
+            i.id_produto === produto.id_produto
+              ? { ...i, catalogo: 1 }
+              : i
+          )
+        );
+
+        toast.success("Adicionado ao catálogo");
+
+      }
+
+    } catch {
+
+      toast.error("Erro ao atualizar catálogo");
 
     }
 
@@ -90,13 +172,15 @@ export default function ProdutosPage() {
 
       await api.delete(`/admin/produto/${id}`);
 
-      setProdutos((p) => p.filter((i) => i.id_produto !== id));
+      setProdutos((p) =>
+        p.filter((i) => i.id_produto !== id)
+      );
 
       toast.success("Produto excluído");
 
     } catch {
 
-      toast.error("Erro ao excluir produto");
+      toast.error("Erro ao excluir");
 
     }
 
@@ -106,9 +190,8 @@ export default function ProdutosPage() {
 
     <div className="container-fluid py-4 dashboard-bg">
 
-      <ToastContainer position="top-right" autoClose={2500} theme="colored" />
+      <ToastContainer position="top-right" autoClose={2500} />
 
-      {/* MODAL */}
       <NovoProdutoModal
         open={modalNovoProduto}
         onClose={() => setModalNovoProduto(false)}
@@ -118,28 +201,19 @@ export default function ProdutosPage() {
         }}
       />
 
-      {/* HEADER */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex justify-content-between mb-4">
 
         <div>
-          <h1 className="fw-bold title">Produtos</h1>
-          <p className="text-muted">Gerencie os produtos cadastrados</p>
+          <h2 className="title">Produtos</h2>
+          <p className="text-muted">Gerencie os produtos</p>
         </div>
 
-        <div className="d-flex gap-2">
-
-          <button
-            className="btn btn-gold"
-            onClick={() => setModalNovoProduto(true)}
-          >
-            <FaPlus /> Novo Produto
-          </button>
-
-          <Link href="/admin/catalogo" className="btn btn-dark-soft">
-            <FaBook /> Catálogo
-          </Link>
-
-        </div>
+        <button
+          className="btn btn-gold"
+          onClick={() => setModalNovoProduto(true)}
+        >
+          <FaPlus /> Novo Produto
+        </button>
 
       </div>
 
@@ -155,17 +229,33 @@ export default function ProdutosPage() {
 
           {produtos.map((prod) => (
 
-            <div key={prod.id_produto} className="col-12 col-sm-6 col-md-4 col-xl-3">
+            <div key={prod.id_produto} className="col-xl-3 col-lg-4 col-md-6">
 
               <div className="produto-card">
 
                 <div className="card-image">
 
                   {prod.imagem ? (
-                    <img src={prod.imagem} alt={prod.nome} />
+                    <img src={prod.imagem} />
                   ) : (
                     <div className="no-image">Sem imagem</div>
                   )}
+
+                  <div className="badges">
+
+                    {prod.destaque && (
+                      <span className="badge badge-destaque">
+                        Destaque
+                      </span>
+                    )}
+
+                    {prod.catalogo === 1 && (
+                      <span className="badge badge-catalogo">
+                        Catálogo
+                      </span>
+                    )}
+
+                  </div>
 
                 </div>
 
@@ -190,7 +280,28 @@ export default function ProdutosPage() {
                     </Link>
 
                     <button
-                      onClick={() => excluirProduto(prod.id_produto)}
+                      onClick={() => toggleDestaque(prod)}
+                      title="Destaque"
+                    >
+                      <FaStar />
+                    </button>
+
+                    <button
+                      onClick={() => toggleCatalogo(prod)}
+                      title="Catálogo"
+                      className={
+                        prod.catalogo === 1
+                          ? "catalogo-on"
+                          : "catalogo-off"
+                      }
+                    >
+                      <FaBook />
+                    </button>
+
+                    <button
+                      onClick={() =>
+                        excluirProduto(prod.id_produto)
+                      }
                       className="danger"
                     >
                       <FaTrash />
@@ -206,18 +317,6 @@ export default function ProdutosPage() {
 
           ))}
 
-          {!produtos.length && (
-
-            <div className="col-12">
-
-              <div className="alert alert-light border">
-                Nenhum produto encontrado
-              </div>
-
-            </div>
-
-          )}
-
         </div>
 
       )}
@@ -225,12 +324,13 @@ export default function ProdutosPage() {
       <style jsx global>{`
 
 .dashboard-bg{
-background:#f5f6fa;
+background:#f6f7fb;
 min-height:100vh;
 }
 
 .title{
 color:#6b4c4f;
+font-weight:700;
 }
 
 .btn-gold{
@@ -239,39 +339,59 @@ color:#fff;
 border:none;
 }
 
-.btn-dark-soft{
-background:#6b4c4f;
-color:#fff;
-border:none;
-}
-
 .produto-card{
 background:#fff;
 border-radius:14px;
 overflow:hidden;
-box-shadow:0 6px 18px rgba(0,0,0,0.06);
-transition:all .2s;
-height:100%;
+box-shadow:0 8px 20px rgba(0,0,0,0.06);
+transition:.2s;
 }
 
 .produto-card:hover{
 transform:translateY(-4px);
-box-shadow:0 12px 30px rgba(0,0,0,0.12);
+box-shadow:0 14px 30px rgba(0,0,0,0.12);
 }
 
 .card-image{
 height:180px;
+position:relative;
 background:#eee;
 }
 
-.card-image img,
-.no-image{
+.card-image img{
 width:100%;
 height:100%;
 object-fit:cover;
+}
+
+.no-image{
 display:flex;
 align-items:center;
 justify-content:center;
+height:100%;
+}
+
+.badges{
+position:absolute;
+top:10px;
+right:10px;
+display:flex;
+gap:6px;
+}
+
+.badge{
+font-size:11px;
+padding:4px 10px;
+border-radius:999px;
+color:#fff;
+}
+
+.badge-destaque{
+background:#e74c3c;
+}
+
+.badge-catalogo{
+background:#22c55e;
 }
 
 .card-body{
@@ -279,37 +399,43 @@ padding:14px;
 }
 
 .produto-nome{
-color:#6b4c4f;
-margin-bottom:6px;
+margin-bottom:4px;
 }
 
 .preco{
 font-weight:600;
-margin-bottom:2px;
 }
 
 .estoque{
-color:#888;
 font-size:12px;
+color:#888;
 }
 
 .acoes{
-margin-top:12px;
+margin-top:10px;
 display:flex;
 gap:14px;
-font-size:1.1rem;
+font-size:18px;
 }
 
 .acoes button,
 .acoes a{
-border:none;
 background:none;
+border:none;
 cursor:pointer;
 color:#6b4c4f;
 }
 
 .acoes .danger{
 color:#e74c3c;
+}
+
+.catalogo-on{
+color:#22c55e;
+}
+
+.catalogo-off{
+color:#999;
 }
 
 .acoes button:hover,
