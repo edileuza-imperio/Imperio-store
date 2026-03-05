@@ -61,7 +61,7 @@ export default function DestaquesSection() {
 
     return (
 
-        <section className="py-5" style={{ background: "#f3ebe3" }}>
+        <section className="py-5" style={{ background: "#f5eee8" }}>
 
             <div className="container">
 
@@ -72,23 +72,23 @@ export default function DestaquesSection() {
                     <div className="text-center mb-5">
 
                         <span
-                            className="badge mb-2"
+                            className="badge mb-3 px-3 py-2"
                             style={{ background: "#d77c7c" }}
                         >
                             Campanha
                         </span>
 
-                        <h1 className="fw-bold">
+                        <h1 className="fw-bold display-6">
                             {campanha.titulo}
                         </h1>
 
-                        <p className="text-muted">
+                        <p className="text-muted mb-3">
                             {campanha.descricao}
                         </p>
 
                         <Link
                             href={`/campanha/${campanha.slug}`}
-                            className="btn text-white"
+                            className="btn text-white px-4"
                             style={{ background: "#c78c5c" }}
                         >
                             Ver catálogo
@@ -110,21 +110,29 @@ export default function DestaquesSection() {
 
                             <div key={p.id_destaque} className="col-md-6 col-lg-4">
 
-                                <div className="card border-0 shadow-sm h-100 rounded-4">
+                                <div
+                                    className="card border-0 shadow-sm h-100 rounded-4"
+                                    style={{ transition: "0.25s" }}
+                                >
 
                                     <div className="position-relative">
 
                                         <img
                                             src={img}
-                                            className="card-img-top rounded-top-4"
-                                            style={{ height: "220px", objectFit: "cover" }}
+                                            className="card-img-top"
+                                            style={{
+                                                height: "240px",
+                                                objectFit: "cover",
+                                                borderTopLeftRadius: "16px",
+                                                borderTopRightRadius: "16px"
+                                            }}
                                         />
 
                                         <span
                                             className="badge position-absolute"
                                             style={{
-                                                top: "10px",
-                                                left: "10px",
+                                                top: "12px",
+                                                left: "12px",
                                                 background: "#c78c5c"
                                             }}
                                         >
@@ -135,16 +143,16 @@ export default function DestaquesSection() {
 
                                     <div className="card-body d-flex flex-column">
 
-                                        <h5 className="card-title fw-semibold">
+                                        <h5 className="fw-semibold">
                                             {p.produto_nome}
                                         </h5>
 
-                                        <p className="text-muted small">
+                                        <p className="text-muted small mb-2">
                                             {p.produto_descricao}
                                         </p>
 
                                         <div
-                                            className="fw-bold fs-5 mb-3"
+                                            className="fw-bold fs-4 mb-3"
                                             style={{ color: "#c78c5c" }}
                                         >
                                             {formatMoney(p.produto_preco)}
