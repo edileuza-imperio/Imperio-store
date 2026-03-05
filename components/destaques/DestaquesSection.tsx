@@ -67,19 +67,15 @@ export default function DestaquesSection() {
 
 {campanha && (
 
-<div className="campanha-header">
+<div className="campanha">
 
-<span className="tag-campanha">
+<span className="badge-campanha">
 Campanha
 </span>
 
-<h1 className="titulo-campanha">
-{campanha.titulo}
-</h1>
+<h1>{campanha.titulo}</h1>
 
-<p className="descricao-campanha">
-{campanha.descricao}
-</p>
+<p>{campanha.descricao}</p>
 
 <Link
 href={`/campanha/${campanha.slug}`}
@@ -92,44 +88,39 @@ Ver catálogo
 
 )}
 
-<div className="grid-produtos">
+<div className="produtos">
 
-{produtos.map((p) => {
+{produtos.map((p)=>{
 
 const img = getImagemUrl(p.produto_imagem);
 
-return (
+return(
 
-<div key={p.id_destaque} className="produto-card">
+<div key={p.id_destaque} className="card">
 
-<div className="produto-img">
+<div className="img">
 
-<img
-src={img}
-alt={p.produto_nome}
-/>
+<img src={img} />
 
-<span className="badge-destaque">
+<span className="badge">
 Destaque
 </span>
 
 </div>
 
-<div className="produto-body">
+<div className="body">
 
-<h5 className="produto-nome">
-{p.produto_nome}
-</h5>
+<h3>{p.produto_nome}</h3>
 
-<p className="produto-desc">
+<p className="desc">
 {p.produto_descricao}
 </p>
 
-<div className="produto-preco">
+<div className="preco">
 {formatMoney(p.produto_preco)}
 </div>
 
-<div className="produto-botoes">
+<div className="botoes">
 
 <Link
 href={`/produto/${p.produto_slug}`}
@@ -138,7 +129,7 @@ className="btn-detalhes"
 Detalhes
 </Link>
 
-<button className="btn-adicionar">
+<button className="btn-add">
 Adicionar
 </button>
 
@@ -148,7 +139,8 @@ Adicionar
 
 </div>
 
-);
+)
+
 })}
 
 </div>
@@ -158,65 +150,60 @@ Adicionar
 <style jsx>{`
 
 .vitrine{
-background:#f4ede6;
-padding:60px 20px;
-border-radius:30px;
+background:#f3ebe3;
+padding:70px 20px;
 }
-
-/* container */
 
 .container{
 max-width:1200px;
 margin:auto;
 }
 
-/* header campanha */
+/* campanha */
 
-.campanha-header{
+.campanha{
 text-align:center;
-margin-bottom:50px;
+margin-bottom:60px;
 }
 
-.tag-campanha{
-background:#c97a7a;
+.badge-campanha{
+background:#d87f7f;
 color:white;
 padding:6px 14px;
 border-radius:20px;
 font-size:13px;
-font-weight:600;
 }
 
-.titulo-campanha{
-font-size:40px;
-font-weight:800;
+.campanha h1{
+font-size:42px;
 margin-top:10px;
-color:#3a2a2a;
+font-weight:800;
+color:#2c1f1f;
 }
 
-.descricao-campanha{
-color:#6b5b5b;
-font-size:16px;
+.campanha p{
+color:#6e5c5c;
 margin-top:6px;
 }
 
 .btn-catalogo{
 display:inline-block;
-margin-top:16px;
-background:#c97a7a;
+margin-top:15px;
+background:#c78c5c;
 color:white;
-padding:10px 20px;
+padding:10px 22px;
 border-radius:12px;
 font-weight:600;
-transition:0.25s;
+transition:.2s;
 }
 
 .btn-catalogo:hover{
-background:#b86666;
+background:#b67949;
 }
 
-/* grid */
+/* produtos */
 
-.grid-produtos{
+.produtos{
 display:grid;
 grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
 gap:30px;
@@ -224,89 +211,76 @@ gap:30px;
 
 /* card */
 
-.produto-card{
-background:#f7efe6;
-border-radius:24px;
+.card{
+background:white;
+border-radius:20px;
 overflow:hidden;
-box-shadow:0 10px 25px rgba(0,0,0,0.08);
-transition:0.3s;
-display:flex;
-flex-direction:column;
+box-shadow:0 8px 25px rgba(0,0,0,0.08);
+transition:.3s;
 }
 
-.produto-card:hover{
+.card:hover{
 transform:translateY(-6px);
 box-shadow:0 18px 40px rgba(0,0,0,0.15);
 }
 
 /* imagem */
 
-.produto-img{
+.img{
+height:210px;
 position:relative;
-height:220px;
 overflow:hidden;
 }
 
-.produto-img img{
+.img img{
 width:100%;
 height:100%;
 object-fit:cover;
-transition:0.4s;
+transition:.4s;
 }
 
-.produto-card:hover img{
+.card:hover img{
 transform:scale(1.05);
 }
 
-/* badge */
-
-.badge-destaque{
+.badge{
 position:absolute;
-top:12px;
-left:12px;
-background:#c79266;
+top:10px;
+left:10px;
+background:#c78c5c;
 color:white;
-padding:6px 14px;
-border-radius:30px;
+padding:5px 12px;
+border-radius:20px;
 font-size:12px;
-font-weight:600;
 }
 
 /* body */
 
-.produto-body{
+.body{
 padding:20px;
-display:flex;
-flex-direction:column;
 }
 
-/* texto */
-
-.produto-nome{
+.body h3{
 font-size:17px;
-font-weight:700;
-color:#3a2a2a;
 margin-bottom:4px;
 }
 
-.produto-desc{
+.desc{
 font-size:13px;
-color:#7a6f63;
-margin-bottom:12px;
+color:#777;
+margin-bottom:10px;
 }
 
-/* preço */
-
-.produto-preco{
+.preco{
 font-size:22px;
 font-weight:800;
-color:#c79266;
-margin-bottom:18px;
+color:#c78c5c;
+margin-bottom:16px;
 }
 
 /* botões */
 
-.produto-botoes{
+.botoes{
 display:flex;
 gap:10px;
 }
@@ -315,34 +289,29 @@ gap:10px;
 flex:1;
 text-align:center;
 padding:10px;
-border-radius:12px;
-background:white;
-border:2px solid #e4d8cc;
+border-radius:10px;
+border:2px solid #eee;
+color:#333;
 font-weight:600;
-font-size:14px;
-color:#4a3a2f;
-transition:0.25s;
 }
 
 .btn-detalhes:hover{
-border-color:#c79266;
-color:#c79266;
+border-color:#c78c5c;
+color:#c78c5c;
 }
 
-.btn-adicionar{
+.btn-add{
 flex:1;
-border:none;
-background:#c79266;
+background:#c78c5c;
 color:white;
+border:none;
 padding:10px;
-border-radius:12px;
+border-radius:10px;
 font-weight:600;
-font-size:14px;
-transition:0.25s;
 }
 
-.btn-adicionar:hover{
-background:#b07c52;
+.btn-add:hover{
+background:#b67949;
 }
 
 `}</style>
