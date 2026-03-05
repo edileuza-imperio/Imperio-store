@@ -32,18 +32,20 @@ function getImagemUrl(caminho?: string) {
 }
 
 function formatMoney(value: number) {
-  return value.toLocaleString("pt-BR", {
+  return Number(value).toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });
 }
 
 export default function CampanhaPage() {
+
   const params = useParams();
 
-  const slug = Array.isArray(params.slug)
-    ? params.slug[0]
-    : params.slug;
+  const slug =
+    typeof params.slug === "string"
+      ? params.slug
+      : params.slug?.[0];
 
   const [campanha, setCampanha] = useState<Campanha | null>(null);
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -51,12 +53,14 @@ export default function CampanhaPage() {
 
   async function carregar() {
     try {
-      const res = await api.get(`/admin/campanha/ativa/${slug}`);
+
+      const res = await api.get(`/campanha/ativa/${slug}`);
 
       const dados = res.data?.dados ?? {};
 
       setCampanha(dados.campanha ?? null);
       setProdutos(Array.isArray(dados.produtos) ? dados.produtos : []);
+
     } catch (err) {
       console.error("Erro ao carregar campanha:", err);
     } finally {
@@ -65,9 +69,7 @@ export default function CampanhaPage() {
   }
 
   useEffect(() => {
-    if (slug) {
-      carregar();
-    }
+    if (slug) carregar();
   }, [slug]);
 
   if (loading) {
@@ -90,7 +92,7 @@ export default function CampanhaPage() {
     <section style={{ background: "#f5eee8", padding: "80px 0" }}>
       <div className="container">
 
-        {/* HEADER DA CAMPANHA */}
+        {/* HEADER */}
 
         <div className="text-center mb-5">
 
@@ -110,7 +112,7 @@ export default function CampanhaPage() {
 
         </div>
 
-        {/* LISTA DE PRODUTOS */}
+        {/* PRODUTOS */}
 
         <div className="row g-4">
 
@@ -121,9 +123,11 @@ export default function CampanhaPage() {
           )}
 
           {produtos.map((p) => {
+
             const img = getImagemUrl(p.imagem);
 
             return (
+
               <div
                 key={p.id_produto}
                 className="col-12 col-sm-6 col-lg-4 col-xl-3"
@@ -143,7 +147,7 @@ export default function CampanhaPage() {
                         className="card-img-top"
                         style={{
                           height: 240,
-                          objectFit: "cover",
+                          objectFit: "cover"
                         }}
                       />
                     ) : (
@@ -203,6 +207,7 @@ export default function CampanhaPage() {
                 </div>
 
               </div>
+
             );
           })}
 
