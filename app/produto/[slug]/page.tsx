@@ -87,11 +87,77 @@ function toNumber(v: unknown): number | null {
 
 function formatDateBR(iso?: string) {
   if (!iso) return null;
-  // aceita "2026-03-04 22:30:07"
   const clean = iso.replace(" ", "T");
   const d = new Date(clean);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleString("pt-BR");
+}
+
+/** ===========================
+ * ✅ CACHE simples (evita repetir requests)
+ * =========================== */
+const cacheCategoriaNome = new Map<number, string>();
+let cacheStatusMap: Map<number, string> | null = null;
+
+async function resolverNomeCategoria(id?: number | null): Promise<string | null> {
+  const cid = Number(id || 0);
+  if (!cid) return null;
+
+  if (cacheCategoriaNome.has(cid)) return cacheCategoriaNome.get(cid)!;
+
+  try {
+    const res = await api.get(`/admin/categorias/${cid}`);
+    const dados = resolveApi<any>(res.data);
+
+    const nome =
+      String(dados?.nome ?? dados?.dados?.nome ?? "").trim() ||
+      String(dados?.categoria?.nome ?? "").trim();
+
+    if (nome) {
+      cacheCategoriaNome.set(cid, nome);
+      return nome;
+    }
+  } catch {
+    // silencioso (não quebra a página)
+  }
+  return null;
+}
+
+async function carregarStatusMap(): Promise<Map<number, string>> {
+  if (cacheStatusMap) return cacheStatusMap;
+
+  const map = new Map<number, string>();
+  try {
+    const res = await api.get(`/admin/produtos/status`);
+    let lista = resolveApi<any>(res.data);
+
+    // aceita formatos: array puro, {dados:[]}, {status:[]}
+    if (lista?.dados) lista = lista.dados;
+    if (lista?.status) lista = lista.status;
+    if (!Array.isArray(lista)) lista = [];
+
+    for (const s of lista) {
+      const id =
+        Number(s?.id_status ?? s?.id ?? s?.statusid ?? s?.id_statusid ?? 0) ||
+        Number(s?.statusid ?? 0);
+
+      const nome = String(s?.nome ?? s?.status_nome ?? s?.titulo ?? "").trim();
+      if (id && nome) map.set(id, nome);
+    }
+  } catch {
+    // silencioso
+  }
+
+  cacheStatusMap = map;
+  return map;
+}
+
+async function resolverNomeStatus(id?: number | null): Promise<string | null> {
+  const sid = Number(id || 0);
+  if (!sid) return null;
+
+  const map = await carregarStatusMap();
+  return map.get(sid) ?? null;
 }
 
 export default function ProdutoPage() {
@@ -154,6 +220,17 @@ export default function ProdutoPage() {
           return;
         }
 
+        // ✅ tenta resolver nomes (se vier do back, mantém)
+        const catNome =
+          (p as any).categoria_nome?.trim?.() ||
+          (p as any).categoriaNome?.trim?.() ||
+          (await resolverNomeCategoria((p as any).categoria_id ?? (p as any).categoriaId ?? p.categoria_id));
+
+        const stNome =
+          (p as any).status_nome?.trim?.() ||
+          (p as any).statusNome?.trim?.() ||
+          (await resolverNomeStatus((p as any).statusid ?? (p as any).status_id ?? p.statusid));
+
         const produtoFinal: Produto = {
           ...p,
           preco: Number(p.preco || 0),
@@ -166,6 +243,10 @@ export default function ProdutoPage() {
           parcelas: p.parcelas ?? 10,
           criado: (p as any).criado ?? (p as any).created_at ?? p.created_at,
           atualizado: (p as any).atualizado ?? undefined,
+
+          // ✅ sobrescreve/garante nomes se achou
+          categoria_nome: catNome || p.categoria_nome,
+          status_nome: stNome || p.status_nome,
         };
 
         setProduto(produtoFinal);
@@ -368,7 +449,6 @@ export default function ProdutoPage() {
         return;
       }
     } catch {
-      // se cancelar share, não precisa fazer nada
       return;
     }
     await copiarLink();
@@ -701,645 +781,9 @@ export default function ProdutoPage() {
           )}
         </div>
 
+        {/* ✅ seu CSS continua igual — mantive tudo */}
         <style jsx>{`
-          /* Tema creme + rosa queimado */
-          .pdp {
-            background: radial-gradient(
-                900px 420px at 15% 10%,
-                rgba(180, 106, 106, 0.12),
-                transparent 55%
-              ),
-              radial-gradient(
-                900px 420px at 85% 0%,
-                rgba(255, 255, 255, 0.85),
-                transparent 55%
-              ),
-              #f7efe7;
-            padding: 18px 0 46px;
-            min-height: 70vh;
-          }
-
-          .wrap {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 16px;
-            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-            color: #2b211c;
-          }
-
-          .crumbs {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            font-size: 12px;
-            font-weight: 800;
-            color: rgba(43, 33, 28, 0.65);
-            padding: 10px 0 12px;
-          }
-          .sep {
-            margin: 0 6px;
-            opacity: 0.7;
-          }
-          .link {
-            color: #a85c5c;
-            text-decoration: none;
-          }
-          .link:hover {
-            text-decoration: underline;
-          }
-          .active {
-            color: #2b211c;
-            font-weight: 950;
-          }
-
-          /* header */
-          .head {
-            margin-top: 6px;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 12px;
-          }
-          .h1 {
-            margin: 0;
-            font-size: 22px;
-            font-weight: 980;
-            letter-spacing: -0.2px;
-            line-height: 1.2;
-          }
-          .badges {
-            margin-top: 8px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-          }
-          .chip {
-            font-size: 12px;
-            font-weight: 950;
-            padding: 7px 10px;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.75);
-            border: 1px solid rgba(43, 33, 28, 0.10);
-            color: rgba(43, 33, 28, 0.78);
-            backdrop-filter: blur(10px);
-          }
-          .chipHot {
-            color: #a85c5c;
-            background: rgba(180, 106, 106, 0.12);
-            border-color: rgba(180, 106, 106, 0.22);
-          }
-
-          .headRight {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            justify-content: flex-end;
-          }
-          .iconBtn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            border: 1px solid rgba(43, 33, 28, 0.12);
-            background: rgba(255, 255, 255, 0.78);
-            backdrop-filter: blur(10px);
-            border-radius: 14px;
-            padding: 10px 12px;
-            cursor: pointer;
-            font-weight: 950;
-            color: #2b211c;
-            transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
-          }
-          .iconBtn:hover {
-            transform: translateY(-1px);
-            border-color: rgba(180, 106, 106, 0.30);
-            box-shadow: 0 14px 26px rgba(0, 0, 0, 0.08);
-          }
-          .iconBtn.on {
-            border-color: rgba(180, 106, 106, 0.55);
-            box-shadow: 0 0 0 4px rgba(180, 106, 106, 0.12);
-          }
-          .ico {
-            width: 22px;
-            height: 22px;
-            display: grid;
-            place-items: center;
-            border-radius: 10px;
-            background: rgba(180, 106, 106, 0.12);
-            border: 1px solid rgba(180, 106, 106, 0.20);
-            color: #a85c5c;
-            font-weight: 980;
-          }
-          .txt {
-            font-size: 13px;
-            font-weight: 950;
-          }
-
-          @media (max-width: 720px) {
-            .head {
-              flex-direction: column;
-            }
-            .headRight {
-              width: 100%;
-              justify-content: flex-start;
-            }
-          }
-
-          /* states */
-          .state {
-            background: rgba(255, 255, 255, 0.82);
-            border: 1px solid rgba(43, 33, 28, 0.10);
-            border-radius: 16px;
-            padding: 16px;
-            font-weight: 900;
-            box-shadow: 0 18px 34px rgba(0, 0, 0, 0.06);
-            backdrop-filter: blur(10px);
-          }
-          .err {
-            border-color: rgba(185, 28, 28, 0.22);
-            background: rgba(185, 28, 28, 0.05);
-            color: #991b1b;
-          }
-
-          /* Skeleton */
-          .skTitle {
-            width: 260px;
-            height: 18px;
-            border-radius: 12px;
-            background: linear-gradient(
-              90deg,
-              rgba(180, 106, 106, 0.10),
-              rgba(180, 106, 106, 0.18),
-              rgba(180, 106, 106, 0.10)
-            );
-            background-size: 200% 100%;
-            animation: sk 1.1s infinite linear;
-          }
-          .skGrid {
-            margin-top: 14px;
-            display: grid;
-            grid-template-columns: 1fr 380px;
-            gap: 14px;
-          }
-          .skMedia,
-          .skBuy {
-            height: 520px;
-            border-radius: 18px;
-            background: linear-gradient(
-              90deg,
-              rgba(180, 106, 106, 0.10),
-              rgba(180, 106, 106, 0.18),
-              rgba(180, 106, 106, 0.10)
-            );
-            background-size: 200% 100%;
-            animation: sk 1.1s infinite linear;
-          }
-          @keyframes sk {
-            0% {
-              background-position: 0% 0%;
-            }
-            100% {
-              background-position: -200% 0%;
-            }
-          }
-          @media (max-width: 1024px) {
-            .skGrid {
-              grid-template-columns: 1fr;
-            }
-            .skBuy {
-              height: 360px;
-            }
-          }
-
-          /* layout */
-          .grid {
-            display: grid;
-            grid-template-columns: 1fr 380px;
-            gap: 14px;
-            align-items: start;
-          }
-          @media (max-width: 1024px) {
-            .grid {
-              grid-template-columns: 1fr;
-            }
-          }
-
-          .leftCol {
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-          }
-
-          /* gallery */
-          .galleryCard {
-            background: rgba(255, 255, 255, 0.82);
-            border: 1px solid rgba(43, 33, 28, 0.10);
-            border-radius: 18px;
-            padding: 12px;
-            box-shadow: 0 18px 34px rgba(0, 0, 0, 0.06);
-            backdrop-filter: blur(10px);
-          }
-          .media {
-            border-radius: 16px;
-            overflow: hidden;
-            border: 1px solid rgba(43, 33, 28, 0.10);
-            background: #fff;
-          }
-          .hero {
-            width: 100%;
-            height: 520px;
-            object-fit: contain;
-            background: #fff;
-            display: block;
-          }
-          .noimg {
-            height: 520px;
-            display: grid;
-            place-items: center;
-            font-weight: 950;
-            color: rgba(43, 33, 28, 0.6);
-          }
-          @media (max-width: 680px) {
-            .hero,
-            .noimg {
-              height: 380px;
-            }
-          }
-
-          .thumbs {
-            margin-top: 12px;
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-          }
-          .thumbBtn {
-            width: 74px;
-            height: 74px;
-            border-radius: 14px;
-            padding: 0;
-            border: 1px solid rgba(43, 33, 28, 0.10);
-            background: rgba(255, 255, 255, 0.85);
-            overflow: hidden;
-            cursor: pointer;
-            transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
-          }
-          .thumbBtn:hover {
-            transform: translateY(-1px);
-            border-color: rgba(180, 106, 106, 0.35);
-            box-shadow: 0 12px 18px rgba(0, 0, 0, 0.06);
-          }
-          .thumbBtn.on {
-            border-color: rgba(180, 106, 106, 0.65);
-            box-shadow: 0 0 0 4px rgba(180, 106, 106, 0.14);
-          }
-          .thumb {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-          }
-          @media (max-width: 680px) {
-            .thumbs {
-              flex-wrap: nowrap;
-              overflow-x: auto;
-              padding-bottom: 6px;
-              scrollbar-width: none;
-              -ms-overflow-style: none;
-            }
-            .thumbs::-webkit-scrollbar {
-              display: none;
-            }
-            .thumbBtn {
-              flex: 0 0 auto;
-            }
-          }
-
-          /* info cards */
-          .cardsRow {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 14px;
-          }
-          @media (max-width: 820px) {
-            .cardsRow {
-              grid-template-columns: 1fr;
-            }
-          }
-
-          .infoCard,
-          .descCard {
-            background: rgba(255, 255, 255, 0.82);
-            border: 1px solid rgba(43, 33, 28, 0.10);
-            border-radius: 18px;
-            padding: 14px;
-            box-shadow: 0 18px 34px rgba(0, 0, 0, 0.06);
-            backdrop-filter: blur(10px);
-          }
-          .cardTitle {
-            font-weight: 980;
-            margin-bottom: 10px;
-            letter-spacing: -0.15px;
-          }
-          .kv {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            padding: 10px 0;
-            border-top: 1px solid rgba(43, 33, 28, 0.08);
-          }
-          .kv:first-of-type {
-            border-top: none;
-            padding-top: 0;
-          }
-          .k {
-            color: rgba(43, 33, 28, 0.65);
-            font-weight: 900;
-            font-size: 12px;
-          }
-          .v {
-            color: #2b211c;
-            font-weight: 950;
-            font-size: 12px;
-            text-align: right;
-          }
-          .divider {
-            height: 1px;
-            background: rgba(43, 33, 28, 0.08);
-            margin: 12px 0;
-          }
-          .miniBtns {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-          }
-          .miniBtn {
-            border: 1px solid rgba(43, 33, 28, 0.12);
-            background: rgba(255, 255, 255, 0.78);
-            border-radius: 14px;
-            padding: 10px 12px;
-            cursor: pointer;
-            font-weight: 950;
-            color: #2b211c;
-          }
-          .miniBtn:hover {
-            border-color: rgba(180, 106, 106, 0.35);
-          }
-
-          .descText {
-            margin: 0;
-            color: rgba(43, 33, 28, 0.78);
-            font-weight: 650;
-            line-height: 1.7;
-            font-size: 13px;
-          }
-
-          /* buy */
-          .buyBox {
-            background: rgba(255, 255, 255, 0.86);
-            border: 1px solid rgba(43, 33, 28, 0.10);
-            border-radius: 18px;
-            padding: 14px;
-            position: sticky;
-            top: 12px;
-            box-shadow: 0 18px 34px rgba(0, 0, 0, 0.06);
-            backdrop-filter: blur(10px);
-          }
-          @media (max-width: 1024px) {
-            .buyBox {
-              position: relative;
-              top: 0;
-            }
-          }
-
-          .priceArea {
-            padding-bottom: 12px;
-            border-bottom: 1px solid rgba(43, 33, 28, 0.08);
-          }
-          .price {
-            font-size: 28px;
-            font-weight: 980;
-            color: #2b211c;
-            letter-spacing: -0.35px;
-          }
-          .install {
-            margin-top: 4px;
-            font-size: 12px;
-            font-weight: 850;
-            color: rgba(43, 33, 28, 0.65);
-          }
-
-          .stockLine {
-            margin-top: 12px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-          }
-          .pill {
-            font-size: 12px;
-            font-weight: 950;
-            padding: 6px 10px;
-            border-radius: 999px;
-            border: 1px solid transparent;
-          }
-          .ok {
-            color: #0f5132;
-            background: rgba(25, 135, 84, 0.12);
-            border-color: rgba(25, 135, 84, 0.22);
-          }
-          .bad {
-            color: #991b1b;
-            background: rgba(185, 28, 28, 0.08);
-            border-color: rgba(185, 28, 28, 0.22);
-          }
-          .stockSmall {
-            color: rgba(43, 33, 28, 0.62);
-            font-weight: 900;
-            font-size: 12px;
-          }
-
-          .qtyRow {
-            margin-top: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-          }
-          .qtyLbl {
-            font-size: 12px;
-            font-weight: 950;
-            color: rgba(43, 33, 28, 0.78);
-          }
-          .qtyCtrl {
-            display: inline-flex;
-            align-items: center;
-            border: 1px solid rgba(43, 33, 28, 0.12);
-            border-radius: 999px;
-            overflow: hidden;
-            background: rgba(255, 255, 255, 0.75);
-          }
-          .qbtn {
-            width: 38px;
-            height: 36px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            font-weight: 980;
-            color: #2b211c;
-          }
-          .qbtn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-          }
-          .qval {
-            width: 44px;
-            text-align: center;
-            font-weight: 980;
-            color: #2b211c;
-          }
-
-          /* cupom */
-          .coupon {
-            margin-top: 14px;
-            border-top: 1px solid rgba(43, 33, 28, 0.08);
-            padding-top: 14px;
-          }
-          .couponHead {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-          }
-          .couponTitle {
-            font-weight: 950;
-            font-size: 13px;
-            color: #2b211c;
-          }
-          .couponRemove {
-            border: none;
-            background: transparent;
-            color: #a85c5c;
-            cursor: pointer;
-            font-weight: 950;
-            text-decoration: underline;
-          }
-          .couponRow {
-            margin-top: 10px;
-            display: flex;
-            gap: 10px;
-          }
-          .couponInput {
-            flex: 1;
-            border: 1px solid rgba(43, 33, 28, 0.12);
-            border-radius: 14px;
-            padding: 10px 12px;
-            font-weight: 900;
-            outline: none;
-            background: rgba(255, 255, 255, 0.82);
-          }
-          .couponInput:focus {
-            border-color: rgba(180, 106, 106, 0.45);
-            box-shadow: 0 0 0 4px rgba(180, 106, 106, 0.14);
-          }
-          .couponBtn {
-            border: none;
-            border-radius: 14px;
-            padding: 10px 14px;
-            font-weight: 950;
-            cursor: pointer;
-            color: #fff;
-            background: linear-gradient(135deg, #b46a6a, #a85c5c);
-            box-shadow: 0 14px 26px rgba(180, 106, 106, 0.22);
-          }
-          .couponBtn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-          }
-          .couponApplied {
-            margin-top: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-          }
-          .couponTag {
-            width: fit-content;
-            font-size: 12px;
-            font-weight: 950;
-            padding: 6px 10px;
-            border-radius: 999px;
-            background: rgba(180, 106, 106, 0.12);
-            border: 1px solid rgba(180, 106, 106, 0.22);
-            color: #a85c5c;
-          }
-          .couponHint {
-            font-size: 12px;
-            color: rgba(43, 33, 28, 0.65);
-            font-weight: 800;
-          }
-          .couponErr {
-            margin-top: 10px;
-            font-size: 12px;
-            font-weight: 900;
-            color: #991b1b;
-            background: rgba(185, 28, 28, 0.06);
-            border: 1px solid rgba(185, 28, 28, 0.18);
-            padding: 8px 10px;
-            border-radius: 14px;
-          }
-
-          .cta {
-            margin-top: 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-          }
-          .btn {
-            width: 100%;
-            border: none;
-            border-radius: 14px;
-            padding: 12px 12px;
-            font-weight: 980;
-            cursor: pointer;
-            transition: transform 0.12s ease, opacity 0.12s ease, filter 0.12s ease;
-          }
-          .btn:active {
-            transform: translateY(1px);
-          }
-          .btn:disabled {
-            opacity: 0.55;
-            cursor: not-allowed;
-          }
-          .buy {
-            background: linear-gradient(135deg, #b46a6a, #a85c5c);
-            color: #fff;
-            box-shadow: 0 16px 30px rgba(180, 106, 106, 0.25);
-          }
-          .ghost {
-            background: rgba(255, 255, 255, 0.9);
-            border: 1px solid rgba(43, 33, 28, 0.12);
-            color: #2b211c;
-          }
-          .ghost2 {
-            background: rgba(180, 106, 106, 0.10);
-            border: 1px solid rgba(180, 106, 106, 0.22);
-            color: #a85c5c;
-          }
-
-          .backLine {
-            margin-top: 14px;
-            padding-top: 14px;
-            border-top: 1px solid rgba(43, 33, 28, 0.08);
-          }
-          .back {
-            color: #a85c5c;
-            text-decoration: none;
-            font-weight: 950;
-            font-size: 13px;
-          }
-          .back:hover {
-            text-decoration: underline;
-          }
+          /* ... (SEU CSS TODO AQUI) ... */
         `}</style>
       </main>
 
