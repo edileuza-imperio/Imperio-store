@@ -9,18 +9,31 @@ type Campanha = {
   titulo: string;
   slug: string;
   descricao?: string;
+  banner?: string;
   statusid?: number;
-  nivel?: number; // 👈 precisa vir da API (ex: 9)
+  inicio?: string | null;
+  fim?: string | null;
 };
 
 type Produto = {
-  id_destaque: number;
-  produto_nome: string;
-  produto_slug: string;
+  // como vem do JOIN, pode vir id_produto (mais comum) e NÃO id_destaque
+  id_produto?: number;
+  nome?: string;
+  slug?: string;
+  descricao?: string;
+  preco?: string | number;
+  imagem?: string;
+
+  // se sua API já devolve no formato "produto_nome" etc, ainda funciona:
+  id_destaque?: number;
+  produto_nome?: string;
+  produto_slug?: string;
   produto_descricao?: string;
-  produto_preco: string;
+  produto_preco?: string;
   produto_imagem?: string;
-  nivel?: number; // 👈 precisa vir da API (ex: 9)
+
+  // extras do vínculo
+  ordem?: number;
 };
 
 function getImagemUrl(caminho?: string) {
@@ -36,6 +49,17 @@ function formatMoney(value: any) {
   return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+function normalizarProduto(p: Produto) {
+  return {
+    key: p.id_produto ?? p.id_destaque ?? `${p.slug ?? p.produto_slug ?? ""}-${p.ordem ?? ""}`,
+    nome: p.nome ?? p.produto_nome ?? "",
+    slug: p.slug ?? p.produto_slug ?? "",
+    descricao: p.descricao ?? p.produto_descricao ?? "",
+    preco: p.preco ?? p.produto_preco ?? 0,
+    imagem: p.imagem ?? p.produto_imagem ?? "",
+  };
+}
+
 export default function DestaquesSection() {
   const [campanha, setCampanha] = useState<Campanha | null>(null);
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -45,35 +69,23 @@ export default function DestaquesSection() {
     try {
       setLoading(true);
 
-      // ===== CAMPANHAS =====
-      const resCamp = await api.get("/admin/campanhas");
-      const campanhas: Campanha[] = resCamp.data?.dados?.campanhas ?? [];
+      // ✅ agora vem tudo pronto do backend (campanha + produtos do vínculo)
+      const res = await api.get("/admin/campanha/destaques");
+      const dados = res.data?.dados ?? {};
 
-      // ✅ só pega campanha se: statusid === 3 (destaque) E nivel === 9
-      const destaqueNivel9 =
-        campanhas.find((c) => Number(c.statusid) === 3 && Number(c.nivel) === 9) ??
-        null;
+      const camp: Campanha | null = dados.campanha ?? null;
+      const prods: Produto[] = Array.isArray(dados.produtos) ? dados.produtos : [];
 
-      // ===== PRODUTOS EM DESTAQUE =====
-      const resProd = await api.get("/admin/produtos/destaques");
-      const lista: Produto[] = resProd.data?.dados ?? [];
-
-      // ✅ só mantém produtos nivel 9
-      const produtosNivel9 = Array.isArray(lista)
-        ? lista.filter((p) => Number(p.nivel) === 9)
-        : [];
-
-      // ✅ regra: se NÃO for nível 9, some com tudo (campanha + cards)
-      if (!destaqueNivel9 || produtosNivel9.length === 0) {
+      // ✅ se não tem campanha ou não tem produtos, some tudo
+      if (!camp || prods.length === 0) {
         setCampanha(null);
         setProdutos([]);
         return;
       }
 
-      setCampanha(destaqueNivel9);
-      setProdutos(produtosNivel9);
+      setCampanha(camp);
+      setProdutos(prods);
     } catch (err) {
-      // se der erro, não mostra nada pra não ficar “meio carregado”
       setCampanha(null);
       setProdutos([]);
       console.error("Erro ao carregar destaques:", err);
@@ -88,7 +100,7 @@ export default function DestaquesSection() {
 
   const temConteudo = useMemo(() => !!campanha && produtos.length > 0, [campanha, produtos]);
 
-  // ✅ se não tem nível 9 (ou está carregando), não renderiza nada
+  // ✅ se não tem campanha/produtos (ou carregando), não renderiza nada
   if (loading || !temConteudo) return null;
 
   return (
@@ -100,11 +112,11 @@ export default function DestaquesSection() {
             <span
               className="badge px-3 py-2 mb-3"
               style={{
-                background: "#2e7d32", // ✅ verde (destaque)
+                background: "#2e7d32",
                 fontSize: "13px",
               }}
             >
-              Destaque • nível 9
+              Destaques da Campanha
             </span>
 
             <h1 className="fw-bold mb-2" style={{ letterSpacing: "0.5px" }}>
@@ -128,16 +140,17 @@ export default function DestaquesSection() {
 
         {/* PRODUTOS */}
         <div className="row g-4">
-          {produtos.map((p) => {
-            const img = getImagemUrl(p.produto_imagem);
+          {produtos.map((raw) => {
+            const p = normalizarProduto(raw);
+            const img = getImagemUrl(p.imagem);
 
             return (
-              <div key={p.id_destaque} className="col-md-6 col-lg-4">
+              <div key={p.key} className="col-md-6 col-lg-4">
                 <div className="card border-0 shadow-sm h-100 rounded-4 cardHover">
                   {/* IMAGEM */}
                   <div className="position-relative">
                     {img ? (
-                      <img src={img} alt={p.produto_nome} className="card-img-top imgHover" />
+                      <img src={img} alt={p.nome} className="card-img-top imgHover" />
                     ) : (
                       <div className="imgFallback">Sem imagem</div>
                     )}
@@ -147,35 +160,35 @@ export default function DestaquesSection() {
                       style={{
                         top: "12px",
                         left: "12px",
-                        background: "#2e7d32", // ✅ verde (destaque)
+                        background: "#2e7d32",
                         borderRadius: "20px",
                         fontSize: "12px",
                       }}
                     >
-                      Destaque • nível 9
+                      Destaque
                     </span>
                   </div>
 
                   {/* BODY */}
                   <div className="card-body d-flex flex-column p-4">
                     <h5 className="fw-semibold mb-1" style={{ fontSize: "18px" }}>
-                      {p.produto_nome}
+                      {p.nome}
                     </h5>
 
-                    {p.produto_descricao ? (
+                    {p.descricao ? (
                       <p className="text-muted mb-2" style={{ fontSize: "14px" }}>
-                        {p.produto_descricao}
+                        {p.descricao}
                       </p>
                     ) : null}
 
                     <div className="fw-bold mb-3" style={{ color: "#c78c5c", fontSize: "22px" }}>
-                      {formatMoney(p.produto_preco)}
+                      {formatMoney(p.preco)}
                     </div>
 
                     {/* BOTÕES */}
                     <div className="d-flex gap-2 mt-auto">
                       <Link
-                        href={`/produto/${p.produto_slug}`}
+                        href={`/produto/${p.slug}`}
                         className="btn btn-light border w-100"
                         style={{ borderRadius: "10px", fontWeight: "500" }}
                       >
@@ -201,7 +214,6 @@ export default function DestaquesSection() {
           })}
         </div>
 
-        {/* ✅ hover via CSS (melhora INP vs JS mouse events) */}
         <style jsx>{`
           .cardHover {
             cursor: pointer;
