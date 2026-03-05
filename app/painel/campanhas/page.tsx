@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
-import { FiPlus, FiTrash2, FiTag } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiTag, FiPackage } from "react-icons/fi";
 
 type Campanha = {
   id_campanha:number
@@ -20,14 +20,13 @@ const [titulo,setTitulo]=useState("")
 const [slug,setSlug]=useState("")
 const [banner,setBanner]=useState("")
 
-const [pagina,setPagina]=useState(1)
-const porPagina=6
+const [campanhaProdutos,setCampanhaProdutos]=useState<number|null>(null)
 
 async function carregar(){
 
 const res=await api.get("/admin/campanhas")
 
-const lista=
+const lista =
 res?.data?.dados?.campanhas ??
 res?.data?.dados ??
 res?.data ??
@@ -71,12 +70,12 @@ carregar()
 
 }
 
-const totalPaginas=Math.ceil(campanhas.length/porPagina)
+function abrirProdutos(id:number){
 
-const campanhasPagina=campanhas.slice(
-(pagina-1)*porPagina,
-pagina*porPagina
-)
+setCampanhaProdutos(id)
+alert("Aqui abrirá o modal para vincular produtos da campanha "+id)
+
+}
 
 return(
 
@@ -87,7 +86,7 @@ return(
 <div>
 
 <h1>Campanhas</h1>
-<p>Gerencie promoções da loja</p>
+<p>Gerencie promoções e vitrines da loja</p>
 
 </div>
 
@@ -105,12 +104,24 @@ onClick={()=>setOpenModal(true)}
 
 <div className="cards">
 
-{campanhasPagina.map(c=>(
+{campanhas.map(c=>(
 <div key={c.id_campanha} className="card">
 
-<div className="cardIcon">
+<div className="cardHeader">
+
+<div className="icon">
 <FiTag/>
 </div>
+
+<button
+className="btnDelete"
+onClick={()=>remover(c.id_campanha)}
+>
+<FiTrash2/>
+</button>
+
+</div>
+
 
 <div className="cardBody">
 
@@ -126,58 +137,25 @@ onClick={()=>setOpenModal(true)}
 
 </div>
 
+
+<div className="cardFooter">
+
 <button
-className="btnDelete"
-onClick={()=>remover(c.id_campanha)}
+className="btnProdutos"
+onClick={()=>abrirProdutos(c.id_campanha)}
 >
 
-<FiTrash2/>
+<FiPackage/> Produtos
 
 </button>
+
+</div>
 
 </div>
 ))}
 
 </div>
 
-
-<div className="pagination">
-
-<button
-disabled={pagina===1}
-onClick={()=>setPagina(pagina-1)}
->
-Anterior
-</button>
-
-{Array.from({length:totalPaginas}).map((_,i)=>{
-
-const p=i+1
-
-return(
-
-<button
-key={p}
-className={pagina===p?"active":""}
-onClick={()=>setPagina(p)}
->
-
-{p}
-
-</button>
-
-)
-
-})}
-
-<button
-disabled={pagina===totalPaginas}
-onClick={()=>setPagina(pagina+1)}
->
-Próximo
-</button>
-
-</div>
 
 
 {openModal &&(
@@ -230,13 +208,14 @@ Criar campanha
 
 )}
 
+
 <style jsx>{`
 
 .page{
 padding:30px;
 display:flex;
 flex-direction:column;
-gap:25px;
+gap:30px;
 background:#f8fafc;
 min-height:100vh;
 }
@@ -248,8 +227,9 @@ align-items:center;
 }
 
 .topBar h1{
-font-weight:800;
 margin:0;
+font-weight:800;
+font-size:28px;
 }
 
 .topBar p{
@@ -258,34 +238,38 @@ color:#64748b;
 }
 
 .btnCreate{
-background:#7c3aed;
+
+background:linear-gradient(135deg,#7c3aed,#9333ea);
 color:white;
 border:none;
-padding:10px 16px;
+padding:10px 18px;
 border-radius:10px;
-display:flex;
-gap:6px;
-align-items:center;
 font-weight:600;
-box-shadow:0 8px 20px rgba(124,58,237,.3);
+display:flex;
+align-items:center;
+gap:6px;
+box-shadow:0 8px 25px rgba(124,58,237,.4);
+
 }
 
 .cards{
+
 display:grid;
-grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
-gap:20px;
+grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+gap:22px;
+
 }
 
 .card{
 
 background:white;
-border-radius:14px;
+border-radius:16px;
 padding:18px;
 display:flex;
 flex-direction:column;
-gap:10px;
+gap:14px;
 position:relative;
-box-shadow:0 10px 25px rgba(0,0,0,.06);
+border:1px solid #eee;
 transition:.2s;
 
 }
@@ -293,73 +277,91 @@ transition:.2s;
 .card:hover{
 
 transform:translateY(-4px);
-box-shadow:0 15px 40px rgba(0,0,0,.1);
+box-shadow:0 20px 40px rgba(0,0,0,.1);
 
 }
 
-.cardIcon{
+.cardHeader{
 
-background:#ede9fe;
-color:#7c3aed;
+display:flex;
+justify-content:space-between;
+align-items:center;
+
+}
+
+.icon{
+
 width:42px;
 height:42px;
+background:#ede9fe;
+color:#7c3aed;
 border-radius:10px;
 display:flex;
 align-items:center;
 justify-content:center;
+font-size:20px;
+
+}
+
+.cardBody{
+
+display:flex;
+flex-direction:column;
+gap:4px;
 
 }
 
 .cardBody h3{
+
 margin:0;
 font-size:17px;
 font-weight:700;
+
 }
 
 .slug{
+
 font-size:12px;
 color:#64748b;
+
 }
 
 .banner{
+
 font-size:13px;
 color:#334155;
+
+}
+
+.cardFooter{
+
+margin-top:auto;
+display:flex;
+justify-content:flex-end;
+
+}
+
+.btnProdutos{
+
+background:#7c3aed;
+color:white;
+border:none;
+padding:7px 14px;
+border-radius:8px;
+display:flex;
+align-items:center;
+gap:6px;
+font-size:13px;
+
 }
 
 .btnDelete{
 
-position:absolute;
-top:12px;
-right:12px;
-border:none;
 background:#fee2e2;
+border:none;
 color:#dc2626;
 padding:6px;
 border-radius:8px;
-
-}
-
-.pagination{
-
-display:flex;
-gap:8px;
-justify-content:center;
-
-}
-
-.pagination button{
-
-border:1px solid #ddd;
-background:white;
-padding:6px 10px;
-border-radius:6px;
-
-}
-
-.pagination button.active{
-
-background:#7c3aed;
-color:white;
 
 }
 
@@ -379,10 +381,11 @@ justify-content:center;
 background:white;
 padding:25px;
 border-radius:12px;
-width:400px;
+width:420px;
 display:flex;
 flex-direction:column;
 gap:10px;
+box-shadow:0 20px 50px rgba(0,0,0,.3);
 
 }
 
