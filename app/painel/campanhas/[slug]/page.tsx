@@ -24,13 +24,15 @@ type Produto = {
 
 function getImagemUrl(caminho?: string) {
   if (!caminho) return "";
+
   const base = api.defaults.baseURL || "";
-  const clean = caminho.replace(/^\/+/, "");
+  const clean = String(caminho).replace(/^\/+/, "");
+
   return `${base}/${clean}`;
 }
 
-function formatMoney(value: any) {
-  return Number(value).toLocaleString("pt-BR", {
+function formatMoney(value: number) {
+  return value.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });
@@ -38,7 +40,10 @@ function formatMoney(value: any) {
 
 export default function CampanhaPage() {
   const params = useParams();
-  const slug = params.slug as string;
+
+  const slug = Array.isArray(params.slug)
+    ? params.slug[0]
+    : params.slug;
 
   const [campanha, setCampanha] = useState<Campanha | null>(null);
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -51,22 +56,24 @@ export default function CampanhaPage() {
       const dados = res.data?.dados ?? {};
 
       setCampanha(dados.campanha ?? null);
-      setProdutos(dados.produtos ?? []);
+      setProdutos(Array.isArray(dados.produtos) ? dados.produtos : []);
     } catch (err) {
-      console.error("Erro ao carregar campanha", err);
+      console.error("Erro ao carregar campanha:", err);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    if (slug) carregar();
+    if (slug) {
+      carregar();
+    }
   }, [slug]);
 
   if (loading) {
     return (
       <div className="container py-5 text-center">
-        <div className="spinner-border"></div>
+        <div className="spinner-border text-dark"></div>
       </div>
     );
   }
@@ -83,7 +90,7 @@ export default function CampanhaPage() {
     <section style={{ background: "#f5eee8", padding: "80px 0" }}>
       <div className="container">
 
-        {/* HEADER CAMPANHA */}
+        {/* HEADER DA CAMPANHA */}
 
         <div className="text-center mb-5">
 
@@ -103,19 +110,29 @@ export default function CampanhaPage() {
 
         </div>
 
-        {/* PRODUTOS */}
+        {/* LISTA DE PRODUTOS */}
 
         <div className="row g-4">
 
-          {produtos.map((p) => {
+          {produtos.length === 0 && (
+            <div className="text-center">
+              <p>Nenhum produto nesta campanha</p>
+            </div>
+          )}
 
+          {produtos.map((p) => {
             const img = getImagemUrl(p.imagem);
 
             return (
+              <div
+                key={p.id_produto}
+                className="col-12 col-sm-6 col-lg-4 col-xl-3"
+              >
 
-              <div key={p.id_produto} className="col-12 col-sm-6 col-lg-4 col-xl-3">
-
-                <div className="card border-0 shadow-sm h-100">
+                <div
+                  className="card border-0 shadow-sm h-100"
+                  style={{ borderRadius: 16 }}
+                >
 
                   <div className="position-relative">
 
@@ -146,7 +163,9 @@ export default function CampanhaPage() {
 
                   <div className="card-body d-flex flex-column">
 
-                    <h6 className="fw-semibold">{p.nome}</h6>
+                    <h6 className="fw-semibold">
+                      {p.nome}
+                    </h6>
 
                     {p.descricao && (
                       <p className="small text-muted">
@@ -154,7 +173,10 @@ export default function CampanhaPage() {
                       </p>
                     )}
 
-                    <div className="fw-bold fs-5 text-primary mb-3">
+                    <div
+                      className="fw-bold fs-5 mb-3"
+                      style={{ color: "#c78c5c" }}
+                    >
                       {formatMoney(p.preco)}
                     </div>
 
@@ -167,7 +189,10 @@ export default function CampanhaPage() {
                         <i className="bi bi-eye"></i>
                       </Link>
 
-                      <button className="btn btn-dark w-100">
+                      <button
+                        className="btn text-white w-100"
+                        style={{ background: "#c78c5c" }}
+                      >
                         <i className="bi bi-cart-plus"></i>
                       </button>
 
@@ -178,7 +203,6 @@ export default function CampanhaPage() {
                 </div>
 
               </div>
-
             );
           })}
 
