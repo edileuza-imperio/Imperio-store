@@ -12,6 +12,7 @@ import {
   FiShoppingCart,
   FiCreditCard,
   FiArrowRight,
+  FiTrendingUp,
 } from "react-icons/fi";
 
 type Card = {
@@ -26,16 +27,22 @@ export default function PainelPage() {
   function getIcon(titulo: string) {
     const t = titulo.toLowerCase();
 
-    // ✅ galeria / imagens
     if (t.includes("galer") || (t.includes("imagen") && t.includes("galer")))
       return <FiImage size={22} />;
 
     if (t.includes("prod")) return <FiBox size={22} />;
+
     if (t.includes("categ")) return <FiTag size={22} />;
+
     if (t.includes("banner")) return <FiImage size={22} />;
+
     if (t.includes("usu")) return <FiUsers size={22} />;
+
     if (t.includes("carr")) return <FiShoppingCart size={22} />;
+
     if (t.includes("cupom")) return <FiCreditCard size={22} />;
+
+    if (t.includes("camp")) return <FiTrendingUp size={22} />;
 
     return <FiBox size={22} />;
   }
@@ -43,16 +50,23 @@ export default function PainelPage() {
   function getLink(titulo: string) {
     const t = titulo.toLowerCase();
 
-    // ✅ manda pro painel/galeria
     if (t.includes("galer") || (t.includes("imagen") && t.includes("galer")))
       return "/painel/galeria";
 
     if (t.includes("prod")) return "/painel/produtos";
+
     if (t.includes("categ")) return "/painel/categorias";
+
     if (t.includes("banner")) return "/painel/banners";
+
     if (t.includes("usu")) return "/painel/usuarios";
 
-    // ✅ se não tiver rota, não quebra (leva pro painel)
+    if (t.includes("carr")) return "/painel/carrinhos";
+
+    if (t.includes("cupom")) return "/painel/cupons";
+
+    if (t.includes("camp")) return "/painel/campanhas"; // ✅ corrigido
+
     return "/painel";
   }
 
