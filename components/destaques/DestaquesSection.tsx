@@ -9,6 +9,7 @@ type Campanha = {
   titulo: string;
   slug: string;
   descricao?: string;
+  banner?: string;
 };
 
 type Produto = {
@@ -53,7 +54,15 @@ function normalizarProduto(p: Produto) {
     descricao: p.descricao ?? p.produto_descricao ?? "",
     preco: p.preco ?? p.produto_preco ?? 0,
     imagem: p.imagem ?? p.produto_imagem ?? "",
+    ordem: p.ordem ?? 0,
   };
+}
+
+function bannerEhImagem(banner?: string) {
+  if (!banner) return false;
+  const b = banner.toLowerCase().trim();
+  if (b.startsWith("upload/") || b.startsWith("/upload/")) return true;
+  return /\.(png|jpe?g|webp|gif|svg)$/.test(b);
 }
 
 export default function DestaquesSection() {
@@ -95,39 +104,48 @@ export default function DestaquesSection() {
   }, []);
 
   const temConteudo = useMemo(() => !!campanha && produtos.length > 0, [campanha, produtos]);
-
   if (loading || !temConteudo || !campanha) return null;
 
   const camp = campanha;
+
+  const produtosOrdenados = useMemo(() => {
+    return produtos
+      .map(normalizarProduto)
+      .sort((a, b) => Number(a.ordem ?? 0) - Number(b.ordem ?? 0));
+  }, [produtos]);
 
   function scrollCarousel(dir: "prev" | "next") {
     const el = trackRef.current;
     if (!el) return;
 
-    // rola mais “natural”
     const card = el.querySelector<HTMLElement>("[data-card='1']");
-    const cardW = card?.offsetWidth ?? 320;
-    const gap = 16;
+    const cardW = card?.offsetWidth ?? 340;
+    const gap = 18;
+
+    // ✅ 2 cards por clique no desktop
     const amount = (cardW + gap) * 2;
 
     el.scrollBy({ left: dir === "next" ? amount : -amount, behavior: "smooth" });
   }
 
+  const temBannerImg = bannerEhImagem(camp.banner);
+  const bannerImg = temBannerImg ? getImagemUrl(camp.banner) : "";
+
   return (
     <section className="py-5 ds-section">
       <div className="container">
-        {/* TÍTULO */}
+        {/* TOPO */}
         <div className="d-flex align-items-start justify-content-between gap-3 mb-3">
           <div>
             <h2 className="m-0 fw-bold ds-title">Destaques</h2>
             <small className="text-muted fw-semibold">
-              Selecionados com tons creme e rosé (visual próprio)
+              Selecionados com um visual premium em tons creme & rosé
             </small>
           </div>
 
           <span className="badge rounded-pill ds-count">
             <i className="bi bi-bag-heart me-2" />
-            {produtos.length} item(ns)
+            {produtosOrdenados.length} item(ns)
           </span>
         </div>
 
@@ -135,10 +153,19 @@ export default function DestaquesSection() {
           {/* BANNER ESQUERDA */}
           <div className="col-12 col-lg-4">
             <div className="card border-0 shadow-sm h-100 ds-banner">
-              <div className="card-body p-4 position-relative">
+              {/* topo opcional com imagem */}
+              <div className="ds-bannerTop">
+                {temBannerImg ? (
+                  <img src={bannerImg} alt={camp.titulo} className="ds-bannerImg" />
+                ) : (
+                  <div className="ds-bannerFallback" />
+                )}
+              </div>
+
+              <div className="card-body p-4 position-relative ds-bannerBody">
                 <div className="d-flex gap-2 flex-wrap mb-3">
                   <span className="badge rounded-pill ds-chip">
-                    <i className="bi bi-sparkle me-2" />
+                    <i className="bi bi-stars me-2" />
                     Novidades
                   </span>
                   <span className="badge rounded-pill ds-chip">
@@ -147,15 +174,15 @@ export default function DestaquesSection() {
                   </span>
                 </div>
 
-                <h5 className="fw-bold mb-2">{camp.titulo}</h5>
+                <h5 className="fw-bold mb-2 ds-bannerTitle">{camp.titulo}</h5>
 
-                <p className="text-muted mb-4" style={{ lineHeight: 1.35 }}>
+                <p className="text-muted mb-4 ds-bannerDesc">
                   {camp.descricao
                     ? camp.descricao
                     : "Produtos selecionados para presentear — elegantes e com preço especial."}
                 </p>
 
-                {/* “flutuante” mas simples */}
+                {/* botão flutuante */}
                 <Link href={`/campanha/${camp.slug}`} className="btn ds-cta">
                   Ver catálogo <i className="bi bi-arrow-right ms-2" />
                 </Link>
@@ -177,7 +204,7 @@ export default function DestaquesSection() {
 
           {/* CARROSSEL DIREITA */}
           <div className="col-12 col-lg-8">
-            <div className="position-relative">
+            <div className="position-relative ds-carouselWrap">
               {/* setas (desktop) */}
               <button
                 type="button"
@@ -200,21 +227,19 @@ export default function DestaquesSection() {
               </button>
 
               <div ref={trackRef} className="ds-track">
-                {produtos.map((raw, idx) => {
-                  const p = normalizarProduto(raw);
+                {produtosOrdenados.map((p, idx) => {
                   const img = getImagemUrl(p.imagem);
 
                   return (
                     <div key={p.key} className="ds-slide">
-                      <div className="card border-0 shadow-sm h-100 ds-card" data-card={idx === 0 ? "1" : "0"}>
+                      <div
+                        className="card border-0 shadow-sm h-100 ds-card"
+                        data-card={idx === 0 ? "1" : "0"}
+                      >
                         {/* IMAGEM */}
                         <div className="position-relative">
                           {img ? (
-                            <img
-                              src={img}
-                              alt={p.nome}
-                              className="card-img-top ds-img"
-                            />
+                            <img src={img} alt={p.nome} className="card-img-top ds-img" />
                           ) : (
                             <div className="ds-noimg d-flex align-items-center justify-content-center">
                               <div className="text-center">
@@ -272,10 +297,10 @@ export default function DestaquesSection() {
           </div>
         </div>
 
-        {/* CSS mínimo e isolado */}
+        {/* CSS isolado */}
         <style jsx>{`
           .ds-section {
-            background: #f6efe6; /* creme */
+            background: #f6efe6;
           }
 
           .ds-title {
@@ -283,16 +308,45 @@ export default function DestaquesSection() {
           }
 
           .ds-count {
-            background: rgba(255, 255, 255, 0.75);
+            background: rgba(255, 255, 255, 0.78);
             color: #2b211c;
             border: 1px solid rgba(0, 0, 0, 0.06);
             padding: 10px 12px;
             box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
           }
 
+          /* Banner */
           .ds-banner {
             background: #fff7f0;
             border-radius: 18px;
+            overflow: hidden;
+          }
+
+          .ds-bannerTop {
+            height: 140px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+          }
+
+          .ds-bannerImg {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+
+          .ds-bannerFallback {
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(
+                900px 240px at 15% 20%,
+                rgba(198, 147, 115, 0.35),
+                transparent 55%
+              ),
+              radial-gradient(
+                800px 240px at 85% 10%,
+                rgba(255, 255, 255, 0.7),
+                transparent 60%
+              ),
+              linear-gradient(135deg, #fff3ea, #f5e7db);
           }
 
           .ds-chip {
@@ -300,6 +354,14 @@ export default function DestaquesSection() {
             color: #2b211c;
             border: 1px solid rgba(0, 0, 0, 0.06);
             padding: 8px 10px;
+          }
+
+          .ds-bannerTitle {
+            color: #2b211c;
+          }
+
+          .ds-bannerDesc {
+            line-height: 1.35;
           }
 
           .ds-cta {
@@ -322,7 +384,7 @@ export default function DestaquesSection() {
           }
 
           .ds-mini {
-            background: rgba(255, 255, 255, 0.75);
+            background: rgba(255, 255, 255, 0.78);
             border: 1px solid rgba(0, 0, 0, 0.06);
             border-radius: 14px;
           }
@@ -339,10 +401,14 @@ export default function DestaquesSection() {
             color: #2b211c;
           }
 
-          /* CARROSSEL */
+          /* Carrossel */
+          .ds-carouselWrap {
+            padding: 0 6px;
+          }
+
           .ds-track {
             display: flex;
-            gap: 16px;
+            gap: 18px;
             overflow-x: auto;
             padding: 4px 4px 10px;
             scroll-snap-type: x mandatory;
@@ -363,53 +429,54 @@ export default function DestaquesSection() {
 
           .ds-slide {
             scroll-snap-align: start;
-            flex: 0 0 88%;
+            flex: 0 0 86%;
           }
           @media (min-width: 576px) {
             .ds-slide {
               flex-basis: 48%;
             }
           }
-          @media (min-width: 1200px) {
+          /* ✅ 2 cards visíveis no desktop */
+          @media (min-width: 992px) {
             .ds-slide {
-              flex-basis: 32%;
+              flex-basis: 49%;
             }
           }
 
           .ds-arrow {
             position: absolute;
-            top: 40%;
+            top: 42%;
             transform: translateY(-50%);
-            width: 44px;
-            height: 44px;
+            width: 46px;
+            height: 46px;
             border-radius: 999px;
-            background: rgba(255, 255, 255, 0.9);
+            background: rgba(255, 255, 255, 0.92);
             border: 1px solid rgba(0, 0, 0, 0.08);
-            box-shadow: 0 16px 26px rgba(0, 0, 0, 0.12);
+            box-shadow: 0 18px 28px rgba(0, 0, 0, 0.14);
             align-items: center;
             justify-content: center;
             z-index: 5;
           }
           .ds-arrow-left {
-            left: -10px;
+            left: -12px;
           }
           .ds-arrow-right {
-            right: -10px;
+            right: -12px;
           }
 
-          /* CARD */
+          /* Card */
           .ds-card {
             border-radius: 18px;
             overflow: hidden;
           }
 
           .ds-img {
-            height: 200px;
+            height: 210px;
             object-fit: cover;
           }
 
           .ds-noimg {
-            height: 200px;
+            height: 210px;
             background: #efe3d8;
             color: rgba(0, 0, 0, 0.6);
           }
@@ -455,7 +522,7 @@ export default function DestaquesSection() {
             filter: brightness(0.98);
           }
 
-          /* banner CTA não sobrepor em telas pequenas */
+          /* botão flutuante não brigar no mobile */
           @media (max-width: 991px) {
             .ds-cta {
               position: static;
