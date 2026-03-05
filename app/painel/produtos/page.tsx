@@ -17,27 +17,17 @@ interface Produto {
   destaque?: boolean;
   id_destaque?: number;
   catalogo?: number;
-  imagem?: string; // ✅ aqui é PATH (ex: upload/produtos/x.jpg)
+  imagem?: string;
 }
 
 export const getImagemUrl = (caminho?: string) => {
   if (!caminho) return undefined;
 
-  const base = (api.defaults.baseURL || "").replace(/\/+$/, "");
-  let c = String(caminho).trim();
+  const base = api.defaults.baseURL || "";
+  const caminhoLimpo = String(caminho).replace(/^\/+/, "");
+  const baseFinal = base.endsWith("/") ? base : `${base}/`;
 
-  // normaliza barras
-  c = c.replace(/\\/g, "/");
-
-  // remove "public/" se vier do backend/banco por acidente
-  c = c.replace(/^public\//, "");
-  c = c.replace(/^\/?public\//, "");
-
-  // remove barras iniciais
-  c = c.replace(/^\/+/, "");
-
-  // garante que seja relativo
-  return `${base}/${c}`;
+  return `${baseFinal}${caminhoLimpo}`;
 };
 
 export default function ProdutosPage() {
@@ -45,7 +35,7 @@ export default function ProdutosPage() {
   const [loading, setLoading] = useState(true);
   const [modalNovoProduto, setModalNovoProduto] = useState(false);
 
-  // ✅ paginação
+  // ✅ paginação por select + números
   const [itensPorPagina, setItensPorPagina] = useState<number>(12);
   const [pagina, setPagina] = useState<number>(1);
 
@@ -83,13 +73,11 @@ export default function ProdutosPage() {
       if (lista?.dados) lista = lista.dados;
       if (!Array.isArray(lista)) lista = [];
 
-      // ✅ IMPORTANTE:
-      // imagem fica como PATH (do banco), não transforma em URL aqui
       const convertidos: Produto[] = lista.map((p: any) => ({
         ...p,
         preco: Number(p.preco || 0),
         estoque: Number(p.estoque || 0),
-        imagem: p.imagem ? String(p.imagem) : undefined,
+        imagem: getImagemUrl(p.imagem),
       }));
 
       setProdutos(convertidos);
@@ -154,7 +142,9 @@ export default function ProdutosPage() {
         await api.put(`/admin/produtos/${produto.id_produto}/catalogo/nao`);
 
         setProdutos((p) =>
-          p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 0 } : i))
+          p.map((i) =>
+            i.id_produto === produto.id_produto ? { ...i, catalogo: 0 } : i
+          )
         );
 
         toast.success("Removido do catálogo");
@@ -162,7 +152,9 @@ export default function ProdutosPage() {
         await api.put(`/admin/produtos/${produto.id_produto}/catalogo/sim`);
 
         setProdutos((p) =>
-          p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 1 } : i))
+          p.map((i) =>
+            i.id_produto === produto.id_produto ? { ...i, catalogo: 1 } : i
+          )
         );
 
         toast.success("Adicionado ao catálogo");
@@ -178,6 +170,7 @@ export default function ProdutosPage() {
 
     try {
       await api.delete(`/admin/produto/${id}/remover`);
+
       setProdutos((p) => p.filter((i) => i.id_produto !== id));
       toast.success("Produto excluído com sucesso");
     } catch (err) {
@@ -221,6 +214,7 @@ export default function ProdutosPage() {
   }
 
   function limparGaleriaSelecao() {
+    // revoke urls antigas
     galeriaPreview.forEach((u) => URL.revokeObjectURL(u));
     setGaleriaFiles([]);
     setGaleriaPreview([]);
@@ -232,15 +226,22 @@ export default function ProdutosPage() {
 
     const files = Array.from(filesList);
 
-    const ok = files.filter((f) => /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name));
+    // valida extensão básica
+    const ok = files.filter((f) =>
+      /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name)
+    );
     if (ok.length === 0) {
       toast.error("Selecione imagens válidas (jpg, png, webp, gif).");
       return;
     }
 
+    // limita (opcional) pra não mandar 100 de uma vez
     const limitadas = ok.slice(0, 12);
+
+    // recria previews
     const previews = limitadas.map((f) => URL.createObjectURL(f));
 
+    // revoga previews anteriores
     galeriaPreview.forEach((u) => URL.revokeObjectURL(u));
 
     setGaleriaFiles(limitadas);
@@ -257,6 +258,8 @@ export default function ProdutosPage() {
     try {
       setGaleriaSending(true);
 
+      // ✅ endpoint sugerido (back): POST /admin/produto/{id}/imagens
+      // campo: imagens[] (multiple)
       const form = new FormData();
       galeriaFiles.forEach((file) => form.append("imagens[]", file));
 
@@ -266,6 +269,7 @@ export default function ProdutosPage() {
 
       toast.success("Imagens adicionadas com sucesso!");
       fecharGaleria();
+      // opcional: recarregar lista (se você retornar algo pro front no futuro)
       await carregarProdutos();
     } catch (err) {
       console.error(err);
@@ -275,6 +279,7 @@ export default function ProdutosPage() {
     }
   }
 
+  // fecha modal com ESC
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") fecharGaleria();
@@ -306,7 +311,10 @@ export default function ProdutosPage() {
         <div className="top-actions">
           <div className="pagerSelect">
             <span>Por página</span>
-            <select value={itensPorPagina} onChange={(e) => setItensPorPagina(Number(e.target.value))}>
+            <select
+              value={itensPorPagina}
+              onChange={(e) => setItensPorPagina(Number(e.target.value))}
+            >
               <option value={8}>8</option>
               <option value={12}>12</option>
               <option value={16}>16</option>
@@ -324,7 +332,8 @@ export default function ProdutosPage() {
       {!loading && produtos.length > 0 && totalPaginas > 1 && (
         <div className="pagerBar">
           <div className="pagerInfo">
-            Página <b>{pagina}</b> de <b>{totalPaginas}</b> — Total: <b>{produtos.length}</b>
+            Página <b>{pagina}</b> de <b>{totalPaginas}</b> — Total:{" "}
+            <b>{produtos.length}</b>
           </div>
 
           <div className="pagerNumbers" aria-label="Paginação">
@@ -346,73 +355,68 @@ export default function ProdutosPage() {
         <div className="text-center py-5">Carregando produtos...</div>
       ) : (
         <div className="row g-4">
-          {produtosPaginados.map((prod) => {
-            const imgUrl = getImagemUrl(prod.imagem);
+          {produtosPaginados.map((prod) => (
+            <div key={prod.id_produto} className="col-xl-3 col-lg-4 col-md-6">
+              <div className="produto-card">
+                <div className="card-image">
+                  {prod.imagem ? (
+                    <img src={prod.imagem} alt={prod.nome} />
+                  ) : (
+                    <div className="no-image">Sem imagem</div>
+                  )}
 
-            return (
-              <div key={prod.id_produto} className="col-xl-3 col-lg-4 col-md-6">
-                <div className="produto-card">
-                  <div className="card-image">
-                    {imgUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={imgUrl}
-                        alt={prod.nome}
-                        onError={(e) => {
-                          // fallback visual se a URL falhar
-                          (e.currentTarget as HTMLImageElement).style.display = "none";
-                        }}
-                      />
-                    ) : (
-                      <div className="no-image">Sem imagem</div>
-                    )}
-
-                    <div className="badges">
-                      {prod.destaque && <span className="badge badge-destaque">Destaque</span>}
-                      {prod.catalogo === 1 && <span className="badge badge-catalogo">Catálogo</span>}
-                    </div>
-
-                    <button
-                      type="button"
-                      className="btnThumbs"
-                      onClick={() => abrirGaleria(prod)}
-                      title="Adicionar imagens (miniaturas)"
-                    >
-                      <FaImages />
-                    </button>
+                  <div className="badges">
+                    {prod.destaque && <span className="badge badge-destaque">Destaque</span>}
+                    {prod.catalogo === 1 && <span className="badge badge-catalogo">Catálogo</span>}
                   </div>
 
-                  <div className="card-body">
-                    <h6 className="produto-nome">{prod.nome}</h6>
-                    <p className="preco">R$ {prod.preco.toFixed(2)}</p>
-                    <small className="estoque">Estoque: {prod.estoque}</small>
+                  {/* ✅ botão miniaturas (galeria) */}
+                  <button
+                    type="button"
+                    className="btnThumbs"
+                    onClick={() => abrirGaleria(prod)}
+                    title="Adicionar imagens (miniaturas)"
+                  >
+                    <FaImages />
+                  </button>
+                </div>
 
-                    <div className="acoes">
-                      <Link href={`/admin/produto/${prod.slug}`} title="Editar">
-                        <FaEdit />
-                      </Link>
+                <div className="card-body">
+                  <h6 className="produto-nome">{prod.nome}</h6>
 
-                      <button onClick={() => toggleDestaque(prod)} title="Destaque">
-                        <FaStar />
-                      </button>
+                  <p className="preco">R$ {prod.preco.toFixed(2)}</p>
 
-                      <button
-                        onClick={() => toggleCatalogo(prod)}
-                        title="Catálogo"
-                        className={prod.catalogo === 1 ? "catalogo-on" : "catalogo-off"}
-                      >
-                        <FaBook />
-                      </button>
+                  <small className="estoque">Estoque: {prod.estoque}</small>
 
-                      <button onClick={() => excluirProduto(prod.id_produto)} className="danger" title="Excluir">
-                        <FaTrash />
-                      </button>
-                    </div>
+                  <div className="acoes">
+                    <Link href={`/admin/produto/${prod.slug}`} title="Editar">
+                      <FaEdit />
+                    </Link>
+
+                    <button onClick={() => toggleDestaque(prod)} title="Destaque">
+                      <FaStar />
+                    </button>
+
+                    <button
+                      onClick={() => toggleCatalogo(prod)}
+                      title="Catálogo"
+                      className={prod.catalogo === 1 ? "catalogo-on" : "catalogo-off"}
+                    >
+                      <FaBook />
+                    </button>
+
+                    <button
+                      onClick={() => excluirProduto(prod.id_produto)}
+                      className="danger"
+                      title="Excluir"
+                    >
+                      <FaTrash />
+                    </button>
                   </div>
                 </div>
               </div>
-            );
-          })}
+            </div>
+          ))}
 
           {!produtos.length && (
             <div className="col-12">
@@ -422,6 +426,7 @@ export default function ProdutosPage() {
         </div>
       )}
 
+      {/* ✅ MODAL: adicionar miniaturas */}
       {galeriaOpen && (
         <div className="thumbOverlay" onClick={fecharGaleria}>
           <div className="thumbModal" onClick={(e) => e.stopPropagation()}>
@@ -449,11 +454,11 @@ export default function ProdutosPage() {
                 />
 
                 <div className="thumbHint">
-                  Selecione até <b>12</b> imagens.
+                  Selecione até <b>12</b> imagens. Elas serão salvas em <b>upload/produtos/galeria</b>.
                 </div>
               </div>
 
-              {galeriaPreview.length > 0 ? (
+              {galeriaPreview.length > 0 && (
                 <div className="thumbGrid">
                   {galeriaPreview.map((src, idx) => (
                     <div key={src} className="thumbItem">
@@ -462,7 +467,9 @@ export default function ProdutosPage() {
                     </div>
                   ))}
                 </div>
-              ) : (
+              )}
+
+              {galeriaPreview.length === 0 && (
                 <div className="thumbEmpty">Nenhuma imagem selecionada ainda.</div>
               )}
             </div>
@@ -490,10 +497,12 @@ export default function ProdutosPage() {
           background: #f6f7fb;
           min-height: 100vh;
         }
+
         .title {
           color: #6b4c4f;
           font-weight: 700;
         }
+
         .btn-gold {
           background: #d4af37;
           color: #fff;
@@ -502,6 +511,7 @@ export default function ProdutosPage() {
           gap: 8px;
           align-items: center;
         }
+
         .top-actions {
           display: flex;
           gap: 12px;
@@ -523,6 +533,7 @@ export default function ProdutosPage() {
           font-weight: 700;
           font-size: 12px;
         }
+
         .pagerSelect select {
           border: 1px solid rgba(0, 0, 0, 0.12);
           border-radius: 999px;
@@ -540,38 +551,44 @@ export default function ProdutosPage() {
           gap: 12px;
           flex-wrap: wrap;
           margin-bottom: 14px;
+
           background: rgba(255, 255, 255, 0.78);
           border: 1px solid rgba(0, 0, 0, 0.08);
           border-radius: 14px;
           padding: 10px 12px;
           box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
         }
+
         .pagerInfo {
           color: #6b4c4f;
           font-size: 13px;
         }
+
         .pagerNumbers {
           display: flex;
           flex-wrap: wrap;
           gap: 8px;
           justify-content: flex-end;
         }
+
         .pageBtn {
           min-width: 36px;
           height: 34px;
           padding: 0 10px;
           border-radius: 10px;
-          border: 1px solid rgba(0, 0, 0, 0.1);
+          border: 1px solid rgba(0, 0, 0, 0.10);
           background: #fff;
           font-weight: 800;
           color: #6b4c4f;
           cursor: pointer;
           transition: 0.15s;
         }
+
         .pageBtn:hover {
           transform: translateY(-1px);
           border-color: rgba(0, 0, 0, 0.18);
         }
+
         .pageBtn.active {
           background: #d4af37;
           border-color: #d4af37;
@@ -585,6 +602,7 @@ export default function ProdutosPage() {
           box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
           transition: 0.2s;
         }
+
         .produto-card:hover {
           transform: translateY(-3px);
           box-shadow: 0 12px 26px rgba(0, 0, 0, 0.12);
@@ -595,12 +613,14 @@ export default function ProdutosPage() {
           position: relative;
           background: #eee;
         }
+
         .card-image img {
           width: 100%;
           height: 100%;
           object-fit: cover;
           display: block;
         }
+
         .no-image {
           display: flex;
           align-items: center;
@@ -616,15 +636,18 @@ export default function ProdutosPage() {
           gap: 6px;
           z-index: 2;
         }
+
         .badge {
           font-size: 10px;
           padding: 4px 8px;
           border-radius: 999px;
           color: #fff;
         }
+
         .badge-destaque {
           background: #e74c3c;
         }
+
         .badge-catalogo {
           background: #22c55e;
         }
@@ -632,14 +655,17 @@ export default function ProdutosPage() {
         .card-body {
           padding: 12px;
         }
+
         .produto-nome {
           margin-bottom: 4px;
           font-size: 14px;
         }
+
         .preco {
           font-weight: 600;
           margin-bottom: 2px;
         }
+
         .estoque {
           font-size: 12px;
           color: #888;
@@ -651,6 +677,7 @@ export default function ProdutosPage() {
           gap: 12px;
           font-size: 16px;
         }
+
         .acoes button,
         .acoes a {
           background: none;
@@ -659,20 +686,25 @@ export default function ProdutosPage() {
           color: #6b4c4f;
           text-decoration: none;
         }
+
         .acoes .danger {
           color: #e74c3c;
         }
+
         .catalogo-on {
           color: #22c55e;
         }
+
         .catalogo-off {
           color: #999;
         }
+
         .acoes button:hover,
         .acoes a:hover {
           color: #d4af37;
         }
 
+        /* ✅ botão de miniaturas (sobre a imagem) */
         .btnThumbs {
           position: absolute;
           left: 10px;
@@ -695,6 +727,7 @@ export default function ProdutosPage() {
           background: rgba(0, 0, 0, 0.48);
         }
 
+        /* ✅ modal galeria */
         .thumbOverlay {
           position: fixed;
           inset: 0;
@@ -705,14 +738,16 @@ export default function ProdutosPage() {
           place-items: center;
           padding: 16px;
         }
+
         .thumbModal {
           width: min(720px, 96vw);
           background: #fff;
           border-radius: 16px;
-          border: 1px solid rgba(0, 0, 0, 0.1);
+          border: 1px solid rgba(0, 0, 0, 0.10);
           box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
           overflow: hidden;
         }
+
         .thumbHeader {
           display: flex;
           justify-content: space-between;
@@ -721,51 +756,60 @@ export default function ProdutosPage() {
           border-bottom: 1px solid rgba(0, 0, 0, 0.08);
           align-items: center;
         }
+
         .thumbH {
           font-weight: 900;
           color: #111827;
         }
+
         .thumbSub {
           margin-top: 2px;
           font-size: 12px;
           color: #6b7280;
           font-weight: 700;
         }
+
         .thumbClose {
           width: 40px;
           height: 40px;
           border-radius: 12px;
-          border: 1px solid rgba(0, 0, 0, 0.1);
+          border: 1px solid rgba(0, 0, 0, 0.10);
           background: rgba(0, 0, 0, 0.03);
           cursor: pointer;
           font-size: 22px;
           line-height: 1;
         }
+
         .thumbBody {
           padding: 14px;
           display: grid;
           gap: 12px;
         }
+
         .thumbPick {
           display: grid;
           gap: 8px;
         }
+
         .thumbPick input[type="file"] {
           border: 1px dashed rgba(0, 0, 0, 0.18);
           padding: 12px;
           border-radius: 14px;
           background: rgba(0, 0, 0, 0.02);
         }
+
         .thumbHint {
           font-size: 12px;
           color: #6b7280;
           font-weight: 700;
         }
+
         .thumbGrid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
           gap: 10px;
         }
+
         .thumbItem {
           border-radius: 14px;
           overflow: hidden;
@@ -773,12 +817,14 @@ export default function ProdutosPage() {
           background: #f8fafc;
           height: 110px;
         }
+
         .thumbItem img {
           width: 100%;
           height: 100%;
           object-fit: cover;
           display: block;
         }
+
         .thumbEmpty {
           padding: 14px;
           border-radius: 14px;
@@ -788,6 +834,7 @@ export default function ProdutosPage() {
           color: #6b7280;
           font-weight: 700;
         }
+
         .thumbFooter {
           display: flex;
           justify-content: flex-end;
@@ -796,21 +843,25 @@ export default function ProdutosPage() {
           border-top: 1px solid rgba(0, 0, 0, 0.08);
           background: rgba(255, 255, 255, 0.7);
         }
+
         .thumbBtn {
           border-radius: 14px;
           padding: 10px 14px;
           cursor: pointer;
           font-weight: 900;
-          border: 1px solid rgba(0, 0, 0, 0.1);
+          border: 1px solid rgba(0, 0, 0, 0.10);
         }
+
         .thumbBtn.ghost {
           background: rgba(0, 0, 0, 0.04);
         }
+
         .thumbBtn.primary {
           background: #d4af37;
           border-color: #d4af37;
           color: #fff;
         }
+
         .thumbBtn.primary:disabled {
           opacity: 0.6;
           cursor: not-allowed;
