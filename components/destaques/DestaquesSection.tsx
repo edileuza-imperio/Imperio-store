@@ -5,9 +5,9 @@ import Link from "next/link";
 import api from "@/Api/conectar";
 import { FiStar } from "react-icons/fi";
 
-/* ==============================
+/* =============================
 TIPOS
-============================== */
+============================= */
 
 type Campanha = {
   id_campanha: number;
@@ -16,8 +16,6 @@ type Campanha = {
   descricao?: string;
   banner?: string;
   statusid?: number;
-  inicio?: string;
-  fim?: string;
 };
 
 type ProdutoDestaque = {
@@ -30,9 +28,9 @@ type ProdutoDestaque = {
   produto_imagem?: string;
 };
 
-/* ==============================
+/* =============================
 UTILS
-============================== */
+============================= */
 
 function formatMoneyBR(value?: any) {
   const n = Number(value);
@@ -48,17 +46,15 @@ function getImagemUrl(caminho?: string) {
   if (!caminho) return undefined;
 
   const base = api.defaults.baseURL || "";
-
   const clean = String(caminho).replace(/^\/+/, "");
-
   const baseFinal = base.endsWith("/") ? base : `${base}/`;
 
   return `${baseFinal}${clean}`;
 }
 
-/* ==============================
+/* =============================
 COMPONENTE
-============================== */
+============================= */
 
 export default function DestaquesSection() {
 
@@ -69,10 +65,6 @@ export default function DestaquesSection() {
   async function carregar() {
 
     try {
-
-      /* ==============================
-      CAMPANHAS
-      ============================== */
 
       const resCamp = await api.get("/admin/campanhas");
 
@@ -85,16 +77,12 @@ export default function DestaquesSection() {
 
       setCampanha(destaque || null);
 
-      /* ==============================
-      PRODUTOS DESTAQUE
-      ============================== */
-
       const resProd = await api.get("/admin/produtos/destaques");
 
       const listaProd: ProdutoDestaque[] =
         resProd?.data?.dados ?? [];
 
-      setProdutos(listaProd.slice(0, 2));
+      setProdutos(listaProd);
 
     } catch (erro) {
 
@@ -108,42 +96,32 @@ export default function DestaquesSection() {
   }
 
   useEffect(() => {
-
     carregar();
-
   }, []);
 
   if (loading) {
-    return <div>Carregando destaques...</div>;
+    return <div>Carregando campanha...</div>;
   }
 
   return (
-
     <section className="section">
 
-      <div className="titulo">
-        <h2>Destaques</h2>
-        <span>Selecionados com carinho • tons creme</span>
-      </div>
+      {/* HEADER CAMPANHA */}
 
-      <div className="layout">
+      {campanha && (
+        <div className="headerCampanha">
 
-        {/* CAMPANHA */}
+          <div className="headerTexto">
 
-        {campanha && (
+            <span className="tag">
+              <FiStar />
+              Campanha
+            </span>
 
-          <div className="campanha">
-
-            <div className="tags">
-              <span>Novidades</span>
-              <span>Festas</span>
-            </div>
-
-            <h3>{campanha.titulo}</h3>
+            <h2>{campanha.titulo}</h2>
 
             <p>
-              {campanha.descricao ||
-                "Produtos selecionados para presentear."}
+              {campanha.descricao}
             </p>
 
             <Link
@@ -153,140 +131,133 @@ export default function DestaquesSection() {
               Ver catálogo
             </Link>
 
-            <div className="infos">
+          </div>
 
-              <div>
-                <span>Oferta do dia</span>
-                <b>até 30% OFF</b>
+        </div>
+      )}
+
+      {/* PRODUTOS */}
+
+      <div className="produtos">
+
+        {produtos.map((p) => {
+
+          const img = getImagemUrl(p.produto_imagem);
+
+          return (
+
+            <div key={p.id_destaque} className="produto">
+
+              <div className="imagem">
+
+                {img && (
+                  <img src={img} alt={p.produto_nome} />
+                )}
+
+                <span className="badge">
+                  Destaque
+                </span>
+
               </div>
 
-              <div>
-                <span>Pagamento</span>
-                <b>Pix / Cartão</b>
+              <div className="info">
+
+                <h4>{p.produto_nome}</h4>
+
+                <p className="desc">
+                  {p.produto_descricao}
+                </p>
+
+                <div className="preco">
+                  {formatMoneyBR(p.produto_preco)}
+                </div>
+
+                <Link
+                  href={`/produto/${p.produto_slug}`}
+                  className="btnProduto"
+                >
+                  Ver produto
+                </Link>
+
               </div>
 
             </div>
 
-          </div>
-
-        )}
-
-        {/* PRODUTOS */}
-
-        <div className="produtos">
-
-          {produtos.map((p) => {
-
-            const img = getImagemUrl(p.produto_imagem);
-
-            return (
-
-              <div key={p.id_destaque} className="produto">
-
-                <div className="imagem">
-
-                  {img && (
-                    <img src={img} alt={p.produto_nome} />
-                  )}
-
-                </div>
-
-                <div className="info">
-
-                  <h4>{p.produto_nome}</h4>
-
-                  <p className="desc">
-                    {p.produto_descricao}
-                  </p>
-
-                  <div className="preco">
-                    {formatMoneyBR(p.produto_preco)}
-                  </div>
-
-                  <div className="badge">
-                    <FiStar />
-                    Destaque
-                  </div>
-
-                  <div className="botoes">
-
-                    <Link
-                      href={`/produto/${p.produto_slug}`}
-                      className="detalhes"
-                    >
-                      Detalhes
-                    </Link>
-
-                    <button className="add">
-                      Adicionar
-                    </button>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-            );
-          })}
-
-        </div>
+          );
+        })}
 
       </div>
 
 <style jsx>{`
 
 .section{
-  background:#e9decd;
-  padding:40px;
+  padding:60px 20px;
+  background:#efe6d7;
+  border-radius:24px;
+}
+
+/* HEADER CAMPANHA */
+
+.headerCampanha{
+  text-align:center;
+  margin-bottom:40px;
+}
+
+.tag{
+  display:inline-flex;
+  gap:6px;
+  align-items:center;
+  font-size:12px;
+  font-weight:700;
+  background:#fff;
+  padding:6px 12px;
   border-radius:20px;
 }
 
-.titulo{
-  text-align:center;
-  margin-bottom:20px;
+.headerCampanha h2{
+  font-size:32px;
+  font-weight:800;
+  margin-top:12px;
 }
 
-.layout{
-  display:flex;
-  gap:20px;
-  justify-content:center;
+.headerCampanha p{
+  margin-top:8px;
+  color:#6c6357;
 }
 
-.campanha{
-  background:#f4eadc;
-  padding:25px;
-  width:260px;
-  border-radius:18px;
+.btnCatalogo{
+  display:inline-block;
+  margin-top:16px;
+  padding:10px 18px;
+  background:#c79b6e;
+  color:white;
+  border-radius:12px;
+  font-weight:600;
 }
 
-.tags{
-  display:flex;
-  gap:8px;
-  margin-bottom:10px;
-}
-
-.tags span{
-  background:#fff;
-  padding:4px 8px;
-  border-radius:10px;
-  font-size:11px;
-}
+/* PRODUTOS */
 
 .produtos{
-  display:flex;
-  gap:16px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  gap:20px;
 }
 
 .produto{
-  background:#f4eadc;
-  width:200px;
+  background:#fff;
   border-radius:18px;
   overflow:hidden;
+  box-shadow:0 10px 25px rgba(0,0,0,0.08);
+  transition:0.2s;
+}
+
+.produto:hover{
+  transform:translateY(-4px);
 }
 
 .imagem{
-  height:130px;
+  position:relative;
+  height:180px;
 }
 
 .imagem img{
@@ -295,47 +266,46 @@ export default function DestaquesSection() {
   object-fit:cover;
 }
 
+.badge{
+  position:absolute;
+  top:10px;
+  left:10px;
+  background:#000;
+  color:#fff;
+  font-size:11px;
+  padding:4px 10px;
+  border-radius:12px;
+}
+
 .info{
-  padding:10px;
+  padding:14px;
+}
+
+.info h4{
+  font-size:14px;
+  font-weight:700;
+}
+
+.desc{
+  font-size:12px;
+  color:#777;
+  margin-top:4px;
 }
 
 .preco{
-  font-weight:700;
-  margin-top:4px;
-}
-
-.badge{
-  margin-top:4px;
-  font-size:11px;
-  background:#eee;
-  display:inline-flex;
-  gap:4px;
-  padding:3px 8px;
-  border-radius:10px;
-}
-
-.botoes{
-  display:flex;
-  gap:6px;
   margin-top:8px;
+  font-weight:700;
 }
 
-.detalhes{
-  flex:1;
-  background:#ddd;
-  border-radius:8px;
-  font-size:11px;
+.btnProduto{
+  display:block;
+  margin-top:10px;
   text-align:center;
-  padding:6px;
-}
-
-.add{
-  flex:1;
-  border:none;
   background:#c79b6e;
   color:white;
-  border-radius:8px;
-  font-size:11px;
+  padding:8px;
+  border-radius:10px;
+  font-size:13px;
 }
 
 `}</style>
