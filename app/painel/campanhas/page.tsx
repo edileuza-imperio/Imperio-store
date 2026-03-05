@@ -56,7 +56,7 @@ function formatDateTimeBR(value?: string) {
   }).format(d);
 }
 
-function isCampaignActive(c: Campanha) {
+function computePeriodStatus(c: Campanha) {
   const now = Date.now();
   const ini = c.inicio
     ? new Date(c.inicio.includes("T") ? c.inicio : c.inicio.replace(" ", "T")).getTime()
@@ -100,24 +100,14 @@ function buildPagination(current: number, total: number) {
   return pages;
 }
 
-/**
- * ✅ Tenta normalizar qualquer formato de status que vier da API.
- * Aceita exemplos:
- * - [{ id: 1, nome: "Ativo" }]
- * - [{ id_status: 1, titulo: "Ativo" }]
- * - [{ value: 1, label: "Ativo" }]
- * - ["Ativo", "Inativo"] (vira id incremental)
- */
 function normalizeStatusList(raw: any): StatusOption[] {
   const list = Array.isArray(raw) ? raw : [];
   if (list.length === 0) return [];
 
-  // se vier array de strings
   if (typeof list[0] === "string") {
     return list.map((s: string, idx: number) => ({ id: idx + 1, label: s }));
   }
 
-  // se vier array de objetos
   return list
     .map((it: any, idx: number) => {
       const id =
@@ -150,7 +140,7 @@ export default function CampanhasPage() {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(9);
 
-  // form campanha
+  // form
   const [titulo, setTitulo] = useState("");
   const [slug, setSlug] = useState("");
   const [descricao, setDescricao] = useState("");
@@ -158,12 +148,17 @@ export default function CampanhasPage() {
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
   const [statusid, setStatusId] = useState<number>(0);
-
   const [salvandoCampanha, setSalvandoCampanha] = useState(false);
 
-  // ✅ status vindo da API
+  // status da API
   const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
   const [loadingStatus, setLoadingStatus] = useState(false);
+
+  const statusMap = useMemo(() => {
+    const m = new Map<number, string>();
+    statusOptions.forEach((s) => m.set(s.id, s.label));
+    return m;
+  }, [statusOptions]);
 
   async function carregarCampanhas() {
     setLoadingCampanhas(true);
@@ -179,14 +174,11 @@ export default function CampanhasPage() {
     }
   }
 
-  // ✅ Puxa status do seu roteamento existente
   async function carregarStatus() {
     setLoadingStatus(true);
     try {
-      // 👇 seu endpoint existe no router
       const res = await api.get("/admin/produtos/status");
 
-      // tenta achar em vários lugares do payload
       const raw =
         res?.data?.dados?.status ??
         res?.data?.dados?.dados ??
@@ -197,18 +189,20 @@ export default function CampanhasPage() {
       const normalized = normalizeStatusList(raw);
       setStatusOptions(normalized);
 
-      // se não tiver selecionado ainda, define o primeiro
-      if ((statusid === 0 || !statusid) && normalized.length > 0) {
-        setStatusId(normalized[0].id);
+      if ((!statusid || statusid === 0) && normalized.length > 0) {
+        // ✅ se existir o 3, já deixa nele, senão pega o primeiro
+        const prefer = normalized.find((s) => s.id === 3)?.id ?? normalized[0].id;
+        setStatusId(prefer);
       }
     } catch (e) {
       console.error(e);
-      // fallback mínimo (se sua API falhar)
-      setStatusOptions([
+      // fallback (se API falhar)
+      const fallback = [
         { id: 1, label: "Rascunho" },
         { id: 2, label: "Inativa" },
-        { id: 3, label: "Ativa" },
-      ]);
+        { id: 3, label: "Destaque" }, // ✅ seu destaque
+      ];
+      setStatusOptions(fallback);
       if (!statusid) setStatusId(3);
     } finally {
       setLoadingStatus(false);
@@ -228,8 +222,9 @@ export default function CampanhasPage() {
     setBanner("");
     setInicio("");
     setFim("");
-    // mantém status default: primeiro da lista (se tiver)
-    setStatusId(statusOptions[0]?.id || 0);
+    // ✅ default: tenta 3 (destaque) se existir
+    const prefer = statusOptions.find((s) => s.id === 3)?.id ?? statusOptions[0]?.id ?? 0;
+    setStatusId(prefer);
   }
 
   function closeModal() {
@@ -307,7 +302,7 @@ export default function CampanhasPage() {
 
   const pager = useMemo(() => buildPagination(page, totalPages), [page, totalPages]);
 
-  // slug automático ao digitar título
+  // slug automático
   useEffect(() => {
     if (!openModal) return;
     if (!titulo) return;
@@ -317,10 +312,13 @@ export default function CampanhasPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [titulo, openModal]);
 
-  // quando abrir o modal e já tem status carregado, garante default
+  // ao abrir modal, garante um status default
   useEffect(() => {
     if (!openModal) return;
-    if (!statusid && statusOptions.length > 0) setStatusId(statusOptions[0].id);
+    if (!statusid && statusOptions.length > 0) {
+      const prefer = statusOptions.find((s) => s.id === 3)?.id ?? statusOptions[0].id;
+      setStatusId(prefer);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openModal, statusOptions]);
 
@@ -338,7 +336,9 @@ export default function CampanhasPage() {
             <span className="badge">{campanhas.length}</span>
           </div>
 
-          <p className="subtitle">Gerencie campanhas e abra a tela de produtos por campanha.</p>
+          <p className="subtitle">
+            Se o <b>statusid</b> for <b>3</b>, a campanha aparece como <b>Destaque</b> (verde).
+          </p>
         </div>
 
         <div className="topRight">
@@ -411,15 +411,20 @@ export default function CampanhasPage() {
         <>
           <div className="grid">
             {campanhasPaginadas.map((c) => {
-              const st = isCampaignActive(c);
-              const statusLabel =
-                st === "ativa"
-                  ? "Ativa"
-                  : st === "agendada"
-                  ? "Agendada"
-                  : st === "finalizada"
-                  ? "Finalizada"
-                  : "Sem período";
+              const nivel = Number(c.statusid || 0);
+              const nivelNome = nivel ? statusMap.get(nivel) : "";
+              const period = computePeriodStatus(c);
+
+              // ✅ REGRA PRINCIPAL: se statusid === 3 => destaque VERDE
+              const isDestaque = nivel === 3;
+
+              const badgeText = isDestaque
+                ? `Destaque • nível ${nivel}`
+                : nivel
+                ? `${nivelNome ? nivelNome : "Status"} • nível ${nivel}`
+                : "Sem status";
+
+              const badgeClass = isDestaque ? "destaque" : period;
 
               return (
                 <div key={c.id_campanha} className="card">
@@ -427,7 +432,7 @@ export default function CampanhasPage() {
                     <div className="cardTitle">
                       <div className="nameRow">
                         <h3 title={c.titulo}>{c.titulo}</h3>
-                        <span className={`status ${st}`}>{statusLabel}</span>
+                        <span className={`status ${badgeClass}`}>{badgeText}</span>
                       </div>
 
                       <span className="slug">
@@ -464,6 +469,7 @@ export default function CampanhasPage() {
                         {c.fim ? formatDateTimeBR(c.fim) : "Sem fim"}
                       </span>
                     </div>
+
                     <div className="metaItem">
                       <FiCalendar />
                       <span>ID: {c.id_campanha}</span>
@@ -512,7 +518,9 @@ export default function CampanhasPage() {
             <div className="modalHeader">
               <div>
                 <h2>Criar campanha</h2>
-                <p>Status vem do endpoint <b>/admin/produtos/status</b>.</p>
+                <p>
+                  Status vem de <b>/admin/produtos/status</b> • nível <b>3</b> = <b>Destaque</b> (verde).
+                </p>
               </div>
 
               <button className="btnIcon" onClick={closeModal} aria-label="Fechar">
@@ -570,6 +578,7 @@ export default function CampanhasPage() {
 
                 <div className="field full">
                   <label>Nível de status</label>
+
                   <div className="statusRow">
                     <div className="statusIcon">
                       <FiShield />
@@ -580,22 +589,27 @@ export default function CampanhasPage() {
                       onChange={(e) => setStatusId(Number(e.target.value))}
                       disabled={loadingStatus}
                     >
+                      {loadingStatus && <option value="">Carregando status...</option>}
+
                       {!loadingStatus && statusOptions.length === 0 && (
                         <option value="">Nenhum status encontrado</option>
                       )}
-
-                      {loadingStatus && <option value="">Carregando status...</option>}
 
                       {!loadingStatus &&
                         statusOptions.map((s) => (
                           <option key={s.id} value={s.id}>
                             {s.id} • {s.label}
+                            {s.id === 3 ? " (Destaque)" : ""}
                           </option>
                         ))}
                     </select>
 
                     <div className="statusHint">
-                      {loadingStatus ? "Buscando status..." : "Escolha o statusid que será salvo."}
+                      {loadingStatus
+                        ? "Buscando status..."
+                        : statusid === 3
+                        ? "✅ Nível 3 selecionado: vai aparecer como DESTAQUE (verde) na tela."
+                        : "Escolha um nível. Nível 3 é o destaque."}
                     </div>
 
                     <button
@@ -693,7 +707,7 @@ export default function CampanhasPage() {
           margin: 8px 0 0;
           color: #475569;
           font-size: 14px;
-          max-width: 680px;
+          max-width: 720px;
         }
 
         .topRight {
@@ -908,15 +922,24 @@ export default function CampanhasPage() {
           border-radius: 999px;
           border: 1px solid transparent;
         }
-        .status.ativa {
+
+        /* ✅ destaque (statusid === 3) => VERDE */
+        .status.destaque {
           background: rgba(34, 197, 94, 0.14);
           border-color: rgba(34, 197, 94, 0.22);
           color: #166534;
         }
-        .status.agendada {
+
+        /* demais (por período) */
+        .status.ativa {
           background: rgba(99, 102, 241, 0.14);
           border-color: rgba(99, 102, 241, 0.22);
           color: #3730a3;
+        }
+        .status.agendada {
+          background: rgba(14, 165, 233, 0.14);
+          border-color: rgba(14, 165, 233, 0.22);
+          color: #075985;
         }
         .status.finalizada {
           background: rgba(239, 68, 68, 0.14);
@@ -1032,7 +1055,6 @@ export default function CampanhasPage() {
           justify-content: center;
         }
 
-        /* paginação */
         .pagination {
           display: flex;
           align-items: center;
@@ -1069,7 +1091,6 @@ export default function CampanhasPage() {
           padding: 0 4px;
         }
 
-        /* modal overlay */
         .overlay {
           position: fixed;
           inset: 0;
@@ -1217,7 +1238,6 @@ export default function CampanhasPage() {
           background: #ffffff;
         }
 
-        /* skeleton */
         .skeletonGrid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
