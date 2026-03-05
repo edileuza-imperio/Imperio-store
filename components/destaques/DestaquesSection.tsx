@@ -93,159 +93,219 @@ export default function DestaquesSection() {
   }, []);
 
   const temConteudo = useMemo(() => !!campanha && produtos.length > 0, [campanha, produtos]);
-
   if (loading || !temConteudo || !campanha) return null;
 
   const camp = campanha;
 
   return (
-    <section className="py-5 uiSection">
+    <section className="uiSection py-5">
       <div className="container">
-        {/* BANNER (igual seu, só com botão flutuante) */}
-        <div className="p-5 rounded-4 text-center mb-5 uiBanner position-relative">
-          <h2 className="fw-bold mb-2">{camp.titulo}</h2>
+        <div className="row g-4 align-items-stretch">
+          {/* ===== LEFT: BANNER (campanha) ===== */}
+          <div className="col-12 col-lg-4">
+            <div className="uiSideBanner h-100 position-relative">
+              <div className="uiTopBadge">
+                <i className="bi bi-stars me-2" />
+                Destaques da campanha
+              </div>
 
-          {camp.descricao ? (
-            <p className="mb-0 uiBannerDesc">{camp.descricao}</p>
-          ) : (
-            <p className="mb-0 uiBannerDesc">Produtos selecionados para você.</p>
-          )}
+              <h2 className="uiBannerTitle">{camp.titulo}</h2>
 
-          {/* ✅ botão flutuante */}
-          <Link
-            href={`/campanha/${camp.slug}`}
-            className="btn uiFloatingBtn"
-            title="Ver coleção"
-          >
-            <i className="bi bi-grid me-2" />
-            Ver coleção
-          </Link>
-        </div>
+              <p className="uiBannerDesc">
+                {camp.descricao ? camp.descricao : "Seleção especial com os melhores itens."}
+              </p>
 
-        {/* PRODUTOS (SÓ O DESIGN DOS CARDS) */}
-        <div className="row g-4">
-          {produtos.map((raw) => {
-            const p = normalizarProduto(raw);
-            const img = getImagemUrl(p.imagem);
+              {/* “chips” */}
+              <div className="d-flex flex-wrap gap-2 mt-3">
+                <span className="uiChip">
+                  <i className="bi bi-truck me-1" />
+                  Envio rápido
+                </span>
+                <span className="uiChip">
+                  <i className="bi bi-shield-check me-1" />
+                  Compra segura
+                </span>
+                <span className="uiChip">
+                  <i className="bi bi-heart me-1" />
+                  Curadoria
+                </span>
+              </div>
 
-            return (
-              <div key={p.key} className="col-12 col-sm-6 col-lg-4 col-xl-3">
-                <div className="card border-0 h-100 uiCard">
-                  {/* imagem */}
-                  <div className="uiImgWrap position-relative">
-                    {img ? (
-                      <img src={img} alt={p.nome} className="uiImg" />
-                    ) : (
-                      <div className="uiNoImg">
-                        <div className="text-center">
-                          <i className="bi bi-image fs-2 d-block mb-1" />
-                          <span className="small fw-semibold">Sem imagem</span>
+              {/* botão flutuante */}
+              <Link href={`/campanha/${camp.slug}`} className="uiFloatingBtn" title="Ver coleção">
+                <i className="bi bi-grid me-2" />
+                Ver coleção
+              </Link>
+
+              {/* textura/efeito */}
+              <div className="uiGlow" />
+            </div>
+          </div>
+
+          {/* ===== RIGHT: GRID de produtos ===== */}
+          <div className="col-12 col-lg-8">
+            <div className="row g-4">
+              {produtos.map((raw) => {
+                const p = normalizarProduto(raw);
+                const img = getImagemUrl(p.imagem);
+
+                return (
+                  <div key={p.key} className="col-12 col-sm-6 col-xl-4">
+                    <div className="card border-0 h-100 uiCard">
+                      <div className="uiImgWrap position-relative">
+                        {img ? (
+                          <img src={img} alt={p.nome} className="uiImg" />
+                        ) : (
+                          <div className="uiNoImg">
+                            <div className="text-center">
+                              <i className="bi bi-image fs-2 d-block mb-1" />
+                              <span className="small fw-semibold">Sem imagem</span>
+                            </div>
+                          </div>
+                        )}
+
+                        <span className="badge uiBadge">
+                          <i className="bi bi-star-fill me-1" />
+                          Destaque
+                        </span>
+                      </div>
+
+                      <div className="card-body d-flex flex-column">
+                        <h6 className="fw-semibold mb-1 uiTitleClamp">{p.nome}</h6>
+
+                        <p className="small text-muted mb-2 uiDescClamp">
+                          {p.descricao ? p.descricao : "Produto selecionado para destaque."}
+                        </p>
+
+                        <div className="d-flex align-items-center justify-content-between mb-3">
+                          <div className="fw-bold fs-5 uiPrice">{formatMoney(p.preco)}</div>
+                          <span className="badge uiMiniPill">
+                            <i className="bi bi-patch-check me-1" />
+                            Top
+                          </span>
+                        </div>
+
+                        <div className="mt-auto d-flex gap-2">
+                          <Link
+                            href={`/produto/${p.slug}`}
+                            className="btn uiBtnSoft w-100"
+                            title="Ver detalhes"
+                          >
+                            <i className="bi bi-eye" />
+                          </Link>
+
+                          <button
+                            type="button"
+                            className="btn uiBtnPrimary w-100"
+                            title="Adicionar ao carrinho"
+                            onClick={() => console.log("Adicionar:", p.slug)}
+                          >
+                            <i className="bi bi-cart-plus" />
+                          </button>
                         </div>
                       </div>
-                    )}
-
-                    <span className="badge uiBadge">
-                      <i className="bi bi-star-fill me-1" />
-                      Destaque
-                    </span>
-                  </div>
-
-                  {/* body */}
-                  <div className="card-body d-flex flex-column">
-                    <h6 className="fw-semibold mb-1 uiTitleClamp">{p.nome}</h6>
-
-                    <p className="small text-muted mb-2 uiDescClamp">
-                      {p.descricao ? p.descricao : "Produto selecionado para destaque."}
-                    </p>
-
-                    <div className="d-flex align-items-center justify-content-between mb-3">
-                      <div className="fw-bold fs-5 uiPrice">{formatMoney(p.preco)}</div>
-                      <span className="badge uiMiniPill">
-                        <i className="bi bi-patch-check me-1" />
-                        Top
-                      </span>
-                    </div>
-
-                    {/* botões com ícone (como você pediu) */}
-                    <div className="mt-auto d-flex gap-2">
-                      <Link
-                        href={`/produto/${p.slug}`}
-                        className="btn uiBtnSoft w-100"
-                        title="Ver detalhes"
-                      >
-                        <i className="bi bi-eye" />
-                      </Link>
-
-                      <button
-                        type="button"
-                        className="btn uiBtnPrimary w-100"
-                        title="Adicionar ao carrinho"
-                        onClick={() => console.log("Adicionar:", p.slug)}
-                      >
-                        <i className="bi bi-cart-plus" />
-                      </button>
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
+                );
+              })}
+            </div>
+          </div>
         </div>
 
         <style jsx>{`
-          /* fundo geral */
+          /* fundo creme */
           .uiSection {
-            background: #fbf3ee; /* creme */
+            background: #fbf3ee;
           }
 
-          /* banner igual sua ideia, só mais premium */
-          .uiBanner {
-            background: linear-gradient(135deg, #c57a7a 0%, #e7c9b7 65%, #fbf3ee 140%);
+          /* ===== Banner lateral ===== */
+          .uiSideBanner {
+            border-radius: 18px;
+            padding: 26px;
             color: #fff;
+            background: linear-gradient(145deg, #c57a7a 0%, #e7c9b7 70%, #fbf3ee 140%);
             border: 1px solid rgba(255, 255, 255, 0.18);
-            box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
+            box-shadow: 0 16px 34px rgba(0, 0, 0, 0.14);
             overflow: hidden;
           }
 
-          .uiBanner::after {
-            content: "";
-            position: absolute;
-            inset: 0;
-            opacity: 0.09;
-            background-image: radial-gradient(rgba(255, 255, 255, 0.9) 1px, transparent 1px);
-            background-size: 10px 10px;
-            pointer-events: none;
-          }
-
-          .uiBannerDesc {
-            opacity: 0.9;
-            max-width: 860px;
-            margin: 0 auto;
-          }
-
-          /* ✅ botão flutuante */
-          .uiFloatingBtn {
-            position: absolute;
-            right: 18px;
-            bottom: -18px;
-            background: #fff;
-            color: #8a4a4a;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 999px;
-            padding: 10px 16px;
-            font-weight: 800;
-            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
-            text-decoration: none;
+          .uiTopBadge {
             display: inline-flex;
             align-items: center;
             gap: 6px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-weight: 900;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.18);
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            backdrop-filter: blur(6px);
+          }
+
+          .uiBannerTitle {
+            margin-top: 14px;
+            font-weight: 900;
+            letter-spacing: 0.2px;
+            line-height: 1.1;
+            font-size: 30px;
+          }
+
+          .uiBannerDesc {
+            margin-top: 10px;
+            margin-bottom: 0;
+            opacity: 0.92;
+            color: rgba(255, 255, 255, 0.92);
+          }
+
+          .uiChip {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 12px;
+            border-radius: 999px;
+            font-weight: 800;
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.14);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+          }
+
+          /* botão flutuante (fixo dentro do banner) */
+          .uiFloatingBtn {
+            position: absolute;
+            left: 18px;
+            right: 18px;
+            bottom: 18px;
+            background: #fff;
+            color: #7a3f3f;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 14px;
+            padding: 12px 14px;
+            font-weight: 900;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
             z-index: 2;
           }
 
           .uiFloatingBtn:hover {
+            transform: translateY(-2px);
             background: #fff7f2;
-            border-color: rgba(197, 122, 122, 0.28);
-            color: #7a3f3f;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22);
+          }
+
+          /* brilho decorativo */
+          .uiGlow {
+            position: absolute;
+            width: 280px;
+            height: 280px;
+            right: -120px;
+            top: -120px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.45), transparent 60%);
+            opacity: 0.35;
+            pointer-events: none;
           }
 
           /* ===== Cards premium ===== */
@@ -263,7 +323,7 @@ export default function DestaquesSection() {
           }
 
           .uiImgWrap {
-            height: 240px;
+            height: 220px;
             overflow: hidden;
             background: #f7e6dc;
           }
@@ -277,11 +337,11 @@ export default function DestaquesSection() {
           }
 
           .uiCard:hover .uiImg {
-            transform: scale(1.05);
+            transform: scale(1.06);
           }
 
           .uiNoImg {
-            height: 240px;
+            height: 220px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -297,7 +357,8 @@ export default function DestaquesSection() {
             border: 1px solid rgba(255, 255, 255, 0.22);
             border-radius: 999px;
             padding: 8px 12px;
-            font-weight: 800;
+            font-weight: 900;
+            font-size: 12px;
           }
 
           .uiMiniPill {
@@ -306,7 +367,8 @@ export default function DestaquesSection() {
             border: 1px solid rgba(197, 122, 122, 0.18);
             border-radius: 999px;
             padding: 6px 10px;
-            font-weight: 800;
+            font-weight: 900;
+            font-size: 12px;
           }
 
           .uiPrice {
@@ -318,7 +380,7 @@ export default function DestaquesSection() {
             color: #fff;
             border: 1px solid rgba(255, 255, 255, 0.18);
             border-radius: 12px;
-            font-weight: 800;
+            font-weight: 900;
           }
 
           .uiBtnPrimary:hover {
@@ -331,7 +393,7 @@ export default function DestaquesSection() {
             color: #3b2a2a;
             border: 1px solid rgba(0, 0, 0, 0.12);
             border-radius: 12px;
-            font-weight: 800;
+            font-weight: 900;
           }
 
           .uiBtnSoft:hover {
@@ -339,7 +401,6 @@ export default function DestaquesSection() {
             border-color: rgba(197, 122, 122, 0.25);
           }
 
-          /* clamp */
           .uiTitleClamp {
             display: -webkit-box;
             -webkit-line-clamp: 1;
@@ -355,12 +416,10 @@ export default function DestaquesSection() {
             min-height: 38px;
           }
 
-          /* em telas pequenas, não deixar botão flutuante esmagar */
-          @media (max-width: 576px) {
-            .uiFloatingBtn {
-              position: static;
-              margin-top: 16px;
-              box-shadow: 0 10px 22px rgba(0, 0, 0, 0.16);
+          /* mobile: botão não fica “colado” */
+          @media (max-width: 991px) {
+            .uiSideBanner {
+              padding-bottom: 80px;
             }
           }
         `}</style>
