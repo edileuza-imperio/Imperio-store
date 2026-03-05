@@ -61,7 +61,9 @@ function computePeriodStatus(c: Campanha) {
   const ini = c.inicio
     ? new Date(c.inicio.includes("T") ? c.inicio : c.inicio.replace(" ", "T")).getTime()
     : null;
-  const fim = c.fim ? new Date(c.fim.includes("T") ? c.fim : c.fim.replace(" ", "T")).getTime() : null;
+  const fim = c.fim
+    ? new Date(c.fim.includes("T") ? c.fim : c.fim.replace(" ", "T")).getTime()
+    : null;
 
   if (ini && now < ini) return "agendada";
   if (fim && now > fim) return "finalizada";
@@ -98,7 +100,43 @@ function buildPagination(current: number, total: number) {
   return pages;
 }
 
-// ✅ Status da campanha (fallback fixo) - não usa endpoint de status do produto
+function normalizeStatusList(raw: any): StatusOption[] {
+  const list = Array.isArray(raw) ? raw : [];
+  if (list.length === 0) return [];
+
+  // se vier ["Rascunho","Inativo",...]
+  if (typeof list[0] === "string") {
+    return list.map((s: string, idx: number) => ({ id: idx + 1, label: s }));
+  }
+
+  // se vier [{id_status:1,nome:"..."}, ...] ou [{id:1,label:"..."}]
+  return list
+    .map((it: any, idx: number) => {
+      const id =
+        Number(it?.id) ||
+        Number(it?.id_status) ||
+        Number(it?.statusid) ||
+        Number(it?.value) ||
+        (idx + 1);
+
+      const label =
+        String(
+          it?.label ||
+            it?.nome ||
+            it?.titulo ||
+            it?.status ||
+            it?.descricao ||
+            it?.name ||
+            ""
+        ).trim() || `Status ${id}`;
+
+      if (!Number.isFinite(id)) return null;
+      return { id, label };
+    })
+    .filter(Boolean) as StatusOption[];
+}
+
+// fallback seguro se a API de status falhar
 const FALLBACK_STATUS: StatusOption[] = [
   { id: 1, label: "Rascunho" },
   { id: 2, label: "Inativa" },
@@ -125,11 +163,11 @@ export default function CampanhasPage() {
   const [banner, setBanner] = useState("");
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
-  const [statusid, setStatusId] = useState<number>(3);
+  const [statusid, setStatusId] = useState<number>(0);
   const [salvandoCampanha, setSalvandoCampanha] = useState(false);
 
-  // status
-  const [statusOptions, setStatusOptions] = useState<StatusOption[]>(FALLBACK_STATUS);
+  // status da API
+  const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
   const [loadingStatus, setLoadingStatus] = useState(false);
 
   const statusMap = useMemo(() => {
@@ -141,13 +179,22 @@ export default function CampanhasPage() {
   async function carregarCampanhas() {
     setLoadingCampanhas(true);
     try {
-      // ✅ seu controller: listarCampanhas()
+      // ✅ ROUTER: GET /admin/campanhas
       const res = await api.get("/admin/campanhas");
-      const lista = res?.data?.dados?.campanhas ?? res?.data?.dados ?? res?.data ?? [];
-      setCampanhas(Array.isArray(lista) ? lista : []);
+
+      // seu backend: Mensagemjson("Campanhas carregadas", 200, ["total"=>..,"campanhas"=>..])
+      const lista =
+        res?.data?.dados?.campanhas ??
+        res?.data?.dados?.dados?.campanhas ??
+        res?.data?.dados ??
+        res?.data ??
+        [];
+
+      setCampanhas(Array.isArray(lista) ? (lista as Campanha[]) : []);
     } catch (e) {
       console.error(e);
       alert("Erro ao carregar campanhas");
+      setCampanhas([]);
     } finally {
       setLoadingCampanhas(false);
     }
@@ -156,7 +203,30 @@ export default function CampanhasPage() {
   async function carregarStatus() {
     setLoadingStatus(true);
     try {
-      // ✅ sem endpoint de status de campanha, usa fallback
+      // ✅ ROUTER: GET /admin/produtos/status
+      const res = await api.get("/admin/produtos/status");
+
+      // seu backend: Mensagemjson("Status carregados", 200, $status)
+      // pode vir array direto em dados
+      const raw =
+        res?.data?.dados?.status ??
+        res?.data?.dados?.dados ??
+        res?.data?.dados ??
+        res?.data ??
+        [];
+
+      const normalized = normalizeStatusList(raw);
+      const finalList = normalized.length ? normalized : FALLBACK_STATUS;
+
+      setStatusOptions(finalList);
+
+      // ✅ default: se existir 3, usa 3; senão primeiro
+      if (!statusid || statusid === 0) {
+        const prefer = finalList.find((s) => s.id === 3)?.id ?? finalList[0]?.id ?? 0;
+        setStatusId(prefer);
+      }
+    } catch (e) {
+      console.error(e);
       setStatusOptions(FALLBACK_STATUS);
       if (!statusid) setStatusId(3);
     } finally {
@@ -177,7 +247,8 @@ export default function CampanhasPage() {
     setBanner("");
     setInicio("");
     setFim("");
-    setStatusId(3);
+    const prefer = statusOptions.find((s) => s.id === 3)?.id ?? statusOptions[0]?.id ?? 3;
+    setStatusId(prefer);
   }
 
   function closeModal() {
@@ -202,15 +273,18 @@ export default function CampanhasPage() {
         statusid: Number(statusid),
       };
 
-      // ✅ seu controller: criarCampanha()
-      await api.post("/admin/campanha/criar", payload);
+      // ✅ ROUTER (SEU ARQUIVO): POST /admin/campanhas
+      await api.post("/admin/campanhas", payload);
 
       setOpenModal(false);
       resetForm();
       await carregarCampanhas();
     } catch (e: any) {
       console.error(e);
-      const msg = e?.response?.data?.mensagem || e?.response?.data?.message || "Erro ao criar campanha";
+      const msg =
+        e?.response?.data?.mensagem ||
+        e?.response?.data?.message ||
+        "Erro ao criar campanha";
       alert(msg);
     } finally {
       setSalvandoCampanha(false);
@@ -220,8 +294,8 @@ export default function CampanhasPage() {
   async function removerCampanha(id: number) {
     if (!confirm("Remover campanha?")) return;
     try {
-      // ✅ seu controller: removerCampanha()
-      await api.delete(`/admin/campanha/${id}/remover`);
+      // ✅ ROUTER (SEU ARQUIVO): DELETE /admin/campanhas/{id}
+      await api.delete(`/admin/campanhas/${id}`);
       await carregarCampanhas();
     } catch (e) {
       console.error(e);
@@ -266,12 +340,15 @@ export default function CampanhasPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [titulo, openModal]);
 
-  // ao abrir modal, garante status default
+  // ao abrir modal, garante um status default
   useEffect(() => {
     if (!openModal) return;
-    if (!statusid) setStatusId(3);
+    if (!statusid && statusOptions.length > 0) {
+      const prefer = statusOptions.find((s) => s.id === 3)?.id ?? statusOptions[0].id;
+      setStatusId(prefer);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openModal]);
+  }, [openModal, statusOptions]);
 
   return (
     <div className="page">
@@ -288,18 +365,27 @@ export default function CampanhasPage() {
           </div>
 
           <p className="subtitle">
-            Se o <b>statusid</b> for <b>3</b>, a campanha aparece como <b>Destaque</b> (verde).
+            Se o <b>statusid</b> for <b>3</b>, a campanha aparece como{" "}
+            <b>Destaque</b> (verde).
           </p>
         </div>
 
         <div className="topRight">
           <div className="search">
             <FiSearch className="searchIcon" />
-            <input placeholder="Buscar por título ou slug..." value={q} onChange={(e) => setQ(e.target.value)} />
+            <input
+              placeholder="Buscar por título ou slug..."
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
           </div>
 
           <div className="rightActions">
-            <button className="btnGhost" onClick={carregarCampanhas} disabled={loadingCampanhas}>
+            <button
+              className="btnGhost"
+              onClick={carregarCampanhas}
+              disabled={loadingCampanhas}
+            >
               <FiRefreshCw />
               Atualizar
             </button>
@@ -328,7 +414,10 @@ export default function CampanhasPage() {
 
         <div className="perPage">
           <span>Itens por página</span>
-          <select value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}>
+          <select
+            value={perPage}
+            onChange={(e) => setPerPage(Number(e.target.value))}
+          >
             <option value={6}>6</option>
             <option value={9}>9</option>
             <option value={12}>12</option>
@@ -362,12 +451,13 @@ export default function CampanhasPage() {
               const statusNome = st ? statusMap.get(st) : "";
               const period = computePeriodStatus(c);
 
+              // ✅ regra: statusid === 3 => destaque VERDE
               const isDestaque = st === 3;
 
               const badgeText = isDestaque
-                ? `Destaque • status ${st}`
+                ? `Destaque • nível ${st}`
                 : st
-                ? `${statusNome ? statusNome : "Status"} • status ${st}`
+                ? `${statusNome ? statusNome : "Status"} • nível ${st}`
                 : "Sem status";
 
               const badgeClass = isDestaque ? "destaque" : period;
@@ -378,7 +468,9 @@ export default function CampanhasPage() {
                     <div className="cardTitle">
                       <div className="nameRow">
                         <h3 title={c.titulo}>{c.titulo}</h3>
-                        <span className={`status ${badgeClass}`}>{badgeText}</span>
+                        <span className={`status ${badgeClass}`}>
+                          {badgeText}
+                        </span>
                       </div>
 
                       <span className="slug">
@@ -386,7 +478,11 @@ export default function CampanhasPage() {
                       </span>
                     </div>
 
-                    <button className="btnIconDanger" onClick={() => removerCampanha(c.id_campanha)} title="Remover">
+                    <button
+                      className="btnIconDanger"
+                      onClick={() => removerCampanha(c.id_campanha)}
+                      title="Remover"
+                    >
                       <FiTrash2 />
                     </button>
                   </div>
@@ -397,17 +493,22 @@ export default function CampanhasPage() {
                     </div>
                     <div className="bannerText">
                       <span className="bLabel">Banner</span>
-                      <span className="bValue">{c.banner?.trim() ? c.banner : "Sem texto"}</span>
+                      <span className="bValue">
+                        {c.banner?.trim() ? c.banner : "Sem texto"}
+                      </span>
                     </div>
                   </div>
 
-                  <p className="desc">{c.descricao?.trim() ? c.descricao : "Sem descrição"}</p>
+                  <p className="desc">
+                    {c.descricao?.trim() ? c.descricao : "Sem descrição"}
+                  </p>
 
                   <div className="meta">
                     <div className="metaItem">
                       <FiClock />
                       <span>
-                        {c.inicio ? formatDateTimeBR(c.inicio) : "Sem início"} {" • "}
+                        {c.inicio ? formatDateTimeBR(c.inicio) : "Sem início"}{" "}
+                        {" • "}
                         {c.fim ? formatDateTimeBR(c.fim) : "Sem fim"}
                       </span>
                     </div>
@@ -419,7 +520,12 @@ export default function CampanhasPage() {
                   </div>
 
                   <div className="cardActions">
-                    <button className="btnSoft" onClick={() => router.push(`/painel/campanhas/${c.id_campanha}/produtos`)}>
+                    <button
+                      className="btnSoft"
+                      onClick={() =>
+                        router.push(`/painel/campanhas/${c.id_campanha}/produtos`)
+                      }
+                    >
                       <FiPackage /> Produtos
                     </button>
                   </div>
@@ -431,11 +537,22 @@ export default function CampanhasPage() {
           {totalPages > 1 && (
             <div className="pagination">
               {pager.map((p, idx) => {
-                if (p === "...") return <span key={`d-${idx}`} className="dots">...</span>;
+                if (p === "...") {
+                  return (
+                    <span key={`d-${idx}`} className="dots">
+                      ...
+                    </span>
+                  );
+                }
                 const n = p as number;
                 const active = n === page;
                 return (
-                  <button key={n} type="button" className={`pbtn ${active ? "on" : ""}`} onClick={() => setPage(n)}>
+                  <button
+                    key={n}
+                    type="button"
+                    className={`pbtn ${active ? "on" : ""}`}
+                    onClick={() => setPage(n)}
+                  >
                     {n}
                   </button>
                 );
@@ -453,7 +570,8 @@ export default function CampanhasPage() {
               <div>
                 <h2>Criar campanha</h2>
                 <p>
-                  Status da campanha • <b>3</b> = <b>Destaque</b> (verde).
+                  Status vem de <b>/admin/produtos/status</b> • nível{" "}
+                  <b>3</b> = <b>Destaque</b> (verde).
                 </p>
               </div>
 
@@ -466,12 +584,20 @@ export default function CampanhasPage() {
               <div className="formGrid">
                 <div className="field">
                   <label>Título</label>
-                  <input placeholder="Ex: Semana do Cliente" value={titulo} onChange={(e) => setTitulo(e.target.value)} />
+                  <input
+                    placeholder="Ex: Semana do Cliente"
+                    value={titulo}
+                    onChange={(e) => setTitulo(e.target.value)}
+                  />
                 </div>
 
                 <div className="field">
                   <label>Slug</label>
-                  <input placeholder="ex: semana-do-cliente" value={slug} onChange={(e) => setSlug(e.target.value)} />
+                  <input
+                    placeholder="ex: semana-do-cliente"
+                    value={slug}
+                    onChange={(e) => setSlug(e.target.value)}
+                  />
                 </div>
 
                 <div className="field full">
@@ -494,12 +620,20 @@ export default function CampanhasPage() {
 
                 <div className="field">
                   <label>Início</label>
-                  <input type="datetime-local" value={inicio} onChange={(e) => setInicio(e.target.value)} />
+                  <input
+                    type="datetime-local"
+                    value={inicio}
+                    onChange={(e) => setInicio(e.target.value)}
+                  />
                 </div>
 
                 <div className="field">
                   <label>Fim</label>
-                  <input type="datetime-local" value={fim} onChange={(e) => setFim(e.target.value)} />
+                  <input
+                    type="datetime-local"
+                    value={fim}
+                    onChange={(e) => setFim(e.target.value)}
+                  />
                 </div>
 
                 <div className="field full">
@@ -510,8 +644,17 @@ export default function CampanhasPage() {
                       <FiShield />
                     </div>
 
-                    <select value={statusid || ""} onChange={(e) => setStatusId(Number(e.target.value))} disabled={loadingStatus}>
+                    <select
+                      value={statusid || ""}
+                      onChange={(e) => setStatusId(Number(e.target.value))}
+                      disabled={loadingStatus}
+                    >
                       {loadingStatus && <option value="">Carregando...</option>}
+
+                      {!loadingStatus && statusOptions.length === 0 && (
+                        <option value="">Nenhum status encontrado</option>
+                      )}
+
                       {!loadingStatus &&
                         statusOptions.map((s) => (
                           <option key={s.id} value={s.id}>
@@ -523,13 +666,19 @@ export default function CampanhasPage() {
 
                     <div className="statusHint">
                       {loadingStatus
-                        ? "Carregando..."
+                        ? "Buscando status..."
                         : statusid === 3
                         ? "✅ Status 3 selecionado: aparece como DESTAQUE (verde)."
                         : "Escolha um status. Status 3 é o destaque."}
                     </div>
 
-                    <button type="button" className="btnGhost miniBtn" onClick={carregarStatus} disabled={loadingStatus} title="Recarregar">
+                    <button
+                      type="button"
+                      className="btnGhost miniBtn"
+                      onClick={carregarStatus}
+                      disabled={loadingStatus}
+                      title="Recarregar status"
+                    >
                       <FiRefreshCw />
                       Recarregar
                     </button>
@@ -543,7 +692,11 @@ export default function CampanhasPage() {
                 Cancelar
               </button>
 
-              <button className="btnPrimary" onClick={criarCampanha} disabled={salvandoCampanha}>
+              <button
+                className="btnPrimary"
+                onClick={criarCampanha}
+                disabled={salvandoCampanha}
+              >
                 {salvandoCampanha ? "Criando..." : "Criar campanha"}
               </button>
             </div>
@@ -877,7 +1030,11 @@ export default function CampanhasPage() {
           gap: 10px;
           padding: 10px 12px;
           border-radius: 16px;
-          background: linear-gradient(135deg, rgba(99, 102, 241, 0.08), rgba(14, 165, 233, 0.06));
+          background: linear-gradient(
+            135deg,
+            rgba(99, 102, 241, 0.08),
+            rgba(14, 165, 233, 0.06)
+          );
           border: 1px solid rgba(148, 163, 184, 0.35);
         }
 
