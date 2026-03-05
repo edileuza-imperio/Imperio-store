@@ -13,16 +13,31 @@ interface Produto {
   nome: string;
   descricao?: string;
   preco: number;
+  preco_promocional?: string | number;
   slug: string;
+
+  sku?: string;
+  modelo?: string;
+
   estoque: number;
   ilimitado: number;
   imagem?: string;
   imagensSecundarias?: string[];
+
+  statusid?: number;
   status_nome?: string;
+
+  categoria_id?: number;
   categoria_nome?: string;
-  destaque?: number;
+
+  catalogo?: number;
+
+  destaque?: number | null;
+
+  criado?: string;
+  atualizado?: string;
+  created_at?: string; // compat
   parcelas?: number;
-  created_at?: string;
 }
 
 type ApiResponse<T> = {
@@ -70,6 +85,15 @@ function toNumber(v: unknown): number | null {
   return null;
 }
 
+function formatDateBR(iso?: string) {
+  if (!iso) return null;
+  // aceita "2026-03-04 22:30:07"
+  const clean = iso.replace(" ", "T");
+  const d = new Date(clean);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString("pt-BR");
+}
+
 export default function ProdutoPage() {
   const params = useParams();
   const slugParam = params?.slug;
@@ -85,14 +109,14 @@ export default function ProdutoPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
-  // Galeria estilo “varejão”
+  // Galeria
   const [activeIdx, setActiveIdx] = useState(0);
 
   // Qtd + Carrinho
   const [qtd, setQtd] = useState(1);
   const [adding, setAdding] = useState(false);
 
-  // Cupom (somente cupom, sem subtotal/resumo)
+  // Cupom
   const [cupomCodigo, setCupomCodigo] = useState("");
   const [cupomLoading, setCupomLoading] = useState(false);
   const [cupomAplicado, setCupomAplicado] = useState<{
@@ -102,6 +126,10 @@ export default function ProdutoPage() {
     descricao?: string;
   } | null>(null);
   const [cupomErro, setCupomErro] = useState<string | null>(null);
+
+  // ações
+  const [copied, setCopied] = useState(false);
+  const [fav, setFav] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -136,6 +164,8 @@ export default function ProdutoPage() {
             .map(getImagemUrl)
             .filter((x): x is string => Boolean(x)),
           parcelas: p.parcelas ?? 10,
+          criado: (p as any).criado ?? (p as any).created_at ?? p.created_at,
+          atualizado: (p as any).atualizado ?? undefined,
         };
 
         setProduto(produtoFinal);
@@ -165,12 +195,23 @@ export default function ProdutoPage() {
     };
   }, [slug]);
 
+  // favoritos (local)
+  useEffect(() => {
+    if (!produto) return;
+    try {
+      const raw = localStorage.getItem("ui:favs");
+      const ids: number[] = raw ? JSON.parse(raw) : [];
+      setFav(ids.includes(produto.id_produto));
+    } catch {
+      setFav(false);
+    }
+  }, [produto?.id_produto]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const imagens = useMemo(() => {
     if (!produto) return [];
     const list: string[] = [];
     if (produto.imagem) list.push(produto.imagem);
     for (const s of produto.imagensSecundarias || []) list.push(s);
-    // unique
     return Array.from(new Set(list));
   }, [produto]);
 
@@ -186,7 +227,6 @@ export default function ProdutoPage() {
 
   const precoComCupom = useMemo(() => {
     const base = precoBase * Math.max(1, qtd);
-
     if (!cupomAplicado) return base;
 
     if (cupomAplicado.tipo === "percentual") {
@@ -209,7 +249,10 @@ export default function ProdutoPage() {
       { label: "Início", href: "/" },
       { label: "Catálogo", href: "/catalogo" },
       ...(categoria ? [{ label: categoria, href: "/catalogo" }] : []),
-      { label: produto?.nome || "Produto", href: slug ? `/produto/${encodeURIComponent(slug)}` : "/catalogo" },
+      {
+        label: produto?.nome || "Produto",
+        href: slug ? `/produto/${encodeURIComponent(slug)}` : "/catalogo",
+      },
     ];
   }, [produto, slug]);
 
@@ -223,7 +266,9 @@ export default function ProdutoPage() {
 
     setCupomLoading(true);
     try {
-      const res = await api.get<ApiResponse<CupomApi>>(rotas.cupons.buscarPorCodigo(codigo));
+      const res = await api.get<ApiResponse<CupomApi>>(
+        rotas.cupons.buscarPorCodigo(codigo)
+      );
       const c = resolveApi<CupomApi>(res.data);
 
       if (!c) {
@@ -299,13 +344,57 @@ export default function ProdutoPage() {
     }
   }
 
+  async function copiarLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  async function compartilhar() {
+    const url = window.location.href;
+    try {
+      // @ts-ignore
+      if (navigator.share) {
+        // @ts-ignore
+        await navigator.share({
+          title: produto?.nome ?? "Produto",
+          text: "Confira esse produto:",
+          url,
+        });
+        return;
+      }
+    } catch {
+      // se cancelar share, não precisa fazer nada
+      return;
+    }
+    await copiarLink();
+  }
+
+  function toggleFav() {
+    if (!produto) return;
+    try {
+      const raw = localStorage.getItem("ui:favs");
+      const ids: number[] = raw ? JSON.parse(raw) : [];
+      const has = ids.includes(produto.id_produto);
+      const next = has ? ids.filter((x) => x !== produto.id_produto) : [...ids, produto.id_produto];
+      localStorage.setItem("ui:favs", JSON.stringify(next));
+      setFav(!has);
+    } catch {
+      setFav((v) => !v);
+    }
+  }
+
   return (
     <>
       <Navbar />
 
       <main className="pdp">
         <div className="wrap">
-          {/* breadcrumb estilo varejo */}
+          {/* breadcrumb */}
           <nav className="crumbs" aria-label="breadcrumb">
             {crumbs.map((c, i) => {
               const isLast = i === crumbs.length - 1;
@@ -325,189 +414,317 @@ export default function ProdutoPage() {
           </nav>
 
           {loading ? (
-            <div className="state">Carregando…</div>
+            <div className="state">
+              <div className="skTitle" />
+              <div className="skGrid">
+                <div className="skMedia" />
+                <div className="skBuy" />
+              </div>
+            </div>
           ) : erro ? (
             <div className="state err">{erro}</div>
           ) : !produto ? (
             <div className="state err">Produto não encontrado</div>
           ) : (
-            <div className="grid">
-              {/* COL 1: thumbnails */}
-              <aside className="thumbCol">
-                {imagens.slice(0, 10).map((src, idx) => (
-                  <button
-                    key={src}
-                    type="button"
-                    className={`thumbBtn ${idx === activeIdx ? "on" : ""}`}
-                    onClick={() => setActiveIdx(idx)}
-                    aria-label="Selecionar imagem"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img className="thumb" src={src} alt={`${produto.nome} ${idx + 1}`} />
-                  </button>
-                ))}
-              </aside>
-
-              {/* COL 2: imagem grande */}
-              <section className="mediaCol">
-                <div className="mediaBox">
-                  {produto.destaque ? <span className="flag">Destaque</span> : null}
-
-                  {activeImg ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img className="hero" src={activeImg} alt={produto.nome} />
-                  ) : (
-                    <div className="noimg">Sem imagem</div>
-                  )}
+            <>
+              {/* Cabeçalho (nome + ações) */}
+              <header className="head">
+                <div className="headLeft">
+                  <h1 className="h1">{produto.nome}</h1>
+                  <div className="badges">
+                    {produto.sku ? <span className="chip">SKU: {produto.sku}</span> : null}
+                    {produto.modelo ? <span className="chip">Modelo: {produto.modelo}</span> : null}
+                    {produto.destaque ? <span className="chip chipHot">Destaque</span> : null}
+                  </div>
                 </div>
 
-                {!!produto.descricao && (
-                  <div className="descBox">
-                    <div className="descTitle">Descrição</div>
-                    <p className="descText">{produto.descricao}</p>
-                  </div>
-                )}
-              </section>
+                <div className="headRight">
+                  <button type="button" className="iconBtn" onClick={compartilhar} title="Compartilhar">
+                    <span className="ico">↗</span>
+                    <span className="txt">Compartilhar</span>
+                  </button>
 
-              {/* COL 3: caixa compra (sticky) */}
-              <aside className="buyCol">
-                <div className="buyBox">
-                  <h1 className="title">{produto.nome}</h1>
+                  <button type="button" className="iconBtn" onClick={copiarLink} title="Copiar link">
+                    <span className="ico">⧉</span>
+                    <span className="txt">{copied ? "Copiado!" : "Copiar link"}</span>
+                  </button>
 
-                  <div className="metaRow">
-                    {produto.categoria_nome ? (
-                      <span className="meta">
-                        Categoria: <b>{produto.categoria_nome}</b>
-                      </span>
-                    ) : null}
-                    {produto.status_nome ? (
-                      <span className="meta">
-                        Status: <b>{produto.status_nome}</b>
-                      </span>
-                    ) : null}
-                  </div>
+                  <button
+                    type="button"
+                    className={`iconBtn ${fav ? "on" : ""}`}
+                    onClick={toggleFav}
+                    title="Favoritar"
+                  >
+                    <span className="ico">{fav ? "♥" : "♡"}</span>
+                    <span className="txt">{fav ? "Favorito" : "Favoritar"}</span>
+                  </button>
+                </div>
+              </header>
 
-                  <div className="priceArea">
-                    <div className="price">{formatBRL(precoComCupom)}</div>
-                    {parcelasTexto ? <div className="install">{parcelasTexto}</div> : null}
-                  </div>
+              <div className="grid">
+                {/* GALERIA + cards de info */}
+                <section className="leftCol">
+                  <div className="galleryCard">
+                    <div className="media">
+                      {activeImg ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img className="hero" src={activeImg} alt={produto.nome} />
+                      ) : (
+                        <div className="noimg">Sem imagem</div>
+                      )}
+                    </div>
 
-                  <div className="stockLine">
-                    {(produto.ilimitado ?? 0) === 1 ? (
-                      <span className="pill ok">Disponível</span>
-                    ) : produto.estoque > 0 ? (
-                      <span className="pill ok">Em estoque</span>
-                    ) : (
-                      <span className="pill bad">Esgotado</span>
-                    )}
-
-                    {(produto.ilimitado ?? 0) !== 1 && produto.estoque > 0 ? (
-                      <span className="stockSmall">({produto.estoque} un.)</span>
-                    ) : null}
-                  </div>
-
-                  <div className="qtyRow">
-                    <span className="qtyLbl">Quantidade</span>
-                    <div className="qtyCtrl">
-                      <button
-                        type="button"
-                        className="qbtn"
-                        onClick={() => setQtd((v) => Math.max(1, v - 1))}
-                        disabled={qtd <= 1}
-                      >
-                        −
-                      </button>
-                      <span className="qval">{qtd}</span>
-                      <button type="button" className="qbtn" onClick={() => setQtd((v) => Math.min(99, v + 1))}>
-                        +
-                      </button>
+                    <div className="thumbs" role="list">
+                      {imagens.slice(0, 12).map((src, idx) => (
+                        <button
+                          key={`${src}-${idx}`}
+                          type="button"
+                          className={`thumbBtn ${idx === activeIdx ? "on" : ""}`}
+                          onClick={() => setActiveIdx(idx)}
+                          aria-label="Selecionar imagem"
+                          role="listitem"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img className="thumb" src={src} alt={`${produto.nome} ${idx + 1}`} />
+                        </button>
+                      ))}
                     </div>
                   </div>
 
-                  {/* CUPOM (somente cupom, sem resumo/subtotal) */}
-                  <div className="coupon">
-                    <div className="couponHead">
-                      <span className="couponTitle">Cupom</span>
-                      {cupomAplicado ? (
-                        <button type="button" className="couponRemove" onClick={removerCupom}>
-                          Remover
+                  {/* Cards extras */}
+                  <div className="cardsRow">
+                    <div className="infoCard">
+                      <div className="cardTitle">Detalhes do produto</div>
+                      <div className="kv">
+                        <span className="k">ID</span>
+                        <span className="v">#{produto.id_produto}</span>
+                      </div>
+
+                      <div className="kv">
+                        <span className="k">Categoria</span>
+                        <span className="v">
+                          {produto.categoria_nome?.trim()
+                            ? produto.categoria_nome
+                            : produto.categoria_id != null
+                            ? `ID ${produto.categoria_id}`
+                            : "—"}
+                        </span>
+                      </div>
+
+                      <div className="kv">
+                        <span className="k">Status</span>
+                        <span className="v">
+                          {produto.status_nome?.trim()
+                            ? produto.status_nome
+                            : produto.statusid != null
+                            ? `ID ${produto.statusid}`
+                            : "—"}
+                        </span>
+                      </div>
+
+                      <div className="kv">
+                        <span className="k">Catálogo</span>
+                        <span className="v">{produto.catalogo != null ? String(produto.catalogo) : "—"}</span>
+                      </div>
+
+                      <div className="kv">
+                        <span className="k">Criado</span>
+                        <span className="v">{formatDateBR(produto.criado) ?? "—"}</span>
+                      </div>
+
+                      <div className="kv">
+                        <span className="k">Atualizado</span>
+                        <span className="v">{formatDateBR(produto.atualizado) ?? "—"}</span>
+                      </div>
+                    </div>
+
+                    <div className="infoCard">
+                      <div className="cardTitle">Entrega & disponibilidade</div>
+
+                      <div className="kv">
+                        <span className="k">Disponibilidade</span>
+                        <span className="v">
+                          {(produto.ilimitado ?? 0) === 1
+                            ? "Disponível (ilimitado)"
+                            : produto.estoque > 0
+                            ? `Em estoque (${produto.estoque} un.)`
+                            : "Esgotado"}
+                        </span>
+                      </div>
+
+                      <div className="kv">
+                        <span className="k">Dica</span>
+                        <span className="v">Finalize seu pedido e envie para o WhatsApp se precisar.</span>
+                      </div>
+
+                      <div className="divider" />
+
+                      <div className="miniBtns">
+                        <button type="button" className="miniBtn" onClick={compartilhar}>
+                          Compartilhar
                         </button>
+                        <button type="button" className="miniBtn" onClick={copiarLink}>
+                          Copiar link
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="descCard">
+                    <div className="cardTitle">Descrição</div>
+                    <p className="descText">
+                      {produto.descricao?.trim()
+                        ? produto.descricao
+                        : "Este produto não possui descrição detalhada no momento."}
+                    </p>
+                  </div>
+                </section>
+
+                {/* COMPRA */}
+                <aside className="buyCol">
+                  <div className="buyBox">
+                    <div className="priceArea">
+                      <div className="price">{formatBRL(precoComCupom)}</div>
+                      {parcelasTexto ? <div className="install">{parcelasTexto}</div> : null}
+                    </div>
+
+                    <div className="stockLine">
+                      {(produto.ilimitado ?? 0) === 1 ? (
+                        <span className="pill ok">Disponível</span>
+                      ) : produto.estoque > 0 ? (
+                        <span className="pill ok">Em estoque</span>
+                      ) : (
+                        <span className="pill bad">Esgotado</span>
+                      )}
+                      {(produto.ilimitado ?? 0) !== 1 && produto.estoque > 0 ? (
+                        <span className="stockSmall">({produto.estoque} un.)</span>
                       ) : null}
                     </div>
 
-                    {cupomAplicado ? (
-                      <div className="couponApplied">
-                        <span className="couponTag">
-                          {cupomAplicado.codigo} •{" "}
-                          {cupomAplicado.tipo === "percentual"
-                            ? `${cupomAplicado.valor}%`
-                            : formatBRL(cupomAplicado.valor)}
-                        </span>
-                        {cupomAplicado.descricao ? (
-                          <div className="couponHint">{cupomAplicado.descricao}</div>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <div className="couponRow">
-                        <input
-                          className="couponInput"
-                          value={cupomCodigo}
-                          onChange={(e) => setCupomCodigo(e.target.value.toUpperCase())}
-                          placeholder="Digite seu cupom"
-                        />
+                    <div className="qtyRow">
+                      <span className="qtyLbl">Quantidade</span>
+                      <div className="qtyCtrl" aria-label="Controle de quantidade">
                         <button
                           type="button"
-                          className="couponBtn"
-                          onClick={aplicarCupom}
-                          disabled={cupomLoading}
+                          className="qbtn"
+                          onClick={() => setQtd((v) => Math.max(1, v - 1))}
+                          disabled={qtd <= 1}
+                          aria-label="Diminuir"
                         >
-                          {cupomLoading ? "…" : "Aplicar"}
+                          −
+                        </button>
+                        <span className="qval">{qtd}</span>
+                        <button
+                          type="button"
+                          className="qbtn"
+                          onClick={() => setQtd((v) => Math.min(99, v + 1))}
+                          aria-label="Aumentar"
+                        >
+                          +
                         </button>
                       </div>
-                    )}
+                    </div>
 
-                    {cupomErro ? <div className="couponErr">{cupomErro}</div> : null}
+                    {/* CUPOM */}
+                    <div className="coupon">
+                      <div className="couponHead">
+                        <span className="couponTitle">Cupom</span>
+                        {cupomAplicado ? (
+                          <button type="button" className="couponRemove" onClick={removerCupom}>
+                            Remover
+                          </button>
+                        ) : null}
+                      </div>
+
+                      {cupomAplicado ? (
+                        <div className="couponApplied">
+                          <span className="couponTag">
+                            {cupomAplicado.codigo} •{" "}
+                            {cupomAplicado.tipo === "percentual"
+                              ? `${cupomAplicado.valor}%`
+                              : formatBRL(cupomAplicado.valor)}
+                          </span>
+                          {cupomAplicado.descricao ? (
+                            <div className="couponHint">{cupomAplicado.descricao}</div>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <div className="couponRow">
+                          <input
+                            className="couponInput"
+                            value={cupomCodigo}
+                            onChange={(e) => setCupomCodigo(e.target.value.toUpperCase())}
+                            placeholder="Digite seu cupom"
+                          />
+                          <button
+                            type="button"
+                            className="couponBtn"
+                            onClick={aplicarCupom}
+                            disabled={cupomLoading}
+                          >
+                            {cupomLoading ? "…" : "Aplicar"}
+                          </button>
+                        </div>
+                      )}
+
+                      {cupomErro ? <div className="couponErr">{cupomErro}</div> : null}
+                    </div>
+
+                    <div className="cta">
+                      <button
+                        type="button"
+                        className="btn buy"
+                        onClick={adicionarCarrinho}
+                        disabled={indisponivel || adding}
+                      >
+                        {adding ? "Adicionando…" : "Adicionar ao carrinho"}
+                      </button>
+
+                      <button type="button" className="btn ghost" disabled={indisponivel}>
+                        Comprar agora
+                      </button>
+
+                      <button type="button" className="btn ghost2" onClick={compartilhar}>
+                        Compartilhar produto
+                      </button>
+                    </div>
+
+                    <div className="backLine">
+                      <Link className="back" href="/catalogo">
+                        ← Voltar ao catálogo
+                      </Link>
+                    </div>
                   </div>
-
-                  <div className="cta">
-                    <button
-                      type="button"
-                      className="btn buy"
-                      onClick={adicionarCarrinho}
-                      disabled={indisponivel || adding}
-                    >
-                      {adding ? "Adicionando…" : "Adicionar ao carrinho"}
-                    </button>
-
-                    <button type="button" className="btn ghost" disabled={indisponivel}>
-                      Comprar agora
-                    </button>
-                  </div>
-
-                  <div className="backLine">
-                    <Link className="back" href="/catalogo">
-                      ← Voltar ao catálogo
-                    </Link>
-                  </div>
-                </div>
-              </aside>
-            </div>
+                </aside>
+              </div>
+            </>
           )}
         </div>
 
         <style jsx>{`
-          /* vibe varejão (Americanas/Ponto) */
+          /* Tema creme + rosa queimado */
           .pdp {
-            background: #f4f6f8;
-            padding: 14px 0 36px;
-            min-height: 65vh;
+            background: radial-gradient(
+                900px 420px at 15% 10%,
+                rgba(180, 106, 106, 0.12),
+                transparent 55%
+              ),
+              radial-gradient(
+                900px 420px at 85% 0%,
+                rgba(255, 255, 255, 0.85),
+                transparent 55%
+              ),
+              #f7efe7;
+            padding: 18px 0 46px;
+            min-height: 70vh;
           }
+
           .wrap {
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 16px;
             font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-            color: #111827;
+            color: #2b211c;
           }
 
           .crumbs {
@@ -516,7 +733,7 @@ export default function ProdutoPage() {
             gap: 8px;
             font-size: 12px;
             font-weight: 800;
-            color: #6b7280;
+            color: rgba(43, 33, 28, 0.65);
             padding: 10px 0 12px;
           }
           .sep {
@@ -524,108 +741,209 @@ export default function ProdutoPage() {
             opacity: 0.7;
           }
           .link {
-            color: #2563eb;
+            color: #a85c5c;
             text-decoration: none;
           }
           .link:hover {
             text-decoration: underline;
           }
           .active {
-            color: #111827;
+            color: #2b211c;
             font-weight: 950;
           }
 
+          /* header */
+          .head {
+            margin-top: 6px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+          }
+          .h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 980;
+            letter-spacing: -0.2px;
+            line-height: 1.2;
+          }
+          .badges {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+          .chip {
+            font-size: 12px;
+            font-weight: 950;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(43, 33, 28, 0.10);
+            color: rgba(43, 33, 28, 0.78);
+            backdrop-filter: blur(10px);
+          }
+          .chipHot {
+            color: #a85c5c;
+            background: rgba(180, 106, 106, 0.12);
+            border-color: rgba(180, 106, 106, 0.22);
+          }
+
+          .headRight {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+          }
+          .iconBtn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid rgba(43, 33, 28, 0.12);
+            background: rgba(255, 255, 255, 0.78);
+            backdrop-filter: blur(10px);
+            border-radius: 14px;
+            padding: 10px 12px;
+            cursor: pointer;
+            font-weight: 950;
+            color: #2b211c;
+            transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+          }
+          .iconBtn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(180, 106, 106, 0.30);
+            box-shadow: 0 14px 26px rgba(0, 0, 0, 0.08);
+          }
+          .iconBtn.on {
+            border-color: rgba(180, 106, 106, 0.55);
+            box-shadow: 0 0 0 4px rgba(180, 106, 106, 0.12);
+          }
+          .ico {
+            width: 22px;
+            height: 22px;
+            display: grid;
+            place-items: center;
+            border-radius: 10px;
+            background: rgba(180, 106, 106, 0.12);
+            border: 1px solid rgba(180, 106, 106, 0.20);
+            color: #a85c5c;
+            font-weight: 980;
+          }
+          .txt {
+            font-size: 13px;
+            font-weight: 950;
+          }
+
+          @media (max-width: 720px) {
+            .head {
+              flex-direction: column;
+            }
+            .headRight {
+              width: 100%;
+              justify-content: flex-start;
+            }
+          }
+
+          /* states */
           .state {
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 14px;
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(43, 33, 28, 0.10);
+            border-radius: 16px;
+            padding: 16px;
             font-weight: 900;
+            box-shadow: 0 18px 34px rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(10px);
           }
           .err {
-            border-color: rgba(185, 28, 28, 0.3);
-            background: rgba(185, 28, 28, 0.04);
+            border-color: rgba(185, 28, 28, 0.22);
+            background: rgba(185, 28, 28, 0.05);
             color: #991b1b;
           }
 
+          /* Skeleton */
+          .skTitle {
+            width: 260px;
+            height: 18px;
+            border-radius: 12px;
+            background: linear-gradient(
+              90deg,
+              rgba(180, 106, 106, 0.10),
+              rgba(180, 106, 106, 0.18),
+              rgba(180, 106, 106, 0.10)
+            );
+            background-size: 200% 100%;
+            animation: sk 1.1s infinite linear;
+          }
+          .skGrid {
+            margin-top: 14px;
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 14px;
+          }
+          .skMedia,
+          .skBuy {
+            height: 520px;
+            border-radius: 18px;
+            background: linear-gradient(
+              90deg,
+              rgba(180, 106, 106, 0.10),
+              rgba(180, 106, 106, 0.18),
+              rgba(180, 106, 106, 0.10)
+            );
+            background-size: 200% 100%;
+            animation: sk 1.1s infinite linear;
+          }
+          @keyframes sk {
+            0% {
+              background-position: 0% 0%;
+            }
+            100% {
+              background-position: -200% 0%;
+            }
+          }
+          @media (max-width: 1024px) {
+            .skGrid {
+              grid-template-columns: 1fr;
+            }
+            .skBuy {
+              height: 360px;
+            }
+          }
+
+          /* layout */
           .grid {
             display: grid;
-            grid-template-columns: 76px 1fr 380px;
+            grid-template-columns: 1fr 380px;
             gap: 14px;
             align-items: start;
           }
           @media (max-width: 1024px) {
             .grid {
-              grid-template-columns: 76px 1fr;
-            }
-            .buyCol {
-              grid-column: span 2;
-            }
-          }
-          @media (max-width: 680px) {
-            .grid {
               grid-template-columns: 1fr;
             }
-            .thumbCol {
-              display: none;
-            }
           }
 
-          /* thumbs */
-          .thumbCol {
+          .leftCol {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            position: sticky;
-            top: 12px;
-            max-height: calc(100vh - 30px);
-            overflow: auto;
-            padding-right: 2px;
-          }
-          .thumbBtn {
-            border: 1px solid #e5e7eb;
-            background: #fff;
-            border-radius: 10px;
-            padding: 0;
-            overflow: hidden;
-            cursor: pointer;
-            transition: border-color 0.12s ease, transform 0.12s ease;
-          }
-          .thumbBtn:hover {
-            transform: translateY(-1px);
-            border-color: #93c5fd;
-          }
-          .thumbBtn.on {
-            border-color: #2563eb;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
-          }
-          .thumb {
-            width: 100%;
-            height: 62px;
-            object-fit: cover;
-            display: block;
+            gap: 14px;
           }
 
-          /* media */
-          .mediaBox {
-            position: relative;
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            border-radius: 14px;
-            overflow: hidden;
-            min-height: 520px;
+          /* gallery */
+          .galleryCard {
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(43, 33, 28, 0.10);
+            border-radius: 18px;
+            padding: 12px;
+            box-shadow: 0 18px 34px rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(10px);
           }
-          .flag {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            background: #111827;
-            color: #fff;
-            font-weight: 950;
-            font-size: 12px;
-            padding: 6px 10px;
-            border-radius: 999px;
-            z-index: 2;
+          .media {
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(43, 33, 28, 0.10);
+            background: #fff;
           }
           .hero {
             width: 100%;
@@ -639,45 +957,153 @@ export default function ProdutoPage() {
             display: grid;
             place-items: center;
             font-weight: 950;
-            color: #6b7280;
+            color: rgba(43, 33, 28, 0.6);
           }
           @media (max-width: 680px) {
-            .mediaBox {
-              min-height: 380px;
-            }
             .hero,
             .noimg {
               height: 380px;
             }
           }
 
-          .descBox {
+          .thumbs {
             margin-top: 12px;
-            background: #fff;
-            border: 1px solid #e5e7eb;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+          .thumbBtn {
+            width: 74px;
+            height: 74px;
             border-radius: 14px;
+            padding: 0;
+            border: 1px solid rgba(43, 33, 28, 0.10);
+            background: rgba(255, 255, 255, 0.85);
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+          }
+          .thumbBtn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(180, 106, 106, 0.35);
+            box-shadow: 0 12px 18px rgba(0, 0, 0, 0.06);
+          }
+          .thumbBtn.on {
+            border-color: rgba(180, 106, 106, 0.65);
+            box-shadow: 0 0 0 4px rgba(180, 106, 106, 0.14);
+          }
+          .thumb {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+          }
+          @media (max-width: 680px) {
+            .thumbs {
+              flex-wrap: nowrap;
+              overflow-x: auto;
+              padding-bottom: 6px;
+              scrollbar-width: none;
+              -ms-overflow-style: none;
+            }
+            .thumbs::-webkit-scrollbar {
+              display: none;
+            }
+            .thumbBtn {
+              flex: 0 0 auto;
+            }
+          }
+
+          /* info cards */
+          .cardsRow {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+          }
+          @media (max-width: 820px) {
+            .cardsRow {
+              grid-template-columns: 1fr;
+            }
+          }
+
+          .infoCard,
+          .descCard {
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(43, 33, 28, 0.10);
+            border-radius: 18px;
             padding: 14px;
+            box-shadow: 0 18px 34px rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(10px);
           }
-          .descTitle {
+          .cardTitle {
+            font-weight: 980;
+            margin-bottom: 10px;
+            letter-spacing: -0.15px;
+          }
+          .kv {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 0;
+            border-top: 1px solid rgba(43, 33, 28, 0.08);
+          }
+          .kv:first-of-type {
+            border-top: none;
+            padding-top: 0;
+          }
+          .k {
+            color: rgba(43, 33, 28, 0.65);
+            font-weight: 900;
+            font-size: 12px;
+          }
+          .v {
+            color: #2b211c;
             font-weight: 950;
-            margin-bottom: 8px;
+            font-size: 12px;
+            text-align: right;
           }
+          .divider {
+            height: 1px;
+            background: rgba(43, 33, 28, 0.08);
+            margin: 12px 0;
+          }
+          .miniBtns {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+          .miniBtn {
+            border: 1px solid rgba(43, 33, 28, 0.12);
+            background: rgba(255, 255, 255, 0.78);
+            border-radius: 14px;
+            padding: 10px 12px;
+            cursor: pointer;
+            font-weight: 950;
+            color: #2b211c;
+          }
+          .miniBtn:hover {
+            border-color: rgba(180, 106, 106, 0.35);
+          }
+
           .descText {
             margin: 0;
-            color: #374151;
+            color: rgba(43, 33, 28, 0.78);
             font-weight: 650;
-            line-height: 1.5;
+            line-height: 1.7;
             font-size: 13px;
           }
 
-          /* buy box */
+          /* buy */
           .buyBox {
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.86);
+            border: 1px solid rgba(43, 33, 28, 0.10);
+            border-radius: 18px;
             padding: 14px;
             position: sticky;
             top: 12px;
+            box-shadow: 0 18px 34px rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(10px);
           }
           @media (max-width: 1024px) {
             .buyBox {
@@ -686,43 +1112,25 @@ export default function ProdutoPage() {
             }
           }
 
-          .title {
-            margin: 0;
-            font-size: 18px;
-            font-weight: 950;
-            line-height: 1.25;
-          }
-
-          .metaRow {
-            margin-top: 8px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px 14px;
-            color: #6b7280;
-            font-size: 12px;
-            font-weight: 800;
-          }
-
           .priceArea {
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid #eef2f7;
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(43, 33, 28, 0.08);
           }
           .price {
-            font-size: 26px;
+            font-size: 28px;
             font-weight: 980;
-            color: #111827;
-            letter-spacing: -0.3px;
+            color: #2b211c;
+            letter-spacing: -0.35px;
           }
           .install {
             margin-top: 4px;
             font-size: 12px;
             font-weight: 850;
-            color: #6b7280;
+            color: rgba(43, 33, 28, 0.65);
           }
 
           .stockLine {
-            margin-top: 10px;
+            margin-top: 12px;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -736,9 +1144,9 @@ export default function ProdutoPage() {
             border: 1px solid transparent;
           }
           .ok {
-            color: #065f46;
-            background: rgba(16, 185, 129, 0.12);
-            border-color: rgba(16, 185, 129, 0.22);
+            color: #0f5132;
+            background: rgba(25, 135, 84, 0.12);
+            border-color: rgba(25, 135, 84, 0.22);
           }
           .bad {
             color: #991b1b;
@@ -746,13 +1154,13 @@ export default function ProdutoPage() {
             border-color: rgba(185, 28, 28, 0.22);
           }
           .stockSmall {
-            color: #6b7280;
+            color: rgba(43, 33, 28, 0.62);
             font-weight: 900;
             font-size: 12px;
           }
 
           .qtyRow {
-            margin-top: 12px;
+            margin-top: 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -761,40 +1169,41 @@ export default function ProdutoPage() {
           .qtyLbl {
             font-size: 12px;
             font-weight: 950;
-            color: #374151;
+            color: rgba(43, 33, 28, 0.78);
           }
           .qtyCtrl {
             display: inline-flex;
             align-items: center;
-            border: 1px solid #e5e7eb;
+            border: 1px solid rgba(43, 33, 28, 0.12);
             border-radius: 999px;
             overflow: hidden;
+            background: rgba(255, 255, 255, 0.75);
           }
           .qbtn {
-            width: 36px;
-            height: 34px;
+            width: 38px;
+            height: 36px;
             border: none;
             background: transparent;
             cursor: pointer;
             font-weight: 980;
-            color: #111827;
+            color: #2b211c;
           }
           .qbtn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
           }
           .qval {
-            width: 40px;
+            width: 44px;
             text-align: center;
             font-weight: 980;
-            color: #111827;
+            color: #2b211c;
           }
 
           /* cupom */
           .coupon {
-            margin-top: 12px;
-            border-top: 1px solid #eef2f7;
-            padding-top: 12px;
+            margin-top: 14px;
+            border-top: 1px solid rgba(43, 33, 28, 0.08);
+            padding-top: 14px;
           }
           .couponHead {
             display: flex;
@@ -805,11 +1214,12 @@ export default function ProdutoPage() {
           .couponTitle {
             font-weight: 950;
             font-size: 13px;
+            color: #2b211c;
           }
           .couponRemove {
             border: none;
             background: transparent;
-            color: #2563eb;
+            color: #a85c5c;
             cursor: pointer;
             font-weight: 950;
             text-decoration: underline;
@@ -821,24 +1231,26 @@ export default function ProdutoPage() {
           }
           .couponInput {
             flex: 1;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
+            border: 1px solid rgba(43, 33, 28, 0.12);
+            border-radius: 14px;
             padding: 10px 12px;
             font-weight: 900;
             outline: none;
+            background: rgba(255, 255, 255, 0.82);
           }
           .couponInput:focus {
-            border-color: #93c5fd;
-            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+            border-color: rgba(180, 106, 106, 0.45);
+            box-shadow: 0 0 0 4px rgba(180, 106, 106, 0.14);
           }
           .couponBtn {
             border: none;
-            border-radius: 12px;
-            padding: 10px 12px;
+            border-radius: 14px;
+            padding: 10px 14px;
             font-weight: 950;
             cursor: pointer;
             color: #fff;
-            background: #2563eb;
+            background: linear-gradient(135deg, #b46a6a, #a85c5c);
+            box-shadow: 0 14px 26px rgba(180, 106, 106, 0.22);
           }
           .couponBtn:disabled {
             opacity: 0.6;
@@ -856,13 +1268,13 @@ export default function ProdutoPage() {
             font-weight: 950;
             padding: 6px 10px;
             border-radius: 999px;
-            background: rgba(37, 99, 235, 0.1);
-            border: 1px solid rgba(37, 99, 235, 0.18);
-            color: #1d4ed8;
+            background: rgba(180, 106, 106, 0.12);
+            border: 1px solid rgba(180, 106, 106, 0.22);
+            color: #a85c5c;
           }
           .couponHint {
             font-size: 12px;
-            color: #6b7280;
+            color: rgba(43, 33, 28, 0.65);
             font-weight: 800;
           }
           .couponErr {
@@ -873,11 +1285,11 @@ export default function ProdutoPage() {
             background: rgba(185, 28, 28, 0.06);
             border: 1px solid rgba(185, 28, 28, 0.18);
             padding: 8px 10px;
-            border-radius: 12px;
+            border-radius: 14px;
           }
 
           .cta {
-            margin-top: 12px;
+            margin-top: 14px;
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -885,11 +1297,11 @@ export default function ProdutoPage() {
           .btn {
             width: 100%;
             border: none;
-            border-radius: 12px;
+            border-radius: 14px;
             padding: 12px 12px;
             font-weight: 980;
             cursor: pointer;
-            transition: transform 0.12s ease, opacity 0.12s ease;
+            transition: transform 0.12s ease, opacity 0.12s ease, filter 0.12s ease;
           }
           .btn:active {
             transform: translateY(1px);
@@ -899,25 +1311,28 @@ export default function ProdutoPage() {
             cursor: not-allowed;
           }
           .buy {
-            background: #16a34a;
+            background: linear-gradient(135deg, #b46a6a, #a85c5c);
             color: #fff;
-          }
-          .buy:hover {
-            filter: brightness(1.02);
+            box-shadow: 0 16px 30px rgba(180, 106, 106, 0.25);
           }
           .ghost {
-            background: #fff;
-            border: 1px solid #e5e7eb;
-            color: #111827;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(43, 33, 28, 0.12);
+            color: #2b211c;
+          }
+          .ghost2 {
+            background: rgba(180, 106, 106, 0.10);
+            border: 1px solid rgba(180, 106, 106, 0.22);
+            color: #a85c5c;
           }
 
           .backLine {
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid #eef2f7;
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(43, 33, 28, 0.08);
           }
           .back {
-            color: #2563eb;
+            color: #a85c5c;
             text-decoration: none;
             font-weight: 950;
             font-size: 13px;
