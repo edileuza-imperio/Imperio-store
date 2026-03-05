@@ -2,7 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { FaEdit, FaStar, FaPlus, FaTrash, FaBook, FaImages } from "react-icons/fa";
+import {
+  FaEdit,
+  FaStar,
+  FaPlus,
+  FaTrash,
+  FaBook,
+  FaImages,
+} from "react-icons/fa";
 import api from "@/Api/conectar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -17,17 +24,21 @@ interface Produto {
   destaque?: boolean;
   id_destaque?: number;
   catalogo?: number;
-  imagem?: string;
+  imagem?: string; // ✅ aqui fica só o caminho do banco (ex: upload/produtos/...)
 }
 
 export const getImagemUrl = (caminho?: string) => {
   if (!caminho) return undefined;
 
-  const base = api.defaults.baseURL || "";
-  const caminhoLimpo = String(caminho).replace(/^\/+/, "");
-  const baseFinal = base.endsWith("/") ? base : `${base}/`;
+  // normaliza (remove \ do Windows e barras no começo)
+  let c = String(caminho).trim().replace(/\\/g, "/");
+  c = c.replace(/^\/+/, "");
 
-  return `${baseFinal}${caminhoLimpo}`;
+  // se vier "public/upload/..." ou "public/..."
+  c = c.replace(/^public\//, "");
+
+  const base = String(api.defaults.baseURL || "").replace(/\/+$/, "");
+  return `${base}/${c}`;
 };
 
 export default function ProdutosPage() {
@@ -35,11 +46,11 @@ export default function ProdutosPage() {
   const [loading, setLoading] = useState(true);
   const [modalNovoProduto, setModalNovoProduto] = useState(false);
 
-  // ✅ paginação por select + números
+  // ✅ paginação
   const [itensPorPagina, setItensPorPagina] = useState<number>(12);
   const [pagina, setPagina] = useState<number>(1);
 
-  // ✅ modal upload galeria
+  // ✅ modal upload galeria (miniaturas)
   const [galeriaOpen, setGaleriaOpen] = useState(false);
   const [galeriaProduto, setGaleriaProduto] = useState<Produto | null>(null);
   const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]);
@@ -55,7 +66,7 @@ export default function ProdutosPage() {
     setPagina(1);
   }, [itensPorPagina]);
 
-  // limpa blob urls do preview
+  // limpa blob urls do preview ao desmontar
   useEffect(() => {
     return () => {
       galeriaPreview.forEach((u) => URL.revokeObjectURL(u));
@@ -73,11 +84,12 @@ export default function ProdutosPage() {
       if (lista?.dados) lista = lista.dados;
       if (!Array.isArray(lista)) lista = [];
 
+      // ✅ NÃO CONVERTE a imagem aqui (deixa o caminho cru do banco)
       const convertidos: Produto[] = lista.map((p: any) => ({
         ...p,
         preco: Number(p.preco || 0),
         estoque: Number(p.estoque || 0),
-        imagem: getImagemUrl(p.imagem),
+        imagem: p.imagem ? String(p.imagem) : undefined,
       }));
 
       setProdutos(convertidos);
@@ -97,7 +109,9 @@ export default function ProdutosPage() {
           return;
         }
 
-        await api.delete(`/admin/produtos/destaques/${produto.id_destaque}/remover`);
+        await api.delete(
+          `/admin/produtos/destaques/${produto.id_destaque}/remover`
+        );
 
         setProdutos((p) =>
           p.map((i) =>
@@ -170,7 +184,6 @@ export default function ProdutosPage() {
 
     try {
       await api.delete(`/admin/produto/${id}/remover`);
-
       setProdutos((p) => p.filter((i) => i.id_produto !== id));
       toast.success("Produto excluído com sucesso");
     } catch (err) {
@@ -214,7 +227,6 @@ export default function ProdutosPage() {
   }
 
   function limparGaleriaSelecao() {
-    // revoke urls antigas
     galeriaPreview.forEach((u) => URL.revokeObjectURL(u));
     setGaleriaFiles([]);
     setGaleriaPreview([]);
@@ -225,23 +237,16 @@ export default function ProdutosPage() {
     if (!filesList) return;
 
     const files = Array.from(filesList);
+    const ok = files.filter((f) => /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name));
 
-    // valida extensão básica
-    const ok = files.filter((f) =>
-      /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name)
-    );
     if (ok.length === 0) {
       toast.error("Selecione imagens válidas (jpg, png, webp, gif).");
       return;
     }
 
-    // limita (opcional) pra não mandar 100 de uma vez
     const limitadas = ok.slice(0, 12);
-
-    // recria previews
     const previews = limitadas.map((f) => URL.createObjectURL(f));
 
-    // revoga previews anteriores
     galeriaPreview.forEach((u) => URL.revokeObjectURL(u));
 
     setGaleriaFiles(limitadas);
@@ -258,8 +263,7 @@ export default function ProdutosPage() {
     try {
       setGaleriaSending(true);
 
-      // ✅ endpoint sugerido (back): POST /admin/produto/{id}/imagens
-      // campo: imagens[] (multiple)
+      // ✅ back deve aceitar: imagens[] (multiple)
       const form = new FormData();
       galeriaFiles.forEach((file) => form.append("imagens[]", file));
 
@@ -269,7 +273,6 @@ export default function ProdutosPage() {
 
       toast.success("Imagens adicionadas com sucesso!");
       fecharGaleria();
-      // opcional: recarregar lista (se você retornar algo pro front no futuro)
       await carregarProdutos();
     } catch (err) {
       console.error(err);
@@ -355,68 +358,80 @@ export default function ProdutosPage() {
         <div className="text-center py-5">Carregando produtos...</div>
       ) : (
         <div className="row g-4">
-          {produtosPaginados.map((prod) => (
-            <div key={prod.id_produto} className="col-xl-3 col-lg-4 col-md-6">
-              <div className="produto-card">
-                <div className="card-image">
-                  {prod.imagem ? (
-                    <img src={prod.imagem} alt={prod.nome} />
-                  ) : (
-                    <div className="no-image">Sem imagem</div>
-                  )}
+          {produtosPaginados.map((prod) => {
+            const urlImg = getImagemUrl(prod.imagem);
+            return (
+              <div key={prod.id_produto} className="col-xl-3 col-lg-4 col-md-6">
+                <div className="produto-card">
+                  <div className="card-image">
+                    {urlImg ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={urlImg} alt={prod.nome} />
+                    ) : (
+                      <div className="no-image">Sem imagem</div>
+                    )}
 
-                  <div className="badges">
-                    {prod.destaque && <span className="badge badge-destaque">Destaque</span>}
-                    {prod.catalogo === 1 && <span className="badge badge-catalogo">Catálogo</span>}
+                    <div className="badges">
+                      {prod.destaque && (
+                        <span className="badge badge-destaque">Destaque</span>
+                      )}
+                      {prod.catalogo === 1 && (
+                        <span className="badge badge-catalogo">Catálogo</span>
+                      )}
+                    </div>
+
+                    <button
+                      type="button"
+                      className="btnThumbs"
+                      onClick={() => abrirGaleria(prod)}
+                      title="Adicionar imagens (miniaturas)"
+                    >
+                      <FaImages />
+                    </button>
                   </div>
 
-                  {/* ✅ botão miniaturas (galeria) */}
-                  <button
-                    type="button"
-                    className="btnThumbs"
-                    onClick={() => abrirGaleria(prod)}
-                    title="Adicionar imagens (miniaturas)"
-                  >
-                    <FaImages />
-                  </button>
-                </div>
+                  <div className="card-body">
+                    <h6 className="produto-nome">{prod.nome}</h6>
 
-                <div className="card-body">
-                  <h6 className="produto-nome">{prod.nome}</h6>
+                    <p className="preco">R$ {prod.preco.toFixed(2)}</p>
 
-                  <p className="preco">R$ {prod.preco.toFixed(2)}</p>
+                    <small className="estoque">Estoque: {prod.estoque}</small>
 
-                  <small className="estoque">Estoque: {prod.estoque}</small>
+                    <div className="acoes">
+                      <Link href={`/admin/produto/${prod.slug}`} title="Editar">
+                        <FaEdit />
+                      </Link>
 
-                  <div className="acoes">
-                    <Link href={`/admin/produto/${prod.slug}`} title="Editar">
-                      <FaEdit />
-                    </Link>
+                      <button onClick={() => toggleDestaque(prod)} title="Destaque">
+                        <FaStar />
+                      </button>
 
-                    <button onClick={() => toggleDestaque(prod)} title="Destaque">
-                      <FaStar />
-                    </button>
+                      <button
+                        onClick={() => toggleCatalogo(prod)}
+                        title="Catálogo"
+                        className={prod.catalogo === 1 ? "catalogo-on" : "catalogo-off"}
+                      >
+                        <FaBook />
+                      </button>
 
-                    <button
-                      onClick={() => toggleCatalogo(prod)}
-                      title="Catálogo"
-                      className={prod.catalogo === 1 ? "catalogo-on" : "catalogo-off"}
-                    >
-                      <FaBook />
-                    </button>
+                      <button
+                        onClick={() => excluirProduto(prod.id_produto)}
+                        className="danger"
+                        title="Excluir"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
 
-                    <button
-                      onClick={() => excluirProduto(prod.id_produto)}
-                      className="danger"
-                      title="Excluir"
-                    >
-                      <FaTrash />
-                    </button>
+                    {/* 🔎 debug opcional: mostra o caminho que vem do banco */}
+                    {/* <div style={{ fontSize: 10, opacity: 0.6, marginTop: 8 }}>
+                      {prod.imagem}
+                    </div> */}
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {!produtos.length && (
             <div className="col-12">
@@ -438,7 +453,12 @@ export default function ProdutosPage() {
                 </div>
               </div>
 
-              <button className="thumbClose" type="button" onClick={fecharGaleria} aria-label="Fechar">
+              <button
+                className="thumbClose"
+                type="button"
+                onClick={fecharGaleria}
+                aria-label="Fechar"
+              >
                 ×
               </button>
             </div>
@@ -454,11 +474,11 @@ export default function ProdutosPage() {
                 />
 
                 <div className="thumbHint">
-                  Selecione até <b>12</b> imagens. Elas serão salvas em <b>upload/produtos/galeria</b>.
+                  Selecione até <b>12</b> imagens.
                 </div>
               </div>
 
-              {galeriaPreview.length > 0 && (
+              {galeriaPreview.length > 0 ? (
                 <div className="thumbGrid">
                   {galeriaPreview.map((src, idx) => (
                     <div key={src} className="thumbItem">
@@ -467,9 +487,7 @@ export default function ProdutosPage() {
                     </div>
                   ))}
                 </div>
-              )}
-
-              {galeriaPreview.length === 0 && (
+              ) : (
                 <div className="thumbEmpty">Nenhuma imagem selecionada ainda.</div>
               )}
             </div>
@@ -576,7 +594,7 @@ export default function ProdutosPage() {
           height: 34px;
           padding: 0 10px;
           border-radius: 10px;
-          border: 1px solid rgba(0, 0, 0, 0.10);
+          border: 1px solid rgba(0, 0, 0, 0.1);
           background: #fff;
           font-weight: 800;
           color: #6b4c4f;
@@ -743,7 +761,7 @@ export default function ProdutosPage() {
           width: min(720px, 96vw);
           background: #fff;
           border-radius: 16px;
-          border: 1px solid rgba(0, 0, 0, 0.10);
+          border: 1px solid rgba(0, 0, 0, 0.1);
           box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
           overflow: hidden;
         }
@@ -752,7 +770,7 @@ export default function ProdutosPage() {
           display: flex;
           justify-content: space-between;
           gap: 12px;
-          padding: 14px 14px;
+          padding: 14px;
           border-bottom: 1px solid rgba(0, 0, 0, 0.08);
           align-items: center;
         }
@@ -773,7 +791,7 @@ export default function ProdutosPage() {
           width: 40px;
           height: 40px;
           border-radius: 12px;
-          border: 1px solid rgba(0, 0, 0, 0.10);
+          border: 1px solid rgba(0, 0, 0, 0.1);
           background: rgba(0, 0, 0, 0.03);
           cursor: pointer;
           font-size: 22px;
@@ -849,7 +867,7 @@ export default function ProdutosPage() {
           padding: 10px 14px;
           cursor: pointer;
           font-weight: 900;
-          border: 1px solid rgba(0, 0, 0, 0.10);
+          border: 1px solid rgba(0, 0, 0, 0.1);
         }
 
         .thumbBtn.ghost {
