@@ -8,8 +8,13 @@ type Campanha = {
   id_campanha: number;
   titulo: string;
   slug: string;
-  descricao?: string;
+  descricao?: string | null;
+  banner?: string | null;
   statusid: number;
+  inicio?: string | null;
+  fim?: string | null;
+  criado?: string | null;
+  atualizado?: string | null;
 };
 
 type Produto = {
@@ -17,15 +22,30 @@ type Produto = {
   nome: string;
 };
 
+function slugify(texto: string) {
+  return texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // remove acentos
+    .replace(/[^a-z0-9\s-]/g, "") // remove caracteres especiais
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+}
+
 export default function CampanhasPage() {
   const [campanhas, setCampanhas] = useState<Campanha[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [openModal, setOpenModal] = useState(false);
 
+  // campos da tabela campanha
   const [titulo, setTitulo] = useState("");
   const [slug, setSlug] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [banner, setBanner] = useState("");
+  const [inicio, setInicio] = useState(""); // datetime-local
+  const [fim, setFim] = useState(""); // datetime-local
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [produtosSelecionados, setProdutosSelecionados] = useState<number[]>([]);
@@ -92,6 +112,7 @@ export default function CampanhasPage() {
       carregarCampanhas();
     } catch (err) {
       console.error(err);
+      alert("Erro ao remover campanha. Veja o console.");
     }
   }
 
@@ -100,19 +121,23 @@ export default function CampanhasPage() {
   // ==============================
   function abrirModal() {
     setOpenModal(true);
-
-    // carrega produtos quando abrir (se ainda não carregou)
     if (produtos.length === 0) carregarProdutos();
+  }
+
+  function resetForm() {
+    setTitulo("");
+    setSlug("");
+    setDescricao("");
+    setBanner("");
+    setInicio("");
+    setFim("");
+    setProdutosSelecionados([]);
+    setBuscaProduto("");
   }
 
   function fecharModal() {
     setOpenModal(false);
-
-    setTitulo("");
-    setSlug("");
-    setDescricao("");
-    setProdutosSelecionados([]);
-    setBuscaProduto("");
+    resetForm();
   }
 
   // trava scroll do body com modal aberto + ESC para fechar
@@ -136,7 +161,7 @@ export default function CampanhasPage() {
   }, [openModal]);
 
   // ==============================
-  // PRODUTOS: filtro + toggle
+  // PRODUTOS
   // ==============================
   function toggleProduto(id: number) {
     setProdutosSelecionados((prev) =>
@@ -147,88 +172,130 @@ export default function CampanhasPage() {
   const produtosFiltrados = useMemo(() => {
     const term = buscaProduto.trim().toLowerCase();
     if (!term) return produtos;
-
     return produtos.filter((p) => p.nome.toLowerCase().includes(term));
   }, [buscaProduto, produtos]);
 
   // ==============================
-  // CRIAR CAMPANHA
+  // CRIAR CAMPANHA (SEM DUPLICAR)
   // ==============================
   async function criarCampanha() {
-    if (!titulo.trim() || !slug.trim()) {
-      alert("Preencha título e slug");
+    // ✅ evita clique duplo (duplicar no banco)
+    if (saving) return;
+
+    const t = titulo.trim();
+    const s = slug.trim();
+
+    if (!t) {
+      alert("Preencha o título");
       return;
+    }
+
+    // se usuário deixou slug vazio, gera automático
+    const slugFinal = s ? slugify(s) : slugify(t);
+
+    if (!slugFinal) {
+      alert("Slug inválido");
+      return;
+    }
+
+    // valida datas (opcional)
+    if (inicio && fim) {
+      const di = new Date(inicio).getTime();
+      const df = new Date(fim).getTime();
+      if (df < di) {
+        alert("A data FIM não pode ser menor que a data INÍCIO.");
+        return;
+      }
     }
 
     try {
       setSaving(true);
 
+      // ✅ 1) cria campanha (tabela campanha)
       const res = await api.post("/admin/campanhas", {
-        titulo: titulo.trim(),
-        slug: slug.trim(),
+        titulo: t,
+        slug: slugFinal,
         descricao: descricao.trim() || null,
+        banner: banner.trim() || null,
         statusid: 3,
+        // seu back espera "YYYY-mm-dd HH:ii:ss" (string)
+        // a input datetime-local vem "YYYY-mm-ddTHH:ii"
+        inicio: inicio ? inicio.replace("T", " ") + ":00" : null,
+        fim: fim ? fim.replace("T", " ") + ":00" : null,
       });
 
       const id = res?.data?.dados?.id_campanha;
 
-      if (id && produtosSelecionados.length > 0) {
-        // seu backend usa /admin/campanha/{id}/produtos (singular "campanha")
+      if (!id) {
+        console.error("Resposta sem id_campanha:", res?.data);
+        alert("Campanha criada, mas não retornou o ID. Veja o console.");
+        return;
+      }
+
+      // ✅ 2) vincula produtos (tabela campanha_produto)
+      if (produtosSelecionados.length > 0) {
         await api.post(`/admin/campanha/${id}/produtos`, {
           produtos: produtosSelecionados,
+          ordem_inicial: 1,
         });
       }
 
       fecharModal();
       carregarCampanhas();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro criar campanha:", err);
-      alert("Erro ao criar campanha. Veja o console.");
+
+      const msg =
+        err?.response?.data?.mensagem ||
+        err?.response?.data?.message ||
+        "Erro ao criar campanha. Veja o console.";
+
+      alert(msg);
     } finally {
       setSaving(false);
     }
   }
+
+  // auto-slug: quando digitar título, preenche slug (só se slug ainda estiver vazio)
+  useEffect(() => {
+    if (!openModal) return;
+    if (slug.trim()) return;
+    if (!titulo.trim()) return;
+    setSlug(slugify(titulo));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [titulo, openModal]);
 
   // ==============================
   // RENDER
   // ==============================
   return (
     <div className="pageWrap">
-      {/* Header */}
       <div className="d-flex align-items-start justify-content-between gap-3 flex-wrap">
         <div>
           <h1 className="m-0 title">Campanhas</h1>
           <p className="m-0 subtitle">Gerencie campanhas promocionais do painel</p>
         </div>
 
-        <div className="d-flex gap-2">
-          <button className="btn btn-primary btn-sm px-3 btnNew" onClick={abrirModal}>
-            <FiPlus /> <span>Nova campanha</span>
-          </button>
-        </div>
+        <button
+          className="btn btn-primary btn-sm px-3 btnNew"
+          onClick={abrirModal}
+        >
+          <FiPlus /> <span>Nova campanha</span>
+        </button>
       </div>
 
-      {/* Content */}
       <div className="contentCard">
         <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-          <div className="d-flex align-items-center gap-2">
-            <span className="badge text-bg-dark badgeSoft">
-              {loading ? "..." : campanhas.length} campanhas
-            </span>
-          </div>
+          <span className="badge text-bg-dark badgeSoft">
+            {loading ? "..." : campanhas.length} campanhas
+          </span>
 
           <div className="small text-muted">
             {loading ? "Carregando lista..." : "Tudo pronto ✅"}
           </div>
         </div>
 
-        {loading && (
-          <div className="skeletonGrid">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="skeletonCard" />
-            ))}
-          </div>
-        )}
+        {loading && <p className="text-muted m-0">Carregando...</p>}
 
         {!loading && campanhas.length === 0 && (
           <div className="emptyState">
@@ -245,47 +312,46 @@ export default function CampanhasPage() {
 
         {!loading && campanhas.length > 0 && (
           <div className="grid">
-            {Array.isArray(campanhas) &&
-              campanhas.map((c) => (
-                <div key={c.id_campanha} className="campCard">
-                  <div className="campTop">
-                    <div className="campIcon">
-                      <FiTag />
-                    </div>
-
-                    <button
-                      className="btn btn-outline-danger btn-sm btnIcon"
-                      onClick={() => remover(c.id_campanha)}
-                      title="Remover campanha"
-                    >
-                      <FiTrash2 />
-                    </button>
+            {campanhas.map((c) => (
+              <div key={c.id_campanha} className="campCard">
+                <div className="campTop">
+                  <div className="campIcon">
+                    <FiTag />
                   </div>
 
-                  <div className="campBody">
-                    <div className="campTitle" title={c.titulo}>
-                      {c.titulo}
-                    </div>
-
-                    <div className="campSlug" title={c.slug}>
-                      /{c.slug}
-                    </div>
-
-                    {c.descricao ? (
-                      <div className="campDesc">{c.descricao}</div>
-                    ) : (
-                      <div className="campDesc muted">Sem descrição</div>
-                    )}
-                  </div>
-
-                  <div className="campFooter">
-                    <span className="badge text-bg-light border badgePill">
-                      ID: {c.id_campanha}
-                    </span>
-                    <span className="badge text-bg-success badgePill">Ativa</span>
-                  </div>
+                  <button
+                    className="btn btn-outline-danger btn-sm btnIcon"
+                    onClick={() => remover(c.id_campanha)}
+                    title="Remover campanha"
+                  >
+                    <FiTrash2 />
+                  </button>
                 </div>
-              ))}
+
+                <div className="campBody">
+                  <div className="campTitle" title={c.titulo}>
+                    {c.titulo}
+                  </div>
+
+                  <div className="campSlug" title={c.slug}>
+                    /{c.slug}
+                  </div>
+
+                  {c.descricao ? (
+                    <div className="campDesc">{c.descricao}</div>
+                  ) : (
+                    <div className="campDesc muted">Sem descrição</div>
+                  )}
+                </div>
+
+                <div className="campFooter">
+                  <span className="badge text-bg-light border badgePill">
+                    ID: {c.id_campanha}
+                  </span>
+                  <span className="badge text-bg-success badgePill">Ativa</span>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -295,14 +361,16 @@ export default function CampanhasPage() {
         <div className="modalOverlay" onMouseDown={fecharModal}>
           <div
             className="modalDialog"
-            onMouseDown={(e) => e.stopPropagation()} // não fecha ao clicar dentro
+            onMouseDown={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
           >
             <div className="modalHeader">
               <div>
                 <div className="modalTitle">Criar campanha</div>
-                <div className="modalSub">Defina título, slug e vincule produtos</div>
+                <div className="modalSub">
+                  Salva em <b>campanha</b> e vincula em <b>campanha_produto</b>
+                </div>
               </div>
 
               <button className="btn btn-light btn-sm btnIcon" onClick={fecharModal}>
@@ -330,6 +398,9 @@ export default function CampanhasPage() {
                     value={slug}
                     onChange={(e) => setSlug(e.target.value)}
                   />
+                  <div className="small text-muted mt-1">
+                    Se deixar vazio, eu gero automático pelo título.
+                  </div>
                 </div>
 
                 <div className="col-12">
@@ -342,12 +413,41 @@ export default function CampanhasPage() {
                     rows={3}
                   />
                 </div>
+
+                <div className="col-12">
+                  <label className="form-label mb-1">Banner (URL ou caminho)</label>
+                  <input
+                    className="form-control"
+                    placeholder="ex: upload/campanhas/banner.jpg"
+                    value={banner}
+                    onChange={(e) => setBanner(e.target.value)}
+                  />
+                </div>
+
+                <div className="col-12 col-md-6">
+                  <label className="form-label mb-1">Início (opcional)</label>
+                  <input
+                    type="datetime-local"
+                    className="form-control"
+                    value={inicio}
+                    onChange={(e) => setInicio(e.target.value)}
+                  />
+                </div>
+
+                <div className="col-12 col-md-6">
+                  <label className="form-label mb-1">Fim (opcional)</label>
+                  <input
+                    type="datetime-local"
+                    className="form-control"
+                    value={fim}
+                    onChange={(e) => setFim(e.target.value)}
+                  />
+                </div>
               </div>
 
               <div className="prodBox mt-3">
                 <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
                   <div className="fw-semibold">Produtos</div>
-
                   <span className="badge text-bg-primary badgePill">
                     Selecionados: {produtosSelecionados.length}
                   </span>
@@ -375,7 +475,6 @@ export default function CampanhasPage() {
                   {!loadingProdutos &&
                     produtosFiltrados.map((p) => {
                       const checked = produtosSelecionados.includes(p.id_produto);
-
                       return (
                         <label key={p.id_produto} className="prodRow">
                           <input
@@ -392,15 +491,11 @@ export default function CampanhasPage() {
             </div>
 
             <div className="modalFooter">
-              <button className="btn btn-light" onClick={fecharModal}>
+              <button className="btn btn-light" onClick={fecharModal} disabled={saving}>
                 Cancelar
               </button>
 
-              <button
-                className="btn btn-primary"
-                onClick={criarCampanha}
-                disabled={saving}
-              >
+              <button className="btn btn-primary" onClick={criarCampanha} disabled={saving}>
                 {saving ? "Criando..." : "Criar campanha"}
               </button>
             </div>
@@ -408,7 +503,6 @@ export default function CampanhasPage() {
         </div>
       )}
 
-      {/* CSS PURO (com bootstrap classes usando também) */}
       <style jsx>{`
         .pageWrap {
           display: flex;
@@ -557,37 +651,6 @@ export default function CampanhasPage() {
           font-weight: 800;
         }
 
-        /* Skeleton */
-        .skeletonGrid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-          gap: 14px;
-        }
-
-        .skeletonCard {
-          height: 170px;
-          border-radius: 16px;
-          background: linear-gradient(
-            90deg,
-            rgba(15, 23, 42, 0.06),
-            rgba(15, 23, 42, 0.03),
-            rgba(15, 23, 42, 0.06)
-          );
-          background-size: 200% 100%;
-          animation: shimmer 1.2s infinite linear;
-          border: 1px solid rgba(15, 23, 42, 0.06);
-        }
-
-        @keyframes shimmer {
-          0% {
-            background-position: 0% 0;
-          }
-          100% {
-            background-position: 200% 0;
-          }
-        }
-
-        /* Empty */
         .emptyState {
           border: 1px dashed rgba(15, 23, 42, 0.18);
           border-radius: 16px;
@@ -610,46 +673,27 @@ export default function CampanhasPage() {
           border: 1px solid rgba(124, 58, 237, 0.18);
         }
 
-        .emptyState h3 {
-          margin: 0;
-          font-weight: 900;
-          color: #0f172a;
-        }
-
-        .emptyState p {
-          margin: 0;
-          max-width: 420px;
-          color: #64748b;
-          font-weight: 600;
-        }
-
-        /* Modal overlay + dialog CENTRALIZADO */
+        /* Modal centralizado */
         .modalOverlay {
           position: fixed;
           inset: 0;
           background: rgba(2, 6, 23, 0.58);
           z-index: 9999;
-
           display: flex;
-          align-items: center; /* ✅ central vertical */
-          justify-content: center; /* ✅ central horizontal */
-
+          align-items: center;
+          justify-content: center;
           padding: 16px;
         }
 
         .modalDialog {
           width: min(760px, 100%);
           max-height: 90vh;
-
           background: #fff;
           border-radius: 16px;
           border: 1px solid rgba(15, 23, 42, 0.1);
           box-shadow: 0 30px 100px rgba(2, 6, 23, 0.35);
-
           display: flex;
           flex-direction: column;
-
-          transform: translateZ(0); /* evita bug visual */
         }
 
         .modalHeader {
@@ -657,7 +701,6 @@ export default function CampanhasPage() {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-
           padding: 16px 16px 12px;
           border-bottom: 1px solid rgba(15, 23, 42, 0.08);
         }
@@ -678,7 +721,7 @@ export default function CampanhasPage() {
 
         .modalBody {
           padding: 14px 16px;
-          overflow: auto; /* ✅ scroll interno */
+          overflow: auto;
         }
 
         .modalFooter {
@@ -689,7 +732,6 @@ export default function CampanhasPage() {
           gap: 10px;
         }
 
-        /* Produtos box */
         .prodBox {
           border: 1px solid rgba(15, 23, 42, 0.08);
           border-radius: 14px;
@@ -746,24 +788,6 @@ export default function CampanhasPage() {
           font-weight: 700;
           color: #0f172a;
           font-size: 13.5px;
-        }
-
-        /* Scrollbar (suave) */
-        .prodList::-webkit-scrollbar,
-        .modalBody::-webkit-scrollbar {
-          width: 8px;
-        }
-
-        .prodList::-webkit-scrollbar-thumb,
-        .modalBody::-webkit-scrollbar-thumb {
-          background: rgba(15, 23, 42, 0.14);
-          border-radius: 999px;
-        }
-
-        @media (max-width: 520px) {
-          .modalDialog {
-            max-height: 92vh;
-          }
         }
       `}</style>
     </div>
