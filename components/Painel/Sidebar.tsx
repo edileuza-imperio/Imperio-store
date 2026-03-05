@@ -44,15 +44,14 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
   }
 
   function getIcon(label: string) {
-    const text = label.toLowerCase();
-    if (text.includes("dashboard")) return FiHome;
-    if (text.includes("painel")) return FiHome;
-    if (text.includes("usu")) return FiUsers;
-    if (text.includes("banner")) return FiImage;
-    if (text.includes("prod")) return FiBox;
-    if (text.includes("categ")) return FiTag;
-    if (text.includes("catálogo") || text.includes("catalogo")) return FiGrid;
-    if (text.includes("gest")) return FiGrid;
+    const t = label.toLowerCase();
+    if (t.includes("dashboard") || t.includes("painel")) return FiHome;
+    if (t.includes("usu")) return FiUsers;
+    if (t.includes("banner")) return FiImage;
+    if (t.includes("prod")) return FiBox;
+    if (t.includes("categ")) return FiTag;
+    if (t.includes("catálogo") || t.includes("catalogo")) return FiGrid;
+    if (t.includes("gest")) return FiGrid;
     return FiBox;
   }
 
@@ -77,8 +76,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       } else {
         setItems([]);
       }
-    } catch (error) {
-      console.error("Erro ao carregar sidebar:", error);
+    } catch (err) {
+      console.error("Erro ao carregar sidebar:", err);
       setItems([]);
     } finally {
       setLoading(false);
@@ -110,9 +109,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           (c) => hit(c.label) || hit(c.href)
         );
 
-        if (hit(it.label) || children.length > 0) {
-          return { ...it, children };
-        }
+        if (hit(it.label) || children.length > 0) return { ...it, children };
         return null;
       })
       .filter(Boolean) as SidebarItem[];
@@ -129,15 +126,16 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       />
 
       <aside className={`sidebar ${open ? "open" : ""}`}>
-        <div className="top">
+        {/* HEADER */}
+        <div className="header">
           <div className="brand">
-            <div className="mark">
-              <span className="dot" />
+            <div className="logo">
+              <span className="logoDot" />
             </div>
 
             <div className="brandText">
               <strong>Universo Império</strong>
-              <span>Admin</span>
+              <span>Painel Administrativo</span>
             </div>
           </div>
 
@@ -146,24 +144,32 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             className="closeBtn"
             onClick={onClose}
             aria-label="Fechar sidebar"
+            title="Fechar"
           >
             <FiX size={18} />
           </button>
         </div>
 
+        {/* SEARCH */}
         <div className="search">
           <FiSearch className="sicon" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar no menu..."
+            placeholder="Buscar..."
           />
         </div>
 
+        {/* MENU */}
         <nav className="nav">
           <div className="navTitle">NAVEGAÇÃO</div>
 
-          {loading && <div className="skeleton">Carregando menu...</div>}
+          {loading && (
+            <div className="loader">
+              <div className="bar" />
+              <span>Carregando menu...</span>
+            </div>
+          )}
 
           {!loading && filteredItems.length === 0 && (
             <div className="empty">Nenhum item encontrado.</div>
@@ -183,10 +189,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                     <span className="ico">
                       <Icon size={18} />
                     </span>
-
-                    <span className="txt">{item.label}</span>
-
-                    <span className="pill" />
+                    <span className="label">{item.label}</span>
+                    <span className="activeMark" />
                   </Link>
                 );
               }
@@ -212,7 +216,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                       <Icon size={18} />
                     </span>
 
-                    <span className="txt">{item.label}</span>
+                    <span className="label">{item.label}</span>
 
                     <FiChevronDown className={`chev ${opened ? "rot" : ""}`} />
                   </button>
@@ -220,18 +224,17 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                   <div className={`submenu ${opened ? "show" : ""}`}>
                     {item.children?.map((c, j) => {
                       const IconChild = getIcon(c.label);
-
                       return (
                         <Link
                           key={j}
                           href={c.href || "#"}
                           className={`subitem ${isActive(c.href) ? "subactive" : ""}`}
                         >
-                          <span className="bullet" />
-                          <span className="subico">
+                          <span className="subIco">
                             <IconChild size={16} />
                           </span>
-                          <span className="txt">{c.label}</span>
+                          <span className="label">{c.label}</span>
+                          <span className="subMark" />
                         </Link>
                       );
                     })}
@@ -241,12 +244,13 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
             })}
         </nav>
 
+        {/* FOOTER */}
         <div className="footer">
-          <div className="mini">
-            <div className="miniDot" />
-            <div className="miniTxt">
-              <strong>Sistema</strong>
-              <span>v1.0</span>
+          <div className="status">
+            <span className="statusDot" />
+            <div className="statusTxt">
+              <strong>Online</strong>
+              <span>Sistema operacional</span>
             </div>
           </div>
         </div>
@@ -258,11 +262,11 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           color: inherit;
         }
 
-        /* overlay (mobile) */
+        /* ===== Overlay Mobile ===== */
         .overlay {
           position: fixed;
           inset: 0;
-          background: rgba(2, 6, 23, 0.55);
+          background: rgba(2, 6, 23, 0.58);
           border: none;
           display: none;
           z-index: 9998;
@@ -271,8 +275,9 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           display: block;
         }
 
+        /* ===== Sidebar ===== */
         .sidebar {
-          width: 292px;
+          width: 304px;
           height: 100vh;
           position: sticky;
           top: 0;
@@ -281,25 +286,43 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           display: flex;
           flex-direction: column;
 
-          background: radial-gradient(
-              1200px 600px at 10% 0%,
-              rgba(124, 58, 237, 0.25),
-              transparent 55%
-            ),
-            linear-gradient(180deg, #070a12, #060913 55%, #050814);
-
+          background: linear-gradient(180deg, #0b1020, #070a14);
           border-right: 1px solid rgba(255, 255, 255, 0.06);
-          box-shadow: 22px 0 60px rgba(0, 0, 0, 0.35);
 
           padding: 16px 14px 14px;
         }
 
-        .top {
+        /* subtle background accents */
+        .sidebar:before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          pointer-events: none;
+          background: radial-gradient(
+              900px 520px at 10% 10%,
+              rgba(124, 58, 237, 0.22),
+              transparent 55%
+            ),
+            radial-gradient(
+              820px 520px at 90% 18%,
+              rgba(14, 165, 233, 0.14),
+              transparent 58%
+            );
+          opacity: 1;
+        }
+
+        .sidebar > * {
+          position: relative;
+          z-index: 1;
+        }
+
+        /* ===== Header ===== */
+        .header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 10px;
-          margin-bottom: 12px;
+          gap: 12px;
+          margin-bottom: 14px;
         }
 
         .brand {
@@ -309,7 +332,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           min-width: 0;
         }
 
-        .mark {
+        .logo {
           width: 44px;
           height: 44px;
           border-radius: 14px;
@@ -318,22 +341,22 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
           background: rgba(255, 255, 255, 0.06);
           border: 1px solid rgba(255, 255, 255, 0.08);
-          box-shadow: 0 14px 36px rgba(0, 0, 0, 0.35);
+          box-shadow: 0 18px 44px rgba(0, 0, 0, 0.35);
         }
 
-        .dot {
+        .logoDot {
           width: 12px;
           height: 12px;
           border-radius: 999px;
           background: linear-gradient(135deg, #a855f7, #7c3aed);
-          box-shadow: 0 0 0 6px rgba(124, 58, 237, 0.15);
+          box-shadow: 0 0 0 7px rgba(124, 58, 237, 0.14);
         }
 
         .brandText {
           display: flex;
           flex-direction: column;
           min-width: 0;
-          line-height: 1.05;
+          line-height: 1.1;
         }
 
         .brandText strong {
@@ -350,6 +373,9 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           font-weight: 800;
           color: rgba(148, 163, 184, 0.9);
           margin-top: 4px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .closeBtn {
@@ -368,6 +394,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           background: rgba(255, 255, 255, 0.1);
         }
 
+        /* ===== Search ===== */
         .search {
           display: flex;
           align-items: center;
@@ -401,6 +428,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           font-weight: 800;
         }
 
+        /* ===== Nav ===== */
         .nav {
           display: flex;
           flex-direction: column;
@@ -415,11 +443,53 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           letter-spacing: 0.08em;
           color: rgba(148, 163, 184, 0.9);
           font-weight: 900;
-          margin: 2px 0 6px;
-          padding-left: 4px;
+          margin: 4px 0 6px;
+          padding-left: 6px;
         }
 
-        .skeleton,
+        .loader {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          border-radius: 14px;
+          background: rgba(255, 255, 255, 0.04);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+          color: rgba(148, 163, 184, 0.9);
+          font-weight: 800;
+          font-size: 12px;
+        }
+
+        .loader .bar {
+          width: 32px;
+          height: 10px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.08);
+          position: relative;
+          overflow: hidden;
+        }
+
+        .loader .bar:before {
+          content: "";
+          position: absolute;
+          left: -40%;
+          top: 0;
+          height: 100%;
+          width: 55%;
+          background: rgba(255, 255, 255, 0.18);
+          border-radius: 999px;
+          animation: slide 1.1s infinite;
+        }
+
+        @keyframes slide {
+          0% {
+            left: -50%;
+          }
+          100% {
+            left: 120%;
+          }
+        }
+
         .empty {
           padding: 10px 12px;
           border-radius: 14px;
@@ -430,12 +500,12 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           font-size: 12px;
         }
 
+        /* ===== Link item ===== */
         .item {
           position: relative;
           display: flex;
           align-items: center;
           gap: 10px;
-
           padding: 11px 12px;
           border-radius: 14px;
 
@@ -443,30 +513,30 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           font-size: 13px;
           font-weight: 900;
 
-          border: 1px solid transparent;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.06);
           transition: 0.18s;
           overflow: hidden;
         }
 
         .item:hover {
-          background: rgba(255, 255, 255, 0.06);
-          border-color: rgba(255, 255, 255, 0.08);
           transform: translateY(-1px);
+          background: rgba(255, 255, 255, 0.06);
+          border-color: rgba(255, 255, 255, 0.1);
           color: #fff;
         }
 
         .ico {
-          width: 34px;
-          height: 34px;
-          border-radius: 12px;
+          width: 36px;
+          height: 36px;
+          border-radius: 13px;
           display: grid;
           place-items: center;
-
           background: rgba(255, 255, 255, 0.06);
           border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        .txt {
+        .label {
           flex: 1;
           min-width: 0;
           white-space: nowrap;
@@ -474,7 +544,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           text-overflow: ellipsis;
         }
 
-        .pill {
+        .activeMark {
           width: 8px;
           height: 8px;
           border-radius: 999px;
@@ -485,28 +555,28 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           color: #fff;
           background: linear-gradient(
             135deg,
-            rgba(124, 58, 237, 0.35),
-            rgba(168, 85, 247, 0.18)
+            rgba(124, 58, 237, 0.32),
+            rgba(14, 165, 233, 0.14)
           );
-          border-color: rgba(124, 58, 237, 0.35);
-          box-shadow: 0 16px 40px rgba(124, 58, 237, 0.15);
+          border-color: rgba(124, 58, 237, 0.28);
+          box-shadow: 0 18px 40px rgba(124, 58, 237, 0.14);
         }
 
         .active .ico {
-          background: rgba(124, 58, 237, 0.25);
-          border-color: rgba(124, 58, 237, 0.35);
+          background: rgba(124, 58, 237, 0.2);
+          border-color: rgba(124, 58, 237, 0.28);
         }
 
-        .active .pill {
+        .active .activeMark {
           background: linear-gradient(135deg, #a855f7, #7c3aed);
-          box-shadow: 0 0 0 7px rgba(124, 58, 237, 0.16);
+          box-shadow: 0 0 0 7px rgba(124, 58, 237, 0.14);
         }
 
-        /* groups */
+        /* ===== Groups ===== */
         .groupWrap {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 8px;
         }
 
         .group {
@@ -514,50 +584,50 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           display: flex;
           align-items: center;
           gap: 10px;
-
           padding: 11px 12px;
           border-radius: 14px;
 
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          color: #fff;
-
           cursor: pointer;
+
+          color: #fff;
           font-size: 13px;
           font-weight: 900;
 
+          background: rgba(255, 255, 255, 0.035);
+          border: 1px solid rgba(255, 255, 255, 0.06);
           transition: 0.18s;
         }
 
         .group:hover {
-          background: rgba(255, 255, 255, 0.07);
           transform: translateY(-1px);
+          background: rgba(255, 255, 255, 0.06);
+          border-color: rgba(255, 255, 255, 0.1);
         }
 
         .group.hint {
-          border-color: rgba(124, 58, 237, 0.26);
+          border-color: rgba(124, 58, 237, 0.22);
         }
 
-        .group .chev {
+        .chev {
           margin-left: auto;
           opacity: 0.9;
           transition: 0.2s;
         }
 
-        .group .chev.rot {
+        .chev.rot {
           transform: rotate(180deg);
         }
 
         .group.opened {
-          background: rgba(255, 255, 255, 0.06);
+          background: rgba(255, 255, 255, 0.055);
         }
 
         .submenu {
           display: none;
           flex-direction: column;
           gap: 6px;
-          margin-left: 8px;
-          padding-left: 10px;
+          margin-left: 10px;
+          padding-left: 12px;
           border-left: 1px dashed rgba(255, 255, 255, 0.12);
         }
 
@@ -566,6 +636,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
         }
 
         .subitem {
+          position: relative;
           display: flex;
           align-items: center;
           gap: 10px;
@@ -577,89 +648,92 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           font-size: 12.5px;
           font-weight: 900;
 
-          border: 1px solid rgba(255, 255, 255, 0.06);
           background: rgba(255, 255, 255, 0.03);
+          border: 1px solid rgba(255, 255, 255, 0.06);
+
           transition: 0.18s;
+          overflow: hidden;
         }
 
         .subitem:hover {
+          transform: translateY(-1px);
           background: rgba(255, 255, 255, 0.06);
           color: #fff !important;
-          transform: translateY(-1px);
           border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .subIco {
+          width: 30px;
+          height: 30px;
+          border-radius: 12px;
+          display: grid;
+          place-items: center;
+
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .subMark {
+          width: 8px;
+          height: 8px;
+          border-radius: 999px;
+          background: transparent;
         }
 
         .subactive {
           color: #fff !important;
           background: linear-gradient(
             135deg,
-            rgba(124, 58, 237, 0.26),
-            rgba(168, 85, 247, 0.12)
+            rgba(124, 58, 237, 0.25),
+            rgba(14, 165, 233, 0.12)
           );
-          border-color: rgba(124, 58, 237, 0.26);
+          border-color: rgba(124, 58, 237, 0.22);
         }
 
-        .bullet {
-          width: 7px;
-          height: 7px;
-          border-radius: 999px;
-          background: rgba(148, 163, 184, 0.65);
-        }
-
-        .subactive .bullet {
+        .subactive .subMark {
           background: linear-gradient(135deg, #a855f7, #7c3aed);
-          box-shadow: 0 0 0 6px rgba(124, 58, 237, 0.14);
+          box-shadow: 0 0 0 7px rgba(124, 58, 237, 0.14);
         }
 
-        .subico {
-          width: 28px;
-          height: 28px;
-          border-radius: 12px;
-          display: grid;
-          place-items: center;
-
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        /* footer */
+        /* ===== Footer ===== */
         .footer {
           margin-top: 12px;
           padding-top: 12px;
           border-top: 1px solid rgba(255, 255, 255, 0.06);
         }
 
-        .mini {
+        .status {
           display: flex;
           align-items: center;
           gap: 10px;
           padding: 10px 12px;
           border-radius: 14px;
+
           background: rgba(255, 255, 255, 0.04);
           border: 1px solid rgba(255, 255, 255, 0.06);
         }
 
-        .miniDot {
+        .statusDot {
           width: 10px;
           height: 10px;
           border-radius: 999px;
           background: #22c55e;
-          box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.14);
+          box-shadow: 0 0 0 7px rgba(34, 197, 94, 0.14);
         }
 
-        .miniTxt {
+        .statusTxt {
           display: flex;
           flex-direction: column;
           line-height: 1.05;
         }
 
-        .miniTxt strong {
+        .statusTxt strong {
           color: #fff;
           font-size: 12px;
           font-weight: 900;
         }
 
-        .miniTxt span {
+        .statusTxt span {
           color: rgba(148, 163, 184, 0.9);
           font-size: 11px;
           font-weight: 800;
@@ -678,7 +752,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           background: rgba(255, 255, 255, 0.14);
         }
 
-        /* mobile behavior */
+        /* mobile */
         @media (max-width: 900px) {
           .sidebar {
             position: fixed;
