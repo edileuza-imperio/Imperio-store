@@ -2,29 +2,42 @@
 
 import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
-import { FiPlus, FiTrash2, FiTag, FiPackage } from "react-icons/fi";
+import {
+FiPlus,
+FiTrash2,
+FiPackage
+} from "react-icons/fi";
 
 type Campanha = {
-  id_campanha:number
-  titulo:string
-  slug:string
-  banner?:string
+id_campanha:number
+titulo:string
+slug:string
+descricao?:string
+}
+
+type Produto = {
+id_produto:number
+nome:string
 }
 
 export default function CampanhasPage(){
 
 const [campanhas,setCampanhas]=useState<Campanha[]>([])
+const [produtos,setProdutos]=useState<Produto[]>([])
+const [produtosSelecionados,setProdutosSelecionados]=useState<number[]>([])
+
 const [openModal,setOpenModal]=useState(false)
+const [openProdutos,setOpenProdutos]=useState(false)
 
 const [titulo,setTitulo]=useState("")
 const [slug,setSlug]=useState("")
-const [banner,setBanner]=useState("")
+const [descricao,setDescricao]=useState("")
 
-const [campanhaProdutos,setCampanhaProdutos]=useState<number|null>(null)
+const [campanhaSelecionada,setCampanhaSelecionada]=useState<number|null>(null)
 
-async function carregar(){
+async function carregarCampanhas(){
 
-const res=await api.get("/admin/campanhas")
+const res = await api.get("/admin/campanhas")
 
 const lista =
 res?.data?.dados?.campanhas ??
@@ -36,44 +49,86 @@ setCampanhas(lista)
 
 }
 
+async function carregarProdutos(){
+
+const res = await api.get("/admin/produtos")
+
+const lista =
+res?.data?.dados ??
+res?.data ??
+[]
+
+setProdutos(lista)
+
+}
+
 useEffect(()=>{
-carregar()
+
+carregarCampanhas()
+carregarProdutos()
+
 },[])
 
-async function criar(){
+async function criarCampanha(){
 
-await api.post("/admin/campanhas",{
+const res = await api.post("/admin/campanhas",{
 
 titulo,
 slug,
-banner,
+descricao,
 statusid:3
 
 })
 
-setTitulo("")
-setSlug("")
-setBanner("")
 setOpenModal(false)
 
-carregar()
+setTitulo("")
+setSlug("")
+setDescricao("")
+
+carregarCampanhas()
 
 }
 
-async function remover(id:number){
+async function removerCampanha(id:number){
 
 if(!confirm("Remover campanha?")) return
 
 await api.delete(`/admin/campanhas/${id}`)
 
-carregar()
+carregarCampanhas()
 
 }
 
 function abrirProdutos(id:number){
 
-setCampanhaProdutos(id)
-alert("Aqui abrirá o modal para vincular produtos da campanha "+id)
+setCampanhaSelecionada(id)
+setOpenProdutos(true)
+setProdutosSelecionados([])
+
+}
+
+function toggleProduto(id:number){
+
+setProdutosSelecionados(prev=>
+prev.includes(id)
+? prev.filter(p=>p!==id)
+: [...prev,id]
+)
+
+}
+
+async function salvarProdutos(){
+
+if(!campanhaSelecionada) return
+
+await api.post(`/admin/campanha/${campanhaSelecionada}/produtos`,{
+
+produtos:produtosSelecionados
+
+})
+
+setOpenProdutos(false)
 
 }
 
@@ -81,17 +136,15 @@ return(
 
 <div className="page">
 
-<div className="topBar">
+<div className="header">
 
 <div>
-
 <h1>Campanhas</h1>
-<p>Gerencie promoções e vitrines da loja</p>
-
+<p>Gerencie campanhas promocionais</p>
 </div>
 
 <button
-className="btnCreate"
+className="btnPrimary"
 onClick={()=>setOpenModal(true)}
 >
 
@@ -102,41 +155,33 @@ onClick={()=>setOpenModal(true)}
 </div>
 
 
-<div className="cards">
+<div className="grid">
 
 {campanhas.map(c=>(
 <div key={c.id_campanha} className="card">
 
-<div className="cardHeader">
+<div className="cardTop">
 
-<div className="icon">
-<FiTag/>
-</div>
+<h3>{c.titulo}</h3>
 
 <button
 className="btnDelete"
-onClick={()=>remover(c.id_campanha)}
+onClick={()=>removerCampanha(c.id_campanha)}
 >
+
 <FiTrash2/>
+
 </button>
 
 </div>
 
+<span className="slug">/{c.slug}</span>
 
-<div className="cardBody">
+<p className="desc">
 
-<h3>{c.titulo}</h3>
+{c.descricao || "Sem descrição"}
 
-<span className="slug">
-/{c.slug}
-</span>
-
-<p className="banner">
-{c.banner || "Sem banner"}
 </p>
-
-</div>
-
 
 <div className="cardFooter">
 
@@ -145,7 +190,7 @@ className="btnProdutos"
 onClick={()=>abrirProdutos(c.id_campanha)}
 >
 
-<FiPackage/> Produtos
+<FiPackage/> Vincular produtos
 
 </button>
 
@@ -157,12 +202,13 @@ onClick={()=>abrirProdutos(c.id_campanha)}
 </div>
 
 
+{/* MODAL CRIAR CAMPANHA */}
 
 {openModal &&(
 
 <div className="overlay">
 
-<div className="modalBox">
+<div className="modal">
 
 <h2>Criar campanha</h2>
 
@@ -179,25 +225,86 @@ onChange={e=>setSlug(e.target.value)}
 />
 
 <textarea
-placeholder="Texto do banner"
-value={banner}
-onChange={e=>setBanner(e.target.value)}
+placeholder="Descrição"
+value={descricao}
+onChange={e=>setDescricao(e.target.value)}
 />
 
 <div className="modalActions">
 
 <button
-className="btnCancel"
 onClick={()=>setOpenModal(false)}
+className="btnCancel"
 >
 Cancelar
 </button>
 
 <button
-className="btnSave"
-onClick={criar}
+onClick={criarCampanha}
+className="btnPrimary"
 >
-Criar campanha
+Criar
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+)}
+
+
+{/* MODAL PRODUTOS */}
+
+{openProdutos &&(
+
+<div className="overlay">
+
+<div className="modalLarge">
+
+<h2>Vincular produtos</h2>
+
+<div className="produtos">
+
+{produtos.map(p=>{
+
+const checked = produtosSelecionados.includes(p.id_produto)
+
+return(
+
+<label key={p.id_produto} className="produto">
+
+<input
+type="checkbox"
+checked={checked}
+onChange={()=>toggleProduto(p.id_produto)}
+/>
+
+{p.nome}
+
+</label>
+
+)
+
+})}
+
+</div>
+
+<div className="modalActions">
+
+<button
+className="btnCancel"
+onClick={()=>setOpenProdutos(false)}
+>
+Cancelar
+</button>
+
+<button
+className="btnPrimary"
+onClick={salvarProdutos}
+>
+Salvar produtos
 </button>
 
 </div>
@@ -213,171 +320,105 @@ Criar campanha
 
 .page{
 padding:30px;
-display:flex;
-flex-direction:column;
-gap:30px;
-background:#f8fafc;
+background:#f6f7fb;
 min-height:100vh;
 }
 
-.topBar{
+.header{
 display:flex;
 justify-content:space-between;
 align-items:center;
+margin-bottom:25px;
 }
 
-.topBar h1{
-margin:0;
-font-weight:800;
+.header h1{
 font-size:28px;
+font-weight:800;
 }
 
-.topBar p{
-margin:0;
-color:#64748b;
-}
-
-.btnCreate{
-
-background:linear-gradient(135deg,#7c3aed,#9333ea);
-color:white;
-border:none;
-padding:10px 18px;
-border-radius:10px;
-font-weight:600;
-display:flex;
-align-items:center;
-gap:6px;
-box-shadow:0 8px 25px rgba(124,58,237,.4);
-
-}
-
-.cards{
-
+.grid{
 display:grid;
 grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-gap:22px;
-
+gap:20px;
 }
 
 .card{
-
 background:white;
-border-radius:16px;
-padding:18px;
+padding:20px;
+border-radius:14px;
+box-shadow:0 8px 25px rgba(0,0,0,.05);
 display:flex;
 flex-direction:column;
-gap:14px;
-position:relative;
-border:1px solid #eee;
-transition:.2s;
-
+gap:10px;
 }
 
-.card:hover{
-
-transform:translateY(-4px);
-box-shadow:0 20px 40px rgba(0,0,0,.1);
-
-}
-
-.cardHeader{
-
+.cardTop{
 display:flex;
 justify-content:space-between;
 align-items:center;
-
-}
-
-.icon{
-
-width:42px;
-height:42px;
-background:#ede9fe;
-color:#7c3aed;
-border-radius:10px;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:20px;
-
-}
-
-.cardBody{
-
-display:flex;
-flex-direction:column;
-gap:4px;
-
-}
-
-.cardBody h3{
-
-margin:0;
-font-size:17px;
-font-weight:700;
-
 }
 
 .slug{
-
 font-size:12px;
 color:#64748b;
-
 }
 
-.banner{
-
-font-size:13px;
+.desc{
+font-size:14px;
 color:#334155;
-
 }
 
 .cardFooter{
-
 margin-top:auto;
-display:flex;
-justify-content:flex-end;
-
 }
 
 .btnProdutos{
-
-background:#7c3aed;
+background:#6366f1;
 color:white;
 border:none;
 padding:7px 14px;
 border-radius:8px;
 display:flex;
-align-items:center;
 gap:6px;
-font-size:13px;
-
+align-items:center;
 }
 
 .btnDelete{
-
 background:#fee2e2;
 border:none;
 color:#dc2626;
 padding:6px;
 border-radius:8px;
+}
 
+.btnPrimary{
+background:#6366f1;
+color:white;
+border:none;
+padding:8px 14px;
+border-radius:8px;
+display:flex;
+gap:6px;
+align-items:center;
+}
+
+.btnCancel{
+background:#e5e7eb;
+border:none;
+padding:8px 14px;
+border-radius:8px;
 }
 
 .overlay{
-
 position:fixed;
 inset:0;
 background:rgba(0,0,0,.6);
 display:flex;
 align-items:center;
 justify-content:center;
-
 }
 
-.modalBox{
-
+.modal{
 background:white;
 padding:25px;
 border-radius:12px;
@@ -385,44 +426,35 @@ width:420px;
 display:flex;
 flex-direction:column;
 gap:10px;
-box-shadow:0 20px 50px rgba(0,0,0,.3);
-
 }
 
-.modalBox input,
-.modalBox textarea{
+.modalLarge{
+background:white;
+padding:25px;
+border-radius:12px;
+width:600px;
+display:flex;
+flex-direction:column;
+gap:12px;
+}
 
-border:1px solid #ddd;
-border-radius:8px;
-padding:8px;
+.produtos{
+max-height:300px;
+overflow:auto;
+display:flex;
+flex-direction:column;
+gap:8px;
+}
 
+.produto{
+display:flex;
+gap:8px;
 }
 
 .modalActions{
-
 display:flex;
 justify-content:flex-end;
 gap:10px;
-
-}
-
-.btnCancel{
-
-background:#e5e7eb;
-border:none;
-padding:8px 14px;
-border-radius:8px;
-
-}
-
-.btnSave{
-
-background:#7c3aed;
-color:white;
-border:none;
-padding:8px 14px;
-border-radius:8px;
-
 }
 
 `}</style>
