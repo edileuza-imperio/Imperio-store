@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import api from "@/Api/conectar";
 import {
   FiPlus,
@@ -44,7 +45,6 @@ function slugify(input: string) {
 
 function formatDateTimeBR(value?: string) {
   if (!value) return "";
-  // tenta lidar com "YYYY-MM-DD HH:mm:ss" e ISO
   const iso = value.includes("T") ? value : value.replace(" ", "T");
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return value;
@@ -55,6 +55,8 @@ function formatDateTimeBR(value?: string) {
 }
 
 export default function CampanhasPage() {
+  const router = useRouter();
+
   const [campanhas, setCampanhas] = useState<Campanha[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
 
@@ -62,8 +64,6 @@ export default function CampanhasPage() {
   const [loadingProdutos, setLoadingProdutos] = useState(false);
 
   const [openModal, setOpenModal] = useState(false);
-  const [openProdutos, setOpenProdutos] = useState(false);
-
   const [q, setQ] = useState("");
 
   // form campanha
@@ -75,11 +75,8 @@ export default function CampanhasPage() {
   const [fim, setFim] = useState("");
   const [salvandoCampanha, setSalvandoCampanha] = useState(false);
 
-  // produtos da campanha
-  const [campanhaSelecionada, setCampanhaSelecionada] = useState<Campanha | null>(null);
+  // seleção de produtos só no cadastro (continua aqui)
   const [produtosSelecionados, setProdutosSelecionados] = useState<number[]>([]);
-  const [salvandoVinculos, setSalvandoVinculos] = useState(false);
-  const [carregandoVinculos, setCarregandoVinculos] = useState(false);
 
   async function carregarCampanhas() {
     setLoadingCampanhas(true);
@@ -125,6 +122,7 @@ export default function CampanhasPage() {
     setBanner("");
     setInicio("");
     setFim("");
+    setProdutosSelecionados([]);
   }
 
   async function criarCampanha() {
@@ -140,7 +138,7 @@ export default function CampanhasPage() {
         banner: banner?.trim() || null,
         inicio: inicio || null,
         fim: fim || null,
-        statusid: 3, // como você estava usando
+        statusid: 3,
       };
 
       const res = await api.post("/admin/campanhas", payload);
@@ -150,7 +148,6 @@ export default function CampanhasPage() {
         res?.data?.dados?.id ??
         res?.data?.id_campanha;
 
-      // se marcou produtos no modal de criação
       if (id && produtosSelecionados.length > 0) {
         await api.post(`/admin/campanha/${id}/produtos`, {
           produtos: produtosSelecionados,
@@ -159,7 +156,6 @@ export default function CampanhasPage() {
 
       setOpenModal(false);
       resetForm();
-      setProdutosSelecionados([]);
       await carregarCampanhas();
     } catch (e: any) {
       console.error(e);
@@ -190,47 +186,6 @@ export default function CampanhasPage() {
     );
   }
 
-  async function abrirProdutos(c: Campanha) {
-    setCampanhaSelecionada(c);
-    setOpenProdutos(true);
-    setProdutosSelecionados([]);
-    setCarregandoVinculos(true);
-
-    try {
-      const res = await api.get(`/admin/campanha/${c.id_campanha}/produtos`);
-      const lista = res?.data?.dados?.produtos ?? res?.data?.produtos ?? [];
-      const ids = Array.isArray(lista)
-        ? lista
-            .map((x: any) => Number(x?.id_produto))
-            .filter((n: any) => Number.isFinite(n))
-        : [];
-      setProdutosSelecionados(ids);
-    } catch (e) {
-      console.error(e);
-      // não trava a UI se não carregar
-    } finally {
-      setCarregandoVinculos(false);
-    }
-  }
-
-  async function salvarProdutosCampanha() {
-    if (!campanhaSelecionada) return;
-
-    setSalvandoVinculos(true);
-    try {
-      await api.post(`/admin/campanha/${campanhaSelecionada.id_campanha}/produtos`, {
-        produtos: produtosSelecionados,
-      });
-      setOpenProdutos(false);
-      setCampanhaSelecionada(null);
-    } catch (e) {
-      console.error(e);
-      alert("Erro ao salvar produtos da campanha");
-    } finally {
-      setSalvandoVinculos(false);
-    }
-  }
-
   const campanhasFiltradas = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (!term) return campanhas;
@@ -241,11 +196,10 @@ export default function CampanhasPage() {
     });
   }, [campanhas, q]);
 
-  // slug automático ao digitar título (sem te impedir de editar manualmente)
+  // slug automático ao digitar título
   useEffect(() => {
     if (!openModal) return;
     if (!titulo) return;
-    // se usuário já digitou slug manualmente diferente do slug do título, não sobrescreve
     const auto = slugify(titulo);
     if (!slug || slug === slugify(slug)) {
       setSlug(auto);
@@ -338,7 +292,11 @@ export default function CampanhasPage() {
               </div>
 
               <div className="cardActions">
-                <button className="btnSoft" onClick={() => abrirProdutos(c)}>
+                {/* ✅ AGORA VAI PRA OUTRA PÁGINA */}
+                <button
+                  className="btnSoft"
+                  onClick={() => router.push(`/painel/campanhas/${c.id_campanha}/produtos`)}
+                >
                   <FiPackage /> Produtos
                 </button>
               </div>
@@ -347,7 +305,7 @@ export default function CampanhasPage() {
         </div>
       )}
 
-      {/* MODAL: CRIAR CAMPANHA */}
+      {/* MODAL: CRIAR CAMPANHA (overlay arrumado) */}
       {openModal && (
         <div className="overlay" role="dialog" aria-modal="true">
           <div className="modal">
@@ -431,11 +389,7 @@ export default function CampanhasPage() {
                       const checked = produtosSelecionados.includes(p.id_produto);
                       return (
                         <label key={p.id_produto} className={`checkRow ${checked ? "on" : ""}`}>
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleProduto(p.id_produto)}
-                          />
+                          <input type="checkbox" checked={checked} onChange={() => toggleProduto(p.id_produto)} />
                           <span className="checkName">{p.nome}</span>
                           {checked ? (
                             <span className="checkBadge">
@@ -456,7 +410,6 @@ export default function CampanhasPage() {
                 onClick={() => {
                   setOpenModal(false);
                   resetForm();
-                  setProdutosSelecionados([]);
                 }}
               >
                 Cancelar
@@ -464,86 +417,6 @@ export default function CampanhasPage() {
 
               <button className="btnPrimary" onClick={criarCampanha} disabled={salvandoCampanha}>
                 {salvandoCampanha ? "Criando..." : "Criar campanha"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL: PRODUTOS DA CAMPANHA */}
-      {openProdutos && campanhaSelecionada && (
-        <div className="overlay" role="dialog" aria-modal="true">
-          <div className="modal modalWide">
-            <div className="modalHeader">
-              <div>
-                <h2>Produtos da campanha</h2>
-                <p>
-                  <strong>{campanhaSelecionada.titulo}</strong>{" "}
-                  <span className="muted">/{campanhaSelecionada.slug}</span>
-                </p>
-              </div>
-
-              <button
-                className="btnIcon"
-                onClick={() => {
-                  setOpenProdutos(false);
-                  setCampanhaSelecionada(null);
-                }}
-                aria-label="Fechar"
-              >
-                <FiX />
-              </button>
-            </div>
-
-            <div className="modalBody">
-              <div className="produtosTop">
-                <h4>Selecione os produtos</h4>
-                <span className="mini">
-                  {carregandoVinculos ? "Carregando vínculo..." : `${produtosSelecionados.length} selecionado(s)`}
-                </span>
-              </div>
-
-              <div className="produtosList big">
-                {carregandoVinculos || loadingProdutos ? (
-                  <div className="hint">Carregando…</div>
-                ) : produtos.length === 0 ? (
-                  <div className="hint">Nenhum produto encontrado.</div>
-                ) : (
-                  produtos.map((p) => {
-                    const checked = produtosSelecionados.includes(p.id_produto);
-                    return (
-                      <label key={p.id_produto} className={`checkRow ${checked ? "on" : ""}`}>
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleProduto(p.id_produto)}
-                        />
-                        <span className="checkName">{p.nome}</span>
-                        {checked ? (
-                          <span className="checkBadge">
-                            <FiCheck /> Selecionado
-                          </span>
-                        ) : null}
-                      </label>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-
-            <div className="modalActions">
-              <button
-                className="btnGhost"
-                onClick={() => {
-                  setOpenProdutos(false);
-                  setCampanhaSelecionada(null);
-                }}
-              >
-                Cancelar
-              </button>
-
-              <button className="btnPrimary" onClick={salvarProdutosCampanha} disabled={salvandoVinculos}>
-                {salvandoVinculos ? "Salvando..." : "Salvar produtos"}
               </button>
             </div>
           </div>
@@ -673,10 +546,15 @@ export default function CampanhasPage() {
           transform: translateY(-1px);
         }
 
-        .btnGhost:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-          transform: none;
+        .btnSoft {
+          background: #eef2ff;
+          border: 1px solid #e0e7ff;
+          color: #3730a3;
+          padding: 10px 12px;
+        }
+
+        .btnSoft:hover {
+          transform: translateY(-1px);
         }
 
         .grid {
@@ -695,7 +573,6 @@ export default function CampanhasPage() {
           display: flex;
           flex-direction: column;
           gap: 10px;
-          backdrop-filter: blur(6px);
         }
 
         .cardTop {
@@ -768,18 +645,6 @@ export default function CampanhasPage() {
           justify-content: flex-end;
         }
 
-        .btnSoft {
-          background: #eef2ff;
-          border: 1px solid #e0e7ff;
-          color: #3730a3;
-          padding: 10px 12px;
-        }
-
-        .btnSoft:hover {
-          transform: translateY(-1px);
-          filter: brightness(1.02);
-        }
-
         .btnIcon {
           background: #f1f5f9;
           border: 1px solid #e2e8f0;
@@ -787,10 +652,6 @@ export default function CampanhasPage() {
           width: 40px;
           height: 40px;
           justify-content: center;
-        }
-
-        .btnIcon:hover {
-          transform: translateY(-1px);
         }
 
         .btnIconDanger {
@@ -802,81 +663,12 @@ export default function CampanhasPage() {
           justify-content: center;
         }
 
-        .btnIconDanger:hover {
-          transform: translateY(-1px);
-          filter: brightness(1.01);
-        }
-
-        /* Empty */
-        .empty {
-          margin-top: 18px;
-          background: white;
-          border: 1px solid #e2e8f0;
-          border-radius: 18px;
-          padding: 26px;
-          box-shadow: 0 18px 44px rgba(2, 6, 23, 0.08);
-          display: grid;
-          place-items: center;
-          text-align: center;
-          gap: 10px;
-        }
-
-        .emptyIcon {
-          width: 54px;
-          height: 54px;
-          border-radius: 16px;
-          display: grid;
-          place-items: center;
-          background: #eef2ff;
-          color: #4f46e5;
-          border: 1px solid #e0e7ff;
-          font-size: 22px;
-        }
-
-        .empty h3 {
-          margin: 0;
-          font-size: 16px;
-          font-weight: 900;
-          color: #0f172a;
-        }
-
-        .empty p {
-          margin: 0;
-          color: #475569;
-          font-size: 14px;
-        }
-
-        /* Skeleton */
-        .skeletonGrid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-          gap: 14px;
-          margin-top: 14px;
-        }
-
-        .skeletonCard {
-          height: 180px;
-          border-radius: 18px;
-          border: 1px solid #e2e8f0;
-          background: linear-gradient(90deg, #ffffff, #f1f5f9, #ffffff);
-          background-size: 200% 100%;
-          animation: shimmer 1.1s infinite;
-        }
-
-        @keyframes shimmer {
-          0% {
-            background-position: 0% 0;
-          }
-          100% {
-            background-position: 200% 0;
-          }
-        }
-
-        /* Modal */
+        /* ✅ AQUI ESTÁ O “ARRUMA A TELA PRETA” */
         .overlay {
           position: fixed;
           inset: 0;
-          background: rgba(2, 6, 23, 0.62);
+          background: rgba(2, 6, 23, 0.45); /* menos preto */
+          backdrop-filter: blur(6px); /* fica premium */
           display: flex;
           align-items: center;
           justify-content: center;
@@ -887,15 +679,14 @@ export default function CampanhasPage() {
         .modal {
           width: 760px;
           max-width: 100%;
-          background: white;
+          background: #ffffff;
           border-radius: 18px;
           border: 1px solid #e2e8f0;
-          box-shadow: 0 40px 90px rgba(2, 6, 23, 0.35);
+          box-shadow: 0 40px 90px rgba(2, 6, 23, 0.25);
           overflow: hidden;
-        }
-
-        .modalWide {
-          width: 860px;
+          max-height: calc(100vh - 36px);
+          display: flex;
+          flex-direction: column;
         }
 
         .modalHeader {
@@ -923,6 +714,7 @@ export default function CampanhasPage() {
 
         .modalBody {
           padding: 16px 18px;
+          overflow: auto; /* ✅ scroll interno (não “escurece” a tela) */
         }
 
         .formGrid {
@@ -1009,10 +801,6 @@ export default function CampanhasPage() {
           gap: 8px;
         }
 
-        .produtosList.big {
-          max-height: 360px;
-        }
-
         .hint {
           font-size: 13px;
           color: #64748b;
@@ -1030,11 +818,6 @@ export default function CampanhasPage() {
           background: white;
           cursor: pointer;
           user-select: none;
-        }
-
-        .checkRow:hover {
-          border-color: #e2e8f0;
-          background: #ffffff;
         }
 
         .checkRow.on {
@@ -1073,9 +856,68 @@ export default function CampanhasPage() {
           background: #ffffff;
         }
 
-        .muted {
-          color: #64748b;
-          font-weight: 700;
+        /* skeleton */
+        .skeletonGrid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+          gap: 14px;
+          margin-top: 14px;
+        }
+
+        .skeletonCard {
+          height: 180px;
+          border-radius: 18px;
+          border: 1px solid #e2e8f0;
+          background: linear-gradient(90deg, #ffffff, #f1f5f9, #ffffff);
+          background-size: 200% 100%;
+          animation: shimmer 1.1s infinite;
+        }
+
+        @keyframes shimmer {
+          0% {
+            background-position: 0% 0;
+          }
+          100% {
+            background-position: 200% 0;
+          }
+        }
+
+        .empty {
+          margin-top: 18px;
+          background: white;
+          border: 1px solid #e2e8f0;
+          border-radius: 18px;
+          padding: 26px;
+          box-shadow: 0 18px 44px rgba(2, 6, 23, 0.08);
+          display: grid;
+          place-items: center;
+          text-align: center;
+          gap: 10px;
+        }
+
+        .emptyIcon {
+          width: 54px;
+          height: 54px;
+          border-radius: 16px;
+          display: grid;
+          place-items: center;
+          background: #eef2ff;
+          color: #4f46e5;
+          border: 1px solid #e0e7ff;
+          font-size: 22px;
+        }
+
+        .empty h3 {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 900;
+          color: #0f172a;
+        }
+
+        .empty p {
+          margin: 0;
+          color: #475569;
+          font-size: 14px;
         }
 
         @media (max-width: 720px) {
