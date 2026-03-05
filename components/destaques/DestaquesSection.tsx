@@ -61,15 +61,15 @@ export default function DestaquesSection() {
 
   return (
 
-<section className="vitrine">
+<section className="ui-vitrine">
 
-<div className="container">
+<div className="ui-container">
 
 {campanha && (
 
-<div className="campanha">
+<div className="ui-campanha">
 
-<span className="badge-campanha">
+<span className="ui-badge">
 Campanha
 </span>
 
@@ -79,7 +79,7 @@ Campanha
 
 <Link
 href={`/campanha/${campanha.slug}`}
-className="btn-catalogo"
+className="ui-btnCatalogo"
 >
 Ver catálogo
 </Link>
@@ -88,7 +88,7 @@ Ver catálogo
 
 )}
 
-<div className="produtos">
+<div className="ui-grid">
 
 {produtos.map((p)=>{
 
@@ -96,40 +96,40 @@ const img = getImagemUrl(p.produto_imagem);
 
 return(
 
-<div key={p.id_destaque} className="card">
+<div key={p.id_destaque} className="ui-card">
 
-<div className="img">
+<div className="ui-img">
 
 <img src={img} />
 
-<span className="badge">
+<span className="ui-badgeProduto">
 Destaque
 </span>
 
 </div>
 
-<div className="body">
+<div className="ui-body">
 
 <h3>{p.produto_nome}</h3>
 
-<p className="desc">
+<p className="ui-desc">
 {p.produto_descricao}
 </p>
 
-<div className="preco">
+<div className="ui-preco">
 {formatMoney(p.produto_preco)}
 </div>
 
-<div className="botoes">
+<div className="ui-botoes">
 
 <Link
 href={`/produto/${p.produto_slug}`}
-className="btn-detalhes"
+className="ui-btnDetalhes"
 >
 Detalhes
 </Link>
 
-<button className="btn-add">
+<button className="ui-btnAdd">
 Adicionar
 </button>
 
@@ -149,24 +149,24 @@ Adicionar
 
 <style jsx>{`
 
-.vitrine{
+.ui-vitrine{
 background:#f3ebe3;
-padding:70px 20px;
+padding:60px 20px;
 }
 
-.container{
-max-width:1200px;
+.ui-container{
+max-width:1100px;
 margin:auto;
 }
 
 /* campanha */
 
-.campanha{
+.ui-campanha{
 text-align:center;
-margin-bottom:60px;
+margin-bottom:50px;
 }
 
-.badge-campanha{
+.ui-badge{
 background:#d87f7f;
 color:white;
 padding:6px 14px;
@@ -174,36 +174,31 @@ border-radius:20px;
 font-size:13px;
 }
 
-.campanha h1{
-font-size:42px;
+.ui-campanha h1{
+font-size:40px;
 margin-top:10px;
 font-weight:800;
 color:#2c1f1f;
 }
 
-.campanha p{
+.ui-campanha p{
 color:#6e5c5c;
 margin-top:6px;
 }
 
-.btn-catalogo{
+.ui-btnCatalogo{
 display:inline-block;
 margin-top:15px;
 background:#c78c5c;
 color:white;
 padding:10px 22px;
-border-radius:12px;
+border-radius:10px;
 font-weight:600;
-transition:.2s;
 }
 
-.btn-catalogo:hover{
-background:#b67949;
-}
+/* grid */
 
-/* produtos */
-
-.produtos{
+.ui-grid{
 display:grid;
 grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
 gap:30px;
@@ -211,7 +206,7 @@ gap:30px;
 
 /* card */
 
-.card{
+.ui-card{
 background:white;
 border-radius:20px;
 overflow:hidden;
@@ -219,99 +214,84 @@ box-shadow:0 8px 25px rgba(0,0,0,0.08);
 transition:.3s;
 }
 
-.card:hover{
-transform:translateY(-6px);
-box-shadow:0 18px 40px rgba(0,0,0,0.15);
+.ui-card:hover{
+transform:translateY(-5px);
+box-shadow:0 15px 35px rgba(0,0,0,0.15);
 }
 
 /* imagem */
 
-.img{
+.ui-img{
 height:210px;
 position:relative;
 overflow:hidden;
 }
 
-.img img{
+.ui-img img{
 width:100%;
 height:100%;
 object-fit:cover;
-transition:.4s;
 }
 
-.card:hover img{
-transform:scale(1.05);
-}
-
-.badge{
+.ui-badgeProduto{
 position:absolute;
 top:10px;
 left:10px;
 background:#c78c5c;
 color:white;
-padding:5px 12px;
+padding:4px 10px;
 border-radius:20px;
 font-size:12px;
 }
 
 /* body */
 
-.body{
+.ui-body{
 padding:20px;
 }
 
-.body h3{
-font-size:17px;
+.ui-body h3{
+font-size:16px;
 margin-bottom:4px;
 }
 
-.desc{
+.ui-desc{
 font-size:13px;
 color:#777;
 margin-bottom:10px;
 }
 
-.preco{
-font-size:22px;
+.ui-preco{
+font-size:20px;
 font-weight:800;
 color:#c78c5c;
-margin-bottom:16px;
+margin-bottom:15px;
 }
 
 /* botões */
 
-.botoes{
+.ui-botoes{
 display:flex;
 gap:10px;
 }
 
-.btn-detalhes{
+.ui-btnDetalhes{
 flex:1;
 text-align:center;
-padding:10px;
-border-radius:10px;
-border:2px solid #eee;
-color:#333;
+padding:9px;
+border-radius:8px;
+border:1px solid #ddd;
 font-weight:600;
 }
 
-.btn-detalhes:hover{
-border-color:#c78c5c;
-color:#c78c5c;
-}
-
-.btn-add{
+.ui-btnAdd{
 flex:1;
 background:#c78c5c;
 color:white;
 border:none;
-padding:10px;
-border-radius:10px;
+padding:9px;
+border-radius:8px;
 font-weight:600;
-}
-
-.btn-add:hover{
-background:#b67949;
 }
 
 `}</style>
