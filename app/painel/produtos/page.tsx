@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { FaEdit, FaStar, FaPlus, FaTrash, FaBook } from "react-icons/fa";
+import { FaEdit, FaStar, FaPlus, FaTrash, FaBook, FaImages } from "react-icons/fa";
 import api from "@/Api/conectar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -39,14 +39,29 @@ export default function ProdutosPage() {
   const [itensPorPagina, setItensPorPagina] = useState<number>(12);
   const [pagina, setPagina] = useState<number>(1);
 
+  // ✅ modal upload galeria
+  const [galeriaOpen, setGaleriaOpen] = useState(false);
+  const [galeriaProduto, setGaleriaProduto] = useState<Produto | null>(null);
+  const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]);
+  const [galeriaPreview, setGaleriaPreview] = useState<string[]>([]);
+  const [galeriaSending, setGaleriaSending] = useState(false);
+  const inputGaleriaRef = useRef<HTMLInputElement | null>(null);
+
   useEffect(() => {
     carregarProdutos();
   }, []);
 
-  // quando mudar a quantidade por página, volta pra página 1
   useEffect(() => {
     setPagina(1);
   }, [itensPorPagina]);
+
+  // limpa blob urls do preview
+  useEffect(() => {
+    return () => {
+      galeriaPreview.forEach((u) => URL.revokeObjectURL(u));
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const carregarProdutos = async () => {
     try {
@@ -170,7 +185,6 @@ export default function ProdutosPage() {
     return Math.max(total, 1);
   }, [produtos, itensPorPagina]);
 
-  // garante pagina dentro do range
   useEffect(() => {
     if (pagina > totalPaginas) setPagina(totalPaginas);
     if (pagina < 1) setPagina(1);
@@ -183,9 +197,97 @@ export default function ProdutosPage() {
   }, [produtos, pagina, itensPorPagina]);
 
   const paginas = useMemo(() => {
-    // lista completa de páginas (1..N). Se quiser limitar (tipo 1..10), eu ajusto.
     return Array.from({ length: totalPaginas }, (_, i) => i + 1);
   }, [totalPaginas]);
+
+  // ====== GALERIA (miniaturas) ======
+  function abrirGaleria(prod: Produto) {
+    setGaleriaProduto(prod);
+    setGaleriaOpen(true);
+    limparGaleriaSelecao();
+  }
+
+  function fecharGaleria() {
+    setGaleriaOpen(false);
+    setGaleriaProduto(null);
+    limparGaleriaSelecao();
+  }
+
+  function limparGaleriaSelecao() {
+    // revoke urls antigas
+    galeriaPreview.forEach((u) => URL.revokeObjectURL(u));
+    setGaleriaFiles([]);
+    setGaleriaPreview([]);
+    if (inputGaleriaRef.current) inputGaleriaRef.current.value = "";
+  }
+
+  function onPickGaleria(filesList: FileList | null) {
+    if (!filesList) return;
+
+    const files = Array.from(filesList);
+
+    // valida extensão básica
+    const ok = files.filter((f) =>
+      /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name)
+    );
+    if (ok.length === 0) {
+      toast.error("Selecione imagens válidas (jpg, png, webp, gif).");
+      return;
+    }
+
+    // limita (opcional) pra não mandar 100 de uma vez
+    const limitadas = ok.slice(0, 12);
+
+    // recria previews
+    const previews = limitadas.map((f) => URL.createObjectURL(f));
+
+    // revoga previews anteriores
+    galeriaPreview.forEach((u) => URL.revokeObjectURL(u));
+
+    setGaleriaFiles(limitadas);
+    setGaleriaPreview(previews);
+  }
+
+  async function enviarGaleria() {
+    if (!galeriaProduto) return;
+    if (galeriaFiles.length === 0) {
+      toast.info("Selecione pelo menos 1 imagem.");
+      return;
+    }
+
+    try {
+      setGaleriaSending(true);
+
+      // ✅ endpoint sugerido (back): POST /admin/produto/{id}/imagens
+      // campo: imagens[] (multiple)
+      const form = new FormData();
+      galeriaFiles.forEach((file) => form.append("imagens[]", file));
+
+      await api.post(`/admin/produto/${galeriaProduto.id_produto}/imagens`, form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      toast.success("Imagens adicionadas com sucesso!");
+      fecharGaleria();
+      // opcional: recarregar lista (se você retornar algo pro front no futuro)
+      await carregarProdutos();
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao enviar imagens. Verifique a rota do backend.");
+    } finally {
+      setGaleriaSending(false);
+    }
+  }
+
+  // fecha modal com ESC
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") fecharGaleria();
+    }
+    if (galeriaOpen) window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [galeriaOpen]);
 
   return (
     <div className="container-fluid py-4 dashboard-bg">
@@ -227,7 +329,6 @@ export default function ProdutosPage() {
         </div>
       </div>
 
-      {/* ✅ numeração sem Próximo/Anterior */}
       {!loading && produtos.length > 0 && totalPaginas > 1 && (
         <div className="pagerBar">
           <div className="pagerInfo">
@@ -266,11 +367,18 @@ export default function ProdutosPage() {
 
                   <div className="badges">
                     {prod.destaque && <span className="badge badge-destaque">Destaque</span>}
-
-                    {prod.catalogo === 1 && (
-                      <span className="badge badge-catalogo">Catálogo</span>
-                    )}
+                    {prod.catalogo === 1 && <span className="badge badge-catalogo">Catálogo</span>}
                   </div>
+
+                  {/* ✅ botão miniaturas (galeria) */}
+                  <button
+                    type="button"
+                    className="btnThumbs"
+                    onClick={() => abrirGaleria(prod)}
+                    title="Adicionar imagens (miniaturas)"
+                  >
+                    <FaImages />
+                  </button>
                 </div>
 
                 <div className="card-body">
@@ -318,6 +426,72 @@ export default function ProdutosPage() {
         </div>
       )}
 
+      {/* ✅ MODAL: adicionar miniaturas */}
+      {galeriaOpen && (
+        <div className="thumbOverlay" onClick={fecharGaleria}>
+          <div className="thumbModal" onClick={(e) => e.stopPropagation()}>
+            <div className="thumbHeader">
+              <div className="thumbTitle">
+                <div className="thumbH">Adicionar imagens (miniaturas)</div>
+                <div className="thumbSub">
+                  Produto: <b>{galeriaProduto?.nome}</b> (#{galeriaProduto?.id_produto})
+                </div>
+              </div>
+
+              <button className="thumbClose" type="button" onClick={fecharGaleria} aria-label="Fechar">
+                ×
+              </button>
+            </div>
+
+            <div className="thumbBody">
+              <div className="thumbPick">
+                <input
+                  ref={inputGaleriaRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={(e) => onPickGaleria(e.target.files)}
+                />
+
+                <div className="thumbHint">
+                  Selecione até <b>12</b> imagens. Elas serão salvas em <b>upload/produtos/galeria</b>.
+                </div>
+              </div>
+
+              {galeriaPreview.length > 0 && (
+                <div className="thumbGrid">
+                  {galeriaPreview.map((src, idx) => (
+                    <div key={src} className="thumbItem">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={src} alt={`preview-${idx}`} />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {galeriaPreview.length === 0 && (
+                <div className="thumbEmpty">Nenhuma imagem selecionada ainda.</div>
+              )}
+            </div>
+
+            <div className="thumbFooter">
+              <button className="thumbBtn ghost" type="button" onClick={fecharGaleria}>
+                Cancelar
+              </button>
+
+              <button
+                className="thumbBtn primary"
+                type="button"
+                onClick={enviarGaleria}
+                disabled={galeriaSending || galeriaFiles.length === 0}
+              >
+                {galeriaSending ? "Enviando..." : "Salvar imagens"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx global>{`
         .dashboard-bg {
           background: #f6f7fb;
@@ -351,17 +525,17 @@ export default function ProdutosPage() {
           gap: 10px;
           align-items: center;
           background: #fff;
-          border: 1px solid rgba(0,0,0,0.08);
+          border: 1px solid rgba(0, 0, 0, 0.08);
           border-radius: 999px;
           padding: 10px 12px;
-          box-shadow: 0 8px 18px rgba(0,0,0,0.06);
+          box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
           color: #6b4c4f;
           font-weight: 700;
           font-size: 12px;
         }
 
         .pagerSelect select {
-          border: 1px solid rgba(0,0,0,0.12);
+          border: 1px solid rgba(0, 0, 0, 0.12);
           border-radius: 999px;
           padding: 6px 10px;
           outline: none;
@@ -378,11 +552,11 @@ export default function ProdutosPage() {
           flex-wrap: wrap;
           margin-bottom: 14px;
 
-          background: rgba(255,255,255,0.78);
-          border: 1px solid rgba(0,0,0,0.08);
+          background: rgba(255, 255, 255, 0.78);
+          border: 1px solid rgba(0, 0, 0, 0.08);
           border-radius: 14px;
           padding: 10px 12px;
-          box-shadow: 0 10px 24px rgba(0,0,0,0.06);
+          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
         }
 
         .pagerInfo {
@@ -402,7 +576,7 @@ export default function ProdutosPage() {
           height: 34px;
           padding: 0 10px;
           border-radius: 10px;
-          border: 1px solid rgba(0,0,0,0.10);
+          border: 1px solid rgba(0, 0, 0, 0.10);
           background: #fff;
           font-weight: 800;
           color: #6b4c4f;
@@ -412,7 +586,7 @@ export default function ProdutosPage() {
 
         .pageBtn:hover {
           transform: translateY(-1px);
-          border-color: rgba(0,0,0,0.18);
+          border-color: rgba(0, 0, 0, 0.18);
         }
 
         .pageBtn.active {
@@ -460,6 +634,7 @@ export default function ProdutosPage() {
           right: 8px;
           display: flex;
           gap: 6px;
+          z-index: 2;
         }
 
         .badge {
@@ -527,6 +702,169 @@ export default function ProdutosPage() {
         .acoes button:hover,
         .acoes a:hover {
           color: #d4af37;
+        }
+
+        /* ✅ botão de miniaturas (sobre a imagem) */
+        .btnThumbs {
+          position: absolute;
+          left: 10px;
+          bottom: 10px;
+          width: 38px;
+          height: 38px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.35);
+          background: rgba(0, 0, 0, 0.35);
+          color: #fff;
+          display: grid;
+          place-items: center;
+          cursor: pointer;
+          z-index: 2;
+          transition: 0.15s;
+          backdrop-filter: blur(6px);
+        }
+        .btnThumbs:hover {
+          transform: translateY(-1px);
+          background: rgba(0, 0, 0, 0.48);
+        }
+
+        /* ✅ modal galeria */
+        .thumbOverlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(2, 6, 23, 0.55);
+          backdrop-filter: blur(3px);
+          z-index: 999999;
+          display: grid;
+          place-items: center;
+          padding: 16px;
+        }
+
+        .thumbModal {
+          width: min(720px, 96vw);
+          background: #fff;
+          border-radius: 16px;
+          border: 1px solid rgba(0, 0, 0, 0.10);
+          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+          overflow: hidden;
+        }
+
+        .thumbHeader {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 14px 14px;
+          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+          align-items: center;
+        }
+
+        .thumbH {
+          font-weight: 900;
+          color: #111827;
+        }
+
+        .thumbSub {
+          margin-top: 2px;
+          font-size: 12px;
+          color: #6b7280;
+          font-weight: 700;
+        }
+
+        .thumbClose {
+          width: 40px;
+          height: 40px;
+          border-radius: 12px;
+          border: 1px solid rgba(0, 0, 0, 0.10);
+          background: rgba(0, 0, 0, 0.03);
+          cursor: pointer;
+          font-size: 22px;
+          line-height: 1;
+        }
+
+        .thumbBody {
+          padding: 14px;
+          display: grid;
+          gap: 12px;
+        }
+
+        .thumbPick {
+          display: grid;
+          gap: 8px;
+        }
+
+        .thumbPick input[type="file"] {
+          border: 1px dashed rgba(0, 0, 0, 0.18);
+          padding: 12px;
+          border-radius: 14px;
+          background: rgba(0, 0, 0, 0.02);
+        }
+
+        .thumbHint {
+          font-size: 12px;
+          color: #6b7280;
+          font-weight: 700;
+        }
+
+        .thumbGrid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+          gap: 10px;
+        }
+
+        .thumbItem {
+          border-radius: 14px;
+          overflow: hidden;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: #f8fafc;
+          height: 110px;
+        }
+
+        .thumbItem img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        .thumbEmpty {
+          padding: 14px;
+          border-radius: 14px;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          background: rgba(0, 0, 0, 0.02);
+          font-size: 13px;
+          color: #6b7280;
+          font-weight: 700;
+        }
+
+        .thumbFooter {
+          display: flex;
+          justify-content: flex-end;
+          gap: 10px;
+          padding: 14px;
+          border-top: 1px solid rgba(0, 0, 0, 0.08);
+          background: rgba(255, 255, 255, 0.7);
+        }
+
+        .thumbBtn {
+          border-radius: 14px;
+          padding: 10px 14px;
+          cursor: pointer;
+          font-weight: 900;
+          border: 1px solid rgba(0, 0, 0, 0.10);
+        }
+
+        .thumbBtn.ghost {
+          background: rgba(0, 0, 0, 0.04);
+        }
+
+        .thumbBtn.primary {
+          background: #d4af37;
+          border-color: #d4af37;
+          color: #fff;
+        }
+
+        .thumbBtn.primary:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
         }
       `}</style>
     </div>
