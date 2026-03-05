@@ -5,13 +5,21 @@ import Link from "next/link";
 import api from "@/Api/conectar";
 import { FiStar } from "react-icons/fi";
 
+/* =============================
+TIPOS
+============================= */
+
 type Campanha = {
   id_campanha: number;
   titulo: string;
   slug: string;
   descricao?: string;
-  statusid?: number; // 👈 adicionar isso
+  banner?: string;
+  statusid?: number;
+  inicio?: string;
+  fim?: string;
 };
+
 type Produto = {
   id_produto: number;
   nome: string;
@@ -19,6 +27,10 @@ type Produto = {
   imagem?: string;
   slug?: string;
 };
+
+/* =============================
+UTILS
+============================= */
 
 function formatMoneyBR(value?: any) {
   const n = Number(value);
@@ -31,37 +43,69 @@ function formatMoneyBR(value?: any) {
 
 function getImagemUrl(caminho?: string) {
   if (!caminho) return undefined;
+
   const base = api.defaults.baseURL || "";
   const clean = String(caminho).replace(/^\/+/, "");
   const baseFinal = base.endsWith("/") ? base : `${base}/`;
+
   return `${baseFinal}${clean}`;
 }
+
+/* =============================
+COMPONENTE
+============================= */
 
 export default function DestaquesSection() {
   const [campanha, setCampanha] = useState<Campanha | null>(null);
   const [produtos, setProdutos] = useState<Produto[]>([]);
 
+  const [loading, setLoading] = useState(true);
+
   async function carregar() {
     try {
-      const resCamp = await api.get("/admin/campanhas");
-      const listaCamp = resCamp?.data?.dados ?? [];
 
-      const destaque = listaCamp.find((c: Campanha) => Number(c.statusid) === 3);
+      /* =============================
+      CAMPANHAS
+      ============================= */
+
+      const resCamp = await api.get("/admin/campanhas");
+
+      const listaCamp: Campanha[] =
+        resCamp?.data?.dados?.campanhas ?? [];
+
+      const destaque = listaCamp.find(
+        (c) => Number(c.statusid) === 3
+      );
 
       setCampanha(destaque || null);
 
+      /* =============================
+      PRODUTOS
+      ============================= */
+
       const resProd = await api.get("/admin/produtos/destaques");
-      const listaProd = resProd?.data?.dados ?? [];
+
+      const listaProd: Produto[] =
+        resProd?.data?.dados?.produtos ??
+        resProd?.data?.dados ??
+        [];
 
       setProdutos(listaProd.slice(0, 2));
-    } catch (e) {
-      console.error(e);
+
+    } catch (error) {
+      console.error("Erro ao carregar destaque:", error);
+    } finally {
+      setLoading(false);
     }
   }
 
   useEffect(() => {
     carregar();
   }, []);
+
+  if (loading) {
+    return <div>Carregando destaques...</div>;
+  }
 
   return (
     <section className="section">
@@ -73,7 +117,7 @@ export default function DestaquesSection() {
 
       <div className="layout">
 
-        {/* CARD CAMPANHA */}
+        {/* CAMPANHA */}
         {campanha && (
           <div className="campanha">
 
@@ -85,11 +129,14 @@ export default function DestaquesSection() {
             <h3>{campanha.titulo}</h3>
 
             <p>
-              Produtos selecionados para presentear — delicados, elegantes e
-              com preço especial.
+              {campanha.descricao ||
+                "Produtos selecionados para presentear com carinho."}
             </p>
 
-            <Link href={`/campanha/${campanha.slug}`} className="btnCatalogo">
+            <Link
+              href={`/campanha/${campanha.slug}`}
+              className="btnCatalogo"
+            >
               Ver catálogo
             </Link>
 
@@ -111,26 +158,21 @@ export default function DestaquesSection() {
         <div className="produtos">
 
           {produtos.map((p) => {
+
             const img = getImagemUrl(p.imagem);
 
             return (
               <div key={p.id_produto} className="produto">
 
                 <div className="imagem">
-
                   {img && (
                     <img src={img} alt={p.nome} />
                   )}
-
                 </div>
 
                 <div className="info">
 
                   <h4>{p.nome}</h4>
-
-                  <p className="desc">
-                    esta que vem com urso chocolate dentro
-                  </p>
 
                   <div className="preco">
                     {formatMoneyBR(p.preco)}
@@ -142,13 +184,18 @@ export default function DestaquesSection() {
                   </div>
 
                   <div className="botoes">
-                    <button className="detalhes">
+
+                    <Link
+                      href={`/produto/${p.slug || p.id_produto}`}
+                      className="detalhes"
+                    >
                       Detalhes
-                    </button>
+                    </Link>
 
                     <button className="add">
                       Adicionar
                     </button>
+
                   </div>
 
                 </div>
@@ -156,6 +203,7 @@ export default function DestaquesSection() {
               </div>
             );
           })}
+
         </div>
       </div>
 
@@ -272,11 +320,6 @@ export default function DestaquesSection() {
   font-size:13px;
 }
 
-.desc{
-  font-size:11px;
-  color:#6a5f53;
-}
-
 .preco{
   font-weight:700;
   margin-top:4px;
@@ -304,6 +347,8 @@ export default function DestaquesSection() {
   background:#ddd;
   border-radius:8px;
   font-size:11px;
+  text-align:center;
+  padding:5px;
 }
 
 .add{
