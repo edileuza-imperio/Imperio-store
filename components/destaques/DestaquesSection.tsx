@@ -3,11 +3,6 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import api from "@/Api/conectar";
-import { FiStar } from "react-icons/fi";
-
-/* =============================
-TIPOS
-============================= */
 
 type Campanha = {
   id_campanha: number;
@@ -18,9 +13,8 @@ type Campanha = {
   statusid?: number;
 };
 
-type ProdutoDestaque = {
+type Produto = {
   id_destaque: number;
-  produto_id: number;
   produto_nome: string;
   produto_slug: string;
   produto_descricao?: string;
@@ -28,117 +22,80 @@ type ProdutoDestaque = {
   produto_imagem?: string;
 };
 
-/* =============================
-UTILS
-============================= */
+function getImagemUrl(caminho?: string) {
+  if (!caminho) return "";
 
-function formatMoneyBR(value?: any) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return "";
+  const base = api.defaults.baseURL || "";
+  const clean = caminho.replace(/^\/+/, "");
 
-  return n.toLocaleString("pt-BR", {
+  return `${base}/${clean}`;
+}
+
+function formatMoney(value: any) {
+  return Number(value).toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });
 }
 
-function getImagemUrl(caminho?: string) {
-  if (!caminho) return undefined;
-
-  const base = api.defaults.baseURL || "";
-  const clean = String(caminho).replace(/^\/+/, "");
-  const baseFinal = base.endsWith("/") ? base : `${base}/`;
-
-  return `${baseFinal}${clean}`;
-}
-
-/* =============================
-COMPONENTE
-============================= */
-
 export default function DestaquesSection() {
 
   const [campanha, setCampanha] = useState<Campanha | null>(null);
-  const [produtos, setProdutos] = useState<ProdutoDestaque[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [produtos, setProdutos] = useState<Produto[]>([]);
 
   async function carregar() {
 
-    try {
+    const resCamp = await api.get("/admin/campanhas");
 
-      const resCamp = await api.get("/admin/campanhas");
+    const campanhas = resCamp.data.dados.campanhas;
 
-      const listaCamp: Campanha[] =
-        resCamp?.data?.dados?.campanhas ?? [];
+    const destaque = campanhas.find(
+      (c: Campanha) => c.statusid === 3
+    );
 
-      const destaque = listaCamp.find(
-        (c) => Number(c.statusid) === 3
-      );
+    setCampanha(destaque);
 
-      setCampanha(destaque || null);
+    const resProd = await api.get("/admin/produtos/destaques");
 
-      const resProd = await api.get("/admin/produtos/destaques");
-
-      const listaProd: ProdutoDestaque[] =
-        resProd?.data?.dados ?? [];
-
-      setProdutos(listaProd);
-
-    } catch (erro) {
-
-      console.error("Erro ao carregar destaques:", erro);
-
-    } finally {
-
-      setLoading(false);
-
-    }
+    setProdutos(resProd.data.dados);
   }
 
   useEffect(() => {
     carregar();
   }, []);
 
-  if (loading) {
-    return <div>Carregando campanha...</div>;
-  }
-
   return (
-    <section className="section">
 
-      {/* HEADER CAMPANHA */}
+    <section className="container py-5">
 
       {campanha && (
-        <div className="headerCampanha">
 
-          <div className="headerTexto">
+        <div className="text-center mb-5">
 
-            <span className="tag">
-              <FiStar />
-              Campanha
-            </span>
+          <span className="badge bg-dark px-3 py-2 mb-2">
+            Campanha
+          </span>
 
-            <h2>{campanha.titulo}</h2>
+          <h1 className="titulo-campanha">
+            {campanha.titulo}
+          </h1>
 
-            <p>
-              {campanha.descricao}
-            </p>
+          <p className="descricao-campanha">
+            {campanha.descricao}
+          </p>
 
-            <Link
-              href={`/campanha/${campanha.slug}`}
-              className="btnCatalogo"
-            >
-              Ver catálogo
-            </Link>
-
-          </div>
+          <Link
+            href={`/campanha/${campanha.slug}`}
+            className="btn btn-dark mt-2"
+          >
+            Ver catálogo
+          </Link>
 
         </div>
+
       )}
 
-      {/* PRODUTOS */}
-
-      <div className="produtos">
+      <div className="row g-4">
 
         {produtos.map((p) => {
 
@@ -146,38 +103,48 @@ export default function DestaquesSection() {
 
           return (
 
-            <div key={p.id_destaque} className="produto">
+            <div
+              key={p.id_destaque}
+              className="col-lg-6 col-md-6"
+            >
 
-              <div className="imagem">
+              <div className="card produto-card">
 
-                {img && (
-                  <img src={img} alt={p.produto_nome} />
-                )}
+                <div className="produto-img">
 
-                <span className="badge">
-                  Destaque
-                </span>
+                  <img
+                    src={img}
+                    alt={p.produto_nome}
+                  />
 
-              </div>
+                  <span className="badge-destaque">
+                    Destaque
+                  </span>
 
-              <div className="info">
-
-                <h4>{p.produto_nome}</h4>
-
-                <p className="desc">
-                  {p.produto_descricao}
-                </p>
-
-                <div className="preco">
-                  {formatMoneyBR(p.produto_preco)}
                 </div>
 
-                <Link
-                  href={`/produto/${p.produto_slug}`}
-                  className="btnProduto"
-                >
-                  Ver produto
-                </Link>
+                <div className="card-body">
+
+                  <h5 className="produto-nome">
+                    {p.produto_nome}
+                  </h5>
+
+                  <p className="produto-desc">
+                    {p.produto_descricao}
+                  </p>
+
+                  <div className="produto-preco">
+                    {formatMoney(p.produto_preco)}
+                  </div>
+
+                  <Link
+                    href={`/produto/${p.produto_slug}`}
+                    className="btn btn-outline-dark btn-sm mt-2"
+                  >
+                    Ver produto
+                  </Link>
+
+                </div>
 
               </div>
 
@@ -190,122 +157,67 @@ export default function DestaquesSection() {
 
 <style jsx>{`
 
-.section{
-  padding:60px 20px;
-  background:#efe6d7;
-  border-radius:24px;
+.titulo-campanha{
+font-size:36px;
+font-weight:800;
+color:#1c1c1c;
 }
 
-/* HEADER CAMPANHA */
-
-.headerCampanha{
-  text-align:center;
-  margin-bottom:40px;
+.descricao-campanha{
+color:#666;
+font-size:15px;
 }
 
-.tag{
-  display:inline-flex;
-  gap:6px;
-  align-items:center;
-  font-size:12px;
-  font-weight:700;
-  background:#fff;
-  padding:6px 12px;
-  border-radius:20px;
+.produto-card{
+border-radius:18px;
+overflow:hidden;
+border:none;
+box-shadow:0 8px 20px rgba(0,0,0,0.08);
+transition:0.25s;
 }
 
-.headerCampanha h2{
-  font-size:32px;
-  font-weight:800;
-  margin-top:12px;
+.produto-card:hover{
+transform:translateY(-5px);
+box-shadow:0 12px 28px rgba(0,0,0,0.12);
 }
 
-.headerCampanha p{
-  margin-top:8px;
-  color:#6c6357;
+.produto-img{
+position:relative;
+height:260px;
+overflow:hidden;
 }
 
-.btnCatalogo{
-  display:inline-block;
-  margin-top:16px;
-  padding:10px 18px;
-  background:#c79b6e;
-  color:white;
-  border-radius:12px;
-  font-weight:600;
+.produto-img img{
+width:100%;
+height:100%;
+object-fit:cover;
 }
 
-/* PRODUTOS */
-
-.produtos{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-  gap:20px;
+.badge-destaque{
+position:absolute;
+top:10px;
+left:10px;
+background:black;
+color:white;
+padding:4px 10px;
+font-size:12px;
+border-radius:10px;
 }
 
-.produto{
-  background:#fff;
-  border-radius:18px;
-  overflow:hidden;
-  box-shadow:0 10px 25px rgba(0,0,0,0.08);
-  transition:0.2s;
+.produto-nome{
+font-size:18px;
+font-weight:700;
 }
 
-.produto:hover{
-  transform:translateY(-4px);
+.produto-desc{
+font-size:13px;
+color:#777;
 }
 
-.imagem{
-  position:relative;
-  height:180px;
-}
-
-.imagem img{
-  width:100%;
-  height:100%;
-  object-fit:cover;
-}
-
-.badge{
-  position:absolute;
-  top:10px;
-  left:10px;
-  background:#000;
-  color:#fff;
-  font-size:11px;
-  padding:4px 10px;
-  border-radius:12px;
-}
-
-.info{
-  padding:14px;
-}
-
-.info h4{
-  font-size:14px;
-  font-weight:700;
-}
-
-.desc{
-  font-size:12px;
-  color:#777;
-  margin-top:4px;
-}
-
-.preco{
-  margin-top:8px;
-  font-weight:700;
-}
-
-.btnProduto{
-  display:block;
-  margin-top:10px;
-  text-align:center;
-  background:#c79b6e;
-  color:white;
-  padding:8px;
-  border-radius:10px;
-  font-size:13px;
+.produto-preco{
+font-size:20px;
+font-weight:800;
+margin-top:5px;
 }
 
 `}</style>
