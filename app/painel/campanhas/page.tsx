@@ -5,17 +5,21 @@ import api from "@/Api/conectar";
 import {
 FiPlus,
 FiTrash2,
-FiPackage
+FiPackage,
+FiX
 } from "react-icons/fi";
 
-type Campanha = {
+type Campanha={
 id_campanha:number
 titulo:string
 slug:string
 descricao?:string
+banner?:string
+inicio?:string
+fim?:string
 }
 
-type Produto = {
+type Produto={
 id_produto:number
 nome:string
 }
@@ -24,7 +28,6 @@ export default function CampanhasPage(){
 
 const [campanhas,setCampanhas]=useState<Campanha[]>([])
 const [produtos,setProdutos]=useState<Produto[]>([])
-const [produtosSelecionados,setProdutosSelecionados]=useState<number[]>([])
 
 const [openModal,setOpenModal]=useState(false)
 const [openProdutos,setOpenProdutos]=useState(false)
@@ -32,14 +35,19 @@ const [openProdutos,setOpenProdutos]=useState(false)
 const [titulo,setTitulo]=useState("")
 const [slug,setSlug]=useState("")
 const [descricao,setDescricao]=useState("")
+const [banner,setBanner]=useState("")
+const [inicio,setInicio]=useState("")
+const [fim,setFim]=useState("")
 
 const [campanhaSelecionada,setCampanhaSelecionada]=useState<number|null>(null)
+
+const [produtosSelecionados,setProdutosSelecionados]=useState<number[]>([])
 
 async function carregarCampanhas(){
 
 const res = await api.get("/admin/campanhas")
 
-const lista =
+const lista=
 res?.data?.dados?.campanhas ??
 res?.data?.dados ??
 res?.data ??
@@ -53,7 +61,7 @@ async function carregarProdutos(){
 
 const res = await api.get("/admin/produtos")
 
-const lista =
+const lista=
 res?.data?.dados ??
 res?.data ??
 []
@@ -76,17 +84,42 @@ const res = await api.post("/admin/campanhas",{
 titulo,
 slug,
 descricao,
+banner,
+inicio,
+fim,
 statusid:3
 
 })
 
+const id = res?.data?.dados?.id_campanha
+
+if(id && produtosSelecionados.length>0){
+
+await api.post(`/admin/campanha/${id}/produtos`,{
+
+produtos:produtosSelecionados
+
+})
+
+}
+
 setOpenModal(false)
+
+resetForm()
+
+carregarCampanhas()
+
+}
+
+function resetForm(){
 
 setTitulo("")
 setSlug("")
 setDescricao("")
-
-carregarCampanhas()
+setBanner("")
+setInicio("")
+setFim("")
+setProdutosSelecionados([])
 
 }
 
@@ -136,11 +169,13 @@ return(
 
 <div className="page">
 
-<div className="header">
+<div className="topBar">
 
 <div>
+
 <h1>Campanhas</h1>
 <p>Gerencie campanhas promocionais</p>
+
 </div>
 
 <button
@@ -160,7 +195,7 @@ onClick={()=>setOpenModal(true)}
 {campanhas.map(c=>(
 <div key={c.id_campanha} className="card">
 
-<div className="cardTop">
+<div className="cardHeader">
 
 <h3>{c.titulo}</h3>
 
@@ -178,9 +213,7 @@ onClick={()=>removerCampanha(c.id_campanha)}
 <span className="slug">/{c.slug}</span>
 
 <p className="desc">
-
 {c.descricao || "Sem descrição"}
-
 </p>
 
 <div className="cardFooter">
@@ -190,7 +223,7 @@ className="btnProdutos"
 onClick={()=>abrirProdutos(c.id_campanha)}
 >
 
-<FiPackage/> Vincular produtos
+<FiPackage/> Produtos
 
 </button>
 
@@ -202,7 +235,7 @@ onClick={()=>abrirProdutos(c.id_campanha)}
 </div>
 
 
-{/* MODAL CRIAR CAMPANHA */}
+{/* MODAL CAMPANHA */}
 
 {openModal &&(
 
@@ -210,7 +243,22 @@ onClick={()=>abrirProdutos(c.id_campanha)}
 
 <div className="modal">
 
+<div className="modalHeader">
+
 <h2>Criar campanha</h2>
+
+<button
+className="btnClose"
+onClick={()=>setOpenModal(false)}
+>
+
+<FiX/>
+
+</button>
+
+</div>
+
+<div className="formGrid">
 
 <input
 placeholder="Título"
@@ -230,42 +278,31 @@ value={descricao}
 onChange={e=>setDescricao(e.target.value)}
 />
 
-<div className="modalActions">
+<input
+placeholder="Texto do banner"
+value={banner}
+onChange={e=>setBanner(e.target.value)}
+/>
 
-<button
-onClick={()=>setOpenModal(false)}
-className="btnCancel"
->
-Cancelar
-</button>
+<input
+type="datetime-local"
+value={inicio}
+onChange={e=>setInicio(e.target.value)}
+/>
 
-<button
-onClick={criarCampanha}
-className="btnPrimary"
->
-Criar
-</button>
-
-</div>
-
-</div>
+<input
+type="datetime-local"
+value={fim}
+onChange={e=>setFim(e.target.value)}
+/>
 
 </div>
 
-)}
+<div className="produtosBox">
 
+<h4>Produtos da campanha</h4>
 
-{/* MODAL PRODUTOS */}
-
-{openProdutos &&(
-
-<div className="overlay">
-
-<div className="modalLarge">
-
-<h2>Vincular produtos</h2>
-
-<div className="produtos">
+<div className="produtosList">
 
 {produtos.map(p=>{
 
@@ -273,7 +310,7 @@ const checked = produtosSelecionados.includes(p.id_produto)
 
 return(
 
-<label key={p.id_produto} className="produto">
+<label key={p.id_produto}>
 
 <input
 type="checkbox"
@@ -291,20 +328,22 @@ onChange={()=>toggleProduto(p.id_produto)}
 
 </div>
 
+</div>
+
 <div className="modalActions">
 
 <button
 className="btnCancel"
-onClick={()=>setOpenProdutos(false)}
+onClick={()=>setOpenModal(false)}
 >
 Cancelar
 </button>
 
 <button
 className="btnPrimary"
-onClick={salvarProdutos}
+onClick={criarCampanha}
 >
-Salvar produtos
+Criar campanha
 </button>
 
 </div>
@@ -319,19 +358,19 @@ Salvar produtos
 <style jsx>{`
 
 .page{
-padding:30px;
-background:#f6f7fb;
+padding:35px;
+background:#f5f7fb;
 min-height:100vh;
 }
 
-.header{
+.topBar{
 display:flex;
 justify-content:space-between;
 align-items:center;
-margin-bottom:25px;
+margin-bottom:30px;
 }
 
-.header h1{
+.topBar h1{
 font-size:28px;
 font-weight:800;
 }
@@ -344,15 +383,15 @@ gap:20px;
 
 .card{
 background:white;
-padding:20px;
 border-radius:14px;
-box-shadow:0 8px 25px rgba(0,0,0,.05);
+padding:20px;
+box-shadow:0 10px 30px rgba(0,0,0,.06);
 display:flex;
 flex-direction:column;
-gap:10px;
+gap:8px;
 }
 
-.cardTop{
+.cardHeader{
 display:flex;
 justify-content:space-between;
 align-items:center;
@@ -376,11 +415,11 @@ margin-top:auto;
 background:#6366f1;
 color:white;
 border:none;
-padding:7px 14px;
+padding:8px 14px;
 border-radius:8px;
 display:flex;
-gap:6px;
 align-items:center;
+gap:6px;
 }
 
 .btnDelete{
@@ -395,17 +434,17 @@ border-radius:8px;
 background:#6366f1;
 color:white;
 border:none;
-padding:8px 14px;
+padding:9px 16px;
 border-radius:8px;
 display:flex;
-gap:6px;
 align-items:center;
+gap:6px;
 }
 
 .btnCancel{
 background:#e5e7eb;
 border:none;
-padding:8px 14px;
+padding:9px 16px;
 border-radius:8px;
 }
 
@@ -421,34 +460,40 @@ justify-content:center;
 .modal{
 background:white;
 padding:25px;
-border-radius:12px;
-width:420px;
+border-radius:14px;
+width:650px;
 display:flex;
 flex-direction:column;
+gap:14px;
+}
+
+.modalHeader{
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.formGrid{
+display:grid;
+grid-template-columns:1fr 1fr;
 gap:10px;
 }
 
-.modalLarge{
-background:white;
-padding:25px;
-border-radius:12px;
-width:600px;
-display:flex;
-flex-direction:column;
-gap:12px;
+.formGrid textarea{
+grid-column:span 2;
 }
 
-.produtos{
-max-height:300px;
+.produtosBox{
+border-top:1px solid #eee;
+padding-top:10px;
+}
+
+.produtosList{
+max-height:200px;
 overflow:auto;
 display:flex;
 flex-direction:column;
-gap:8px;
-}
-
-.produto{
-display:flex;
-gap:8px;
+gap:6px;
 }
 
 .modalActions{
