@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import api from "@/Api/conectar";
-import { FiArrowLeft, FiCheck, FiPackage, FiRefreshCw, FiSearch, FiSave } from "react-icons/fi";
+import {
+  FiArrowLeft,
+  FiCheck,
+  FiPackage,
+  FiRefreshCw,
+  FiSearch,
+  FiSave,
+} from "react-icons/fi";
 
 type Campanha = {
   id_campanha: number;
@@ -16,6 +23,60 @@ type Produto = {
   nome: string;
 };
 
+function pickCampanha(res: any): Campanha | null {
+  const c = res?.data?.dados ?? res?.data ?? null;
+  if (!c) return null;
+
+  const id = Number(c?.id_campanha ?? c?.id);
+  if (!Number.isFinite(id) || id <= 0) return null;
+
+  return {
+    id_campanha: id,
+    titulo: String(c?.titulo ?? ""),
+    slug: String(c?.slug ?? ""),
+  };
+}
+
+function pickProdutosLista(res: any): Produto[] {
+  const lista = res?.data?.dados ?? res?.data ?? [];
+  return Array.isArray(lista) ? lista : [];
+}
+
+function pickVinculosIds(res: any): number[] {
+  const lista =
+    res?.data?.dados?.produtos ??
+    res?.data?.produtos ??
+    res?.data?.dados ??
+    res?.data ??
+    [];
+
+  if (!Array.isArray(lista)) return [];
+
+  // aceita tanto [{id_produto: 1}] quanto [1,2,3]
+  return lista
+    .map((x: any) => Number(x?.id_produto ?? x))
+    .filter((n: any) => Number.isFinite(n) && n > 0);
+}
+
+async function getComFallback(urls: string[]) {
+  let lastErr: any = null;
+
+  for (const url of urls) {
+    try {
+      const res = await api.get(url);
+      return { res, urlOk: url };
+    } catch (e: any) {
+      lastErr = e;
+      const status = e?.response?.status;
+      // se não for 404, para (ex: 500, 401)
+      if (status && status !== 404) throw e;
+      // se for 404, tenta próxima
+    }
+  }
+
+  throw lastErr;
+}
+
 export default function CampanhaProdutosPage() {
   const router = useRouter();
   const params = useParams();
@@ -27,72 +88,109 @@ export default function CampanhaProdutosPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [q, setQ] = useState("");
+  const [debugUrl, setDebugUrl] = useState<string>("");
 
   async function carregarTudo() {
+    if (!Number.isFinite(id) || id <= 0) return;
+
     setLoading(true);
     try {
-      const [resCampanha, resProdutos, resVinculos] = await Promise.all([
-        api.get(`/admin/campanha/${id}`).catch(() => null),
-        api.get("/admin/produtos"),
-        api.get(`/admin/campanha/${id}/produtos`),
-      ]);
+      // 1) campanha (só pra mostrar título/slug)
+      const campanhaTry = await getComFallback([
+        `/admin/campanha/${id}`,
+        `/admin/campanhas/${id}`,
+        `/admin/campanha/${id}/`,
+      ]).catch(() => null);
 
-      const camp =
-        resCampanha?.data?.dados ??
-        resCampanha?.data ??
-        null;
-
-      if (camp && (camp.id_campanha || camp.id)) {
-        setCampanha({
-          id_campanha: Number(camp.id_campanha ?? camp.id),
-          titulo: String(camp.titulo ?? ""),
-          slug: String(camp.slug ?? ""),
-        });
+      if (campanhaTry?.res) {
+        const c = pickCampanha(campanhaTry.res);
+        if (c) setCampanha(c);
       }
 
-      const listaProdutos = resProdutos?.data?.dados ?? resProdutos?.data ?? [];
-      setProdutos(Array.isArray(listaProdutos) ? listaProdutos : []);
+      // 2) produtos gerais
+      const resProdutos = await api.get("/admin/produtos");
+      setProdutos(pickProdutosLista(resProdutos));
 
-      const listaV = resVinculos?.data?.dados?.produtos ?? resVinculos?.data?.produtos ?? [];
-      const ids = Array.isArray(listaV)
-        ? listaV
-            .map((x: any) => Number(x?.id_produto))
-            .filter((n: any) => Number.isFinite(n))
-        : [];
+      // 3) vinculos (AQUI é onde tá dando 404)
+      const vinculosTry = await getComFallback([
+        `/admin/campanha/${id}/produtos`,
+        `/admin/campanha/${id}/produtos/`,
+        `/admin/campanhas/${id}/produtos`,
+        `/admin/campanhas/${id}/produtos/`,
+      ]);
+
+      setDebugUrl(vinculosTry.urlOk);
+
+      const ids = pickVinculosIds(vinculosTry.res);
       setSelecionados(ids);
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("Erro ao carregar produtos da campanha");
+
+      const status = e?.response?.status;
+      const msg =
+        e?.response?.data?.mensagem ||
+        e?.response?.data?.message ||
+        (status === 404
+          ? "Rota não encontrada (404). Seu backend não está servindo esse endpoint no servidor."
+          : "Erro ao carregar produtos da campanha");
+
+      alert(msg);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    if (!Number.isFinite(id) || id <= 0) return;
     carregarTudo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   function toggle(idProduto: number) {
     setSelecionados((prev) =>
-      prev.includes(idProduto) ? prev.filter((x) => x !== idProduto) : [...prev, idProduto]
+      prev.includes(idProduto)
+        ? prev.filter((x) => x !== idProduto)
+        : [...prev, idProduto]
     );
   }
 
   const filtrados = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (!term) return produtos;
-    return produtos.filter((p) => (p.nome || "").toLowerCase().includes(term));
+    return produtos.filter((p) =>
+      (p.nome || "").toLowerCase().includes(term)
+    );
   }, [produtos, q]);
 
   async function salvar() {
     setSaving(true);
     try {
-      await api.post(`/admin/campanha/${id}/produtos`, {
-        produtos: selecionados,
-      });
+      // POST com fallback também
+      const urls = [
+        `/admin/campanha/${id}/produtos`,
+        `/admin/campanha/${id}/produtos/`,
+        `/admin/campanhas/${id}/produtos`,
+        `/admin/campanhas/${id}/produtos/`,
+      ];
+
+      let ok = false;
+      let lastErr: any = null;
+
+      for (const url of urls) {
+        try {
+          await api.post(url, { produtos: selecionados });
+          ok = true;
+          break;
+        } catch (e: any) {
+          lastErr = e;
+          const status = e?.response?.status;
+          if (status && status !== 404) throw e;
+        }
+      }
+
+      if (!ok) throw lastErr;
+
       alert("Produtos salvos com sucesso!");
+      await carregarTudo();
     } catch (e) {
       console.error(e);
       alert("Erro ao salvar produtos");
@@ -115,11 +213,13 @@ export default function CampanhaProdutosPage() {
           <p>
             {campanha ? (
               <>
-                <strong>{campanha.titulo}</strong> <span className="muted">/{campanha.slug}</span>
+                <strong>{campanha.titulo}</strong>{" "}
+                <span className="muted">/{campanha.slug}</span>
               </>
             ) : (
               <>Campanha #{id}</>
             )}
+            {debugUrl ? <span className="debug">• rota: {debugUrl}</span> : null}
           </p>
         </div>
 
@@ -213,6 +313,13 @@ export default function CampanhaProdutosPage() {
         .muted {
           color: #64748b;
           font-weight: 700;
+        }
+
+        .debug{
+          margin-left: 10px;
+          color:#94a3b8;
+          font-weight: 700;
+          font-size: 12px;
         }
 
         .actions {
