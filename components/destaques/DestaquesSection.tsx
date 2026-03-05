@@ -9,7 +9,6 @@ type Campanha = {
   titulo: string;
   slug: string;
   descricao?: string;
-  banner?: string;
 };
 
 type Produto = {
@@ -86,8 +85,6 @@ export default function DestaquesSection() {
       setProdutos(prods);
     } catch (err) {
       console.error("Erro ao carregar destaques:", err);
-      setCampanha(null);
-      setProdutos([]);
     } finally {
       setLoading(false);
     }
@@ -102,51 +99,40 @@ export default function DestaquesSection() {
     [campanha, produtos]
   );
 
-  if (loading || !temConteudo) return null;
-
-  if (!campanha) return null;
+  if (loading || !temConteudo || !campanha) return null;
 
   const camp = campanha;
 
   return (
-    <section className="py-5 bg-light">
+    <section style={{ background: "#f5eee8", padding: "80px 0" }}>
       <div className="container">
 
-        {/* CAMPANHA */}
+        {/* BANNER PROFISSIONAL */}
 
-        <div className="text-center mb-5">
-
-          {camp.banner && (
-            <div className="mb-4">
-              <img
-                src={getImagemUrl(camp.banner)}
-                alt={camp.titulo}
-                className="img-fluid rounded shadow-sm"
-              />
-            </div>
-          )}
-
-          <span className="badge bg-success px-3 py-2 mb-3">
-            Campanha Especial
-          </span>
-
-          <h2 className="fw-bold">{camp.titulo}</h2>
+        <div
+          className="p-5 rounded-4 text-center mb-5"
+          style={{
+            background: "#c78c5c",
+            color: "white",
+            boxShadow: "0 10px 25px rgba(0,0,0,0.15)"
+          }}
+        >
+          <h2 className="fw-bold mb-2">{camp.titulo}</h2>
 
           {camp.descricao && (
-            <p className="text-muted mx-auto" style={{ maxWidth: 600 }}>
+            <p className="mb-3 opacity-75">
               {camp.descricao}
             </p>
           )}
 
           <Link
             href={`/campanha/${camp.slug}`}
-            className="btn btn-dark mt-2"
+            className="btn btn-light rounded-pill px-4 fw-semibold"
           >
-            Ver catálogo
+            <i className="bi bi-grid me-2"></i>
+            Ver coleção
           </Link>
-
         </div>
-
 
         {/* PRODUTOS */}
 
@@ -159,12 +145,18 @@ export default function DestaquesSection() {
 
             return (
 
-              <div
-                key={p.key}
-                className="col-12 col-sm-6 col-lg-4 col-xl-3"
-              >
+              <div key={p.key} className="col-12 col-sm-6 col-lg-4 col-xl-3">
 
-                <div className="card border-0 shadow-sm h-100">
+                <div
+                  className="card border-0 h-100"
+                  style={{
+                    borderRadius: "16px",
+                    overflow: "hidden",
+                    boxShadow: "0 8px 18px rgba(0,0,0,0.08)"
+                  }}
+                >
+
+                  {/* IMAGEM */}
 
                   <div className="position-relative">
 
@@ -173,28 +165,43 @@ export default function DestaquesSection() {
                         src={img}
                         alt={p.nome}
                         className="card-img-top"
-                        style={{ height: 230, objectFit: "cover" }}
+                        style={{
+                          height: 240,
+                          objectFit: "cover"
+                        }}
                       />
                     ) : (
                       <div
-                        className="d-flex align-items-center justify-content-center bg-light"
-                        style={{ height: 230 }}
+                        className="d-flex align-items-center justify-content-center"
+                        style={{
+                          height: 240,
+                          background: "#eee"
+                        }}
                       >
                         Sem imagem
                       </div>
                     )}
 
-                    <span className="badge bg-success position-absolute top-0 start-0 m-2">
+                    <span
+                      className="badge position-absolute"
+                      style={{
+                        top: 12,
+                        left: 12,
+                        background: "#c78c5c"
+                      }}
+                    >
                       Destaque
                     </span>
 
                   </div>
 
+                  {/* INFO */}
+
                   <div className="card-body d-flex flex-column">
 
-                    <h5 className="card-title fw-semibold">
+                    <h6 className="fw-semibold">
                       {p.nome}
-                    </h5>
+                    </h6>
 
                     {p.descricao && (
                       <p className="text-muted small">
@@ -202,21 +209,29 @@ export default function DestaquesSection() {
                       </p>
                     )}
 
-                    <div className="fw-bold fs-5 text-primary mb-3">
+                    <div
+                      className="fw-bold fs-5 mb-3"
+                      style={{ color: "#c78c5c" }}
+                    >
                       {formatMoney(p.preco)}
                     </div>
+
+                    {/* BOTÕES */}
 
                     <div className="mt-auto d-flex gap-2">
 
                       <Link
                         href={`/produto/${p.slug}`}
-                        className="btn btn-outline-secondary w-100"
+                        className="btn btn-outline-dark w-100"
                       >
-                        Detalhes
+                        <i className="bi bi-eye"></i>
                       </Link>
 
-                      <button className="btn btn-dark w-100">
-                        Comprar
+                      <button
+                        className="btn w-100 text-white"
+                        style={{ background: "#c78c5c" }}
+                      >
+                        <i className="bi bi-cart-plus"></i>
                       </button>
 
                     </div>
@@ -231,6 +246,7 @@ export default function DestaquesSection() {
           })}
 
         </div>
+
       </div>
     </section>
   );
