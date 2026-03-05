@@ -28,7 +28,10 @@ export default function Header({
 }: HeaderProps) {
   const now = useMemo(() => {
     const d = new Date();
-    return d.toLocaleString("pt-BR", { dateStyle: "medium", timeStyle: "short" });
+    return d.toLocaleString("pt-BR", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
   }, []);
 
   const [usuario, setUsuario] = useState<any>(null);
@@ -46,14 +49,8 @@ export default function Header({
     })();
   }, []);
 
-  const nome =
-    usuario?.nome ||
-    usuario?.name ||
-    usuario?.email ||
-    userName;
-
+  const nome = usuario?.nome || usuario?.name || usuario?.email || userName;
   const email = usuario?.email || "";
-
   const statusTxt = checking ? "Verificando" : usuario ? "Online" : "Offline";
 
   return (
@@ -120,7 +117,9 @@ export default function Header({
         .hdr {
           position: sticky;
           top: 0;
-          z-index: 50;
+
+          z-index: 200; /* ✅ antes era 50 */
+
           display: flex;
           align-items: center;
           justify-content: space-between;

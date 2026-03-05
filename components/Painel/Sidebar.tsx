@@ -150,9 +150,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       .map((it) => {
         if (it.type === "link") return hit(it.label) ? it : null;
 
-        const children = (it.children || []).filter(
-          (c) => hit(c.label) || hit(c.href)
-        );
+        const children = (it.children || []).filter((c) => hit(c.label) || hit(c.href));
 
         if (hit(it.label) || children.length > 0) return { ...it, children };
         return null;
@@ -169,12 +167,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     router.replace("/login");
   }
 
-  const nomeUsuario =
-    usuario?.nome ||
-    usuario?.name ||
-    usuario?.email ||
-    "Usuário";
-
+  const nomeUsuario = usuario?.nome || usuario?.name || usuario?.email || "Usuário";
   const emailUsuario = usuario?.email || "";
 
   return (
@@ -219,15 +212,15 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </div>
 
           <div className="userInfo">
-            <div className="userName">{checkingAuth ? "Verificando..." : nomeUsuario}</div>
+            <div className="userName">
+              {checkingAuth ? "Verificando..." : nomeUsuario}
+            </div>
             <div className="userEmail">
-              {checkingAuth ? "Aguarde" : (emailUsuario || "Sessão administrativa")}
+              {checkingAuth ? "Aguarde" : emailUsuario || "Sessão administrativa"}
             </div>
           </div>
 
-          <div className={`pill ${usuario ? "ok" : "bad"}`}>
-            {usuario ? "LOGADO" : "OFF"}
-          </div>
+          <div className={`pill ${usuario ? "ok" : "bad"}`}>{usuario ? "LOGADO" : "OFF"}</div>
         </div>
 
         {/* SEARCH */}
@@ -299,9 +292,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
                 <div key={i} className="groupWrap">
                   <button
                     type="button"
-                    className={`group ${opened ? "opened" : ""} ${
-                      anyChildActive ? "hint" : ""
-                    }`}
+                    className={`group ${opened ? "opened" : ""} ${anyChildActive ? "hint" : ""}`}
                     onClick={() =>
                       setGroups((prev) => ({
                         ...prev,
@@ -369,26 +360,27 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           color: inherit;
         }
 
-        /* overlay mobile */
+        /* ✅ overlay mobile (abaixo do sidebar, acima do resto) */
         .overlay {
           position: fixed;
           inset: 0;
           background: rgba(2, 6, 23, 0.58);
           border: none;
           display: none;
-          z-index: 9998;
+          z-index: 9999; /* ✅ overlay */
         }
         .overlay.show {
           display: block;
         }
 
-        /* sidebar */
+        /* ✅ sidebar DESKTOP: não pode ficar por cima do header */
         .sidebar {
           width: 320px;
           height: 100vh;
           position: sticky;
           top: 0;
-          z-index: 9999;
+
+          z-index: 10; /* ✅ antes era 9999 (cobria o header) */
 
           display: flex;
           flex-direction: column;
@@ -988,11 +980,13 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           background: rgba(255, 255, 255, 0.14);
         }
 
-        /* mobile */
+        /* ✅ mobile: sidebar por cima do header (menu lateral) */
         @media (max-width: 900px) {
           .sidebar {
             position: fixed;
+            top: 0;
             left: -120%;
+            z-index: 10000; /* ✅ sidebar acima do overlay e acima do header */
             transition: 0.28s ease;
           }
           .sidebar.open {

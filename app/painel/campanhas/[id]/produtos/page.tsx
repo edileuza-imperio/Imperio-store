@@ -85,22 +85,14 @@ export default function CampanhaProdutosPage() {
         if (c) setCampanha(c);
       }
 
-      const listaProdutos = pickProdutosLista(resProdutos);
-      setProdutos(listaProdutos);
-
-      const idsVinc = pickVinculosIds(resVinculos);
-      setSelecionados(idsVinc);
+      setProdutos(pickProdutosLista(resProdutos));
+      setSelecionados(pickVinculosIds(resVinculos));
     } catch (e: any) {
       console.error(e);
-      const status = e?.response?.status;
-
       const msg =
         e?.response?.data?.mensagem ||
         e?.response?.data?.message ||
-        (status === 404
-          ? "Rota não encontrada (404). Confira /admin/campanha/{id}/produtos"
-          : "Erro ao carregar produtos da campanha");
-
+        "Erro ao carregar produtos da campanha";
       alert(msg);
     } finally {
       setLoading(false);
@@ -122,23 +114,18 @@ export default function CampanhaProdutosPage() {
 
   const filtrados = useMemo(() => {
     const term = q.trim().toLowerCase();
-    const base = produtos;
-
-    if (!term) return base;
-
-    return base.filter((p) =>
-      (p.nome || "").toLowerCase().includes(term)
-    );
+    if (!term) return produtos;
+    return produtos.filter((p) => (p.nome || "").toLowerCase().includes(term));
   }, [produtos, q]);
 
   async function salvar() {
     if (!Number.isFinite(id) || id <= 0) return;
+
     setSaving(true);
     try {
       await api.post(`/admin/campanha/${id}/produtos`, {
         produtos: selecionados,
       });
-
       alert("Produtos salvos com sucesso!");
       await carregarTudo();
     } catch (e: any) {
@@ -153,35 +140,32 @@ export default function CampanhaProdutosPage() {
     }
   }
 
-  const totalSelecionados = selecionados.length;
+  function selecionarTodos() {
+    setSelecionados(filtrados.map((p) => p.id_produto));
+  }
+
+  function limparSelecao() {
+    setSelecionados([]);
+  }
 
   return (
     <div className="page">
-      {/* Top header premium */}
-      <div className="hero">
-        <div className="heroLeft">
-          <button className="btnBack" onClick={() => router.push("/painel/campanhas")}>
+      {/* TOPBAR CLEAN */}
+      <div className="topbar">
+        <div className="left">
+          <button className="iconBtn" onClick={() => router.push("/painel/campanhas")}>
             <FiArrowLeft />
           </button>
 
-          <div className="heroTitle">
-            <div className="crumbs">
-              <span className="crumb" onClick={() => router.push("/painel")}>Painel</span>
-              <span className="sep">/</span>
-              <span className="crumb" onClick={() => router.push("/painel/campanhas")}>Campanhas</span>
-              <span className="sep">/</span>
-              <span className="here">Produtos</span>
-            </div>
-
+          <div className="title">
             <h1>
               <FiPackage /> Produtos da campanha
             </h1>
-
             <p>
               {campanha ? (
                 <>
-                  <strong>{campanha.titulo}</strong>{" "}
-                  <span className="muted">/{campanha.slug}</span>
+                  <span className="strong">{campanha.titulo}</span>
+                  <span className="muted"> /{campanha.slug}</span>
                 </>
               ) : (
                 <>Campanha #{id}</>
@@ -190,13 +174,8 @@ export default function CampanhaProdutosPage() {
           </div>
         </div>
 
-        <div className="heroRight">
-          <div className="kpi">
-            <span className="kpiLabel">Selecionados</span>
-            <span className="kpiValue">{loading ? "…" : totalSelecionados}</span>
-          </div>
-
-          <button className="btnGhost" onClick={carregarTudo} disabled={loading}>
+        <div className="right">
+          <button className="btn" onClick={carregarTudo} disabled={loading}>
             <FiRefreshCw /> Atualizar
           </button>
 
@@ -206,42 +185,45 @@ export default function CampanhaProdutosPage() {
         </div>
       </div>
 
-      {/* Search / toolbar */}
+      {/* TOOLBAR */}
       <div className="toolbar">
         <div className="search">
           <FiSearch />
           <input
-            placeholder="Buscar produto pelo nome..."
+            placeholder="Buscar produto..."
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
           {q ? (
-            <button className="clear" onClick={() => setQ("")} aria-label="Limpar busca">
+            <button className="clear" onClick={() => setQ("")} aria-label="Limpar">
               ×
             </button>
           ) : null}
         </div>
 
-        <div className="toolbarInfo">
-          <span className="badge">
-            {loading ? "Carregando..." : `${filtrados.length} produto(s)`}
+        <div className="meta">
+          <span className="pill">
+            {loading ? "Carregando..." : `${filtrados.length} itens`}
           </span>
-          <span className="badge soft">
-            {loading ? "…" : `${totalSelecionados} selecionado(s)`}
+          <span className="pill dark">
+            {loading ? "…" : `${selecionados.length} selecionados`}
           </span>
+
+          <button className="btnSmall" onClick={selecionarTodos} disabled={loading || filtrados.length === 0}>
+            Selecionar todos
+          </button>
+          <button className="btnSmall" onClick={limparSelecao} disabled={loading || selecionados.length === 0}>
+            Limpar
+          </button>
         </div>
       </div>
 
-      {/* Main panel */}
+      {/* LIST */}
       <div className="panel">
         {loading ? (
           <div className="grid">
-            {Array.from({ length: 10 }).map((_, i) => (
-              <div key={i} className="skeletonCard">
-                <div className="skLine w70" />
-                <div className="skLine w45" />
-                <div className="skPill" />
-              </div>
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div key={i} className="sk" />
             ))}
           </div>
         ) : filtrados.length === 0 ? (
@@ -249,36 +231,32 @@ export default function CampanhaProdutosPage() {
             <div className="emptyIcon">
               <FiPackage />
             </div>
-            <h3>Nenhum produto encontrado</h3>
-            <p>Tente pesquisar por outro nome.</p>
+            <div>
+              <h3>Nenhum produto encontrado</h3>
+              <p>Tente outra busca.</p>
+            </div>
           </div>
         ) : (
           <div className="grid">
             {filtrados.map((p) => {
               const on = selecionados.includes(p.id_produto);
-
               return (
                 <button
                   key={p.id_produto}
-                  className={`card ${on ? "on" : ""}`}
+                  className={`item ${on ? "on" : ""}`}
                   onClick={() => toggle(p.id_produto)}
-                  title={p.nome}
                 >
-                  <div className="cardTop">
-                    <span className={`check ${on ? "on" : ""}`}>
-                      {on ? <FiCheck /> : null}
-                    </span>
-
-                    <span className={`status ${on ? "on" : ""}`}>
-                      {on ? "Selecionado" : "Selecionar"}
-                    </span>
+                  <div className={`box ${on ? "on" : ""}`}>
+                    {on ? <FiCheck /> : null}
                   </div>
 
-                  <div className="cardName">{p.nome}</div>
+                  <div className="info">
+                    <div className="name">{p.nome}</div>
+                    <div className="sub">ID #{p.id_produto}</div>
+                  </div>
 
-                  <div className="cardMeta">
-                    <span className="metaLabel">ID</span>
-                    <span className="metaValue">#{p.id_produto}</span>
+                  <div className={`tag ${on ? "on" : ""}`}>
+                    {on ? "Selecionado" : "Selecionar"}
                   </div>
                 </button>
               );
@@ -291,104 +269,75 @@ export default function CampanhaProdutosPage() {
         .page {
           padding: 22px;
           min-height: 100vh;
-          background:
-            radial-gradient(900px 420px at 10% 0%, rgba(99, 102, 241, 0.12), transparent 55%),
-            radial-gradient(900px 420px at 90% 10%, rgba(79, 70, 229, 0.10), transparent 55%),
-            #f6f8fc;
+          background: #f4f6f9;
         }
 
-        /* HERO */
-        .hero {
+        /* TOPBAR */
+        .topbar {
+          background: #fff;
+          border: 1px solid #e6eaf0;
+          border-radius: 12px;
+          padding: 14px;
           display: flex;
-          align-items: flex-start;
+          align-items: center;
           justify-content: space-between;
-          gap: 16px;
-          padding: 16px;
-          border-radius: 18px;
-          border: 1px solid rgba(226, 232, 240, 0.9);
-          background: rgba(255, 255, 255, 0.78);
-          backdrop-filter: blur(10px);
-          box-shadow: 0 18px 44px rgba(2, 6, 23, 0.08);
-          margin-bottom: 14px;
+          gap: 14px;
+          margin-bottom: 12px;
         }
 
-        .heroLeft {
+        .left {
           display: flex;
           align-items: flex-start;
           gap: 12px;
           min-width: 0;
         }
 
-        .btnBack {
-          width: 42px;
-          height: 42px;
-          border-radius: 14px;
-          border: 1px solid #e2e8f0;
+        .iconBtn {
+          width: 40px;
+          height: 40px;
+          border-radius: 10px;
+          border: 1px solid #e6eaf0;
           background: #fff;
-          box-shadow: 0 10px 26px rgba(2, 6, 23, 0.08);
           cursor: pointer;
           display: grid;
           place-items: center;
-          transition: 0.15s ease;
-        }
-        .btnBack:hover {
-          transform: translateY(-1px);
         }
 
-        .heroTitle {
+        .title {
           min-width: 0;
         }
 
-        .crumbs {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 12px;
-          color: #64748b;
-          font-weight: 800;
-          user-select: none;
-          margin-bottom: 6px;
-          flex-wrap: wrap;
-        }
-
-        .crumb {
-          cursor: pointer;
-        }
-        .crumb:hover {
-          color: #0f172a;
-        }
-
-        .sep {
-          color: #cbd5e1;
-        }
-
-        .here {
-          color: #0f172a;
-        }
-
-        .heroTitle h1 {
+        .title h1 {
           margin: 0;
-          font-size: 22px;
-          font-weight: 950;
+          font-size: 18px;
+          font-weight: 900;
           color: #0f172a;
           display: inline-flex;
           align-items: center;
           gap: 10px;
-          letter-spacing: -0.2px;
         }
 
-        .heroTitle p {
+        .title p {
           margin: 6px 0 0;
           font-size: 13px;
           color: #475569;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          max-width: 520px;
+        }
+
+        .strong {
+          font-weight: 900;
+          color: #0f172a;
         }
 
         .muted {
           color: #64748b;
-          font-weight: 800;
+          font-weight: 700;
         }
 
-        .heroRight {
+        .right {
           display: flex;
           align-items: center;
           gap: 10px;
@@ -396,72 +345,30 @@ export default function CampanhaProdutosPage() {
           justify-content: flex-end;
         }
 
-        .kpi {
-          min-width: 160px;
-          padding: 10px 12px;
-          border-radius: 14px;
-          background: rgba(2, 6, 23, 0.02);
-          border: 1px solid rgba(226, 232, 240, 0.9);
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
-
-        .kpiLabel {
-          font-size: 11px;
-          font-weight: 900;
-          color: #64748b;
-          text-transform: uppercase;
-          letter-spacing: 0.6px;
-        }
-
-        .kpiValue {
-          font-size: 18px;
-          font-weight: 950;
+        .btn,
+        .btnPrimary {
+          border: 1px solid #e6eaf0;
+          background: #fff;
           color: #0f172a;
-        }
-
-        .btnPrimary,
-        .btnGhost {
-          border: none;
+          padding: 10px 12px;
+          border-radius: 10px;
           cursor: pointer;
+          font-weight: 900;
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          border-radius: 14px;
-          font-weight: 900;
-          transition: 0.15s ease;
-          user-select: none;
-          padding: 11px 13px;
         }
 
         .btnPrimary {
-          background: linear-gradient(135deg, #6366f1, #4f46e5);
-          color: white;
-          box-shadow: 0 16px 40px rgba(79, 70, 229, 0.22);
-        }
-        .btnPrimary:hover {
-          transform: translateY(-1px);
-        }
-        .btnPrimary:disabled {
-          opacity: 0.75;
-          cursor: not-allowed;
-          transform: none;
+          border-color: #4f46e5;
+          background: #4f46e5;
+          color: #fff;
         }
 
-        .btnGhost {
-          background: white;
-          color: #0f172a;
-          border: 1px solid #e2e8f0;
-          box-shadow: 0 10px 26px rgba(2, 6, 23, 0.08);
-        }
-        .btnGhost:hover {
-          transform: translateY(-1px);
-        }
-        .btnGhost:disabled {
+        .btn:disabled,
+        .btnPrimary:disabled {
           opacity: 0.7;
           cursor: not-allowed;
-          transform: none;
         }
 
         /* TOOLBAR */
@@ -470,8 +377,8 @@ export default function CampanhaProdutosPage() {
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          margin-bottom: 12px;
           flex-wrap: wrap;
+          margin-bottom: 12px;
         }
 
         .search {
@@ -480,13 +387,10 @@ export default function CampanhaProdutosPage() {
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 12px 12px;
-          background: rgba(255, 255, 255, 0.9);
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          box-shadow: 0 12px 30px rgba(2, 6, 23, 0.06);
-          color: #64748b;
-          position: relative;
+          background: #fff;
+          border: 1px solid #e6eaf0;
+          border-radius: 12px;
+          padding: 12px;
         }
 
         .search input {
@@ -495,23 +399,20 @@ export default function CampanhaProdutosPage() {
           width: 100%;
           font-size: 14px;
           color: #0f172a;
-          background: transparent;
         }
 
         .clear {
           border: none;
-          cursor: pointer;
+          background: #f1f5f9;
           width: 28px;
           height: 28px;
           border-radius: 999px;
-          background: #f1f5f9;
-          color: #334155;
+          cursor: pointer;
           font-weight: 900;
-          display: grid;
-          place-items: center;
+          color: #334155;
         }
 
-        .toolbarInfo {
+        .meta {
           display: flex;
           align-items: center;
           gap: 10px;
@@ -519,235 +420,190 @@ export default function CampanhaProdutosPage() {
           justify-content: flex-end;
         }
 
-        .badge {
+        .pill {
           padding: 8px 10px;
           border-radius: 999px;
+          background: #fff;
+          border: 1px solid #e6eaf0;
           font-size: 12px;
           font-weight: 900;
-          border: 1px solid #e2e8f0;
-          background: rgba(255, 255, 255, 0.9);
           color: #0f172a;
-          box-shadow: 0 10px 26px rgba(2, 6, 23, 0.06);
         }
 
-        .badge.soft {
-          background: rgba(99, 102, 241, 0.10);
-          border-color: rgba(99, 102, 241, 0.22);
-          color: #3730a3;
+        .pill.dark {
+          background: #0f172a;
+          color: #fff;
+          border-color: #0f172a;
+        }
+
+        .btnSmall {
+          border: 1px solid #e6eaf0;
+          background: #fff;
+          padding: 9px 10px;
+          border-radius: 10px;
+          cursor: pointer;
+          font-weight: 900;
+          color: #0f172a;
+          font-size: 12px;
+        }
+
+        .btnSmall:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
         }
 
         /* PANEL */
         .panel {
-          border-radius: 20px;
-          border: 1px solid rgba(226, 232, 240, 0.9);
-          background: rgba(255, 255, 255, 0.85);
-          backdrop-filter: blur(10px);
-          box-shadow: 0 20px 52px rgba(2, 6, 23, 0.10);
+          background: #fff;
+          border: 1px solid #e6eaf0;
+          border-radius: 12px;
           padding: 14px;
         }
 
         .grid {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
-          gap: 12px;
-        }
-
-        .card {
-          border: 1px solid #e2e8f0;
-          background: white;
-          border-radius: 18px;
-          padding: 14px;
-          cursor: pointer;
-          transition: 0.15s ease;
-          text-align: left;
-          display: flex;
-          flex-direction: column;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 10px;
-          min-height: 120px;
-          box-shadow: 0 10px 28px rgba(2, 6, 23, 0.06);
         }
 
-        .card:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 18px 44px rgba(2, 6, 23, 0.10);
-        }
-
-        .card.on {
-          border-color: rgba(99, 102, 241, 0.35);
-          background: linear-gradient(180deg, #eef2ff 0%, #ffffff 60%);
-        }
-
-        .cardTop {
+        .item {
+          width: 100%;
+          text-align: left;
+          border: 1px solid #e6eaf0;
+          background: #fff;
+          border-radius: 12px;
+          padding: 12px;
+          cursor: pointer;
           display: flex;
           align-items: center;
+          gap: 12px;
           justify-content: space-between;
+          transition: 0.12s ease;
         }
 
-        .check {
-          width: 30px;
-          height: 30px;
-          border-radius: 12px;
-          border: 1px solid #e2e8f0;
-          background: #f8fafc;
+        .item:hover {
+          border-color: #cbd5e1;
+          box-shadow: 0 10px 24px rgba(2, 6, 23, 0.06);
+          transform: translateY(-1px);
+        }
+
+        .item.on {
+          border-color: #4f46e5;
+          background: #f7f7ff;
+        }
+
+        .box {
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          border: 1px solid #e6eaf0;
           display: grid;
           place-items: center;
           color: #4f46e5;
+          background: #fff;
+          flex: 0 0 auto;
         }
 
-        .check.on {
-          border-color: rgba(99, 102, 241, 0.35);
-          background: rgba(99, 102, 241, 0.12);
+        .box.on {
+          border-color: #4f46e5;
+          background: #eef2ff;
         }
 
-        .status {
+        .info {
+          flex: 1;
+          min-width: 0;
+        }
+
+        .name {
+          font-size: 14px;
+          font-weight: 900;
+          color: #0f172a;
+          line-height: 1.2;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .sub {
+          margin-top: 4px;
+          font-size: 12px;
+          color: #64748b;
+          font-weight: 700;
+        }
+
+        .tag {
+          flex: 0 0 auto;
           font-size: 12px;
           font-weight: 900;
-          padding: 7px 10px;
+          padding: 8px 10px;
           border-radius: 999px;
+          border: 1px solid #e6eaf0;
           background: #f1f5f9;
-          border: 1px solid #e2e8f0;
           color: #334155;
         }
 
-        .status.on {
-          background: rgba(99, 102, 241, 0.12);
-          border-color: rgba(99, 102, 241, 0.22);
+        .tag.on {
+          border-color: rgba(79, 70, 229, 0.35);
+          background: #eef2ff;
           color: #3730a3;
         }
 
-        .cardName {
-          font-size: 14px;
-          font-weight: 950;
-          color: #0f172a;
-          line-height: 1.2;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-          min-height: 34px;
-        }
-
-        .cardMeta {
+        .empty {
+          padding: 22px;
           display: flex;
           align-items: center;
-          justify-content: space-between;
-          padding-top: 6px;
-          border-top: 1px dashed #e2e8f0;
-        }
-
-        .metaLabel {
-          font-size: 11px;
-          font-weight: 900;
-          color: #94a3b8;
-          text-transform: uppercase;
-          letter-spacing: 0.6px;
-        }
-
-        .metaValue {
-          font-size: 12px;
-          font-weight: 950;
-          color: #0f172a;
-        }
-
-        /* EMPTY */
-        .empty {
-          padding: 34px 16px;
-          text-align: center;
+          gap: 14px;
           color: #475569;
         }
 
         .emptyIcon {
-          width: 56px;
-          height: 56px;
-          border-radius: 18px;
-          margin: 0 auto 10px;
-          border: 1px solid #e2e8f0;
-          background: #f8fafc;
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          border: 1px solid #e6eaf0;
           display: grid;
           place-items: center;
           color: #4f46e5;
-          box-shadow: 0 10px 26px rgba(2, 6, 23, 0.08);
+          background: #fff;
         }
 
         .empty h3 {
-          margin: 8px 0 4px;
-          font-size: 16px;
-          font-weight: 950;
+          margin: 0;
+          font-size: 14px;
+          font-weight: 900;
           color: #0f172a;
         }
 
         .empty p {
-          margin: 0;
+          margin: 4px 0 0;
           font-size: 13px;
           color: #64748b;
         }
 
-        /* SKELETON */
-        .skeletonCard {
-          border-radius: 18px;
-          border: 1px solid #e2e8f0;
-          background: linear-gradient(180deg, #ffffff, #f8fafc);
-          padding: 14px;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          min-height: 120px;
-          overflow: hidden;
-          position: relative;
+        .sk {
+          height: 64px;
+          border-radius: 12px;
+          border: 1px solid #e6eaf0;
+          background: linear-gradient(90deg, #f1f5f9, #ffffff, #f1f5f9);
+          background-size: 200% 100%;
+          animation: sk 1.1s infinite linear;
         }
 
-        .skeletonCard:after {
-          content: "";
-          position: absolute;
-          inset: 0;
-          transform: translateX(-100%);
-          background: linear-gradient(
-            90deg,
-            transparent,
-            rgba(2, 6, 23, 0.06),
-            transparent
-          );
-          animation: shimmer 1.2s infinite;
+        @keyframes sk {
+          0% { background-position: 0% 0%; }
+          100% { background-position: 200% 0%; }
         }
 
-        @keyframes shimmer {
-          100% {
-            transform: translateX(100%);
-          }
-        }
-
-        .skLine {
-          height: 12px;
-          border-radius: 10px;
-          background: rgba(148, 163, 184, 0.25);
-        }
-
-        .w70 { width: 70%; }
-        .w45 { width: 45%; }
-
-        .skPill {
-          width: 40%;
-          height: 26px;
-          border-radius: 999px;
-          background: rgba(148, 163, 184, 0.22);
-          margin-top: auto;
-        }
-
-        @media (max-width: 1100px) {
-          .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-        }
-
-        @media (max-width: 860px) {
-          .hero { flex-direction: column; }
-          .heroRight { width: 100%; justify-content: flex-start; }
-          .kpi { min-width: 100%; }
+        @media (max-width: 980px) {
           .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+          .title p { max-width: 360px; }
         }
 
         @media (max-width: 520px) {
           .page { padding: 14px; }
           .grid { grid-template-columns: 1fr; }
-          .search { min-width: 100%; }
+          .title p { max-width: 240px; }
+          .right { width: 100%; justify-content: flex-start; }
         }
       `}</style>
     </div>
