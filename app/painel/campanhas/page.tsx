@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import api from "@/Api/conectar";
-import { FiTrash2, FiTag, FiPlus, FiX, FiSearch } from "react-icons/fi";
+import { FiTrash2, FiTag, FiPlus, FiX, FiSearch, FiUpload, FiImage } from "react-icons/fi";
 
 type Campanha = {
   id_campanha: number;
@@ -26,11 +26,16 @@ function slugify(texto: string) {
   return texto
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // remove acentos
-    .replace(/[^a-z0-9\s-]/g, "") // remove caracteres especiais
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
     .trim()
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
+}
+
+function toApiDateTime(dtLocal: string) {
+  // "YYYY-MM-DDTHH:mm" -> "YYYY-MM-DD HH:mm:ss"
+  return dtLocal ? dtLocal.replace("T", " ") + ":00" : "";
 }
 
 export default function CampanhasPage() {
@@ -39,13 +44,21 @@ export default function CampanhasPage() {
 
   const [openModal, setOpenModal] = useState(false);
 
-  // campos da tabela campanha
+  // abas do modal
+  const [aba, setAba] = useState<"detalhes" | "produtos">("detalhes");
+
+  // campos
   const [titulo, setTitulo] = useState("");
   const [slug, setSlug] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [banner, setBanner] = useState("");
-  const [inicio, setInicio] = useState(""); // datetime-local
-  const [fim, setFim] = useState(""); // datetime-local
+  const [inicio, setInicio] = useState("");
+  const [fim, setFim] = useState("");
+
+  // banner (arquivo)
+  const inputBannerRef = useRef<HTMLInputElement | null>(null);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string>("");
+  const [dragOver, setDragOver] = useState(false);
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [produtosSelecionados, setProdutosSelecionados] = useState<number[]>([]);
@@ -60,7 +73,6 @@ export default function CampanhasPage() {
   async function carregarCampanhas() {
     try {
       setLoading(true);
-
       const res = await api.get("/admin/campanhas");
 
       const lista =
@@ -84,10 +96,8 @@ export default function CampanhasPage() {
   async function carregarProdutos() {
     try {
       setLoadingProdutos(true);
-
       const res = await api.get("/admin/produtos");
       const data = res?.data?.dados ?? res?.data ?? [];
-
       setProdutos(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error("Erro produtos:", err);
@@ -102,7 +112,7 @@ export default function CampanhasPage() {
   }, []);
 
   // ==============================
-  // REMOVER CAMPANHA
+  // REMOVER
   // ==============================
   async function remover(id: number) {
     if (!confirm("Remover campanha?")) return;
@@ -117,10 +127,11 @@ export default function CampanhasPage() {
   }
 
   // ==============================
-  // MODAL OPEN/CLOSE
+  // MODAL
   // ==============================
   function abrirModal() {
     setOpenModal(true);
+    setAba("detalhes");
     if (produtos.length === 0) carregarProdutos();
   }
 
@@ -128,11 +139,16 @@ export default function CampanhasPage() {
     setTitulo("");
     setSlug("");
     setDescricao("");
-    setBanner("");
     setInicio("");
     setFim("");
+
+    setBannerFile(null);
+    setBannerPreview("");
+    setDragOver(false);
+
     setProdutosSelecionados([]);
     setBuscaProduto("");
+    setAba("detalhes");
   }
 
   function fecharModal() {
@@ -140,7 +156,7 @@ export default function CampanhasPage() {
     resetForm();
   }
 
-  // trava scroll do body com modal aberto + ESC para fechar
+  // trava scroll + ESC
   useEffect(() => {
     if (!openModal) return;
 
@@ -160,6 +176,15 @@ export default function CampanhasPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [openModal]);
 
+  // auto-slug
+  useEffect(() => {
+    if (!openModal) return;
+    if (slug.trim()) return;
+    if (!titulo.trim()) return;
+    setSlug(slugify(titulo));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [titulo, openModal]);
+
   // ==============================
   // PRODUTOS
   // ==============================
@@ -176,63 +201,96 @@ export default function CampanhasPage() {
   }, [buscaProduto, produtos]);
 
   // ==============================
-  // CRIAR CAMPANHA (SEM DUPLICAR)
+  // BANNER: FILE + PREVIEW + DND
+  // ==============================
+  function setBannerFromFile(file: File) {
+    setBannerFile(file);
+
+    if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+    const url = URL.createObjectURL(file);
+    setBannerPreview(url);
+  }
+
+  function onChooseBanner() {
+    inputBannerRef.current?.click();
+  }
+
+  function onBannerInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBannerFromFile(file);
+  }
+
+  function onDropBanner(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragOver(false);
+
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+    setBannerFromFile(file);
+  }
+
+  function clearBanner() {
+    if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+    setBannerPreview("");
+    setBannerFile(null);
+    if (inputBannerRef.current) inputBannerRef.current.value = "";
+  }
+
+  // cleanup preview
+  useEffect(() => {
+    return () => {
+      if (bannerPreview) URL.revokeObjectURL(bannerPreview);
+    };
+  }, [bannerPreview]);
+
+  // ==============================
+  // CRIAR CAMPANHA (FormData)
   // ==============================
   async function criarCampanha() {
-    // ✅ evita clique duplo (duplicar no banco)
     if (saving) return;
 
     const t = titulo.trim();
     const s = slug.trim();
 
-    if (!t) {
-      alert("Preencha o título");
-      return;
-    }
+    if (!t) return alert("Preencha o título");
 
-    // se usuário deixou slug vazio, gera automático
     const slugFinal = s ? slugify(s) : slugify(t);
+    if (!slugFinal) return alert("Slug inválido");
 
-    if (!slugFinal) {
-      alert("Slug inválido");
-      return;
-    }
-
-    // valida datas (opcional)
     if (inicio && fim) {
       const di = new Date(inicio).getTime();
       const df = new Date(fim).getTime();
-      if (df < di) {
-        alert("A data FIM não pode ser menor que a data INÍCIO.");
-        return;
-      }
+      if (df < di) return alert("A data FIM não pode ser menor que a data INÍCIO.");
     }
 
     try {
       setSaving(true);
 
-      // ✅ 1) cria campanha (tabela campanha)
-      const res = await api.post("/admin/campanhas", {
-        titulo: t,
-        slug: slugFinal,
-        descricao: descricao.trim() || null,
-        banner: banner.trim() || null,
-        statusid: 3,
-        // seu back espera "YYYY-mm-dd HH:ii:ss" (string)
-        // a input datetime-local vem "YYYY-mm-ddTHH:ii"
-        inicio: inicio ? inicio.replace("T", " ") + ":00" : null,
-        fim: fim ? fim.replace("T", " ") + ":00" : null,
-      });
+      // ✅ FormData para enviar arquivo
+      const fd = new FormData();
+      fd.append("titulo", t);
+      fd.append("slug", slugFinal);
+      fd.append("statusid", "3");
+      fd.append("descricao", descricao.trim() || "");
+      fd.append("inicio", inicio ? toApiDateTime(inicio) : "");
+      fd.append("fim", fim ? toApiDateTime(fim) : "");
+
+      if (bannerFile) {
+        fd.append("banner", bannerFile); // <- arquivo
+      }
+
+      // ✅ NÃO defina Content-Type manualmente (axios coloca boundary sozinho)
+      const res = await api.post("/admin/campanhas", fd);
 
       const id = res?.data?.dados?.id_campanha;
-
       if (!id) {
         console.error("Resposta sem id_campanha:", res?.data);
         alert("Campanha criada, mas não retornou o ID. Veja o console.");
         return;
       }
 
-      // ✅ 2) vincula produtos (tabela campanha_produto)
       if (produtosSelecionados.length > 0) {
         await api.post(`/admin/campanha/${id}/produtos`, {
           produtos: produtosSelecionados,
@@ -256,15 +314,6 @@ export default function CampanhasPage() {
     }
   }
 
-  // auto-slug: quando digitar título, preenche slug (só se slug ainda estiver vazio)
-  useEffect(() => {
-    if (!openModal) return;
-    if (slug.trim()) return;
-    if (!titulo.trim()) return;
-    setSlug(slugify(titulo));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [titulo, openModal]);
-
   // ==============================
   // RENDER
   // ==============================
@@ -276,10 +325,7 @@ export default function CampanhasPage() {
           <p className="m-0 subtitle">Gerencie campanhas promocionais do painel</p>
         </div>
 
-        <button
-          className="btn btn-primary btn-sm px-3 btnNew"
-          onClick={abrirModal}
-        >
+        <button className="btn btn-primary btn-sm px-3 btnNew" onClick={abrirModal}>
           <FiPlus /> <span>Nova campanha</span>
         </button>
       </div>
@@ -289,10 +335,7 @@ export default function CampanhasPage() {
           <span className="badge text-bg-dark badgeSoft">
             {loading ? "..." : campanhas.length} campanhas
           </span>
-
-          <div className="small text-muted">
-            {loading ? "Carregando lista..." : "Tudo pronto ✅"}
-          </div>
+          <div className="small text-muted">{loading ? "Carregando..." : "Tudo pronto ✅"}</div>
         </div>
 
         {loading && <p className="text-muted m-0">Carregando...</p>}
@@ -342,12 +385,20 @@ export default function CampanhasPage() {
                   ) : (
                     <div className="campDesc muted">Sem descrição</div>
                   )}
+
+                  {c.banner ? (
+                    <div className="bannerInfo">
+                      <FiImage /> <span>Com banner</span>
+                    </div>
+                  ) : (
+                    <div className="bannerInfo muted">
+                      <FiImage /> <span>Sem banner</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="campFooter">
-                  <span className="badge text-bg-light border badgePill">
-                    ID: {c.id_campanha}
-                  </span>
+                  <span className="badge text-bg-light border badgePill">ID: {c.id_campanha}</span>
                   <span className="badge text-bg-success badgePill">Ativa</span>
                 </div>
               </div>
@@ -359,18 +410,11 @@ export default function CampanhasPage() {
       {/* MODAL */}
       {openModal && (
         <div className="modalOverlay" onMouseDown={fecharModal}>
-          <div
-            className="modalDialog"
-            onMouseDown={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-          >
+          <div className="modalDialog" onMouseDown={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
             <div className="modalHeader">
               <div>
                 <div className="modalTitle">Criar campanha</div>
-                <div className="modalSub">
-                  Salva em <b>campanha</b> e vincula em <b>campanha_produto</b>
-                </div>
+                <div className="modalSub">Use as abas para não ficar grande</div>
               </div>
 
               <button className="btn btn-light btn-sm btnIcon" onClick={fecharModal}>
@@ -378,116 +422,199 @@ export default function CampanhasPage() {
               </button>
             </div>
 
-            <div className="modalBody">
-              <div className="row g-2">
-                <div className="col-12 col-md-6">
-                  <label className="form-label mb-1">Título</label>
-                  <input
-                    className="form-control"
-                    placeholder="Ex: Black Friday"
-                    value={titulo}
-                    onChange={(e) => setTitulo(e.target.value)}
-                  />
-                </div>
+            {/* ABAS */}
+            <div className="tabs">
+              <button
+                className={`tabBtn ${aba === "detalhes" ? "active" : ""}`}
+                onClick={() => setAba("detalhes")}
+                type="button"
+              >
+                Detalhes
+              </button>
+              <button
+                className={`tabBtn ${aba === "produtos" ? "active" : ""}`}
+                onClick={() => setAba("produtos")}
+                type="button"
+              >
+                Produtos
+                <span className="tabCount">{produtosSelecionados.length}</span>
+              </button>
+            </div>
 
-                <div className="col-12 col-md-6">
-                  <label className="form-label mb-1">Slug</label>
-                  <input
-                    className="form-control"
-                    placeholder="ex: black-friday"
-                    value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
-                  />
-                  <div className="small text-muted mt-1">
-                    Se deixar vazio, eu gero automático pelo título.
+            <div className="modalBody">
+              {aba === "detalhes" && (
+                <>
+                  <div className="row g-2">
+                    <div className="col-12 col-md-6">
+                      <label className="form-label mb-1">Título</label>
+                      <input
+                        className="form-control"
+                        placeholder="Ex: Black Friday"
+                        value={titulo}
+                        onChange={(e) => setTitulo(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label className="form-label mb-1">Slug</label>
+                      <input
+                        className="form-control"
+                        placeholder="ex: black-friday"
+                        value={slug}
+                        onChange={(e) => setSlug(e.target.value)}
+                      />
+                      <div className="small text-muted mt-1">
+                        Se deixar vazio, eu gero automático pelo título.
+                      </div>
+                    </div>
+
+                    <div className="col-12">
+                      <label className="form-label mb-1">Descrição</label>
+                      <textarea
+                        className="form-control"
+                        placeholder="Opcional..."
+                        value={descricao}
+                        onChange={(e) => setDescricao(e.target.value)}
+                        rows={3}
+                      />
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label className="form-label mb-1">Início (opcional)</label>
+                      <input
+                        type="datetime-local"
+                        className="form-control"
+                        value={inicio}
+                        onChange={(e) => setInicio(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label className="form-label mb-1">Fim (opcional)</label>
+                      <input
+                        type="datetime-local"
+                        className="form-control"
+                        value={fim}
+                        onChange={(e) => setFim(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
+                  {/* BANNER DRAG & DROP */}
+                  <div className="bannerBox mt-3">
+                    <div className="d-flex align-items-center justify-content-between gap-2 flex-wrap mb-2">
+                      <div className="fw-semibold">Banner</div>
+                      {bannerFile ? (
+                        <button className="btn btn-outline-danger btn-sm" type="button" onClick={clearBanner}>
+                          Remover banner
+                        </button>
+                      ) : (
+                        <button className="btn btn-outline-primary btn-sm" type="button" onClick={onChooseBanner}>
+                          <FiUpload /> Escolher arquivo
+                        </button>
+                      )}
+                    </div>
+
+                    <input
+                      ref={inputBannerRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={onBannerInputChange}
+                      style={{ display: "none" }}
+                    />
+
+                    <div
+                      className={`dropzone ${dragOver ? "drag" : ""}`}
+                      onDragEnter={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragOver(true);
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragOver(true);
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setDragOver(false);
+                      }}
+                      onDrop={onDropBanner}
+                      onClick={onChooseBanner}
+                      role="button"
+                      tabIndex={0}
+                    >
+                      {!bannerPreview ? (
+                        <div className="dropInner">
+                          <div className="dropIcon">
+                            <FiUpload />
+                          </div>
+                          <div className="dropText">
+                            <div className="dropTitle">Arraste e solte o banner aqui</div>
+                            <div className="dropSub">ou clique para selecionar</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="previewWrap">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={bannerPreview} alt="Preview do banner" className="previewImg" />
+                          <div className="previewMeta">
+                            <div className="previewName">{bannerFile?.name}</div>
+                            <div className="previewSub">Clique para trocar • Arraste outro por cima</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {aba === "produtos" && (
+                <div className="prodBox">
+                  <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+                    <div className="fw-semibold">Produtos</div>
+                    <span className="badge text-bg-primary badgePill">
+                      Selecionados: {produtosSelecionados.length}
+                    </span>
+                  </div>
+
+                  <div className="prodSearch">
+                    <FiSearch />
+                    <input
+                      className="form-control"
+                      placeholder="Buscar produto..."
+                      value={buscaProduto}
+                      onChange={(e) => setBuscaProduto(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="prodList">
+                    {loadingProdutos && (
+                      <div className="text-muted small py-2">Carregando produtos...</div>
+                    )}
+
+                    {!loadingProdutos && produtosFiltrados.length === 0 && (
+                      <div className="text-muted small py-2">Nenhum produto encontrado.</div>
+                    )}
+
+                    {!loadingProdutos &&
+                      produtosFiltrados.map((p) => {
+                        const checked = produtosSelecionados.includes(p.id_produto);
+                        return (
+                          <label key={p.id_produto} className="prodRow">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => toggleProduto(p.id_produto)}
+                            />
+                            <span className="prodName">{p.nome}</span>
+                          </label>
+                        );
+                      })}
                   </div>
                 </div>
-
-                <div className="col-12">
-                  <label className="form-label mb-1">Descrição</label>
-                  <textarea
-                    className="form-control"
-                    placeholder="Opcional..."
-                    value={descricao}
-                    onChange={(e) => setDescricao(e.target.value)}
-                    rows={3}
-                  />
-                </div>
-
-                <div className="col-12">
-                  <label className="form-label mb-1">Banner (URL ou caminho)</label>
-                  <input
-                    className="form-control"
-                    placeholder="ex: upload/campanhas/banner.jpg"
-                    value={banner}
-                    onChange={(e) => setBanner(e.target.value)}
-                  />
-                </div>
-
-                <div className="col-12 col-md-6">
-                  <label className="form-label mb-1">Início (opcional)</label>
-                  <input
-                    type="datetime-local"
-                    className="form-control"
-                    value={inicio}
-                    onChange={(e) => setInicio(e.target.value)}
-                  />
-                </div>
-
-                <div className="col-12 col-md-6">
-                  <label className="form-label mb-1">Fim (opcional)</label>
-                  <input
-                    type="datetime-local"
-                    className="form-control"
-                    value={fim}
-                    onChange={(e) => setFim(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="prodBox mt-3">
-                <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-                  <div className="fw-semibold">Produtos</div>
-                  <span className="badge text-bg-primary badgePill">
-                    Selecionados: {produtosSelecionados.length}
-                  </span>
-                </div>
-
-                <div className="prodSearch">
-                  <FiSearch />
-                  <input
-                    className="form-control"
-                    placeholder="Buscar produto..."
-                    value={buscaProduto}
-                    onChange={(e) => setBuscaProduto(e.target.value)}
-                  />
-                </div>
-
-                <div className="prodList">
-                  {loadingProdutos && (
-                    <div className="text-muted small py-2">Carregando produtos...</div>
-                  )}
-
-                  {!loadingProdutos && produtosFiltrados.length === 0 && (
-                    <div className="text-muted small py-2">Nenhum produto encontrado.</div>
-                  )}
-
-                  {!loadingProdutos &&
-                    produtosFiltrados.map((p) => {
-                      const checked = produtosSelecionados.includes(p.id_produto);
-                      return (
-                        <label key={p.id_produto} className="prodRow">
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={() => toggleProduto(p.id_produto)}
-                          />
-                          <span className="prodName">{p.nome}</span>
-                        </label>
-                      );
-                    })}
-                </div>
-              </div>
+              )}
             </div>
 
             <div className="modalFooter">
@@ -638,6 +765,20 @@ export default function CampanhasPage() {
           color: #94a3b8;
         }
 
+        .bannerInfo {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12px;
+          font-weight: 700;
+          color: #334155;
+          margin-top: 6px;
+        }
+
+        .bannerInfo.muted {
+          color: #94a3b8;
+        }
+
         .campFooter {
           display: flex;
           justify-content: space-between;
@@ -673,7 +814,7 @@ export default function CampanhasPage() {
           border: 1px solid rgba(124, 58, 237, 0.18);
         }
 
-        /* Modal centralizado */
+        /* Modal */
         .modalOverlay {
           position: fixed;
           inset: 0;
@@ -686,7 +827,7 @@ export default function CampanhasPage() {
         }
 
         .modalDialog {
-          width: min(760px, 100%);
+          width: min(820px, 100%);
           max-height: 90vh;
           background: #fff;
           border-radius: 16px;
@@ -694,6 +835,7 @@ export default function CampanhasPage() {
           box-shadow: 0 30px 100px rgba(2, 6, 23, 0.35);
           display: flex;
           flex-direction: column;
+          overflow: hidden;
         }
 
         .modalHeader {
@@ -719,6 +861,48 @@ export default function CampanhasPage() {
           font-weight: 600;
         }
 
+        .tabs {
+          display: flex;
+          gap: 10px;
+          padding: 10px 16px;
+          border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+          background: rgba(15, 23, 42, 0.02);
+        }
+
+        .tabBtn {
+          border: 1px solid rgba(15, 23, 42, 0.08);
+          background: #fff;
+          padding: 8px 12px;
+          border-radius: 12px;
+          font-weight: 900;
+          font-size: 13px;
+          color: #0f172a;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .tabBtn:hover {
+          border-color: rgba(124, 58, 237, 0.25);
+          box-shadow: 0 10px 26px rgba(2, 6, 23, 0.06);
+        }
+
+        .tabBtn.active {
+          background: rgba(124, 58, 237, 0.1);
+          border-color: rgba(124, 58, 237, 0.35);
+          color: #6d28d9;
+        }
+
+        .tabCount {
+          background: rgba(109, 40, 217, 0.12);
+          border: 1px solid rgba(109, 40, 217, 0.18);
+          color: #6d28d9;
+          padding: 2px 8px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 900;
+        }
+
         .modalBody {
           padding: 14px 16px;
           overflow: auto;
@@ -732,6 +916,7 @@ export default function CampanhasPage() {
           gap: 10px;
         }
 
+        /* Produtos */
         .prodBox {
           border: 1px solid rgba(15, 23, 42, 0.08);
           border-radius: 14px;
@@ -761,7 +946,7 @@ export default function CampanhasPage() {
         }
 
         .prodList {
-          max-height: 260px;
+          max-height: 380px;
           overflow: auto;
           padding-right: 4px;
         }
@@ -788,6 +973,99 @@ export default function CampanhasPage() {
           font-weight: 700;
           color: #0f172a;
           font-size: 13.5px;
+        }
+
+        /* Banner */
+        .bannerBox {
+          border: 1px solid rgba(15, 23, 42, 0.08);
+          border-radius: 14px;
+          padding: 12px;
+          background: rgba(15, 23, 42, 0.02);
+        }
+
+        .dropzone {
+          border: 2px dashed rgba(15, 23, 42, 0.16);
+          border-radius: 14px;
+          background: #fff;
+          padding: 14px;
+          cursor: pointer;
+          transition: 0.15s ease;
+        }
+
+        .dropzone.drag {
+          border-color: rgba(124, 58, 237, 0.55);
+          background: rgba(124, 58, 237, 0.06);
+          box-shadow: 0 16px 44px rgba(124, 58, 237, 0.12);
+        }
+
+        .dropInner {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .dropIcon {
+          width: 44px;
+          height: 44px;
+          border-radius: 14px;
+          display: grid;
+          place-items: center;
+          background: rgba(124, 58, 237, 0.12);
+          color: #6d28d9;
+          border: 1px solid rgba(124, 58, 237, 0.18);
+          flex: 0 0 auto;
+        }
+
+        .dropTitle {
+          font-weight: 900;
+          color: #0f172a;
+        }
+
+        .dropSub {
+          font-size: 13px;
+          font-weight: 700;
+          color: #64748b;
+          margin-top: 2px;
+        }
+
+        .previewWrap {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+        }
+
+        .previewImg {
+          width: 120px;
+          height: 70px;
+          object-fit: cover;
+          border-radius: 12px;
+          border: 1px solid rgba(15, 23, 42, 0.08);
+          background: rgba(15, 23, 42, 0.02);
+          flex: 0 0 auto;
+        }
+
+        .previewName {
+          font-weight: 900;
+          color: #0f172a;
+          font-size: 13px;
+        }
+
+        .previewSub {
+          font-size: 12px;
+          font-weight: 700;
+          color: #64748b;
+          margin-top: 3px;
+        }
+
+        @media (max-width: 520px) {
+          .previewWrap {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+          .previewImg {
+            width: 100%;
+            height: 140px;
+          }
         }
       `}</style>
     </div>
