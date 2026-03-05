@@ -40,7 +40,10 @@ function getImagemUrl(caminho?: string) {
 function formatMoney(value: any) {
   const n = Number(value);
   if (!Number.isFinite(n)) return "R$ 0,00";
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return n.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
 }
 
 function normalizarProduto(p: Produto) {
@@ -82,7 +85,7 @@ export default function DestaquesSection() {
       setCampanha(camp);
       setProdutos(prods);
     } catch (err) {
-      console.error(err);
+      console.error("Erro ao carregar destaques:", err);
       setCampanha(null);
       setProdutos([]);
     } finally {
@@ -101,53 +104,58 @@ export default function DestaquesSection() {
 
   if (loading || !temConteudo) return null;
 
+  // segurança para TypeScript
+  if (!campanha) return null;
+
+  const camp = campanha;
+
   return (
     <section className="destaquesSection">
       <div className="container">
 
-        {/* ================= CAMAPNHA HEADER ================= */}
+        {/* ===== CAMPANHA ===== */}
 
         <div className="campanhaHeader">
 
-          {campanha?.banner && (
+          {camp.banner && (
             <div className="bannerCampanha">
-              <img src={getImagemUrl(campanha.banner)} alt={campanha.titulo} />
+              <img
+                src={getImagemUrl(camp.banner)}
+                alt={camp.titulo}
+              />
             </div>
           )}
 
-          <div className="campanhaTexto">
-            <span className="badgeCampanha">
-              Campanha Especial
-            </span>
+          <span className="badgeCampanha">
+            Campanha Especial
+          </span>
 
-            <h2>{campanha.titulo}</h2>
+          <h2>{camp.titulo}</h2>
 
-            {campanha.descricao && (
-              <p>{campanha.descricao}</p>
-            )}
+          {camp.descricao && <p>{camp.descricao}</p>}
 
-            <Link
-              href={`/campanha/${campanha.slug}`}
-              className="btnVerCampanha"
-            >
-              Ver coleção completa
-            </Link>
-          </div>
+          <Link
+            href={`/campanha/${camp.slug}`}
+            className="btnVerCampanha"
+          >
+            Ver catálogo
+          </Link>
         </div>
 
 
-        {/* ================= PRODUTOS ================= */}
+        {/* ===== PRODUTOS ===== */}
 
         <div className="row g-4">
 
           {produtos.map((raw) => {
-
             const p = normalizarProduto(raw);
-
             const img = getImagemUrl(p.imagem);
 
             return (
-              <div key={p.key} className="col-md-6 col-lg-4 col-xl-3">
+              <div
+                key={p.key}
+                className="col-md-6 col-lg-4 col-xl-3"
+              >
 
                 <div className="produtoCard">
 
@@ -157,7 +165,7 @@ export default function DestaquesSection() {
                       <img src={img} alt={p.nome} />
                     ) : (
                       <div className="semImagem">
-                        Produto
+                        Sem imagem
                       </div>
                     )}
 
@@ -208,158 +216,161 @@ export default function DestaquesSection() {
       </div>
 
 
+      {/* ===== CSS ===== */}
+
       <style jsx>{`
 
-      .destaquesSection{
-        background:#f8f6f3;
-        padding:80px 0;
-      }
+        .destaquesSection{
+          background:#f8f6f3;
+          padding:80px 0;
+        }
 
-      .campanhaHeader{
-        text-align:center;
-        margin-bottom:60px;
-      }
+        .campanhaHeader{
+          text-align:center;
+          margin-bottom:60px;
+        }
 
-      .bannerCampanha{
-        max-width:1000px;
-        margin:auto;
-        margin-bottom:30px;
-        border-radius:16px;
-        overflow:hidden;
-        box-shadow:0 10px 25px rgba(0,0,0,0.08);
-      }
+        .bannerCampanha{
+          max-width:1000px;
+          margin:auto;
+          margin-bottom:25px;
+          border-radius:16px;
+          overflow:hidden;
+          box-shadow:0 10px 25px rgba(0,0,0,0.08);
+        }
 
-      .bannerCampanha img{
-        width:100%;
-        object-fit:cover;
-      }
+        .bannerCampanha img{
+          width:100%;
+          object-fit:cover;
+        }
 
-      .badgeCampanha{
-        background:#2e7d32;
-        color:white;
-        padding:6px 16px;
-        border-radius:20px;
-        font-size:12px;
-      }
+        .badgeCampanha{
+          background:#2e7d32;
+          color:white;
+          padding:6px 16px;
+          border-radius:20px;
+          font-size:12px;
+        }
 
-      .campanhaTexto h2{
-        margin-top:14px;
-        font-weight:700;
-        font-size:34px;
-      }
+        .campanhaHeader h2{
+          margin-top:14px;
+          font-weight:700;
+          font-size:34px;
+        }
 
-      .campanhaTexto p{
-        color:#666;
-        max-width:600px;
-        margin:auto;
-      }
+        .campanhaHeader p{
+          color:#666;
+          max-width:600px;
+          margin:auto;
+        }
 
-      .btnVerCampanha{
-        margin-top:18px;
-        background:#c78c5c;
-        color:white;
-        padding:10px 22px;
-        border-radius:10px;
-        text-decoration:none;
-        font-weight:600;
-      }
+        .btnVerCampanha{
+          margin-top:20px;
+          display:inline-block;
+          background:#c78c5c;
+          color:white;
+          padding:10px 22px;
+          border-radius:10px;
+          text-decoration:none;
+          font-weight:600;
+        }
 
-      .produtoCard{
-        background:white;
-        border-radius:16px;
-        overflow:hidden;
-        transition:0.25s;
-        box-shadow:0 6px 18px rgba(0,0,0,0.08);
-        height:100%;
-      }
+        .produtoCard{
+          background:white;
+          border-radius:16px;
+          overflow:hidden;
+          transition:0.25s;
+          box-shadow:0 6px 18px rgba(0,0,0,0.08);
+          height:100%;
+        }
 
-      .produtoCard:hover{
-        transform:translateY(-6px);
-        box-shadow:0 14px 28px rgba(0,0,0,0.12);
-      }
+        .produtoCard:hover{
+          transform:translateY(-6px);
+          box-shadow:0 14px 28px rgba(0,0,0,0.12);
+        }
 
-      .produtoImagem{
-        position:relative;
-        height:230px;
-        overflow:hidden;
-      }
+        .produtoImagem{
+          position:relative;
+          height:230px;
+          overflow:hidden;
+        }
 
-      .produtoImagem img{
-        width:100%;
-        height:100%;
-        object-fit:cover;
-        transition:0.3s;
-      }
+        .produtoImagem img{
+          width:100%;
+          height:100%;
+          object-fit:cover;
+          transition:0.3s;
+        }
 
-      .produtoCard:hover img{
-        transform:scale(1.05);
-      }
+        .produtoCard:hover img{
+          transform:scale(1.05);
+        }
 
-      .badgeProduto{
-        position:absolute;
-        top:12px;
-        left:12px;
-        background:#2e7d32;
-        color:white;
-        padding:5px 14px;
-        border-radius:20px;
-        font-size:11px;
-      }
+        .badgeProduto{
+          position:absolute;
+          top:12px;
+          left:12px;
+          background:#2e7d32;
+          color:white;
+          padding:5px 14px;
+          border-radius:20px;
+          font-size:11px;
+        }
 
-      .produtoInfo{
-        padding:18px;
-      }
+        .produtoInfo{
+          padding:18px;
+        }
 
-      .produtoInfo h5{
-        font-size:17px;
-        font-weight:600;
-      }
+        .produtoInfo h5{
+          font-size:17px;
+          font-weight:600;
+        }
 
-      .descricao{
-        font-size:13px;
-        color:#777;
-        margin:6px 0;
-      }
+        .descricao{
+          font-size:13px;
+          color:#777;
+          margin:6px 0;
+        }
 
-      .preco{
-        font-size:22px;
-        font-weight:700;
-        color:#c78c5c;
-        margin-bottom:10px;
-      }
+        .preco{
+          font-size:22px;
+          font-weight:700;
+          color:#c78c5c;
+          margin-bottom:12px;
+        }
 
-      .botoes{
-        display:flex;
-        gap:8px;
-      }
+        .botoes{
+          display:flex;
+          gap:8px;
+        }
 
-      .btnDetalhes{
-        flex:1;
-        border:1px solid #ddd;
-        padding:8px;
-        border-radius:8px;
-        text-align:center;
-        text-decoration:none;
-        font-size:14px;
-      }
+        .btnDetalhes{
+          flex:1;
+          border:1px solid #ddd;
+          padding:8px;
+          border-radius:8px;
+          text-align:center;
+          text-decoration:none;
+          font-size:14px;
+        }
 
-      .btnComprar{
-        flex:1;
-        background:#c78c5c;
-        color:white;
-        border:none;
-        border-radius:8px;
-        font-size:14px;
-        font-weight:600;
-      }
+        .btnComprar{
+          flex:1;
+          background:#c78c5c;
+          color:white;
+          border:none;
+          border-radius:8px;
+          font-size:14px;
+          font-weight:600;
+        }
 
-      .semImagem{
-        height:100%;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        background:#eee;
-      }
+        .semImagem{
+          height:100%;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          background:#eee;
+        }
 
       `}</style>
     </section>
