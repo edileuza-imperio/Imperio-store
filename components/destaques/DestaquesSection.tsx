@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import api from "@/Api/conectar";
 
@@ -61,6 +61,8 @@ export default function DestaquesSection() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const trackRef = useRef<HTMLDivElement | null>(null);
+
   async function carregar() {
     try {
       setLoading(true);
@@ -97,11 +99,20 @@ export default function DestaquesSection() {
 
   const camp = campanha;
 
+  function scrollCarousel(dir: "prev" | "next") {
+    const el = trackRef.current;
+    if (!el) return;
+
+    // anda "quase uma tela" do carrossel
+    const amount = Math.round(el.clientWidth * 0.92);
+    el.scrollBy({ left: dir === "next" ? amount : -amount, behavior: "smooth" });
+  }
+
   return (
     <section className="uiSection py-5">
       <div className="container">
         <div className="row g-4 align-items-stretch">
-          {/* ===== LEFT: BANNER (campanha) ===== */}
+          {/* ===== LEFT: BANNER ===== */}
           <div className="col-12 col-lg-4">
             <div className="uiSideBanner h-100 position-relative">
               <div className="uiTopBadge">
@@ -115,7 +126,6 @@ export default function DestaquesSection() {
                 {camp.descricao ? camp.descricao : "Seleção especial com os melhores itens."}
               </p>
 
-              {/* “chips” */}
               <div className="d-flex flex-wrap gap-2 mt-3">
                 <span className="uiChip">
                   <i className="bi bi-truck me-1" />
@@ -137,83 +147,117 @@ export default function DestaquesSection() {
                 Ver coleção
               </Link>
 
-              {/* textura/efeito */}
               <div className="uiGlow" />
             </div>
           </div>
 
-          {/* ===== RIGHT: GRID de produtos ===== */}
+          {/* ===== RIGHT: CARROSSEL ===== */}
           <div className="col-12 col-lg-8">
-            <div className="row g-4">
-              {produtos.map((raw) => {
-                const p = normalizarProduto(raw);
-                const img = getImagemUrl(p.imagem);
+            <div className="uiCarouselShell h-100">
+              <div className="uiCarouselHeader">
+                <div>
+                  <div className="uiKicker">Produtos em destaque</div>
+                  <div className="uiHeaderTitle">Escolhidos pra você</div>
+                </div>
 
-                return (
-                  <div key={p.key} className="col-12 col-sm-6 col-xl-4">
-                    <div className="card border-0 h-100 uiCard">
-                      <div className="uiImgWrap position-relative">
-                        {img ? (
-                          <img src={img} alt={p.nome} className="uiImg" />
-                        ) : (
-                          <div className="uiNoImg">
-                            <div className="text-center">
-                              <i className="bi bi-image fs-2 d-block mb-1" />
-                              <span className="small fw-semibold">Sem imagem</span>
+                {/* controles (desktop) */}
+                <div className="uiControls">
+                  <button
+                    type="button"
+                    className="uiNavBtn"
+                    onClick={() => scrollCarousel("prev")}
+                    aria-label="Anterior"
+                    title="Anterior"
+                  >
+                    <i className="bi bi-chevron-left" />
+                  </button>
+                  <button
+                    type="button"
+                    className="uiNavBtn"
+                    onClick={() => scrollCarousel("next")}
+                    aria-label="Próximo"
+                    title="Próximo"
+                  >
+                    <i className="bi bi-chevron-right" />
+                  </button>
+                </div>
+              </div>
+
+              <div ref={trackRef} className="uiTrack">
+                {produtos.map((raw) => {
+                  const p = normalizarProduto(raw);
+                  const img = getImagemUrl(p.imagem);
+
+                  return (
+                    <div key={p.key} className="uiSlide">
+                      <div className="card border-0 h-100 uiCard">
+                        <div className="uiImgWrap position-relative">
+                          {img ? (
+                            <img src={img} alt={p.nome} className="uiImg" />
+                          ) : (
+                            <div className="uiNoImg">
+                              <div className="text-center">
+                                <i className="bi bi-image fs-2 d-block mb-1" />
+                                <span className="small fw-semibold">Sem imagem</span>
+                              </div>
                             </div>
-                          </div>
-                        )}
+                          )}
 
-                        <span className="badge uiBadge">
-                          <i className="bi bi-star-fill me-1" />
-                          Destaque
-                        </span>
-                      </div>
-
-                      <div className="card-body d-flex flex-column">
-                        <h6 className="fw-semibold mb-1 uiTitleClamp">{p.nome}</h6>
-
-                        <p className="small text-muted mb-2 uiDescClamp">
-                          {p.descricao ? p.descricao : "Produto selecionado para destaque."}
-                        </p>
-
-                        <div className="d-flex align-items-center justify-content-between mb-3">
-                          <div className="fw-bold fs-5 uiPrice">{formatMoney(p.preco)}</div>
-                          <span className="badge uiMiniPill">
-                            <i className="bi bi-patch-check me-1" />
-                            Top
+                          <span className="badge uiBadge">
+                            <i className="bi bi-star-fill me-1" />
+                            Destaque
                           </span>
                         </div>
 
-                        <div className="mt-auto d-flex gap-2">
-                          <Link
-                            href={`/produto/${p.slug}`}
-                            className="btn uiBtnSoft w-100"
-                            title="Ver detalhes"
-                          >
-                            <i className="bi bi-eye" />
-                          </Link>
+                        <div className="card-body d-flex flex-column">
+                          <h6 className="fw-semibold mb-1 uiTitleClamp">{p.nome}</h6>
 
-                          <button
-                            type="button"
-                            className="btn uiBtnPrimary w-100"
-                            title="Adicionar ao carrinho"
-                            onClick={() => console.log("Adicionar:", p.slug)}
-                          >
-                            <i className="bi bi-cart-plus" />
-                          </button>
+                          <p className="small text-muted mb-2 uiDescClamp">
+                            {p.descricao ? p.descricao : "Produto selecionado para destaque."}
+                          </p>
+
+                          <div className="d-flex align-items-center justify-content-between mb-3">
+                            <div className="fw-bold fs-5 uiPrice">{formatMoney(p.preco)}</div>
+                            <span className="badge uiMiniPill">
+                              <i className="bi bi-patch-check me-1" />
+                              Top
+                            </span>
+                          </div>
+
+                          <div className="mt-auto d-flex gap-2">
+                            <Link
+                              href={`/produto/${p.slug}`}
+                              className="btn uiBtnSoft w-100"
+                              title="Ver detalhes"
+                            >
+                              <i className="bi bi-eye" />
+                            </Link>
+
+                            <button
+                              type="button"
+                              className="btn uiBtnPrimary w-100"
+                              title="Adicionar ao carrinho"
+                              onClick={() => console.log("Adicionar:", p.slug)}
+                            >
+                              <i className="bi bi-cart-plus" />
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+
+              <div className="uiHint d-lg-none">
+                <i className="bi bi-arrow-left-right me-2" />
+                Arraste para ver mais
+              </div>
             </div>
           </div>
         </div>
 
         <style jsx>{`
-          /* fundo creme */
           .uiSection {
             background: #fbf3ee;
           }
@@ -268,7 +312,6 @@ export default function DestaquesSection() {
             border: 1px solid rgba(255, 255, 255, 0.18);
           }
 
-          /* botão flutuante (fixo dentro do banner) */
           .uiFloatingBtn {
             position: absolute;
             left: 18px;
@@ -296,7 +339,6 @@ export default function DestaquesSection() {
             box-shadow: 0 20px 40px rgba(0, 0, 0, 0.22);
           }
 
-          /* brilho decorativo */
           .uiGlow {
             position: absolute;
             width: 280px;
@@ -308,7 +350,114 @@ export default function DestaquesSection() {
             pointer-events: none;
           }
 
-          /* ===== Cards premium ===== */
+          /* ===== Carrossel ===== */
+          .uiCarouselShell {
+            background: rgba(255, 255, 255, 0.55);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            border-radius: 18px;
+            padding: 18px;
+            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.08);
+          }
+
+          .uiCarouselHeader {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+          }
+
+          .uiKicker {
+            font-weight: 900;
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.55);
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+          }
+
+          .uiHeaderTitle {
+            font-weight: 900;
+            font-size: 18px;
+            color: rgba(0, 0, 0, 0.78);
+          }
+
+          .uiControls {
+            display: none;
+            gap: 8px;
+          }
+
+          .uiNavBtn {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            border: 1px solid rgba(0, 0, 0, 0.12);
+            background: #fff;
+            font-weight: 900;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.12s ease;
+          }
+
+          .uiNavBtn:hover {
+            transform: translateY(-1px);
+            background: #fff7f2;
+          }
+
+          /* desktop: mostra botões */
+          @media (min-width: 992px) {
+            .uiControls {
+              display: flex;
+            }
+          }
+
+          .uiTrack {
+            display: flex;
+            gap: 16px;
+            overflow-x: auto;
+            padding: 6px 4px 10px;
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+          }
+
+          .uiTrack::-webkit-scrollbar {
+            height: 10px;
+          }
+          .uiTrack::-webkit-scrollbar-thumb {
+            background: rgba(197, 122, 122, 0.35);
+            border-radius: 999px;
+          }
+          .uiTrack::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.04);
+            border-radius: 999px;
+          }
+
+          /* 1 slide por vez no mobile; 2 no tablet; 3 no desktop */
+          .uiSlide {
+            scroll-snap-align: start;
+            flex: 0 0 88%;
+          }
+
+          @media (min-width: 576px) {
+            .uiSlide {
+              flex-basis: 48%;
+            }
+          }
+
+          @media (min-width: 1200px) {
+            .uiSlide {
+              flex-basis: 32%;
+            }
+          }
+
+          .uiHint {
+            margin-top: 10px;
+            font-weight: 800;
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.55);
+            text-align: center;
+          }
+
+          /* ===== Cards ===== */
           .uiCard {
             border-radius: 16px;
             overflow: hidden;
@@ -416,7 +565,6 @@ export default function DestaquesSection() {
             min-height: 38px;
           }
 
-          /* mobile: botão não fica “colado” */
           @media (max-width: 991px) {
             .uiSideBanner {
               padding-bottom: 80px;
