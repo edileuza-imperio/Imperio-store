@@ -92,7 +92,7 @@ export default function DestaquesSection() {
 
         )}
 
-        <div className="row g-4">
+        <div className="row g-4 justify-content-center">
 
           {produtos.map((p) => {
 
@@ -102,7 +102,7 @@ export default function DestaquesSection() {
 
               <div
                 key={p.id_destaque}
-                className="col-lg-4 col-md-6"
+                className="col-lg-4 col-md-6 col-sm-8"
               >
 
                 <div className="produto-card">
@@ -113,10 +113,6 @@ export default function DestaquesSection() {
                       src={img}
                       alt={p.produto_nome}
                     />
-
-                    <span className="badge-destaque">
-                      Destaque
-                    </span>
 
                   </div>
 
@@ -130,16 +126,32 @@ export default function DestaquesSection() {
                       {p.produto_descricao}
                     </p>
 
-                    <div className="produto-preco">
-                      {formatMoney(p.produto_preco)}
+                    <div className="produto-info">
+
+                      <span className="produto-preco">
+                        {formatMoney(p.produto_preco)}
+                      </span>
+
+                      <span className="badge-destaque">
+                        Destaque
+                      </span>
+
                     </div>
 
-                    <Link
-                      href={`/produto/${p.produto_slug}`}
-                      className="btn-produto"
-                    >
-                      Ver produto
-                    </Link>
+                    <div className="produto-botoes">
+
+                      <Link
+                        href={`/produto/${p.produto_slug}`}
+                        className="btn-detalhes"
+                      >
+                        Detalhes
+                      </Link>
+
+                      <button className="btn-adicionar">
+                        Adicionar
+                      </button>
+
+                    </div>
 
                   </div>
 
@@ -161,7 +173,7 @@ background:#f4ede6;
 border-radius:30px;
 }
 
-/* CAMPANHA HEADER */
+/* HEADER CAMPANHA */
 
 .tag-campanha{
 background:#d48b8b;
@@ -192,7 +204,7 @@ margin-top:15px;
 background:#c97a7a;
 color:white;
 padding:10px 20px;
-border-radius:10px;
+border-radius:12px;
 font-weight:600;
 transition:0.25s;
 }
@@ -201,13 +213,13 @@ transition:0.25s;
 background:#b86666;
 }
 
-/* PRODUTO CARD */
+/* CARD */
 
 .produto-card{
-background:white;
-border-radius:18px;
+background:#f7efe6;
+border-radius:22px;
 overflow:hidden;
-box-shadow:0 8px 25px rgba(0,0,0,0.08);
+box-shadow:0 6px 20px rgba(0,0,0,0.08);
 transition:0.25s;
 }
 
@@ -217,8 +229,7 @@ box-shadow:0 15px 35px rgba(0,0,0,0.15);
 }
 
 .produto-img{
-position:relative;
-height:260px;
+height:220px;
 overflow:hidden;
 }
 
@@ -228,55 +239,81 @@ height:100%;
 object-fit:cover;
 }
 
-.badge-destaque{
-position:absolute;
-top:12px;
-left:12px;
-background:#c97a7a;
-color:white;
-padding:5px 12px;
-font-size:12px;
-border-radius:10px;
+.produto-body{
+padding:20px;
 }
 
-.produto-body{
-padding:18px;
-}
+/* TEXTO */
 
 .produto-nome{
-font-size:18px;
 font-weight:700;
+font-size:16px;
 color:#3a2a2a;
+margin-bottom:4px;
 }
 
 .produto-desc{
-font-size:14px;
-color:#777;
-margin-top:4px;
+font-size:13px;
+color:#7a6f63;
+margin-bottom:12px;
+}
+
+/* PREÇO + BADGE */
+
+.produto-info{
+display:flex;
+justify-content:space-between;
+align-items:center;
+margin-bottom:14px;
 }
 
 .produto-preco{
-font-size:22px;
 font-weight:800;
-color:#c97a7a;
-margin-top:8px;
+font-size:18px;
+color:#000;
 }
 
-.btn-produto{
-display:block;
-margin-top:12px;
-text-align:center;
-border:1px solid #c97a7a;
-color:#c97a7a;
-padding:8px;
-border-radius:8px;
+.badge-destaque{
+background:#eee5db;
+padding:5px 12px;
+border-radius:20px;
+font-size:12px;
 font-weight:600;
-transition:0.25s;
+color:#6b5b5b;
 }
 
-.btn-produto:hover{
-background:#c97a7a;
+/* BOTÕES */
+
+.produto-botoes{
+display:flex;
+gap:10px;
+}
+
+.btn-detalhes{
+flex:1;
+text-align:center;
+padding:9px;
+border-radius:12px;
+background:#eee;
+color:#333;
+font-size:13px;
+font-weight:600;
+}
+
+.btn-adicionar{
+flex:1;
+border:none;
+background:#c79266;
 color:white;
+padding:9px;
+border-radius:12px;
+font-size:13px;
+font-weight:600;
+transition:0.2s;
+}
+
+.btn-adicionar:hover{
+background:#b37c52;
 }
 
 `}</style>
