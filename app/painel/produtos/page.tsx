@@ -1,911 +1,1495 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { FaEdit, FaStar, FaPlus, FaTrash, FaBook, FaImages } from "react-icons/fa";
+import { useParams } from "next/navigation";
 import api from "@/Api/conectar";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import NovoProdutoModal from "@/components/Modal/NovoProdutoModal";
+import Navbar from "@/components/site/menu/navbar";
+import FooterPrincipal from "@/components/site/Rodape/Footer";
+import { rotas } from "@/components/Bibioteca/config/rotas";
 
 interface Produto {
   id_produto: number;
   nome: string;
-  slug: string;
+  descricao?: string;
   preco: number;
+  preco_promocional?: string | number;
+  slug: string;
+
+  sku?: string;
+  modelo?: string;
+
   estoque: number;
-  destaque?: boolean;
-  id_destaque?: number;
+  ilimitado: number;
+  imagem?: string;
+  imagensSecundarias?: string[];
+
+  statusid?: number;
+  status_nome?: string;
+
+  categoria_id?: number;
+  categoria_nome?: string;
+
   catalogo?: number;
-  imagem?: string;       // caminho salvo no banco: upload/produtos/xxx.jpg
-  categoria_id?: number; // ✅ precisa vir do /admin/produtos
+
+  destaque?: number | null;
+
+  criado?: string;
+  atualizado?: string;
+  created_at?: string; // compat
+  parcelas?: number;
 }
 
-interface Categoria {
-  id_categoria: number;
-  nome: string;
-  icone?: string | null;
-}
-
-export const getImagemUrl = (caminho?: string) => {
-  if (!caminho) return undefined;
-
-  let c = String(caminho).trim().replace(/\\/g, "/");
-  c = c.replace(/^\/+/, "");
-  c = c.replace(/^public\//, "");
-
-  // base URL sem barra no final
-  const base = String(api.defaults.baseURL || "").replace(/\/+$/, "");
-
-  return `${base}/${c}`;
+type ApiResponse<T> = {
+  status?: number;
+  message?: string;
+  mensagem?: string;
+  dados?: T;
+  data?: T;
 };
 
-export default function ProdutosPage() {
-  const [produtos, setProdutos] = useState<Produto[]>([]);
+type CupomApi = {
+  codigo?: string;
+  valor?: number | string;
+  percentual?: number | string;
+  ativo?: number;
+  descricao?: string;
+};
+
+function resolveApi<T>(payload: any): T | null {
+  if (!payload) return null;
+  if (payload?.dados != null) return payload.dados as T;
+  if (payload?.data != null) return payload.data as T;
+  return payload as T;
+}
+
+const getImagemUrl = (caminho?: string) => {
+  if (!caminho) return undefined;
+  const base = api.defaults.baseURL ?? "";
+  return caminho.startsWith("http")
+    ? caminho
+    : `${base.replace(/\/$/, "")}/${String(caminho).replace(/^\/+/, "")}`;
+};
+
+function formatBRL(v: number) {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+}
+
+function toNumber(v: unknown): number | null {
+  if (v == null) return null;
+  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v === "string") {
+    const n = Number(v.replace(",", "."));
+    return Number.isFinite(n) ? n : null;
+  }
+  return null;
+}
+
+function formatDateBR(iso?: string) {
+  if (!iso) return null;
+  const clean = iso.replace(" ", "T");
+  const d = new Date(clean);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleString("pt-BR");
+}
+
+export default function ProdutoPage() {
+  const params = useParams();
+  const slugParam = params?.slug;
+
+  const slug =
+    typeof slugParam === "string"
+      ? slugParam
+      : Array.isArray(slugParam)
+      ? slugParam[0] ?? ""
+      : "";
+
+  const [produto, setProduto] = useState<Produto | null>(null);
   const [loading, setLoading] = useState(true);
-  const [modalNovoProduto, setModalNovoProduto] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
-  // ✅ categorias
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const categoriasMap = useMemo(() => {
-    const m = new Map<number, Categoria>();
-    categorias.forEach((c) => m.set(Number(c.id_categoria), c));
-    return m;
-  }, [categorias]);
+  const [activeIdx, setActiveIdx] = useState(0);
 
-  // ✅ paginação
-  const [itensPorPagina, setItensPorPagina] = useState<number>(12);
-  const [pagina, setPagina] = useState<number>(1);
+  const [qtd, setQtd] = useState(1);
+  const [adding, setAdding] = useState(false);
 
-  // ✅ modal upload galeria (miniaturas)
-  const [galeriaOpen, setGaleriaOpen] = useState(false);
-  const [galeriaProduto, setGaleriaProduto] = useState<Produto | null>(null);
-  const [galeriaFiles, setGaleriaFiles] = useState<File[]>([]);
-  const [galeriaPreview, setGaleriaPreview] = useState<string[]>([]);
-  const [galeriaSending, setGaleriaSending] = useState(false);
-  const inputGaleriaRef = useRef<HTMLInputElement | null>(null);
+  const [cupomCodigo, setCupomCodigo] = useState("");
+  const [cupomLoading, setCupomLoading] = useState(false);
+  const [cupomAplicado, setCupomAplicado] = useState<{
+    codigo: string;
+    tipo: "percentual" | "valor";
+    valor: number;
+    descricao?: string;
+  } | null>(null);
+  const [cupomErro, setCupomErro] = useState<string | null>(null);
+
+  const [copied, setCopied] = useState(false);
+  const [fav, setFav] = useState(false);
 
   useEffect(() => {
-    carregarCategorias();
-    carregarProdutos();
-  }, []);
+    if (!slug) return;
 
-  useEffect(() => {
-    setPagina(1);
-  }, [itensPorPagina]);
+    let alive = true;
 
-  // limpa blob urls do preview ao desmontar
-  useEffect(() => {
-    return () => {
-      galeriaPreview.forEach((u) => URL.revokeObjectURL(u));
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const carregarCategorias = async () => {
-    try {
-      const res = await api.get("/admin/categorias");
-
-      // aceita tanto array puro quanto {dados: ...}
-      let lista = res.data?.dados ?? res.data;
-      if (lista?.dados) lista = lista.dados;
-      if (!Array.isArray(lista)) lista = [];
-
-      const normalizadas: Categoria[] = lista.map((c: any) => ({
-        id_categoria: Number(c.id_categoria ?? c.id ?? 0),
-        nome: String(c.nome ?? "Sem categoria"),
-        icone: c.icone ?? null,
-      }));
-
-      setCategorias(normalizadas.filter((c) => c.id_categoria > 0));
-    } catch (err) {
-      console.error(err);
-      // não trava a tela, só avisa
-      toast.info("Não foi possível carregar as categorias (seguindo sem elas).");
-    }
-  };
-
-  const carregarProdutos = async () => {
-    try {
+    async function carregar() {
       setLoading(true);
+      setErro(null);
 
-      const res = await api.get("/admin/produtos");
+      try {
+        const res = await api.get<ApiResponse<Produto>>(
+          `/produto/slug/${encodeURIComponent(slug)}`
+        );
+        const p = resolveApi<Produto>(res.data);
 
-      let lista = res.data?.dados || res.data;
-      if (lista?.dados) lista = lista.dados;
-      if (!Array.isArray(lista)) lista = [];
+        if (!alive) return;
 
-      const convertidos: Produto[] = lista.map((p: any) => ({
-        ...p,
-        preco: Number(p.preco || 0),
-        estoque: Number(p.estoque || 0),
-        imagem: p.imagem ? String(p.imagem) : undefined,
-        categoria_id: p.categoria_id !== undefined && p.categoria_id !== null ? Number(p.categoria_id) : undefined,
-      }));
-
-      setProdutos(convertidos);
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao carregar produtos");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const toggleDestaque = async (produto: Produto) => {
-    try {
-      if (produto.destaque) {
-        if (!produto.id_destaque) {
-          toast.error("Não foi possível remover: id_destaque ausente.");
+        if (!p) {
+          setProduto(null);
+          setErro("Produto não encontrado");
           return;
         }
 
-        await api.delete(`/admin/produtos/destaques/${produto.id_destaque}/remover`);
+        const produtoFinal: Produto = {
+          ...p,
+          preco: Number(p.preco || 0),
+          estoque: Number(p.estoque || 0),
+          ilimitado: Number(p.ilimitado || 0),
+          imagem: getImagemUrl(p.imagem),
+          imagensSecundarias: (p.imagensSecundarias || [])
+            .map(getImagemUrl)
+            .filter((x): x is string => Boolean(x)),
+          parcelas: p.parcelas ?? 10,
+          criado: (p as any).criado ?? (p as any).created_at ?? p.created_at,
+          atualizado: (p as any).atualizado ?? undefined,
+        };
 
-        setProdutos((p) =>
-          p.map((i) =>
-            i.id_produto === produto.id_produto ? { ...i, destaque: false, id_destaque: undefined } : i
-          )
+        setProduto(produtoFinal);
+        setActiveIdx(0);
+        setQtd(1);
+        setCupomAplicado(null);
+        setCupomCodigo("");
+        setCupomErro(null);
+      } catch (e: any) {
+        if (!alive) return;
+        setErro(
+          e?.response?.data?.mensagem ||
+            e?.response?.data?.message ||
+            e?.message ||
+            "Erro ao buscar produto"
         );
+        setProduto(null);
+      } finally {
+        if (!alive) return;
+        setLoading(false);
+      }
+    }
 
-        toast.success("Removido do destaque");
-      } else {
-        const res = await api.post("/admin/produtos/destaques/criar", {
-          produto_id: produto.id_produto,
+    carregar();
+    return () => {
+      alive = false;
+    };
+  }, [slug]);
+
+  useEffect(() => {
+    if (!produto) return;
+    try {
+      const raw = localStorage.getItem("ui:favs");
+      const ids: number[] = raw ? JSON.parse(raw) : [];
+      setFav(ids.includes(produto.id_produto));
+    } catch {
+      setFav(false);
+    }
+  }, [produto?.id_produto]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const imagens = useMemo(() => {
+    if (!produto) return [];
+    const list: string[] = [];
+    if (produto.imagem) list.push(produto.imagem);
+    for (const s of produto.imagensSecundarias || []) list.push(s);
+    return Array.from(new Set(list));
+  }, [produto]);
+
+  const activeImg = imagens[activeIdx] || imagens[0] || undefined;
+
+  const indisponivel = useMemo(() => {
+    if (!produto) return true;
+    if ((produto.ilimitado ?? 0) === 1) return false;
+    return (produto.estoque ?? 0) <= 0;
+  }, [produto]);
+
+  const precoBase = Number(produto?.preco || 0);
+
+  const precoComCupom = useMemo(() => {
+    const base = precoBase * Math.max(1, qtd);
+    if (!cupomAplicado) return base;
+
+    if (cupomAplicado.tipo === "percentual") {
+      const desc = (base * cupomAplicado.valor) / 100;
+      return Math.max(0, base - desc);
+    }
+    return Math.max(0, base - cupomAplicado.valor);
+  }, [precoBase, qtd, cupomAplicado]);
+
+  const parcelasTexto = useMemo(() => {
+    const parc = produto?.parcelas ?? 10;
+    if (!parc || parc <= 1) return "";
+    const v = precoComCupom / parc;
+    return `em até ${parc}x de ${formatBRL(v)}`;
+  }, [produto, precoComCupom]);
+
+  const crumbs = useMemo(() => {
+    const categoria = produto?.categoria_nome?.trim();
+    return [
+      { label: "Início", href: "/" },
+      { label: "Catálogo", href: "/catalogo" },
+      ...(categoria ? [{ label: categoria, href: "/catalogo" }] : []),
+      {
+        label: produto?.nome || "Produto",
+        href: slug ? `/produto/${encodeURIComponent(slug)}` : "/catalogo",
+      },
+    ];
+  }, [produto, slug]);
+
+  async function aplicarCupom() {
+    setCupomErro(null);
+    const codigo = cupomCodigo.trim();
+    if (!codigo) {
+      setCupomErro("Digite um cupom.");
+      return;
+    }
+
+    setCupomLoading(true);
+    try {
+      const res = await api.get<ApiResponse<CupomApi>>(
+        rotas.cupons.buscarPorCodigo(codigo)
+      );
+      const c = resolveApi<CupomApi>(res.data);
+
+      if (!c) {
+        setCupomAplicado(null);
+        setCupomErro("Cupom inválido.");
+        return;
+      }
+
+      const ativo = Number((c as any).ativo ?? 1);
+      if (ativo === 0) {
+        setCupomAplicado(null);
+        setCupomErro("Cupom inativo.");
+        return;
+      }
+
+      const perc = toNumber((c as any).percentual);
+      const val = toNumber((c as any).valor);
+
+      if (perc != null && perc > 0) {
+        setCupomAplicado({
+          codigo: (c.codigo || codigo).toUpperCase(),
+          tipo: "percentual",
+          valor: perc,
+          descricao: c.descricao,
         });
-
-        const idDestaque =
-          res.data?.id_destaque ??
-          res.data?.dados?.id_destaque ??
-          res.data?.dados?.id ??
-          res.data?.id ??
-          undefined;
-
-        setProdutos((p) =>
-          p.map((i) =>
-            i.id_produto === produto.id_produto ? { ...i, destaque: true, id_destaque: idDestaque } : i
-          )
-        );
-
-        toast.success("Adicionado ao destaque");
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao alterar destaque");
-    }
-  };
 
-  const toggleCatalogo = async (produto: Produto) => {
-    try {
-      if (produto.catalogo === 1) {
-        await api.put(`/admin/produtos/${produto.id_produto}/catalogo/nao`);
-
-        setProdutos((p) => p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 0 } : i)));
-        toast.success("Removido do catálogo");
-      } else {
-        await api.put(`/admin/produtos/${produto.id_produto}/catalogo/sim`);
-
-        setProdutos((p) => p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 1 } : i)));
-        toast.success("Adicionado ao catálogo");
+      if (val != null && val > 0) {
+        setCupomAplicado({
+          codigo: (c.codigo || codigo).toUpperCase(),
+          tipo: "valor",
+          valor: val,
+          descricao: c.descricao,
+        });
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao atualizar catálogo");
-    }
-  };
 
-  const excluirProduto = async (id: number) => {
-    if (!confirm("Deseja excluir este produto?")) return;
-
-    try {
-      await api.delete(`/admin/produto/${id}/remover`);
-      setProdutos((p) => p.filter((i) => i.id_produto !== id));
-      toast.success("Produto excluído com sucesso");
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao excluir produto");
-    }
-  };
-
-  // ===== paginação (front) =====
-  const totalPaginas = useMemo(() => {
-    const total = Math.ceil((produtos?.length || 0) / itensPorPagina);
-    return Math.max(total, 1);
-  }, [produtos, itensPorPagina]);
-
-  useEffect(() => {
-    if (pagina > totalPaginas) setPagina(totalPaginas);
-    if (pagina < 1) setPagina(1);
-  }, [pagina, totalPaginas]);
-
-  const produtosPaginados = useMemo(() => {
-    const start = (pagina - 1) * itensPorPagina;
-    const end = start + itensPorPagina;
-    return produtos.slice(start, end);
-  }, [produtos, pagina, itensPorPagina]);
-
-  const paginas = useMemo(() => {
-    return Array.from({ length: totalPaginas }, (_, i) => i + 1);
-  }, [totalPaginas]);
-
-  // ====== GALERIA (miniaturas) ======
-  function abrirGaleria(prod: Produto) {
-    setGaleriaProduto(prod);
-    setGaleriaOpen(true);
-    limparGaleriaSelecao();
-  }
-
-  function fecharGaleria() {
-    setGaleriaOpen(false);
-    setGaleriaProduto(null);
-    limparGaleriaSelecao();
-  }
-
-  function limparGaleriaSelecao() {
-    galeriaPreview.forEach((u) => URL.revokeObjectURL(u));
-    setGaleriaFiles([]);
-    setGaleriaPreview([]);
-    if (inputGaleriaRef.current) inputGaleriaRef.current.value = "";
-  }
-
-  function onPickGaleria(filesList: FileList | null) {
-    if (!filesList) return;
-
-    const files = Array.from(filesList);
-    const ok = files.filter((f) => /\.(jpg|jpeg|png|webp|gif)$/i.test(f.name));
-
-    if (ok.length === 0) {
-      toast.error("Selecione imagens válidas (jpg, png, webp, gif).");
-      return;
-    }
-
-    const limitadas = ok.slice(0, 12);
-    const previews = limitadas.map((f) => URL.createObjectURL(f));
-
-    galeriaPreview.forEach((u) => URL.revokeObjectURL(u));
-
-    setGaleriaFiles(limitadas);
-    setGaleriaPreview(previews);
-  }
-
-  async function enviarGaleria() {
-    if (!galeriaProduto) return;
-    if (galeriaFiles.length === 0) {
-      toast.info("Selecione pelo menos 1 imagem.");
-      return;
-    }
-
-    try {
-      setGaleriaSending(true);
-
-      const form = new FormData();
-      galeriaFiles.forEach((file) => form.append("imagens[]", file));
-
-      await api.post(`/admin/produto/${galeriaProduto.id_produto}/imagens`, form, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      toast.success("Imagens adicionadas com sucesso!");
-      fecharGaleria();
-      await carregarProdutos();
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao enviar imagens. Verifique a rota do backend.");
+      setCupomAplicado(null);
+      setCupomErro("Cupom sem desconto configurado.");
+    } catch (e: any) {
+      setCupomAplicado(null);
+      setCupomErro(
+        e?.response?.data?.mensagem ||
+          e?.response?.data?.message ||
+          e?.message ||
+          "Erro ao validar cupom"
+      );
     } finally {
-      setGaleriaSending(false);
+      setCupomLoading(false);
     }
   }
 
-  // fecha modal com ESC
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") fecharGaleria();
+  function removerCupom() {
+    setCupomAplicado(null);
+    setCupomErro(null);
+    setCupomCodigo("");
+  }
+
+  async function adicionarCarrinho() {
+    if (!produto) return;
+    if (indisponivel) return;
+
+    setAdding(true);
+    try {
+      await api.post(
+        rotas.carrinho.adicionar,
+        { produto_id: produto.id_produto, qtd: Math.max(1, qtd) },
+        { withCredentials: true }
+      );
+    } finally {
+      setAdding(false);
     }
-    if (galeriaOpen) window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [galeriaOpen]);
+  }
+
+  async function copiarLink() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1400);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  async function compartilhar() {
+    const url = window.location.href;
+    try {
+      // @ts-ignore
+      if (navigator.share) {
+        // @ts-ignore
+        await navigator.share({
+          title: produto?.nome ?? "Produto",
+          text: "Confira esse produto:",
+          url,
+        });
+        return;
+      }
+    } catch {
+      return;
+    }
+    await copiarLink();
+  }
+
+  function toggleFav() {
+    if (!produto) return;
+    try {
+      const raw = localStorage.getItem("ui:favs");
+      const ids: number[] = raw ? JSON.parse(raw) : [];
+      const has = ids.includes(produto.id_produto);
+      const next = has
+        ? ids.filter((x) => x !== produto.id_produto)
+        : [...ids, produto.id_produto];
+      localStorage.setItem("ui:favs", JSON.stringify(next));
+      setFav(!has);
+    } catch {
+      setFav((v) => !v);
+    }
+  }
+
+  const precoUnit = useMemo(() => Number(produto?.preco || 0), [produto?.preco]);
+  const precoPromo = useMemo(() => toNumber(produto?.preco_promocional) ?? 0, [produto?.preco_promocional]);
+  const temPromo = precoPromo > 0 && precoPromo < precoUnit;
 
   return (
-    <div className="container-fluid py-4 dashboard-bg">
-      <ToastContainer position="top-right" autoClose={2500} />
+    <>
+      <Navbar />
 
-      <NovoProdutoModal
-        open={modalNovoProduto}
-        onClose={() => setModalNovoProduto(false)}
-        onCreated={async () => {
-          setModalNovoProduto(false);
-          await carregarProdutos();
-        }}
-      />
+      <main className="pdp">
+        <div className="wrap">
+          <nav className="crumbs" aria-label="breadcrumb">
+            {crumbs.map((c, i) => {
+              const isLast = i === crumbs.length - 1;
+              return (
+                <span key={`${c.label}-${i}`} className="crumb">
+                  {i > 0 ? <span className="sep">›</span> : null}
+                  {isLast ? (
+                    <span className="active">{c.label}</span>
+                  ) : (
+                    <Link className="link" href={c.href}>
+                      {c.label}
+                    </Link>
+                  )}
+                </span>
+              );
+            })}
+          </nav>
 
-      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
-        <div>
-          <h2 className="title">Produtos</h2>
-          <p className="text-muted">Gerencie os produtos cadastrados</p>
-        </div>
+          {loading ? (
+            <div className="state">
+              <div className="skTitle" />
+              <div className="skGrid">
+                <div className="skMedia" />
+                <div className="skBuy" />
+              </div>
+            </div>
+          ) : erro ? (
+            <div className="state err">{erro}</div>
+          ) : !produto ? (
+            <div className="state err">Produto não encontrado</div>
+          ) : (
+            <>
+              <header className="head">
+                <div className="headLeft">
+                  <h1 className="h1">{produto.nome}</h1>
 
-        <div className="top-actions">
-          <div className="pagerSelect">
-            <span>Por página</span>
-            <select value={itensPorPagina} onChange={(e) => setItensPorPagina(Number(e.target.value))}>
-              <option value={8}>8</option>
-              <option value={12}>12</option>
-              <option value={16}>16</option>
-              <option value={24}>24</option>
-              <option value={48}>48</option>
-            </select>
-          </div>
+                  <div className="sub">
+                    {produto.categoria_nome ? (
+                      <span className="subItem">
+                        <span className="dot" /> {produto.categoria_nome}
+                      </span>
+                    ) : null}
+                    {produto.sku ? (
+                      <span className="subItem">
+                        <span className="dot" /> SKU: {produto.sku}
+                      </span>
+                    ) : null}
+                    {produto.modelo ? (
+                      <span className="subItem">
+                        <span className="dot" /> Modelo: {produto.modelo}
+                      </span>
+                    ) : null}
+                  </div>
 
-          <button className="btn btn-gold" onClick={() => setModalNovoProduto(true)}>
-            <FaPlus /> Novo Produto
-          </button>
-        </div>
-      </div>
-
-      {!loading && produtos.length > 0 && totalPaginas > 1 && (
-        <div className="pagerBar">
-          <div className="pagerInfo">
-            Página <b>{pagina}</b> de <b>{totalPaginas}</b> — Total: <b>{produtos.length}</b>
-          </div>
-
-          <div className="pagerNumbers" aria-label="Paginação">
-            {paginas.map((p) => (
-              <button
-                key={p}
-                type="button"
-                className={`pageBtn ${p === pagina ? "active" : ""}`}
-                onClick={() => setPagina(p)}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {loading ? (
-        <div className="text-center py-5">Carregando produtos...</div>
-      ) : (
-        <div className="row g-4">
-          {produtosPaginados.map((prod) => {
-            const urlImg = getImagemUrl(prod.imagem);
-            const cat = prod.categoria_id ? categoriasMap.get(prod.categoria_id) : undefined;
-            const temImagem = !!urlImg;
-
-            return (
-              <div key={prod.id_produto} className="col-xl-3 col-lg-4 col-md-6">
-                <div className="produto-card">
-                  <div className="card-image">
-                    {temImagem ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={urlImg} alt={prod.nome} />
+                  <div className="badges">
+                    {produto.destaque ? <span className="chip chipHot">Destaque</span> : null}
+                    {(produto.ilimitado ?? 0) === 1 ? (
+                      <span className="chip chipOk">Disponível</span>
+                    ) : produto.estoque > 0 ? (
+                      <span className="chip chipOk">Em estoque</span>
                     ) : (
-                      <div className="no-image">Sem imagem</div>
+                      <span className="chip chipBad">Esgotado</span>
                     )}
+                  </div>
+                </div>
 
-                    <div className="badges">
-                      {prod.destaque && <span className="badge badge-destaque">Destaque</span>}
-                      {prod.catalogo === 1 && <span className="badge badge-catalogo">Catálogo</span>}
-                      {!temImagem && <span className="badge badge-noimg">Sem imagem</span>}
+                <div className="headRight">
+                  <button type="button" className="iconBtn" onClick={compartilhar} title="Compartilhar">
+                    <span className="ico">↗</span>
+                    <span className="txt">Compartilhar</span>
+                  </button>
+
+                  <button type="button" className="iconBtn" onClick={copiarLink} title="Copiar link">
+                    <span className="ico">⧉</span>
+                    <span className="txt">{copied ? "Copiado!" : "Copiar link"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`iconBtn ${fav ? "on" : ""}`}
+                    onClick={toggleFav}
+                    title="Favoritar"
+                  >
+                    <span className="ico">{fav ? "♥" : "♡"}</span>
+                    <span className="txt">{fav ? "Favorito" : "Favoritar"}</span>
+                  </button>
+                </div>
+              </header>
+
+              <div className="grid">
+                <section className="leftCol">
+                  <div className="galleryCard">
+                    <div className="media">
+                      {activeImg ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img className="hero" src={activeImg} alt={produto.nome} />
+                      ) : (
+                        <div className="noimg">Sem imagem</div>
+                      )}
+                    </div>
+
+                    <div className="thumbs" role="list">
+                      {imagens.slice(0, 12).map((src, idx) => (
+                        <button
+                          key={`${src}-${idx}`}
+                          type="button"
+                          className={`thumbBtn ${idx === activeIdx ? "on" : ""}`}
+                          onClick={() => setActiveIdx(idx)}
+                          aria-label="Selecionar imagem"
+                          role="listitem"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img className="thumb" src={src} alt={`${produto.nome} ${idx + 1}`} />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="cardsRow">
+                    <div className="infoCard">
+                      <div className="cardTitle">Detalhes</div>
+                      <div className="kv">
+                        <span className="k">ID</span>
+                        <span className="v">#{produto.id_produto}</span>
+                      </div>
+                      <div className="kv">
+                        <span className="k">Categoria</span>
+                        <span className="v">
+                          {produto.categoria_nome?.trim()
+                            ? produto.categoria_nome
+                            : produto.categoria_id != null
+                            ? `ID ${produto.categoria_id}`
+                            : "—"}
+                        </span>
+                      </div>
+                      <div className="kv">
+                        <span className="k">Status</span>
+                        <span className="v">
+                          {produto.status_nome?.trim()
+                            ? produto.status_nome
+                            : produto.statusid != null
+                            ? `ID ${produto.statusid}`
+                            : "—"}
+                        </span>
+                      </div>
+                      <div className="kv">
+                        <span className="k">Criado</span>
+                        <span className="v">{formatDateBR(produto.criado) ?? "—"}</span>
+                      </div>
+                      <div className="kv">
+                        <span className="k">Atualizado</span>
+                        <span className="v">{formatDateBR(produto.atualizado) ?? "—"}</span>
+                      </div>
+                    </div>
+
+                    <div className="infoCard">
+                      <div className="cardTitle">Entrega</div>
+                      <div className="kv">
+                        <span className="k">Disponibilidade</span>
+                        <span className="v">
+                          {(produto.ilimitado ?? 0) === 1
+                            ? "Disponível (ilimitado)"
+                            : produto.estoque > 0
+                            ? `Em estoque (${produto.estoque} un.)`
+                            : "Esgotado"}
+                        </span>
+                      </div>
+                      <div className="kv">
+                        <span className="k">Ajuda</span>
+                        <span className="v">Envie pro WhatsApp se precisar.</span>
+                      </div>
+
+                      <div className="divider" />
+
+                      <div className="miniBtns">
+                        <button type="button" className="miniBtn" onClick={compartilhar}>
+                          Compartilhar
+                        </button>
+                        <button type="button" className="miniBtn" onClick={copiarLink}>
+                          Copiar link
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="descCard">
+                    <div className="cardTitle">Descrição</div>
+                    <p className="descText">
+                      {produto.descricao?.trim()
+                        ? produto.descricao
+                        : "Este produto não possui descrição detalhada no momento."}
+                    </p>
+                  </div>
+                </section>
+
+                <aside className="buyCol">
+                  <div className="buyBox">
+                    <div className="priceArea">
+                      <div className="priceRow">
+                        <div className="price">{formatBRL(precoComCupom)}</div>
+
+                        {temPromo ? (
+                          <div className="promo">
+                            <span className="from">de {formatBRL(precoUnit)}</span>
+                            <span className="save">
+                              economize {formatBRL(Math.max(0, precoUnit - precoPromo))}
+                            </span>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {parcelasTexto ? <div className="install">{parcelasTexto}</div> : null}
+                    </div>
+
+                    <div className="qtyRow">
+                      <span className="qtyLbl">Quantidade</span>
+                      <div className="qtyCtrl" aria-label="Controle de quantidade">
+                        <button
+                          type="button"
+                          className="qbtn"
+                          onClick={() => setQtd((v) => Math.max(1, v - 1))}
+                          disabled={qtd <= 1}
+                          aria-label="Diminuir"
+                        >
+                          −
+                        </button>
+                        <span className="qval">{qtd}</span>
+                        <button
+                          type="button"
+                          className="qbtn"
+                          onClick={() => setQtd((v) => Math.min(99, v + 1))}
+                          aria-label="Aumentar"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="coupon">
+                      <div className="couponHead">
+                        <span className="couponTitle">Cupom</span>
+                        {cupomAplicado ? (
+                          <button type="button" className="couponRemove" onClick={removerCupom}>
+                            Remover
+                          </button>
+                        ) : null}
+                      </div>
+
+                      {cupomAplicado ? (
+                        <div className="couponApplied">
+                          <span className="couponTag">
+                            {cupomAplicado.codigo} •{" "}
+                            {cupomAplicado.tipo === "percentual"
+                              ? `${cupomAplicado.valor}%`
+                              : formatBRL(cupomAplicado.valor)}
+                          </span>
+                          {cupomAplicado.descricao ? (
+                            <div className="couponHint">{cupomAplicado.descricao}</div>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <div className="couponRow">
+                          <input
+                            className="couponInput"
+                            value={cupomCodigo}
+                            onChange={(e) => setCupomCodigo(e.target.value.toUpperCase())}
+                            placeholder="Digite seu cupom"
+                          />
+                          <button
+                            type="button"
+                            className="couponBtn"
+                            onClick={aplicarCupom}
+                            disabled={cupomLoading}
+                          >
+                            {cupomLoading ? "…" : "Aplicar"}
+                          </button>
+                        </div>
+                      )}
+
+                      {cupomErro ? <div className="couponErr">{cupomErro}</div> : null}
+                    </div>
+
+                    <div className="cta">
+                      <button
+                        type="button"
+                        className="btn buy"
+                        onClick={adicionarCarrinho}
+                        disabled={indisponivel || adding}
+                      >
+                        {adding ? "Adicionando…" : "Adicionar ao carrinho"}
+                      </button>
+
+                      <button type="button" className="btn ghost" disabled={indisponivel}>
+                        Comprar agora
+                      </button>
+
+                      <button type="button" className="btn ghost2" onClick={compartilhar}>
+                        Compartilhar produto
+                      </button>
+                    </div>
+
+                    <div className="backLine">
+                      <Link className="back" href="/catalogo">
+                        ← Voltar ao catálogo
+                      </Link>
+                    </div>
+                  </div>
+
+                  {/* CTA fixo no mobile */}
+                  <div className="mobileBar">
+                    <div className="mbLeft">
+                      <div className="mbPrice">{formatBRL(precoComCupom)}</div>
+                      {parcelasTexto ? <div className="mbInstall">{parcelasTexto}</div> : null}
                     </div>
 
                     <button
                       type="button"
-                      className="btnThumbs"
-                      onClick={() => abrirGaleria(prod)}
-                      title="Adicionar imagens (miniaturas)"
+                      className="mbBtn"
+                      onClick={adicionarCarrinho}
+                      disabled={indisponivel || adding}
                     >
-                      <FaImages />
+                      {adding ? "Adicionando…" : "Adicionar"}
                     </button>
                   </div>
-
-                  <div className="card-body">
-                    <h6 className="produto-nome">{prod.nome}</h6>
-
-                    {/* ✅ categoria */}
-                    <div className="categoriaLine">
-                      <span className="categoriaLabel">Categoria:</span>{" "}
-                      <b className="categoriaNome">{cat?.nome ?? "Sem categoria"}</b>
-                    </div>
-
-                    <p className="preco">R$ {prod.preco.toFixed(2)}</p>
-                    <small className="estoque">Estoque: {prod.estoque}</small>
-
-                    <div className="acoes">
-                      <Link href={`/admin/produto/${prod.slug}`} title="Editar">
-                        <FaEdit />
-                      </Link>
-
-                      <button onClick={() => toggleDestaque(prod)} title="Destaque">
-                        <FaStar />
-                      </button>
-
-                      <button
-                        onClick={() => toggleCatalogo(prod)}
-                        title="Catálogo"
-                        className={prod.catalogo === 1 ? "catalogo-on" : "catalogo-off"}
-                      >
-                        <FaBook />
-                      </button>
-
-                      <button onClick={() => excluirProduto(prod.id_produto)} className="danger" title="Excluir">
-                        <FaTrash />
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                </aside>
               </div>
-            );
-          })}
-
-          {!produtos.length && (
-            <div className="col-12">
-              <div className="alert alert-light border">Nenhum produto encontrado</div>
-            </div>
+            </>
           )}
         </div>
-      )}
 
-      {/* ✅ MODAL: adicionar miniaturas */}
-      {galeriaOpen && (
-        <div className="thumbOverlay" onClick={fecharGaleria}>
-          <div className="thumbModal" onClick={(e) => e.stopPropagation()}>
-            <div className="thumbHeader">
-              <div className="thumbTitle">
-                <div className="thumbH">Adicionar imagens (miniaturas)</div>
-                <div className="thumbSub">
-                  Produto: <b>{galeriaProduto?.nome}</b> (#{galeriaProduto?.id_produto})
-                </div>
-              </div>
+        <style jsx>{`
+          /* Tema creme + rosa queimado */
+          .pdp {
+            background: radial-gradient(
+                900px 420px at 15% 10%,
+                rgba(180, 106, 106, 0.12),
+                transparent 55%
+              ),
+              radial-gradient(
+                900px 420px at 85% 0%,
+                rgba(255, 255, 255, 0.85),
+                transparent 55%
+              ),
+              #f7efe7;
+            padding: 18px 0 46px;
+            min-height: 70vh;
+          }
 
-              <button className="thumbClose" type="button" onClick={fecharGaleria} aria-label="Fechar">
-                ×
-              </button>
-            </div>
+          .wrap {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 16px;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+            color: #2b211c;
+          }
 
-            <div className="thumbBody">
-              <div className="thumbPick">
-                <input ref={inputGaleriaRef} type="file" accept="image/*" multiple onChange={(e) => onPickGaleria(e.target.files)} />
-                <div className="thumbHint">Selecione até <b>12</b> imagens.</div>
-              </div>
+          .crumbs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            font-size: 12px;
+            font-weight: 800;
+            color: rgba(43, 33, 28, 0.65);
+            padding: 10px 0 12px;
+          }
+          .sep {
+            margin: 0 6px;
+            opacity: 0.7;
+          }
+          .link {
+            color: #a85c5c;
+            text-decoration: none;
+          }
+          .link:hover {
+            text-decoration: underline;
+          }
+          .active {
+            color: #2b211c;
+            font-weight: 950;
+          }
 
-              {galeriaPreview.length > 0 ? (
-                <div className="thumbGrid">
-                  {galeriaPreview.map((src, idx) => (
-                    <div key={src} className="thumbItem">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={src} alt={`preview-${idx}`} />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="thumbEmpty">Nenhuma imagem selecionada ainda.</div>
-              )}
-            </div>
+          /* header */
+          .head {
+            margin-top: 6px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+          }
+          .h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 980;
+            letter-spacing: -0.2px;
+            line-height: 1.2;
+          }
+          .sub {
+            margin-top: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px 14px;
+            color: rgba(43, 33, 28, 0.62);
+            font-weight: 900;
+            font-size: 12px;
+          }
+          .subItem {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+          }
+          .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: rgba(180, 106, 106, 0.55);
+          }
 
-            <div className="thumbFooter">
-              <button className="thumbBtn ghost" type="button" onClick={fecharGaleria}>
-                Cancelar
-              </button>
+          .badges {
+            margin-top: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+          }
+          .chip {
+            font-size: 12px;
+            font-weight: 950;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.75);
+            border: 1px solid rgba(43, 33, 28, 0.1);
+            color: rgba(43, 33, 28, 0.78);
+            backdrop-filter: blur(10px);
+          }
+          .chipHot {
+            color: #a85c5c;
+            background: rgba(180, 106, 106, 0.12);
+            border-color: rgba(180, 106, 106, 0.22);
+          }
+          .chipOk {
+            color: #0f5132;
+            background: rgba(25, 135, 84, 0.12);
+            border-color: rgba(25, 135, 84, 0.22);
+          }
+          .chipBad {
+            color: #991b1b;
+            background: rgba(185, 28, 28, 0.08);
+            border-color: rgba(185, 28, 28, 0.22);
+          }
 
-              <button
-                className="thumbBtn primary"
-                type="button"
-                onClick={enviarGaleria}
-                disabled={galeriaSending || galeriaFiles.length === 0}
-              >
-                {galeriaSending ? "Enviando..." : "Salvar imagens"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          .headRight {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+          }
+          .iconBtn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: 1px solid rgba(43, 33, 28, 0.12);
+            background: rgba(255, 255, 255, 0.78);
+            backdrop-filter: blur(10px);
+            border-radius: 14px;
+            padding: 10px 12px;
+            cursor: pointer;
+            font-weight: 950;
+            color: #2b211c;
+            transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+          }
+          .iconBtn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(180, 106, 106, 0.3);
+            box-shadow: 0 14px 26px rgba(0, 0, 0, 0.08);
+          }
+          .iconBtn.on {
+            border-color: rgba(180, 106, 106, 0.55);
+            box-shadow: 0 0 0 4px rgba(180, 106, 106, 0.12);
+          }
+          .ico {
+            width: 22px;
+            height: 22px;
+            display: grid;
+            place-items: center;
+            border-radius: 10px;
+            background: rgba(180, 106, 106, 0.12);
+            border: 1px solid rgba(180, 106, 106, 0.2);
+            color: #a85c5c;
+            font-weight: 980;
+          }
+          .txt {
+            font-size: 13px;
+            font-weight: 950;
+          }
 
-      <style jsx global>{`
-        .dashboard-bg {
-          background: #f6f7fb;
-          min-height: 100vh;
-        }
+          /* ✅ ações viram ícones no mobile */
+          @media (max-width: 720px) {
+            .head {
+              flex-direction: column;
+            }
+            .headRight {
+              width: 100%;
+              justify-content: flex-start;
+            }
+            .iconBtn {
+              padding: 10px;
+              border-radius: 16px;
+            }
+            .txt {
+              display: none;
+            }
+            .ico {
+              width: 26px;
+              height: 26px;
+              border-radius: 12px;
+            }
+          }
 
-        .title {
-          color: #6b4c4f;
-          font-weight: 700;
-        }
+          /* states */
+          .state {
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(43, 33, 28, 0.1);
+            border-radius: 16px;
+            padding: 16px;
+            font-weight: 900;
+            box-shadow: 0 18px 34px rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(10px);
+          }
+          .err {
+            border-color: rgba(185, 28, 28, 0.22);
+            background: rgba(185, 28, 28, 0.05);
+            color: #991b1b;
+          }
 
-        .btn-gold {
-          background: #d4af37;
-          color: #fff;
-          border: none;
-          display: inline-flex;
-          gap: 8px;
-          align-items: center;
-        }
+          /* Skeleton */
+          .skTitle {
+            width: 260px;
+            height: 18px;
+            border-radius: 12px;
+            background: linear-gradient(
+              90deg,
+              rgba(180, 106, 106, 0.1),
+              rgba(180, 106, 106, 0.18),
+              rgba(180, 106, 106, 0.1)
+            );
+            background-size: 200% 100%;
+            animation: sk 1.1s infinite linear;
+          }
+          .skGrid {
+            margin-top: 14px;
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 14px;
+          }
+          .skMedia,
+          .skBuy {
+            height: 520px;
+            border-radius: 18px;
+            background: linear-gradient(
+              90deg,
+              rgba(180, 106, 106, 0.1),
+              rgba(180, 106, 106, 0.18),
+              rgba(180, 106, 106, 0.1)
+            );
+            background-size: 200% 100%;
+            animation: sk 1.1s infinite linear;
+          }
+          @keyframes sk {
+            0% {
+              background-position: 0% 0%;
+            }
+            100% {
+              background-position: -200% 0%;
+            }
+          }
+          @media (max-width: 1024px) {
+            .skGrid {
+              grid-template-columns: 1fr;
+            }
+            .skBuy {
+              height: 360px;
+            }
+          }
 
-        .top-actions {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-          flex-wrap: wrap;
-          justify-content: flex-end;
-        }
+          /* layout */
+          .grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 14px;
+            align-items: start;
+          }
+          @media (max-width: 1024px) {
+            .grid {
+              grid-template-columns: 1fr;
+            }
+          }
 
-        .pagerSelect {
-          display: flex;
-          gap: 10px;
-          align-items: center;
-          background: #fff;
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          border-radius: 999px;
-          padding: 10px 12px;
-          box-shadow: 0 8px 18px rgba(0, 0, 0, 0.06);
-          color: #6b4c4f;
-          font-weight: 700;
-          font-size: 12px;
-        }
+          .leftCol {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+          }
 
-        .pagerSelect select {
-          border: 1px solid rgba(0, 0, 0, 0.12);
-          border-radius: 999px;
-          padding: 6px 10px;
-          outline: none;
-          background: #fff;
-          font-weight: 700;
-          cursor: pointer;
-        }
+          /* gallery */
+          .galleryCard {
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(43, 33, 28, 0.1);
+            border-radius: 18px;
+            padding: 12px;
+            box-shadow: 0 18px 34px rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(10px);
+          }
+          .media {
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(43, 33, 28, 0.1);
+            background: #fff;
+          }
+          .hero {
+            width: 100%;
+            height: 520px;
+            object-fit: contain;
+            background: #fff;
+            display: block;
+          }
+          .noimg {
+            height: 520px;
+            display: grid;
+            place-items: center;
+            font-weight: 950;
+            color: rgba(43, 33, 28, 0.6);
+          }
+          @media (max-width: 680px) {
+            .hero,
+            .noimg {
+              height: 380px;
+            }
+          }
 
-        .pagerBar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          flex-wrap: wrap;
-          margin-bottom: 14px;
-          background: rgba(255, 255, 255, 0.78);
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          border-radius: 14px;
-          padding: 10px 12px;
-          box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
-        }
+          .thumbs {
+            margin-top: 12px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+          .thumbBtn {
+            width: 74px;
+            height: 74px;
+            border-radius: 14px;
+            padding: 0;
+            border: 1px solid rgba(43, 33, 28, 0.1);
+            background: rgba(255, 255, 255, 0.85);
+            overflow: hidden;
+            cursor: pointer;
+            transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+          }
+          .thumbBtn:hover {
+            transform: translateY(-1px);
+            border-color: rgba(180, 106, 106, 0.35);
+            box-shadow: 0 12px 18px rgba(0, 0, 0, 0.06);
+          }
+          .thumbBtn.on {
+            border-color: rgba(180, 106, 106, 0.65);
+            box-shadow: 0 0 0 4px rgba(180, 106, 106, 0.14);
+          }
+          .thumb {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+          }
 
-        .pagerInfo {
-          color: #6b4c4f;
-          font-size: 13px;
-        }
+          /* ✅ thumbs viram carrossel sem barra feia no mobile */
+          @media (max-width: 680px) {
+            .thumbs {
+              flex-wrap: nowrap;
+              overflow-x: auto;
+              padding-bottom: 6px;
+              scrollbar-width: none;
+              -ms-overflow-style: none;
+            }
+            .thumbs::-webkit-scrollbar {
+              display: none;
+            }
+            .thumbBtn {
+              flex: 0 0 auto;
+              width: 66px;
+              height: 66px;
+              border-radius: 14px;
+            }
+          }
 
-        .pagerNumbers {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-          justify-content: flex-end;
-        }
+          /* info cards */
+          .cardsRow {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+          }
+          @media (max-width: 820px) {
+            .cardsRow {
+              grid-template-columns: 1fr;
+            }
+          }
 
-        .pageBtn {
-          min-width: 36px;
-          height: 34px;
-          padding: 0 10px;
-          border-radius: 10px;
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          background: #fff;
-          font-weight: 800;
-          color: #6b4c4f;
-          cursor: pointer;
-          transition: 0.15s;
-        }
+          .infoCard,
+          .descCard {
+            background: rgba(255, 255, 255, 0.82);
+            border: 1px solid rgba(43, 33, 28, 0.1);
+            border-radius: 18px;
+            padding: 14px;
+            box-shadow: 0 18px 34px rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(10px);
+          }
+          .cardTitle {
+            font-weight: 980;
+            margin-bottom: 10px;
+            letter-spacing: -0.15px;
+          }
+          .kv {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 10px 0;
+            border-top: 1px solid rgba(43, 33, 28, 0.08);
+          }
+          .kv:first-of-type {
+            border-top: none;
+            padding-top: 0;
+          }
+          .k {
+            color: rgba(43, 33, 28, 0.65);
+            font-weight: 900;
+            font-size: 12px;
+          }
+          .v {
+            color: #2b211c;
+            font-weight: 950;
+            font-size: 12px;
+            text-align: right;
+          }
+          .divider {
+            height: 1px;
+            background: rgba(43, 33, 28, 0.08);
+            margin: 12px 0;
+          }
+          .miniBtns {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+          .miniBtn {
+            border: 1px solid rgba(43, 33, 28, 0.12);
+            background: rgba(255, 255, 255, 0.78);
+            border-radius: 14px;
+            padding: 10px 12px;
+            cursor: pointer;
+            font-weight: 950;
+            color: #2b211c;
+          }
+          .miniBtn:hover {
+            border-color: rgba(180, 106, 106, 0.35);
+          }
 
-        .pageBtn:hover {
-          transform: translateY(-1px);
-          border-color: rgba(0, 0, 0, 0.18);
-        }
+          .descText {
+            margin: 0;
+            color: rgba(43, 33, 28, 0.78);
+            font-weight: 650;
+            line-height: 1.7;
+            font-size: 13px;
+          }
 
-        .pageBtn.active {
-          background: #d4af37;
-          border-color: #d4af37;
-          color: #fff;
-        }
+          /* buy */
+          .buyCol {
+            position: relative;
+          }
 
-        .produto-card {
-          background: #fff;
-          border-radius: 12px;
-          overflow: hidden;
-          box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-          transition: 0.2s;
-        }
+          .buyBox {
+            background: rgba(255, 255, 255, 0.86);
+            border: 1px solid rgba(43, 33, 28, 0.1);
+            border-radius: 18px;
+            padding: 14px;
+            position: sticky;
+            top: 12px;
+            box-shadow: 0 18px 34px rgba(0, 0, 0, 0.06);
+            backdrop-filter: blur(10px);
+          }
+          @media (max-width: 1024px) {
+            .buyBox {
+              position: relative;
+              top: 0;
+            }
+          }
 
-        .produto-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 12px 26px rgba(0, 0, 0, 0.12);
-        }
+          .priceArea {
+            padding-bottom: 12px;
+            border-bottom: 1px solid rgba(43, 33, 28, 0.08);
+          }
+          .priceRow {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 12px;
+          }
+          .price {
+            font-size: 28px;
+            font-weight: 980;
+            color: #2b211c;
+            letter-spacing: -0.35px;
+            white-space: nowrap;
+          }
+          .promo {
+            text-align: right;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+          }
+          .from {
+            font-size: 12px;
+            font-weight: 900;
+            color: rgba(43, 33, 28, 0.6);
+            text-decoration: line-through;
+          }
+          .save {
+            font-size: 12px;
+            font-weight: 950;
+            color: #a85c5c;
+          }
 
-        .card-image {
-          height: 150px;
-          position: relative;
-          background: #eee;
-        }
+          .install {
+            margin-top: 6px;
+            font-size: 12px;
+            font-weight: 850;
+            color: rgba(43, 33, 28, 0.65);
+          }
 
-        .card-image img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-        }
+          .qtyRow {
+            margin-top: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+          }
+          .qtyLbl {
+            font-size: 12px;
+            font-weight: 950;
+            color: rgba(43, 33, 28, 0.78);
+          }
+          .qtyCtrl {
+            display: inline-flex;
+            align-items: center;
+            border: 1px solid rgba(43, 33, 28, 0.12);
+            border-radius: 999px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.75);
+          }
+          .qbtn {
+            width: 38px;
+            height: 36px;
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            font-weight: 980;
+            color: #2b211c;
+          }
+          .qbtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+          }
+          .qval {
+            width: 44px;
+            text-align: center;
+            font-weight: 980;
+            color: #2b211c;
+          }
 
-        .no-image {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          height: 100%;
-          color: #6b7280;
-          font-weight: 800;
-        }
+          /* cupom */
+          .coupon {
+            margin-top: 14px;
+            border-top: 1px solid rgba(43, 33, 28, 0.08);
+            padding-top: 14px;
+          }
+          .couponHead {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+          }
+          .couponTitle {
+            font-weight: 950;
+            font-size: 13px;
+            color: #2b211c;
+          }
+          .couponRemove {
+            border: none;
+            background: transparent;
+            color: #a85c5c;
+            cursor: pointer;
+            font-weight: 950;
+            text-decoration: underline;
+          }
+          .couponRow {
+            margin-top: 10px;
+            display: flex;
+            gap: 10px;
+          }
+          .couponInput {
+            flex: 1;
+            border: 1px solid rgba(43, 33, 28, 0.12);
+            border-radius: 14px;
+            padding: 10px 12px;
+            font-weight: 900;
+            outline: none;
+            background: rgba(255, 255, 255, 0.82);
+            min-width: 0;
+          }
+          .couponInput:focus {
+            border-color: rgba(180, 106, 106, 0.45);
+            box-shadow: 0 0 0 4px rgba(180, 106, 106, 0.14);
+          }
+          .couponBtn {
+            border: none;
+            border-radius: 14px;
+            padding: 10px 14px;
+            font-weight: 950;
+            cursor: pointer;
+            color: #fff;
+            background: linear-gradient(135deg, #b46a6a, #a85c5c);
+            box-shadow: 0 14px 26px rgba(180, 106, 106, 0.22);
+            white-space: nowrap;
+          }
+          .couponBtn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+          }
+          .couponApplied {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+          }
+          .couponTag {
+            width: fit-content;
+            font-size: 12px;
+            font-weight: 950;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(180, 106, 106, 0.12);
+            border: 1px solid rgba(180, 106, 106, 0.22);
+            color: #a85c5c;
+          }
+          .couponHint {
+            font-size: 12px;
+            color: rgba(43, 33, 28, 0.65);
+            font-weight: 800;
+          }
+          .couponErr {
+            margin-top: 10px;
+            font-size: 12px;
+            font-weight: 900;
+            color: #991b1b;
+            background: rgba(185, 28, 28, 0.06);
+            border: 1px solid rgba(185, 28, 28, 0.18);
+            padding: 8px 10px;
+            border-radius: 14px;
+          }
 
-        .badges {
-          position: absolute;
-          top: 8px;
-          right: 8px;
-          display: flex;
-          gap: 6px;
-          z-index: 2;
-          flex-wrap: wrap;
-          justify-content: flex-end;
-        }
+          .cta {
+            margin-top: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+          .btn {
+            width: 100%;
+            border: none;
+            border-radius: 14px;
+            padding: 12px 12px;
+            font-weight: 980;
+            cursor: pointer;
+            transition: transform 0.12s ease, opacity 0.12s ease, filter 0.12s ease;
+          }
+          .btn:active {
+            transform: translateY(1px);
+          }
+          .btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+          }
+          .buy {
+            background: linear-gradient(135deg, #b46a6a, #a85c5c);
+            color: #fff;
+            box-shadow: 0 16px 30px rgba(180, 106, 106, 0.25);
+          }
+          .ghost {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(43, 33, 28, 0.12);
+            color: #2b211c;
+          }
+          .ghost2 {
+            background: rgba(180, 106, 106, 0.1);
+            border: 1px solid rgba(180, 106, 106, 0.22);
+            color: #a85c5c;
+          }
 
-        .badge {
-          font-size: 10px;
-          padding: 4px 8px;
-          border-radius: 999px;
-          color: #fff;
-          font-weight: 800;
-        }
+          .backLine {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(43, 33, 28, 0.08);
+          }
+          .back {
+            color: #a85c5c;
+            text-decoration: none;
+            font-weight: 950;
+            font-size: 13px;
+          }
+          .back:hover {
+            text-decoration: underline;
+          }
 
-        .badge-destaque {
-          background: #e74c3c;
-        }
+          /* ✅ Barra fixa no mobile */
+          .mobileBar {
+            display: none;
+          }
+          @media (max-width: 680px) {
+            .pdp {
+              padding-bottom: 96px;
+            }
 
-        .badge-catalogo {
-          background: #22c55e;
-        }
+            .buyBox {
+              display: none;
+            }
 
-        .badge-noimg {
-          background: #64748b;
-        }
+            .mobileBar {
+              position: fixed;
+              left: 0;
+              right: 0;
+              bottom: 0;
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              gap: 12px;
+              padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
+              background: rgba(255, 255, 255, 0.9);
+              backdrop-filter: blur(12px);
+              border-top: 1px solid rgba(43, 33, 28, 0.12);
+              z-index: 50;
+            }
+            .mbLeft {
+              min-width: 0;
+              display: flex;
+              flex-direction: column;
+              gap: 2px;
+            }
+            .mbPrice {
+              font-size: 16px;
+              font-weight: 980;
+              color: #2b211c;
+              white-space: nowrap;
+            }
+            .mbInstall {
+              font-size: 12px;
+              font-weight: 850;
+              color: rgba(43, 33, 28, 0.62);
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+              max-width: 220px;
+            }
+            .mbBtn {
+              border: none;
+              border-radius: 14px;
+              padding: 12px 14px;
+              font-weight: 980;
+              cursor: pointer;
+              color: #fff;
+              background: linear-gradient(135deg, #b46a6a, #a85c5c);
+              box-shadow: 0 16px 28px rgba(180, 106, 106, 0.22);
+              white-space: nowrap;
+            }
+            .mbBtn:disabled {
+              opacity: 0.55;
+              cursor: not-allowed;
+            }
 
-        .card-body {
-          padding: 12px;
-        }
+            .priceRow {
+              flex-direction: column;
+              align-items: flex-start;
+            }
+            .promo {
+              text-align: left;
+            }
+          }
+        `}</style>
+      </main>
 
-        .produto-nome {
-          margin-bottom: 6px;
-          font-size: 14px;
-          font-weight: 900;
-          color: #111827;
-        }
-
-        .categoriaLine {
-          font-size: 12px;
-          margin-bottom: 8px;
-          color: #6b7280;
-          display: flex;
-          gap: 6px;
-          align-items: center;
-          flex-wrap: wrap;
-        }
-
-        .categoriaLabel {
-          font-weight: 800;
-          color: #6b7280;
-        }
-
-        .categoriaNome {
-          color: #111827;
-          font-weight: 900;
-        }
-
-        .preco {
-          font-weight: 700;
-          margin-bottom: 2px;
-          color: #111827;
-        }
-
-        .estoque {
-          font-size: 12px;
-          color: #888;
-        }
-
-        .acoes {
-          margin-top: 10px;
-          display: flex;
-          gap: 12px;
-          font-size: 16px;
-        }
-
-        .acoes button,
-        .acoes a {
-          background: none;
-          border: none;
-          cursor: pointer;
-          color: #6b4c4f;
-          text-decoration: none;
-        }
-
-        .acoes .danger {
-          color: #e74c3c;
-        }
-
-        .catalogo-on {
-          color: #22c55e;
-        }
-
-        .catalogo-off {
-          color: #999;
-        }
-
-        .acoes button:hover,
-        .acoes a:hover {
-          color: #d4af37;
-        }
-
-        .btnThumbs {
-          position: absolute;
-          left: 10px;
-          bottom: 10px;
-          width: 38px;
-          height: 38px;
-          border-radius: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.35);
-          background: rgba(0, 0, 0, 0.35);
-          color: #fff;
-          display: grid;
-          place-items: center;
-          cursor: pointer;
-          z-index: 2;
-          transition: 0.15s;
-          backdrop-filter: blur(6px);
-        }
-        .btnThumbs:hover {
-          transform: translateY(-1px);
-          background: rgba(0, 0, 0, 0.48);
-        }
-
-        .thumbOverlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(2, 6, 23, 0.55);
-          backdrop-filter: blur(3px);
-          z-index: 999999;
-          display: grid;
-          place-items: center;
-          padding: 16px;
-        }
-
-        .thumbModal {
-          width: min(720px, 96vw);
-          background: #fff;
-          border-radius: 16px;
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
-          overflow: hidden;
-        }
-
-        .thumbHeader {
-          display: flex;
-          justify-content: space-between;
-          gap: 12px;
-          padding: 14px;
-          border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-          align-items: center;
-        }
-
-        .thumbH {
-          font-weight: 900;
-          color: #111827;
-        }
-
-        .thumbSub {
-          margin-top: 2px;
-          font-size: 12px;
-          color: #6b7280;
-          font-weight: 700;
-        }
-
-        .thumbClose {
-          width: 40px;
-          height: 40px;
-          border-radius: 12px;
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          background: rgba(0, 0, 0, 0.03);
-          cursor: pointer;
-          font-size: 22px;
-          line-height: 1;
-        }
-
-        .thumbBody {
-          padding: 14px;
-          display: grid;
-          gap: 12px;
-        }
-
-        .thumbPick {
-          display: grid;
-          gap: 8px;
-        }
-
-        .thumbPick input[type="file"] {
-          border: 1px dashed rgba(0, 0, 0, 0.18);
-          padding: 12px;
-          border-radius: 14px;
-          background: rgba(0, 0, 0, 0.02);
-        }
-
-        .thumbHint {
-          font-size: 12px;
-          color: #6b7280;
-          font-weight: 700;
-        }
-
-        .thumbGrid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-          gap: 10px;
-        }
-
-        .thumbItem {
-          border-radius: 14px;
-          overflow: hidden;
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          background: #f8fafc;
-          height: 110px;
-        }
-
-        .thumbItem img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-        }
-
-        .thumbEmpty {
-          padding: 14px;
-          border-radius: 14px;
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          background: rgba(0, 0, 0, 0.02);
-          font-size: 13px;
-          color: #6b7280;
-          font-weight: 700;
-        }
-
-        .thumbFooter {
-          display: flex;
-          justify-content: flex-end;
-          gap: 10px;
-          padding: 14px;
-          border-top: 1px solid rgba(0, 0, 0, 0.08);
-          background: rgba(255, 255, 255, 0.7);
-        }
-
-        .thumbBtn {
-          border-radius: 14px;
-          padding: 10px 14px;
-          cursor: pointer;
-          font-weight: 900;
-          border: 1px solid rgba(0, 0, 0, 0.1);
-        }
-
-        .thumbBtn.ghost {
-          background: rgba(0, 0, 0, 0.04);
-        }
-
-        .thumbBtn.primary {
-          background: #d4af37;
-          border-color: #d4af37;
-          color: #fff;
-        }
-
-        .thumbBtn.primary:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-      `}</style>
-    </div>
+      <FooterPrincipal />
+    </>
   );
 }
