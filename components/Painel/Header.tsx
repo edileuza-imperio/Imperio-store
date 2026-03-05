@@ -1,26 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
 import api from "@/Api/conectar";
+import { FiBell, FiMenu, FiSearch, FiLogOut } from "react-icons/fi";
 
-import {
-  FiHome,
-  FiUsers,
-  FiImage,
-  FiBox,
-  FiTag,
-  FiChevronDown,
-  FiX,
-  FiSearch,
-  FiGrid,
-  FiLogOut,
-  FiShield,
-  FiAlertTriangle,
-} from "react-icons/fi";
+type HeaderProps = {
+  title?: string;
+  subtitle?: string;
+  onToggleSidebar?: () => void;
+  userName?: string; // fallback
+};
 
-/** ✅ usa sua função /me (logado ou não) */
 async function buscarUsuarioAutenticado() {
   try {
     const res = await api.get("/me", { withCredentials: true });
@@ -30,970 +20,367 @@ async function buscarUsuarioAutenticado() {
   }
 }
 
-type SidebarItem = {
-  type: "link" | "group";
-  label: string;
-  href?: string;
-  match?: string;
-  children?: SidebarItem[];
-};
-
-type SidebarProps = {
-  open: boolean;
-  onClose: () => void;
-};
-
-export default function Sidebar({ open, onClose }: SidebarProps) {
-  const pathname = usePathname();
-  const router = useRouter();
-
-  const [items, setItems] = useState<SidebarItem[]>([]);
-  const [groups, setGroups] = useState<Record<string, boolean>>({});
-  const [loadingMenu, setLoadingMenu] = useState(true);
-
-  const [q, setQ] = useState("");
-
-  // ✅ auth state
-  const [checkingAuth, setCheckingAuth] = useState(true);
-  const [usuario, setUsuario] = useState<any>(null);
-
-  function isActive(href?: string) {
-    if (!href) return false;
-    return pathname === href || pathname.startsWith(href + "/");
-  }
-
-  function getIcon(label: string) {
-    const t = label.toLowerCase();
-    if (t.includes("dashboard") || t.includes("painel")) return FiHome;
-    if (t.includes("usu")) return FiUsers;
-    if (t.includes("banner")) return FiImage;
-    if (t.includes("prod")) return FiBox;
-    if (t.includes("categ")) return FiTag;
-    if (t.includes("catálogo") || t.includes("catalogo")) return FiGrid;
-    if (t.includes("gest")) return FiGrid;
-    if (t.includes("camp")) return FiGrid; // ✅ campanhas
-    return FiBox;
-  }
-
-  async function checarAuth() {
-    try {
-      setCheckingAuth(true);
-      const u = await buscarUsuarioAutenticado();
-      setUsuario(u);
-
-      // ✅ se não estiver logado e tentar acessar /painel, manda pro login
-      if (!u && pathname?.toLowerCase().startsWith("/painel")) {
-        router.replace("/login");
-      }
-    } finally {
-      setCheckingAuth(false);
-    }
-  }
-
-  async function loadMenu() {
-    try {
-      setLoadingMenu(true);
-
-      // ✅ menu vem do backend
-      const res = await api.get("/admin/dashboard");
-      const data = res?.data?.dados?.dados ?? res?.data?.dados ?? [];
-
-      if (Array.isArray(data)) {
-        setItems(data);
-
-        // ✅ abre automaticamente o grupo do item ativo
-        const auto: Record<string, boolean> = {};
-        data.forEach((it: SidebarItem) => {
-          if (it.type === "group" && it.children?.some((c) => isActive(c.href))) {
-            auto[it.label] = true;
-          }
-        });
-        setGroups((prev) => ({ ...prev, ...auto }));
-      } else {
-        setItems([]);
-      }
-    } catch (err) {
-      console.error("Erro ao carregar sidebar:", err);
-      setItems([]);
-    } finally {
-      setLoadingMenu(false);
-    }
-  }
-
-  // ✅ roda ao abrir a tela
-  useEffect(() => {
-    checarAuth();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+export default function Header({
+  title = "Painel Administrativo",
+  subtitle,
+  onToggleSidebar,
+  userName = "Admin",
+}: HeaderProps) {
+  const now = useMemo(() => {
+    const d = new Date();
+    return d.toLocaleString("pt-BR", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
   }, []);
 
-  // ✅ se logou / deslogou, recarrega menu
+  const [usuario, setUsuario] = useState<any>(null);
+  const [checking, setChecking] = useState(true);
+
   useEffect(() => {
-    if (!checkingAuth && usuario) loadMenu();
-    if (!checkingAuth && !usuario) {
-      setItems([]);
-      setLoadingMenu(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [checkingAuth, usuario]);
+    (async () => {
+      try {
+        setChecking(true);
+        const u = await buscarUsuarioAutenticado();
+        setUsuario(u);
+      } finally {
+        setChecking(false);
+      }
+    })();
+  }, []);
 
-  // ✅ fecha no mobile ao navegar (apenas no mobile)
-  useEffect(() => {
-    if (open && window?.innerWidth <= 900) onClose?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
-
-  const filteredItems = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    if (!term) return items;
-
-    const hit = (s?: string) => (s || "").toLowerCase().includes(term);
-
-    return items
-      .map((it) => {
-        if (it.type === "link") return hit(it.label) ? it : null;
-
-        const children = (it.children || []).filter((c) => hit(c.label) || hit(c.href));
-
-        if (hit(it.label) || children.length > 0) return { ...it, children };
-        return null;
-      })
-      .filter(Boolean) as SidebarItem[];
-  }, [items, q]);
-
-  async function sair() {
-    try {
-      // se você tiver rota de logout, use aqui:
-      // await api.post("/logout", {}, { withCredentials: true });
-    } catch {}
-    setUsuario(null);
-    router.replace("/login");
-  }
-
-  const nomeUsuario = usuario?.nome || usuario?.name || usuario?.email || "Usuário";
-  const emailUsuario = usuario?.email || "";
+  const nome = usuario?.nome || usuario?.name || usuario?.email || userName;
+  const email = usuario?.email || "";
+  const statusTxt = checking ? "Verificando" : usuario ? "Online" : "Offline";
 
   return (
-    <>
-      {/* ✅ overlay mobile */}
-      <button
-        type="button"
-        aria-label="Fechar menu"
-        className={`overlay ${open ? "show" : ""}`}
-        onClick={onClose}
-      />
+    <header className="hdr">
+      <div className="left">
+        <button
+          type="button"
+          className="burger"
+          onClick={onToggleSidebar}
+          aria-label="Abrir/fechar menu"
+          title="Menu"
+        >
+          <FiMenu size={18} />
+        </button>
 
-      <aside className={`sidebar ${open ? "open" : ""}`}>
-        {/* TOP BAR */}
-        <div className="topbar">
-          <div className="brand">
-            <div className="logo">
-              <span className="logoDot" />
-            </div>
-
-            <div className="brandText">
-              <strong>Universo Império</strong>
-              <span>Admin</span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            className="closeBtn"
-            onClick={onClose}
-            aria-label="Fechar sidebar"
-            title="Fechar"
-          >
-            <FiX size={18} />
-          </button>
+        <div className="titles">
+          <h1 className="h1">{title}</h1>
+          {subtitle ? <p className="sub">{subtitle}</p> : <p className="sub">{now}</p>}
         </div>
+      </div>
 
-        {/* USER CARD */}
-        <div className="userCard">
-          <div className="userIcon">
-            <FiShield size={18} />
-          </div>
-
-          <div className="userInfo">
-            <div className="userName">{checkingAuth ? "Verificando..." : nomeUsuario}</div>
-            <div className="userEmail">
-              {checkingAuth ? "Aguarde" : emailUsuario || "Sessão administrativa"}
-            </div>
-          </div>
-
-          <div className={`pill ${usuario ? "ok" : "bad"}`}>{usuario ? "LOGADO" : "OFF"}</div>
-        </div>
-
-        {/* SEARCH */}
+      <div className="right">
         <div className="search">
           <FiSearch className="sicon" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Buscar no menu..."
-            disabled={!usuario}
-          />
+          <input placeholder="Buscar..." />
         </div>
 
-        {/* CONTENT */}
-        <nav className="nav">
-          <div className="navTitle">NAVEGAÇÃO</div>
+        <button type="button" className="iconBtn" aria-label="Notificações" title="Notificações">
+          <FiBell size={18} />
+          <span className="badge" />
+        </button>
 
-          {/* não logado */}
-          {!checkingAuth && !usuario && (
-            <div className="authBox">
-              <div className="authTop">
-                <FiAlertTriangle />
-                <b>Você não está logado</b>
-              </div>
-              <p>Faça login para acessar o painel.</p>
+        <div className={`pill ${usuario ? "ok" : "bad"}`}>
+          <span className="dot" />
+          <span className="txt">{statusTxt}</span>
+        </div>
 
-              <Link href="/login" className="authBtn">
-                Ir para login
-              </Link>
-            </div>
-          )}
-
-          {/* loading */}
-          {usuario && loadingMenu && (
-            <div className="loader">
-              <div className="bar" />
-              <span>Carregando menu...</span>
-            </div>
-          )}
-
-          {/* menu */}
-          {usuario &&
-            !loadingMenu &&
-            filteredItems.map((item, i) => {
-              const Icon = getIcon(item.label);
-
-              if (item.type === "link") {
-                return (
-                  <Link
-                    key={i}
-                    href={item.href || "#"}
-                    className={`item ${isActive(item.href) ? "active" : ""}`}
-                  >
-                    <span className="ico">
-                      <Icon size={18} />
-                    </span>
-
-                    <span className="label">{item.label}</span>
-
-                    <span className="rightMark" />
-                  </Link>
-                );
-              }
-
-              const opened = !!groups[item.label];
-              const anyChildActive = item.children?.some((c) => isActive(c.href));
-
-              return (
-                <div key={i} className="groupWrap">
-                  <button
-                    type="button"
-                    className={`group ${opened ? "opened" : ""} ${anyChildActive ? "hint" : ""}`}
-                    onClick={() =>
-                      setGroups((prev) => ({
-                        ...prev,
-                        [item.label]: !opened,
-                      }))
-                    }
-                  >
-                    <span className="ico">
-                      <Icon size={18} />
-                    </span>
-
-                    <span className="label">{item.label}</span>
-
-                    <FiChevronDown className={`chev ${opened ? "rot" : ""}`} />
-                  </button>
-
-                  <div className={`submenu ${opened ? "show" : ""}`}>
-                    {item.children?.map((c, j) => {
-                      const IconChild = getIcon(c.label);
-                      return (
-                        <Link
-                          key={j}
-                          href={c.href || "#"}
-                          className={`subitem ${isActive(c.href) ? "subactive" : ""}`}
-                        >
-                          <span className="subIco">
-                            <IconChild size={16} />
-                          </span>
-
-                          <span className="label">{c.label}</span>
-
-                          <span className="subMark" />
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-        </nav>
-
-        {/* FOOTER */}
-        <div className="footer">
-          <button type="button" className="logout" onClick={sair} disabled={!usuario} title="Sair">
-            <FiLogOut size={16} />
-            Sair
-          </button>
-
-          <div className="hintFoot">
-            <span className="dot" />
-            <span>Versão admin • UI profissional</span>
+        <div className="user">
+          <div className="avatar" aria-hidden>
+            {(nome?.slice(0, 1) || "A").toUpperCase()}
+          </div>
+          <div className="uinfo">
+            <div className="uname">{nome}</div>
+            <div className="urole">{email ? email : "Administrador"}</div>
           </div>
         </div>
-      </aside>
+
+        <button
+          type="button"
+          className="logout"
+          title="Sair"
+          aria-label="Sair"
+          onClick={() => {
+            // se tiver rota de logout, coloca aqui:
+            // api.post("/logout", {}, { withCredentials:true }).finally(...)
+            setUsuario(null);
+          }}
+        >
+          <FiLogOut size={17} />
+        </button>
+      </div>
 
       <style jsx>{`
-        :global(a) {
-          text-decoration: none;
-          color: inherit;
-        }
-
-        /* ✅ overlay mobile: abaixo do sidebar, acima do resto */
-        .overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(2, 6, 23, 0.58);
-          border: none;
-          display: none;
-          z-index: 2500; /* ✅ */
-        }
-        .overlay.show {
-          display: block;
-        }
-
-        /* ✅ sidebar desktop: abaixo do header (header deve ter z-index 2000) */
-        .sidebar {
-          width: 320px;
-          height: 100vh;
-
+        .hdr {
           position: sticky;
           top: 0;
 
-          z-index: 100; /* ✅ desktop */
-          position: relative; /* ✅ IMPORTANTÍSSIMO pro :before */
+          z-index: 200; /* ✅ antes era 50 */
 
-          display: flex;
-          flex-direction: column;
-
-          background: linear-gradient(180deg, #070a14, #050713);
-          border-right: 1px solid rgba(255, 255, 255, 0.06);
-
-          padding: 16px 14px 14px;
-          overflow: hidden;
-        }
-
-        /* premium background */
-        .sidebar:before {
-          content: "";
-          position: absolute;
-          inset: -1px;
-          pointer-events: none;
-          background: radial-gradient(
-              900px 520px at 10% 12%,
-              rgba(124, 58, 237, 0.26),
-              transparent 55%
-            ),
-            radial-gradient(
-              820px 520px at 92% 18%,
-              rgba(14, 165, 233, 0.16),
-              transparent 58%
-            ),
-            radial-gradient(
-              700px 400px at 50% 90%,
-              rgba(34, 197, 94, 0.08),
-              transparent 55%
-            );
-        }
-
-        .sidebar > * {
-          position: relative;
-          z-index: 1;
-        }
-
-        /* topbar */
-        .topbar {
           display: flex;
           align-items: center;
           justify-content: space-between;
+          gap: 14px;
+
+          padding: 14px 16px;
+
+          background: rgba(255, 255, 255, 0.75);
+          backdrop-filter: blur(16px);
+          border-bottom: 1px solid rgba(17, 24, 39, 0.08);
+        }
+
+        .left {
+          display: flex;
+          align-items: center;
           gap: 12px;
-          margin-bottom: 12px;
-        }
-
-        .brand {
-          display: flex;
-          align-items: center;
-          gap: 10px;
           min-width: 0;
         }
 
-        .logo {
-          width: 46px;
-          height: 46px;
-          border-radius: 16px;
+        .burger {
+          width: 44px;
+          height: 44px;
+          border-radius: 14px;
+          border: 1px solid rgba(17, 24, 39, 0.12);
+          background: rgba(255, 255, 255, 0.9);
           display: grid;
           place-items: center;
-
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.09);
-          box-shadow: 0 18px 44px rgba(0, 0, 0, 0.35);
-        }
-
-        .logoDot {
-          width: 12px;
-          height: 12px;
-          border-radius: 999px;
-          background: linear-gradient(135deg, #a855f7, #7c3aed);
-          box-shadow: 0 0 0 7px rgba(124, 58, 237, 0.14);
-        }
-
-        .brandText {
-          display: flex;
-          flex-direction: column;
-          min-width: 0;
-          line-height: 1.08;
-        }
-
-        .brandText strong {
-          font-size: 14px;
-          font-weight: 950;
-          color: #fff;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .brandText span {
-          margin-top: 4px;
-          font-size: 11px;
-          font-weight: 800;
-          color: rgba(148, 163, 184, 0.9);
-        }
-
-        .closeBtn {
-          display: none;
-          width: 42px;
-          height: 42px;
-          border-radius: 14px;
-          border: 1px solid rgba(255, 255, 255, 0.09);
-          background: rgba(255, 255, 255, 0.06);
-          color: #fff;
           cursor: pointer;
-          transition: 0.2s;
+          box-shadow: 0 14px 38px rgba(17, 24, 39, 0.08);
+          transition: 0.16s;
         }
-        .closeBtn:hover {
+        .burger:hover {
           transform: translateY(-1px);
-          background: rgba(255, 255, 255, 0.1);
+          box-shadow: 0 18px 50px rgba(17, 24, 39, 0.12);
         }
 
-        /* user card */
-        .userCard {
+        .titles {
+          min-width: 0;
+        }
+
+        .h1 {
+          margin: 0;
+          font-size: 16px;
+          font-weight: 950;
+          letter-spacing: -0.02em;
+          color: #111827;
+          line-height: 1.1;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 56vw;
+        }
+
+        .sub {
+          margin: 5px 0 0;
+          font-size: 12px;
+          font-weight: 800;
+          color: rgba(17, 24, 39, 0.55);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 56vw;
+        }
+
+        .right {
           display: flex;
           align-items: center;
           gap: 10px;
-
-          padding: 12px;
-          border-radius: 16px;
-
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.07);
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
-
-          margin-bottom: 12px;
-        }
-
-        .userIcon {
-          width: 42px;
-          height: 42px;
-          border-radius: 14px;
-          display: grid;
-          place-items: center;
-
-          background: rgba(124, 58, 237, 0.18);
-          border: 1px solid rgba(124, 58, 237, 0.22);
-          color: #fff;
-        }
-
-        .userInfo {
-          display: flex;
-          flex-direction: column;
-          min-width: 0;
-          flex: 1;
-        }
-
-        .userName {
-          color: #fff;
-          font-weight: 950;
-          font-size: 13px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .userEmail {
-          margin-top: 4px;
-          font-size: 11px;
-          font-weight: 800;
-          color: rgba(148, 163, 184, 0.9);
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .pill {
-          font-size: 10px;
-          font-weight: 950;
-          letter-spacing: 0.08em;
-          padding: 7px 10px;
-          border-radius: 999px;
-          border: 1px solid transparent;
-          user-select: none;
-        }
-
-        .pill.ok {
-          color: #052e16;
-          background: rgba(34, 197, 94, 0.9);
-          border-color: rgba(34, 197, 94, 0.4);
-        }
-
-        .pill.bad {
-          color: #fff;
-          background: rgba(239, 68, 68, 0.86);
-          border-color: rgba(239, 68, 68, 0.35);
         }
 
         /* search */
         .search {
-          display: flex;
+          display: none;
           align-items: center;
           gap: 10px;
+          width: 260px;
+
           padding: 10px 12px;
           border-radius: 16px;
 
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-
-          margin-bottom: 12px;
+          background: rgba(255, 255, 255, 0.7);
+          border: 1px solid rgba(17, 24, 39, 0.1);
+          box-shadow: 0 12px 28px rgba(17, 24, 39, 0.06);
         }
 
         .sicon {
-          color: rgba(203, 213, 225, 0.9);
+          color: rgba(17, 24, 39, 0.55);
         }
 
         .search input {
-          width: 100%;
           border: none;
           outline: none;
           background: transparent;
-          color: #fff;
+          width: 100%;
           font-size: 13px;
           font-weight: 850;
+          color: #111827;
         }
 
         .search input::placeholder {
-          color: rgba(148, 163, 184, 0.85);
+          color: rgba(17, 24, 39, 0.45);
           font-weight: 850;
         }
 
-        .search input:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        /* nav */
-        .nav {
-          display: flex;
-          flex-direction: column;
-          gap: 7px;
-          overflow: auto;
-          padding-right: 4px;
-          flex: 1;
-        }
-
-        .navTitle {
-          font-size: 11px;
-          letter-spacing: 0.1em;
-          color: rgba(148, 163, 184, 0.9);
-          font-weight: 950;
-          margin: 2px 0 6px;
-          padding-left: 6px;
-        }
-
-        .loader {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 10px 12px;
+        /* icon button */
+        .iconBtn {
+          width: 44px;
+          height: 44px;
           border-radius: 16px;
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          color: rgba(148, 163, 184, 0.9);
-          font-weight: 850;
-          font-size: 12px;
-        }
+          border: 1px solid rgba(17, 24, 39, 0.1);
+          background: rgba(255, 255, 255, 0.7);
+          box-shadow: 0 12px 28px rgba(17, 24, 39, 0.06);
 
-        .loader .bar {
-          width: 32px;
-          height: 10px;
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.08);
+          display: grid;
+          place-items: center;
+          cursor: pointer;
           position: relative;
-          overflow: hidden;
+          transition: 0.16s;
+        }
+        .iconBtn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 18px 50px rgba(17, 24, 39, 0.12);
         }
 
-        .loader .bar:before {
-          content: "";
+        .badge {
           position: absolute;
-          left: -40%;
-          top: 0;
-          height: 100%;
-          width: 55%;
-          background: rgba(255, 255, 255, 0.18);
+          top: 11px;
+          right: 12px;
+          width: 8px;
+          height: 8px;
           border-radius: 999px;
-          animation: slide 1.1s infinite;
+          background: #a855f7;
+          box-shadow: 0 0 0 6px rgba(168, 85, 247, 0.18);
         }
 
-        @keyframes slide {
-          0% {
-            left: -50%;
-          }
-          100% {
-            left: 120%;
-          }
-        }
-
-        /* not logged box */
-        .authBox {
-          padding: 14px;
-          border-radius: 16px;
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.07);
-          color: rgba(203, 213, 225, 0.95);
-        }
-
-        .authTop {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: #fff;
-          font-weight: 950;
-        }
-
-        .authBox p {
-          margin: 8px 0 12px;
-          font-size: 12px;
-          font-weight: 800;
-          color: rgba(148, 163, 184, 0.95);
-        }
-
-        .authBtn {
+        /* status pill */
+        .pill {
           display: inline-flex;
           align-items: center;
-          justify-content: center;
-          width: 100%;
+          gap: 8px;
           padding: 10px 12px;
-          border-radius: 14px;
-
-          background: linear-gradient(135deg, #7c3aed, #a855f7);
-          color: #fff;
-          font-weight: 950;
-          border: 1px solid rgba(124, 58, 237, 0.35);
-          transition: 0.18s;
-        }
-
-        .authBtn:hover {
-          transform: translateY(-1px);
-          filter: brightness(1.05);
-        }
-
-        /* items */
-        .item {
-          position: relative;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 11px 12px;
-          border-radius: 16px;
-
-          color: rgba(203, 213, 225, 0.95);
-          font-size: 13px;
-          font-weight: 950;
-
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          transition: 0.18s;
-          overflow: hidden;
-        }
-
-        .item:hover {
-          transform: translateY(-1px);
-          background: rgba(255, 255, 255, 0.06);
-          border-color: rgba(255, 255, 255, 0.1);
-          color: #fff;
-        }
-
-        .ico {
-          width: 38px;
-          height: 38px;
-          border-radius: 14px;
-          display: grid;
-          place-items: center;
-
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .label {
-          flex: 1;
-          min-width: 0;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-
-        .rightMark {
-          width: 10px;
-          height: 10px;
           border-radius: 999px;
-          background: transparent;
-        }
-
-        .active {
-          color: #fff;
-          background: linear-gradient(
-            135deg,
-            rgba(124, 58, 237, 0.33),
-            rgba(14, 165, 233, 0.14)
-          );
-          border-color: rgba(124, 58, 237, 0.28);
-          box-shadow: 0 18px 40px rgba(124, 58, 237, 0.14);
-        }
-
-        .active .ico {
-          background: rgba(124, 58, 237, 0.22);
-          border-color: rgba(124, 58, 237, 0.28);
-        }
-
-        .active .rightMark {
-          background: linear-gradient(135deg, #a855f7, #7c3aed);
-          box-shadow: 0 0 0 7px rgba(124, 58, 237, 0.14);
-        }
-
-        /* groups */
-        .groupWrap {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .group {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 11px 12px;
-          border-radius: 16px;
-
-          cursor: pointer;
-
-          color: #fff;
-          font-size: 13px;
-          font-weight: 950;
-
-          background: rgba(255, 255, 255, 0.035);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-          transition: 0.18s;
-        }
-
-        .group:hover {
-          transform: translateY(-1px);
-          background: rgba(255, 255, 255, 0.06);
-          border-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .group.hint {
-          border-color: rgba(124, 58, 237, 0.22);
-        }
-
-        .chev {
-          margin-left: auto;
-          opacity: 0.9;
-          transition: 0.2s;
-        }
-
-        .chev.rot {
-          transform: rotate(180deg);
-        }
-
-        .group.opened {
-          background: rgba(255, 255, 255, 0.055);
-        }
-
-        .submenu {
-          display: none;
-          flex-direction: column;
-          gap: 6px;
-          margin-left: 12px;
-          padding-left: 12px;
-          border-left: 1px dashed rgba(255, 255, 255, 0.12);
-        }
-
-        .submenu.show {
-          display: flex;
-        }
-
-        .subitem {
-          position: relative;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-
-          padding: 10px 12px;
-          border-radius: 16px;
-
-          color: rgba(148, 163, 184, 0.95) !important;
-          font-size: 12.5px;
-          font-weight: 950;
-
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.06);
-
-          transition: 0.18s;
-          overflow: hidden;
-        }
-
-        .subitem:hover {
-          transform: translateY(-1px);
-          background: rgba(255, 255, 255, 0.06);
-          color: #fff !important;
-          border-color: rgba(255, 255, 255, 0.1);
-        }
-
-        .subIco {
-          width: 32px;
-          height: 32px;
-          border-radius: 14px;
-          display: grid;
-          place-items: center;
-
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-        }
-
-        .subMark {
-          width: 10px;
-          height: 10px;
-          border-radius: 999px;
-          background: transparent;
-        }
-
-        .subactive {
-          color: #fff !important;
-          background: linear-gradient(
-            135deg,
-            rgba(124, 58, 237, 0.24),
-            rgba(14, 165, 233, 0.12)
-          );
-          border-color: rgba(124, 58, 237, 0.22);
-        }
-
-        .subactive .subMark {
-          background: linear-gradient(135deg, #a855f7, #7c3aed);
-          box-shadow: 0 0 0 7px rgba(124, 58, 237, 0.14);
-        }
-
-        /* footer */
-        .footer {
-          margin-top: 12px;
-          padding-top: 12px;
-          border-top: 1px solid rgba(255, 255, 255, 0.06);
-          display: grid;
-          gap: 10px;
-        }
-
-        .logout {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          width: 100%;
-          padding: 10px 12px;
-          border-radius: 16px;
-
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          color: #fff;
-
-          cursor: pointer;
-          font-weight: 950;
-          transition: 0.18s;
-        }
-
-        .logout:hover {
-          transform: translateY(-1px);
-          background: rgba(255, 255, 255, 0.1);
-        }
-
-        .logout:disabled {
-          opacity: 0.55;
-          cursor: not-allowed;
-          transform: none;
-        }
-
-        .hintFoot {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          color: rgba(148, 163, 184, 0.9);
-          font-size: 11px;
-          font-weight: 900;
-          padding: 0 4px;
+          border: 1px solid rgba(17, 24, 39, 0.1);
+          background: rgba(255, 255, 255, 0.7);
+          box-shadow: 0 12px 28px rgba(17, 24, 39, 0.06);
         }
 
         .dot {
           width: 8px;
           height: 8px;
           border-radius: 999px;
-          background: rgba(168, 85, 247, 0.95);
-          box-shadow: 0 0 0 6px rgba(124, 58, 237, 0.14);
+          background: #94a3b8;
+          box-shadow: 0 0 0 6px rgba(148, 163, 184, 0.14);
         }
 
-        /* scrollbar */
-        .nav::-webkit-scrollbar {
-          width: 8px;
-        }
-        .nav::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.08);
-          border-radius: 999px;
-        }
-        .nav::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.14);
+        .pill.ok .dot {
+          background: #22c55e;
+          box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.14);
         }
 
-        /* ✅ mobile: sidebar acima do header */
-        @media (max-width: 900px) {
-          .sidebar {
-            position: fixed;
-            top: 0;
-            left: -120%;
-            z-index: 3000; /* ✅ acima do header (2000) e overlay (2500) */
-            transition: 0.28s ease;
+        .pill.bad .dot {
+          background: #ef4444;
+          box-shadow: 0 0 0 6px rgba(239, 68, 68, 0.14);
+        }
+
+        .txt {
+          font-size: 12px;
+          font-weight: 950;
+          color: rgba(17, 24, 39, 0.75);
+        }
+
+        /* user */
+        .user {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 10px;
+          border-radius: 18px;
+          border: 1px solid rgba(17, 24, 39, 0.1);
+          background: rgba(255, 255, 255, 0.7);
+          box-shadow: 0 12px 28px rgba(17, 24, 39, 0.06);
+        }
+
+        .avatar {
+          width: 36px;
+          height: 36px;
+          border-radius: 14px;
+          display: grid;
+          place-items: center;
+          font-weight: 950;
+          color: #111827;
+
+          background: linear-gradient(
+            135deg,
+            rgba(124, 58, 237, 0.18),
+            rgba(14, 165, 233, 0.12)
+          );
+          border: 1px solid rgba(17, 24, 39, 0.1);
+        }
+
+        .uinfo {
+          display: grid;
+          line-height: 1.12;
+          max-width: 180px;
+        }
+
+        .uname {
+          font-size: 12px;
+          font-weight: 950;
+          color: rgba(17, 24, 39, 0.9);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .urole {
+          font-size: 11px;
+          color: rgba(17, 24, 39, 0.55);
+          font-weight: 850;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .logout {
+          width: 44px;
+          height: 44px;
+          border-radius: 16px;
+          border: 1px solid rgba(17, 24, 39, 0.1);
+          background: rgba(255, 255, 255, 0.7);
+          box-shadow: 0 12px 28px rgba(17, 24, 39, 0.06);
+          display: grid;
+          place-items: center;
+          cursor: pointer;
+          transition: 0.16s;
+        }
+        .logout:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 18px 50px rgba(17, 24, 39, 0.12);
+        }
+
+        /* desktop */
+        @media (min-width: 900px) {
+          .burger {
+            display: none;
           }
-          .sidebar.open {
-            left: 0;
+          .search {
+            display: inline-flex;
           }
-          .closeBtn {
-            display: inline-grid;
-            place-items: center;
+        }
+
+        /* mobile */
+        @media (max-width: 520px) {
+          .pill {
+            display: none;
+          }
+          .uinfo {
+            display: none;
           }
         }
       `}</style>
-    </>
+    </header>
   );
 }
