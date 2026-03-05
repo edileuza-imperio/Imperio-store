@@ -107,71 +107,82 @@ export default function DestaquesSection() {
   }
 
   return (
-    <section className="uiSection py-5">
+    <section className="uiCreamSection">
       <div className="container">
-        <div className="row g-4 align-items-stretch">
-          {/* ===== LEFT: BANNER (menor / mais profissional) ===== */}
-          <div className="col-12 col-lg-4">
-            <div className="uiSideBanner h-100 position-relative">
-              <div className="uiTopBadge">
-                <i className="bi bi-stars me-2" />
-                Campanha em destaque
-              </div>
-
-              <h2 className="uiBannerTitle">{camp.titulo}</h2>
-
-              <p className="uiBannerDesc">
-                {camp.descricao ? camp.descricao : "Seleção especial com os melhores itens da loja."}
-              </p>
-
-              <div className="uiDivider" />
-
-              {/* botão flutuante */}
-              <Link href={`/campanha/${camp.slug}`} className="uiFloatingBtn" title="Ver coleção">
-                <i className="bi bi-grid me-2" />
-                Ver coleção
-              </Link>
-
-              <div className="uiGlow" />
+        {/* HEADER */}
+        <div className="uiHeaderRow">
+          <div>
+            <h2 className="uiTitle">Destaques</h2>
+            <div className="uiSub">
+              Selecionados com um visual premium em tons creme & rosé
             </div>
           </div>
 
-          {/* ===== RIGHT: CARROSSEL (sem card branco) ===== */}
-          <div className="col-12 col-lg-8">
-            <div className="uiCarousel position-relative h-100">
-              <div className="uiCarouselHeader">
-                <div>
-                  <div className="uiKicker">Destaques</div>
-                  <div className="uiHeaderTitle">Produtos selecionados</div>
-                </div>
+          <div className="uiCountPill" title="Quantidade de itens">
+            <i className="bi bi-bag-heart me-2" />
+            {produtos.length} item(ns)
+          </div>
+        </div>
 
-                {/* setas no header (desktop) */}
-                <div className="uiHeaderControls d-none d-lg-flex">
-                  <button
-                    type="button"
-                    className="uiArrowBtn"
-                    onClick={() => scrollCarousel("prev")}
-                    aria-label="Anterior"
-                    title="Anterior"
-                  >
-                    <i className="bi bi-arrow-left" />
-                  </button>
-                  <button
-                    type="button"
-                    className="uiArrowBtn"
-                    onClick={() => scrollCarousel("next")}
-                    aria-label="Próximo"
-                    title="Próximo"
-                  >
-                    <i className="bi bi-arrow-right" />
-                  </button>
+        <div className="row g-4 align-items-stretch">
+          {/* BANNER (ESQUERDA) */}
+          <div className="col-12 col-lg-4">
+            <div className="uiBannerCard h-100">
+              <div className="uiChipRow">
+                <span className="uiChip">
+                  <i className="bi bi-sparkle me-2" />
+                  Novidades
+                </span>
+                <span className="uiChip">
+                  <i className="bi bi-truck me-2" />
+                  Frete
+                </span>
+              </div>
+
+              <div className="uiBannerTitle">{camp.titulo}</div>
+
+              <div className="uiBannerDesc">
+                {camp.descricao
+                  ? camp.descricao
+                  : "Produtos selecionados para presentear — elegantes, delicados e com preço especial."}
+              </div>
+
+              <div className="uiBannerCtaRow">
+                {/* Botão flutuante visual (fixo no card) */}
+                <Link href={`/campanha/${camp.slug}`} className="uiBannerBtn">
+                  Ver catálogo
+                  <i className="bi bi-arrow-right ms-2" />
+                </Link>
+
+                <div className="uiUpdated">
+                  <i className="bi bi-clock me-2" />
+                  Atualizado diariamente
                 </div>
               </div>
 
-              {/* setas flutuantes (aparece no desktop) */}
+              <div className="uiMiniCards">
+                <div className="uiMini">
+                  <div className="uiMiniTop">Oferta do dia</div>
+                  <div className="uiMiniStrong">até 30% OFF</div>
+                </div>
+
+                <div className="uiMini">
+                  <div className="uiMiniTop">Pagamento</div>
+                  <div className="uiMiniStrong">Pix / Cartão</div>
+                </div>
+              </div>
+
+              <div className="uiBannerGlow" />
+            </div>
+          </div>
+
+          {/* CARROSSEL (DIREITA) */}
+          <div className="col-12 col-lg-8">
+            <div className="uiCarouselWrap position-relative h-100">
+              {/* setas flutuantes no desktop */}
               <button
                 type="button"
-                className="uiFloatArrow uiFloatLeft d-none d-lg-flex"
+                className="uiArrow uiArrowLeft d-none d-lg-flex"
                 onClick={() => scrollCarousel("prev")}
                 aria-label="Anterior"
                 title="Anterior"
@@ -181,13 +192,17 @@ export default function DestaquesSection() {
 
               <button
                 type="button"
-                className="uiFloatArrow uiFloatRight d-none d-lg-flex"
+                className="uiArrow uiArrowRight d-none d-lg-flex"
                 onClick={() => scrollCarousel("next")}
                 aria-label="Próximo"
                 title="Próximo"
               >
                 <i className="bi bi-chevron-right" />
               </button>
+
+              {/* fade nas bordas (profissa) */}
+              <div className="uiFade uiFadeLeft d-none d-lg-block" />
+              <div className="uiFade uiFadeRight d-none d-lg-block" />
 
               <div ref={trackRef} className="uiTrack">
                 {produtos.map((raw) => {
@@ -196,54 +211,53 @@ export default function DestaquesSection() {
 
                   return (
                     <div key={p.key} className="uiSlide">
-                      <div className="uiCard">
-                        <div className="uiImgWrap position-relative">
+                      <div className="uiProductCard">
+                        <div className="uiImgWrap">
                           {img ? (
                             <img src={img} alt={p.nome} className="uiImg" />
                           ) : (
                             <div className="uiNoImg">
-                              <div className="text-center">
-                                <i className="bi bi-image fs-2 d-block mb-1" />
-                                <span className="small fw-semibold">Sem imagem</span>
-                              </div>
+                              <i className="bi bi-image fs-2 mb-1" />
+                              <span>Sem imagem</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="uiCardBody">
+                          <div className="uiProdName">{p.nome}</div>
+
+                          {p.descricao ? (
+                            <div className="uiProdDesc">{p.descricao}</div>
+                          ) : (
+                            <div className="uiProdDesc uiMuted">
+                              Detalhes disponíveis ao abrir o produto.
                             </div>
                           )}
 
-                          <span className="uiBadge">
-                            <i className="bi bi-star-fill me-1" />
-                            Destaque
-                          </span>
-                        </div>
-
-                        <div className="uiBody">
-                          <div className="uiTitleClamp">{p.nome}</div>
-
-                          <div className="uiBottomRow">
+                          <div className="uiPriceRow">
                             <div className="uiPrice">{formatMoney(p.preco)}</div>
 
-                            <div className="uiActions">
-                              <Link
-                                href={`/produto/${p.slug}`}
-                                className="uiIconBtn"
-                                title="Ver detalhes"
-                                aria-label="Ver detalhes"
-                              >
-                                <i className="bi bi-eye" />
-                              </Link>
-
-                              <button
-                                type="button"
-                                className="uiIconBtnPrimary"
-                                title="Adicionar ao carrinho"
-                                aria-label="Adicionar ao carrinho"
-                                onClick={() => console.log("Adicionar:", p.slug)}
-                              >
-                                <i className="bi bi-cart-plus" />
-                              </button>
-                            </div>
+                            <span className="uiBadge">
+                              <i className="bi bi-star-fill me-1" />
+                              Destaque
+                            </span>
                           </div>
 
-                          {p.descricao ? <div className="uiDescClamp">{p.descricao}</div> : null}
+                          <div className="uiBtnRow">
+                            <Link href={`/produto/${p.slug}`} className="uiBtn uiBtnLight">
+                              <i className="bi bi-eye me-2" />
+                              Detalhes
+                            </Link>
+
+                            <button
+                              type="button"
+                              className="uiBtn uiBtnRose"
+                              onClick={() => console.log("Adicionar:", p.slug)}
+                            >
+                              <i className="bi bi-cart-plus me-2" />
+                              Adicionar
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -251,188 +265,192 @@ export default function DestaquesSection() {
                 })}
               </div>
 
-              <div className="uiHint d-lg-none">
+              <div className="uiMobileHint d-lg-none">
                 <i className="bi bi-arrow-left-right me-2" />
-                Arraste para ver mais
+                Arraste para ver mais produtos
               </div>
             </div>
           </div>
         </div>
 
         <style jsx>{`
-          .uiSection {
-            background: #fbf3ee;
+          /* === PALETA (creme + rosé queimado) === */
+          .uiCreamSection {
+            padding: 44px 0 56px;
+            background: radial-gradient(1200px 500px at 10% 0%, #fff7f0 0%, transparent 60%),
+              radial-gradient(900px 420px at 90% 30%, #f7efe6 0%, transparent 65%),
+              #f6efe6;
           }
 
-          /* ===== Banner menor ===== */
-          .uiSideBanner {
-            border-radius: 16px;
-            padding: 18px;
-            min-height: 240px;
-            color: #fff;
-            background: linear-gradient(145deg, #c57a7a 0%, #e7c9b7 70%, #fbf3ee 150%);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            box-shadow: 0 14px 28px rgba(0, 0, 0, 0.12);
-            overflow: hidden;
+          .uiHeaderRow {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 18px;
           }
 
-          .uiTopBadge {
+          .uiTitle {
+            margin: 0;
+            font-weight: 900;
+            font-size: 28px;
+            letter-spacing: 0.2px;
+            color: rgba(0, 0, 0, 0.78);
+          }
+
+          .uiSub {
+            margin-top: 4px;
+            font-weight: 700;
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.55);
+          }
+
+          .uiCountPill {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 7px 11px;
+            gap: 8px;
+            padding: 8px 12px;
             border-radius: 999px;
+            background: rgba(255, 255, 255, 0.65);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
             font-weight: 900;
             font-size: 12px;
-            background: rgba(255, 255, 255, 0.16);
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            backdrop-filter: blur(6px);
+            color: rgba(0, 0, 0, 0.7);
+            white-space: nowrap;
+          }
+
+          /* === BANNER CARD === */
+          .uiBannerCard {
+            position: relative;
+            border-radius: 18px;
+            padding: 18px;
+            background: linear-gradient(180deg, #fffaf4 0%, #fff2e7 100%);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            min-height: 320px; /* tamanho parecido com “banner de destaque” */
+          }
+
+          .uiChipRow {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+          }
+
+          .uiChip {
+            display: inline-flex;
+            align-items: center;
+            padding: 7px 10px;
+            border-radius: 999px;
+            background: #ffffff;
+            border: 1px solid rgba(0, 0, 0, 0.06);
+            font-weight: 900;
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.72);
           }
 
           .uiBannerTitle {
-            margin-top: 10px;
+            margin-top: 12px;
             font-weight: 900;
-            line-height: 1.12;
-            font-size: 26px;
-            letter-spacing: 0.2px;
+            font-size: 22px;
+            color: rgba(0, 0, 0, 0.78);
+            line-height: 1.15;
           }
 
           .uiBannerDesc {
             margin-top: 8px;
-            margin-bottom: 0;
-            opacity: 0.92;
-            color: rgba(255, 255, 255, 0.92);
-            font-size: 14px;
+            font-weight: 700;
+            font-size: 13px;
+            color: rgba(0, 0, 0, 0.58);
+            line-height: 1.35;
+            max-width: 46ch;
           }
 
-          .uiDivider {
+          .uiBannerCtaRow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
             margin-top: 14px;
-            height: 1px;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.18);
           }
 
-          .uiFloatingBtn {
-            position: absolute;
-            left: 14px;
-            right: 14px;
-            bottom: 14px;
-            background: #fff;
-            color: #7a3f3f;
-            border: 1px solid rgba(0, 0, 0, 0.08);
-            border-radius: 14px;
-            padding: 12px 14px;
-            font-weight: 900;
-            text-decoration: none;
+          .uiBannerBtn {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 8px;
-            box-shadow: 0 14px 30px rgba(0, 0, 0, 0.18);
-            transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
-            z-index: 2;
+            padding: 11px 14px;
+            border-radius: 12px;
+            background: #c69373; /* rosé queimado */
+            color: #fff;
+            text-decoration: none;
+            font-weight: 900;
+            font-size: 13px;
+            box-shadow: 0 14px 26px rgba(198, 147, 115, 0.35);
+            transition: transform 0.12s ease, filter 0.12s ease;
+            white-space: nowrap;
           }
 
-          .uiFloatingBtn:hover {
-            transform: translateY(-2px);
-            background: #fff7f2;
-            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+          .uiBannerBtn:hover {
+            transform: translateY(-1px);
+            filter: brightness(0.98);
           }
 
-          .uiGlow {
-            position: absolute;
-            width: 240px;
-            height: 240px;
-            right: -120px;
-            top: -120px;
-            background: radial-gradient(circle, rgba(255, 255, 255, 0.45), transparent 60%);
-            opacity: 0.35;
-            pointer-events: none;
-          }
-
-          /* ===== Carrossel (sem shell branco) ===== */
-          .uiCarousel {
-            border-radius: 16px;
-            height: 100%;
-          }
-
-          .uiCarouselHeader {
-            display: flex;
-            align-items: flex-end;
-            justify-content: space-between;
-            gap: 12px;
-            margin-bottom: 12px;
-          }
-
-          .uiKicker {
+          .uiUpdated {
             font-weight: 900;
             font-size: 12px;
             color: rgba(0, 0, 0, 0.55);
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
+            white-space: nowrap;
           }
 
-          .uiHeaderTitle {
-            font-weight: 900;
-            font-size: 18px;
-            color: rgba(0, 0, 0, 0.78);
-          }
-
-          .uiHeaderControls {
+          .uiMiniCards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 10px;
+            margin-top: 14px;
           }
 
-          .uiArrowBtn {
-            width: 44px;
-            height: 44px;
+          .uiMini {
+            padding: 10px 12px;
             border-radius: 14px;
-            border: 1px solid rgba(0, 0, 0, 0.12);
-            background: rgba(255, 255, 255, 0.85);
-            box-shadow: 0 12px 22px rgba(0, 0, 0, 0.12);
+            background: rgba(255, 255, 255, 0.78);
+            border: 1px solid rgba(0, 0, 0, 0.06);
+          }
+
+          .uiMiniTop {
             font-weight: 900;
-            transition: transform 0.12s ease, background 0.12s ease;
+            font-size: 11px;
+            color: rgba(0, 0, 0, 0.5);
+            margin-bottom: 3px;
           }
 
-          .uiArrowBtn:hover {
-            transform: translateY(-1px);
-            background: #fff7f2;
+          .uiMiniStrong {
+            font-weight: 900;
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.75);
           }
 
-          /* setas flutuantes */
-          .uiFloatArrow {
+          .uiBannerGlow {
             position: absolute;
-            top: 52%;
-            transform: translateY(-50%);
-            width: 46px;
-            height: 46px;
-            border-radius: 999px;
-            border: 1px solid rgba(0, 0, 0, 0.12);
-            background: rgba(255, 255, 255, 0.88);
-            box-shadow: 0 16px 28px rgba(0, 0, 0, 0.14);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 5;
-            transition: transform 0.12s ease, background 0.12s ease;
+            right: -120px;
+            bottom: -120px;
+            width: 240px;
+            height: 240px;
+            background: radial-gradient(circle, rgba(198, 147, 115, 0.25), transparent 60%);
+            pointer-events: none;
           }
 
-          .uiFloatArrow:hover {
-            background: #fff7f2;
-            transform: translateY(-50%) scale(1.02);
-          }
-
-          .uiFloatLeft {
-            left: -10px;
-          }
-          .uiFloatRight {
-            right: -10px;
+          /* === CARROSSEL === */
+          .uiCarouselWrap {
+            border-radius: 18px;
           }
 
           .uiTrack {
             display: flex;
             gap: 16px;
             overflow-x: auto;
-            padding: 6px 4px 10px;
+            padding: 4px 6px 10px;
             scroll-snap-type: x mandatory;
             scroll-behavior: smooth;
             -webkit-overflow-scrolling: touch;
@@ -442,15 +460,14 @@ export default function DestaquesSection() {
             height: 10px;
           }
           .uiTrack::-webkit-scrollbar-thumb {
-            background: rgba(197, 122, 122, 0.35);
+            background: rgba(198, 147, 115, 0.35);
             border-radius: 999px;
           }
           .uiTrack::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.04);
+            background: rgba(0, 0, 0, 0.05);
             border-radius: 999px;
           }
 
-          /* 1 no mobile, 2 no tablet, 3 no desktop */
           .uiSlide {
             scroll-snap-align: start;
             flex: 0 0 88%;
@@ -466,140 +483,111 @@ export default function DestaquesSection() {
             }
           }
 
-          .uiHint {
-            margin-top: 10px;
-            font-weight: 800;
-            font-size: 12px;
-            color: rgba(0, 0, 0, 0.55);
-            text-align: center;
+          /* setas */
+          .uiArrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 46px;
+            height: 46px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            box-shadow: 0 18px 34px rgba(0, 0, 0, 0.12);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 6;
+            transition: transform 0.12s ease, background 0.12s ease;
+          }
+          .uiArrow:hover {
+            background: #fff7f0;
+            transform: translateY(-50%) scale(1.02);
+          }
+          .uiArrowLeft {
+            left: -10px;
+          }
+          .uiArrowRight {
+            right: -10px;
           }
 
-          /* ===== Cards (sem “card branco externo”, só o próprio produto) ===== */
-          .uiCard {
-            border-radius: 16px;
+          /* fade bordas */
+          .uiFade {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 44px;
+            z-index: 5;
+            pointer-events: none;
+          }
+          .uiFadeLeft {
+            left: 0;
+            background: linear-gradient(90deg, #f6efe6 0%, rgba(246, 239, 230, 0) 100%);
+          }
+          .uiFadeRight {
+            right: 0;
+            background: linear-gradient(270deg, #f6efe6 0%, rgba(246, 239, 230, 0) 100%);
+          }
+
+          /* === CARD PRODUTO === */
+          .uiProductCard {
+            border-radius: 18px;
             overflow: hidden;
             background: #fff;
             border: 1px solid rgba(0, 0, 0, 0.06);
-            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
-            transition: transform 0.18s ease, box-shadow 0.18s ease;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
+            transition: transform 0.16s ease, box-shadow 0.16s ease;
             height: 100%;
           }
-
-          .uiCard:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 38px rgba(0, 0, 0, 0.14);
+          .uiProductCard:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 24px 50px rgba(0, 0, 0, 0.12);
           }
 
           .uiImgWrap {
-            height: 220px;
+            height: 190px;
+            background: #f2e6dc;
             overflow: hidden;
-            background: #f7e6dc;
           }
-
           .uiImg {
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transition: transform 0.25s ease;
             display: block;
+            transition: transform 0.22s ease;
           }
-
-          .uiCard:hover .uiImg {
+          .uiProductCard:hover .uiImg {
             transform: scale(1.06);
           }
-
           .uiNoImg {
-            height: 220px;
+            height: 190px;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             color: rgba(0, 0, 0, 0.55);
-            background: linear-gradient(135deg, #f7e6dc 0%, #fbf3ee 100%);
-          }
-
-          .uiBadge {
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            background: #c57a7a;
-            color: #fff;
-            border: 1px solid rgba(255, 255, 255, 0.22);
-            border-radius: 999px;
-            padding: 7px 11px;
             font-weight: 900;
-            font-size: 12px;
           }
 
-          .uiBody {
-            padding: 14px 14px 12px;
+          .uiCardBody {
+            padding: 12px 12px 14px;
           }
 
-          .uiTitleClamp {
+          .uiProdName {
             font-weight: 900;
             font-size: 14px;
             color: rgba(0, 0, 0, 0.78);
-            line-height: 1.2;
             display: -webkit-box;
             -webkit-line-clamp: 1;
             -webkit-box-orient: vertical;
             overflow: hidden;
-            margin-bottom: 10px;
           }
 
-          .uiBottomRow {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            margin-bottom: 10px;
-          }
-
-          .uiPrice {
-            font-weight: 900;
-            font-size: 18px;
-            color: #c57a7a;
-          }
-
-          .uiActions {
-            display: flex;
-            gap: 8px;
-          }
-
-          .uiIconBtn,
-          .uiIconBtnPrimary {
-            width: 44px;
-            height: 40px;
-            border-radius: 12px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 900;
-            text-decoration: none;
-            border: 1px solid rgba(0, 0, 0, 0.12);
-            background: #fff;
-            color: rgba(0, 0, 0, 0.75);
-            transition: transform 0.12s ease, background 0.12s ease;
-          }
-
-          .uiIconBtn:hover {
-            transform: translateY(-1px);
-            background: #fff7f2;
-          }
-
-          .uiIconBtnPrimary {
-            border-color: rgba(255, 255, 255, 0.22);
-            background: #c57a7a;
-            color: #fff;
-          }
-
-          .uiIconBtnPrimary:hover {
-            transform: translateY(-1px);
-            background: #b86f6f;
-          }
-
-          .uiDescClamp {
-            color: rgba(0, 0, 0, 0.55);
+          .uiProdDesc {
+            margin-top: 6px;
+            font-weight: 700;
             font-size: 12px;
+            color: rgba(0, 0, 0, 0.55);
             line-height: 1.25;
             display: -webkit-box;
             -webkit-line-clamp: 2;
@@ -607,10 +595,87 @@ export default function DestaquesSection() {
             overflow: hidden;
             min-height: 30px;
           }
+          .uiMuted {
+            opacity: 0.85;
+          }
+
+          .uiPriceRow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-top: 10px;
+          }
+
+          .uiPrice {
+            font-weight: 900;
+            font-size: 14px;
+            color: rgba(0, 0, 0, 0.8);
+          }
+
+          .uiBadge {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: rgba(198, 147, 115, 0.12);
+            border: 1px solid rgba(198, 147, 115, 0.25);
+            color: rgba(123, 75, 55, 0.95);
+            font-weight: 900;
+            font-size: 11px;
+            white-space: nowrap;
+          }
+
+          .uiBtnRow {
+            display: flex;
+            gap: 10px;
+            margin-top: 12px;
+          }
+
+          .uiBtn {
+            flex: 1;
+            border-radius: 12px;
+            padding: 10px 12px;
+            font-weight: 900;
+            font-size: 12px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            transition: transform 0.12s ease, filter 0.12s ease, background 0.12s ease;
+            white-space: nowrap;
+          }
+
+          .uiBtn:hover {
+            transform: translateY(-1px);
+            filter: brightness(0.99);
+          }
+
+          .uiBtnLight {
+            background: #fff;
+            color: rgba(0, 0, 0, 0.78);
+          }
+
+          .uiBtnRose {
+            background: #c69373;
+            color: #fff;
+            border-color: rgba(198, 147, 115, 0.35);
+            box-shadow: 0 14px 26px rgba(198, 147, 115, 0.28);
+          }
+
+          .uiMobileHint {
+            margin-top: 10px;
+            text-align: center;
+            font-weight: 900;
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.55);
+          }
 
           @media (max-width: 991px) {
-            .uiSideBanner {
-              padding-bottom: 70px;
+            .uiHeaderRow {
+              flex-direction: column;
+              align-items: flex-start;
             }
           }
         `}</style>
