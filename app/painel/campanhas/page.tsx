@@ -13,9 +13,9 @@ import {
   FiCalendar,
   FiLink,
   FiInfo,
-  FiCheck,
   FiTag,
   FiClock,
+  FiShield,
 } from "react-icons/fi";
 
 type Campanha = {
@@ -27,11 +27,6 @@ type Campanha = {
   inicio?: string;
   fim?: string;
   statusid?: number;
-};
-
-type Produto = {
-  id_produto: number;
-  nome: string;
 };
 
 function slugify(input: string) {
@@ -58,8 +53,12 @@ function formatDateTimeBR(value?: string) {
 
 function isCampaignActive(c: Campanha) {
   const now = Date.now();
-  const ini = c.inicio ? new Date(c.inicio.includes("T") ? c.inicio : c.inicio.replace(" ", "T")).getTime() : null;
-  const fim = c.fim ? new Date(c.fim.includes("T") ? c.fim : c.fim.replace(" ", "T")).getTime() : null;
+  const ini = c.inicio
+    ? new Date(c.inicio.includes("T") ? c.inicio : c.inicio.replace(" ", "T")).getTime()
+    : null;
+  const fim = c.fim
+    ? new Date(c.fim.includes("T") ? c.fim : c.fim.replace(" ", "T")).getTime()
+    : null;
 
   if (ini && now < ini) return "agendada";
   if (fim && now > fim) return "finalizada";
@@ -68,7 +67,6 @@ function isCampaignActive(c: Campanha) {
 }
 
 function buildPagination(current: number, total: number) {
-  // retorna array com números e "..."
   if (total <= 1) return [1];
 
   const pages: (number | "...")[] = [];
@@ -101,15 +99,12 @@ export default function CampanhasPage() {
   const router = useRouter();
 
   const [campanhas, setCampanhas] = useState<Campanha[]>([]);
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-
   const [loadingCampanhas, setLoadingCampanhas] = useState(false);
-  const [loadingProdutos, setLoadingProdutos] = useState(false);
 
   const [openModal, setOpenModal] = useState(false);
   const [q, setQ] = useState("");
 
-  // paginação (somente números, sem próximo/anterior)
+  // paginação
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(9);
 
@@ -120,21 +115,26 @@ export default function CampanhasPage() {
   const [banner, setBanner] = useState("");
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
+  const [statusid, setStatusId] = useState<number>(3); // ✅ agora editável
   const [salvandoCampanha, setSalvandoCampanha] = useState(false);
 
-  // seleção de produtos só no cadastro
-  const [produtosSelecionados, setProdutosSelecionados] = useState<number[]>([]);
-  const [qProduto, setQProduto] = useState("");
+  // ✅ níveis de status (ajuste os IDs se os seus forem diferentes)
+  const STATUS_OPTIONS = useMemo(
+    () => [
+      { id: 1, label: "Rascunho" },
+      { id: 2, label: "Inativa" },
+      { id: 3, label: "Ativa" },
+      { id: 4, label: "Pausada" },
+      { id: 5, label: "Finalizada" },
+    ],
+    []
+  );
 
   async function carregarCampanhas() {
     setLoadingCampanhas(true);
     try {
       const res = await api.get("/admin/campanhas");
-      const lista =
-        res?.data?.dados?.campanhas ??
-        res?.data?.dados ??
-        res?.data ??
-        [];
+      const lista = res?.data?.dados?.campanhas ?? res?.data?.dados ?? res?.data ?? [];
       setCampanhas(Array.isArray(lista) ? lista : []);
     } catch (e) {
       console.error(e);
@@ -144,23 +144,8 @@ export default function CampanhasPage() {
     }
   }
 
-  async function carregarProdutos() {
-    setLoadingProdutos(true);
-    try {
-      const res = await api.get("/admin/produtos");
-      const lista = res?.data?.dados ?? res?.data ?? [];
-      setProdutos(Array.isArray(lista) ? lista : []);
-    } catch (e) {
-      console.error(e);
-      alert("Erro ao carregar produtos");
-    } finally {
-      setLoadingProdutos(false);
-    }
-  }
-
   useEffect(() => {
     carregarCampanhas();
-    carregarProdutos();
   }, []);
 
   function resetForm() {
@@ -170,8 +155,12 @@ export default function CampanhasPage() {
     setBanner("");
     setInicio("");
     setFim("");
-    setProdutosSelecionados([]);
-    setQProduto("");
+    setStatusId(3);
+  }
+
+  function closeModal() {
+    setOpenModal(false);
+    resetForm();
   }
 
   async function criarCampanha() {
@@ -187,21 +176,10 @@ export default function CampanhasPage() {
         banner: banner?.trim() || null,
         inicio: inicio || null,
         fim: fim || null,
-        statusid: 3,
+        statusid: Number(statusid) || 3, // ✅ envia o status escolhido
       };
 
-      const res = await api.post("/admin/campanhas", payload);
-
-      const id =
-        res?.data?.dados?.id_campanha ??
-        res?.data?.dados?.id ??
-        res?.data?.id_campanha;
-
-      if (id && produtosSelecionados.length > 0) {
-        await api.post(`/admin/campanha/${id}/produtos`, {
-          produtos: produtosSelecionados,
-        });
-      }
+      await api.post("/admin/campanhas", payload);
 
       setOpenModal(false);
       resetForm();
@@ -209,9 +187,7 @@ export default function CampanhasPage() {
     } catch (e: any) {
       console.error(e);
       const msg =
-        e?.response?.data?.mensagem ||
-        e?.response?.data?.message ||
-        "Erro ao criar campanha";
+        e?.response?.data?.mensagem || e?.response?.data?.message || "Erro ao criar campanha";
       alert(msg);
     } finally {
       setSalvandoCampanha(false);
@@ -229,12 +205,6 @@ export default function CampanhasPage() {
     }
   }
 
-  function toggleProduto(id: number) {
-    setProdutosSelecionados((prev) =>
-      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
-    );
-  }
-
   const campanhasFiltradas = useMemo(() => {
     const term = q.trim().toLowerCase();
     const base = !term
@@ -244,20 +214,18 @@ export default function CampanhasPage() {
           const b = (c.slug || "").toLowerCase();
           return a.includes(term) || b.includes(term);
         });
-
     return base;
   }, [campanhas, q]);
 
-  // ✅ quando busca muda, volta pra página 1
   useEffect(() => {
     setPage(1);
   }, [q, perPage]);
 
-  const totalPages = useMemo(() => {
-    return Math.max(1, Math.ceil(campanhasFiltradas.length / perPage));
-  }, [campanhasFiltradas.length, perPage]);
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(campanhasFiltradas.length / perPage)),
+    [campanhasFiltradas.length, perPage]
+  );
 
-  // ✅ garante page válida
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
     if (page < 1) setPage(1);
@@ -270,12 +238,6 @@ export default function CampanhasPage() {
 
   const pager = useMemo(() => buildPagination(page, totalPages), [page, totalPages]);
 
-  const produtosFiltradosModal = useMemo(() => {
-    const term = qProduto.trim().toLowerCase();
-    if (!term) return produtos;
-    return produtos.filter((p) => (p.nome || "").toLowerCase().includes(term));
-  }, [produtos, qProduto]);
-
   // slug automático ao digitar título
   useEffect(() => {
     if (!openModal) return;
@@ -286,11 +248,6 @@ export default function CampanhasPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [titulo, openModal]);
-
-  function closeModal() {
-    setOpenModal(false);
-    resetForm();
-  }
 
   return (
     <div className="page">
@@ -308,7 +265,7 @@ export default function CampanhasPage() {
           </div>
 
           <p className="subtitle">
-            Crie campanhas, defina período e vincule produtos — tudo em um painel limpo.
+            Crie campanhas, defina período e gerencie tudo com paginação e busca.
           </p>
         </div>
 
@@ -423,7 +380,9 @@ export default function CampanhasPage() {
                     </div>
                     <div className="bannerText">
                       <span className="bLabel">Banner</span>
-                      <span className="bValue">{c.banner?.trim() ? c.banner : "Sem texto de banner"}</span>
+                      <span className="bValue">
+                        {c.banner?.trim() ? c.banner : "Sem texto de banner"}
+                      </span>
                     </div>
                   </div>
 
@@ -485,14 +444,14 @@ export default function CampanhasPage() {
         </>
       )}
 
-      {/* MODAL: CRIAR CAMPANHA */}
+      {/* ✅ MODAL: CRIAR CAMPANHA (SEM SELEÇÃO DE PRODUTOS) */}
       {openModal && (
         <div className="overlay" role="dialog" aria-modal="true">
           <div className="modal">
             <div className="modalHeader">
               <div>
                 <h2>Criar campanha</h2>
-                <p>Defina título, slug, período e selecione produtos.</p>
+                <p>Preencha os dados e selecione o nível de status.</p>
               </div>
 
               <button className="btnIcon" onClick={closeModal} aria-label="Fechar">
@@ -544,59 +503,42 @@ export default function CampanhasPage() {
 
                 <div className="field">
                   <label>Início</label>
-                  <input type="datetime-local" value={inicio} onChange={(e) => setInicio(e.target.value)} />
+                  <input
+                    type="datetime-local"
+                    value={inicio}
+                    onChange={(e) => setInicio(e.target.value)}
+                  />
                 </div>
 
                 <div className="field">
                   <label>Fim</label>
-                  <input type="datetime-local" value={fim} onChange={(e) => setFim(e.target.value)} />
-                </div>
-              </div>
-
-              <div className="divider" />
-
-              <div className="produtosBox">
-                <div className="produtosTop">
-                  <div className="ptitle">
-                    <h4>Produtos da campanha</h4>
-                    <span className="mini">
-                      {loadingProdutos ? "Carregando..." : `${produtosSelecionados.length} selecionado(s)`}
-                    </span>
-                  </div>
-
-                  <div className="psearch">
-                    <FiSearch className="picon" />
-                    <input
-                      placeholder="Buscar produto..."
-                      value={qProduto}
-                      onChange={(e) => setQProduto(e.target.value)}
-                    />
-                  </div>
+                  <input
+                    type="datetime-local"
+                    value={fim}
+                    onChange={(e) => setFim(e.target.value)}
+                  />
                 </div>
 
-                <div className="produtosList">
-                  {loadingProdutos ? (
-                    <div className="hint">Carregando produtos…</div>
-                  ) : produtosFiltradosModal.length === 0 ? (
-                    <div className="hint">Nenhum produto encontrado.</div>
-                  ) : (
-                    produtosFiltradosModal.map((p) => {
-                      const checked = produtosSelecionados.includes(p.id_produto);
-                      return (
-                        <label key={p.id_produto} className={`checkRow ${checked ? "on" : ""}`}>
-                          <input type="checkbox" checked={checked} onChange={() => toggleProduto(p.id_produto)} />
-                          <span className="checkName">{p.nome}</span>
-                          {checked ? (
-                            <span className="checkBadge">
-                              <FiCheck /> Selecionado
-                            </span>
-                          ) : (
-                            <span className="idMini">#{p.id_produto}</span>
-                          )}
-                        </label>
-                      );
-                    })
-                  )}
+                {/* ✅ NOVO: NÍVEL DE STATUS */}
+                <div className="field full">
+                  <label>Nível de status</label>
+                  <div className="statusRow">
+                    <div className="statusIcon">
+                      <FiShield />
+                    </div>
+
+                    <select value={statusid} onChange={(e) => setStatusId(Number(e.target.value))}>
+                      {STATUS_OPTIONS.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.id} • {s.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="statusHint">
+                      Esse valor será enviado como <b>statusid</b>.
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1018,7 +960,7 @@ export default function CampanhasPage() {
           justify-content: center;
         }
 
-        /* paginação (só números) */
+        /* paginação */
         .pagination {
           display: flex;
           align-items: center;
@@ -1133,7 +1075,8 @@ export default function CampanhasPage() {
         }
 
         .field input,
-        .field textarea {
+        .field textarea,
+        .field select {
           border: 1px solid #e2e8f0;
           background: #ffffff;
           border-radius: 14px;
@@ -1151,7 +1094,8 @@ export default function CampanhasPage() {
         }
 
         .field input:focus,
-        .field textarea:focus {
+        .field textarea:focus,
+        .field select:focus {
           border-color: #c7d2fe;
           box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
         }
@@ -1187,134 +1131,40 @@ export default function CampanhasPage() {
           white-space: nowrap;
         }
 
-        .divider {
-          height: 1px;
-          background: #e2e8f0;
-          margin: 16px 0;
-        }
-
-        .produtosBox {
+        .statusRow {
           display: grid;
+          grid-template-columns: 44px 1fr;
           gap: 10px;
-        }
-
-        .produtosTop {
-          display: flex;
-          justify-content: space-between;
           align-items: center;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
-
-        .ptitle {
-          display: grid;
-          gap: 2px;
-        }
-
-        .produtosTop h4 {
-          margin: 0;
-          font-size: 14px;
-          font-weight: 950;
-          color: #0f172a;
-        }
-
-        .mini {
-          font-size: 12px;
-          color: #64748b;
-          font-weight: 900;
-        }
-
-        .psearch {
-          display: flex;
-          align-items: center;
-          gap: 10px;
           padding: 10px 12px;
-          background: #ffffff;
+          background: #f8fafc;
           border: 1px solid #e2e8f0;
-          border-radius: 14px;
-          min-width: 260px;
-        }
-
-        .picon {
-          color: #64748b;
-        }
-
-        .psearch input {
-          border: none;
-          outline: none;
-          width: 100%;
-          background: transparent;
-          font-weight: 900;
-          color: #0f172a;
-        }
-
-        .produtosList {
-          border: 1px solid #e2e8f0;
-          background: #fbfdff;
           border-radius: 16px;
-          padding: 10px;
-          max-height: 260px;
-          overflow: auto;
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
         }
 
-        .hint {
-          font-size: 13px;
-          color: #64748b;
-          padding: 10px;
-          font-weight: 850;
-        }
-
-        .checkRow {
+        .statusIcon {
+          width: 44px;
+          height: 44px;
+          border-radius: 16px;
           display: grid;
-          grid-template-columns: 18px 1fr auto;
-          align-items: center;
-          gap: 10px;
-          padding: 10px 10px;
-          border-radius: 14px;
-          border: 1px solid transparent;
-          background: white;
-          cursor: pointer;
-          user-select: none;
-        }
-
-        .checkRow.on {
-          border-color: #c7d2fe;
-          background: #eef2ff;
-        }
-
-        .checkName {
-          font-size: 13px;
-          color: #0f172a;
-          font-weight: 900;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .idMini {
-          font-size: 12px;
-          font-weight: 950;
-          color: rgba(71, 85, 105, 0.85);
-          background: #f1f5f9;
-          border: 1px solid #e2e8f0;
-          padding: 6px 10px;
-          border-radius: 999px;
-        }
-
-        .checkBadge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 11px;
-          padding: 6px 10px;
-          border-radius: 999px;
-          background: rgba(79, 70, 229, 0.12);
+          place-items: center;
+          background: rgba(99, 102, 241, 0.14);
+          border: 1px solid rgba(99, 102, 241, 0.2);
           color: #3730a3;
-          border: 1px solid rgba(79, 70, 229, 0.18);
-          font-weight: 950;
+          font-size: 18px;
+        }
+
+        .statusRow select {
+          width: 100%;
+          background: #ffffff;
+        }
+
+        .statusHint {
+          grid-column: span 2;
+          margin-top: 8px;
+          font-size: 12px;
+          color: rgba(71, 85, 105, 0.9);
+          font-weight: 800;
         }
 
         .modalActions {
@@ -1420,8 +1270,11 @@ export default function CampanhasPage() {
             grid-column: auto;
           }
 
-          .psearch {
-            min-width: 100%;
+          .statusRow {
+            grid-template-columns: 44px 1fr;
+          }
+          .statusHint {
+            grid-column: auto;
           }
         }
       `}</style>
