@@ -1,5 +1,6 @@
 'use client';
 
+import DestaquesSection from "@/components/destaques/DestaquesSection";
 import Banner from "@/components/site/Banner/Principal";
 import Categoria from "@/components/site/categoria/Categoria";
 import Cupons from "@/components/site/Cupons/Cupons";
@@ -18,7 +19,14 @@ export default function HomeContent() {
       <Categoria />
       <ProdutoDestaque />
       <Cupons />
+      <DestaquesSection
+        campanhasEndpoint="/admin/campanhas" // ou crie uma rota pública depois
+        produtosDestaqueEndpoint="/admin/produtos/destaques"
+        campanhaHref={(c) => `/campanha/${c.slug}`}
+        produtoHref={(p) => `/produto/${p.slug || p.id_produto}`}
+      />
       <FooterPrincipal />
+
     </>
   );
 }
