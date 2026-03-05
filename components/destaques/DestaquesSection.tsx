@@ -61,122 +61,124 @@ export default function DestaquesSection() {
 
   return (
 
-    <section className="vitrine py-5">
+<section className="vitrine">
 
-      <div className="container">
+<div className="container">
 
-        {campanha && (
+{campanha && (
 
-          <div className="campanha-header text-center mb-5">
+<div className="campanha-header">
 
-            <span className="tag-campanha">
-              Campanha
-            </span>
+<span className="tag-campanha">
+Campanha
+</span>
 
-            <h1 className="titulo-campanha">
-              {campanha.titulo}
-            </h1>
+<h1 className="titulo-campanha">
+{campanha.titulo}
+</h1>
 
-            <p className="descricao-campanha">
-              {campanha.descricao}
-            </p>
+<p className="descricao-campanha">
+{campanha.descricao}
+</p>
 
-            <Link
-              href={`/campanha/${campanha.slug}`}
-              className="btn-catalogo"
-            >
-              Ver catálogo
-            </Link>
+<Link
+href={`/campanha/${campanha.slug}`}
+className="btn-catalogo"
+>
+Ver catálogo
+</Link>
 
-          </div>
+</div>
 
-        )}
+)}
 
-        <div className="row g-4 justify-content-center">
+<div className="grid-produtos">
 
-          {produtos.map((p) => {
+{produtos.map((p) => {
 
-            const img = getImagemUrl(p.produto_imagem);
+const img = getImagemUrl(p.produto_imagem);
 
-            return (
+return (
 
-              <div
-                key={p.id_destaque}
-                className="col-lg-4 col-md-6 col-sm-8"
-              >
+<div key={p.id_destaque} className="produto-card">
 
-                <div className="produto-card">
+<div className="produto-img">
 
-                  <div className="produto-img">
+<img
+src={img}
+alt={p.produto_nome}
+/>
 
-                    <img
-                      src={img}
-                      alt={p.produto_nome}
-                    />
+<span className="badge-destaque">
+Destaque
+</span>
 
-                  </div>
+</div>
 
-                  <div className="produto-body">
+<div className="produto-body">
 
-                    <h5 className="produto-nome">
-                      {p.produto_nome}
-                    </h5>
+<h5 className="produto-nome">
+{p.produto_nome}
+</h5>
 
-                    <p className="produto-desc">
-                      {p.produto_descricao}
-                    </p>
+<p className="produto-desc">
+{p.produto_descricao}
+</p>
 
-                    <div className="produto-info">
+<div className="produto-preco">
+{formatMoney(p.produto_preco)}
+</div>
 
-                      <span className="produto-preco">
-                        {formatMoney(p.produto_preco)}
-                      </span>
+<div className="produto-botoes">
 
-                      <span className="badge-destaque">
-                        Destaque
-                      </span>
+<Link
+href={`/produto/${p.produto_slug}`}
+className="btn-detalhes"
+>
+Detalhes
+</Link>
 
-                    </div>
+<button className="btn-adicionar">
+Adicionar
+</button>
 
-                    <div className="produto-botoes">
+</div>
 
-                      <Link
-                        href={`/produto/${p.produto_slug}`}
-                        className="btn-detalhes"
-                      >
-                        Detalhes
-                      </Link>
+</div>
 
-                      <button className="btn-adicionar">
-                        Adicionar
-                      </button>
+</div>
 
-                    </div>
+);
+})}
 
-                  </div>
+</div>
 
-                </div>
-
-              </div>
-
-            );
-          })}
-
-        </div>
-
-      </div>
+</div>
 
 <style jsx>{`
 
 .vitrine{
 background:#f4ede6;
+padding:60px 20px;
 border-radius:30px;
 }
 
-/* HEADER CAMPANHA */
+/* container */
+
+.container{
+max-width:1200px;
+margin:auto;
+}
+
+/* header campanha */
+
+.campanha-header{
+text-align:center;
+margin-bottom:50px;
+}
 
 .tag-campanha{
-background:#d48b8b;
+background:#c97a7a;
 color:white;
 padding:6px 14px;
 border-radius:20px;
@@ -185,7 +187,7 @@ font-weight:600;
 }
 
 .titulo-campanha{
-font-size:38px;
+font-size:40px;
 font-weight:800;
 margin-top:10px;
 color:#3a2a2a;
@@ -194,13 +196,12 @@ color:#3a2a2a;
 .descricao-campanha{
 color:#6b5b5b;
 font-size:16px;
-max-width:600px;
-margin:auto;
+margin-top:6px;
 }
 
 .btn-catalogo{
 display:inline-block;
-margin-top:15px;
+margin-top:16px;
 background:#c97a7a;
 color:white;
 padding:10px 20px;
@@ -213,22 +214,35 @@ transition:0.25s;
 background:#b86666;
 }
 
-/* CARD */
+/* grid */
+
+.grid-produtos{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+gap:30px;
+}
+
+/* card */
 
 .produto-card{
 background:#f7efe6;
-border-radius:22px;
+border-radius:24px;
 overflow:hidden;
-box-shadow:0 6px 20px rgba(0,0,0,0.08);
-transition:0.25s;
+box-shadow:0 10px 25px rgba(0,0,0,0.08);
+transition:0.3s;
+display:flex;
+flex-direction:column;
 }
 
 .produto-card:hover{
 transform:translateY(-6px);
-box-shadow:0 15px 35px rgba(0,0,0,0.15);
+box-shadow:0 18px 40px rgba(0,0,0,0.15);
 }
 
+/* imagem */
+
 .produto-img{
+position:relative;
 height:220px;
 overflow:hidden;
 }
@@ -237,17 +251,40 @@ overflow:hidden;
 width:100%;
 height:100%;
 object-fit:cover;
+transition:0.4s;
 }
+
+.produto-card:hover img{
+transform:scale(1.05);
+}
+
+/* badge */
+
+.badge-destaque{
+position:absolute;
+top:12px;
+left:12px;
+background:#c79266;
+color:white;
+padding:6px 14px;
+border-radius:30px;
+font-size:12px;
+font-weight:600;
+}
+
+/* body */
 
 .produto-body{
 padding:20px;
+display:flex;
+flex-direction:column;
 }
 
-/* TEXTO */
+/* texto */
 
 .produto-nome{
+font-size:17px;
 font-weight:700;
-font-size:16px;
 color:#3a2a2a;
 margin-bottom:4px;
 }
@@ -258,31 +295,16 @@ color:#7a6f63;
 margin-bottom:12px;
 }
 
-/* PREÇO + BADGE */
-
-.produto-info{
-display:flex;
-justify-content:space-between;
-align-items:center;
-margin-bottom:14px;
-}
+/* preço */
 
 .produto-preco{
+font-size:22px;
 font-weight:800;
-font-size:18px;
-color:#000;
+color:#c79266;
+margin-bottom:18px;
 }
 
-.badge-destaque{
-background:#eee5db;
-padding:5px 12px;
-border-radius:20px;
-font-size:12px;
-font-weight:600;
-color:#6b5b5b;
-}
-
-/* BOTÕES */
+/* botões */
 
 .produto-botoes{
 display:flex;
@@ -292,12 +314,19 @@ gap:10px;
 .btn-detalhes{
 flex:1;
 text-align:center;
-padding:9px;
+padding:10px;
 border-radius:12px;
-background:#eee;
-color:#333;
-font-size:13px;
+background:white;
+border:2px solid #e4d8cc;
 font-weight:600;
+font-size:14px;
+color:#4a3a2f;
+transition:0.25s;
+}
+
+.btn-detalhes:hover{
+border-color:#c79266;
+color:#c79266;
 }
 
 .btn-adicionar{
@@ -305,19 +334,20 @@ flex:1;
 border:none;
 background:#c79266;
 color:white;
-padding:9px;
+padding:10px;
 border-radius:12px;
-font-size:13px;
 font-weight:600;
-transition:0.2s;
+font-size:14px;
+transition:0.25s;
 }
 
 .btn-adicionar:hover{
-background:#b37c52;
+background:#b07c52;
 }
 
 `}</style>
 
-    </section>
+</section>
+
   );
 }
