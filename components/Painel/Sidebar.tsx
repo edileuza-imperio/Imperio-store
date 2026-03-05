@@ -71,6 +71,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     if (t.includes("categ")) return FiTag;
     if (t.includes("catálogo") || t.includes("catalogo")) return FiGrid;
     if (t.includes("gest")) return FiGrid;
+    if (t.includes("camp")) return FiGrid; // ✅ campanhas
     return FiBox;
   }
 
@@ -93,13 +94,14 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     try {
       setLoadingMenu(true);
 
+      // ✅ menu vem do backend
       const res = await api.get("/admin/dashboard");
       const data = res?.data?.dados?.dados ?? res?.data?.dados ?? [];
 
       if (Array.isArray(data)) {
         setItems(data);
 
-        // abre automaticamente o grupo do item ativo
+        // ✅ abre automaticamente o grupo do item ativo
         const auto: Record<string, boolean> = {};
         data.forEach((it: SidebarItem) => {
           if (it.type === "group" && it.children?.some((c) => isActive(c.href))) {
@@ -134,9 +136,9 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [checkingAuth, usuario]);
 
-  // fecha no mobile ao navegar
+  // ✅ fecha no mobile ao navegar (apenas no mobile)
   useEffect(() => {
-    if (open) onClose?.();
+    if (open && window?.innerWidth <= 900) onClose?.();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
@@ -172,7 +174,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
   return (
     <>
-      {/* overlay mobile */}
+      {/* ✅ overlay mobile */}
       <button
         type="button"
         aria-label="Fechar menu"
@@ -212,9 +214,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </div>
 
           <div className="userInfo">
-            <div className="userName">
-              {checkingAuth ? "Verificando..." : nomeUsuario}
-            </div>
+            <div className="userName">{checkingAuth ? "Verificando..." : nomeUsuario}</div>
             <div className="userEmail">
               {checkingAuth ? "Aguarde" : emailUsuario || "Sessão administrativa"}
             </div>
@@ -336,13 +336,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
         {/* FOOTER */}
         <div className="footer">
-          <button
-            type="button"
-            className="logout"
-            onClick={sair}
-            disabled={!usuario}
-            title="Sair"
-          >
+          <button type="button" className="logout" onClick={sair} disabled={!usuario} title="Sair">
             <FiLogOut size={16} />
             Sair
           </button>
@@ -360,27 +354,29 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           color: inherit;
         }
 
-        /* ✅ overlay mobile (abaixo do sidebar, acima do resto) */
+        /* ✅ overlay mobile: abaixo do sidebar, acima do resto */
         .overlay {
           position: fixed;
           inset: 0;
           background: rgba(2, 6, 23, 0.58);
           border: none;
           display: none;
-          z-index: 9999; /* ✅ overlay */
+          z-index: 2500; /* ✅ */
         }
         .overlay.show {
           display: block;
         }
 
-        /* ✅ sidebar DESKTOP: não pode ficar por cima do header */
+        /* ✅ sidebar desktop: abaixo do header (header deve ter z-index 2000) */
         .sidebar {
           width: 320px;
           height: 100vh;
+
           position: sticky;
           top: 0;
 
-          z-index: 10; /* ✅ antes era 9999 (cobria o header) */
+          z-index: 100; /* ✅ desktop */
+          position: relative; /* ✅ IMPORTANTÍSSIMO pro :before */
 
           display: flex;
           flex-direction: column;
@@ -980,13 +976,13 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           background: rgba(255, 255, 255, 0.14);
         }
 
-        /* ✅ mobile: sidebar por cima do header (menu lateral) */
+        /* ✅ mobile: sidebar acima do header */
         @media (max-width: 900px) {
           .sidebar {
             position: fixed;
             top: 0;
             left: -120%;
-            z-index: 10000; /* ✅ sidebar acima do overlay e acima do header */
+            z-index: 3000; /* ✅ acima do header (2000) e overlay (2500) */
             transition: 0.28s ease;
           }
           .sidebar.open {
