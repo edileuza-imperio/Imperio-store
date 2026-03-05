@@ -43,6 +43,9 @@ function pickProdutosLista(res: any): Produto[] {
 }
 
 function pickVinculosIds(res: any): number[] {
+  // Seu endpoint listarProdutosDaCampanha retorna:
+  // { dados: { produtos: [...] } } (pelo seu controller)
+  // mas vou aceitar variações também:
   const lista =
     res?.data?.dados?.produtos ??
     res?.data?.produtos ??
@@ -52,29 +55,10 @@ function pickVinculosIds(res: any): number[] {
 
   if (!Array.isArray(lista)) return [];
 
-  // aceita tanto [{id_produto: 1}] quanto [1,2,3]
+  // aceita [{id_produto: 1}] ou [1,2,3]
   return lista
     .map((x: any) => Number(x?.id_produto ?? x))
     .filter((n: any) => Number.isFinite(n) && n > 0);
-}
-
-async function getComFallback(urls: string[]) {
-  let lastErr: any = null;
-
-  for (const url of urls) {
-    try {
-      const res = await api.get(url);
-      return { res, urlOk: url };
-    } catch (e: any) {
-      lastErr = e;
-      const status = e?.response?.status;
-      // se não for 404, para (ex: 500, 401)
-      if (status && status !== 404) throw e;
-      // se for 404, tenta próxima
-    }
-  }
-
-  throw lastErr;
 }
 
 export default function CampanhaProdutosPage() {
@@ -88,50 +72,35 @@ export default function CampanhaProdutosPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [q, setQ] = useState("");
-  const [debugUrl, setDebugUrl] = useState<string>("");
 
   async function carregarTudo() {
     if (!Number.isFinite(id) || id <= 0) return;
 
     setLoading(true);
     try {
-      // 1) campanha (só pra mostrar título/slug)
-      const campanhaTry = await getComFallback([
-        `/admin/campanha/${id}`,
-        `/admin/campanhas/${id}`,
-        `/admin/campanha/${id}/`,
-      ]).catch(() => null);
+      // ✅ ROTAS CERTAS (igual seu Router PHP)
+      const [resCampanha, resProdutos, resVinculos] = await Promise.all([
+        api.get(`/admin/campanha/${id}`).catch(() => null),
+        api.get(`/admin/produtos`),
+        api.get(`/admin/campanha/${id}/produtos`),
+      ]);
 
-      if (campanhaTry?.res) {
-        const c = pickCampanha(campanhaTry.res);
+      if (resCampanha) {
+        const c = pickCampanha(resCampanha);
         if (c) setCampanha(c);
       }
 
-      // 2) produtos gerais
-      const resProdutos = await api.get("/admin/produtos");
       setProdutos(pickProdutosLista(resProdutos));
-
-      // 3) vinculos (AQUI é onde tá dando 404)
-      const vinculosTry = await getComFallback([
-        `/admin/campanha/${id}/produtos`,
-        `/admin/campanha/${id}/produtos/`,
-        `/admin/campanhas/${id}/produtos`,
-        `/admin/campanhas/${id}/produtos/`,
-      ]);
-
-      setDebugUrl(vinculosTry.urlOk);
-
-      const ids = pickVinculosIds(vinculosTry.res);
-      setSelecionados(ids);
+      setSelecionados(pickVinculosIds(resVinculos));
     } catch (e: any) {
       console.error(e);
-
       const status = e?.response?.status;
+
       const msg =
         e?.response?.data?.mensagem ||
         e?.response?.data?.message ||
         (status === 404
-          ? "Rota não encontrada (404). Seu backend não está servindo esse endpoint no servidor."
+          ? "Rota não encontrada (404). Confira se o servidor publicou as rotas /admin/campanha/{id}/produtos"
           : "Erro ao carregar produtos da campanha");
 
       alert(msg);
@@ -156,44 +125,27 @@ export default function CampanhaProdutosPage() {
   const filtrados = useMemo(() => {
     const term = q.trim().toLowerCase();
     if (!term) return produtos;
-    return produtos.filter((p) =>
-      (p.nome || "").toLowerCase().includes(term)
-    );
+    return produtos.filter((p) => (p.nome || "").toLowerCase().includes(term));
   }, [produtos, q]);
 
   async function salvar() {
+    if (!Number.isFinite(id) || id <= 0) return;
     setSaving(true);
     try {
-      // POST com fallback também
-      const urls = [
-        `/admin/campanha/${id}/produtos`,
-        `/admin/campanha/${id}/produtos/`,
-        `/admin/campanhas/${id}/produtos`,
-        `/admin/campanhas/${id}/produtos/`,
-      ];
-
-      let ok = false;
-      let lastErr: any = null;
-
-      for (const url of urls) {
-        try {
-          await api.post(url, { produtos: selecionados });
-          ok = true;
-          break;
-        } catch (e: any) {
-          lastErr = e;
-          const status = e?.response?.status;
-          if (status && status !== 404) throw e;
-        }
-      }
-
-      if (!ok) throw lastErr;
+      // ✅ ROTA CERTA (igual seu Router PHP)
+      await api.post(`/admin/campanha/${id}/produtos`, {
+        produtos: selecionados,
+      });
 
       alert("Produtos salvos com sucesso!");
       await carregarTudo();
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("Erro ao salvar produtos");
+      const msg =
+        e?.response?.data?.mensagem ||
+        e?.response?.data?.message ||
+        "Erro ao salvar produtos";
+      alert(msg);
     } finally {
       setSaving(false);
     }
@@ -219,7 +171,6 @@ export default function CampanhaProdutosPage() {
             ) : (
               <>Campanha #{id}</>
             )}
-            {debugUrl ? <span className="debug">• rota: {debugUrl}</span> : null}
           </p>
         </div>
 
@@ -313,13 +264,6 @@ export default function CampanhaProdutosPage() {
         .muted {
           color: #64748b;
           font-weight: 700;
-        }
-
-        .debug{
-          margin-left: 10px;
-          color:#94a3b8;
-          font-weight: 700;
-          font-size: 12px;
         }
 
         .actions {
