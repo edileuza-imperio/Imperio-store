@@ -5,9 +5,9 @@ import Link from "next/link";
 import api from "@/Api/conectar";
 import { FiStar } from "react-icons/fi";
 
-/* =============================
+/* ==============================
 TIPOS
-============================= */
+============================== */
 
 type Campanha = {
   id_campanha: number;
@@ -20,21 +20,24 @@ type Campanha = {
   fim?: string;
 };
 
-type Produto = {
-  id_produto: number;
-  nome: string;
-  preco?: number;
-  imagem?: string;
-  slug?: string;
+type ProdutoDestaque = {
+  id_destaque: number;
+  produto_id: number;
+  produto_nome: string;
+  produto_slug: string;
+  produto_descricao?: string;
+  produto_preco: string;
+  produto_imagem?: string;
 };
 
-/* =============================
+/* ==============================
 UTILS
-============================= */
+============================== */
 
 function formatMoneyBR(value?: any) {
   const n = Number(value);
   if (!Number.isFinite(n)) return "";
+
   return n.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
@@ -45,28 +48,31 @@ function getImagemUrl(caminho?: string) {
   if (!caminho) return undefined;
 
   const base = api.defaults.baseURL || "";
+
   const clean = String(caminho).replace(/^\/+/, "");
+
   const baseFinal = base.endsWith("/") ? base : `${base}/`;
 
   return `${baseFinal}${clean}`;
 }
 
-/* =============================
+/* ==============================
 COMPONENTE
-============================= */
+============================== */
 
 export default function DestaquesSection() {
-  const [campanha, setCampanha] = useState<Campanha | null>(null);
-  const [produtos, setProdutos] = useState<Produto[]>([]);
 
+  const [campanha, setCampanha] = useState<Campanha | null>(null);
+  const [produtos, setProdutos] = useState<ProdutoDestaque[]>([]);
   const [loading, setLoading] = useState(true);
 
   async function carregar() {
+
     try {
 
-      /* =============================
+      /* ==============================
       CAMPANHAS
-      ============================= */
+      ============================== */
 
       const resCamp = await api.get("/admin/campanhas");
 
@@ -79,28 +85,32 @@ export default function DestaquesSection() {
 
       setCampanha(destaque || null);
 
-      /* =============================
-      PRODUTOS
-      ============================= */
+      /* ==============================
+      PRODUTOS DESTAQUE
+      ============================== */
 
       const resProd = await api.get("/admin/produtos/destaques");
 
-      const listaProd: Produto[] =
-        resProd?.data?.dados?.produtos ??
-        resProd?.data?.dados ??
-        [];
+      const listaProd: ProdutoDestaque[] =
+        resProd?.data?.dados ?? [];
 
       setProdutos(listaProd.slice(0, 2));
 
-    } catch (error) {
-      console.error("Erro ao carregar destaque:", error);
+    } catch (erro) {
+
+      console.error("Erro ao carregar destaques:", erro);
+
     } finally {
+
       setLoading(false);
+
     }
   }
 
   useEffect(() => {
+
     carregar();
+
   }, []);
 
   if (loading) {
@@ -108,6 +118,7 @@ export default function DestaquesSection() {
   }
 
   return (
+
     <section className="section">
 
       <div className="titulo">
@@ -118,7 +129,9 @@ export default function DestaquesSection() {
       <div className="layout">
 
         {/* CAMPANHA */}
+
         {campanha && (
+
           <div className="campanha">
 
             <div className="tags">
@@ -130,7 +143,7 @@ export default function DestaquesSection() {
 
             <p>
               {campanha.descricao ||
-                "Produtos selecionados para presentear com carinho."}
+                "Produtos selecionados para presentear."}
             </p>
 
             <Link
@@ -141,6 +154,7 @@ export default function DestaquesSection() {
             </Link>
 
             <div className="infos">
+
               <div>
                 <span>Oferta do dia</span>
                 <b>até 30% OFF</b>
@@ -150,32 +164,43 @@ export default function DestaquesSection() {
                 <span>Pagamento</span>
                 <b>Pix / Cartão</b>
               </div>
+
             </div>
+
           </div>
+
         )}
 
         {/* PRODUTOS */}
+
         <div className="produtos">
 
           {produtos.map((p) => {
 
-            const img = getImagemUrl(p.imagem);
+            const img = getImagemUrl(p.produto_imagem);
 
             return (
-              <div key={p.id_produto} className="produto">
+
+              <div key={p.id_destaque} className="produto">
 
                 <div className="imagem">
+
                   {img && (
-                    <img src={img} alt={p.nome} />
+                    <img src={img} alt={p.produto_nome} />
                   )}
+
                 </div>
 
                 <div className="info">
 
-                  <h4>{p.nome}</h4>
+                  <h4>{p.produto_nome}</h4>
+
+                  <p className="desc">
+                    {p.produto_descricao}
+                  </p>
 
                   <div className="preco">
-                    {formatMoneyBR(p.preco)}
+                    {formatMoneyBR(p.produto_preco)}
                   </div>
 
                   <div className="badge">
@@ -186,7 +211,7 @@ export default function DestaquesSection() {
                   <div className="botoes">
 
                     <Link
-                      href={`/produto/${p.slug || p.id_produto}`}
+                      href={`/produto/${p.produto_slug}`}
                       className="detalhes"
                     >
                       Detalhes
@@ -201,13 +226,15 @@ export default function DestaquesSection() {
                 </div>
 
               </div>
+
             );
           })}
 
         </div>
+
       </div>
 
-      <style jsx>{`
+<style jsx>{`
 
 .section{
   background:#e9decd;
@@ -218,16 +245,6 @@ export default function DestaquesSection() {
 .titulo{
   text-align:center;
   margin-bottom:20px;
-}
-
-.titulo h2{
-  font-size:24px;
-  font-weight:800;
-}
-
-.titulo span{
-  font-size:13px;
-  color:#7a6f63;
 }
 
 .layout{
@@ -256,39 +273,6 @@ export default function DestaquesSection() {
   font-size:11px;
 }
 
-.campanha h3{
-  font-size:20px;
-  margin:10px 0;
-}
-
-.campanha p{
-  font-size:13px;
-  color:#5b5147;
-}
-
-.btnCatalogo{
-  display:inline-block;
-  background:#c79b6e;
-  color:white;
-  padding:8px 12px;
-  border-radius:12px;
-  margin-top:10px;
-  font-size:13px;
-}
-
-.infos{
-  display:flex;
-  gap:10px;
-  margin-top:20px;
-}
-
-.infos div{
-  background:#fff;
-  padding:8px;
-  border-radius:12px;
-  font-size:12px;
-}
-
 .produtos{
   display:flex;
   gap:16px;
@@ -303,7 +287,6 @@ export default function DestaquesSection() {
 
 .imagem{
   height:130px;
-  overflow:hidden;
 }
 
 .imagem img{
@@ -314,10 +297,6 @@ export default function DestaquesSection() {
 
 .info{
   padding:10px;
-}
-
-.info h4{
-  font-size:13px;
 }
 
 .preco{
@@ -343,12 +322,11 @@ export default function DestaquesSection() {
 
 .detalhes{
   flex:1;
-  border:none;
   background:#ddd;
   border-radius:8px;
   font-size:11px;
   text-align:center;
-  padding:5px;
+  padding:6px;
 }
 
 .add{
