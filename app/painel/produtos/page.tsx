@@ -2,14 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import {
-  FaEdit,
-  FaStar,
-  FaPlus,
-  FaTrash,
-  FaBook,
-  FaImages,
-} from "react-icons/fa";
+import { FaEdit, FaStar, FaPlus, FaTrash, FaBook, FaImages } from "react-icons/fa";
 import api from "@/Api/conectar";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -24,20 +17,26 @@ interface Produto {
   destaque?: boolean;
   id_destaque?: number;
   catalogo?: number;
-  imagem?: string; // ✅ aqui fica só o caminho do banco (ex: upload/produtos/...)
+  imagem?: string;       // caminho salvo no banco: upload/produtos/xxx.jpg
+  categoria_id?: number; // ✅ precisa vir do /admin/produtos
+}
+
+interface Categoria {
+  id_categoria: number;
+  nome: string;
+  icone?: string | null;
 }
 
 export const getImagemUrl = (caminho?: string) => {
   if (!caminho) return undefined;
 
-  // normaliza (remove \ do Windows e barras no começo)
   let c = String(caminho).trim().replace(/\\/g, "/");
   c = c.replace(/^\/+/, "");
-
-  // se vier "public/upload/..." ou "public/..."
   c = c.replace(/^public\//, "");
 
+  // base URL sem barra no final
   const base = String(api.defaults.baseURL || "").replace(/\/+$/, "");
+
   return `${base}/${c}`;
 };
 
@@ -45,6 +44,14 @@ export default function ProdutosPage() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalNovoProduto, setModalNovoProduto] = useState(false);
+
+  // ✅ categorias
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const categoriasMap = useMemo(() => {
+    const m = new Map<number, Categoria>();
+    categorias.forEach((c) => m.set(Number(c.id_categoria), c));
+    return m;
+  }, [categorias]);
 
   // ✅ paginação
   const [itensPorPagina, setItensPorPagina] = useState<number>(12);
@@ -59,6 +66,7 @@ export default function ProdutosPage() {
   const inputGaleriaRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
+    carregarCategorias();
     carregarProdutos();
   }, []);
 
@@ -74,6 +82,29 @@ export default function ProdutosPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const carregarCategorias = async () => {
+    try {
+      const res = await api.get("/admin/categorias");
+
+      // aceita tanto array puro quanto {dados: ...}
+      let lista = res.data?.dados ?? res.data;
+      if (lista?.dados) lista = lista.dados;
+      if (!Array.isArray(lista)) lista = [];
+
+      const normalizadas: Categoria[] = lista.map((c: any) => ({
+        id_categoria: Number(c.id_categoria ?? c.id ?? 0),
+        nome: String(c.nome ?? "Sem categoria"),
+        icone: c.icone ?? null,
+      }));
+
+      setCategorias(normalizadas.filter((c) => c.id_categoria > 0));
+    } catch (err) {
+      console.error(err);
+      // não trava a tela, só avisa
+      toast.info("Não foi possível carregar as categorias (seguindo sem elas).");
+    }
+  };
+
   const carregarProdutos = async () => {
     try {
       setLoading(true);
@@ -84,12 +115,12 @@ export default function ProdutosPage() {
       if (lista?.dados) lista = lista.dados;
       if (!Array.isArray(lista)) lista = [];
 
-      // ✅ NÃO CONVERTE a imagem aqui (deixa o caminho cru do banco)
       const convertidos: Produto[] = lista.map((p: any) => ({
         ...p,
         preco: Number(p.preco || 0),
         estoque: Number(p.estoque || 0),
         imagem: p.imagem ? String(p.imagem) : undefined,
+        categoria_id: p.categoria_id !== undefined && p.categoria_id !== null ? Number(p.categoria_id) : undefined,
       }));
 
       setProdutos(convertidos);
@@ -109,15 +140,11 @@ export default function ProdutosPage() {
           return;
         }
 
-        await api.delete(
-          `/admin/produtos/destaques/${produto.id_destaque}/remover`
-        );
+        await api.delete(`/admin/produtos/destaques/${produto.id_destaque}/remover`);
 
         setProdutos((p) =>
           p.map((i) =>
-            i.id_produto === produto.id_produto
-              ? { ...i, destaque: false, id_destaque: undefined }
-              : i
+            i.id_produto === produto.id_produto ? { ...i, destaque: false, id_destaque: undefined } : i
           )
         );
 
@@ -136,9 +163,7 @@ export default function ProdutosPage() {
 
         setProdutos((p) =>
           p.map((i) =>
-            i.id_produto === produto.id_produto
-              ? { ...i, destaque: true, id_destaque: idDestaque }
-              : i
+            i.id_produto === produto.id_produto ? { ...i, destaque: true, id_destaque: idDestaque } : i
           )
         );
 
@@ -155,22 +180,12 @@ export default function ProdutosPage() {
       if (produto.catalogo === 1) {
         await api.put(`/admin/produtos/${produto.id_produto}/catalogo/nao`);
 
-        setProdutos((p) =>
-          p.map((i) =>
-            i.id_produto === produto.id_produto ? { ...i, catalogo: 0 } : i
-          )
-        );
-
+        setProdutos((p) => p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 0 } : i)));
         toast.success("Removido do catálogo");
       } else {
         await api.put(`/admin/produtos/${produto.id_produto}/catalogo/sim`);
 
-        setProdutos((p) =>
-          p.map((i) =>
-            i.id_produto === produto.id_produto ? { ...i, catalogo: 1 } : i
-          )
-        );
-
+        setProdutos((p) => p.map((i) => (i.id_produto === produto.id_produto ? { ...i, catalogo: 1 } : i)));
         toast.success("Adicionado ao catálogo");
       }
     } catch (err) {
@@ -263,7 +278,6 @@ export default function ProdutosPage() {
     try {
       setGaleriaSending(true);
 
-      // ✅ back deve aceitar: imagens[] (multiple)
       const form = new FormData();
       galeriaFiles.forEach((file) => form.append("imagens[]", file));
 
@@ -314,10 +328,7 @@ export default function ProdutosPage() {
         <div className="top-actions">
           <div className="pagerSelect">
             <span>Por página</span>
-            <select
-              value={itensPorPagina}
-              onChange={(e) => setItensPorPagina(Number(e.target.value))}
-            >
+            <select value={itensPorPagina} onChange={(e) => setItensPorPagina(Number(e.target.value))}>
               <option value={8}>8</option>
               <option value={12}>12</option>
               <option value={16}>16</option>
@@ -335,8 +346,7 @@ export default function ProdutosPage() {
       {!loading && produtos.length > 0 && totalPaginas > 1 && (
         <div className="pagerBar">
           <div className="pagerInfo">
-            Página <b>{pagina}</b> de <b>{totalPaginas}</b> — Total:{" "}
-            <b>{produtos.length}</b>
+            Página <b>{pagina}</b> de <b>{totalPaginas}</b> — Total: <b>{produtos.length}</b>
           </div>
 
           <div className="pagerNumbers" aria-label="Paginação">
@@ -360,11 +370,14 @@ export default function ProdutosPage() {
         <div className="row g-4">
           {produtosPaginados.map((prod) => {
             const urlImg = getImagemUrl(prod.imagem);
+            const cat = prod.categoria_id ? categoriasMap.get(prod.categoria_id) : undefined;
+            const temImagem = !!urlImg;
+
             return (
               <div key={prod.id_produto} className="col-xl-3 col-lg-4 col-md-6">
                 <div className="produto-card">
                   <div className="card-image">
-                    {urlImg ? (
+                    {temImagem ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={urlImg} alt={prod.nome} />
                     ) : (
@@ -372,12 +385,9 @@ export default function ProdutosPage() {
                     )}
 
                     <div className="badges">
-                      {prod.destaque && (
-                        <span className="badge badge-destaque">Destaque</span>
-                      )}
-                      {prod.catalogo === 1 && (
-                        <span className="badge badge-catalogo">Catálogo</span>
-                      )}
+                      {prod.destaque && <span className="badge badge-destaque">Destaque</span>}
+                      {prod.catalogo === 1 && <span className="badge badge-catalogo">Catálogo</span>}
+                      {!temImagem && <span className="badge badge-noimg">Sem imagem</span>}
                     </div>
 
                     <button
@@ -393,8 +403,13 @@ export default function ProdutosPage() {
                   <div className="card-body">
                     <h6 className="produto-nome">{prod.nome}</h6>
 
-                    <p className="preco">R$ {prod.preco.toFixed(2)}</p>
+                    {/* ✅ categoria */}
+                    <div className="categoriaLine">
+                      <span className="categoriaLabel">Categoria:</span>{" "}
+                      <b className="categoriaNome">{cat?.nome ?? "Sem categoria"}</b>
+                    </div>
 
+                    <p className="preco">R$ {prod.preco.toFixed(2)}</p>
                     <small className="estoque">Estoque: {prod.estoque}</small>
 
                     <div className="acoes">
@@ -414,19 +429,10 @@ export default function ProdutosPage() {
                         <FaBook />
                       </button>
 
-                      <button
-                        onClick={() => excluirProduto(prod.id_produto)}
-                        className="danger"
-                        title="Excluir"
-                      >
+                      <button onClick={() => excluirProduto(prod.id_produto)} className="danger" title="Excluir">
                         <FaTrash />
                       </button>
                     </div>
-
-                    {/* 🔎 debug opcional: mostra o caminho que vem do banco */}
-                    {/* <div style={{ fontSize: 10, opacity: 0.6, marginTop: 8 }}>
-                      {prod.imagem}
-                    </div> */}
                   </div>
                 </div>
               </div>
@@ -453,29 +459,15 @@ export default function ProdutosPage() {
                 </div>
               </div>
 
-              <button
-                className="thumbClose"
-                type="button"
-                onClick={fecharGaleria}
-                aria-label="Fechar"
-              >
+              <button className="thumbClose" type="button" onClick={fecharGaleria} aria-label="Fechar">
                 ×
               </button>
             </div>
 
             <div className="thumbBody">
               <div className="thumbPick">
-                <input
-                  ref={inputGaleriaRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => onPickGaleria(e.target.files)}
-                />
-
-                <div className="thumbHint">
-                  Selecione até <b>12</b> imagens.
-                </div>
+                <input ref={inputGaleriaRef} type="file" accept="image/*" multiple onChange={(e) => onPickGaleria(e.target.files)} />
+                <div className="thumbHint">Selecione até <b>12</b> imagens.</div>
               </div>
 
               {galeriaPreview.length > 0 ? (
@@ -569,7 +561,6 @@ export default function ProdutosPage() {
           gap: 12px;
           flex-wrap: wrap;
           margin-bottom: 14px;
-
           background: rgba(255, 255, 255, 0.78);
           border: 1px solid rgba(0, 0, 0, 0.08);
           border-radius: 14px;
@@ -644,6 +635,8 @@ export default function ProdutosPage() {
           align-items: center;
           justify-content: center;
           height: 100%;
+          color: #6b7280;
+          font-weight: 800;
         }
 
         .badges {
@@ -653,6 +646,8 @@ export default function ProdutosPage() {
           display: flex;
           gap: 6px;
           z-index: 2;
+          flex-wrap: wrap;
+          justify-content: flex-end;
         }
 
         .badge {
@@ -660,6 +655,7 @@ export default function ProdutosPage() {
           padding: 4px 8px;
           border-radius: 999px;
           color: #fff;
+          font-weight: 800;
         }
 
         .badge-destaque {
@@ -670,18 +666,45 @@ export default function ProdutosPage() {
           background: #22c55e;
         }
 
+        .badge-noimg {
+          background: #64748b;
+        }
+
         .card-body {
           padding: 12px;
         }
 
         .produto-nome {
-          margin-bottom: 4px;
+          margin-bottom: 6px;
           font-size: 14px;
+          font-weight: 900;
+          color: #111827;
+        }
+
+        .categoriaLine {
+          font-size: 12px;
+          margin-bottom: 8px;
+          color: #6b7280;
+          display: flex;
+          gap: 6px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+
+        .categoriaLabel {
+          font-weight: 800;
+          color: #6b7280;
+        }
+
+        .categoriaNome {
+          color: #111827;
+          font-weight: 900;
         }
 
         .preco {
-          font-weight: 600;
+          font-weight: 700;
           margin-bottom: 2px;
+          color: #111827;
         }
 
         .estoque {
@@ -690,7 +713,7 @@ export default function ProdutosPage() {
         }
 
         .acoes {
-          margin-top: 8px;
+          margin-top: 10px;
           display: flex;
           gap: 12px;
           font-size: 16px;
@@ -722,7 +745,6 @@ export default function ProdutosPage() {
           color: #d4af37;
         }
 
-        /* ✅ botão de miniaturas (sobre a imagem) */
         .btnThumbs {
           position: absolute;
           left: 10px;
@@ -745,7 +767,6 @@ export default function ProdutosPage() {
           background: rgba(0, 0, 0, 0.48);
         }
 
-        /* ✅ modal galeria */
         .thumbOverlay {
           position: fixed;
           inset: 0;
