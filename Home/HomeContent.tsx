@@ -19,12 +19,9 @@ export default function HomeContent() {
       <Categoria />
       <ProdutoDestaque />
       <Cupons />
-      <DestaquesSection
-        campanhasEndpoint="/admin/campanhas" // ou crie uma rota pública depois
-        produtosDestaqueEndpoint="/admin/produtos/destaques"
-        campanhaHref={(c) => `/campanha/${c.slug}`}
-        produtoHref={(p) => `/produto/${p.slug || p.id_produto}`}
-      />
+      <DestaquesSection />
+        
+      
       <FooterPrincipal />
 
     </>
