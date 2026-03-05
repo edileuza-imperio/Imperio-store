@@ -61,9 +61,7 @@ function computePeriodStatus(c: Campanha) {
   const ini = c.inicio
     ? new Date(c.inicio.includes("T") ? c.inicio : c.inicio.replace(" ", "T")).getTime()
     : null;
-  const fim = c.fim
-    ? new Date(c.fim.includes("T") ? c.fim : c.fim.replace(" ", "T")).getTime()
-    : null;
+  const fim = c.fim ? new Date(c.fim.includes("T") ? c.fim : c.fim.replace(" ", "T")).getTime() : null;
 
   if (ini && now < ini) return "agendada";
   if (fim && now > fim) return "finalizada";
@@ -100,32 +98,12 @@ function buildPagination(current: number, total: number) {
   return pages;
 }
 
-function normalizeStatusList(raw: any): StatusOption[] {
-  const list = Array.isArray(raw) ? raw : [];
-  if (list.length === 0) return [];
-
-  if (typeof list[0] === "string") {
-    return list.map((s: string, idx: number) => ({ id: idx + 1, label: s }));
-  }
-
-  return list
-    .map((it: any, idx: number) => {
-      const id =
-        Number(it?.id) ||
-        Number(it?.id_status) ||
-        Number(it?.statusid) ||
-        Number(it?.value) ||
-        (idx + 1);
-
-      const label =
-        String(it?.label || it?.nome || it?.titulo || it?.status || it?.descricao || it?.name || "")
-          .trim() || `Status ${id}`;
-
-      if (!Number.isFinite(id)) return null;
-      return { id, label };
-    })
-    .filter(Boolean) as StatusOption[];
-}
+// ✅ Status da campanha (fallback fixo) - não usa endpoint de status do produto
+const FALLBACK_STATUS: StatusOption[] = [
+  { id: 1, label: "Rascunho" },
+  { id: 2, label: "Inativa" },
+  { id: 3, label: "Destaque" },
+];
 
 export default function CampanhasPage() {
   const router = useRouter();
@@ -147,11 +125,11 @@ export default function CampanhasPage() {
   const [banner, setBanner] = useState("");
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
-  const [statusid, setStatusId] = useState<number>(0);
+  const [statusid, setStatusId] = useState<number>(3);
   const [salvandoCampanha, setSalvandoCampanha] = useState(false);
 
-  // status da API
-  const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
+  // status
+  const [statusOptions, setStatusOptions] = useState<StatusOption[]>(FALLBACK_STATUS);
   const [loadingStatus, setLoadingStatus] = useState(false);
 
   const statusMap = useMemo(() => {
@@ -163,6 +141,7 @@ export default function CampanhasPage() {
   async function carregarCampanhas() {
     setLoadingCampanhas(true);
     try {
+      // ✅ seu controller: listarCampanhas()
       const res = await api.get("/admin/campanhas");
       const lista = res?.data?.dados?.campanhas ?? res?.data?.dados ?? res?.data ?? [];
       setCampanhas(Array.isArray(lista) ? lista : []);
@@ -177,32 +156,8 @@ export default function CampanhasPage() {
   async function carregarStatus() {
     setLoadingStatus(true);
     try {
-      const res = await api.get("/admin/produtos/status");
-
-      const raw =
-        res?.data?.dados?.status ??
-        res?.data?.dados?.dados ??
-        res?.data?.dados ??
-        res?.data ??
-        [];
-
-      const normalized = normalizeStatusList(raw);
-      setStatusOptions(normalized);
-
-      if ((!statusid || statusid === 0) && normalized.length > 0) {
-        // ✅ se existir o 3, já deixa nele, senão pega o primeiro
-        const prefer = normalized.find((s) => s.id === 3)?.id ?? normalized[0].id;
-        setStatusId(prefer);
-      }
-    } catch (e) {
-      console.error(e);
-      // fallback (se API falhar)
-      const fallback = [
-        { id: 1, label: "Rascunho" },
-        { id: 2, label: "Inativa" },
-        { id: 3, label: "Destaque" }, // ✅ seu destaque
-      ];
-      setStatusOptions(fallback);
+      // ✅ sem endpoint de status de campanha, usa fallback
+      setStatusOptions(FALLBACK_STATUS);
       if (!statusid) setStatusId(3);
     } finally {
       setLoadingStatus(false);
@@ -222,9 +177,7 @@ export default function CampanhasPage() {
     setBanner("");
     setInicio("");
     setFim("");
-    // ✅ default: tenta 3 (destaque) se existir
-    const prefer = statusOptions.find((s) => s.id === 3)?.id ?? statusOptions[0]?.id ?? 0;
-    setStatusId(prefer);
+    setStatusId(3);
   }
 
   function closeModal() {
@@ -235,7 +188,7 @@ export default function CampanhasPage() {
   async function criarCampanha() {
     if (!titulo.trim()) return alert("Informe o título");
     if (!slug.trim()) return alert("Informe o slug");
-    if (!statusid) return alert("Selecione o nível de status");
+    if (!statusid) return alert("Selecione o status");
 
     setSalvandoCampanha(true);
     try {
@@ -249,15 +202,15 @@ export default function CampanhasPage() {
         statusid: Number(statusid),
       };
 
-      await api.post("/admin/campanhas", payload);
+      // ✅ seu controller: criarCampanha()
+      await api.post("/admin/campanha/criar", payload);
 
       setOpenModal(false);
       resetForm();
       await carregarCampanhas();
     } catch (e: any) {
       console.error(e);
-      const msg =
-        e?.response?.data?.mensagem || e?.response?.data?.message || "Erro ao criar campanha";
+      const msg = e?.response?.data?.mensagem || e?.response?.data?.message || "Erro ao criar campanha";
       alert(msg);
     } finally {
       setSalvandoCampanha(false);
@@ -267,7 +220,8 @@ export default function CampanhasPage() {
   async function removerCampanha(id: number) {
     if (!confirm("Remover campanha?")) return;
     try {
-      await api.delete(`/admin/campanhas/${id}`);
+      // ✅ seu controller: removerCampanha()
+      await api.delete(`/admin/campanha/${id}/remover`);
       await carregarCampanhas();
     } catch (e) {
       console.error(e);
@@ -312,15 +266,12 @@ export default function CampanhasPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [titulo, openModal]);
 
-  // ao abrir modal, garante um status default
+  // ao abrir modal, garante status default
   useEffect(() => {
     if (!openModal) return;
-    if (!statusid && statusOptions.length > 0) {
-      const prefer = statusOptions.find((s) => s.id === 3)?.id ?? statusOptions[0].id;
-      setStatusId(prefer);
-    }
+    if (!statusid) setStatusId(3);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [openModal, statusOptions]);
+  }, [openModal]);
 
   return (
     <div className="page">
@@ -344,11 +295,7 @@ export default function CampanhasPage() {
         <div className="topRight">
           <div className="search">
             <FiSearch className="searchIcon" />
-            <input
-              placeholder="Buscar por título ou slug..."
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
+            <input placeholder="Buscar por título ou slug..." value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
 
           <div className="rightActions">
@@ -411,17 +358,16 @@ export default function CampanhasPage() {
         <>
           <div className="grid">
             {campanhasPaginadas.map((c) => {
-              const nivel = Number(c.statusid || 0);
-              const nivelNome = nivel ? statusMap.get(nivel) : "";
+              const st = Number(c.statusid || 0);
+              const statusNome = st ? statusMap.get(st) : "";
               const period = computePeriodStatus(c);
 
-              // ✅ REGRA PRINCIPAL: se statusid === 3 => destaque VERDE
-              const isDestaque = nivel === 3;
+              const isDestaque = st === 3;
 
               const badgeText = isDestaque
-                ? `Destaque • nível ${nivel}`
-                : nivel
-                ? `${nivelNome ? nivelNome : "Status"} • nível ${nivel}`
+                ? `Destaque • status ${st}`
+                : st
+                ? `${statusNome ? statusNome : "Status"} • status ${st}`
                 : "Sem status";
 
               const badgeClass = isDestaque ? "destaque" : period;
@@ -440,11 +386,7 @@ export default function CampanhasPage() {
                       </span>
                     </div>
 
-                    <button
-                      className="btnIconDanger"
-                      onClick={() => removerCampanha(c.id_campanha)}
-                      title="Remover"
-                    >
+                    <button className="btnIconDanger" onClick={() => removerCampanha(c.id_campanha)} title="Remover">
                       <FiTrash2 />
                     </button>
                   </div>
@@ -477,10 +419,7 @@ export default function CampanhasPage() {
                   </div>
 
                   <div className="cardActions">
-                    <button
-                      className="btnSoft"
-                      onClick={() => router.push(`/painel/campanhas/${c.id_campanha}/produtos`)}
-                    >
+                    <button className="btnSoft" onClick={() => router.push(`/painel/campanhas/${c.id_campanha}/produtos`)}>
                       <FiPackage /> Produtos
                     </button>
                   </div>
@@ -496,12 +435,7 @@ export default function CampanhasPage() {
                 const n = p as number;
                 const active = n === page;
                 return (
-                  <button
-                    key={n}
-                    type="button"
-                    className={`pbtn ${active ? "on" : ""}`}
-                    onClick={() => setPage(n)}
-                  >
+                  <button key={n} type="button" className={`pbtn ${active ? "on" : ""}`} onClick={() => setPage(n)}>
                     {n}
                   </button>
                 );
@@ -519,7 +453,7 @@ export default function CampanhasPage() {
               <div>
                 <h2>Criar campanha</h2>
                 <p>
-                  Status vem de <b>/admin/produtos/status</b> • nível <b>3</b> = <b>Destaque</b> (verde).
+                  Status da campanha • <b>3</b> = <b>Destaque</b> (verde).
                 </p>
               </div>
 
@@ -532,20 +466,12 @@ export default function CampanhasPage() {
               <div className="formGrid">
                 <div className="field">
                   <label>Título</label>
-                  <input
-                    placeholder="Ex: Semana do Cliente"
-                    value={titulo}
-                    onChange={(e) => setTitulo(e.target.value)}
-                  />
+                  <input placeholder="Ex: Semana do Cliente" value={titulo} onChange={(e) => setTitulo(e.target.value)} />
                 </div>
 
                 <div className="field">
                   <label>Slug</label>
-                  <input
-                    placeholder="ex: semana-do-cliente"
-                    value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
-                  />
+                  <input placeholder="ex: semana-do-cliente" value={slug} onChange={(e) => setSlug(e.target.value)} />
                 </div>
 
                 <div className="field full">
@@ -577,24 +503,15 @@ export default function CampanhasPage() {
                 </div>
 
                 <div className="field full">
-                  <label>Nível de status</label>
+                  <label>Status</label>
 
                   <div className="statusRow">
                     <div className="statusIcon">
                       <FiShield />
                     </div>
 
-                    <select
-                      value={statusid || ""}
-                      onChange={(e) => setStatusId(Number(e.target.value))}
-                      disabled={loadingStatus}
-                    >
-                      {loadingStatus && <option value="">Carregando status...</option>}
-
-                      {!loadingStatus && statusOptions.length === 0 && (
-                        <option value="">Nenhum status encontrado</option>
-                      )}
-
+                    <select value={statusid || ""} onChange={(e) => setStatusId(Number(e.target.value))} disabled={loadingStatus}>
+                      {loadingStatus && <option value="">Carregando...</option>}
                       {!loadingStatus &&
                         statusOptions.map((s) => (
                           <option key={s.id} value={s.id}>
@@ -606,19 +523,13 @@ export default function CampanhasPage() {
 
                     <div className="statusHint">
                       {loadingStatus
-                        ? "Buscando status..."
+                        ? "Carregando..."
                         : statusid === 3
-                        ? "✅ Nível 3 selecionado: vai aparecer como DESTAQUE (verde) na tela."
-                        : "Escolha um nível. Nível 3 é o destaque."}
+                        ? "✅ Status 3 selecionado: aparece como DESTAQUE (verde)."
+                        : "Escolha um status. Status 3 é o destaque."}
                     </div>
 
-                    <button
-                      type="button"
-                      className="btnGhost miniBtn"
-                      onClick={carregarStatus}
-                      disabled={loadingStatus}
-                      title="Recarregar status"
-                    >
+                    <button type="button" className="btnGhost miniBtn" onClick={carregarStatus} disabled={loadingStatus} title="Recarregar">
                       <FiRefreshCw />
                       Recarregar
                     </button>
@@ -923,14 +834,12 @@ export default function CampanhasPage() {
           border: 1px solid transparent;
         }
 
-        /* ✅ destaque (statusid === 3) => VERDE */
         .status.destaque {
           background: rgba(34, 197, 94, 0.14);
           border-color: rgba(34, 197, 94, 0.22);
           color: #166534;
         }
 
-        /* demais (por período) */
         .status.ativa {
           background: rgba(99, 102, 241, 0.14);
           border-color: rgba(99, 102, 241, 0.22);
