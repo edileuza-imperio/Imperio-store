@@ -1,545 +1,431 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
-import { FiTrash2, FiTag, FiPlus, FiX, FiSearch } from "react-icons/fi";
+import { FiPlus, FiTrash2, FiTag } from "react-icons/fi";
 
 type Campanha = {
-  id_campanha: number;
-  titulo: string;
-  slug: string;
-  descricao?: string | null;
-  banner?: string | null;
-  statusid: number;
-};
-
-type Produto = {
-  id_produto: number;
-  nome: string;
-};
-
-function slugify(texto: string) {
-  return texto
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
+  id_campanha:number
+  titulo:string
+  slug:string
+  banner?:string
 }
 
-export default function CampanhasPage() {
+export default function CampanhasPage(){
 
-  const [campanhas, setCampanhas] = useState<Campanha[]>([]);
-  const [loading, setLoading] = useState(true);
+const [campanhas,setCampanhas]=useState<Campanha[]>([])
+const [openModal,setOpenModal]=useState(false)
 
-  const [openModal, setOpenModal] = useState(false);
-  const [aba, setAba] = useState<"detalhes" | "produtos">("detalhes");
+const [titulo,setTitulo]=useState("")
+const [slug,setSlug]=useState("")
+const [banner,setBanner]=useState("")
 
-  const [titulo, setTitulo] = useState("");
-  const [slug, setSlug] = useState("");
-  const [descricao, setDescricao] = useState("");
-  const [bannerTexto, setBannerTexto] = useState("");
+const [pagina,setPagina]=useState(1)
+const porPagina=6
 
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [produtosSelecionados, setProdutosSelecionados] = useState<number[]>([]);
-  const [buscaProduto, setBuscaProduto] = useState("");
+async function carregar(){
 
-  const [pagina, setPagina] = useState(1);
-  const [porPagina, setPorPagina] = useState(6);
+const res=await api.get("/admin/campanhas")
 
-  const [saving, setSaving] = useState(false);
+const lista=
+res?.data?.dados?.campanhas ??
+res?.data?.dados ??
+res?.data ??
+[]
 
-  async function carregarCampanhas() {
+setCampanhas(lista)
 
-    try {
+}
 
-      setLoading(true);
+useEffect(()=>{
+carregar()
+},[])
 
-      const res = await api.get("/admin/campanhas");
+async function criar(){
 
-      const lista =
-        res?.data?.dados?.campanhas ??
-        res?.data?.dados ??
-        res?.data ??
-        [];
+await api.post("/admin/campanhas",{
 
-      setCampanhas(Array.isArray(lista) ? lista : []);
+titulo,
+slug,
+banner,
+statusid:3
 
-    } catch (err) {
+})
 
-      console.error(err);
+setTitulo("")
+setSlug("")
+setBanner("")
+setOpenModal(false)
 
-    } finally {
+carregar()
 
-      setLoading(false);
+}
 
-    }
+async function remover(id:number){
 
-  }
+if(!confirm("Remover campanha?")) return
 
-  async function carregarProdutos() {
+await api.delete(`/admin/campanhas/${id}`)
 
-    const res = await api.get("/admin/produtos");
+carregar()
 
-    const data =
-      res?.data?.dados ??
-      res?.data ??
-      [];
+}
 
-    setProdutos(Array.isArray(data) ? data : []);
+const totalPaginas=Math.ceil(campanhas.length/porPagina)
 
-  }
+const campanhasPagina=campanhas.slice(
+(pagina-1)*porPagina,
+pagina*porPagina
+)
 
-  useEffect(() => {
+return(
 
-    carregarCampanhas();
+<div className="page">
 
-  }, []);
+<div className="topBar">
 
-  function abrirModal() {
+<div>
 
-    setOpenModal(true);
-    setAba("detalhes");
+<h1>Campanhas</h1>
+<p>Gerencie promoções da loja</p>
 
-  }
+</div>
 
-  function abrirProdutos() {
+<button
+className="btnCreate"
+onClick={()=>setOpenModal(true)}
+>
 
-    setAba("produtos");
+<FiPlus/> Nova campanha
 
-    if (produtos.length === 0) {
+</button>
 
-      carregarProdutos();
+</div>
 
-    }
 
-  }
+<div className="cards">
 
-  function fecharModal() {
+{campanhasPagina.map(c=>(
+<div key={c.id_campanha} className="card">
 
-    setOpenModal(false);
+<div className="cardIcon">
+<FiTag/>
+</div>
 
-    setTitulo("");
-    setSlug("");
-    setDescricao("");
-    setBannerTexto("");
-    setProdutosSelecionados([]);
+<div className="cardBody">
 
-  }
+<h3>{c.titulo}</h3>
 
-  function toggleProduto(id: number) {
+<span className="slug">
+/{c.slug}
+</span>
 
-    setProdutosSelecionados(prev =>
-      prev.includes(id)
-        ? prev.filter(p => p !== id)
-        : [...prev, id]
-    );
+<p className="banner">
+{c.banner || "Sem banner"}
+</p>
 
-  }
+</div>
 
-  const produtosFiltrados = useMemo(() => {
+<button
+className="btnDelete"
+onClick={()=>remover(c.id_campanha)}
+>
 
-    const termo = buscaProduto.toLowerCase();
+<FiTrash2/>
 
-    if (!termo) return produtos;
+</button>
 
-    return produtos.filter(p =>
-      p.nome.toLowerCase().includes(termo)
-    );
+</div>
+))}
 
-  }, [buscaProduto, produtos]);
+</div>
 
-  async function criarCampanha() {
 
-    if (!titulo.trim()) {
+<div className="pagination">
 
-      alert("Preencha o título");
+<button
+disabled={pagina===1}
+onClick={()=>setPagina(pagina-1)}
+>
+Anterior
+</button>
 
-      return;
+{Array.from({length:totalPaginas}).map((_,i)=>{
 
-    }
+const p=i+1
 
-    try {
+return(
 
-      setSaving(true);
+<button
+key={p}
+className={pagina===p?"active":""}
+onClick={()=>setPagina(p)}
+>
 
-      const slugFinal = slug ? slugify(slug) : slugify(titulo);
+{p}
 
-      const res = await api.post("/admin/campanhas", {
+</button>
 
-        titulo,
-        slug: slugFinal,
-        descricao,
-        banner: bannerTexto,
-        statusid: 3
+)
 
-      });
+})}
 
-      const id = res?.data?.dados?.id_campanha;
+<button
+disabled={pagina===totalPaginas}
+onClick={()=>setPagina(pagina+1)}
+>
+Próximo
+</button>
 
-      if (id && produtosSelecionados.length > 0) {
+</div>
 
-        await api.post(`/admin/campanha/${id}/produtos`, {
 
-          produtos: produtosSelecionados
+{openModal &&(
 
-        });
+<div className="overlay">
 
-      }
+<div className="modalBox">
 
-      fecharModal();
+<h2>Criar campanha</h2>
 
-      carregarCampanhas();
+<input
+placeholder="Título"
+value={titulo}
+onChange={e=>setTitulo(e.target.value)}
+/>
 
-    } catch (err) {
+<input
+placeholder="Slug"
+value={slug}
+onChange={e=>setSlug(e.target.value)}
+/>
 
-      console.error(err);
+<textarea
+placeholder="Texto do banner"
+value={banner}
+onChange={e=>setBanner(e.target.value)}
+/>
 
-    } finally {
+<div className="modalActions">
 
-      setSaving(false);
+<button
+className="btnCancel"
+onClick={()=>setOpenModal(false)}
+>
+Cancelar
+</button>
 
-    }
+<button
+className="btnSave"
+onClick={criar}
+>
+Criar campanha
+</button>
 
-  }
+</div>
 
-  async function remover(id: number) {
+</div>
 
-    if (!confirm("Remover campanha?")) return;
+</div>
 
-    await api.delete(`/admin/campanhas/${id}`);
-
-    carregarCampanhas();
-
-  }
-
-  const totalPaginas = Math.ceil(campanhas.length / porPagina);
-
-  const campanhasPagina = campanhas.slice(
-
-    (pagina - 1) * porPagina,
-    pagina * porPagina
-
-  );
-
-  return (
-
-    <div className="container">
-
-      <div className="header">
-
-        <div>
-          <h2>Campanhas</h2>
-          <p>Gerencie campanhas promocionais</p>
-        </div>
-
-        <button className="btn btn-primary" onClick={abrirModal}>
-          <FiPlus /> Nova campanha
-        </button>
-
-      </div>
-
-      <div className="grid">
-
-        {campanhasPagina.map(c => (
-
-          <div key={c.id_campanha} className="card">
-
-            <div className="top">
-
-              <div className="icon">
-                <FiTag />
-              </div>
-
-              <button
-                className="btn btn-danger btn-sm"
-                onClick={() => remover(c.id_campanha)}
-              >
-                <FiTrash2 />
-              </button>
-
-            </div>
-
-            <h4>{c.titulo}</h4>
-
-            <p className="slug">/{c.slug}</p>
-
-            <p>{c.banner || "Sem banner"}</p>
-
-            <button
-              className="btn btn-outline-primary btn-sm"
-              onClick={abrirProdutos}
-            >
-              Produtos
-            </button>
-
-          </div>
-
-        ))}
-
-      </div>
-
-      <div className="pagination">
-
-        <select
-          value={porPagina}
-          onChange={(e) => {
-
-            setPorPagina(Number(e.target.value));
-            setPagina(1);
-
-          }}
-        >
-
-          <option value={6}>6</option>
-          <option value={12}>12</option>
-          <option value={24}>24</option>
-
-        </select>
-
-        <button
-          disabled={pagina === 1}
-          onClick={() => setPagina(pagina - 1)}
-        >
-          Anterior
-        </button>
-
-        {Array.from({ length: totalPaginas }).map((_, i) => {
-
-          const p = i + 1;
-
-          return (
-
-            <button
-              key={p}
-              className={pagina === p ? "active" : ""}
-              onClick={() => setPagina(p)}
-            >
-
-              {p}
-
-            </button>
-
-          );
-
-        })}
-
-        <button
-          disabled={pagina === totalPaginas}
-          onClick={() => setPagina(pagina + 1)}
-        >
-          Próximo
-        </button>
-
-      </div>
-
-      {openModal && (
-
-        <div className="overlay">
-
-          <div className="modal">
-
-            <div className="modalHeader">
-
-              <h3>Criar campanha</h3>
-
-              <button
-                className="btn btn-light"
-                onClick={fecharModal}
-              >
-                <FiX />
-              </button>
-
-            </div>
-
-            {aba === "detalhes" && (
-
-              <>
-
-                <input
-                  className="form-control"
-                  placeholder="Título"
-                  value={titulo}
-                  onChange={(e) => setTitulo(e.target.value)}
-                />
-
-                <input
-                  className="form-control"
-                  placeholder="Slug"
-                  value={slug}
-                  onChange={(e) => setSlug(e.target.value)}
-                />
-
-                <textarea
-                  className="form-control"
-                  placeholder="Descrição"
-                  value={descricao}
-                  onChange={(e) => setDescricao(e.target.value)}
-                />
-
-                <textarea
-                  className="form-control"
-                  placeholder="Texto do banner"
-                  value={bannerTexto}
-                  onChange={(e) => setBannerTexto(e.target.value)}
-                />
-
-                <button
-                  className="btn btn-primary"
-                  onClick={criarCampanha}
-                >
-                  {saving ? "Criando..." : "Criar"}
-                </button>
-
-              </>
-
-            )}
-
-            {aba === "produtos" && (
-
-              <div>
-
-                <div className="search">
-
-                  <FiSearch />
-
-                  <input
-                    className="form-control"
-                    placeholder="Buscar produto"
-                    value={buscaProduto}
-                    onChange={(e) => setBuscaProduto(e.target.value)}
-                  />
-
-                </div>
-
-                <div className="produtos">
-
-                  {produtosFiltrados.map(p => {
-
-                    const checked = produtosSelecionados.includes(p.id_produto);
-
-                    return (
-
-                      <label key={p.id_produto}>
-
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggleProduto(p.id_produto)}
-                        />
-
-                        {p.nome}
-
-                      </label>
-
-                    );
-
-                  })}
-
-                </div>
-
-              </div>
-
-            )}
-
-          </div>
-
-        </div>
-
-      )}
+)}
 
 <style jsx>{`
 
-.container{
-padding:20px;
+.page{
+padding:30px;
 display:flex;
 flex-direction:column;
-gap:20px;
+gap:25px;
+background:#f8fafc;
+min-height:100vh;
 }
 
-.grid{
+.topBar{
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+
+.topBar h1{
+font-weight:800;
+margin:0;
+}
+
+.topBar p{
+margin:0;
+color:#64748b;
+}
+
+.btnCreate{
+background:#7c3aed;
+color:white;
+border:none;
+padding:10px 16px;
+border-radius:10px;
+display:flex;
+gap:6px;
+align-items:center;
+font-weight:600;
+box-shadow:0 8px 20px rgba(124,58,237,.3);
+}
+
+.cards{
 display:grid;
 grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
 gap:20px;
 }
 
 .card{
+
 background:white;
-border-radius:12px;
-padding:20px;
-box-shadow:0 10px 30px rgba(0,0,0,0.05);
+border-radius:14px;
+padding:18px;
 display:flex;
 flex-direction:column;
 gap:10px;
+position:relative;
+box-shadow:0 10px 25px rgba(0,0,0,.06);
+transition:.2s;
+
 }
 
-.top{
-display:flex;
-justify-content:space-between;
+.card:hover{
+
+transform:translateY(-4px);
+box-shadow:0 15px 40px rgba(0,0,0,.1);
+
 }
 
-.icon{
-background:#7c3aed;
-color:white;
-width:40px;
-height:40px;
+.cardIcon{
+
+background:#ede9fe;
+color:#7c3aed;
+width:42px;
+height:42px;
+border-radius:10px;
 display:flex;
 align-items:center;
 justify-content:center;
-border-radius:10px;
+
+}
+
+.cardBody h3{
+margin:0;
+font-size:17px;
+font-weight:700;
+}
+
+.slug{
+font-size:12px;
+color:#64748b;
+}
+
+.banner{
+font-size:13px;
+color:#334155;
+}
+
+.btnDelete{
+
+position:absolute;
+top:12px;
+right:12px;
+border:none;
+background:#fee2e2;
+color:#dc2626;
+padding:6px;
+border-radius:8px;
+
 }
 
 .pagination{
+
 display:flex;
 gap:8px;
 justify-content:center;
+
 }
 
 .pagination button{
+
 border:1px solid #ddd;
+background:white;
 padding:6px 10px;
 border-radius:6px;
-background:white;
+
 }
 
 .pagination button.active{
+
 background:#7c3aed;
 color:white;
+
 }
 
 .overlay{
+
 position:fixed;
 inset:0;
-background:rgba(0,0,0,0.6);
+background:rgba(0,0,0,.6);
 display:flex;
 align-items:center;
 justify-content:center;
+
 }
 
-.modal{
+.modalBox{
+
 background:white;
-padding:20px;
-border-radius:10px;
-width:500px;
+padding:25px;
+border-radius:12px;
+width:400px;
 display:flex;
 flex-direction:column;
 gap:10px;
+
 }
 
-.produtos{
-max-height:200px;
-overflow:auto;
+.modalBox input,
+.modalBox textarea{
+
+border:1px solid #ddd;
+border-radius:8px;
+padding:8px;
+
+}
+
+.modalActions{
+
 display:flex;
-flex-direction:column;
-gap:6px;
+justify-content:flex-end;
+gap:10px;
+
+}
+
+.btnCancel{
+
+background:#e5e7eb;
+border:none;
+padding:8px 14px;
+border-radius:8px;
+
+}
+
+.btnSave{
+
+background:#7c3aed;
+color:white;
+border:none;
+padding:8px 14px;
+border-radius:8px;
+
 }
 
 `}</style>
 
-    </div>
+</div>
 
-  );
+)
 
 }
