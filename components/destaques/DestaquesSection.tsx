@@ -10,13 +10,9 @@ type Campanha = {
   slug: string;
   descricao?: string;
   banner?: string;
-  statusid?: number;
-  inicio?: string | null;
-  fim?: string | null;
 };
 
 type Produto = {
-  // como vem do JOIN, pode vir id_produto (mais comum) e NÃO id_destaque
   id_produto?: number;
   nome?: string;
   slug?: string;
@@ -24,7 +20,6 @@ type Produto = {
   preco?: string | number;
   imagem?: string;
 
-  // se sua API já devolve no formato "produto_nome" etc, ainda funciona:
   id_destaque?: number;
   produto_nome?: string;
   produto_slug?: string;
@@ -32,7 +27,6 @@ type Produto = {
   produto_preco?: string;
   produto_imagem?: string;
 
-  // extras do vínculo
   ordem?: number;
 };
 
@@ -51,7 +45,10 @@ function formatMoney(value: any) {
 
 function normalizarProduto(p: Produto) {
   return {
-    key: p.id_produto ?? p.id_destaque ?? `${p.slug ?? p.produto_slug ?? ""}-${p.ordem ?? ""}`,
+    key:
+      p.id_produto ??
+      p.id_destaque ??
+      `${p.slug ?? p.produto_slug ?? ""}-${p.ordem ?? ""}`,
     nome: p.nome ?? p.produto_nome ?? "",
     slug: p.slug ?? p.produto_slug ?? "",
     descricao: p.descricao ?? p.produto_descricao ?? "",
@@ -67,16 +64,15 @@ export default function DestaquesSection() {
 
   async function carregar() {
     try {
-      setLoading(true);
-
-      // ✅ agora vem tudo pronto do backend (campanha + produtos do vínculo)
       const res = await api.get("/admin/campanha/destaques");
+
       const dados = res.data?.dados ?? {};
 
       const camp: Campanha | null = dados.campanha ?? null;
-      const prods: Produto[] = Array.isArray(dados.produtos) ? dados.produtos : [];
+      const prods: Produto[] = Array.isArray(dados.produtos)
+        ? dados.produtos
+        : [];
 
-      // ✅ se não tem campanha ou não tem produtos, some tudo
       if (!camp || prods.length === 0) {
         setCampanha(null);
         setProdutos([]);
@@ -86,9 +82,9 @@ export default function DestaquesSection() {
       setCampanha(camp);
       setProdutos(prods);
     } catch (err) {
+      console.error(err);
       setCampanha(null);
       setProdutos([]);
-      console.error("Erro ao carregar destaques:", err);
     } finally {
       setLoading(false);
     }
@@ -98,152 +94,274 @@ export default function DestaquesSection() {
     carregar();
   }, []);
 
-  const temConteudo = useMemo(() => !!campanha && produtos.length > 0, [campanha, produtos]);
+  const temConteudo = useMemo(
+    () => !!campanha && produtos.length > 0,
+    [campanha, produtos]
+  );
 
-  // ✅ se não tem campanha/produtos (ou carregando), não renderiza nada
   if (loading || !temConteudo) return null;
 
   return (
-    <section className="py-5" style={{ background: "#f5eee8" }}>
+    <section className="destaquesSection">
       <div className="container">
-        {/* CAMPANHA */}
-        {campanha && (
-          <div className="text-center mb-5">
-            <span
-              className="badge px-3 py-2 mb-3"
-              style={{
-                background: "#2e7d32",
-                fontSize: "13px",
-              }}
-            >
-              Destaques da Campanha
+
+        {/* ================= CAMAPNHA HEADER ================= */}
+
+        <div className="campanhaHeader">
+
+          {campanha?.banner && (
+            <div className="bannerCampanha">
+              <img src={getImagemUrl(campanha.banner)} alt={campanha.titulo} />
+            </div>
+          )}
+
+          <div className="campanhaTexto">
+            <span className="badgeCampanha">
+              Campanha Especial
             </span>
 
-            <h1 className="fw-bold mb-2" style={{ letterSpacing: "0.5px" }}>
-              {campanha.titulo}
-            </h1>
+            <h2>{campanha.titulo}</h2>
 
-            {campanha.descricao ? <p className="text-muted mb-3">{campanha.descricao}</p> : null}
+            {campanha.descricao && (
+              <p>{campanha.descricao}</p>
+            )}
 
             <Link
               href={`/campanha/${campanha.slug}`}
-              className="btn text-white px-4"
-              style={{
-                background: "#c78c5c",
-                borderRadius: "10px",
-              }}
+              className="btnVerCampanha"
             >
-              Ver catálogo
+              Ver coleção completa
             </Link>
           </div>
-        )}
+        </div>
 
-        {/* PRODUTOS */}
+
+        {/* ================= PRODUTOS ================= */}
+
         <div className="row g-4">
+
           {produtos.map((raw) => {
+
             const p = normalizarProduto(raw);
+
             const img = getImagemUrl(p.imagem);
 
             return (
-              <div key={p.key} className="col-md-6 col-lg-4">
-                <div className="card border-0 shadow-sm h-100 rounded-4 cardHover">
-                  {/* IMAGEM */}
-                  <div className="position-relative">
+              <div key={p.key} className="col-md-6 col-lg-4 col-xl-3">
+
+                <div className="produtoCard">
+
+                  <div className="produtoImagem">
+
                     {img ? (
-                      <img src={img} alt={p.nome} className="card-img-top imgHover" />
+                      <img src={img} alt={p.nome} />
                     ) : (
-                      <div className="imgFallback">Sem imagem</div>
+                      <div className="semImagem">
+                        Produto
+                      </div>
                     )}
 
-                    <span
-                      className="badge position-absolute px-3 py-2"
-                      style={{
-                        top: "12px",
-                        left: "12px",
-                        background: "#2e7d32",
-                        borderRadius: "20px",
-                        fontSize: "12px",
-                      }}
-                    >
+                    <span className="badgeProduto">
                       Destaque
                     </span>
+
                   </div>
 
-                  {/* BODY */}
-                  <div className="card-body d-flex flex-column p-4">
-                    <h5 className="fw-semibold mb-1" style={{ fontSize: "18px" }}>
-                      {p.nome}
-                    </h5>
 
-                    {p.descricao ? (
-                      <p className="text-muted mb-2" style={{ fontSize: "14px" }}>
+                  <div className="produtoInfo">
+
+                    <h5>{p.nome}</h5>
+
+                    {p.descricao && (
+                      <p className="descricao">
                         {p.descricao}
                       </p>
-                    ) : null}
+                    )}
 
-                    <div className="fw-bold mb-3" style={{ color: "#c78c5c", fontSize: "22px" }}>
+                    <div className="preco">
                       {formatMoney(p.preco)}
                     </div>
 
-                    {/* BOTÕES */}
-                    <div className="d-flex gap-2 mt-auto">
+                    <div className="botoes">
+
                       <Link
                         href={`/produto/${p.slug}`}
-                        className="btn btn-light border w-100"
-                        style={{ borderRadius: "10px", fontWeight: "500" }}
+                        className="btnDetalhes"
                       >
                         Detalhes
                       </Link>
 
-                      <button
-                        type="button"
-                        className="btn w-100 text-white"
-                        style={{
-                          background: "#c78c5c",
-                          borderRadius: "10px",
-                          fontWeight: "600",
-                        }}
-                      >
-                        Adicionar
+                      <button className="btnComprar">
+                        Comprar
                       </button>
+
                     </div>
+
                   </div>
+
                 </div>
+
               </div>
             );
           })}
         </div>
-
-        <style jsx>{`
-          .cardHover {
-            cursor: pointer;
-            overflow: hidden;
-            transition: transform 0.22s ease, box-shadow 0.22s ease;
-          }
-          .cardHover:hover {
-            transform: translateY(-6px);
-          }
-          .imgHover {
-            height: 240px;
-            width: 100%;
-            object-fit: cover;
-            transition: transform 0.28s ease;
-          }
-          .cardHover:hover .imgHover {
-            transform: scale(1.03);
-          }
-          .imgFallback {
-            height: 240px;
-            width: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0, 0, 0, 0.06);
-            color: rgba(0, 0, 0, 0.55);
-            font-weight: 600;
-          }
-        `}</style>
       </div>
+
+
+      <style jsx>{`
+
+      .destaquesSection{
+        background:#f8f6f3;
+        padding:80px 0;
+      }
+
+      .campanhaHeader{
+        text-align:center;
+        margin-bottom:60px;
+      }
+
+      .bannerCampanha{
+        max-width:1000px;
+        margin:auto;
+        margin-bottom:30px;
+        border-radius:16px;
+        overflow:hidden;
+        box-shadow:0 10px 25px rgba(0,0,0,0.08);
+      }
+
+      .bannerCampanha img{
+        width:100%;
+        object-fit:cover;
+      }
+
+      .badgeCampanha{
+        background:#2e7d32;
+        color:white;
+        padding:6px 16px;
+        border-radius:20px;
+        font-size:12px;
+      }
+
+      .campanhaTexto h2{
+        margin-top:14px;
+        font-weight:700;
+        font-size:34px;
+      }
+
+      .campanhaTexto p{
+        color:#666;
+        max-width:600px;
+        margin:auto;
+      }
+
+      .btnVerCampanha{
+        margin-top:18px;
+        background:#c78c5c;
+        color:white;
+        padding:10px 22px;
+        border-radius:10px;
+        text-decoration:none;
+        font-weight:600;
+      }
+
+      .produtoCard{
+        background:white;
+        border-radius:16px;
+        overflow:hidden;
+        transition:0.25s;
+        box-shadow:0 6px 18px rgba(0,0,0,0.08);
+        height:100%;
+      }
+
+      .produtoCard:hover{
+        transform:translateY(-6px);
+        box-shadow:0 14px 28px rgba(0,0,0,0.12);
+      }
+
+      .produtoImagem{
+        position:relative;
+        height:230px;
+        overflow:hidden;
+      }
+
+      .produtoImagem img{
+        width:100%;
+        height:100%;
+        object-fit:cover;
+        transition:0.3s;
+      }
+
+      .produtoCard:hover img{
+        transform:scale(1.05);
+      }
+
+      .badgeProduto{
+        position:absolute;
+        top:12px;
+        left:12px;
+        background:#2e7d32;
+        color:white;
+        padding:5px 14px;
+        border-radius:20px;
+        font-size:11px;
+      }
+
+      .produtoInfo{
+        padding:18px;
+      }
+
+      .produtoInfo h5{
+        font-size:17px;
+        font-weight:600;
+      }
+
+      .descricao{
+        font-size:13px;
+        color:#777;
+        margin:6px 0;
+      }
+
+      .preco{
+        font-size:22px;
+        font-weight:700;
+        color:#c78c5c;
+        margin-bottom:10px;
+      }
+
+      .botoes{
+        display:flex;
+        gap:8px;
+      }
+
+      .btnDetalhes{
+        flex:1;
+        border:1px solid #ddd;
+        padding:8px;
+        border-radius:8px;
+        text-align:center;
+        text-decoration:none;
+        font-size:14px;
+      }
+
+      .btnComprar{
+        flex:1;
+        background:#c78c5c;
+        color:white;
+        border:none;
+        border-radius:8px;
+        font-size:14px;
+        font-weight:600;
+      }
+
+      .semImagem{
+        height:100%;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        background:#eee;
+      }
+
+      `}</style>
     </section>
   );
 }
