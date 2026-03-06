@@ -4,13 +4,6 @@ import useCategoria from "@/hooks/categoria/useCategoria";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
-type Categoria = {
-  id_categoria?: number | string;
-  nome?: string;
-  slug?: string;
-  icone?: string;
-};
-
 export default function CategoriasDestaque() {
   const { categorias, loading, erro } = useCategoria();
 
@@ -22,17 +15,12 @@ export default function CategoriasDestaque() {
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
 
-  const top = useMemo(() => {
-    const lista = Array.isArray(categorias) ? categorias : [];
-    return lista.slice(0, 12) as Categoria[];
-  }, [categorias]);
-
+  const top = useMemo(() => categorias.slice(0, 12), [categorias]);
   const showArrows = top.length > 6;
 
   const updateArrows = () => {
     const el = railRef.current;
     if (!el) return;
-
     const max = el.scrollWidth - el.clientWidth;
     setCanLeft(el.scrollLeft > 6);
     setCanRight(el.scrollLeft < max - 6);
@@ -59,14 +47,11 @@ export default function CategoriasDestaque() {
   const scrollByCards = (dir: "left" | "right") => {
     const el = railRef.current;
     if (!el) return;
-
-    const amount = Math.max(280, Math.floor(el.clientWidth * 0.78));
-    el.scrollBy({
-      left: dir === "left" ? -amount : amount,
-      behavior: "smooth",
-    });
+    const amount = Math.max(280, Math.floor(el.clientWidth * 0.75));
+    el.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
   };
 
+  // ===== Drag to scroll (mouse) + touch friendly =====
   const onMouseDown = (e: React.MouseEvent) => {
     const el = railRef.current;
     if (!el) return;
@@ -74,13 +59,20 @@ export default function CategoriasDestaque() {
     isDownRef.current = true;
     startXRef.current = e.pageX;
     startScrollLeftRef.current = el.scrollLeft;
+
     el.classList.add("dragging");
   };
 
-  const stopDragging = () => {
+  const onMouseLeave = () => {
     const el = railRef.current;
     if (!el) return;
+    isDownRef.current = false;
+    el.classList.remove("dragging");
+  };
 
+  const onMouseUp = () => {
+    const el = railRef.current;
+    if (!el) return;
     isDownRef.current = false;
     el.classList.remove("dragging");
   };
@@ -94,41 +86,41 @@ export default function CategoriasDestaque() {
     el.scrollLeft = startScrollLeftRef.current - dx;
   };
 
-  if (loading) return null;
-  if (erro) return null;
-  if (!top.length) return null;
+  // ⚠️ retorno somente depois de todos os hooks
+  if (loading || erro || categorias.length === 0) return null;
 
   return (
     <>
-      <section className="categoriasSection" aria-label="Categorias em destaque">
-        <div className="container">
+      <section className="sec" aria-label="Categorias em destaque">
+        <div className="wrap">
           <div className="surface">
-            <header className="header">
-              <div className="headerLeft">
-                <div className="tag">
-                  <span className="tagDot" />
-                  <span>CATEGORIAS</span>
+            <header className="head">
+              <div className="titleBlock">
+                <div className="kicker">
+                  <span className="kDot" />
+                  CATEGORIAS
                 </div>
 
-                <h2 className="title">Categorias em destaque</h2>
-                <p className="subtitle">
-                  Escolha uma categoria para ver os produtos disponíveis.
-                </p>
+                <h2 className="h2">Categorias em destaque</h2>
+                <p className="sub">Escolha uma categoria para ver os produtos disponíveis.</p>
               </div>
 
-              <div className="headerRight">
-                <Link href="/catalogo" className="allBtn">
+              <div className="rightSide">
+                <Link className="allBtn" href="/catalogo">
                   Ver todas <span aria-hidden>→</span>
                 </Link>
               </div>
             </header>
 
-            <div className="carouselWrap">
+            <div className="railWrap">
+              <div className={`fade left ${canLeft ? "on" : ""}`} />
+              <div className={`fade right ${canRight ? "on" : ""}`} />
+
               {showArrows && (
                 <>
                   <button
                     type="button"
-                    className={`navBtn left ${canLeft ? "show" : ""}`}
+                    className={`arrow left ${canLeft ? "on" : ""}`}
                     onClick={() => scrollByCards("left")}
                     aria-label="Ver categorias anteriores"
                   >
@@ -137,7 +129,7 @@ export default function CategoriasDestaque() {
 
                   <button
                     type="button"
-                    className={`navBtn right ${canRight ? "show" : ""}`}
+                    className={`arrow right ${canRight ? "on" : ""}`}
                     onClick={() => scrollByCards("right")}
                     aria-label="Ver próximas categorias"
                   >
@@ -150,36 +142,36 @@ export default function CategoriasDestaque() {
                 ref={railRef}
                 className="rail"
                 onMouseDown={onMouseDown}
-                onMouseLeave={stopDragging}
-                onMouseUp={stopDragging}
+                onMouseLeave={onMouseLeave}
+                onMouseUp={onMouseUp}
                 onMouseMove={onMouseMove}
                 role="list"
                 aria-label="Lista de categorias"
               >
-                {top.map((c, index) => {
-                  const nome = String(c?.nome || "Categoria");
-                  const slug = String(c?.slug || "").trim();
+                {top.map((c: any) => {
+                  const slug = (c?.slug || "").toString().trim();
                   const href = slug
                     ? `/catalogo/categoria/${encodeURIComponent(slug)}`
                     : "/catalogo";
 
                   return (
                     <Link
-                      key={String(c?.id_categoria || slug || index)}
+                      key={slug || c.id_categoria}
+                      className={`item ${slug ? "" : "disabled"}`}
                       href={href}
-                      className={`card ${slug ? "" : "disabled"}`}
                       draggable={false}
                       role="listitem"
                     >
-                      <span className="circle">
-                        <span className="circleInner">
-                          <i className={`bi ${c?.icone || "bi-grid"} icon`} />
+                      <span className="orb">
+                        <span className="orbGlow" />
+                        <span className="orbRing" />
+                        <span className="orbInner">
+                          <i className={`bi ${c.icone || "bi-grid"} icon`} />
                         </span>
                       </span>
 
-                      <span className="name" title={nome}>
-                        {nome}
-                      </span>
+                      <span className="name">{c.nome}</span>
+                      <span className="hint">Ver produtos →</span>
                     </Link>
                   );
                 })}
@@ -191,409 +183,353 @@ export default function CategoriasDestaque() {
 
       <style jsx>{`
         :global(:root) {
-          --bg-page: #f6f2ee;
-          --bg-surface: #f8f5f2;
-          --bg-card: #ffffff;
+          --cream: #fff6ee;
+          --paper: rgba(255, 255, 255, 0.78);
 
-          --text-main: #111827;
-          --text-soft: #6b7280;
+          --ink: #111827;
+          --muted: rgba(17, 24, 39, 0.62);
 
-          --border-surface: #e7e0da;
-          --border-card: #e6e2dd;
-          --border-btn: #ddd7d1;
+          --rose: #b76e79;
+          --rose2: #d9a5ad;
+          --gold: #d4af37;
 
-          --gold: #d3b06c;
-          --rose: #d8b2bc;
+          --line: rgba(17, 24, 39, 0.10);
 
-          --shadow-soft: 0 6px 18px rgba(17, 24, 39, 0.05);
-          --shadow-hover: 0 10px 28px rgba(17, 24, 39, 0.08);
+          --shadow: 0 18px 54px rgba(17, 24, 39, 0.10);
+          --shadow2: 0 32px 92px rgba(17, 24, 39, 0.18);
         }
 
-        .categoriasSection {
-          padding: 34px 0 56px;
-          background: transparent;
+        .sec {
+          padding: 52px 0 78px;
+          background:
+            radial-gradient(1100px 480px at 10% -14%, rgba(183, 110, 121, 0.12), transparent 62%),
+            radial-gradient(980px 460px at 90% -14%, rgba(212, 175, 55, 0.10), transparent 64%),
+            linear-gradient(180deg, rgba(255, 246, 238, 0.0), rgba(255, 246, 238, 0.55));
         }
 
-        .container {
-          width: min(1280px, 100%);
+        .wrap {
+          width: min(1240px, 100%);
           margin: 0 auto;
-          padding: 0 18px;
+          padding: 0 clamp(14px, 4vw, 28px);
         }
 
         .surface {
-          position: relative;
-          background: linear-gradient(180deg, #f8f5f2 0%, #f6f2ee 100%);
-          border: 1px solid var(--border-surface);
-          border-radius: 30px;
-          padding: 26px 18px 26px;
+          border-radius: 26px;
+          border: 1px solid rgba(255, 255, 255, 0.55);
+          background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.52));
+          box-shadow: 0 24px 80px rgba(17, 24, 39, 0.10);
+          backdrop-filter: blur(14px);
           overflow: hidden;
+          position: relative;
         }
 
-        .header {
+        .surface::before {
+          content: "";
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(700px 240px at 14% 0%, rgba(183, 110, 121, 0.12), transparent 60%),
+            radial-gradient(680px 240px at 86% 0%, rgba(212, 175, 55, 0.10), transparent 60%);
+          pointer-events: none;
+        }
+
+        .head {
+          position: relative;
+          z-index: 1;
+          padding: 22px 22px 10px;
           display: flex;
-          align-items: center;
+          align-items: flex-end;
           justify-content: space-between;
-          gap: 18px;
-          margin-bottom: 22px;
-          padding: 0 8px;
+          gap: 16px;
           flex-wrap: wrap;
         }
 
-        .headerLeft {
-          min-width: 0;
+        .titleBlock {
+          max-width: 760px;
         }
 
-        .tag {
+        .kicker {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          padding: 7px 14px;
+          gap: 10px;
+          padding: 8px 12px;
           border-radius: 999px;
-          background: #f1ece7;
-          border: 1px solid #ddd6cf;
-          color: #667085;
+          background: rgba(17, 24, 39, 0.04);
+          border: 1px solid rgba(17, 24, 39, 0.08);
           font-size: 12px;
-          font-weight: 800;
-          letter-spacing: 0.08em;
+          color: rgba(17, 24, 39, 0.70);
+          font-weight: 950;
+          letter-spacing: 0.9px;
+          width: fit-content;
+          margin-bottom: 10px;
           text-transform: uppercase;
-          margin-bottom: 14px;
         }
 
-        .tagDot {
+        .kDot {
           width: 10px;
           height: 10px;
           border-radius: 999px;
-          background: linear-gradient(135deg, var(--gold), #c88977);
-          flex-shrink: 0;
+          background: linear-gradient(135deg, var(--gold), var(--rose));
+          box-shadow: 0 0 0 6px rgba(212, 175, 55, 0.10);
         }
 
-        .title {
+        .h2 {
           margin: 0;
-          color: #0f172a;
-          font-size: clamp(30px, 3.2vw, 40px);
+          font-size: clamp(24px, 2.4vw, 34px);
+          letter-spacing: -0.05em;
+          color: var(--ink);
+          font-weight: 950;
           line-height: 1.05;
-          font-weight: 900;
-          letter-spacing: -0.04em;
         }
 
-        .subtitle {
-          margin: 12px 0 0;
-          color: var(--text-soft);
-          font-size: 16px;
-          line-height: 1.55;
+        .sub {
+          margin: 10px 0 0;
+          color: var(--muted);
+          font-size: 14px;
+          line-height: 1.6;
         }
 
-        .headerRight {
+        .rightSide {
           margin-left: auto;
           display: flex;
           align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          justify-content: flex-end;
         }
 
         .allBtn {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 13px 18px;
-          min-height: 48px;
+          border: 1px solid rgba(17, 24, 39, 0.10);
+          background: rgba(255, 255, 255, 0.72);
           border-radius: 999px;
-          text-decoration: none;
-          color: #374151;
-          background: #ffffff;
-          border: 1px solid var(--border-btn);
-          font-size: 15px;
-          font-weight: 700;
+          padding: 12px 14px;
+          font-size: 12px;
+          font-weight: 950;
+          color: rgba(17, 24, 39, 0.86);
+          box-shadow: 0 18px 44px rgba(17, 24, 39, 0.08);
+          transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+          cursor: pointer;
           white-space: nowrap;
-          box-shadow: 0 2px 8px rgba(17, 24, 39, 0.03);
-          transition: transform 0.2s ease, box-shadow 0.2s ease,
-            background 0.2s ease;
+          text-decoration: none;
         }
-
         .allBtn:hover {
           transform: translateY(-1px);
-          background: #fff;
-          box-shadow: 0 6px 18px rgba(17, 24, 39, 0.05);
+          background: rgba(255, 255, 255, 0.92);
+          box-shadow: 0 28px 70px rgba(17, 24, 39, 0.12);
         }
 
-        .carouselWrap {
+        .railWrap {
           position: relative;
+          padding: 8px 0 18px;
         }
 
+        .fade {
+          position: absolute;
+          top: 0;
+          bottom: 0;
+          width: 70px;
+          opacity: 0;
+          transition: opacity 0.2s ease;
+          pointer-events: none;
+          z-index: 2;
+        }
+        .fade.on { opacity: 1; }
+        .fade.left {
+          left: 0;
+          background: linear-gradient(90deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0));
+        }
+        .fade.right {
+          right: 0;
+          background: linear-gradient(270deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0));
+        }
+
+        .arrow {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 44px;
+          height: 44px;
+          border-radius: 16px;
+          border: 1px solid rgba(17, 24, 39, 0.12);
+          background: rgba(255, 255, 255, 0.62);
+          backdrop-filter: blur(14px);
+          box-shadow: 0 18px 56px rgba(17, 24, 39, 0.14);
+          display: grid;
+          place-items: center;
+          cursor: pointer;
+          z-index: 3;
+          opacity: 0;
+          pointer-events: none;
+          transition: opacity 0.2s ease, transform 0.18s ease, background 0.18s ease;
+        }
+        .arrow.on {
+          opacity: 1;
+          pointer-events: auto;
+        }
+        .arrow:hover {
+          transform: translateY(-50%) translateY(-1px);
+          background: rgba(255, 255, 255, 0.82);
+        }
+        .arrow.left { left: 10px; }
+        .arrow.right { right: 10px; }
+        .arrow span {
+          font-size: 24px;
+          font-weight: 950;
+          color: rgba(17, 24, 39, 0.78);
+          line-height: 1;
+        }
+
+        /* ====== SEMPRE CARROSSEL (inclusive desktop) ====== */
         .rail {
+          position: relative;
+          z-index: 1;
           display: grid;
           grid-auto-flow: column;
           grid-auto-columns: max-content;
-          gap: 16px;
+          gap: 14px;
           overflow-x: auto;
-          padding: 4px 58px 6px;
+          padding: 10px 60px 6px;
+
           scroll-snap-type: x mandatory;
-          scrollbar-width: none;
           -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+
           cursor: grab;
           user-select: none;
-          align-items: stretch;
+          overscroll-behavior-x: contain;
         }
+        .rail::-webkit-scrollbar { display: none; }
+        .rail.dragging { cursor: grabbing; }
 
-        .rail::-webkit-scrollbar {
-          display: none;
-        }
-
-        .rail.dragging {
-          cursor: grabbing;
-        }
-
-        .card {
-          width: 158px;
-          min-height: 188px;
-          padding: 16px 12px 18px;
-          border-radius: 24px;
-          background: var(--bg-card);
-          border: 1px solid var(--border-card);
+        .item {
+          scroll-snap-align: start;
+          width: 160px;
+          display: grid;
+          justify-items: center;
+          gap: 10px;
+          padding: 16px 12px 14px;
+          border-radius: 22px;
           text-decoration: none;
           color: inherit;
-          scroll-snap-align: start;
+          user-select: none;
+          -webkit-tap-highlight-color: transparent;
 
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          gap: 14px;
+          border: 1px solid rgba(17, 24, 39, 0.10);
+          background: rgba(255, 255, 255, 0.62);
+          backdrop-filter: blur(14px);
+          box-shadow: 0 16px 48px rgba(17, 24, 39, 0.08);
 
-          transition: transform 0.2s ease, box-shadow 0.2s ease,
-            border-color 0.2s ease;
+          transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
         }
 
-        .card:hover {
-          transform: translateY(-3px);
-          box-shadow: var(--shadow-hover);
-          border-color: #ddd6d0;
-        }
+        .item.disabled { opacity: 0.72; }
 
-        .card.disabled {
-          opacity: 0.72;
-        }
-
-        .circle {
-          width: 100px;
-          height: 100px;
+        .orb {
+          width: 96px;
+          height: 96px;
           border-radius: 999px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: linear-gradient(135deg, #d3b06c 0%, #d9b4c0 100%);
-          flex-shrink: 0;
+          position: relative;
+          display: grid;
+          place-items: center;
+          overflow: hidden;
+          transform: translateZ(0);
         }
 
-        .circleInner {
-          width: 82px;
-          height: 82px;
+        .orbGlow {
+          position: absolute;
+          inset: -40px;
+          background:
+            radial-gradient(circle at 26% 30%, rgba(212, 175, 55, 0.22), transparent 56%),
+            radial-gradient(circle at 72% 76%, rgba(183, 110, 121, 0.18), transparent 60%);
+        }
+
+        .orbRing {
+          position: absolute;
+          inset: 0;
           border-radius: 999px;
-          background: #ffffff;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          background: conic-gradient(
+            from 210deg,
+            rgba(212, 175, 55, 0.92),
+            rgba(183, 110, 121, 0.84),
+            rgba(255, 255, 255, 0.22),
+            rgba(183, 110, 121, 0.88),
+            rgba(212, 175, 55, 0.92)
+          );
+          opacity: 0.42;
+        }
+
+        .orbInner {
+          position: relative;
+          z-index: 1;
+          width: 78px;
+          height: 78px;
+          border-radius: 999px;
+          display: grid;
+          place-items: center;
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid rgba(17, 24, 39, 0.10);
+          box-shadow: var(--shadow);
         }
 
         .icon {
           font-size: 30px;
-          color: #3f4652;
-          line-height: 1;
+          color: rgba(17, 24, 39, 0.84);
+          transition: transform 0.18s ease, color 0.18s ease;
         }
 
         .name {
           width: 100%;
-          max-width: 100%;
           text-align: center;
-          color: #1f2937;
-          font-size: 15px;
-          font-weight: 800;
-          line-height: 1.3;
-
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
+          font-size: 13px;
+          font-weight: 950;
+          color: rgba(17, 24, 39, 0.92);
+          letter-spacing: -0.01em;
+          line-height: 1.15;
           overflow: hidden;
-          word-break: break-word;
-          min-height: 39px;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
-        .navBtn {
-          position: absolute;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 48px;
-          height: 48px;
-          border-radius: 16px;
-          border: 1px solid #e1dbd5;
-          background: #f6f2ee;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          z-index: 4;
+        .hint {
+          font-size: 12px;
+          font-weight: 850;
+          color: rgba(17, 24, 39, 0.52);
           opacity: 0;
-          pointer-events: none;
-          box-shadow: var(--shadow-soft);
-          transition: opacity 0.2s ease, background 0.2s ease,
-            transform 0.2s ease;
+          transform: translateY(-2px);
+          transition: 0.18s ease;
         }
 
-        .navBtn.show {
-          opacity: 1;
-          pointer-events: auto;
-        }
-
-        .navBtn:hover {
-          background: #ffffff;
-        }
-
-        .navBtn.left {
-          left: 10px;
-        }
-
-        .navBtn.right {
-          right: 10px;
-        }
-
-        .navBtn span {
-          font-size: 28px;
-          color: #4b5563;
-          line-height: 1;
-          margin-top: -1px;
-        }
-
-        @media (max-width: 1024px) {
-          .surface {
-            padding: 24px 14px 24px;
+        @media (hover: hover) and (pointer: fine) {
+          .item:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow2);
+            background: rgba(255, 255, 255, 0.78);
           }
-
-          .rail {
-            padding: 4px 54px 6px;
+          .item:hover .icon {
+            transform: scale(1.06);
+            color: rgba(159, 61, 95, 0.92);
           }
-
-          .card {
-            width: 152px;
-            min-height: 182px;
+          .item:hover .hint {
+            opacity: 1;
+            transform: translateY(0);
           }
         }
 
-        @media (max-width: 768px) {
-          .header {
-            align-items: flex-start;
-          }
+        .item:active { transform: translateY(-1px) scale(0.995); }
 
-          .headerRight {
-            margin-left: 0;
-          }
-
-          .title {
-            font-size: 30px;
-          }
-
-          .subtitle {
-            font-size: 14px;
-          }
-
-          .card {
-            width: 146px;
-            min-height: 176px;
-            border-radius: 22px;
-          }
-
-          .circle {
-            width: 92px;
-            height: 92px;
-          }
-
-          .circleInner {
-            width: 74px;
-            height: 74px;
-          }
-
-          .icon {
-            font-size: 27px;
-          }
-
-          .name {
-            font-size: 14px;
-            min-height: 36px;
-          }
+        .item:focus-visible {
+          outline: 3px solid rgba(183, 110, 121, 0.22);
+          outline-offset: 6px;
         }
 
         @media (max-width: 520px) {
-          .categoriasSection {
-            padding: 26px 0 42px;
-          }
-
-          .container {
-            padding: 0 12px;
-          }
-
-          .surface {
-            border-radius: 24px;
-            padding: 18px 10px 18px;
-          }
-
-          .header {
-            padding: 0 6px;
-            margin-bottom: 18px;
-          }
-
-          .tag {
-            margin-bottom: 12px;
-          }
-
-          .title {
-            font-size: 27px;
-          }
-
-          .subtitle {
-            margin-top: 10px;
-          }
-
-          .allBtn {
-            min-height: 44px;
-            padding: 11px 16px;
-            font-size: 14px;
-          }
-
-          .rail {
-            gap: 14px;
-            padding: 4px 48px 6px;
-          }
-
-          .card {
-            width: 140px;
-            min-height: 170px;
-            padding: 14px 10px 16px;
-          }
-
-          .circle {
-            width: 86px;
-            height: 86px;
-          }
-
-          .circleInner {
-            width: 70px;
-            height: 70px;
-          }
-
-          .icon {
-            font-size: 24px;
-          }
-
-          .navBtn {
-            width: 44px;
-            height: 44px;
-            border-radius: 14px;
-          }
+          .head { padding: 18px 16px 8px; }
+          .rail { padding: 10px 54px 6px; }
+          .item { width: 150px; }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .card,
-          .allBtn,
-          .navBtn {
-            transition: none !important;
-          }
+          .item, .allBtn, .arrow, .icon, .hint { transition: none !important; }
         }
       `}</style>
     </>
