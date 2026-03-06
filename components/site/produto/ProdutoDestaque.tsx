@@ -1,8 +1,8 @@
-// ProdutoDestaque.tsx
 "use client";
 
 import api from "@/Api/conectar";
 import { rotas } from "@/components/Bibioteca/config/rotas";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 type ProdutoDestaqueApi = {
@@ -29,14 +29,11 @@ type ApiResponse<T> = {
 };
 
 function resolveApiData<T>(payload: any): T {
-  // array direto
   if (Array.isArray(payload)) return payload as T;
 
-  // formatos comuns
   if (payload?.data != null) return payload.data as T;
   if (payload?.dados != null) return payload.dados as T;
 
-  // aninhados comuns: {dados:{dados:[...]}} / {data:{data:[...]}}
   if (payload?.dados?.dados != null) return payload.dados.dados as T;
   if (payload?.data?.data != null) return payload.data.data as T;
 
@@ -46,15 +43,48 @@ function resolveApiData<T>(payload: any): T {
 function toNumber(v: unknown): number | null {
   if (v == null) return null;
   if (typeof v === "number") return Number.isFinite(v) ? v : null;
+
   if (typeof v === "string") {
-    const n = Number(v.replace(",", "."));
+    let cleaned = v.trim();
+    if (!cleaned) return null;
+
+    cleaned = cleaned.replace(/R\$/gi, "").replace(/\s/g, "");
+
+    const hasComma = cleaned.includes(",");
+    const hasDot = cleaned.includes(".");
+
+    if (hasComma && hasDot) {
+      if (cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")) {
+        cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+      } else {
+        cleaned = cleaned.replace(/,/g, "");
+      }
+    } else if (hasComma) {
+      cleaned = cleaned.replace(",", ".");
+    } else {
+      const dots = (cleaned.match(/\./g) || []).length;
+
+      if (dots > 1) {
+        const lastDot = cleaned.lastIndexOf(".");
+        cleaned =
+          cleaned.slice(0, lastDot).replace(/\./g, "") + cleaned.slice(lastDot);
+      }
+    }
+
+    cleaned = cleaned.replace(/[^\d.-]/g, "");
+
+    const n = Number(cleaned);
     return Number.isFinite(n) ? n : null;
   }
+
   return null;
 }
 
 function formatBRL(value: number) {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return value.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
 }
 
 function buildImageUrl(path: string | null): string | null {
@@ -86,19 +116,21 @@ export default function ProdutoDestaque() {
       setErro(null);
 
       try {
-        // ✅ ROTA DO BACKEND: GET /produtos/destaques
         const endpoint = rotas.produtos.destaques.listar;
+
+        console.log("[ProdutoDestaque] buscando destaques:", endpoint);
 
         const res = await api.get<ApiResponse<ProdutoDestaqueApi[]>>(endpoint, {
           withCredentials: true,
         });
+
+        console.log("[ProdutoDestaque] resposta destaques:", res.data);
 
         const data = resolveApiData<ProdutoDestaqueApi[]>(res.data);
         if (!alive) return;
 
         const finalArray = Array.isArray(data) ? data : [];
 
-        // ✅ opcional: ordena por ordem (se existir)
         finalArray.sort(
           (a, b) => Number(a.ordem ?? 9999) - Number(b.ordem ?? 9999)
         );
@@ -106,6 +138,11 @@ export default function ProdutoDestaque() {
         setItens(finalArray);
       } catch (e: any) {
         if (!alive) return;
+
+        console.error(
+          "[ProdutoDestaque] erro ao carregar:",
+          e?.response?.data || e
+        );
 
         setErro(
           e?.response?.data?.message ||
@@ -127,21 +164,46 @@ export default function ProdutoDestaque() {
     };
   }, []);
 
-  async function adicionarCarrinho(produtoId: number) {
+  async function adicionarCarrinho(item: ProdutoDestaqueApi) {
     try {
+      const produtoId = Number(item.produto_id || 0);
+
+      if (!produtoId) {
+        alert("Produto inválido para adicionar ao carrinho.");
+        return;
+      }
+
+      if (addingId) return;
+
       setAddingId(produtoId);
 
-      await api.post(
-        rotas.carrinho.adicionar,
-        { produto_id: produtoId, qtd: 1 },
-        { withCredentials: true }
+      const payload = {
+        produto_id: produtoId,
+        quantidade: 1,
+      };
+
+      console.log("[ProdutoDestaque] enviando para carrinho:", {
+        rota: rotas.carrinho.adicionar,
+        payload,
+      });
+
+      const res = await api.post(rotas.carrinho.adicionar, payload, {
+        withCredentials: true,
+      });
+
+      console.log("[ProdutoDestaque] resposta carrinho:", res.data);
+
+      alert(`"${item.produto_nome}" foi adicionado ao carrinho!`);
+    } catch (e: any) {
+      console.error(
+        "[ProdutoDestaque] erro ao adicionar no carrinho:",
+        e?.response?.data || e
       );
 
-      alert("Adicionado ao carrinho!");
-    } catch (e: any) {
       alert(
         e?.response?.data?.message ||
           e?.response?.data?.mensagem ||
+          e?.response?.data?.erro ||
           e?.message ||
           "Erro ao adicionar no carrinho"
       );
@@ -174,9 +236,11 @@ export default function ProdutoDestaque() {
       const semEstoque =
         (ilimitado ?? 0) !== 1 && estoque != null && estoque <= 0;
 
+      const adicionando = addingId === item.produto_id;
+
       return (
         <article key={`${item.produto_id}-${item.ordem ?? ""}`} className="pdCard">
-          <a
+          <Link
             className="pdMedia"
             href={detalhesHref}
             aria-label={`Detalhes ${item.produto_nome}`}
@@ -200,7 +264,7 @@ export default function ProdutoDestaque() {
             ) : null}
 
             {semEstoque ? <div className="pdStock">Esgotado</div> : null}
-          </a>
+          </Link>
 
           <div className="pdBody">
             <div className="pdTitle">{item.produto_nome}</div>
@@ -214,6 +278,7 @@ export default function ProdutoDestaque() {
                     ? formatBRL(precoFinal)
                     : "Preço sob consulta"}
                 </div>
+
                 {temPromo && preco != null ? (
                   <div className="pdOldPrice">{formatBRL(preco)}</div>
                 ) : null}
@@ -225,19 +290,20 @@ export default function ProdutoDestaque() {
             </div>
 
             <div className="pdActions">
-              <a href={detalhesHref} className="pdBtn pdBtnGhost">
+              <Link href={detalhesHref} className="pdBtn pdBtnGhost">
                 Detalhes
-              </a>
+              </Link>
 
               <button
+                type="button"
                 className="pdBtn pdBtnPrimary"
-                onClick={() => adicionarCarrinho(item.produto_id)}
-                disabled={semEstoque || addingId === item.produto_id}
+                onClick={() => adicionarCarrinho(item)}
+                disabled={semEstoque || adicionando}
               >
                 {semEstoque
                   ? "Indisponível"
-                  : addingId === item.produto_id
-                  ? "Adicionando…"
+                  : adicionando
+                  ? "Adicionando..."
                   : "Adicionar"}
               </button>
             </div>
@@ -276,9 +342,9 @@ export default function ProdutoDestaque() {
               </div>
 
               <div className="pdBannerCTA">
-                <a className="pdBannerBtn" href={rotas.produtos.catalogo}>
+                <Link className="pdBannerBtn" href={rotas.produtos.catalogo}>
                   Ver catálogo
-                </a>
+                </Link>
                 <div className="pdBannerHint">Atualizado diariamente</div>
               </div>
 
@@ -310,14 +376,12 @@ export default function ProdutoDestaque() {
       </div>
 
       <style>{`
-        /* ===== Fundo creme premium ===== */
         .pdWrap{
           padding: 34px 16px 46px;
           background: radial-gradient(1200px 520px at 18% 0%, #fffaf1 0%, #f6efe4 55%, #f1e7d9 100%);
         }
         .pdContainer{ max-width: 1140px; margin: 0 auto; }
 
-        /* ===== Header ===== */
         .pdHeader{
           display:flex; align-items:flex-end; justify-content:space-between;
           gap:16px; margin-bottom: 16px;
@@ -336,7 +400,6 @@ export default function ProdutoDestaque() {
           white-space: nowrap;
         }
 
-        /* ===== Layout 2 colunas ===== */
         .pdLayout{
           display: grid;
           grid-template-columns: 320px 1fr;
@@ -344,7 +407,6 @@ export default function ProdutoDestaque() {
           align-items: start;
         }
 
-        /* ===== Banner esquerdo ===== */
         .pdBanner{ position: sticky; top: 14px; }
         .pdBannerInner{
           border-radius: 22px; overflow: hidden;
@@ -380,7 +442,7 @@ export default function ProdutoDestaque() {
           box-shadow: 0 12px 24px rgba(184,137,98,.35);
           border: 1px solid rgba(255,255,255,.18);
         }
-        .pdBannerBtn:hover{ filter: brightness(1.02); }
+        .pdBannerBtn:hover{ filter: brightness(1.02); color:#fff; }
         .pdBannerHint{ font-size: 12px; color:#6b5a49; font-weight: 800; opacity: .9; text-align: right; }
         .pdBannerMini{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
         .pdBannerMiniBox{
@@ -392,10 +454,8 @@ export default function ProdutoDestaque() {
         .pdMiniLabel{ font-size: 11px; font-weight: 900; color:#6b5a49; opacity: .9; margin-bottom: 6px; }
         .pdMiniValue{ font-size: 13px; font-weight: 980; color:#2f261e; letter-spacing: -0.2px; }
 
-        /* ===== Área direita ===== */
         .pdRight{ min-width: 0; }
 
-        /* ===== Grid de cards ===== */
         .pdGrid{
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(260px, 260px));
@@ -403,7 +463,6 @@ export default function ProdutoDestaque() {
           justify-content: start;
         }
 
-        /* ===== Card ===== */
         .pdCard{
           width: 260px;
           border-radius: 22px;
@@ -514,7 +573,7 @@ export default function ProdutoDestaque() {
           color:#3f3327;
           border-color: rgba(111, 92, 73, .18);
         }
-        .pdBtnGhost:hover{ filter: brightness(0.98); }
+        .pdBtnGhost:hover{ filter: brightness(0.98); color:#3f3327; }
 
         .pdBtnPrimary{
           background: linear-gradient(135deg, #d1a67f 0%, #b88962 100%);
@@ -538,7 +597,6 @@ export default function ProdutoDestaque() {
           border-color: rgba(185,28,28,.18);
         }
 
-        /* ===== Responsivo ===== */
         @media (max-width: 980px){
           .pdLayout{ grid-template-columns: 1fr; }
           .pdBanner{ position: relative; top: 0; }
