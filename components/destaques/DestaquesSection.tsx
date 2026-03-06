@@ -21,6 +21,26 @@ function truncateText(text?: string, max = 80): string {
   return `${value.slice(0, max).trim()}...`;
 }
 
+function toNumber(value: unknown): number {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  if (typeof value === "string") {
+    const cleaned = value
+      .replace(/\s/g, "")
+      .replace(/R\$/gi, "")
+      .replace(/\./g, "")
+      .replace(",", ".")
+      .replace(/[^\d.-]/g, "");
+
+    const parsed = Number(cleaned);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  return 0;
+}
+
 export default function DestaquesSection() {
   const [campanha, setCampanha] = useState<CampanhaUI | null>(null);
   const [produtos, setProdutos] = useState<ProdutoUI[]>([]);
@@ -38,6 +58,8 @@ export default function DestaquesSection() {
 
       const c: CampanhaApi | null = dados?.campanha ?? null;
       const p: ProdutoApi[] = Array.isArray(dados?.produtos) ? dados.produtos : [];
+
+      console.log("PRODUTOS DA API:", p);
 
       if (!c || !p.length) {
         setCampanha(null);
@@ -60,7 +82,7 @@ export default function DestaquesSection() {
         nome: String(x.nome ?? ""),
         slug: String(x.slug ?? ""),
         descricao: String(x.descricao ?? ""),
-        preco: x.preco ?? 0,
+        preco: toNumber(x.preco),
         imagem: String(x.imagem ?? ""),
         ordem: Number(x.ordem ?? 0),
       }));
@@ -107,14 +129,23 @@ export default function DestaquesSection() {
 
       setAddingSlug(produto.slug);
 
-      await api.post("/carrinho/adicionar", {
-        produto_id: produto.id_produto,
+      const payload = {
+        produto_id: Number(produto.id_produto),
         quantidade: 1,
-      });
+      };
+
+      console.log("ENVIANDO PARA CARRINHO:", payload);
+
+      const res = await api.post("/carrinho/adicionar", payload);
+
+      console.log("RESPOSTA ADD CARRINHO:", res.data);
 
       alert(`"${produto.nome}" foi adicionado ao carrinho.`);
     } catch (error: any) {
-      console.error("Erro ao adicionar ao carrinho:", error);
+      console.error(
+        "Erro ao adicionar ao carrinho:",
+        error?.response?.data || error
+      );
 
       const mensagem =
         error?.response?.data?.mensagem ||
@@ -329,7 +360,7 @@ export default function DestaquesSection() {
                           </small>
 
                           <div className="mt-2 fw-bold ds-price">
-                            {formatMoney(p.preco)}
+                            {formatMoney(Number(p.preco || 0))}
                           </div>
 
                           <div className="mt-auto d-flex gap-2 pt-3">
