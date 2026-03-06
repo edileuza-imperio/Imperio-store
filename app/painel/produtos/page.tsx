@@ -129,21 +129,21 @@ function ModalBase({
   if (!open) return null;
 
   return (
-    <div style={styles.modalOverlay} onClick={onClose}>
-      <div style={styles.modalWrapper}>
-        <div style={styles.modalCard} onClick={(e) => e.stopPropagation()}>
-          <div style={styles.modalHeader}>
+    <div className="painel-modal-overlay" onClick={onClose}>
+      <div className="painel-modal-wrapper">
+        <div className="painel-modal-card" onClick={(e) => e.stopPropagation()}>
+          <div className="painel-modal-header">
             <div>
-              <h2 style={styles.modalTitle}>{title}</h2>
-              {subtitle ? <p style={styles.modalSubtitle}>{subtitle}</p> : null}
+              <h2>{title}</h2>
+              {subtitle ? <p>{subtitle}</p> : null}
             </div>
 
-            <button type="button" onClick={onClose} style={styles.closeButton}>
+            <button type="button" className="painel-modal-close" onClick={onClose}>
               ×
             </button>
           </div>
 
-          <div style={styles.modalContent}>{children}</div>
+          <div className="painel-modal-content">{children}</div>
         </div>
       </div>
     </div>
@@ -162,11 +162,8 @@ function TabButton({
   return (
     <button
       type="button"
+      className={`painel-tab-button ${active ? "active" : ""}`}
       onClick={onClick}
-      style={{
-        ...styles.tabButton,
-        ...(active ? styles.tabButtonActive : {}),
-      }}
     >
       {children}
     </button>
@@ -424,7 +421,11 @@ export default function ProdutosPainelPage() {
       await carregarTudo();
     } catch (error: any) {
       console.error(error);
-      alert(error?.response?.data?.mensagem || error?.response?.data?.message || "Erro ao salvar produto.");
+      alert(
+        error?.response?.data?.mensagem ||
+          error?.response?.data?.message ||
+          "Erro ao salvar produto."
+      );
     } finally {
       setSalvandoProduto(false);
     }
@@ -441,7 +442,11 @@ export default function ProdutosPainelPage() {
       await carregarTudo();
     } catch (error: any) {
       console.error(error);
-      alert(error?.response?.data?.mensagem || error?.response?.data?.message || "Erro ao excluir produto.");
+      alert(
+        error?.response?.data?.mensagem ||
+          error?.response?.data?.message ||
+          "Erro ao excluir produto."
+      );
     }
   }
 
@@ -467,7 +472,11 @@ export default function ProdutosPainelPage() {
       await carregarTudo();
     } catch (error: any) {
       console.error(error);
-      alert(error?.response?.data?.mensagem || error?.response?.data?.message || "Erro ao enviar imagens.");
+      alert(
+        error?.response?.data?.mensagem ||
+          error?.response?.data?.message ||
+          "Erro ao enviar imagens."
+      );
     } finally {
       setEnviandoImagens(false);
     }
@@ -489,7 +498,11 @@ export default function ProdutosPainelPage() {
       }
     } catch (error: any) {
       console.error(error);
-      alert(error?.response?.data?.mensagem || error?.response?.data?.message || "Erro ao remover imagem.");
+      alert(
+        error?.response?.data?.mensagem ||
+          error?.response?.data?.message ||
+          "Erro ao remover imagem."
+      );
     }
   }
 
@@ -507,825 +520,945 @@ export default function ProdutosPainelPage() {
       await carregarTudo();
     } catch (error: any) {
       console.error(error);
-      alert(error?.response?.data?.mensagem || error?.response?.data?.message || "Erro ao definir imagem principal.");
+      alert(
+        error?.response?.data?.mensagem ||
+          error?.response?.data?.message ||
+          "Erro ao definir imagem principal."
+      );
     }
   }
 
   return (
-    <div style={styles.page}>
-      <div style={styles.hero}>
-        <div>
-          <span style={styles.heroTag}>Painel • Catálogo</span>
-          <h1 style={styles.heroTitle}>Produtos</h1>
-          <p style={styles.heroText}>
-            Cadastre, edite, organize imagens e mantenha seu catálogo profissional.
-          </p>
-        </div>
+    <>
+      <div className="painel-produtos-page">
+        <section className="painel-produtos-hero">
+          <div>
+            <span className="painel-produtos-badge-top">Painel • Catálogo</span>
+            <h1>Produtos</h1>
+            <p>
+              Cadastre, edite, organize imagens e mantenha seu catálogo com aparência profissional.
+            </p>
+          </div>
 
-        <button type="button" onClick={abrirModalCriar} style={styles.primaryButton}>
-          + Novo produto
-        </button>
-      </div>
+          <button type="button" className="btn-primary-ui" onClick={abrirModalCriar}>
+            + Novo produto
+          </button>
+        </section>
 
-      <div style={styles.filterBar}>
-        <input
-          value={busca}
-          onChange={(e) => setBusca(e.target.value)}
-          placeholder="Buscar por nome, slug, SKU ou categoria..."
-          style={styles.input}
-        />
+        <section className="painel-produtos-filtros">
+          <input
+            className="painel-input"
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por nome, slug, SKU ou categoria..."
+          />
 
-        <select
-          value={categoriaFiltro}
-          onChange={(e) => setCategoriaFiltro(e.target.value)}
-          style={styles.input}
-        >
-          <option value="">Todas as categorias</option>
-          {categorias.map((cat) => (
-            <option key={cat.id_categoria} value={cat.nome}>
-              {cat.nome}
-            </option>
-          ))}
-        </select>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label style={styles.label}>Página</label>
           <select
-            value={paginaAtual}
-            onChange={(e) => setPaginaAtual(Number(e.target.value))}
-            style={styles.input}
+            className="painel-input"
+            value={categoriaFiltro}
+            onChange={(e) => setCategoriaFiltro(e.target.value)}
           >
-            {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((pagina) => (
-              <option key={pagina} value={pagina}>
-                {pagina}
+            <option value="">Todas as categorias</option>
+            {categorias.map((cat) => (
+              <option key={cat.id_categoria} value={cat.nome}>
+                {cat.nome}
               </option>
             ))}
           </select>
-        </div>
-      </div>
 
-      <div style={styles.counterBox}>
-        Mostrando <strong>{produtosPaginados.length}</strong> de{" "}
-        <strong>{produtosFiltrados.length}</strong> produtos
-      </div>
+          <div className="painel-select-group">
+            <label>Página</label>
+            <select
+              className="painel-input"
+              value={paginaAtual}
+              onChange={(e) => setPaginaAtual(Number(e.target.value))}
+            >
+              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((pagina) => (
+                <option key={pagina} value={pagina}>
+                  {pagina}
+                </option>
+              ))}
+            </select>
+          </div>
+        </section>
 
-      {loading ? (
-        <div style={styles.emptyState}>Carregando produtos...</div>
-      ) : produtosPaginados.length === 0 ? (
-        <div style={styles.emptyState}>Nenhum produto encontrado.</div>
-      ) : (
-        <div style={styles.cardGrid}>
-          {produtosPaginados.map((produto) => (
-            <div key={produto.id_produto} style={styles.card}>
-              <div style={styles.cardImageWrap}>
-                {produto.imagem ? (
-                  <img
-                    src={getImagemUrl(produto.imagem)}
-                    alt={produto.nome}
-                    style={styles.cardImage}
-                  />
-                ) : (
-                  <div style={styles.noImage}>Sem imagem</div>
-                )}
-
-                <div style={styles.cardBadges}>
-                  {produto.destaque ? <span style={styles.badgeGold}>Destaque</span> : null}
-                  {Number(produto.catalogo ?? 0) === 1 ? (
-                    <span style={styles.badgeGreen}>Catálogo</span>
-                  ) : null}
-                </div>
-              </div>
-
-              <div style={styles.cardBody}>
-                <span style={styles.categoryTag}>{produto.categoria_nome || "Sem categoria"}</span>
-
-                <h3 style={styles.cardTitle}>{produto.nome}</h3>
-
-                <p style={styles.cardText}>
-                  {produto.descricao?.trim()
-                    ? produto.descricao.length > 95
-                      ? `${produto.descricao.slice(0, 95)}...`
-                      : produto.descricao
-                    : "Sem descrição cadastrada."}
-                </p>
-
-                <div style={styles.infoList}>
-                  <div style={styles.infoItem}>
-                    <span>Preço</span>
-                    <strong>{formatMoney(produto.preco)}</strong>
-                  </div>
-
-                  <div style={styles.infoItem}>
-                    <span>Estoque</span>
-                    <strong>
-                      {Number(produto.ilimitado ?? 0) === 1 ? "Ilimitado" : Number(produto.estoque ?? 0)}
-                    </strong>
-                  </div>
-
-                  <div style={styles.infoItem}>
-                    <span>Slug</span>
-                    <strong>{produto.slug || "—"}</strong>
-                  </div>
-                </div>
-
-                <div style={styles.cardActions}>
-                  <button type="button" onClick={() => abrirModalEditar(produto)} style={styles.secondaryButton}>
-                    Editar
-                  </button>
-
-                  <button type="button" onClick={() => abrirModalImagens(produto)} style={styles.secondaryButton}>
-                    Imagens
-                  </button>
-
-                  <button type="button" onClick={() => excluirProduto(produto)} style={styles.dangerButton}>
-                    Excluir
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <ModalBase
-        open={modalProdutoOpen}
-        title={modoEdicao ? "Editar produto" : "Cadastrar produto"}
-        subtitle={modoEdicao ? "Atualize os dados do produto com mais organização." : "Preencha as informações do novo produto."}
-        onClose={fecharModalProduto}
-      >
-        <div style={styles.tabsBar}>
-          <TabButton active={produtoTab === "geral"} onClick={() => setProdutoTab("geral")}>
-            Geral
-          </TabButton>
-          <TabButton active={produtoTab === "preco"} onClick={() => setProdutoTab("preco")}>
-            Preço e estoque
-          </TabButton>
-          <TabButton active={produtoTab === "midia"} onClick={() => setProdutoTab("midia")}>
-            Mídia
-          </TabButton>
+        <div className="painel-counter-box">
+          Mostrando <strong>{produtosPaginados.length}</strong> de{" "}
+          <strong>{produtosFiltrados.length}</strong> produtos
         </div>
 
-        <form onSubmit={salvarProduto}>
-          {produtoTab === "geral" && (
-            <div style={styles.tabPanel}>
-              <div style={styles.fieldFull}>
-                <label style={styles.label}>Nome</label>
-                <input style={styles.input} value={form.nome} onChange={handleNomeChange} />
-              </div>
-
-              <div>
-                <label style={styles.label}>Slug</label>
-                <input
-                  style={styles.input}
-                  value={form.slug}
-                  onChange={(e) => handleChange("slug", slugify(e.target.value))}
-                />
-              </div>
-
-              <div>
-                <label style={styles.label}>SKU</label>
-                <input
-                  style={styles.input}
-                  value={form.sku}
-                  onChange={(e) => handleChange("sku", e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label style={styles.label}>Modelo</label>
-                <input
-                  style={styles.input}
-                  value={form.modelo}
-                  onChange={(e) => handleChange("modelo", e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label style={styles.label}>Categoria</label>
-                <select
-                  style={styles.input}
-                  value={form.categoria_id}
-                  onChange={(e) => handleChange("categoria_id", e.target.value)}
-                >
-                  <option value="">Selecione</option>
-                  {categorias.map((cat) => (
-                    <option key={cat.id_categoria} value={cat.id_categoria}>
-                      {cat.nome}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label style={styles.label}>Status</label>
-                <select
-                  style={styles.input}
-                  value={form.statusid}
-                  onChange={(e) => handleChange("statusid", e.target.value)}
-                >
-                  <option value="">Selecione</option>
-                  {statusList.map((status, index) => {
-                    const value = status.id_status ?? status.id ?? index + 1;
-                    const label = status.nome || status.titulo || status.codigo || `Status ${value}`;
-                    return (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-
-              <div style={styles.fieldFull}>
-                <label style={styles.label}>Descrição</label>
-                <textarea
-                  style={styles.textarea}
-                  value={form.descricao}
-                  onChange={(e) => handleChange("descricao", e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-
-          {produtoTab === "preco" && (
-            <div style={styles.tabPanel}>
-              <div>
-                <label style={styles.label}>Preço</label>
-                <input
-                  style={styles.input}
-                  value={form.preco}
-                  onChange={(e) => handleChange("preco", e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label style={styles.label}>Preço promocional</label>
-                <input
-                  style={styles.input}
-                  value={form.preco_promocional}
-                  onChange={(e) => handleChange("preco_promocional", e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label style={styles.label}>Estoque</label>
-                <input
-                  style={styles.input}
-                  type="number"
-                  min="0"
-                  value={form.estoque}
-                  onChange={(e) => handleChange("estoque", e.target.value)}
-                />
-              </div>
-
-              <div style={styles.switchBox}>
-                <label style={styles.checkboxRow}>
-                  <input
-                    type="checkbox"
-                    checked={form.catalogo}
-                    onChange={(e) => handleChange("catalogo", e.target.checked)}
-                  />
-                  Produto no catálogo
-                </label>
-
-                <label style={styles.checkboxRow}>
-                  <input
-                    type="checkbox"
-                    checked={form.ilimitado}
-                    onChange={(e) => handleChange("ilimitado", e.target.checked)}
-                  />
-                  Estoque ilimitado
-                </label>
-              </div>
-            </div>
-          )}
-
-          {produtoTab === "midia" && (
-            <div style={styles.tabPanel}>
-              <div>
-                <label style={styles.label}>Imagem principal</label>
-                <input
-                  style={styles.input}
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handleChange("imagem", e.target.files?.[0] || null)}
-                />
-              </div>
-
-              <div>
-                <label style={styles.label}>Prévia</label>
-                <div style={styles.previewBox}>
-                  {previewImagem ? (
-                    <img src={previewImagem} alt="Prévia" style={styles.previewImage} />
+        {loading ? (
+          <div className="painel-empty-box">Carregando produtos...</div>
+        ) : produtosPaginados.length === 0 ? (
+          <div className="painel-empty-box">Nenhum produto encontrado.</div>
+        ) : (
+          <section className="painel-card-grid">
+            {produtosPaginados.map((produto) => (
+              <article key={produto.id_produto} className="produto-card">
+                <div className="produto-card-image-wrap">
+                  {produto.imagem ? (
+                    <img
+                      src={getImagemUrl(produto.imagem)}
+                      alt={produto.nome}
+                      className="produto-card-image"
+                    />
                   ) : (
-                    <span style={{ color: "#6b7280" }}>Sem imagem</span>
+                    <div className="produto-card-no-image">Sem imagem</div>
                   )}
+
+                  <div className="produto-card-badges">
+                    {produto.destaque ? <span className="badge-gold">Destaque</span> : null}
+                    {Number(produto.catalogo ?? 0) === 1 ? (
+                      <span className="badge-green">Catálogo</span>
+                    ) : null}
+                  </div>
+                </div>
+
+                <div className="produto-card-body">
+                  <span className="produto-categoria-tag">
+                    {produto.categoria_nome || "Sem categoria"}
+                  </span>
+
+                  <h3>{produto.nome}</h3>
+
+                  <p>
+                    {produto.descricao?.trim()
+                      ? produto.descricao.length > 95
+                        ? `${produto.descricao.slice(0, 95)}...`
+                        : produto.descricao
+                      : "Sem descrição cadastrada."}
+                  </p>
+
+                  <div className="produto-info-list">
+                    <div className="produto-info-item">
+                      <span>Preço</span>
+                      <strong>{formatMoney(produto.preco)}</strong>
+                    </div>
+
+                    <div className="produto-info-item">
+                      <span>Estoque</span>
+                      <strong>
+                        {Number(produto.ilimitado ?? 0) === 1
+                          ? "Ilimitado"
+                          : Number(produto.estoque ?? 0)}
+                      </strong>
+                    </div>
+
+                    <div className="produto-info-item">
+                      <span>Slug</span>
+                      <strong>{produto.slug || "—"}</strong>
+                    </div>
+                  </div>
+
+                  <div className="produto-card-actions">
+                    <button
+                      type="button"
+                      className="btn-secondary-ui"
+                      onClick={() => abrirModalEditar(produto)}
+                    >
+                      Editar
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-secondary-ui"
+                      onClick={() => abrirModalImagens(produto)}
+                    >
+                      Imagens
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn-danger-ui"
+                      onClick={() => excluirProduto(produto)}
+                    >
+                      Excluir
+                    </button>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </section>
+        )}
+
+        <ModalBase
+          open={modalProdutoOpen}
+          title={modoEdicao ? "Editar produto" : "Cadastrar produto"}
+          subtitle={
+            modoEdicao
+              ? "Atualize os dados do produto com mais organização."
+              : "Preencha as informações do novo produto."
+          }
+          onClose={fecharModalProduto}
+        >
+          <div className="painel-tabs-bar">
+            <TabButton active={produtoTab === "geral"} onClick={() => setProdutoTab("geral")}>
+              Geral
+            </TabButton>
+            <TabButton active={produtoTab === "preco"} onClick={() => setProdutoTab("preco")}>
+              Preço e estoque
+            </TabButton>
+            <TabButton active={produtoTab === "midia"} onClick={() => setProdutoTab("midia")}>
+              Mídia
+            </TabButton>
+          </div>
+
+          <form onSubmit={salvarProduto}>
+            {produtoTab === "geral" && (
+              <div className="painel-tab-grid">
+                <div className="full">
+                  <label className="painel-label">Nome</label>
+                  <input className="painel-input" value={form.nome} onChange={handleNomeChange} />
+                </div>
+
+                <div>
+                  <label className="painel-label">Slug</label>
+                  <input
+                    className="painel-input"
+                    value={form.slug}
+                    onChange={(e) => handleChange("slug", slugify(e.target.value))}
+                  />
+                </div>
+
+                <div>
+                  <label className="painel-label">SKU</label>
+                  <input
+                    className="painel-input"
+                    value={form.sku}
+                    onChange={(e) => handleChange("sku", e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="painel-label">Modelo</label>
+                  <input
+                    className="painel-input"
+                    value={form.modelo}
+                    onChange={(e) => handleChange("modelo", e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="painel-label">Categoria</label>
+                  <select
+                    className="painel-input"
+                    value={form.categoria_id}
+                    onChange={(e) => handleChange("categoria_id", e.target.value)}
+                  >
+                    <option value="">Selecione</option>
+                    {categorias.map((cat) => (
+                      <option key={cat.id_categoria} value={cat.id_categoria}>
+                        {cat.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="painel-label">Status</label>
+                  <select
+                    className="painel-input"
+                    value={form.statusid}
+                    onChange={(e) => handleChange("statusid", e.target.value)}
+                  >
+                    <option value="">Selecione</option>
+                    {statusList.map((status, index) => {
+                      const value = status.id_status ?? status.id ?? index + 1;
+                      const label =
+                        status.nome || status.titulo || status.codigo || `Status ${value}`;
+                      return (
+                        <option key={value} value={value}>
+                          {label}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div className="full">
+                  <label className="painel-label">Descrição</label>
+                  <textarea
+                    className="painel-textarea"
+                    value={form.descricao}
+                    onChange={(e) => handleChange("descricao", e.target.value)}
+                  />
                 </div>
               </div>
+            )}
+
+            {produtoTab === "preco" && (
+              <div className="painel-tab-grid">
+                <div>
+                  <label className="painel-label">Preço</label>
+                  <input
+                    className="painel-input"
+                    value={form.preco}
+                    onChange={(e) => handleChange("preco", e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="painel-label">Preço promocional</label>
+                  <input
+                    className="painel-input"
+                    value={form.preco_promocional}
+                    onChange={(e) => handleChange("preco_promocional", e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="painel-label">Estoque</label>
+                  <input
+                    className="painel-input"
+                    type="number"
+                    min="0"
+                    value={form.estoque}
+                    onChange={(e) => handleChange("estoque", e.target.value)}
+                  />
+                </div>
+
+                <div className="painel-checks-box">
+                  <label className="painel-check-row">
+                    <input
+                      type="checkbox"
+                      checked={form.catalogo}
+                      onChange={(e) => handleChange("catalogo", e.target.checked)}
+                    />
+                    Produto no catálogo
+                  </label>
+
+                  <label className="painel-check-row">
+                    <input
+                      type="checkbox"
+                      checked={form.ilimitado}
+                      onChange={(e) => handleChange("ilimitado", e.target.checked)}
+                    />
+                    Estoque ilimitado
+                  </label>
+                </div>
+              </div>
+            )}
+
+            {produtoTab === "midia" && (
+              <div className="painel-tab-grid">
+                <div>
+                  <label className="painel-label">Imagem principal</label>
+                  <input
+                    className="painel-input"
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handleChange("imagem", e.target.files?.[0] || null)}
+                  />
+                </div>
+
+                <div>
+                  <label className="painel-label">Prévia</label>
+                  <div className="painel-preview-box">
+                    {previewImagem ? (
+                      <img src={previewImagem} alt="Prévia" className="painel-preview-image" />
+                    ) : (
+                      <span>Sem imagem</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="painel-modal-footer">
+              <button type="button" className="btn-secondary-ui" onClick={fecharModalProduto}>
+                Cancelar
+              </button>
+
+              <button type="submit" className="btn-primary-ui" disabled={salvandoProduto}>
+                {salvandoProduto
+                  ? "Salvando..."
+                  : modoEdicao
+                  ? "Salvar alterações"
+                  : "Cadastrar produto"}
+              </button>
             </div>
-          )}
+          </form>
+        </ModalBase>
 
-          <div style={styles.modalFooter}>
-            <button type="button" onClick={fecharModalProduto} style={styles.secondaryButton}>
-              Cancelar
-            </button>
-
-            <button type="submit" disabled={salvandoProduto} style={styles.primaryButton}>
-              {salvandoProduto
-                ? "Salvando..."
-                : modoEdicao
-                ? "Salvar alterações"
-                : "Cadastrar produto"}
+        <ModalBase
+          open={modalImagemOpen}
+          title="Galeria de imagens"
+          subtitle={produtoImagemAtual?.nome}
+          onClose={fecharModalImagens}
+        >
+          <div className="painel-upload-section">
+            <label className="painel-label">Adicionar novas imagens</label>
+            <input
+              className="painel-input"
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={(e) => setNovasImagens(Array.from(e.target.files || []))}
+            />
+            <button
+              type="button"
+              className="btn-primary-ui"
+              onClick={enviarImagens}
+              disabled={enviandoImagens}
+            >
+              {enviandoImagens ? "Enviando..." : "Enviar imagens"}
             </button>
           </div>
-        </form>
-      </ModalBase>
 
-      <ModalBase
-        open={modalImagemOpen}
-        title="Galeria de imagens"
-        subtitle={produtoImagemAtual?.nome}
-        onClose={fecharModalImagens}
-      >
-        <div style={styles.uploadSection}>
-          <label style={styles.label}>Adicionar novas imagens</label>
-          <input
-            style={styles.input}
-            type="file"
-            multiple
-            accept="image/*"
-            onChange={(e) => setNovasImagens(Array.from(e.target.files || []))}
-          />
-          <button type="button" onClick={enviarImagens} disabled={enviandoImagens} style={styles.primaryButton}>
-            {enviandoImagens ? "Enviando..." : "Enviar imagens"}
-          </button>
-        </div>
+          {erroImagem ? <div className="painel-empty-box">{erroImagem}</div> : null}
 
-        {erroImagem ? <div style={styles.emptyState}>{erroImagem}</div> : null}
+          <div className="painel-image-grid">
+            {galeria.length > 0 ? (
+              galeria.map((img, index) => (
+                <div key={`${img.imagem}-${index}`} className="painel-gallery-card">
+                  <img
+                    src={getImagemUrl(img.imagem)}
+                    alt={`Imagem ${index + 1}`}
+                    className="painel-gallery-image"
+                  />
 
-        <div style={styles.imageGrid}>
-          {galeria.length > 0 ? (
-            galeria.map((img, index) => (
-              <div key={`${img.imagem}-${index}`} style={styles.galleryCard}>
-                <img src={getImagemUrl(img.imagem)} alt={`Imagem ${index + 1}`} style={styles.galleryImage} />
+                  <div className="painel-gallery-actions">
+                    <button
+                      type="button"
+                      className="btn-secondary-ui"
+                      onClick={() => definirPrincipal(img.imagem)}
+                    >
+                      Principal
+                    </button>
 
-                <div style={styles.galleryActions}>
-                  <button type="button" onClick={() => definirPrincipal(img.imagem)} style={styles.secondaryButton}>
-                    Principal
-                  </button>
-                  <button type="button" onClick={() => removerImagem(img.id_imagem)} style={styles.dangerButton}>
-                    Remover
-                  </button>
+                    <button
+                      type="button"
+                      className="btn-danger-ui"
+                      onClick={() => removerImagem(img.id_imagem)}
+                    >
+                      Remover
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))
-          ) : (
-            <div style={styles.emptyState}>Nenhuma imagem cadastrada.</div>
-          )}
-        </div>
-      </ModalBase>
-    </div>
+              ))
+            ) : (
+              <div className="painel-empty-box">Nenhuma imagem cadastrada.</div>
+            )}
+          </div>
+        </ModalBase>
+      </div>
+
+      <style jsx>{`
+        .painel-produtos-page {
+          min-height: 100vh;
+          background:
+            radial-gradient(circle at top left, rgba(124, 58, 237, 0.08), transparent 28%),
+            radial-gradient(circle at top right, rgba(16, 185, 129, 0.06), transparent 22%),
+            linear-gradient(180deg, #f8f7ff 0%, #f3f4f8 100%);
+          padding: 24px;
+          color: #111827;
+          font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        .painel-produtos-hero {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 16px;
+          margin-bottom: 22px;
+          flex-wrap: wrap;
+          background: linear-gradient(135deg, #ffffff 0%, #f6f1ff 100%);
+          border: 1px solid #ebe8ff;
+          border-radius: 28px;
+          padding: 26px;
+          box-shadow:
+            0 18px 50px rgba(91, 33, 182, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.65);
+        }
+
+        .painel-produtos-badge-top {
+          display: inline-block;
+          padding: 6px 12px;
+          border-radius: 999px;
+          background: #ede9fe;
+          color: #6d28d9;
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .painel-produtos-hero h1 {
+          margin: 10px 0 6px;
+          font-size: 36px;
+          font-weight: 900;
+          letter-spacing: -0.6px;
+        }
+
+        .painel-produtos-hero p {
+          margin: 0;
+          color: #6b7280;
+          font-size: 14px;
+          line-height: 1.6;
+          max-width: 680px;
+        }
+
+        .painel-produtos-filtros {
+          display: grid;
+          grid-template-columns: 1.5fr 1fr 180px;
+          gap: 14px;
+          margin-bottom: 16px;
+          background: rgba(255, 255, 255, 0.9);
+          border: 1px solid #ececf2;
+          border-radius: 24px;
+          padding: 16px;
+          box-shadow: 0 10px 28px rgba(15, 23, 42, 0.04);
+          backdrop-filter: blur(10px);
+        }
+
+        .painel-select-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .painel-select-group label,
+        .painel-label {
+          font-size: 13px;
+          font-weight: 800;
+          color: #374151;
+        }
+
+        .painel-counter-box {
+          margin-bottom: 18px;
+          color: #4b5563;
+          font-weight: 600;
+          font-size: 14px;
+        }
+
+        .painel-input,
+        .painel-textarea {
+          width: 100%;
+          border: 1px solid #ddd6fe;
+          background: #fff;
+          border-radius: 16px;
+          padding: 12px 14px;
+          font-size: 14px;
+          outline: none;
+          transition: 0.2s ease;
+          box-sizing: border-box;
+        }
+
+        .painel-input:focus,
+        .painel-textarea:focus {
+          border-color: #8b5cf6;
+          box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
+        }
+
+        .painel-textarea {
+          min-height: 120px;
+          resize: vertical;
+        }
+
+        .painel-card-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 18px;
+        }
+
+        .produto-card {
+          background: rgba(255, 255, 255, 0.98);
+          border: 1px solid #ececf2;
+          border-radius: 26px;
+          overflow: hidden;
+          box-shadow: 0 14px 34px rgba(15, 23, 42, 0.05);
+          display: flex;
+          flex-direction: column;
+          transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+        }
+
+        .produto-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 20px 36px rgba(15, 23, 42, 0.08);
+          border-color: #ddd6fe;
+        }
+
+        .produto-card-image-wrap {
+          position: relative;
+          height: 220px;
+          background: linear-gradient(180deg, #f7f8ff 0%, #eef1ff 100%);
+        }
+
+        .produto-card-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
+
+        .produto-card-no-image {
+          width: 100%;
+          height: 100%;
+          display: grid;
+          place-items: center;
+          color: #6b7280;
+          font-weight: 700;
+        }
+
+        .produto-card-badges {
+          position: absolute;
+          top: 12px;
+          left: 12px;
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .badge-gold,
+        .badge-green {
+          padding: 6px 10px;
+          border-radius: 999px;
+          color: #fff;
+          font-size: 11px;
+          font-weight: 800;
+          box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+        }
+
+        .badge-gold {
+          background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .badge-green {
+          background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .produto-card-body {
+          padding: 18px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          flex: 1;
+        }
+
+        .produto-categoria-tag {
+          display: inline-flex;
+          width: fit-content;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: #f3f0ff;
+          color: #7c3aed;
+          font-size: 11px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.4px;
+        }
+
+        .produto-card-body h3 {
+          margin: 0;
+          font-size: 18px;
+          font-weight: 900;
+          line-height: 1.3;
+        }
+
+        .produto-card-body p {
+          margin: 0;
+          color: #6b7280;
+          font-size: 14px;
+          line-height: 1.6;
+          min-height: 44px;
+        }
+
+        .produto-info-list {
+          display: grid;
+          gap: 10px;
+        }
+
+        .produto-info-item {
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 10px 12px;
+          border-radius: 14px;
+          background: #f9fafb;
+          border: 1px solid #ececf2;
+          font-size: 13px;
+        }
+
+        .produto-info-item span {
+          color: #6b7280;
+        }
+
+        .produto-info-item strong {
+          color: #111827;
+          text-align: right;
+          word-break: break-word;
+        }
+
+        .produto-card-actions {
+          margin-top: auto;
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          gap: 10px;
+        }
+
+        .btn-primary-ui,
+        .btn-secondary-ui,
+        .btn-danger-ui {
+          border-radius: 14px;
+          padding: 12px 16px;
+          font-size: 14px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: 0.18s ease;
+        }
+
+        .btn-primary-ui:hover,
+        .btn-secondary-ui:hover,
+        .btn-danger-ui:hover {
+          transform: translateY(-1px);
+        }
+
+        .btn-primary-ui {
+          border: none;
+          background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+          color: #fff;
+          box-shadow: 0 12px 24px rgba(124, 58, 237, 0.2);
+        }
+
+        .btn-secondary-ui {
+          background: #f3f4f6;
+          color: #111827;
+          border: 1px solid #e5e7eb;
+        }
+
+        .btn-danger-ui {
+          background: #fee2e2;
+          color: #b91c1c;
+          border: 1px solid #fecaca;
+        }
+
+        .painel-empty-box {
+          background: rgba(255, 255, 255, 0.98);
+          border: 1px solid #ececf2;
+          border-radius: 18px;
+          padding: 28px;
+          text-align: center;
+          color: #6b7280;
+          font-weight: 700;
+        }
+
+        .painel-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.45);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 16px;
+          z-index: 99999;
+          backdrop-filter: blur(6px);
+        }
+
+        .painel-modal-wrapper {
+          width: 100%;
+          max-width: 980px;
+        }
+
+        .painel-modal-card {
+          width: 100%;
+          max-height: 90vh;
+          overflow: auto;
+          background: #fff;
+          border-radius: 28px;
+          border: 1px solid #ececf2;
+          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.22);
+        }
+
+        .painel-modal-header {
+          padding: 20px;
+          border-bottom: 1px solid #ececf2;
+          display: flex;
+          justify-content: space-between;
+          gap: 16px;
+          align-items: flex-start;
+          position: sticky;
+          top: 0;
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(8px);
+          z-index: 2;
+        }
+
+        .painel-modal-header h2 {
+          margin: 0;
+          font-size: 24px;
+          font-weight: 900;
+          color: #111827;
+        }
+
+        .painel-modal-header p {
+          margin: 6px 0 0;
+          font-size: 14px;
+          color: #6b7280;
+          font-weight: 600;
+        }
+
+        .painel-modal-close {
+          width: 42px;
+          height: 42px;
+          border: none;
+          border-radius: 14px;
+          background: #f3f4f6;
+          font-size: 24px;
+          cursor: pointer;
+        }
+
+        .painel-modal-content {
+          padding: 20px;
+        }
+
+        .painel-tabs-bar {
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+          margin-bottom: 18px;
+        }
+
+        .painel-tab-button {
+          border: 1px solid #e5e7eb;
+          background: #f9fafb;
+          color: #374151;
+          padding: 10px 14px;
+          border-radius: 14px;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 800;
+          transition: 0.18s ease;
+        }
+
+        .painel-tab-button.active {
+          background: #ede9fe;
+          color: #5b21b6;
+          border-color: #c4b5fd;
+          box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.08);
+        }
+
+        .painel-tab-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 16px;
+        }
+
+        .painel-tab-grid .full {
+          grid-column: 1 / -1;
+        }
+
+        .painel-checks-box {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          justify-content: center;
+          background: #f9fafb;
+          border: 1px solid #ececf2;
+          border-radius: 18px;
+          padding: 16px;
+        }
+
+        .painel-check-row {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+          font-weight: 700;
+          color: #374151;
+        }
+
+        .painel-preview-box {
+          min-height: 200px;
+          border-radius: 18px;
+          border: 1px dashed #d1d5db;
+          background: #f9fafb;
+          display: grid;
+          place-items: center;
+          overflow: hidden;
+          color: #6b7280;
+        }
+
+        .painel-preview-image {
+          width: 100%;
+          height: 200px;
+          object-fit: cover;
+          display: block;
+        }
+
+        .painel-modal-footer {
+          margin-top: 24px;
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .painel-upload-section {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          margin-bottom: 20px;
+        }
+
+        .painel-image-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 16px;
+        }
+
+        .painel-gallery-card {
+          border: 1px solid #ececf2;
+          border-radius: 18px;
+          overflow: hidden;
+          background: #fff;
+        }
+
+        .painel-gallery-image {
+          width: 100%;
+          height: 220px;
+          object-fit: cover;
+          display: block;
+        }
+
+        .painel-gallery-actions {
+          padding: 12px;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+
+        @media (max-width: 980px) {
+          .painel-produtos-filtros,
+          .painel-tab-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .painel-produtos-page {
+            padding: 16px;
+          }
+
+          .painel-produtos-hero {
+            padding: 18px;
+          }
+
+          .painel-produtos-hero h1 {
+            font-size: 28px;
+          }
+
+          .produto-card-actions,
+          .painel-gallery-actions {
+            grid-template-columns: 1fr;
+          }
+
+          .painel-modal-card {
+            border-radius: 24px;
+          }
+
+          .painel-modal-footer {
+            flex-direction: column;
+          }
+        }
+      `}</style>
+    </>
   );
 }
-
-const styles: Record<string, React.CSSProperties> = {
-  page: {
-    minHeight: "100vh",
-    background: "linear-gradient(180deg, #f8f7ff 0%, #f3f4f8 100%)",
-    padding: 24,
-  },
-
-  hero: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
-    gap: 16,
-    marginBottom: 22,
-    flexWrap: "wrap",
-    background: "linear-gradient(135deg, #ffffff 0%, #f6f1ff 100%)",
-    border: "1px solid #ebe8ff",
-    borderRadius: 28,
-    padding: 24,
-    boxShadow: "0 18px 50px rgba(91, 33, 182, 0.08)",
-  },
-
-  heroTag: {
-    display: "inline-block",
-    padding: "6px 12px",
-    borderRadius: 999,
-    background: "#ede9fe",
-    color: "#6d28d9",
-    fontSize: 12,
-    fontWeight: 800,
-  },
-
-  heroTitle: {
-    margin: "10px 0 6px",
-    fontSize: 34,
-    fontWeight: 900,
-    letterSpacing: -0.5,
-    color: "#111827",
-  },
-
-  heroText: {
-    margin: 0,
-    color: "#6b7280",
-    fontSize: 14,
-    lineHeight: 1.6,
-  },
-
-  filterBar: {
-    display: "grid",
-    gridTemplateColumns: "1.5fr 1fr 180px",
-    gap: 14,
-    marginBottom: 16,
-    background: "#fff",
-    border: "1px solid #ececf2",
-    borderRadius: 24,
-    padding: 16,
-    boxShadow: "0 10px 28px rgba(15, 23, 42, 0.04)",
-  },
-
-  counterBox: {
-    marginBottom: 18,
-    color: "#4b5563",
-    fontWeight: 600,
-    fontSize: 14,
-  },
-
-  input: {
-    width: "100%",
-    border: "1px solid #ddd6fe",
-    background: "#fff",
-    borderRadius: 16,
-    padding: "12px 14px",
-    fontSize: 14,
-    outline: "none",
-  },
-
-  label: {
-    display: "block",
-    marginBottom: 8,
-    fontSize: 13,
-    fontWeight: 800,
-    color: "#374151",
-  },
-
-  cardGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-    gap: 18,
-  },
-
-  card: {
-    background: "#fff",
-    border: "1px solid #ececf2",
-    borderRadius: 26,
-    overflow: "hidden",
-    boxShadow: "0 14px 34px rgba(15, 23, 42, 0.05)",
-    display: "flex",
-    flexDirection: "column",
-  },
-
-  cardImageWrap: {
-    position: "relative",
-    height: 220,
-    background: "linear-gradient(180deg, #f7f8ff 0%, #eef1ff 100%)",
-  },
-
-  cardImage: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    display: "block",
-  },
-
-  noImage: {
-    width: "100%",
-    height: "100%",
-    display: "grid",
-    placeItems: "center",
-    color: "#6b7280",
-    fontWeight: 700,
-  },
-
-  cardBadges: {
-    position: "absolute",
-    top: 12,
-    left: 12,
-    display: "flex",
-    gap: 8,
-    flexWrap: "wrap",
-  },
-
-  badgeGold: {
-    padding: "6px 10px",
-    borderRadius: 999,
-    background: "#f59e0b",
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: 800,
-  },
-
-  badgeGreen: {
-    padding: "6px 10px",
-    borderRadius: 999,
-    background: "#10b981",
-    color: "#fff",
-    fontSize: 11,
-    fontWeight: 800,
-  },
-
-  cardBody: {
-    padding: 18,
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-    flex: 1,
-  },
-
-  categoryTag: {
-    display: "inline-flex",
-    width: "fit-content",
-    padding: "6px 10px",
-    borderRadius: 999,
-    background: "#f3f0ff",
-    color: "#7c3aed",
-    fontSize: 11,
-    fontWeight: 800,
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-
-  cardTitle: {
-    margin: 0,
-    fontSize: 18,
-    color: "#111827",
-    fontWeight: 900,
-    lineHeight: 1.3,
-  },
-
-  cardText: {
-    margin: 0,
-    color: "#6b7280",
-    fontSize: 14,
-    lineHeight: 1.6,
-    minHeight: 44,
-  },
-
-  infoList: {
-    display: "grid",
-    gap: 10,
-  },
-
-  infoItem: {
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 10,
-    padding: "10px 12px",
-    borderRadius: 14,
-    background: "#f9fafb",
-    border: "1px solid #ececf2",
-    fontSize: 13,
-  },
-
-  cardActions: {
-    marginTop: "auto",
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr 1fr",
-    gap: 10,
-  },
-
-  primaryButton: {
-    border: "none",
-    borderRadius: 14,
-    padding: "12px 16px",
-    fontSize: 14,
-    fontWeight: 800,
-    cursor: "pointer",
-    background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
-    color: "#fff",
-    boxShadow: "0 12px 24px rgba(124, 58, 237, 0.2)",
-  },
-
-  secondaryButton: {
-    borderRadius: 14,
-    padding: "11px 14px",
-    fontSize: 14,
-    fontWeight: 800,
-    cursor: "pointer",
-    background: "#f3f4f6",
-    color: "#111827",
-    border: "1px solid #e5e7eb",
-  },
-
-  dangerButton: {
-    borderRadius: 14,
-    padding: "11px 14px",
-    fontSize: 14,
-    fontWeight: 800,
-    cursor: "pointer",
-    background: "#fee2e2",
-    color: "#b91c1c",
-    border: "1px solid #fecaca",
-  },
-
-  emptyState: {
-    background: "#fff",
-    border: "1px solid #ececf2",
-    borderRadius: 18,
-    padding: 28,
-    textAlign: "center",
-    color: "#6b7280",
-    fontWeight: 700,
-  },
-
-  modalOverlay: {
-    position: "fixed",
-    inset: 0,
-    background: "rgba(15, 23, 42, 0.35)",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 16,
-    zIndex: 99999,
-  },
-
-  modalWrapper: {
-    width: "100%",
-    maxWidth: 980,
-  },
-
-  modalCard: {
-    width: "100%",
-    maxHeight: "90vh",
-    overflow: "auto",
-    background: "#fff",
-    borderRadius: 28,
-    border: "1px solid #ececf2",
-    boxShadow: "0 30px 80px rgba(0,0,0,0.22)",
-  },
-
-  modalHeader: {
-    padding: 20,
-    borderBottom: "1px solid #ececf2",
-    display: "flex",
-    justifyContent: "space-between",
-    gap: 16,
-    alignItems: "flex-start",
-    position: "sticky",
-    top: 0,
-    background: "#fff",
-    zIndex: 2,
-  },
-
-  modalTitle: {
-    margin: 0,
-    fontSize: 24,
-    fontWeight: 900,
-    color: "#111827",
-  },
-
-  modalSubtitle: {
-    margin: "6px 0 0",
-    fontSize: 14,
-    color: "#6b7280",
-    fontWeight: 600,
-  },
-
-  closeButton: {
-    width: 42,
-    height: 42,
-    border: "none",
-    borderRadius: 14,
-    background: "#f3f4f6",
-    fontSize: 24,
-    cursor: "pointer",
-  },
-
-  modalContent: {
-    padding: 20,
-  },
-
-  tabsBar: {
-    display: "flex",
-    gap: 10,
-    flexWrap: "wrap",
-    marginBottom: 18,
-  },
-
-  tabButton: {
-    border: "1px solid #e5e7eb",
-    background: "#f9fafb",
-    color: "#374151",
-    padding: "10px 14px",
-    borderRadius: 14,
-    cursor: "pointer",
-    fontSize: 14,
-    fontWeight: 800,
-  },
-
-  tabButtonActive: {
-    background: "#ede9fe",
-    color: "#5b21b6",
-    borderColor: "#c4b5fd",
-    boxShadow: "0 0 0 4px rgba(124, 58, 237, 0.08)",
-  },
-
-  tabPanel: {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: 16,
-  },
-
-  fieldFull: {
-    gridColumn: "1 / -1",
-  },
-
-  textarea: {
-    width: "100%",
-    border: "1px solid #ddd6fe",
-    background: "#fff",
-    borderRadius: 16,
-    padding: "12px 14px",
-    fontSize: 14,
-    outline: "none",
-    minHeight: 120,
-    resize: "vertical",
-  },
-
-  switchBox: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 12,
-    justifyContent: "center",
-  },
-
-  checkboxRow: {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 8,
-    fontSize: 14,
-    fontWeight: 700,
-    color: "#374151",
-  },
-
-  previewBox: {
-    minHeight: 200,
-    borderRadius: 18,
-    border: "1px dashed #d1d5db",
-    background: "#f9fafb",
-    display: "grid",
-    placeItems: "center",
-    overflow: "hidden",
-  },
-
-  previewImage: {
-    width: "100%",
-    height: 200,
-    objectFit: "cover",
-    display: "block",
-  },
-
-  modalFooter: {
-    marginTop: 24,
-    display: "flex",
-    justifyContent: "flex-end",
-    gap: 12,
-    flexWrap: "wrap",
-  },
-
-  uploadSection: {
-    display: "flex",
-    flexDirection: "column",
-    gap: 10,
-    marginBottom: 20,
-  },
-
-  imageGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-    gap: 16,
-  },
-
-  galleryCard: {
-    border: "1px solid #ececf2",
-    borderRadius: 18,
-    overflow: "hidden",
-    background: "#fff",
-  },
-
-  galleryImage: {
-    width: "100%",
-    height: 220,
-    objectFit: "cover",
-    display: "block",
-  },
-
-  galleryActions: {
-    padding: 12,
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: 10,
-  },
-};
