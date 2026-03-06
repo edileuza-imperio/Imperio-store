@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import useBanner from "@/hooks/Banner/useBanner";
 import api from "@/Api/conectar";
 import { rotas } from "@/components/Bibioteca/config/rotas";
 
@@ -12,22 +11,83 @@ type BannerItem = {
   descricao?: string;
   imagem?: string;
   link?: string | null;
+  statusid?: number;
 };
 
 export default function Banner() {
-  const { banners, loading, erro } = useBanner(rotas.banners.ativos);
+  const [banners, setBanners] = useState<BannerItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
 
   const [index, setIndex] = useState(0);
   const [isHover, setIsHover] = useState(false);
-  const router = useRouter();
 
-  const intervalMs = 5000;
+  const router = useRouter();
   const timerRef = useRef<number | null>(null);
 
-  const safeBanners = (banners || []) as BannerItem[];
+  const intervalMs = 5000;
+  const viewCooldownMs = 30000;
+
+  const lastViewRef = useRef<Record<number, number>>({});
+  const clickLockRef = useRef(false);
+
+  useEffect(() => {
+    let ativo = true;
+
+    async function carregarBanners() {
+      try {
+        setLoading(true);
+        setErro(null);
+
+        const tentativas = [rotas.banners.ativos, rotas.banners.listar];
+        let encontrados: BannerItem[] = [];
+
+        for (const rota of tentativas) {
+          try {
+            const res = await api.get(rota);
+
+            const payload = res?.data;
+
+            const lista =
+              (Array.isArray(payload) && payload) ||
+              (Array.isArray(payload?.dados) && payload.dados) ||
+              (Array.isArray(payload?.dados?.banners) && payload.dados.banners) ||
+              (Array.isArray(payload?.banners) && payload.banners) ||
+              [];
+
+            if (lista.length > 0) {
+              encontrados = lista;
+              break;
+            }
+          } catch {
+            // tenta próxima rota
+          }
+        }
+
+        if (!ativo) return;
+
+        setBanners(encontrados);
+      } catch (e: any) {
+        if (!ativo) return;
+        setErro(e?.message || "Erro ao carregar banners");
+      } finally {
+        if (ativo) setLoading(false);
+      }
+    }
+
+    carregarBanners();
+
+    return () => {
+      ativo = false;
+    };
+  }, []);
+
+  const safeBanners = useMemo(() => {
+    return Array.isArray(banners) ? banners.filter(Boolean) : [];
+  }, [banners]);
+
   const hasMany = safeBanners.length > 1;
 
-  // ✅ garante index válido quando banners mudarem
   useEffect(() => {
     if (!safeBanners.length) return;
     setIndex((prev) => Math.min(prev, safeBanners.length - 1));
@@ -35,21 +95,27 @@ export default function Banner() {
 
   const banner = safeBanners[index];
 
-  // ✅ monta url correta: baseURL + "/" + caminho sem "//"
   const makeImageUrl = (img?: string | null) => {
     if (!img) return null;
-    const base = (api.defaults.baseURL || "").replace(/\/+$/, "");
+
+    if (/^https?:\/\//i.test(img)) {
+      return img;
+    }
+
+    const base = String(api.defaults.baseURL || "").replace(/\/+$/, "");
     const path = String(img).replace(/^\/+/, "");
+
     return `${base}/${path}`;
   };
 
   const imagemUrl = useMemo(() => makeImageUrl(banner?.imagem), [banner?.imagem]);
 
-  // ✅ pré-carrega a próxima imagem para suavizar troca
   useEffect(() => {
     if (!hasMany || !safeBanners.length) return;
+
     const nextIndex = (index + 1) % safeBanners.length;
     const nextImg = makeImageUrl(safeBanners[nextIndex]?.imagem);
+
     if (!nextImg) return;
 
     const img = new Image();
@@ -65,14 +131,6 @@ export default function Banner() {
   const next = () => goTo(index + 1);
   const prev = () => goTo(index - 1);
 
-  /**
-   * ✅ CONTABILIZAR VISITAS (VIEWS)
-   * - Evita contar view repetida toda hora (autoplay / hover / re-render)
-   * - Faz "cooldown" por banner (ex: 30s)
-   */
-  const viewCooldownMs = 30_000; // 30s (ajuste como quiser)
-  const lastViewRef = useRef<Record<number, number>>({});
-
   useEffect(() => {
     const id = banner?.id_banner;
     if (!id) return;
@@ -80,36 +138,37 @@ export default function Banner() {
     const now = Date.now();
     const last = lastViewRef.current[id] || 0;
 
-    if (now - last < viewCooldownMs) return; // não conta de novo
-    lastViewRef.current[id] = now;
+    if (now - last < viewCooldownMs) return;
 
+    lastViewRef.current[id] = now;
     api.put(rotas.banners.incrementarView(id)).catch(() => {});
   }, [banner?.id_banner]);
 
-  /**
-   * ✅ CONTABILIZAR CLIQUES
-   * - Garante 1 click por interação (evita duplo click rápido)
-   * - Navega depois
-   */
-  const clickLockRef = useRef(false);
-
   const handleClick = async () => {
-    if (!banner?.link) return;
+    const link = banner?.link;
+
+    if (!link || link === "#") return;
 
     const id = banner?.id_banner;
+
     if (id && !clickLockRef.current) {
       clickLockRef.current = true;
+
       api.put(rotas.banners.incrementarClick(id)).catch(() => {});
-      // libera lock depois de um tempinho
+
       window.setTimeout(() => {
         clickLockRef.current = false;
       }, 800);
     }
 
-    router.push(String(banner.link));
+    if (/^https?:\/\//i.test(link)) {
+      window.location.href = String(link);
+      return;
+    }
+
+    router.push(String(link));
   };
 
-  // ✅ autoplay (pausa no hover e se tiver muitos)
   useEffect(() => {
     if (!hasMany || isHover) return;
 
@@ -118,12 +177,13 @@ export default function Banner() {
     }, intervalMs);
 
     return () => {
-      if (timerRef.current) window.clearInterval(timerRef.current);
+      if (timerRef.current) {
+        window.clearInterval(timerRef.current);
+      }
       timerRef.current = null;
     };
   }, [hasMany, isHover, safeBanners.length]);
 
-  // ✅ teclado
   useEffect(() => {
     if (!hasMany) return;
 
@@ -134,14 +194,15 @@ export default function Banner() {
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMany, index]);
 
-  // ✅ skeleton melhor
   if (loading) {
     return (
-      <div className="hero-skeleton" aria-label="Carregando banners">
-        <div className="hero-skeleton-shine" />
+      <>
+        <div className="hero-skeleton" aria-label="Carregando banners">
+          <div className="hero-skeleton-shine" />
+        </div>
+
         <style jsx>{`
           .hero-skeleton {
             position: relative;
@@ -151,30 +212,35 @@ export default function Banner() {
             overflow: hidden;
             background: rgba(255, 255, 255, 0.06);
             border: 1px solid rgba(0, 0, 0, 0.06);
+            margin-bottom: 20px;
           }
+
           .hero-skeleton-shine {
             position: absolute;
             inset: 0;
             background: linear-gradient(
               90deg,
               transparent,
-              rgba(255, 255, 255, 0.10),
+              rgba(255, 255, 255, 0.1),
               transparent
             );
             transform: translateX(-40%);
             animation: shine 1.2s linear infinite;
           }
+
           @keyframes shine {
             to {
               transform: translateX(40%);
             }
           }
         `}</style>
-      </div>
+      </>
     );
   }
 
-  if (erro || !safeBanners.length) return null;
+  if (erro || !safeBanners.length || !imagemUrl) {
+    return null;
+  }
 
   return (
     <>
@@ -184,18 +250,16 @@ export default function Banner() {
         onMouseLeave={() => setIsHover(false)}
         aria-label="Banner principal"
       >
-        {/* BG */}
         <button
           type="button"
           className="hero-bg"
-          style={{ backgroundImage: imagemUrl ? `url(${imagemUrl})` : "none" }}
+          style={{ backgroundImage: `url(${imagemUrl})` }}
           aria-label={banner?.titulo ? `Abrir: ${banner.titulo}` : "Abrir banner"}
           onClick={handleClick}
         />
 
         <div className="hero-overlay" />
 
-        {/* Setas */}
         {hasMany && (
           <>
             <button type="button" className="hero-arrow left" onClick={prev} aria-label="Anterior">
@@ -208,7 +272,6 @@ export default function Banner() {
           </>
         )}
 
-        {/* Conteúdo */}
         <div className="container hero-inner">
           <div className="row w-100">
             <div className="col-lg-6">
@@ -218,17 +281,18 @@ export default function Banner() {
                   Destaque
                 </div>
 
-                <h1 className="hero-title">{banner?.titulo}</h1>
+                <h1 className="hero-title">{banner?.titulo || "Universo Império"}</h1>
+
                 {banner?.descricao && <p className="hero-desc">{banner.descricao}</p>}
 
                 <div className="hero-actions">
-                  {banner?.link ? (
+                  {banner?.link && banner.link !== "#" ? (
                     <button type="button" className="hero-btn primary" onClick={handleClick}>
                       Ver agora <i className="bi bi-arrow-right" />
                     </button>
                   ) : (
                     <span className="hero-btn ghost" style={{ opacity: 0.85 }}>
-                      <i className="bi bi-info-circle" /> Sem link
+                      <i className="bi bi-info-circle" /> Em destaque
                     </span>
                   )}
 
@@ -243,7 +307,6 @@ export default function Banner() {
           </div>
         </div>
 
-        {/* Dots */}
         {hasMany && (
           <div className="hero-dots" aria-label="Seleção de banners">
             {safeBanners.map((b, i) => (
@@ -258,7 +321,6 @@ export default function Banner() {
           </div>
         )}
 
-        {/* Progress */}
         {hasMany && (
           <div className="hero-progress">
             <span />
@@ -290,9 +352,9 @@ export default function Banner() {
           );
           box-shadow: 0 30px 80px rgba(2, 6, 23, 0.25);
           isolation: isolate;
+          margin-bottom: 24px;
         }
 
-        /* ✅ virou button pra ficar acessível + click limpo */
         .hero-bg {
           position: absolute;
           inset: 0;
@@ -303,11 +365,13 @@ export default function Banner() {
           height: 100%;
           background-size: cover;
           background-position: center;
+          background-repeat: no-repeat;
           transform: scale(1.04);
           transition: transform 900ms ease, filter 250ms ease;
           filter: saturate(1.05) contrast(1.02);
           cursor: pointer;
         }
+
         .hero-bg:hover {
           transform: scale(1.1);
           filter: saturate(1.12) contrast(1.05);
@@ -337,7 +401,7 @@ export default function Banner() {
           height: 100%;
           display: flex;
           align-items: center;
-          pointer-events: none; /* só os botões recebem click */
+          pointer-events: none;
         }
 
         .hero-card {
@@ -363,6 +427,7 @@ export default function Banner() {
           color: rgba(243, 215, 220, 0.95);
           margin-bottom: 14px;
         }
+
         .hero-kicker-badge {
           width: 10px;
           height: 10px;
@@ -407,6 +472,7 @@ export default function Banner() {
           transition: 0.18s ease;
           user-select: none;
         }
+
         .hero-btn:hover {
           transform: translateY(-1px);
           background: rgba(255, 255, 255, 0.16);
@@ -418,6 +484,7 @@ export default function Banner() {
           color: #1a0f12;
           box-shadow: 0 18px 40px rgba(183, 110, 121, 0.45);
         }
+
         .hero-btn.primary:hover {
           filter: brightness(1.06);
         }
@@ -441,17 +508,21 @@ export default function Banner() {
           opacity: 0;
           pointer-events: none;
         }
+
         .hero:hover .hero-arrow {
           opacity: 1;
           pointer-events: auto;
         }
+
         .hero-arrow:hover {
           background: rgba(0, 0, 0, 0.33);
           transform: translateY(-50%) scale(1.02);
         }
+
         .hero-arrow.left {
           left: 14px;
         }
+
         .hero-arrow.right {
           right: 14px;
         }
@@ -470,6 +541,7 @@ export default function Banner() {
           backdrop-filter: blur(10px);
           z-index: 3;
         }
+
         .hero-dot {
           width: 9px;
           height: 9px;
@@ -479,9 +551,11 @@ export default function Banner() {
           transition: 0.2s ease;
           cursor: pointer;
         }
+
         .hero-dot:hover {
           background: rgba(255, 255, 255, 0.7);
         }
+
         .hero-dot.active {
           width: 26px;
           background: linear-gradient(135deg, var(--gold), var(--rose));
@@ -497,6 +571,7 @@ export default function Banner() {
           z-index: 3;
           overflow: hidden;
         }
+
         .hero-progress > span {
           display: block;
           height: 100%;
@@ -505,6 +580,7 @@ export default function Banner() {
           background: linear-gradient(135deg, var(--rose), var(--gold));
           animation: progress ${intervalMs}ms linear infinite;
         }
+
         .paused .hero-progress > span {
           animation-play-state: paused;
         }
@@ -517,6 +593,7 @@ export default function Banner() {
             transform: scaleX(1);
           }
         }
+
         @keyframes fadeIn {
           from {
             opacity: 0;
@@ -533,12 +610,15 @@ export default function Banner() {
             height: 360px;
             border-radius: 18px;
           }
+
           .hero-title {
             font-size: 2.05rem;
           }
+
           .hero-card {
             margin: 0 12px;
           }
+
           .hero-arrow {
             opacity: 1;
             pointer-events: auto;
