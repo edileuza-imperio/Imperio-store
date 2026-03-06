@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
 import api from "@/Api/conectar";
 
 type Produto = {
@@ -58,6 +58,8 @@ type ProdutoForm = {
   imagem: File | null;
 };
 
+type ProdutoTab = "geral" | "preco" | "midia";
+
 function resolveApi<T>(payload: any): T {
   if (payload?.dados != null) return payload.dados as T;
   if (payload?.data != null) return payload.data as T;
@@ -111,103 +113,63 @@ function emptyForm(): ProdutoForm {
   };
 }
 
-type ModalBaseProps = {
+function ModalBase({
+  open,
+  title,
+  subtitle,
+  onClose,
+  children,
+}: {
   open: boolean;
   title: string;
   subtitle?: string;
   onClose: () => void;
-  children: React.ReactNode;
-};
-
-function ModalBase({ open, title, subtitle, onClose, children }: ModalBaseProps) {
+  children: ReactNode;
+}) {
   if (!open) return null;
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.35)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 16,
-        zIndex: 99999,
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          width: "100%",
-          maxWidth: 980,
-          maxHeight: "90vh",
-          overflow: "auto",
-          background: "#fff",
-          borderRadius: 24,
-          boxShadow: "0 30px 80px rgba(0,0,0,0.22)",
-          border: "1px solid #e5e7eb",
-        }}
-      >
-        <div
-          style={{
-            padding: 20,
-            borderBottom: "1px solid #e5e7eb",
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            gap: 16,
-            position: "sticky",
-            top: 0,
-            background: "#fff",
-            zIndex: 2,
-          }}
-        >
-          <div>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: 24,
-                fontWeight: 900,
-                color: "#111827",
-              }}
-            >
-              {title}
-            </h2>
-            {subtitle ? (
-              <p
-                style={{
-                  margin: "6px 0 0",
-                  fontSize: 14,
-                  color: "#6b7280",
-                  fontWeight: 600,
-                }}
-              >
-                {subtitle}
-              </p>
-            ) : null}
+    <div style={styles.modalOverlay} onClick={onClose}>
+      <div style={styles.modalWrapper}>
+        <div style={styles.modalCard} onClick={(e) => e.stopPropagation()}>
+          <div style={styles.modalHeader}>
+            <div>
+              <h2 style={styles.modalTitle}>{title}</h2>
+              {subtitle ? <p style={styles.modalSubtitle}>{subtitle}</p> : null}
+            </div>
+
+            <button type="button" onClick={onClose} style={styles.closeButton}>
+              ×
+            </button>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            style={{
-              width: 42,
-              height: 42,
-              border: "none",
-              borderRadius: 14,
-              background: "#f3f4f6",
-              fontSize: 24,
-              cursor: "pointer",
-            }}
-          >
-            ×
-          </button>
+          <div style={styles.modalContent}>{children}</div>
         </div>
-
-        <div style={{ padding: 20 }}>{children}</div>
       </div>
     </div>
+  );
+}
+
+function TabButton({
+  active,
+  children,
+  onClick,
+}: {
+  active: boolean;
+  children: ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        ...styles.tabButton,
+        ...(active ? styles.tabButtonActive : {}),
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
@@ -234,6 +196,7 @@ export default function ProdutosPainelPage() {
 
   const [form, setForm] = useState<ProdutoForm>(emptyForm());
   const [previewImagem, setPreviewImagem] = useState("");
+  const [produtoTab, setProdutoTab] = useState<ProdutoTab>("geral");
 
   const [galeria, setGaleria] = useState<ProdutoImagem[]>([]);
   const [novasImagens, setNovasImagens] = useState<File[]>([]);
@@ -289,7 +252,6 @@ export default function ProdutosPainelPage() {
 
     const url = URL.createObjectURL(form.imagem);
     setPreviewImagem(url);
-
     return () => URL.revokeObjectURL(url);
   }, [form.imagem, modoEdicao, produtoEditando]);
 
@@ -343,6 +305,7 @@ export default function ProdutosPainelPage() {
     setProdutoEditando(null);
     setForm(emptyForm());
     setPreviewImagem("");
+    setProdutoTab("geral");
     setModalProdutoOpen(true);
   }
 
@@ -365,6 +328,7 @@ export default function ProdutosPainelPage() {
       imagem: null,
     });
     setPreviewImagem(getImagemUrl(produto.imagem));
+    setProdutoTab("geral");
     setModalProdutoOpen(true);
   }
 
@@ -374,6 +338,7 @@ export default function ProdutosPainelPage() {
     setProdutoEditando(null);
     setForm(emptyForm());
     setPreviewImagem("");
+    setProdutoTab("geral");
   }
 
   async function abrirModalImagens(produto: Produto) {
@@ -547,86 +512,33 @@ export default function ProdutosPainelPage() {
   }
 
   return (
-    <div style={{ padding: 24, background: "#f7f7fb", minHeight: "100vh" }}>
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          gap: 16,
-          alignItems: "flex-start",
-          marginBottom: 20,
-          flexWrap: "wrap",
-        }}
-      >
+    <div style={styles.page}>
+      <div style={styles.hero}>
         <div>
-          <span
-            style={{
-              display: "inline-block",
-              padding: "6px 12px",
-              borderRadius: 999,
-              background: "#ede9fe",
-              color: "#6d28d9",
-              fontSize: 12,
-              fontWeight: 800,
-            }}
-          >
-            Catálogo
-          </span>
-          <h1 style={{ margin: "8px 0 6px", fontSize: 34, fontWeight: 900 }}>Produtos</h1>
-          <p style={{ margin: 0, color: "#6b7280" }}>
-            Gerencie seus produtos com cadastro, edição, imagens e paginação.
+          <span style={styles.heroTag}>Painel • Catálogo</span>
+          <h1 style={styles.heroTitle}>Produtos</h1>
+          <p style={styles.heroText}>
+            Cadastre, edite, organize imagens e mantenha seu catálogo profissional.
           </p>
         </div>
 
-        <button
-          onClick={abrirModalCriar}
-          style={{
-            border: "none",
-            borderRadius: 14,
-            padding: "12px 18px",
-            background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
-            color: "#fff",
-            fontWeight: 800,
-            cursor: "pointer",
-          }}
-        >
+        <button type="button" onClick={abrirModalCriar} style={styles.primaryButton}>
           + Novo produto
         </button>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1.4fr 0.9fr 180px",
-          gap: 14,
-          marginBottom: 16,
-        }}
-      >
+      <div style={styles.filterBar}>
         <input
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
           placeholder="Buscar por nome, slug, SKU ou categoria..."
-          style={{
-            width: "100%",
-            border: "1px solid #ddd6fe",
-            background: "#fff",
-            borderRadius: 16,
-            padding: "12px 14px",
-            fontSize: 14,
-          }}
+          style={styles.input}
         />
 
         <select
           value={categoriaFiltro}
           onChange={(e) => setCategoriaFiltro(e.target.value)}
-          style={{
-            width: "100%",
-            border: "1px solid #ddd6fe",
-            background: "#fff",
-            borderRadius: 16,
-            padding: "12px 14px",
-            fontSize: 14,
-          }}
+          style={styles.input}
         >
           <option value="">Todas as categorias</option>
           {categorias.map((cat) => (
@@ -637,18 +549,11 @@ export default function ProdutosPainelPage() {
         </select>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          <label style={{ fontSize: 13, fontWeight: 700 }}>Página</label>
+          <label style={styles.label}>Página</label>
           <select
             value={paginaAtual}
             onChange={(e) => setPaginaAtual(Number(e.target.value))}
-            style={{
-              width: "100%",
-              border: "1px solid #ddd6fe",
-              background: "#fff",
-              borderRadius: 16,
-              padding: "12px 14px",
-              fontSize: 14,
-            }}
+            style={styles.input}
           >
             {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((pagina) => (
               <option key={pagina} value={pagina}>
@@ -659,105 +564,80 @@ export default function ProdutosPainelPage() {
         </div>
       </div>
 
-      <div style={{ marginBottom: 18, color: "#4b5563", fontWeight: 600 }}>
+      <div style={styles.counterBox}>
         Mostrando <strong>{produtosPaginados.length}</strong> de{" "}
         <strong>{produtosFiltrados.length}</strong> produtos
       </div>
 
       {loading ? (
-        <div style={estadoStyle}>Carregando produtos...</div>
+        <div style={styles.emptyState}>Carregando produtos...</div>
       ) : produtosPaginados.length === 0 ? (
-        <div style={estadoStyle}>Nenhum produto encontrado.</div>
+        <div style={styles.emptyState}>Nenhum produto encontrado.</div>
       ) : (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-            gap: 18,
-          }}
-        >
+        <div style={styles.cardGrid}>
           {produtosPaginados.map((produto) => (
-            <div
-              key={produto.id_produto}
-              style={{
-                background: "#fff",
-                border: "1px solid #ececf2",
-                borderRadius: 24,
-                overflow: "hidden",
-                boxShadow: "0 12px 28px rgba(15, 23, 42, 0.05)",
-                display: "flex",
-                flexDirection: "column",
-              }}
-            >
-              <div
-                style={{
-                  position: "relative",
-                  height: 210,
-                  background: "linear-gradient(180deg, #f8f9ff 0%, #eef2ff 100%)",
-                }}
-              >
+            <div key={produto.id_produto} style={styles.card}>
+              <div style={styles.cardImageWrap}>
                 {produto.imagem ? (
                   <img
                     src={getImagemUrl(produto.imagem)}
                     alt={produto.nome}
-                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                    style={styles.cardImage}
                   />
                 ) : (
-                  <div
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      display: "grid",
-                      placeItems: "center",
-                      color: "#6b7280",
-                      fontWeight: 700,
-                    }}
-                  >
-                    Sem imagem
-                  </div>
+                  <div style={styles.noImage}>Sem imagem</div>
                 )}
+
+                <div style={styles.cardBadges}>
+                  {produto.destaque ? <span style={styles.badgeGold}>Destaque</span> : null}
+                  {Number(produto.catalogo ?? 0) === 1 ? (
+                    <span style={styles.badgeGreen}>Catálogo</span>
+                  ) : null}
+                </div>
               </div>
 
-              <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12, flex: 1 }}>
-                <div style={{ fontSize: 11, fontWeight: 800, color: "#8b5cf6", textTransform: "uppercase" }}>
-                  {produto.categoria_nome || "Sem categoria"}
-                </div>
+              <div style={styles.cardBody}>
+                <span style={styles.categoryTag}>{produto.categoria_nome || "Sem categoria"}</span>
 
-                <h3 style={{ margin: 0, fontSize: 18, color: "#111827" }}>{produto.nome}</h3>
+                <h3 style={styles.cardTitle}>{produto.nome}</h3>
 
-                <p style={{ margin: 0, color: "#6b7280", fontSize: 14, lineHeight: 1.55 }}>
+                <p style={styles.cardText}>
                   {produto.descricao?.trim()
-                    ? produto.descricao.length > 90
-                      ? `${produto.descricao.slice(0, 90)}...`
+                    ? produto.descricao.length > 95
+                      ? `${produto.descricao.slice(0, 95)}...`
                       : produto.descricao
                     : "Sem descrição cadastrada."}
                 </p>
 
-                <div style={{ display: "grid", gap: 10 }}>
-                  <div style={linhaInfoStyle}>
+                <div style={styles.infoList}>
+                  <div style={styles.infoItem}>
                     <span>Preço</span>
                     <strong>{formatMoney(produto.preco)}</strong>
                   </div>
-                  <div style={linhaInfoStyle}>
+
+                  <div style={styles.infoItem}>
                     <span>Estoque</span>
                     <strong>
                       {Number(produto.ilimitado ?? 0) === 1 ? "Ilimitado" : Number(produto.estoque ?? 0)}
                     </strong>
                   </div>
-                  <div style={linhaInfoStyle}>
+
+                  <div style={styles.infoItem}>
                     <span>Slug</span>
                     <strong>{produto.slug || "—"}</strong>
                   </div>
                 </div>
 
-                <div style={{ marginTop: "auto", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                  <button onClick={() => abrirModalEditar(produto)} style={btnSoftStyle}>
+                <div style={styles.cardActions}>
+                  <button type="button" onClick={() => abrirModalEditar(produto)} style={styles.secondaryButton}>
                     Editar
                   </button>
-                  <button onClick={() => abrirModalImagens(produto)} style={btnSoftStyle}>
+
+                  <button type="button" onClick={() => abrirModalImagens(produto)} style={styles.secondaryButton}>
                     Imagens
                   </button>
-                  <button onClick={() => excluirProduto(produto)} style={btnDangerStyle}>
+
+                  <button type="button" onClick={() => excluirProduto(produto)} style={styles.dangerButton}>
                     Excluir
                   </button>
                 </div>
@@ -770,172 +650,192 @@ export default function ProdutosPainelPage() {
       <ModalBase
         open={modalProdutoOpen}
         title={modoEdicao ? "Editar produto" : "Cadastrar produto"}
+        subtitle={modoEdicao ? "Atualize os dados do produto com mais organização." : "Preencha as informações do novo produto."}
         onClose={fecharModalProduto}
       >
+        <div style={styles.tabsBar}>
+          <TabButton active={produtoTab === "geral"} onClick={() => setProdutoTab("geral")}>
+            Geral
+          </TabButton>
+          <TabButton active={produtoTab === "preco"} onClick={() => setProdutoTab("preco")}>
+            Preço e estoque
+          </TabButton>
+          <TabButton active={produtoTab === "midia"} onClick={() => setProdutoTab("midia")}>
+            Mídia
+          </TabButton>
+        </div>
+
         <form onSubmit={salvarProduto}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-              gap: 16,
-            }}
-          >
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label style={labelStyle}>Nome</label>
-              <input style={inputStyle} value={form.nome} onChange={handleNomeChange} />
-            </div>
+          {produtoTab === "geral" && (
+            <div style={styles.tabPanel}>
+              <div style={styles.fieldFull}>
+                <label style={styles.label}>Nome</label>
+                <input style={styles.input} value={form.nome} onChange={handleNomeChange} />
+              </div>
 
-            <div>
-              <label style={labelStyle}>Slug</label>
-              <input
-                style={inputStyle}
-                value={form.slug}
-                onChange={(e) => handleChange("slug", slugify(e.target.value))}
-              />
-            </div>
+              <div>
+                <label style={styles.label}>Slug</label>
+                <input
+                  style={styles.input}
+                  value={form.slug}
+                  onChange={(e) => handleChange("slug", slugify(e.target.value))}
+                />
+              </div>
 
-            <div>
-              <label style={labelStyle}>SKU</label>
-              <input style={inputStyle} value={form.sku} onChange={(e) => handleChange("sku", e.target.value)} />
-            </div>
+              <div>
+                <label style={styles.label}>SKU</label>
+                <input
+                  style={styles.input}
+                  value={form.sku}
+                  onChange={(e) => handleChange("sku", e.target.value)}
+                />
+              </div>
 
-            <div>
-              <label style={labelStyle}>Modelo</label>
-              <input style={inputStyle} value={form.modelo} onChange={(e) => handleChange("modelo", e.target.value)} />
-            </div>
+              <div>
+                <label style={styles.label}>Modelo</label>
+                <input
+                  style={styles.input}
+                  value={form.modelo}
+                  onChange={(e) => handleChange("modelo", e.target.value)}
+                />
+              </div>
 
-            <div>
-              <label style={labelStyle}>Preço</label>
-              <input style={inputStyle} value={form.preco} onChange={(e) => handleChange("preco", e.target.value)} />
-            </div>
-
-            <div>
-              <label style={labelStyle}>Preço promocional</label>
-              <input
-                style={inputStyle}
-                value={form.preco_promocional}
-                onChange={(e) => handleChange("preco_promocional", e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label style={labelStyle}>Estoque</label>
-              <input
-                style={inputStyle}
-                type="number"
-                min="0"
-                value={form.estoque}
-                onChange={(e) => handleChange("estoque", e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label style={labelStyle}>Categoria</label>
-              <select
-                style={inputStyle}
-                value={form.categoria_id}
-                onChange={(e) => handleChange("categoria_id", e.target.value)}
-              >
-                <option value="">Selecione</option>
-                {categorias.map((cat) => (
-                  <option key={cat.id_categoria} value={cat.id_categoria}>
-                    {cat.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label style={labelStyle}>Status</label>
-              <select
-                style={inputStyle}
-                value={form.statusid}
-                onChange={(e) => handleChange("statusid", e.target.value)}
-              >
-                <option value="">Selecione</option>
-                {statusList.map((status, index) => {
-                  const value = status.id_status ?? status.id ?? index + 1;
-                  const label = status.nome || status.titulo || status.codigo || `Status ${value}`;
-                  return (
-                    <option key={value} value={value}>
-                      {label}
+              <div>
+                <label style={styles.label}>Categoria</label>
+                <select
+                  style={styles.input}
+                  value={form.categoria_id}
+                  onChange={(e) => handleChange("categoria_id", e.target.value)}
+                >
+                  <option value="">Selecione</option>
+                  {categorias.map((cat) => (
+                    <option key={cat.id_categoria} value={cat.id_categoria}>
+                      {cat.nome}
                     </option>
-                  );
-                })}
-              </select>
-            </div>
+                  ))}
+                </select>
+              </div>
 
-            <div style={{ gridColumn: "1 / -1" }}>
-              <label style={labelStyle}>Descrição</label>
-              <textarea
-                style={{ ...inputStyle, minHeight: 120, resize: "vertical" }}
-                value={form.descricao}
-                onChange={(e) => handleChange("descricao", e.target.value)}
-              />
-            </div>
+              <div>
+                <label style={styles.label}>Status</label>
+                <select
+                  style={styles.input}
+                  value={form.statusid}
+                  onChange={(e) => handleChange("statusid", e.target.value)}
+                >
+                  <option value="">Selecione</option>
+                  {statusList.map((status, index) => {
+                    const value = status.id_status ?? status.id ?? index + 1;
+                    const label = status.nome || status.titulo || status.codigo || `Status ${value}`;
+                    return (
+                      <option key={value} value={value}>
+                        {label}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
 
-            <div>
-              <label style={labelStyle}>Imagem principal</label>
-              <input
-                style={inputStyle}
-                type="file"
-                accept="image/*"
-                onChange={(e) => handleChange("imagem", e.target.files?.[0] || null)}
-              />
-            </div>
-
-            <div>
-              <label style={labelStyle}>Prévia</label>
-              <div
-                style={{
-                  minHeight: 180,
-                  borderRadius: 18,
-                  border: "1px dashed #d1d5db",
-                  background: "#f9fafb",
-                  display: "grid",
-                  placeItems: "center",
-                  overflow: "hidden",
-                }}
-              >
-                {previewImagem ? (
-                  <img
-                    src={previewImagem}
-                    alt="Prévia"
-                    style={{ width: "100%", height: 180, objectFit: "cover" }}
-                  />
-                ) : (
-                  <span style={{ color: "#6b7280" }}>Sem imagem</span>
-                )}
+              <div style={styles.fieldFull}>
+                <label style={styles.label}>Descrição</label>
+                <textarea
+                  style={styles.textarea}
+                  value={form.descricao}
+                  onChange={(e) => handleChange("descricao", e.target.value)}
+                />
               </div>
             </div>
-          </div>
+          )}
 
-          <div style={{ display: "flex", gap: 20, flexWrap: "wrap", marginTop: 16 }}>
-            <label style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
-              <input
-                type="checkbox"
-                checked={form.catalogo}
-                onChange={(e) => handleChange("catalogo", e.target.checked)}
-              />
-              No catálogo
-            </label>
+          {produtoTab === "preco" && (
+            <div style={styles.tabPanel}>
+              <div>
+                <label style={styles.label}>Preço</label>
+                <input
+                  style={styles.input}
+                  value={form.preco}
+                  onChange={(e) => handleChange("preco", e.target.value)}
+                />
+              </div>
 
-            <label style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
-              <input
-                type="checkbox"
-                checked={form.ilimitado}
-                onChange={(e) => handleChange("ilimitado", e.target.checked)}
-              />
-              Estoque ilimitado
-            </label>
-          </div>
+              <div>
+                <label style={styles.label}>Preço promocional</label>
+                <input
+                  style={styles.input}
+                  value={form.preco_promocional}
+                  onChange={(e) => handleChange("preco_promocional", e.target.value)}
+                />
+              </div>
 
-          <div style={{ marginTop: 22, display: "flex", justifyContent: "flex-end", gap: 12 }}>
-            <button type="button" onClick={fecharModalProduto} style={btnSoftStyle}>
+              <div>
+                <label style={styles.label}>Estoque</label>
+                <input
+                  style={styles.input}
+                  type="number"
+                  min="0"
+                  value={form.estoque}
+                  onChange={(e) => handleChange("estoque", e.target.value)}
+                />
+              </div>
+
+              <div style={styles.switchBox}>
+                <label style={styles.checkboxRow}>
+                  <input
+                    type="checkbox"
+                    checked={form.catalogo}
+                    onChange={(e) => handleChange("catalogo", e.target.checked)}
+                  />
+                  Produto no catálogo
+                </label>
+
+                <label style={styles.checkboxRow}>
+                  <input
+                    type="checkbox"
+                    checked={form.ilimitado}
+                    onChange={(e) => handleChange("ilimitado", e.target.checked)}
+                  />
+                  Estoque ilimitado
+                </label>
+              </div>
+            </div>
+          )}
+
+          {produtoTab === "midia" && (
+            <div style={styles.tabPanel}>
+              <div>
+                <label style={styles.label}>Imagem principal</label>
+                <input
+                  style={styles.input}
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleChange("imagem", e.target.files?.[0] || null)}
+                />
+              </div>
+
+              <div>
+                <label style={styles.label}>Prévia</label>
+                <div style={styles.previewBox}>
+                  {previewImagem ? (
+                    <img src={previewImagem} alt="Prévia" style={styles.previewImage} />
+                  ) : (
+                    <span style={{ color: "#6b7280" }}>Sem imagem</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div style={styles.modalFooter}>
+            <button type="button" onClick={fecharModalProduto} style={styles.secondaryButton}>
               Cancelar
             </button>
-            <button type="submit" disabled={salvandoProduto} style={btnPrimaryStyle}>
-              {salvandoProduto ? "Salvando..." : modoEdicao ? "Salvar alterações" : "Cadastrar produto"}
+
+            <button type="submit" disabled={salvandoProduto} style={styles.primaryButton}>
+              {salvandoProduto
+                ? "Salvando..."
+                : modoEdicao
+                ? "Salvar alterações"
+                : "Cadastrar produto"}
             </button>
           </div>
         </form>
@@ -943,61 +843,44 @@ export default function ProdutosPainelPage() {
 
       <ModalBase
         open={modalImagemOpen}
-        title="Imagens do produto"
+        title="Galeria de imagens"
         subtitle={produtoImagemAtual?.nome}
         onClose={fecharModalImagens}
       >
-        <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
-          <label style={labelStyle}>Adicionar imagens</label>
+        <div style={styles.uploadSection}>
+          <label style={styles.label}>Adicionar novas imagens</label>
           <input
-            style={inputStyle}
+            style={styles.input}
             type="file"
             multiple
             accept="image/*"
             onChange={(e) => setNovasImagens(Array.from(e.target.files || []))}
           />
-          <button type="button" onClick={enviarImagens} disabled={enviandoImagens} style={btnPrimaryStyle}>
+          <button type="button" onClick={enviarImagens} disabled={enviandoImagens} style={styles.primaryButton}>
             {enviandoImagens ? "Enviando..." : "Enviar imagens"}
           </button>
         </div>
 
-        {erroImagem ? <div style={estadoStyle}>{erroImagem}</div> : null}
+        {erroImagem ? <div style={styles.emptyState}>{erroImagem}</div> : null}
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 16,
-          }}
-        >
+        <div style={styles.imageGrid}>
           {galeria.length > 0 ? (
             galeria.map((img, index) => (
-              <div
-                key={`${img.imagem}-${index}`}
-                style={{
-                  border: "1px solid #ececf2",
-                  borderRadius: 18,
-                  overflow: "hidden",
-                  background: "#fff",
-                }}
-              >
-                <img
-                  src={getImagemUrl(img.imagem)}
-                  alt={`Imagem ${index + 1}`}
-                  style={{ width: "100%", height: 220, objectFit: "cover", display: "block" }}
-                />
-                <div style={{ padding: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                  <button type="button" onClick={() => definirPrincipal(img.imagem)} style={btnSoftStyle}>
+              <div key={`${img.imagem}-${index}`} style={styles.galleryCard}>
+                <img src={getImagemUrl(img.imagem)} alt={`Imagem ${index + 1}`} style={styles.galleryImage} />
+
+                <div style={styles.galleryActions}>
+                  <button type="button" onClick={() => definirPrincipal(img.imagem)} style={styles.secondaryButton}>
                     Principal
                   </button>
-                  <button type="button" onClick={() => removerImagem(img.id_imagem)} style={btnDangerStyle}>
+                  <button type="button" onClick={() => removerImagem(img.id_imagem)} style={styles.dangerButton}>
                     Remover
                   </button>
                 </div>
               </div>
             ))
           ) : (
-            <div style={estadoStyle}>Nenhuma imagem cadastrada.</div>
+            <div style={styles.emptyState}>Nenhuma imagem cadastrada.</div>
           )}
         </div>
       </ModalBase>
@@ -1005,73 +888,444 @@ export default function ProdutosPainelPage() {
   );
 }
 
-const estadoStyle: React.CSSProperties = {
-  background: "#fff",
-  border: "1px solid #ececf2",
-  borderRadius: 18,
-  padding: 28,
-  textAlign: "center",
-  color: "#6b7280",
-  fontWeight: 700,
-};
+const styles: Record<string, React.CSSProperties> = {
+  page: {
+    minHeight: "100vh",
+    background: "linear-gradient(180deg, #f8f7ff 0%, #f3f4f8 100%)",
+    padding: 24,
+  },
 
-const linhaInfoStyle: React.CSSProperties = {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 10,
-  padding: "10px 12px",
-  borderRadius: 14,
-  background: "#f9fafb",
-  border: "1px solid #ececf2",
-};
+  hero: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 16,
+    marginBottom: 22,
+    flexWrap: "wrap",
+    background: "linear-gradient(135deg, #ffffff 0%, #f6f1ff 100%)",
+    border: "1px solid #ebe8ff",
+    borderRadius: 28,
+    padding: 24,
+    boxShadow: "0 18px 50px rgba(91, 33, 182, 0.08)",
+  },
 
-const labelStyle: React.CSSProperties = {
-  display: "block",
-  marginBottom: 8,
-  fontSize: 13,
-  fontWeight: 800,
-  color: "#374151",
-};
+  heroTag: {
+    display: "inline-block",
+    padding: "6px 12px",
+    borderRadius: 999,
+    background: "#ede9fe",
+    color: "#6d28d9",
+    fontSize: 12,
+    fontWeight: 800,
+  },
 
-const inputStyle: React.CSSProperties = {
-  width: "100%",
-  border: "1px solid #ddd6fe",
-  background: "#fff",
-  borderRadius: 16,
-  padding: "12px 14px",
-  fontSize: 14,
-  outline: "none",
-};
+  heroTitle: {
+    margin: "10px 0 6px",
+    fontSize: 34,
+    fontWeight: 900,
+    letterSpacing: -0.5,
+    color: "#111827",
+  },
 
-const btnPrimaryStyle: React.CSSProperties = {
-  border: "none",
-  borderRadius: 14,
-  padding: "11px 14px",
-  fontSize: 14,
-  fontWeight: 800,
-  cursor: "pointer",
-  background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
-  color: "#fff",
-};
+  heroText: {
+    margin: 0,
+    color: "#6b7280",
+    fontSize: 14,
+    lineHeight: 1.6,
+  },
 
-const btnSoftStyle: React.CSSProperties = {
-  borderRadius: 14,
-  padding: "11px 14px",
-  fontSize: 14,
-  fontWeight: 800,
-  cursor: "pointer",
-  background: "#f3f4f6",
-  color: "#111827",
-  border: "1px solid #e5e7eb",
-};
+  filterBar: {
+    display: "grid",
+    gridTemplateColumns: "1.5fr 1fr 180px",
+    gap: 14,
+    marginBottom: 16,
+    background: "#fff",
+    border: "1px solid #ececf2",
+    borderRadius: 24,
+    padding: 16,
+    boxShadow: "0 10px 28px rgba(15, 23, 42, 0.04)",
+  },
 
-const btnDangerStyle: React.CSSProperties = {
-  borderRadius: 14,
-  padding: "11px 14px",
-  fontSize: 14,
-  fontWeight: 800,
-  cursor: "pointer",
-  background: "#fee2e2",
-  color: "#b91c1c",
-  border: "1px solid #fecaca",
+  counterBox: {
+    marginBottom: 18,
+    color: "#4b5563",
+    fontWeight: 600,
+    fontSize: 14,
+  },
+
+  input: {
+    width: "100%",
+    border: "1px solid #ddd6fe",
+    background: "#fff",
+    borderRadius: 16,
+    padding: "12px 14px",
+    fontSize: 14,
+    outline: "none",
+  },
+
+  label: {
+    display: "block",
+    marginBottom: 8,
+    fontSize: 13,
+    fontWeight: 800,
+    color: "#374151",
+  },
+
+  cardGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+    gap: 18,
+  },
+
+  card: {
+    background: "#fff",
+    border: "1px solid #ececf2",
+    borderRadius: 26,
+    overflow: "hidden",
+    boxShadow: "0 14px 34px rgba(15, 23, 42, 0.05)",
+    display: "flex",
+    flexDirection: "column",
+  },
+
+  cardImageWrap: {
+    position: "relative",
+    height: 220,
+    background: "linear-gradient(180deg, #f7f8ff 0%, #eef1ff 100%)",
+  },
+
+  cardImage: {
+    width: "100%",
+    height: "100%",
+    objectFit: "cover",
+    display: "block",
+  },
+
+  noImage: {
+    width: "100%",
+    height: "100%",
+    display: "grid",
+    placeItems: "center",
+    color: "#6b7280",
+    fontWeight: 700,
+  },
+
+  cardBadges: {
+    position: "absolute",
+    top: 12,
+    left: 12,
+    display: "flex",
+    gap: 8,
+    flexWrap: "wrap",
+  },
+
+  badgeGold: {
+    padding: "6px 10px",
+    borderRadius: 999,
+    background: "#f59e0b",
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: 800,
+  },
+
+  badgeGreen: {
+    padding: "6px 10px",
+    borderRadius: 999,
+    background: "#10b981",
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: 800,
+  },
+
+  cardBody: {
+    padding: 18,
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+    flex: 1,
+  },
+
+  categoryTag: {
+    display: "inline-flex",
+    width: "fit-content",
+    padding: "6px 10px",
+    borderRadius: 999,
+    background: "#f3f0ff",
+    color: "#7c3aed",
+    fontSize: 11,
+    fontWeight: 800,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+
+  cardTitle: {
+    margin: 0,
+    fontSize: 18,
+    color: "#111827",
+    fontWeight: 900,
+    lineHeight: 1.3,
+  },
+
+  cardText: {
+    margin: 0,
+    color: "#6b7280",
+    fontSize: 14,
+    lineHeight: 1.6,
+    minHeight: 44,
+  },
+
+  infoList: {
+    display: "grid",
+    gap: 10,
+  },
+
+  infoItem: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 10,
+    padding: "10px 12px",
+    borderRadius: 14,
+    background: "#f9fafb",
+    border: "1px solid #ececf2",
+    fontSize: 13,
+  },
+
+  cardActions: {
+    marginTop: "auto",
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr 1fr",
+    gap: 10,
+  },
+
+  primaryButton: {
+    border: "none",
+    borderRadius: 14,
+    padding: "12px 16px",
+    fontSize: 14,
+    fontWeight: 800,
+    cursor: "pointer",
+    background: "linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%)",
+    color: "#fff",
+    boxShadow: "0 12px 24px rgba(124, 58, 237, 0.2)",
+  },
+
+  secondaryButton: {
+    borderRadius: 14,
+    padding: "11px 14px",
+    fontSize: 14,
+    fontWeight: 800,
+    cursor: "pointer",
+    background: "#f3f4f6",
+    color: "#111827",
+    border: "1px solid #e5e7eb",
+  },
+
+  dangerButton: {
+    borderRadius: 14,
+    padding: "11px 14px",
+    fontSize: 14,
+    fontWeight: 800,
+    cursor: "pointer",
+    background: "#fee2e2",
+    color: "#b91c1c",
+    border: "1px solid #fecaca",
+  },
+
+  emptyState: {
+    background: "#fff",
+    border: "1px solid #ececf2",
+    borderRadius: 18,
+    padding: 28,
+    textAlign: "center",
+    color: "#6b7280",
+    fontWeight: 700,
+  },
+
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    background: "rgba(15, 23, 42, 0.35)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    zIndex: 99999,
+  },
+
+  modalWrapper: {
+    width: "100%",
+    maxWidth: 980,
+  },
+
+  modalCard: {
+    width: "100%",
+    maxHeight: "90vh",
+    overflow: "auto",
+    background: "#fff",
+    borderRadius: 28,
+    border: "1px solid #ececf2",
+    boxShadow: "0 30px 80px rgba(0,0,0,0.22)",
+  },
+
+  modalHeader: {
+    padding: 20,
+    borderBottom: "1px solid #ececf2",
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 16,
+    alignItems: "flex-start",
+    position: "sticky",
+    top: 0,
+    background: "#fff",
+    zIndex: 2,
+  },
+
+  modalTitle: {
+    margin: 0,
+    fontSize: 24,
+    fontWeight: 900,
+    color: "#111827",
+  },
+
+  modalSubtitle: {
+    margin: "6px 0 0",
+    fontSize: 14,
+    color: "#6b7280",
+    fontWeight: 600,
+  },
+
+  closeButton: {
+    width: 42,
+    height: 42,
+    border: "none",
+    borderRadius: 14,
+    background: "#f3f4f6",
+    fontSize: 24,
+    cursor: "pointer",
+  },
+
+  modalContent: {
+    padding: 20,
+  },
+
+  tabsBar: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    marginBottom: 18,
+  },
+
+  tabButton: {
+    border: "1px solid #e5e7eb",
+    background: "#f9fafb",
+    color: "#374151",
+    padding: "10px 14px",
+    borderRadius: 14,
+    cursor: "pointer",
+    fontSize: 14,
+    fontWeight: 800,
+  },
+
+  tabButtonActive: {
+    background: "#ede9fe",
+    color: "#5b21b6",
+    borderColor: "#c4b5fd",
+    boxShadow: "0 0 0 4px rgba(124, 58, 237, 0.08)",
+  },
+
+  tabPanel: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: 16,
+  },
+
+  fieldFull: {
+    gridColumn: "1 / -1",
+  },
+
+  textarea: {
+    width: "100%",
+    border: "1px solid #ddd6fe",
+    background: "#fff",
+    borderRadius: 16,
+    padding: "12px 14px",
+    fontSize: 14,
+    outline: "none",
+    minHeight: 120,
+    resize: "vertical",
+  },
+
+  switchBox: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 12,
+    justifyContent: "center",
+  },
+
+  checkboxRow: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    fontSize: 14,
+    fontWeight: 700,
+    color: "#374151",
+  },
+
+  previewBox: {
+    minHeight: 200,
+    borderRadius: 18,
+    border: "1px dashed #d1d5db",
+    background: "#f9fafb",
+    display: "grid",
+    placeItems: "center",
+    overflow: "hidden",
+  },
+
+  previewImage: {
+    width: "100%",
+    height: 200,
+    objectFit: "cover",
+    display: "block",
+  },
+
+  modalFooter: {
+    marginTop: 24,
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: 12,
+    flexWrap: "wrap",
+  },
+
+  uploadSection: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+    marginBottom: 20,
+  },
+
+  imageGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+    gap: 16,
+  },
+
+  galleryCard: {
+    border: "1px solid #ececf2",
+    borderRadius: 18,
+    overflow: "hidden",
+    background: "#fff",
+  },
+
+  galleryImage: {
+    width: "100%",
+    height: 220,
+    objectFit: "cover",
+    display: "block",
+  },
+
+  galleryActions: {
+    padding: 12,
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10,
+  },
 };
