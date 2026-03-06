@@ -1,12 +1,7 @@
 "use client";
 
-import {
-  ChangeEvent,
-  FormEvent,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import api from "@/Api/conectar";
 
 type Produto = {
@@ -34,44 +29,11 @@ type Categoria = {
   nome: string;
 };
 
-type Status = {
-  id_status?: number;
-  id?: number;
-  nome?: string;
-  titulo?: string;
-  codigo?: string;
-};
-
-type ProdutoImagem = {
-  id_imagem?: number;
-  imagem: string;
-  ordem?: number;
-};
-
-type ProdutoForm = {
-  nome: string;
-  slug: string;
-  descricao: string;
-  preco: string;
-  preco_promocional: string;
-  estoque: string;
-  ilimitado: boolean;
-  categoria_id: string;
-  statusid: string;
-  catalogo: boolean;
-  sku: string;
-  modelo: string;
-  imagem: File | null;
-};
-
-type ProdutoTab = "geral" | "preco" | "midia";
-
 function resolveApi<T>(payload: any): T {
   if (payload?.dados != null) return payload.dados as T;
   if (payload?.data != null) return payload.data as T;
   if (payload?.produtos != null) return payload.produtos as T;
   if (payload?.categorias != null) return payload.categorias as T;
-  if (payload?.imagens != null) return payload.imagens as T;
   return payload as T;
 }
 
@@ -90,101 +52,33 @@ function formatMoney(value: number | string | undefined) {
   });
 }
 
-function slugify(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-}
-
-function emptyForm(): ProdutoForm {
-  return {
-    nome: "",
-    slug: "",
-    descricao: "",
-    preco: "",
-    preco_promocional: "",
-    estoque: "0",
-    ilimitado: false,
-    categoria_id: "",
-    statusid: "",
-    catalogo: true,
-    sku: "",
-    modelo: "",
-    imagem: null,
-  };
-}
-
-function TabButton({
-  active,
-  children,
-  onClick,
-}: {
-  active: boolean;
-  children: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      className={`painel-tab-button ${active ? "active" : ""}`}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
-}
-
 export default function ProdutosPainelPage() {
+  const router = useRouter();
+
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [statusList, setStatusList] = useState<Status[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [busca, setBusca] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
-  const itensPorPagina = 6;
 
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
-  const [mostrarGaleria, setMostrarGaleria] = useState(false);
-
-  const [salvandoProduto, setSalvandoProduto] = useState(false);
-  const [enviandoImagens, setEnviandoImagens] = useState(false);
-
-  const [modoEdicao, setModoEdicao] = useState(false);
-  const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null);
-  const [produtoImagemAtual, setProdutoImagemAtual] = useState<Produto | null>(null);
-
-  const [form, setForm] = useState<ProdutoForm>(emptyForm());
-  const [previewImagem, setPreviewImagem] = useState("");
-  const [produtoTab, setProdutoTab] = useState<ProdutoTab>("geral");
-
-  const [galeria, setGaleria] = useState<ProdutoImagem[]>([]);
-  const [novasImagens, setNovasImagens] = useState<File[]>([]);
-  const [erroImagem, setErroImagem] = useState("");
+  const itensPorPagina = 8;
 
   async function carregarTudo() {
     try {
       setLoading(true);
 
-      const [resProdutos, resCategorias, resStatus] = await Promise.all([
+      const [resProdutos, resCategorias] = await Promise.all([
         api.get("/admin/produtos", { withCredentials: true }),
         api.get("/admin/categorias", { withCredentials: true }),
-        api.get("/admin/produtos/status", { withCredentials: true }),
       ]);
 
       const listaProdutos = resolveApi<Produto[]>(resProdutos.data) || [];
       const listaCategorias = resolveApi<Categoria[]>(resCategorias.data) || [];
-      const listaStatus = resolveApi<Status[]>(resStatus.data) || [];
 
       setProdutos(Array.isArray(listaProdutos) ? listaProdutos : []);
       setCategorias(Array.isArray(listaCategorias) ? listaCategorias : []);
-      setStatusList(Array.isArray(listaStatus) ? listaStatus : []);
     } catch (error) {
       console.error(error);
       alert("Erro ao carregar produtos.");
@@ -200,22 +94,6 @@ export default function ProdutosPainelPage() {
   useEffect(() => {
     setPaginaAtual(1);
   }, [busca, categoriaFiltro]);
-
-  useEffect(() => {
-    if (!form.imagem) {
-      setPreviewImagem(
-        modoEdicao && produtoEditando?.imagem
-          ? getImagemUrl(produtoEditando.imagem)
-          : ""
-      );
-      return;
-    }
-
-    const url = URL.createObjectURL(form.imagem);
-    setPreviewImagem(url);
-
-    return () => URL.revokeObjectURL(url);
-  }, [form.imagem, modoEdicao, produtoEditando]);
 
   const produtosFiltrados = useMemo(() => {
     return produtos.filter((produto) => {
@@ -254,171 +132,6 @@ export default function ProdutosPainelPage() {
     }
   }, [paginaAtual, totalPaginas]);
 
-  function handleChange<K extends keyof ProdutoForm>(
-    campo: K,
-    valor: ProdutoForm[K]
-  ) {
-    setForm((prev) => ({ ...prev, [campo]: valor }));
-  }
-
-  function handleNomeChange(e: ChangeEvent<HTMLInputElement>) {
-    const value = e.target.value;
-    setForm((prev) => ({
-      ...prev,
-      nome: value,
-      slug: prev.slug ? prev.slug : slugify(value),
-    }));
-  }
-
-  function abrirFormularioNovo() {
-    setMostrarGaleria(false);
-    setMostrarFormulario(true);
-    setModoEdicao(false);
-    setProdutoEditando(null);
-    setForm(emptyForm());
-    setPreviewImagem("");
-    setProdutoTab("geral");
-  }
-
-  function abrirFormularioEditar(produto: Produto) {
-    setMostrarGaleria(false);
-    setMostrarFormulario(true);
-    setModoEdicao(true);
-    setProdutoEditando(produto);
-
-    setForm({
-      nome: produto.nome || "",
-      slug: produto.slug || "",
-      descricao: produto.descricao || "",
-      preco: String(produto.preco ?? ""),
-      preco_promocional: String(produto.preco_promocional ?? ""),
-      estoque: String(produto.estoque ?? 0),
-      ilimitado: Number(produto.ilimitado ?? 0) === 1,
-      categoria_id: produto.categoria_id ? String(produto.categoria_id) : "",
-      statusid: produto.statusid ? String(produto.statusid) : "",
-      catalogo: Number(produto.catalogo ?? 0) === 1,
-      sku: produto.sku || "",
-      modelo: produto.modelo || "",
-      imagem: null,
-    });
-
-    setPreviewImagem(getImagemUrl(produto.imagem));
-    setProdutoTab("geral");
-  }
-
-  function fecharFormulario() {
-    setMostrarFormulario(false);
-    setModoEdicao(false);
-    setProdutoEditando(null);
-    setForm(emptyForm());
-    setPreviewImagem("");
-    setProdutoTab("geral");
-  }
-
-  async function abrirGaleria(produto: Produto) {
-    setMostrarFormulario(false);
-    setMostrarGaleria(true);
-    setProdutoImagemAtual(produto);
-    setGaleria([]);
-    setNovasImagens([]);
-    setErroImagem("");
-
-    try {
-      const res = await api.get(`/admin/produto/${produto.id_produto}/imagens`, {
-        withCredentials: true,
-      });
-
-      const payload = res.data;
-      const imagens = resolveApi<any>(payload);
-
-      const lista = Array.isArray(imagens?.imagens)
-        ? imagens.imagens
-        : Array.isArray(payload?.imagens)
-        ? payload.imagens
-        : Array.isArray(imagens)
-        ? imagens
-        : [];
-
-      setGaleria(lista);
-    } catch (error) {
-      console.error(error);
-      setErroImagem("Não foi possível carregar as imagens do produto.");
-    }
-  }
-
-  function fecharGaleria() {
-    setMostrarGaleria(false);
-    setProdutoImagemAtual(null);
-    setGaleria([]);
-    setNovasImagens([]);
-    setErroImagem("");
-  }
-
-  async function salvarProduto(e: FormEvent) {
-    e.preventDefault();
-
-    if (!form.nome.trim()) {
-      alert("Informe o nome do produto.");
-      return;
-    }
-
-    if (!form.preco.trim()) {
-      alert("Informe o preço.");
-      return;
-    }
-
-    try {
-      setSalvandoProduto(true);
-
-      const body = new FormData();
-      body.append("nome", form.nome.trim());
-      body.append("slug", form.slug.trim() || slugify(form.nome));
-      body.append("descricao", form.descricao.trim());
-      body.append("preco", String(form.preco).replace(",", "."));
-      body.append(
-        "preco_promocional",
-        String(form.preco_promocional || "").replace(",", ".")
-      );
-      body.append("estoque", form.estoque || "0");
-      body.append("ilimitado", form.ilimitado ? "1" : "0");
-      body.append("catalogo", form.catalogo ? "1" : "0");
-      body.append("sku", form.sku.trim());
-      body.append("modelo", form.modelo.trim());
-
-      if (form.categoria_id) body.append("categoria_id", form.categoria_id);
-      if (form.statusid) body.append("statusid", form.statusid);
-      if (form.imagem) body.append("imagem", form.imagem);
-
-      if (modoEdicao && produtoEditando) {
-        await api.post(
-          `/admin/produto/${produtoEditando.id_produto}/atualizar`,
-          body,
-          {
-            withCredentials: true,
-            headers: { "Content-Type": "multipart/form-data" },
-          }
-        );
-      } else {
-        await api.post("/admin/produto/criar", body, {
-          withCredentials: true,
-          headers: { "Content-Type": "multipart/form-data" },
-        });
-      }
-
-      fecharFormulario();
-      await carregarTudo();
-    } catch (error: any) {
-      console.error(error);
-      alert(
-        error?.response?.data?.mensagem ||
-          error?.response?.data?.message ||
-          "Erro ao salvar produto."
-      );
-    } finally {
-      setSalvandoProduto(false);
-    }
-  }
-
   async function excluirProduto(produto: Produto) {
     const ok = window.confirm(`Deseja excluir o produto "${produto.nome}"?`);
     if (!ok) return;
@@ -427,6 +140,7 @@ export default function ProdutosPainelPage() {
       await api.delete(`/admin/produto/${produto.id_produto}/remover`, {
         withCredentials: true,
       });
+
       await carregarTudo();
     } catch (error: any) {
       console.error(error);
@@ -438,124 +152,45 @@ export default function ProdutosPainelPage() {
     }
   }
 
-  async function enviarImagens() {
-    if (!produtoImagemAtual) return;
-    if (!novasImagens.length) {
-      alert("Selecione pelo menos uma imagem.");
-      return;
-    }
-
-    try {
-      setEnviandoImagens(true);
-
-      const body = new FormData();
-      novasImagens.forEach((file) => body.append("imagens[]", file));
-
-      await api.post(
-        `/admin/produto/${produtoImagemAtual.id_produto}/imagens`,
-        body,
-        {
-          withCredentials: true,
-          headers: { "Content-Type": "multipart/form-data" },
-        }
-      );
-
-      await abrirGaleria(produtoImagemAtual);
-      await carregarTudo();
-    } catch (error: any) {
-      console.error(error);
-      alert(
-        error?.response?.data?.mensagem ||
-          error?.response?.data?.message ||
-          "Erro ao enviar imagens."
-      );
-    } finally {
-      setEnviandoImagens(false);
-    }
-  }
-
-  async function removerImagem(idImagem?: number) {
-    if (!idImagem) return;
-    const ok = window.confirm("Deseja remover esta imagem?");
-    if (!ok) return;
-
-    try {
-      await api.delete(`/admin/produto/imagem/${idImagem}/remover`, {
-        withCredentials: true,
-      });
-
-      if (produtoImagemAtual) {
-        await abrirGaleria(produtoImagemAtual);
-        await carregarTudo();
-      }
-    } catch (error: any) {
-      console.error(error);
-      alert(
-        error?.response?.data?.mensagem ||
-          error?.response?.data?.message ||
-          "Erro ao remover imagem."
-      );
-    }
-  }
-
-  async function definirPrincipal(imagem: string) {
-    if (!produtoImagemAtual) return;
-
-    try {
-      await api.put(
-        `/admin/produto/${produtoImagemAtual.id_produto}/imagem/principal`,
-        { imagem },
-        { withCredentials: true }
-      );
-
-      await abrirGaleria(produtoImagemAtual);
-      await carregarTudo();
-    } catch (error: any) {
-      console.error(error);
-      alert(
-        error?.response?.data?.mensagem ||
-          error?.response?.data?.message ||
-          "Erro ao definir imagem principal."
-      );
-    }
-  }
-
   return (
     <>
       <div className="painel-page">
-        <div className="painel-topbar">
-          <div>
-            <span className="painel-topbar-badge">Painel administrativo</span>
-            <h1>Gerenciar produtos</h1>
+        <section className="hero-card">
+          <div className="hero-left">
+            <span className="hero-badge">Painel administrativo</span>
+            <h1>Produtos</h1>
             <p>
-              Organize seu catálogo com uma aparência mais moderna, clara e profissional.
+              Gerencie seu catálogo com uma interface mais limpa, moderna e fácil
+              de manter.
             </p>
           </div>
 
-          <button
-            type="button"
-            className="btn-primary-ui"
-            onClick={abrirFormularioNovo}
-          >
-            + Novo produto
-          </button>
-        </div>
+          <div className="hero-actions">
+            <button
+              type="button"
+              className="btn-primary-ui"
+              onClick={() => router.push("/admin/produtos/novo")}
+            >
+              + Novo produto
+            </button>
+          </div>
+        </section>
 
-        <section className="painel-filtros-card">
-          <div className="painel-field painel-field-busca">
+        <section className="filtros-card">
+          <div className="field field-busca">
             <label>Buscar produto</label>
             <input
-              className="painel-input"
+              className="input-ui"
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               placeholder="Digite nome, slug, SKU ou categoria..."
             />
           </div>
 
-          <div className="painel-field painel-field-categoria">
+          <div className="field">
             <label>Categoria</label>
             <select
-              className="painel-input"
+              className="input-ui"
               value={categoriaFiltro}
               onChange={(e) => setCategoriaFiltro(e.target.value)}
             >
@@ -568,10 +203,10 @@ export default function ProdutosPainelPage() {
             </select>
           </div>
 
-          <div className="painel-field painel-field-pagina">
+          <div className="field">
             <label>Página</label>
             <select
-              className="painel-input"
+              className="input-ui"
               value={paginaAtual}
               onChange={(e) => setPaginaAtual(Number(e.target.value))}
             >
@@ -584,323 +219,10 @@ export default function ProdutosPainelPage() {
           </div>
         </section>
 
-        {mostrarFormulario && (
-          <section className="painel-section-card">
-            <div className="painel-section-header">
-              <div>
-                <span className="painel-section-badge">Produto</span>
-                <h2>{modoEdicao ? "Editar produto" : "Cadastrar produto"}</h2>
-                <p>
-                  {modoEdicao
-                    ? "Atualize as informações do produto."
-                    : "Preencha os dados do novo produto."}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                className="btn-secondary-ui"
-                onClick={fecharFormulario}
-              >
-                Fechar
-              </button>
-            </div>
-
-            <div className="painel-tabs-bar">
-              <TabButton active={produtoTab === "geral"} onClick={() => setProdutoTab("geral")}>
-                Geral
-              </TabButton>
-              <TabButton active={produtoTab === "preco"} onClick={() => setProdutoTab("preco")}>
-                Preço e estoque
-              </TabButton>
-              <TabButton active={produtoTab === "midia"} onClick={() => setProdutoTab("midia")}>
-                Mídia
-              </TabButton>
-            </div>
-
-            <form onSubmit={salvarProduto}>
-              {produtoTab === "geral" && (
-                <div className="painel-form-grid">
-                  <div className="full">
-                    <label className="painel-label">Nome</label>
-                    <input
-                      className="painel-input"
-                      value={form.nome}
-                      onChange={handleNomeChange}
-                      placeholder="Digite o nome do produto"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="painel-label">Slug</label>
-                    <input
-                      className="painel-input"
-                      value={form.slug}
-                      onChange={(e) => handleChange("slug", slugify(e.target.value))}
-                      placeholder="slug-do-produto"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="painel-label">SKU</label>
-                    <input
-                      className="painel-input"
-                      value={form.sku}
-                      onChange={(e) => handleChange("sku", e.target.value)}
-                      placeholder="SKU"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="painel-label">Modelo</label>
-                    <input
-                      className="painel-input"
-                      value={form.modelo}
-                      onChange={(e) => handleChange("modelo", e.target.value)}
-                      placeholder="Modelo"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="painel-label">Categoria</label>
-                    <select
-                      className="painel-input"
-                      value={form.categoria_id}
-                      onChange={(e) => handleChange("categoria_id", e.target.value)}
-                    >
-                      <option value="">Selecione</option>
-                      {categorias.map((cat) => (
-                        <option key={cat.id_categoria} value={cat.id_categoria}>
-                          {cat.nome}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="painel-label">Status</label>
-                    <select
-                      className="painel-input"
-                      value={form.statusid}
-                      onChange={(e) => handleChange("statusid", e.target.value)}
-                    >
-                      <option value="">Selecione</option>
-                      {statusList.map((status, index) => {
-                        const value = status.id_status ?? status.id ?? index + 1;
-                        const label =
-                          status.nome || status.titulo || status.codigo || `Status ${value}`;
-
-                        return (
-                          <option key={value} value={value}>
-                            {label}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </div>
-
-                  <div className="full">
-                    <label className="painel-label">Descrição</label>
-                    <textarea
-                      className="painel-textarea"
-                      value={form.descricao}
-                      onChange={(e) => handleChange("descricao", e.target.value)}
-                      placeholder="Descreva o produto..."
-                    />
-                  </div>
-                </div>
-              )}
-
-              {produtoTab === "preco" && (
-                <div className="painel-form-grid">
-                  <div>
-                    <label className="painel-label">Preço</label>
-                    <input
-                      className="painel-input"
-                      value={form.preco}
-                      onChange={(e) => handleChange("preco", e.target.value)}
-                      placeholder="0,00"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="painel-label">Preço promocional</label>
-                    <input
-                      className="painel-input"
-                      value={form.preco_promocional}
-                      onChange={(e) => handleChange("preco_promocional", e.target.value)}
-                      placeholder="0,00"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="painel-label">Estoque</label>
-                    <input
-                      className="painel-input"
-                      type="number"
-                      min="0"
-                      value={form.estoque}
-                      onChange={(e) => handleChange("estoque", e.target.value)}
-                    />
-                  </div>
-
-                  <div className="painel-checks-box">
-                    <label className="painel-check-row">
-                      <input
-                        type="checkbox"
-                        checked={form.catalogo}
-                        onChange={(e) => handleChange("catalogo", e.target.checked)}
-                      />
-                      Produto visível no catálogo
-                    </label>
-
-                    <label className="painel-check-row">
-                      <input
-                        type="checkbox"
-                        checked={form.ilimitado}
-                        onChange={(e) => handleChange("ilimitado", e.target.checked)}
-                      />
-                      Estoque ilimitado
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {produtoTab === "midia" && (
-                <div className="painel-form-grid">
-                  <div>
-                    <label className="painel-label">Imagem principal</label>
-                    <input
-                      className="painel-input"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleChange("imagem", e.target.files?.[0] || null)}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="painel-label">Prévia</label>
-                    <div className="painel-preview-box">
-                      {previewImagem ? (
-                        <img
-                          src={previewImagem}
-                          alt="Prévia"
-                          className="painel-preview-image"
-                        />
-                      ) : (
-                        <span>Sem imagem</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="painel-modal-footer">
-                <button
-                  type="button"
-                  className="btn-secondary-ui"
-                  onClick={fecharFormulario}
-                >
-                  Cancelar
-                </button>
-
-                <button type="submit" className="btn-primary-ui" disabled={salvandoProduto}>
-                  {salvandoProduto
-                    ? "Salvando..."
-                    : modoEdicao
-                    ? "Salvar alterações"
-                    : "Cadastrar produto"}
-                </button>
-              </div>
-            </form>
-          </section>
-        )}
-
-        {mostrarGaleria && (
-          <section className="painel-section-card">
-            <div className="painel-section-header">
-              <div>
-                <span className="painel-section-badge">Galeria</span>
-                <h2>Galeria de imagens</h2>
-                <p>{produtoImagemAtual?.nome || "Produto selecionado"}</p>
-              </div>
-
-              <button
-                type="button"
-                className="btn-secondary-ui"
-                onClick={fecharGaleria}
-              >
-                Fechar
-              </button>
-            </div>
-
-            <div className="painel-upload-top">
-              <div className="painel-field grow">
-                <label className="painel-label">Adicionar novas imagens</label>
-                <input
-                  className="painel-input"
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(e) => setNovasImagens(Array.from(e.target.files || []))}
-                />
-              </div>
-
-              <button
-                type="button"
-                className="btn-primary-ui"
-                onClick={enviarImagens}
-                disabled={enviandoImagens}
-              >
-                {enviandoImagens ? "Enviando..." : "Enviar imagens"}
-              </button>
-            </div>
-
-            {erroImagem ? <div className="painel-empty-box">{erroImagem}</div> : null}
-
-            <div className="painel-image-grid">
-              {galeria.length > 0 ? (
-                galeria.map((img, index) => (
-                  <div key={`${img.imagem}-${index}`} className="painel-gallery-card">
-                    <img
-                      src={getImagemUrl(img.imagem)}
-                      alt={`Imagem ${index + 1}`}
-                      className="painel-gallery-image"
-                    />
-
-                    <div className="painel-gallery-footer">
-                      <span>Imagem {index + 1}</span>
-                      <div className="painel-gallery-actions">
-                        <button
-                          type="button"
-                          className="btn-secondary-ui"
-                          onClick={() => definirPrincipal(img.imagem)}
-                        >
-                          Principal
-                        </button>
-
-                        <button
-                          type="button"
-                          className="btn-danger-ui"
-                          onClick={() => removerImagem(img.id_imagem)}
-                        >
-                          Remover
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <div className="painel-empty-box">Nenhuma imagem cadastrada.</div>
-              )}
-            </div>
-          </section>
-        )}
-
         {loading ? (
-          <div className="painel-empty-box">Carregando produtos...</div>
+          <div className="empty-box">Carregando produtos...</div>
         ) : produtosPaginados.length === 0 ? (
-          <div className="painel-empty-box">Nenhum produto encontrado.</div>
+          <div className="empty-box">Nenhum produto encontrado.</div>
         ) : (
           <section className="produto-grid">
             {produtosPaginados.map((produto) => (
@@ -972,7 +294,9 @@ export default function ProdutosPainelPage() {
                     <button
                       type="button"
                       className="btn-secondary-ui"
-                      onClick={() => abrirFormularioEditar(produto)}
+                      onClick={() =>
+                        router.push(`/admin/produtos/${produto.id_produto}/editar`)
+                      }
                     >
                       Editar
                     </button>
@@ -980,7 +304,9 @@ export default function ProdutosPainelPage() {
                     <button
                       type="button"
                       className="btn-secondary-ui"
-                      onClick={() => abrirGaleria(produto)}
+                      onClick={() =>
+                        router.push(`/admin/produtos/${produto.id_produto}/editar?aba=imagens`)
+                      }
                     >
                       Imagens
                     </button>
@@ -1005,58 +331,59 @@ export default function ProdutosPainelPage() {
           min-height: 100vh;
           padding: 28px;
           background:
-            radial-gradient(circle at top left, rgba(190, 24, 93, 0.05), transparent 28%),
-            linear-gradient(180deg, #fff9fa 0%, #fffdfd 100%);
+            radial-gradient(circle at top left, rgba(190, 24, 93, 0.06), transparent 30%),
+            linear-gradient(180deg, #fff9fb 0%, #fffdfd 100%);
           color: #2f2430;
-          font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          font-family: Inter, system-ui, sans-serif;
         }
 
-        .painel-topbar {
+        .hero-card {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 18px;
+          gap: 20px;
           flex-wrap: wrap;
-          padding: 26px;
+          padding: 28px;
           margin-bottom: 22px;
-          border-radius: 28px;
-          background: linear-gradient(135deg, #fff8f9 0%, #ffffff 100%);
+          border-radius: 30px;
+          background: linear-gradient(135deg, #fff8fa 0%, #ffffff 100%);
           border: 1px solid #f2d7e0;
-          box-shadow: 0 12px 32px rgba(91, 33, 52, 0.05);
+          box-shadow: 0 18px 42px rgba(91, 33, 52, 0.06);
         }
 
-        .painel-topbar-badge {
+        .hero-badge {
           display: inline-flex;
-          align-items: center;
           padding: 8px 14px;
           border-radius: 999px;
-          background: #fff1f5;
+          background: #fff1f6;
           color: #d61f69;
+          border: 1px solid #f8cada;
           font-size: 12px;
           font-weight: 800;
-          border: 1px solid #f5c8d8;
         }
 
-        .painel-topbar h1 {
+        .hero-card h1 {
           margin: 12px 0 8px;
-          font-size: 36px;
-          line-height: 1.1;
+          font-size: 38px;
+          line-height: 1.05;
           font-weight: 900;
           letter-spacing: -0.04em;
-          color: #2d2230;
         }
 
-        .painel-topbar p {
+        .hero-card p {
           margin: 0;
           max-width: 720px;
-          color: #7e6372;
+          color: #7f6472;
           font-size: 14px;
           line-height: 1.7;
           font-weight: 500;
         }
 
-        .painel-filtros-card,
-        .painel-section-card {
+        .filtros-card {
+          display: grid;
+          grid-template-columns: minmax(0, 1.8fr) minmax(220px, 1fr) 180px;
+          gap: 16px;
+          align-items: end;
           margin-bottom: 24px;
           padding: 18px;
           background: #ffffff;
@@ -1065,75 +392,23 @@ export default function ProdutosPainelPage() {
           box-shadow: 0 10px 26px rgba(91, 33, 52, 0.04);
         }
 
-        .painel-filtros-card {
-          display: grid;
-          grid-template-columns: minmax(0, 1.8fr) minmax(220px, 0.9fr) 180px;
-          gap: 16px;
-          align-items: end;
-        }
-
-        .painel-section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 16px;
-          margin-bottom: 18px;
-          padding-bottom: 18px;
-          border-bottom: 1px solid #f1dce4;
-        }
-
-        .painel-section-badge {
-          display: inline-flex;
-          padding: 7px 12px;
-          border-radius: 999px;
-          background: #fff1f5;
-          border: 1px solid #fbcfe8;
-          color: #be185d;
-          font-size: 11px;
-          font-weight: 900;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        .painel-section-header h2 {
-          margin: 10px 0 6px;
-          font-size: 28px;
-          line-height: 1.1;
-          font-weight: 900;
-          color: #2f2430;
-        }
-
-        .painel-section-header p {
-          margin: 0;
-          color: #896877;
-          font-size: 14px;
-          line-height: 1.6;
-          font-weight: 600;
-        }
-
-        .painel-field {
+        .field {
           display: flex;
           flex-direction: column;
           gap: 8px;
           min-width: 0;
         }
 
-        .painel-field.grow {
-          flex: 1;
-        }
-
-        .painel-field label,
-        .painel-label {
+        .field label {
           font-size: 13px;
           font-weight: 800;
           color: #714a5d;
         }
 
-        .painel-input,
-        .painel-textarea {
+        .input-ui {
           width: 100%;
           box-sizing: border-box;
-          height: 50px;
+          height: 52px;
           border: 1px solid #efcfd8;
           background: #fff;
           color: #2f2430;
@@ -1143,28 +418,14 @@ export default function ProdutosPainelPage() {
           font-weight: 500;
           outline: none;
           transition: 0.2s ease;
-          box-shadow: none;
         }
 
-        .painel-textarea {
-          min-height: 130px;
-          height: auto;
-          padding: 14px;
-          resize: vertical;
-        }
-
-        .painel-input::placeholder,
-        .painel-textarea::placeholder {
-          color: #b58a99;
-        }
-
-        .painel-input:focus,
-        .painel-textarea:focus {
+        .input-ui:focus {
           border-color: #d61f69;
           box-shadow: 0 0 0 4px rgba(214, 31, 105, 0.11);
         }
 
-        select.painel-input {
+        select.input-ui {
           appearance: none;
           -webkit-appearance: none;
           -moz-appearance: none;
@@ -1189,7 +450,7 @@ export default function ProdutosPainelPage() {
           border: 1px solid #f0d9e2;
           background: rgba(255, 255, 255, 0.98);
           box-shadow: 0 16px 36px rgba(62, 28, 43, 0.06);
-          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+          transition: 0.2s ease;
         }
 
         .produto-card:hover {
@@ -1200,8 +461,8 @@ export default function ProdutosPainelPage() {
 
         .produto-card-image-area {
           position: relative;
-          height: 240px;
-          background: linear-gradient(180deg, #fff4f7 0%, #fffaf3 100%);
+          height: 250px;
+          background: linear-gradient(180deg, #fff3f8 0%, #fffaf4 100%);
         }
 
         .produto-card-image {
@@ -1218,7 +479,6 @@ export default function ProdutosPainelPage() {
           place-items: center;
           color: #946b7d;
           font-weight: 800;
-          font-size: 14px;
         }
 
         .produto-badges {
@@ -1228,7 +488,6 @@ export default function ProdutosPainelPage() {
           display: flex;
           gap: 8px;
           flex-wrap: wrap;
-          z-index: 2;
         }
 
         .badge {
@@ -1294,7 +553,6 @@ export default function ProdutosPainelPage() {
           font-size: 20px;
           line-height: 1.25;
           font-weight: 900;
-          color: #2f2430;
         }
 
         .produto-card-content p {
@@ -1363,14 +621,6 @@ export default function ProdutosPainelPage() {
           transform: translateY(-1px);
         }
 
-        .btn-primary-ui:disabled,
-        .btn-secondary-ui:disabled,
-        .btn-danger-ui:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-          transform: none;
-        }
-
         .btn-primary-ui {
           border: none;
           color: #fff;
@@ -1390,7 +640,7 @@ export default function ProdutosPainelPage() {
           color: #be123c;
         }
 
-        .painel-empty-box {
+        .empty-box {
           padding: 30px;
           text-align: center;
           border-radius: 22px;
@@ -1401,145 +651,8 @@ export default function ProdutosPainelPage() {
           box-shadow: 0 10px 24px rgba(62, 28, 43, 0.04);
         }
 
-        .painel-tabs-bar {
-          display: flex;
-          gap: 10px;
-          flex-wrap: wrap;
-          margin-bottom: 20px;
-          padding: 8px;
-          border-radius: 20px;
-          background: #fff7fa;
-          border: 1px solid #f0d9e2;
-        }
-
-        .painel-tab-button {
-          border: none;
-          background: transparent;
-          color: #7a5c68;
-          padding: 12px 16px;
-          border-radius: 14px;
-          cursor: pointer;
-          font-size: 14px;
-          font-weight: 800;
-          transition: 0.18s ease;
-        }
-
-        .painel-tab-button.active {
-          color: #fff;
-          background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
-          box-shadow: 0 10px 22px rgba(190, 24, 93, 0.2);
-        }
-
-        .painel-form-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 16px;
-        }
-
-        .painel-form-grid .full {
-          grid-column: 1 / -1;
-        }
-
-        .painel-checks-box {
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          gap: 12px;
-          padding: 16px;
-          border-radius: 18px;
-          border: 1px solid #f0d9e2;
-          background: linear-gradient(180deg, #fffefe 0%, #fff7fa 100%);
-        }
-
-        .painel-check-row {
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-          font-size: 14px;
-          font-weight: 700;
-          color: #6a4356;
-        }
-
-        .painel-preview-box {
-          min-height: 210px;
-          border-radius: 18px;
-          overflow: hidden;
-          display: grid;
-          place-items: center;
-          border: 1px dashed #e8bfd0;
-          background: linear-gradient(180deg, #fffdfd 0%, #fff7fa 100%);
-          color: #9a6b80;
-          font-weight: 700;
-        }
-
-        .painel-preview-image {
-          width: 100%;
-          height: 210px;
-          object-fit: cover;
-          display: block;
-        }
-
-        .painel-modal-footer {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          flex-wrap: wrap;
-          margin-top: 24px;
-          padding-top: 18px;
-          border-top: 1px solid #f1dce4;
-        }
-
-        .painel-upload-top {
-          display: flex;
-          gap: 14px;
-          align-items: end;
-          flex-wrap: wrap;
-          margin-bottom: 20px;
-        }
-
-        .painel-image-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-          gap: 16px;
-        }
-
-        .painel-gallery-card {
-          overflow: hidden;
-          border-radius: 22px;
-          border: 1px solid #f0d9e2;
-          background: #ffffff;
-          box-shadow: 0 10px 24px rgba(62, 28, 43, 0.05);
-        }
-
-        .painel-gallery-image {
-          width: 100%;
-          height: 240px;
-          object-fit: cover;
-          display: block;
-        }
-
-        .painel-gallery-footer {
-          padding: 14px;
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .painel-gallery-footer span {
-          font-size: 13px;
-          font-weight: 800;
-          color: #7a5c68;
-        }
-
-        .painel-gallery-actions {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-        }
-
         @media (max-width: 1024px) {
-          .painel-filtros-card,
-          .painel-form-grid {
+          .filtros-card {
             grid-template-columns: 1fr;
           }
         }
@@ -1549,26 +662,17 @@ export default function ProdutosPainelPage() {
             padding: 16px;
           }
 
-          .painel-topbar {
-            padding: 18px;
+          .hero-card {
+            padding: 20px;
             border-radius: 22px;
           }
 
-          .painel-topbar h1 {
-            font-size: 28px;
+          .hero-card h1 {
+            font-size: 30px;
           }
 
-          .painel-section-header h2 {
-            font-size: 22px;
-          }
-
-          .produto-actions,
-          .painel-gallery-actions {
+          .produto-actions {
             grid-template-columns: 1fr;
-          }
-
-          .painel-modal-footer {
-            flex-direction: column;
           }
         }
       `}</style>
