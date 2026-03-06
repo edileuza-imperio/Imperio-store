@@ -42,18 +42,6 @@ type ProdutoImagem = {
   ordem?: number;
 };
 
-type ApiResponse<T> = {
-  status?: number;
-  mensagem?: string;
-  message?: string;
-  dados?: T;
-  data?: T;
-  total?: number;
-  produtos?: T;
-  categorias?: T;
-  imagens?: T;
-};
-
 type ProdutoForm = {
   nome: string;
   slug: string;
@@ -132,7 +120,7 @@ export default function ProdutosPainelPage() {
   const [busca, setBusca] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
-  const itensPorPagina = 8;
+  const itensPorPagina = 5;
 
   const [modalProdutoOpen, setModalProdutoOpen] = useState(false);
   const [modalImagemOpen, setModalImagemOpen] = useState(false);
@@ -186,7 +174,7 @@ export default function ProdutosPainelPage() {
 
   useEffect(() => {
     if (!form.imagem) {
-      setPreviewImagem("");
+      setPreviewImagem(modoEdicao && produtoEditando?.imagem ? getImagemUrl(produtoEditando.imagem) : "");
       return;
     }
 
@@ -194,7 +182,7 @@ export default function ProdutosPainelPage() {
     setPreviewImagem(url);
 
     return () => URL.revokeObjectURL(url);
-  }, [form.imagem]);
+  }, [form.imagem, modoEdicao, produtoEditando]);
 
   const produtosFiltrados = useMemo(() => {
     return produtos.filter((produto) => {
@@ -615,7 +603,7 @@ export default function ProdutosPainelPage() {
       </div>
 
       {modalProdutoOpen && (
-        <div className="overlay">
+        <div className="overlay-claro">
           <div className="modal modal-lg">
             <div className="modal-header">
               <h2>{modoEdicao ? "Editar produto" : "Cadastrar produto"}</h2>
@@ -807,7 +795,7 @@ export default function ProdutosPainelPage() {
       )}
 
       {modalImagemOpen && (
-        <div className="overlay">
+        <div className="overlay-claro">
           <div className="modal modal-lg">
             <div className="modal-header">
               <div>
@@ -884,7 +872,7 @@ export default function ProdutosPainelPage() {
       <style jsx>{`
         .painel-produtos {
           padding: 24px;
-          background: #f7f7f9;
+          background: linear-gradient(180deg, #faf7ff 0%, #f4f4f8 100%);
           min-height: 100vh;
         }
 
@@ -898,9 +886,10 @@ export default function ProdutosPainelPage() {
 
         .topo h1 {
           margin: 8px 0 6px;
-          font-size: 32px;
+          font-size: 34px;
           font-weight: 900;
           color: #1f2937;
+          letter-spacing: -0.4px;
         }
 
         .topo p {
@@ -948,9 +937,9 @@ export default function ProdutosPainelPage() {
         .select,
         .textarea {
           width: 100%;
-          border: 1px solid #d1d5db;
+          border: 1px solid #ddd6fe;
           background: #fff;
-          border-radius: 14px;
+          border-radius: 16px;
           padding: 12px 14px;
           font-size: 14px;
           outline: none;
@@ -965,23 +954,29 @@ export default function ProdutosPainelPage() {
 
         .grid-cards {
           display: grid;
-          grid-template-columns: repeat(4, minmax(0, 1fr));
+          grid-template-columns: repeat(5, minmax(0, 1fr));
           gap: 18px;
         }
 
         .card-produto {
-          background: #fff;
+          background: rgba(255, 255, 255, 0.92);
           border: 1px solid #ececf2;
-          border-radius: 22px;
+          border-radius: 24px;
           overflow: hidden;
-          box-shadow: 0 12px 30px rgba(15, 23, 42, 0.05);
+          box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
           display: flex;
           flex-direction: column;
+          transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .card-produto:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 18px 34px rgba(15, 23, 42, 0.08);
         }
 
         .imagem-box {
           position: relative;
-          height: 220px;
+          height: 210px;
           background: linear-gradient(180deg, #f8f9ff 0%, #eef2ff 100%);
         }
 
@@ -1035,10 +1030,11 @@ export default function ProdutosPainelPage() {
         }
 
         .categoria {
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 800;
           color: #8b5cf6;
           text-transform: uppercase;
+          letter-spacing: 0.4px;
         }
 
         .conteudo-card h3 {
@@ -1135,10 +1131,11 @@ export default function ProdutosPainelPage() {
           font-weight: 700;
         }
 
-        .overlay {
+        .overlay-claro {
           position: fixed;
           inset: 0;
-          background: rgba(17, 24, 39, 0.45);
+          background: rgba(250, 247, 255, 0.72);
+          backdrop-filter: blur(6px);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1148,10 +1145,11 @@ export default function ProdutosPainelPage() {
 
         .modal {
           width: 100%;
-          background: #fff;
-          border-radius: 24px;
+          background: #ffffff;
+          border-radius: 26px;
           overflow: hidden;
-          box-shadow: 0 30px 60px rgba(15, 23, 42, 0.22);
+          border: 1px solid #ececf2;
+          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.14);
         }
 
         .modal-lg {
@@ -1165,6 +1163,7 @@ export default function ProdutosPainelPage() {
           justify-content: space-between;
           gap: 16px;
           border-bottom: 1px solid #ececf2;
+          background: linear-gradient(180deg, #fcfbff 0%, #ffffff 100%);
         }
 
         .modal-header h2 {
@@ -1303,6 +1302,12 @@ export default function ProdutosPainelPage() {
           gap: 10px;
         }
 
+        @media (max-width: 1400px) {
+          .grid-cards {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+          }
+        }
+
         @media (max-width: 1200px) {
           .grid-cards {
             grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1343,6 +1348,15 @@ export default function ProdutosPainelPage() {
 
           .modal-footer {
             flex-direction: column;
+          }
+
+          .overlay-claro {
+            padding: 12px;
+            align-items: flex-end;
+          }
+
+          .modal {
+            border-radius: 24px 24px 0 0;
           }
         }
       `}</style>
