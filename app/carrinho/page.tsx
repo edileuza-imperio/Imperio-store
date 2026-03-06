@@ -162,8 +162,8 @@ export default function CarrinhoPage() {
       const list: EnderecoDB[] = Array.isArray(base)
         ? base
         : Array.isArray(base?.enderecos)
-        ? base.enderecos
-        : [];
+          ? base.enderecos
+          : [];
 
       setEnderecos(list);
 
@@ -383,6 +383,7 @@ export default function CarrinhoPage() {
   async function gerarPixCarrinho() {
     try {
       const okEnd = await salvarEndereco();
+
       if (!okEnd) {
         setEtapa(2);
         return;
@@ -390,7 +391,10 @@ export default function CarrinhoPage() {
 
       setProcessing(true);
 
-      const resp = await api.post("/carrinho/pix");
+      const resp = await api.post("/pedido/finalizar", {
+        metodo_pagamento: "pix"
+      });
+
       const dados = resp.data?.dados ?? {};
       const pagamento = dados?.pagamento ?? null;
 
@@ -408,22 +412,28 @@ export default function CarrinhoPage() {
       });
 
       setMetodoPagamento("pix");
-      toast.success("QR Code PIX gerado!");
+
+      toast.success("PIX gerado com sucesso!");
     } catch (e: any) {
       console.error(e?.response?.data || e);
-      toast.error(e?.response?.data?.mensagem || "Erro ao gerar pagamento PIX.");
+
+      toast.error(
+        e?.response?.data?.mensagem || "Erro ao gerar pagamento PIX."
+      );
     } finally {
       setProcessing(false);
     }
   }
 
   async function finalizarPedido() {
+
     if (itensArray.length === 0) {
       toast.info("Seu carrinho está vazio.");
       return;
     }
 
     const okEnd = await salvarEndereco();
+
     if (!okEnd) {
       setEtapa(2);
       return;
@@ -442,28 +452,28 @@ export default function CarrinhoPage() {
     setProcessing(true);
 
     try {
-      const payload: any = {
-        total,
-        frete: 0,
-        metodo_pagamento: metodoPagamento,
-        pagamento_info: null,
-      };
 
-      if (metodoPagamento === "cartao") {
-        payload.pagamento_info = {
+      const resp = await api.post("/pedido/finalizar", {
+        metodo_pagamento: metodoPagamento,
+        pagamento_info: {
           nome: cardName,
           numero: cardNumber.replace(/\s/g, ""),
           validade: cardExpiry,
-          cvv: cardCVV,
-        };
-      }
-
-      await api.post("/pedido/finalizar", payload);
+          cvv: cardCVV
+        }
+      });
 
       setEtapa(4);
+
       toast.success("Pedido finalizado!");
+
     } catch (e: any) {
-      toast.error(e?.response?.data?.mensagem || "Erro ao finalizar pedido.");
+
+      toast.error(
+        e?.response?.data?.mensagem ||
+        "Erro ao finalizar pedido."
+      );
+
     } finally {
       setProcessing(false);
     }
@@ -749,10 +759,10 @@ export default function CarrinhoPage() {
                   {etapa === 1
                     ? "Ir para Endereço"
                     : etapa === 2
-                    ? "Ir para Pagamento"
-                    : etapa === 3
-                    ? "Finalizar"
-                    : "Concluído"}
+                      ? "Ir para Pagamento"
+                      : etapa === 3
+                        ? "Finalizar"
+                        : "Concluído"}
                 </button>
 
                 <button className="btn btn-outline-brand w-100 mt-2" onClick={carregarTudo}>
@@ -1350,10 +1360,10 @@ export default function CarrinhoPage() {
                   {etapa === 1
                     ? "Ir para Endereço"
                     : etapa === 2
-                    ? "Ir para Pagamento"
-                    : etapa === 3
-                    ? "Finalizar"
-                    : "Concluído"}
+                      ? "Ir para Pagamento"
+                      : etapa === 3
+                        ? "Finalizar"
+                        : "Concluído"}
                 </button>
 
                 <button className="btn btn-outline-brand w-100 mt-2" onClick={carregarTudo}>
