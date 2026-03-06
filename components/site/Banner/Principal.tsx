@@ -94,9 +94,7 @@ export default function Banner() {
   const makeImageUrl = (img?: string | null) => {
     if (!img) return null;
 
-    if (/^https?:\/\//i.test(img)) {
-      return img;
-    }
+    if (/^https?:\/\//i.test(img)) return img;
 
     const base = String(api.defaults.baseURL || "").replace(/\/+$/, "");
     const path = String(img).replace(/^\/+/, "");
@@ -110,7 +108,6 @@ export default function Banner() {
 
     const nextIndex = (index + 1) % safeBanners.length;
     const nextImg = makeImageUrl(safeBanners[nextIndex]?.imagem);
-
     if (!nextImg) return;
 
     const img = new Image();
@@ -141,7 +138,6 @@ export default function Banner() {
 
   const handleClick = async () => {
     const link = banner?.link;
-
     if (!link || link === "#") return;
 
     const id = banner?.id_banner;
@@ -149,7 +145,6 @@ export default function Banner() {
     if (id && !clickLockRef.current) {
       clickLockRef.current = true;
       api.put(rotas.banners.incrementarClick(id)).catch(() => {});
-
       window.setTimeout(() => {
         clickLockRef.current = false;
       }, 800);
@@ -188,11 +183,6 @@ export default function Banner() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [hasMany, index]);
 
-  const tituloPrincipal = banner?.titulo?.trim() || "Universo Império";
-  const descricaoPrincipal =
-    banner?.descricao?.trim() ||
-    "Moda, beleza e estilo que celebram a sua essência. Descubra peças únicas para cada momento da sua vida.";
-
   if (loading) {
     return (
       <>
@@ -205,7 +195,6 @@ export default function Banner() {
             position: relative;
             width: 100%;
             min-height: 520px;
-            border-radius: 0;
             overflow: hidden;
             background: linear-gradient(135deg, #2a0411 0%, #5a0a22 45%, #bb7f60 100%);
           }
@@ -250,7 +239,7 @@ export default function Banner() {
           className="lux-banner-bg"
           style={{ backgroundImage: `url(${imagemUrl})` }}
           onClick={handleClick}
-          aria-label={tituloPrincipal}
+          aria-label={banner?.titulo || "Banner"}
         />
 
         <div className="lux-banner-overlay" />
@@ -258,27 +247,26 @@ export default function Banner() {
 
         <div className="lux-banner-content">
           <div className="lux-banner-text">
-            <span className="lux-badge">✦ NOVA COLEÇÃO 2025 ✦</span>
+            <h1 className="lux-title">{banner?.titulo || ""}</h1>
 
-            <div className="lux-brand-watermark">UNIVERSO IMPÉRIO</div>
-
-            <h1 className="lux-title">
-              Viva o seu
-              <span>{tituloPrincipal}</span>
-            </h1>
-
-            <div className="lux-divider" />
-
-            <p className="lux-desc">{descricaoPrincipal}</p>
+            {banner?.descricao ? (
+              <p className="lux-desc">{banner.descricao}</p>
+            ) : null}
 
             <div className="lux-actions">
-              <button type="button" className="lux-btn primary" onClick={handleClick}>
-                Comprar Agora <i className="bi bi-arrow-right" />
-              </button>
+              {banner?.link && banner.link !== "#" ? (
+                <>
+                  <button type="button" className="lux-btn primary" onClick={handleClick}>
+                    Acessar <i className="bi bi-arrow-right" />
+                  </button>
 
-              <button type="button" className="lux-btn secondary" onClick={handleClick}>
-                Ver Coleção <i className="bi bi-arrow-right" />
-              </button>
+                  <button type="button" className="lux-btn secondary" onClick={handleClick}>
+                    Ver Mais <i className="bi bi-arrow-right" />
+                  </button>
+                </>
+              ) : (
+                <span className="lux-btn secondary disabled">Sem link</span>
+              )}
             </div>
           </div>
         </div>
@@ -348,22 +336,16 @@ export default function Banner() {
           background:
             linear-gradient(
               90deg,
-              rgba(23, 0, 8, 0.9) 0%,
-              rgba(60, 3, 22, 0.82) 23%,
-              rgba(98, 24, 34, 0.56) 45%,
-              rgba(127, 52, 41, 0.18) 65%,
+              rgba(23, 0, 8, 0.92) 0%,
+              rgba(60, 3, 22, 0.82) 25%,
+              rgba(98, 24, 34, 0.52) 45%,
+              rgba(127, 52, 41, 0.16) 68%,
               rgba(255, 184, 120, 0.04) 100%
-            ),
-            radial-gradient(
-              circle at 82% 24%,
-              rgba(255, 214, 159, 0.28) 0%,
-              rgba(255, 214, 159, 0.08) 18%,
-              transparent 42%
             ),
             linear-gradient(
               180deg,
-              rgba(0, 0, 0, 0.14) 0%,
-              rgba(0, 0, 0, 0.26) 100%
+              rgba(0, 0, 0, 0.1) 0%,
+              rgba(0, 0, 0, 0.25) 100%
             );
           z-index: 1;
         }
@@ -374,10 +356,9 @@ export default function Banner() {
           z-index: 1;
           pointer-events: none;
           background:
-            radial-gradient(circle at 72% 55%, rgba(255, 177, 103, 0.22), transparent 24%),
-            radial-gradient(circle at 82% 18%, rgba(255, 206, 151, 0.25), transparent 18%),
-            radial-gradient(circle at 92% 24%, rgba(255, 209, 164, 0.16), transparent 14%),
-            radial-gradient(circle at 87% 70%, rgba(255, 185, 114, 0.12), transparent 16%);
+            radial-gradient(circle at 80% 18%, rgba(255, 214, 159, 0.24), transparent 16%),
+            radial-gradient(circle at 89% 28%, rgba(255, 209, 164, 0.14), transparent 12%),
+            radial-gradient(circle at 74% 72%, rgba(255, 177, 103, 0.14), transparent 20%);
           mix-blend-mode: screen;
         }
 
@@ -394,99 +375,26 @@ export default function Banner() {
         }
 
         .lux-banner-text {
-          position: relative;
           width: 100%;
-          max-width: 540px;
-        }
-
-        .lux-badge {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          min-height: 34px;
-          padding: 0 14px;
-          border-radius: 999px;
-          margin-bottom: 18px;
-          font-size: 0.72rem;
-          font-weight: 800;
-          letter-spacing: 0.26em;
-          color: #f1c86b;
-          border: 1px solid rgba(241, 200, 107, 0.22);
-          background: rgba(59, 0, 16, 0.34);
-          backdrop-filter: blur(6px);
-        }
-
-        .lux-brand-watermark {
-          position: absolute;
-          top: -22px;
-          left: 0;
-          font-size: clamp(2.9rem, 6vw, 5.6rem);
-          line-height: 0.95;
-          font-family: Georgia, "Times New Roman", serif;
-          color: rgba(255, 228, 205, 0.12);
-          letter-spacing: 0.03em;
-          pointer-events: none;
-          user-select: none;
-          white-space: nowrap;
-          text-transform: uppercase;
+          max-width: 560px;
         }
 
         .lux-title {
-          position: relative;
-          z-index: 2;
-          display: flex;
-          flex-direction: column;
-          margin: 0;
+          margin: 0 0 18px;
           color: #fff;
           font-family: Georgia, "Times New Roman", serif;
-          text-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
-        }
-
-        .lux-title :global(span) {
-          margin-top: 2px;
-          font-size: clamp(2.8rem, 6vw, 5rem);
-          font-weight: 500;
-          font-style: italic;
+          font-size: clamp(2.8rem, 5vw, 4.8rem);
           line-height: 0.95;
-          color: #fff8f4;
-        }
-
-        .lux-title {
-          font-size: clamp(2.6rem, 5vw, 4.6rem);
           font-weight: 700;
-          line-height: 0.94;
-        }
-
-        .lux-divider {
-          width: 320px;
-          max-width: 72%;
-          height: 1px;
-          margin: 18px 0 20px;
-          background: linear-gradient(
-            90deg,
-            rgba(212, 171, 110, 0.9) 0%,
-            rgba(212, 171, 110, 0.28) 100%
-          );
-          position: relative;
-        }
-
-        .lux-divider::before {
-          content: "✦";
-          position: absolute;
-          right: -8px;
-          top: 50%;
-          transform: translateY(-50%);
-          font-size: 0.78rem;
-          color: #dcb06d;
-          background: transparent;
+          text-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
         }
 
         .lux-desc {
-          max-width: 420px;
-          margin: 0 0 26px;
+          max-width: 430px;
+          margin: 0 0 28px;
           color: rgba(255, 241, 235, 0.92);
-          font-size: 1.08rem;
-          line-height: 1.7;
+          font-size: 1.04rem;
+          line-height: 1.75;
           text-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
         }
 
@@ -500,7 +408,6 @@ export default function Banner() {
         .lux-btn {
           height: 50px;
           padding: 0 22px;
-          border-radius: 0;
           display: inline-flex;
           align-items: center;
           gap: 10px;
@@ -508,10 +415,6 @@ export default function Banner() {
           font-weight: 800;
           cursor: pointer;
           transition: 0.22s ease;
-        }
-
-        .lux-btn i {
-          font-size: 0.92rem;
         }
 
         .lux-btn.primary {
@@ -536,6 +439,11 @@ export default function Banner() {
         .lux-btn.secondary:hover {
           transform: translateY(-2px);
           background: rgba(255, 255, 255, 0.08);
+        }
+
+        .lux-btn.disabled {
+          opacity: 0.8;
+          cursor: default;
         }
 
         .lux-arrow {
@@ -637,59 +545,33 @@ export default function Banner() {
         @media (max-width: 991px) {
           .lux-banner,
           .lux-banner-content {
-            min-height: 480px;
-          }
-
-          .lux-brand-watermark {
-            font-size: clamp(2.4rem, 9vw, 4.2rem);
-            top: -10px;
-          }
-
-          .lux-desc {
-            max-width: 100%;
+            min-height: 470px;
           }
         }
 
         @media (max-width: 768px) {
           .lux-banner,
           .lux-banner-content {
-            min-height: 430px;
+            min-height: 420px;
           }
 
           .lux-banner-content {
-            padding: 42px 18px 70px;
+            padding: 38px 18px 74px;
           }
 
           .lux-banner-text {
             max-width: 100%;
           }
 
-          .lux-brand-watermark {
-            font-size: 2.3rem;
-            top: 6px;
-            white-space: normal;
-            max-width: 90%;
-          }
-
           .lux-title {
-            margin-top: 28px;
             font-size: 2.4rem;
-            line-height: 0.98;
-          }
-
-          .lux-title :global(span) {
-            font-size: 3rem;
-          }
-
-          .lux-divider {
-            width: 190px;
-            max-width: 75%;
+            line-height: 1;
           }
 
           .lux-desc {
+            max-width: 100%;
             font-size: 0.98rem;
-            line-height: 1.6;
-            margin-bottom: 22px;
+            line-height: 1.65;
           }
 
           .lux-btn {

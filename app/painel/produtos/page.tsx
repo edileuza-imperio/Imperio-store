@@ -89,9 +89,9 @@ function slugify(value: string) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/[^a-z0-9\\s-]/g, "")
     .trim()
-    .replace(/\s+/g, "-")
+    .replace(/\\s+/g, "-")
     .replace(/-+/g, "-");
 }
 
@@ -958,7 +958,7 @@ export default function ProdutosPainelPage() {
         .painel-produtos-hero {
           display: flex;
           justify-content: space-between;
-          align-items: flex-start;
+          align-items: center;
           gap: 16px;
           margin-bottom: 22px;
           flex-wrap: wrap;
@@ -1055,7 +1055,7 @@ export default function ProdutosPainelPage() {
 
         .painel-card-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
           gap: 18px;
         }
 
@@ -1243,28 +1243,38 @@ export default function ProdutosPainelPage() {
         .painel-modal-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(15, 23, 42, 0.45);
+          background: rgba(15, 23, 42, 0.42);
           display: flex;
           align-items: center;
           justify-content: center;
-          padding: 16px;
+          padding: 24px;
           z-index: 99999;
           backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+          overflow-y: auto;
         }
 
         .painel-modal-wrapper {
           width: 100%;
           max-width: 980px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: auto;
         }
 
         .painel-modal-card {
           width: 100%;
-          max-height: 90vh;
-          overflow: auto;
+          max-width: 980px;
+          max-height: calc(100vh - 48px);
+          overflow: hidden;
           background: #fff;
           border-radius: 28px;
           border: 1px solid #ececf2;
           box-shadow: 0 30px 80px rgba(0, 0, 0, 0.22);
+          display: flex;
+          flex-direction: column;
+          animation: modalFadeUp 0.22s ease;
         }
 
         .painel-modal-header {
@@ -1274,11 +1284,10 @@ export default function ProdutosPainelPage() {
           justify-content: space-between;
           gap: 16px;
           align-items: flex-start;
-          position: sticky;
-          top: 0;
-          background: rgba(255, 255, 255, 0.95);
-          backdrop-filter: blur(8px);
-          z-index: 2;
+          background: rgba(255, 255, 255, 0.96);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          flex-shrink: 0;
         }
 
         .painel-modal-header h2 {
@@ -1303,10 +1312,13 @@ export default function ProdutosPainelPage() {
           background: #f3f4f6;
           font-size: 24px;
           cursor: pointer;
+          flex-shrink: 0;
         }
 
         .painel-modal-content {
           padding: 20px;
+          overflow-y: auto;
+          flex: 1;
         }
 
         .painel-tabs-bar {
@@ -1314,13 +1326,17 @@ export default function ProdutosPainelPage() {
           gap: 10px;
           flex-wrap: wrap;
           margin-bottom: 18px;
+          padding: 6px;
+          background: #f8fafc;
+          border: 1px solid #e5e7eb;
+          border-radius: 18px;
         }
 
         .painel-tab-button {
-          border: 1px solid #e5e7eb;
-          background: #f9fafb;
-          color: #374151;
-          padding: 10px 14px;
+          border: none;
+          background: transparent;
+          color: #475569;
+          padding: 12px 16px;
           border-radius: 14px;
           cursor: pointer;
           font-size: 14px;
@@ -1329,10 +1345,9 @@ export default function ProdutosPainelPage() {
         }
 
         .painel-tab-button.active {
-          background: #ede9fe;
-          color: #5b21b6;
-          border-color: #c4b5fd;
-          box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.08);
+          background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
+          color: #fff;
+          box-shadow: 0 10px 22px rgba(124, 58, 237, 0.22);
         }
 
         .painel-tab-grid {
@@ -1389,6 +1404,8 @@ export default function ProdutosPainelPage() {
           justify-content: flex-end;
           gap: 12px;
           flex-wrap: wrap;
+          padding-top: 18px;
+          border-top: 1px solid #ececf2;
         }
 
         .painel-upload-section {
@@ -1425,6 +1442,17 @@ export default function ProdutosPainelPage() {
           gap: 10px;
         }
 
+        @keyframes modalFadeUp {
+          from {
+            opacity: 0;
+            transform: translateY(16px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
         @media (max-width: 980px) {
           .painel-produtos-filtros,
           .painel-tab-grid {
@@ -1450,8 +1478,32 @@ export default function ProdutosPainelPage() {
             grid-template-columns: 1fr;
           }
 
+          .painel-modal-overlay {
+            padding: 12px;
+            align-items: center;
+            justify-content: center;
+          }
+
+          .painel-modal-wrapper {
+            max-width: 100%;
+          }
+
           .painel-modal-card {
-            border-radius: 24px;
+            max-width: 100%;
+            max-height: calc(100vh - 24px);
+            border-radius: 22px;
+          }
+
+          .painel-modal-header {
+            padding: 16px;
+          }
+
+          .painel-modal-header h2 {
+            font-size: 20px;
+          }
+
+          .painel-modal-content {
+            padding: 16px;
           }
 
           .painel-modal-footer {
