@@ -3,12 +3,10 @@
 import {
   ChangeEvent,
   FormEvent,
-  ReactNode,
   useEffect,
   useMemo,
   useState,
 } from "react";
-import { createPortal } from "react-dom";
 import api from "@/Api/conectar";
 
 type Produto = {
@@ -121,79 +119,13 @@ function emptyForm(): ProdutoForm {
   };
 }
 
-function ModalBase({
-  open,
-  title,
-  subtitle,
-  onClose,
-  children,
-}: {
-  open: boolean;
-  title: string;
-  subtitle?: string;
-  onClose: () => void;
-  children: ReactNode;
-}) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const handleEsc = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-
-    window.addEventListener("keydown", handleEsc);
-    return () => window.removeEventListener("keydown", handleEsc);
-  }, [open, onClose]);
-
-  if (!mounted || !open) return null;
-
-  return createPortal(
-    <div className="painel-modal-overlay" onClick={onClose}>
-      <div className="painel-modal-shell">
-        <div
-          className="painel-modal-card"
-          onClick={(e) => e.stopPropagation()}
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="painel-modal-header">
-            <div className="painel-modal-header-text">
-              <span className="painel-modal-mini-badge">Gerenciamento</span>
-              <h2>{title}</h2>
-              {subtitle ? <p>{subtitle}</p> : null}
-            </div>
-
-            <button
-              type="button"
-              className="painel-modal-close"
-              onClick={onClose}
-              aria-label="Fechar modal"
-            >
-              ×
-            </button>
-          </div>
-
-          <div className="painel-modal-content">{children}</div>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-}
-
 function TabButton({
   active,
   children,
   onClick,
 }: {
   active: boolean;
-  children: ReactNode;
+  children: React.ReactNode;
   onClick: () => void;
 }) {
   return (
@@ -218,8 +150,8 @@ export default function ProdutosPainelPage() {
   const [paginaAtual, setPaginaAtual] = useState(1);
   const itensPorPagina = 6;
 
-  const [modalProdutoOpen, setModalProdutoOpen] = useState(false);
-  const [modalImagemOpen, setModalImagemOpen] = useState(false);
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [mostrarGaleria, setMostrarGaleria] = useState(false);
 
   const [salvandoProduto, setSalvandoProduto] = useState(false);
   const [enviandoImagens, setEnviandoImagens] = useState(false);
@@ -264,14 +196,6 @@ export default function ProdutosPainelPage() {
   useEffect(() => {
     carregarTudo();
   }, []);
-
-  useEffect(() => {
-    document.body.style.overflow =
-      modalProdutoOpen || modalImagemOpen ? "hidden" : "";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [modalProdutoOpen, modalImagemOpen]);
 
   useEffect(() => {
     setPaginaAtual(1);
@@ -346,18 +270,22 @@ export default function ProdutosPainelPage() {
     }));
   }
 
-  function abrirModalCriar() {
+  function abrirFormularioNovo() {
+    setMostrarGaleria(false);
+    setMostrarFormulario(true);
     setModoEdicao(false);
     setProdutoEditando(null);
     setForm(emptyForm());
     setPreviewImagem("");
     setProdutoTab("geral");
-    setModalProdutoOpen(true);
   }
 
-  function abrirModalEditar(produto: Produto) {
+  function abrirFormularioEditar(produto: Produto) {
+    setMostrarGaleria(false);
+    setMostrarFormulario(true);
     setModoEdicao(true);
     setProdutoEditando(produto);
+
     setForm({
       nome: produto.nome || "",
       slug: produto.slug || "",
@@ -373,13 +301,13 @@ export default function ProdutosPainelPage() {
       modelo: produto.modelo || "",
       imagem: null,
     });
+
     setPreviewImagem(getImagemUrl(produto.imagem));
     setProdutoTab("geral");
-    setModalProdutoOpen(true);
   }
 
-  function fecharModalProduto() {
-    setModalProdutoOpen(false);
+  function fecharFormulario() {
+    setMostrarFormulario(false);
     setModoEdicao(false);
     setProdutoEditando(null);
     setForm(emptyForm());
@@ -387,9 +315,10 @@ export default function ProdutosPainelPage() {
     setProdutoTab("geral");
   }
 
-  async function abrirModalImagens(produto: Produto) {
+  async function abrirGaleria(produto: Produto) {
+    setMostrarFormulario(false);
+    setMostrarGaleria(true);
     setProdutoImagemAtual(produto);
-    setModalImagemOpen(true);
     setGaleria([]);
     setNovasImagens([]);
     setErroImagem("");
@@ -417,8 +346,8 @@ export default function ProdutosPainelPage() {
     }
   }
 
-  function fecharModalImagens() {
-    setModalImagemOpen(false);
+  function fecharGaleria() {
+    setMostrarGaleria(false);
     setProdutoImagemAtual(null);
     setGaleria([]);
     setNovasImagens([]);
@@ -461,10 +390,14 @@ export default function ProdutosPainelPage() {
       if (form.imagem) body.append("imagem", form.imagem);
 
       if (modoEdicao && produtoEditando) {
-        await api.post(`/admin/produto/${produtoEditando.id_produto}/atualizar`, body, {
-          withCredentials: true,
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await api.post(
+          `/admin/produto/${produtoEditando.id_produto}/atualizar`,
+          body,
+          {
+            withCredentials: true,
+            headers: { "Content-Type": "multipart/form-data" },
+          }
+        );
       } else {
         await api.post("/admin/produto/criar", body, {
           withCredentials: true,
@@ -472,7 +405,7 @@ export default function ProdutosPainelPage() {
         });
       }
 
-      fecharModalProduto();
+      fecharFormulario();
       await carregarTudo();
     } catch (error: any) {
       console.error(error);
@@ -518,12 +451,16 @@ export default function ProdutosPainelPage() {
       const body = new FormData();
       novasImagens.forEach((file) => body.append("imagens[]", file));
 
-      await api.post(`/admin/produto/${produtoImagemAtual.id_produto}/imagens`, body, {
-        withCredentials: true,
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      await api.post(
+        `/admin/produto/${produtoImagemAtual.id_produto}/imagens`,
+        body,
+        {
+          withCredentials: true,
+          headers: { "Content-Type": "multipart/form-data" },
+        }
+      );
 
-      await abrirModalImagens(produtoImagemAtual);
+      await abrirGaleria(produtoImagemAtual);
       await carregarTudo();
     } catch (error: any) {
       console.error(error);
@@ -548,7 +485,7 @@ export default function ProdutosPainelPage() {
       });
 
       if (produtoImagemAtual) {
-        await abrirModalImagens(produtoImagemAtual);
+        await abrirGaleria(produtoImagemAtual);
         await carregarTudo();
       }
     } catch (error: any) {
@@ -571,7 +508,7 @@ export default function ProdutosPainelPage() {
         { withCredentials: true }
       );
 
-      await abrirModalImagens(produtoImagemAtual);
+      await abrirGaleria(produtoImagemAtual);
       await carregarTudo();
     } catch (error: any) {
       console.error(error);
@@ -595,7 +532,11 @@ export default function ProdutosPainelPage() {
             </p>
           </div>
 
-          <button type="button" className="btn-primary-ui" onClick={abrirModalCriar}>
+          <button
+            type="button"
+            className="btn-primary-ui"
+            onClick={abrirFormularioNovo}
+          >
             + Novo produto
           </button>
         </div>
@@ -642,6 +583,319 @@ export default function ProdutosPainelPage() {
             </select>
           </div>
         </section>
+
+        {mostrarFormulario && (
+          <section className="painel-section-card">
+            <div className="painel-section-header">
+              <div>
+                <span className="painel-section-badge">Produto</span>
+                <h2>{modoEdicao ? "Editar produto" : "Cadastrar produto"}</h2>
+                <p>
+                  {modoEdicao
+                    ? "Atualize as informações do produto."
+                    : "Preencha os dados do novo produto."}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="btn-secondary-ui"
+                onClick={fecharFormulario}
+              >
+                Fechar
+              </button>
+            </div>
+
+            <div className="painel-tabs-bar">
+              <TabButton active={produtoTab === "geral"} onClick={() => setProdutoTab("geral")}>
+                Geral
+              </TabButton>
+              <TabButton active={produtoTab === "preco"} onClick={() => setProdutoTab("preco")}>
+                Preço e estoque
+              </TabButton>
+              <TabButton active={produtoTab === "midia"} onClick={() => setProdutoTab("midia")}>
+                Mídia
+              </TabButton>
+            </div>
+
+            <form onSubmit={salvarProduto}>
+              {produtoTab === "geral" && (
+                <div className="painel-form-grid">
+                  <div className="full">
+                    <label className="painel-label">Nome</label>
+                    <input
+                      className="painel-input"
+                      value={form.nome}
+                      onChange={handleNomeChange}
+                      placeholder="Digite o nome do produto"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="painel-label">Slug</label>
+                    <input
+                      className="painel-input"
+                      value={form.slug}
+                      onChange={(e) => handleChange("slug", slugify(e.target.value))}
+                      placeholder="slug-do-produto"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="painel-label">SKU</label>
+                    <input
+                      className="painel-input"
+                      value={form.sku}
+                      onChange={(e) => handleChange("sku", e.target.value)}
+                      placeholder="SKU"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="painel-label">Modelo</label>
+                    <input
+                      className="painel-input"
+                      value={form.modelo}
+                      onChange={(e) => handleChange("modelo", e.target.value)}
+                      placeholder="Modelo"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="painel-label">Categoria</label>
+                    <select
+                      className="painel-input"
+                      value={form.categoria_id}
+                      onChange={(e) => handleChange("categoria_id", e.target.value)}
+                    >
+                      <option value="">Selecione</option>
+                      {categorias.map((cat) => (
+                        <option key={cat.id_categoria} value={cat.id_categoria}>
+                          {cat.nome}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="painel-label">Status</label>
+                    <select
+                      className="painel-input"
+                      value={form.statusid}
+                      onChange={(e) => handleChange("statusid", e.target.value)}
+                    >
+                      <option value="">Selecione</option>
+                      {statusList.map((status, index) => {
+                        const value = status.id_status ?? status.id ?? index + 1;
+                        const label =
+                          status.nome || status.titulo || status.codigo || `Status ${value}`;
+
+                        return (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <div className="full">
+                    <label className="painel-label">Descrição</label>
+                    <textarea
+                      className="painel-textarea"
+                      value={form.descricao}
+                      onChange={(e) => handleChange("descricao", e.target.value)}
+                      placeholder="Descreva o produto..."
+                    />
+                  </div>
+                </div>
+              )}
+
+              {produtoTab === "preco" && (
+                <div className="painel-form-grid">
+                  <div>
+                    <label className="painel-label">Preço</label>
+                    <input
+                      className="painel-input"
+                      value={form.preco}
+                      onChange={(e) => handleChange("preco", e.target.value)}
+                      placeholder="0,00"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="painel-label">Preço promocional</label>
+                    <input
+                      className="painel-input"
+                      value={form.preco_promocional}
+                      onChange={(e) => handleChange("preco_promocional", e.target.value)}
+                      placeholder="0,00"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="painel-label">Estoque</label>
+                    <input
+                      className="painel-input"
+                      type="number"
+                      min="0"
+                      value={form.estoque}
+                      onChange={(e) => handleChange("estoque", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="painel-checks-box">
+                    <label className="painel-check-row">
+                      <input
+                        type="checkbox"
+                        checked={form.catalogo}
+                        onChange={(e) => handleChange("catalogo", e.target.checked)}
+                      />
+                      Produto visível no catálogo
+                    </label>
+
+                    <label className="painel-check-row">
+                      <input
+                        type="checkbox"
+                        checked={form.ilimitado}
+                        onChange={(e) => handleChange("ilimitado", e.target.checked)}
+                      />
+                      Estoque ilimitado
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {produtoTab === "midia" && (
+                <div className="painel-form-grid">
+                  <div>
+                    <label className="painel-label">Imagem principal</label>
+                    <input
+                      className="painel-input"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleChange("imagem", e.target.files?.[0] || null)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="painel-label">Prévia</label>
+                    <div className="painel-preview-box">
+                      {previewImagem ? (
+                        <img
+                          src={previewImagem}
+                          alt="Prévia"
+                          className="painel-preview-image"
+                        />
+                      ) : (
+                        <span>Sem imagem</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="painel-modal-footer">
+                <button
+                  type="button"
+                  className="btn-secondary-ui"
+                  onClick={fecharFormulario}
+                >
+                  Cancelar
+                </button>
+
+                <button type="submit" className="btn-primary-ui" disabled={salvandoProduto}>
+                  {salvandoProduto
+                    ? "Salvando..."
+                    : modoEdicao
+                    ? "Salvar alterações"
+                    : "Cadastrar produto"}
+                </button>
+              </div>
+            </form>
+          </section>
+        )}
+
+        {mostrarGaleria && (
+          <section className="painel-section-card">
+            <div className="painel-section-header">
+              <div>
+                <span className="painel-section-badge">Galeria</span>
+                <h2>Galeria de imagens</h2>
+                <p>{produtoImagemAtual?.nome || "Produto selecionado"}</p>
+              </div>
+
+              <button
+                type="button"
+                className="btn-secondary-ui"
+                onClick={fecharGaleria}
+              >
+                Fechar
+              </button>
+            </div>
+
+            <div className="painel-upload-top">
+              <div className="painel-field grow">
+                <label className="painel-label">Adicionar novas imagens</label>
+                <input
+                  className="painel-input"
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  onChange={(e) => setNovasImagens(Array.from(e.target.files || []))}
+                />
+              </div>
+
+              <button
+                type="button"
+                className="btn-primary-ui"
+                onClick={enviarImagens}
+                disabled={enviandoImagens}
+              >
+                {enviandoImagens ? "Enviando..." : "Enviar imagens"}
+              </button>
+            </div>
+
+            {erroImagem ? <div className="painel-empty-box">{erroImagem}</div> : null}
+
+            <div className="painel-image-grid">
+              {galeria.length > 0 ? (
+                galeria.map((img, index) => (
+                  <div key={`${img.imagem}-${index}`} className="painel-gallery-card">
+                    <img
+                      src={getImagemUrl(img.imagem)}
+                      alt={`Imagem ${index + 1}`}
+                      className="painel-gallery-image"
+                    />
+
+                    <div className="painel-gallery-footer">
+                      <span>Imagem {index + 1}</span>
+                      <div className="painel-gallery-actions">
+                        <button
+                          type="button"
+                          className="btn-secondary-ui"
+                          onClick={() => definirPrincipal(img.imagem)}
+                        >
+                          Principal
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn-danger-ui"
+                          onClick={() => removerImagem(img.id_imagem)}
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="painel-empty-box">Nenhuma imagem cadastrada.</div>
+              )}
+            </div>
+          </section>
+        )}
 
         {loading ? (
           <div className="painel-empty-box">Carregando produtos...</div>
@@ -718,7 +972,7 @@ export default function ProdutosPainelPage() {
                     <button
                       type="button"
                       className="btn-secondary-ui"
-                      onClick={() => abrirModalEditar(produto)}
+                      onClick={() => abrirFormularioEditar(produto)}
                     >
                       Editar
                     </button>
@@ -726,7 +980,7 @@ export default function ProdutosPainelPage() {
                     <button
                       type="button"
                       className="btn-secondary-ui"
-                      onClick={() => abrirModalImagens(produto)}
+                      onClick={() => abrirGaleria(produto)}
                     >
                       Imagens
                     </button>
@@ -744,289 +998,6 @@ export default function ProdutosPainelPage() {
             ))}
           </section>
         )}
-
-        <ModalBase
-          open={modalProdutoOpen}
-          title={modoEdicao ? "Editar produto" : "Cadastrar produto"}
-          subtitle={
-            modoEdicao
-              ? "Atualize as informações do produto com mais organização."
-              : "Preencha os dados do novo produto."
-          }
-          onClose={fecharModalProduto}
-        >
-          <div className="painel-tabs-bar">
-            <TabButton active={produtoTab === "geral"} onClick={() => setProdutoTab("geral")}>
-              Geral
-            </TabButton>
-            <TabButton active={produtoTab === "preco"} onClick={() => setProdutoTab("preco")}>
-              Preço e estoque
-            </TabButton>
-            <TabButton active={produtoTab === "midia"} onClick={() => setProdutoTab("midia")}>
-              Mídia
-            </TabButton>
-          </div>
-
-          <form onSubmit={salvarProduto}>
-            {produtoTab === "geral" && (
-              <div className="painel-form-grid">
-                <div className="full">
-                  <label className="painel-label">Nome</label>
-                  <input
-                    className="painel-input"
-                    value={form.nome}
-                    onChange={handleNomeChange}
-                    placeholder="Digite o nome do produto"
-                  />
-                </div>
-
-                <div>
-                  <label className="painel-label">Slug</label>
-                  <input
-                    className="painel-input"
-                    value={form.slug}
-                    onChange={(e) => handleChange("slug", slugify(e.target.value))}
-                    placeholder="slug-do-produto"
-                  />
-                </div>
-
-                <div>
-                  <label className="painel-label">SKU</label>
-                  <input
-                    className="painel-input"
-                    value={form.sku}
-                    onChange={(e) => handleChange("sku", e.target.value)}
-                    placeholder="SKU"
-                  />
-                </div>
-
-                <div>
-                  <label className="painel-label">Modelo</label>
-                  <input
-                    className="painel-input"
-                    value={form.modelo}
-                    onChange={(e) => handleChange("modelo", e.target.value)}
-                    placeholder="Modelo"
-                  />
-                </div>
-
-                <div>
-                  <label className="painel-label">Categoria</label>
-                  <select
-                    className="painel-input"
-                    value={form.categoria_id}
-                    onChange={(e) => handleChange("categoria_id", e.target.value)}
-                  >
-                    <option value="">Selecione</option>
-                    {categorias.map((cat) => (
-                      <option key={cat.id_categoria} value={cat.id_categoria}>
-                        {cat.nome}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="painel-label">Status</label>
-                  <select
-                    className="painel-input"
-                    value={form.statusid}
-                    onChange={(e) => handleChange("statusid", e.target.value)}
-                  >
-                    <option value="">Selecione</option>
-                    {statusList.map((status, index) => {
-                      const value = status.id_status ?? status.id ?? index + 1;
-                      const label =
-                        status.nome || status.titulo || status.codigo || `Status ${value}`;
-
-                      return (
-                        <option key={value} value={value}>
-                          {label}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
-
-                <div className="full">
-                  <label className="painel-label">Descrição</label>
-                  <textarea
-                    className="painel-textarea"
-                    value={form.descricao}
-                    onChange={(e) => handleChange("descricao", e.target.value)}
-                    placeholder="Descreva o produto..."
-                  />
-                </div>
-              </div>
-            )}
-
-            {produtoTab === "preco" && (
-              <div className="painel-form-grid">
-                <div>
-                  <label className="painel-label">Preço</label>
-                  <input
-                    className="painel-input"
-                    value={form.preco}
-                    onChange={(e) => handleChange("preco", e.target.value)}
-                    placeholder="0,00"
-                  />
-                </div>
-
-                <div>
-                  <label className="painel-label">Preço promocional</label>
-                  <input
-                    className="painel-input"
-                    value={form.preco_promocional}
-                    onChange={(e) => handleChange("preco_promocional", e.target.value)}
-                    placeholder="0,00"
-                  />
-                </div>
-
-                <div>
-                  <label className="painel-label">Estoque</label>
-                  <input
-                    className="painel-input"
-                    type="number"
-                    min="0"
-                    value={form.estoque}
-                    onChange={(e) => handleChange("estoque", e.target.value)}
-                  />
-                </div>
-
-                <div className="painel-checks-box">
-                  <label className="painel-check-row">
-                    <input
-                      type="checkbox"
-                      checked={form.catalogo}
-                      onChange={(e) => handleChange("catalogo", e.target.checked)}
-                    />
-                    Produto visível no catálogo
-                  </label>
-
-                  <label className="painel-check-row">
-                    <input
-                      type="checkbox"
-                      checked={form.ilimitado}
-                      onChange={(e) => handleChange("ilimitado", e.target.checked)}
-                    />
-                    Estoque ilimitado
-                  </label>
-                </div>
-              </div>
-            )}
-
-            {produtoTab === "midia" && (
-              <div className="painel-form-grid">
-                <div>
-                  <label className="painel-label">Imagem principal</label>
-                  <input
-                    className="painel-input"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleChange("imagem", e.target.files?.[0] || null)}
-                  />
-                </div>
-
-                <div>
-                  <label className="painel-label">Prévia</label>
-                  <div className="painel-preview-box">
-                    {previewImagem ? (
-                      <img
-                        src={previewImagem}
-                        alt="Prévia"
-                        className="painel-preview-image"
-                      />
-                    ) : (
-                      <span>Sem imagem</span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="painel-modal-footer">
-              <button type="button" className="btn-secondary-ui" onClick={fecharModalProduto}>
-                Cancelar
-              </button>
-
-              <button type="submit" className="btn-primary-ui" disabled={salvandoProduto}>
-                {salvandoProduto
-                  ? "Salvando..."
-                  : modoEdicao
-                  ? "Salvar alterações"
-                  : "Cadastrar produto"}
-              </button>
-            </div>
-          </form>
-        </ModalBase>
-
-        <ModalBase
-          open={modalImagemOpen}
-          title="Galeria de imagens"
-          subtitle={produtoImagemAtual?.nome}
-          onClose={fecharModalImagens}
-        >
-          <div className="painel-upload-top">
-            <div className="painel-field grow">
-              <label className="painel-label">Adicionar novas imagens</label>
-              <input
-                className="painel-input"
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={(e) => setNovasImagens(Array.from(e.target.files || []))}
-              />
-            </div>
-
-            <button
-              type="button"
-              className="btn-primary-ui"
-              onClick={enviarImagens}
-              disabled={enviandoImagens}
-            >
-              {enviandoImagens ? "Enviando..." : "Enviar imagens"}
-            </button>
-          </div>
-
-          {erroImagem ? <div className="painel-empty-box">{erroImagem}</div> : null}
-
-          <div className="painel-image-grid">
-            {galeria.length > 0 ? (
-              galeria.map((img, index) => (
-                <div key={`${img.imagem}-${index}`} className="painel-gallery-card">
-                  <img
-                    src={getImagemUrl(img.imagem)}
-                    alt={`Imagem ${index + 1}`}
-                    className="painel-gallery-image"
-                  />
-
-                  <div className="painel-gallery-footer">
-                    <span>Imagem {index + 1}</span>
-                    <div className="painel-gallery-actions">
-                      <button
-                        type="button"
-                        className="btn-secondary-ui"
-                        onClick={() => definirPrincipal(img.imagem)}
-                      >
-                        Principal
-                      </button>
-
-                      <button
-                        type="button"
-                        className="btn-danger-ui"
-                        onClick={() => removerImagem(img.id_imagem)}
-                      >
-                        Remover
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="painel-empty-box">Nenhuma imagem cadastrada.</div>
-            )}
-          </div>
-        </ModalBase>
       </div>
 
       <style jsx>{`
@@ -1084,11 +1055,8 @@ export default function ProdutosPainelPage() {
           font-weight: 500;
         }
 
-        .painel-filtros-card {
-          display: grid;
-          grid-template-columns: minmax(0, 1.8fr) minmax(220px, 0.9fr) 180px;
-          gap: 16px;
-          align-items: end;
+        .painel-filtros-card,
+        .painel-section-card {
           margin-bottom: 24px;
           padding: 18px;
           background: #ffffff;
@@ -1097,11 +1065,61 @@ export default function ProdutosPainelPage() {
           box-shadow: 0 10px 26px rgba(91, 33, 52, 0.04);
         }
 
+        .painel-filtros-card {
+          display: grid;
+          grid-template-columns: minmax(0, 1.8fr) minmax(220px, 0.9fr) 180px;
+          gap: 16px;
+          align-items: end;
+        }
+
+        .painel-section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 16px;
+          margin-bottom: 18px;
+          padding-bottom: 18px;
+          border-bottom: 1px solid #f1dce4;
+        }
+
+        .painel-section-badge {
+          display: inline-flex;
+          padding: 7px 12px;
+          border-radius: 999px;
+          background: #fff1f5;
+          border: 1px solid #fbcfe8;
+          color: #be185d;
+          font-size: 11px;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .painel-section-header h2 {
+          margin: 10px 0 6px;
+          font-size: 28px;
+          line-height: 1.1;
+          font-weight: 900;
+          color: #2f2430;
+        }
+
+        .painel-section-header p {
+          margin: 0;
+          color: #896877;
+          font-size: 14px;
+          line-height: 1.6;
+          font-weight: 600;
+        }
+
         .painel-field {
           display: flex;
           flex-direction: column;
           gap: 8px;
           min-width: 0;
+        }
+
+        .painel-field.grow {
+          flex: 1;
         }
 
         .painel-field label,
@@ -1383,101 +1401,6 @@ export default function ProdutosPainelPage() {
           box-shadow: 0 10px 24px rgba(62, 28, 43, 0.04);
         }
 
-        .painel-modal-overlay {
-          position: fixed;
-          inset: 0;
-          z-index: 999999;
-          background: rgba(30, 20, 28, 0.52);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 24px;
-        }
-
-        .painel-modal-shell {
-          width: 100%;
-          max-width: 1040px;
-          max-height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .painel-modal-card {
-          width: 100%;
-          max-width: 1040px;
-          max-height: calc(100vh - 48px);
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-          background: linear-gradient(180deg, #ffffff 0%, #fffafb 100%);
-          border: 1px solid #f0d9e2;
-          border-radius: 30px;
-          box-shadow: 0 35px 90px rgba(18, 10, 16, 0.28);
-          animation: modalUp 0.2s ease;
-        }
-
-        .painel-modal-header {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 16px;
-          padding: 22px 22px 18px;
-          border-bottom: 1px solid #f1dce4;
-          background: rgba(255, 255, 255, 0.95);
-          flex-shrink: 0;
-        }
-
-        .painel-modal-header-text h2 {
-          margin: 8px 0 6px;
-          font-size: 28px;
-          line-height: 1.1;
-          font-weight: 900;
-          color: #2f2430;
-        }
-
-        .painel-modal-header-text p {
-          margin: 0;
-          color: #896877;
-          font-size: 14px;
-          line-height: 1.6;
-          font-weight: 600;
-        }
-
-        .painel-modal-mini-badge {
-          display: inline-flex;
-          padding: 7px 12px;
-          border-radius: 999px;
-          background: #fff1f5;
-          border: 1px solid #fbcfe8;
-          color: #be185d;
-          font-size: 11px;
-          font-weight: 900;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        .painel-modal-close {
-          width: 46px;
-          height: 46px;
-          border: 1px solid #edd5dd;
-          background: #fff7fa;
-          color: #7a5c68;
-          border-radius: 16px;
-          font-size: 28px;
-          line-height: 1;
-          cursor: pointer;
-          flex-shrink: 0;
-        }
-
-        .painel-modal-content {
-          padding: 22px;
-          overflow-y: auto;
-          flex: 1;
-        }
-
         .painel-tabs-bar {
           display: flex;
           gap: 10px;
@@ -1614,17 +1537,6 @@ export default function ProdutosPainelPage() {
           gap: 10px;
         }
 
-        @keyframes modalUp {
-          from {
-            opacity: 0;
-            transform: translateY(18px) scale(0.98);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
         @media (max-width: 1024px) {
           .painel-filtros-card,
           .painel-form-grid {
@@ -1646,30 +1558,13 @@ export default function ProdutosPainelPage() {
             font-size: 28px;
           }
 
-          .produto-actions,
-          .painel-gallery-actions {
-            grid-template-columns: 1fr;
-          }
-
-          .painel-modal-overlay {
-            padding: 12px;
-          }
-
-          .painel-modal-card {
-            max-height: calc(100vh - 24px);
-            border-radius: 24px;
-          }
-
-          .painel-modal-header {
-            padding: 18px 18px 16px;
-          }
-
-          .painel-modal-header-text h2 {
+          .painel-section-header h2 {
             font-size: 22px;
           }
 
-          .painel-modal-content {
-            padding: 16px;
+          .produto-actions,
+          .painel-gallery-actions {
+            grid-template-columns: 1fr;
           }
 
           .painel-modal-footer {
