@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,66 +8,147 @@ import SearchBar from "../Pesquisa/SearchBar";
 import useUsuario from "@/hooks/Auth/useUsuario";
 import api from "@/Api/conectar";
 
+import {
+  FiMenu,
+  FiX,
+  FiChevronRight,
+  FiChevronDown,
+  FiUser,
+  FiHome,
+  FiLogOut,
+  FiShoppingCart,
+  FiGrid,
+  FiBox,
+  FiClipboard,
+  FiActivity,
+  FiUserCheck,
+  FiTag,
+} from "react-icons/fi";
+
+import { Menu, MenuItem } from "@/components/Bibioteca/Bibiotecas";
+
+interface Categoria {
+  id_categoria?: number;
+  nome?: string;
+  slug?: string;
+  icone?: string;
+}
+
 interface NavbarMobileProps {
-  menus: any[];
-  categorias: any[];
+  menus: Menu[];
+  categorias: Categoria[];
   searchPlaceholder?: string;
 }
 
-export default function NavbarMobile({ menus, categorias, searchPlaceholder }: NavbarMobileProps) {
+export default function NavbarMobile({
+  menus,
+  categorias,
+  searchPlaceholder,
+}: NavbarMobileProps) {
   const router = useRouter();
+  const { usuario, loading, logado } = useUsuario();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(320);
 
-  const { usuario, loading, logado } = useUsuario();
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   const ui = useMemo(
     () => ({
-      bgA: "#fffaf0",
-      bgB: "#fdf4f4",
-      border: "rgba(212,175,55,0.26)",
-      accent: "#c97a7e",
-      gold: "#d4af37",
+      accent: "#D6A24A",
+      accentSoft: "rgba(214, 162, 74, 0.14)",
+      accentSoftStrong: "rgba(214, 162, 74, 0.22)",
       text: "#2b2b2b",
       muted: "#6c757d",
-      shadow: "0 18px 45px rgba(0,0,0,0.12)",
-      shadowSoft: "0 10px 26px rgba(0,0,0,0.06)",
+      bg: "#f4efe8",
+      bgSoft: "#fbf8f3",
+      white: "#ffffff",
+      borderSoft: "rgba(43, 43, 43, 0.08)",
+      hoverBg: "#fdf4f2",
+      danger: "#b54747",
+      dangerBg: "rgba(181, 71, 71, 0.08)",
+      dangerBorder: "rgba(181, 71, 71, 0.18)",
+      shadowSoft: "0 10px 26px rgba(0,0,0,0.08)",
+      shadowStrong: "0 18px 45px rgba(0,0,0,0.14)",
     }),
     []
   );
 
-  const searchItem = menus?.find((m) => m.pesquisa_placeholder) || null;
+  const searchMenu = menus?.find((m) => m.pesquisa_placeholder) || null;
+  const accountMenu =
+    menus?.find((m) => (m.titulo || "").toLowerCase() === "login") || null;
 
-  // remove login se estiver logado
   const menuItems =
-    menus
-      ?.filter((m) => !m.pesquisa_placeholder)
-      ?.filter((m) => !(logado && m.nome?.toLowerCase() === "login")) || [];
+    menus?.filter(
+      (m) =>
+        !m.pesquisa_placeholder &&
+        (m.titulo || "").toLowerCase() !== "login"
+    ) || [];
 
-  const carrinhoItem = menuItems.find((item) => item.nome?.toLowerCase() === "carrinho");
-  const sidebarItems = menuItems.filter((item) => item.nome?.toLowerCase() !== "carrinho");
+  const carrinhoItem =
+    menuItems.find((item) =>
+      (item.titulo || "").toLowerCase().includes("carrinho")
+    ) || null;
+
+  const sidebarItems = menuItems.filter(
+    (item) => !(item.titulo || "").toLowerCase().includes("carrinho")
+  );
+
+  const accountItems = useMemo(() => {
+    const itens = accountMenu?.itens || [];
+    return [...itens].sort((a, b) => (a.posicao ?? 0) - (b.posicao ?? 0));
+  }, [accountMenu]);
 
   const closeAll = () => {
     setSidebarOpen(false);
     setUserDropdownOpen(false);
   };
 
-  // ✅ logout real: POST /logout
+  const renderIcon = (bi?: string) => {
+    const name = (bi || "").toLowerCase();
+
+    if (name.includes("bi-box-arrow-right")) return <FiLogOut size={18} />;
+    if (name.includes("bi-speedometer")) return <FiActivity size={18} />;
+    if (name.includes("bi-card-checklist")) return <FiClipboard size={18} />;
+    if (name.includes("bi-person-circle")) return <FiUserCheck size={18} />;
+    if (name.includes("bi-cart")) return <FiShoppingCart size={18} />;
+    if (name.includes("bi-person")) return <FiUser size={18} />;
+    if (name.includes("bi-house")) return <FiHome size={18} />;
+    if (name.includes("bi-tags")) return <FiTag size={18} />;
+    if (name.includes("bi-grid")) return <FiGrid size={18} />;
+
+    return <FiBox size={18} />;
+  };
+
   const handleLogout = async () => {
     try {
       await api.post("/logout", {}, { withCredentials: true });
-    } catch (e) {
-      console.warn("Logout falhou, seguindo fluxo.", e);
+    } catch (error) {
+      console.warn("Logout falhou, seguindo o fluxo.", error);
     } finally {
       closeAll();
-      router.replace("/login"); // ou '/' se preferir
+      router.replace("/login");
       router.refresh();
     }
   };
 
-  // fecha dropdown clicando fora
+  const handleAccountItem = async (item: MenuItem) => {
+    setUserDropdownOpen(false);
+    setSidebarOpen(false);
+
+    const titulo = (item.titulo || "").toLowerCase();
+
+    if (titulo.includes("sair")) {
+      await handleLogout();
+      return;
+    }
+
+    if (item.rota) {
+      router.push(item.rota);
+    }
+  };
+
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       if (!userDropdownOpen) return;
@@ -75,32 +156,46 @@ export default function NavbarMobile({ menus, categorias, searchPlaceholder }: N
         setUserDropdownOpen(false);
       }
     };
+
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [userDropdownOpen]);
 
-  // trava scroll quando sidebar abrir
   useEffect(() => {
-    const prev = document.body.style.overflow;
-    if (sidebarOpen) document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSidebarOpen(false);
+        setUserDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    if (sidebarOpen) {
+      document.body.style.overflow = "hidden";
+    }
+
     return () => {
-      document.body.style.overflow = prev;
+      document.body.style.overflow = previous;
     };
   }, [sidebarOpen]);
 
-  // largura responsiva do offcanvas
-  const getSidebarWidth = () => {
-    if (typeof window === "undefined") return 320;
-    const w = window.innerWidth;
-    if (w <= 360) return Math.min(300, Math.floor(w * 0.92));
-    if (w <= 480) return Math.min(340, Math.floor(w * 0.88));
-    return 360;
-  };
-
-  const [sidebarWidth, setSidebarWidth] = useState(320);
-
   useEffect(() => {
+    const getSidebarWidth = () => {
+      if (typeof window === "undefined") return 320;
+
+      const w = window.innerWidth;
+      if (w <= 360) return Math.min(300, Math.floor(w * 0.92));
+      if (w <= 480) return Math.min(340, Math.floor(w * 0.9));
+      return 360;
+    };
+
     const sync = () => setSidebarWidth(getSidebarWidth());
+
     sync();
     window.addEventListener("resize", sync);
     return () => window.removeEventListener("resize", sync);
@@ -108,31 +203,38 @@ export default function NavbarMobile({ menus, categorias, searchPlaceholder }: N
 
   return (
     <>
-      {/* ================= HEADER MOBILE ================= */}
-      <div
+      {/* HEADER MOBILE */}
+      <header
         className="d-lg-none w-100"
         style={{
           position: "sticky",
           top: 0,
           zIndex: 60,
-          background: `linear-gradient(135deg, ${ui.bgA} 0%, ${ui.bgB} 100%)`,
-          borderBottom: `1px solid ${ui.border}`,
+          background: ui.bg,
+          borderBottom: `1px solid ${ui.borderSoft}`,
           boxShadow: ui.shadowSoft,
         }}
       >
-        <div style={{ padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
-          {/* ROW TOP */}
+        <div
+          style={{
+            padding: "12px 14px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          {/* TOPO */}
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "48px 1fr auto",
+              gridTemplateColumns: "46px 1fr auto",
               alignItems: "center",
-              gap: 8,
+              gap: 10,
             }}
           >
-            {/* MENU */}
+            {/* BOTÃO MENU */}
             <button
-              className="btn"
+              type="button"
               onClick={() => {
                 setSidebarOpen(true);
                 setUserDropdownOpen(false);
@@ -142,15 +244,16 @@ export default function NavbarMobile({ menus, categorias, searchPlaceholder }: N
                 width: 44,
                 height: 44,
                 borderRadius: 14,
-                background: "#fff",
-                border: `1px solid ${ui.border}`,
-                boxShadow: ui.shadowSoft,
+                border: `1px solid ${ui.borderSoft}`,
+                background: ui.white,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                color: ui.accent,
+                boxShadow: ui.shadowSoft,
               }}
             >
-              <i className="bi bi-list fs-3" style={{ color: ui.accent, lineHeight: 0 }} />
+              <FiMenu size={22} />
             </button>
 
             {/* LOGO */}
@@ -161,15 +264,15 @@ export default function NavbarMobile({ menus, categorias, searchPlaceholder }: N
                 textDecoration: "none",
                 color: ui.text,
                 textAlign: "center",
-                lineHeight: 1.1,
+                lineHeight: 1.05,
                 minWidth: 0,
               }}
             >
               <div
                 style={{
                   fontSize: 18,
-                  fontWeight: 900,
-                  letterSpacing: -0.2,
+                  fontWeight: 950,
+                  letterSpacing: -0.3,
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -178,11 +281,8 @@ export default function NavbarMobile({ menus, categorias, searchPlaceholder }: N
                 Universo{" "}
                 <span
                   style={{
-                    background: `linear-gradient(90deg, ${ui.gold}, ${ui.accent})`,
-                    WebkitBackgroundClip: "text",
-                    WebkitTextFillColor: "transparent",
+                    color: ui.accent,
                     fontStyle: "italic",
-                    fontWeight: 900,
                   }}
                 >
                   Império
@@ -190,10 +290,10 @@ export default function NavbarMobile({ menus, categorias, searchPlaceholder }: N
               </div>
               <div
                 style={{
-                  fontSize: 12,
+                  fontSize: 11,
                   color: ui.muted,
                   fontWeight: 700,
-                  marginTop: 2,
+                  marginTop: 3,
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -203,18 +303,17 @@ export default function NavbarMobile({ menus, categorias, searchPlaceholder }: N
               </div>
             </Link>
 
-            {/* DIREITA */}
+            {/* AÇÕES DIREITA */}
             <div
+              ref={dropdownRef}
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 10,
                 justifyContent: "flex-end",
+                gap: 8,
                 position: "relative",
               }}
-              ref={dropdownRef}
             >
-              {/* CARRINHO */}
               {carrinhoItem && (
                 <Link
                   href={carrinhoItem.rota || "#"}
@@ -224,42 +323,68 @@ export default function NavbarMobile({ menus, categorias, searchPlaceholder }: N
                     width: 44,
                     height: 44,
                     borderRadius: 14,
-                    background: "#fff",
-                    border: `1px solid ${ui.border}`,
-                    boxShadow: ui.shadowSoft,
+                    border: `1px solid ${ui.borderSoft}`,
+                    background: ui.white,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
                     textDecoration: "none",
                     color: ui.accent,
+                    boxShadow: ui.shadowSoft,
                   }}
                 >
-                  <i className={`bi ${carrinhoItem.icone} fs-4`} />
+                  {renderIcon(carrinhoItem.icone)}
                 </Link>
               )}
 
-              {/* USUÁRIO */}
-              {!loading && (
-                logado ? (
+              {!loading && !logado && (
+                <Link
+                  href="/login"
+                  onClick={closeAll}
+                  style={{
+                    height: 44,
+                    borderRadius: 14,
+                    padding: "0 12px",
+                    border: `1px solid ${ui.borderSoft}`,
+                    background: ui.white,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    textDecoration: "none",
+                    color: ui.text,
+                    fontWeight: 800,
+                    fontSize: 13,
+                    boxShadow: ui.shadowSoft,
+                  }}
+                >
+                  <FiUser size={17} color={ui.accent} />
+                  Entrar
+                </Link>
+              )}
+
+              {!loading && logado && (
+                <>
                   <button
                     type="button"
-                    onClick={() => setUserDropdownOpen((p) => !p)}
+                    onClick={() => setUserDropdownOpen((prev) => !prev)}
                     aria-label="Abrir menu do usuário"
                     style={{
                       height: 44,
                       maxWidth: 170,
                       borderRadius: 14,
                       padding: "0 10px",
-                      background: "#fff",
-                      border: `1px solid ${userDropdownOpen ? "rgba(201,122,126,0.35)" : ui.border}`,
-                      boxShadow: userDropdownOpen ? ui.shadow : ui.shadowSoft,
+                      border: `1px solid ${
+                        userDropdownOpen ? ui.accentSoftStrong : ui.borderSoft
+                      }`,
+                      background: "#fff8ef",
                       display: "flex",
                       alignItems: "center",
                       gap: 8,
                       cursor: "pointer",
+                      boxShadow: userDropdownOpen ? ui.shadowStrong : ui.shadowSoft,
                     }}
                   >
-                    <i className="bi bi-person-circle fs-4" style={{ color: ui.accent }} />
+                    <FiUser size={18} color={ui.accent} />
                     <span
                       style={{
                         fontWeight: 900,
@@ -272,166 +397,220 @@ export default function NavbarMobile({ menus, categorias, searchPlaceholder }: N
                     >
                       {usuario?.nome}
                     </span>
-                    <i
-                      className={`bi ${userDropdownOpen ? "bi-chevron-up" : "bi-chevron-down"}`}
-                      style={{ fontSize: 12, color: ui.muted }}
+                    <FiChevronDown
+                      size={14}
+                      color={ui.muted}
+                      style={{
+                        transform: userDropdownOpen ? "rotate(180deg)" : "rotate(0deg)",
+                        transition: "transform .18s ease",
+                      }}
                     />
                   </button>
-                ) : (
-                  <Link
-                    href="/login"
-                    onClick={closeAll}
-                    style={{
-                      height: 44,
-                      borderRadius: 14,
-                      padding: "0 12px",
-                      background: "#fff",
-                      border: `1px solid ${ui.border}`,
-                      boxShadow: ui.shadowSoft,
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      textDecoration: "none",
-                      color: ui.text,
-                      fontWeight: 900,
-                      fontSize: 13,
-                    }}
-                  >
-                    <i className="bi bi-person" style={{ color: ui.accent, fontSize: 18 }} />
-                    Entrar
-                  </Link>
-                )
-              )}
 
-              {/* ✅ DROPDOWN USUÁRIO (PROFISSIONAL + LOGOUT REAL) */}
-              {userDropdownOpen && logado && (
-                <div
-                  role="menu"
-                  style={{
-                    position: "absolute",
-                    right: 0,
-                    top: 52,
-                    minWidth: 240,
-                    maxWidth: "calc(100vw - 24px)",
-                    background: ui.bgA,
-                    border: `1px solid ${ui.border}`,
-                    borderRadius: 18,
-                    boxShadow: ui.shadow,
-                    zIndex: 999,
-                    overflow: "hidden",
-                  }}
-                >
-                  <div
-                    style={{
-                      padding: 12,
-                      borderBottom: "1px solid rgba(0,0,0,0.06)",
-                      background: "linear-gradient(180deg, rgba(212,175,55,0.08), transparent)",
-                    }}
-                  >
-                    <div style={{ fontSize: 12, color: ui.muted, fontWeight: 800 }}>Minha conta</div>
+                  {userDropdownOpen && (
                     <div
                       style={{
-                        fontSize: 14,
-                        color: ui.text,
-                        fontWeight: 900,
+                        position: "absolute",
+                        right: 0,
+                        top: 52,
+                        minWidth: 245,
+                        maxWidth: "calc(100vw - 24px)",
+                        background: ui.white,
+                        border: `1px solid ${ui.borderSoft}`,
+                        borderRadius: 18,
+                        boxShadow: ui.shadowStrong,
                         overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
+                        zIndex: 999,
                       }}
                     >
-                      {usuario?.nome}
+                      <div
+                        style={{
+                          padding: 14,
+                          borderBottom: `1px solid ${ui.borderSoft}`,
+                          background:
+                            "linear-gradient(180deg, rgba(214, 162, 74, 0.12), rgba(214, 162, 74, 0.03))",
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: 12,
+                            color: ui.muted,
+                            fontWeight: 800,
+                          }}
+                        >
+                          Minha conta
+                        </div>
+                        <div
+                          style={{
+                            fontSize: 14,
+                            color: ui.text,
+                            fontWeight: 900,
+                            marginTop: 2,
+                            overflow: "hidden",
+                            whiteSpace: "nowrap",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          {usuario?.nome}
+                        </div>
+                      </div>
+
+                      <div style={{ padding: 8 }}>
+                        {accountItems.length > 0 ? (
+                          accountItems.map((item) => {
+                            const isSair = (item.titulo || "")
+                              .toLowerCase()
+                              .includes("sair");
+
+                            return (
+                              <button
+                                key={item.id}
+                                type="button"
+                                onClick={() => handleAccountItem(item)}
+                                style={{
+                                  width: "100%",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 10,
+                                  padding: "11px 12px",
+                                  borderRadius: 14,
+                                  border: "none",
+                                  background: isSair ? ui.dangerBg : "transparent",
+                                  color: isSair ? ui.danger : ui.text,
+                                  fontWeight: 850,
+                                  fontSize: 13,
+                                  textAlign: "left",
+                                  cursor: "pointer",
+                                }}
+                              >
+                                <span
+                                  style={{
+                                    display: "inline-flex",
+                                    color: isSair ? ui.danger : ui.accent,
+                                  }}
+                                >
+                                  {renderIcon(item.icone)}
+                                </span>
+                                <span>{item.titulo}</span>
+                              </button>
+                            );
+                          })
+                        ) : (
+                          <>
+                            <Link
+                              href="/perfil"
+                              onClick={() => setUserDropdownOpen(false)}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                padding: "11px 12px",
+                                borderRadius: 14,
+                                textDecoration: "none",
+                                color: ui.text,
+                                fontWeight: 850,
+                                fontSize: 13,
+                              }}
+                            >
+                              <FiUserCheck size={18} color={ui.accent} />
+                              Meu Perfil
+                            </Link>
+
+                            <Link
+                              href="/pedidos"
+                              onClick={() => setUserDropdownOpen(false)}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                padding: "11px 12px",
+                                borderRadius: 14,
+                                textDecoration: "none",
+                                color: ui.text,
+                                fontWeight: 850,
+                                fontSize: 13,
+                              }}
+                            >
+                              <FiClipboard size={18} color={ui.accent} />
+                              Meus Pedidos
+                            </Link>
+
+                            {usuario?.nivel_id === 1 && (
+                              <Link
+                                href="/admin/dashboard"
+                                onClick={() => setUserDropdownOpen(false)}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 10,
+                                  padding: "11px 12px",
+                                  borderRadius: 14,
+                                  textDecoration: "none",
+                                  color: ui.text,
+                                  fontWeight: 850,
+                                  fontSize: 13,
+                                }}
+                              >
+                                <FiActivity size={18} color={ui.accent} />
+                                Painel Administrativo
+                              </Link>
+                            )}
+
+                            <div
+                              style={{
+                                height: 1,
+                                background: ui.borderSoft,
+                                margin: "8px 0",
+                              }}
+                            />
+
+                            <button
+                              type="button"
+                              onClick={handleLogout}
+                              style={{
+                                width: "100%",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                gap: 10,
+                                padding: "11px 12px",
+                                borderRadius: 14,
+                                background: ui.dangerBg,
+                                border: `1px solid ${ui.dangerBorder}`,
+                                color: ui.danger,
+                                fontWeight: 900,
+                                fontSize: 13,
+                                cursor: "pointer",
+                              }}
+                            >
+                              <FiLogOut size={17} />
+                              Sair
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-
-                  <div style={{ padding: 8 }}>
-                    {[
-                      { href: "/perfil", label: "Meu Perfil", icon: "bi-person-badge" },
-                      { href: "/pedidos", label: "Meus Pedidos", icon: "bi-receipt" },
-                    ].map((x) => (
-                      <Link
-                        key={x.href}
-                        href={x.href}
-                        onClick={() => setUserDropdownOpen(false)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          padding: "10px 12px",
-                          borderRadius: 14,
-                          textDecoration: "none",
-                          color: ui.text,
-                          fontWeight: 900,
-                          fontSize: 13,
-                        }}
-                      >
-                        <i className={`bi ${x.icon}`} style={{ color: ui.accent }} />
-                        {x.label}
-                      </Link>
-                    ))}
-
-                    {usuario?.nivel_id === 1 && (
-                      <Link
-                        href="/admin/dashboard"
-                        onClick={() => setUserDropdownOpen(false)}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          padding: "10px 12px",
-                          borderRadius: 14,
-                          textDecoration: "none",
-                          color: ui.text,
-                          fontWeight: 900,
-                          fontSize: 13,
-                        }}
-                      >
-                        <i className="bi bi-speedometer2" style={{ color: ui.accent }} />
-                        Painel Administrativo
-                      </Link>
-                    )}
-
-                    <div style={{ height: 1, background: "rgba(0,0,0,0.06)", margin: "8px 0" }} />
-
-                    {/* ✅ BOTÃO LOGOUT REAL */}
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      style={{
-                        width: "100%",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        gap: 10,
-                        padding: "10px 12px",
-                        borderRadius: 14,
-                        background: "rgba(220,53,69,0.08)",
-                        border: "1px solid rgba(220,53,69,0.22)",
-                        color: "#b02a37",
-                        fontWeight: 900,
-                        fontSize: 13,
-                      }}
-                    >
-                      <i className="bi bi-box-arrow-right" />
-                      Sair
-                    </button>
-                  </div>
-                </div>
+                  )}
+                </>
               )}
             </div>
           </div>
 
           {/* SEARCH */}
-          {searchItem && (
+          {(searchMenu || searchPlaceholder) && (
             <SearchBar
-              placeholder={searchItem.pesquisa_placeholder || searchPlaceholder || "Buscar produtos..."}
+              placeholder={
+                searchMenu?.pesquisa_placeholder ||
+                searchPlaceholder ||
+                "Buscar produtos"
+              }
               className="w-100"
             />
           )}
         </div>
-      </div>
+      </header>
 
-      {/* ================= SIDEBAR (CUSTOM) ================= */}
-      {/* Backdrop */}
+      {/* BACKDROP */}
       {sidebarOpen && (
         <button
           type="button"
@@ -440,16 +619,16 @@ export default function NavbarMobile({ menus, categorias, searchPlaceholder }: N
           style={{
             position: "fixed",
             inset: 0,
-            background: "rgba(0,0,0,0.45)",
+            border: "none",
+            background: "rgba(0,0,0,0.42)",
             backdropFilter: "blur(3px)",
             zIndex: 70,
-            border: "none",
           }}
         />
       )}
 
-      {/* Panel */}
-      <div
+      {/* SIDEBAR */}
+      <aside
         aria-hidden={!sidebarOpen}
         style={{
           position: "fixed",
@@ -458,85 +637,107 @@ export default function NavbarMobile({ menus, categorias, searchPlaceholder }: N
           height: "100vh",
           width: sidebarWidth,
           maxWidth: "92vw",
-          background: `linear-gradient(180deg, ${ui.bgA}, #fff)`,
-
-          borderRight: `1px solid ${ui.border}`,
-          boxShadow: ui.shadow,
+          background: `linear-gradient(180deg, ${ui.bgSoft}, ${ui.white})`,
+          borderRight: `1px solid ${ui.borderSoft}`,
+          boxShadow: ui.shadowStrong,
           zIndex: 80,
           transform: sidebarOpen ? "translateX(0)" : "translateX(-105%)",
-          transition: "transform .18s ease",
+          transition: "transform .2s ease",
           display: "flex",
           flexDirection: "column",
         }}
       >
-        {/* Header */}
+        {/* HEADER SIDEBAR */}
         <div
           style={{
             padding: 14,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            borderBottom: "1px solid rgba(0,0,0,0.06)",
+            borderBottom: `1px solid ${ui.borderSoft}`,
           }}
         >
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
             <div
-              aria-hidden
               style={{
-                width: 36,
-                height: 36,
+                width: 40,
+                height: 40,
                 borderRadius: 14,
-                background: "rgba(212,175,55,0.14)",
-                border: `1px solid ${ui.border}`,
+                background: ui.accentSoft,
+                border: `1px solid ${ui.accentSoftStrong}`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                color: ui.accent,
               }}
             >
-              <i className="bi bi-grid-3x3-gap" style={{ color: ui.accent }} />
+              <FiGrid size={18} />
             </div>
+
             <div>
-              <div style={{ fontWeight: 900, color: ui.text, lineHeight: 1.1 }}>Menu</div>
-              <div style={{ fontSize: 12, color: ui.muted, fontWeight: 800 }}>
+              <div
+                style={{
+                  fontWeight: 900,
+                  color: ui.text,
+                  lineHeight: 1.1,
+                  fontSize: 15,
+                }}
+              >
+                Menu
+              </div>
+              <div
+                style={{
+                  fontSize: 12,
+                  color: ui.muted,
+                  fontWeight: 700,
+                }}
+              >
                 Navegue pelas opções
               </div>
             </div>
           </div>
 
           <button
-            className="btn"
+            type="button"
             onClick={() => setSidebarOpen(false)}
             aria-label="Fechar menu"
             style={{
               width: 40,
               height: 40,
               borderRadius: 14,
-              background: "#fff",
-              border: `1px solid ${ui.border}`,
+              background: ui.white,
+              border: `1px solid ${ui.borderSoft}`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              color: ui.muted,
             }}
           >
-            <i className="bi bi-x-lg" style={{ color: ui.muted }} />
+            <FiX size={18} />
           </button>
         </div>
 
-        {/* Body */}
-        <div style={{ padding: 12, overflowY: "auto", flex: 1 }}>
+        {/* BODY */}
+        <div
+          style={{
+            padding: 12,
+            overflowY: "auto",
+            flex: 1,
+          }}
+        >
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {sidebarItems.map((item) => (
               <Link
-                key={item.id ?? item.nome}
+                key={item.id ?? item.titulo}
                 href={item.rota || "#"}
                 onClick={closeAll}
                 style={{
                   textDecoration: "none",
                   color: ui.text,
-                  background: "rgba(255,255,255,0.92)",
-                  border: `1px solid rgba(0,0,0,0.06)`,
+                  background: "rgba(255,255,255,0.94)",
+                  border: `1px solid ${ui.borderSoft}`,
                   borderRadius: 16,
-                  padding: "12px 12px",
+                  padding: "12px",
                   display: "flex",
                   alignItems: "center",
                   gap: 12,
@@ -544,20 +745,20 @@ export default function NavbarMobile({ menus, categorias, searchPlaceholder }: N
                 }}
               >
                 <div
-                  aria-hidden
                   style={{
-                    width: 38,
-                    height: 38,
+                    width: 40,
+                    height: 40,
                     borderRadius: 14,
-                    background: "rgba(201,122,126,0.10)",
-                    border: "1px solid rgba(201,122,126,0.20)",
+                    background: ui.accentSoft,
+                    border: `1px solid ${ui.accentSoftStrong}`,
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    color: ui.accent,
                     flex: "0 0 auto",
                   }}
                 >
-                  <i className={`bi ${item.icone}`} style={{ color: ui.accent, fontSize: 18 }} />
+                  {renderIcon(item.icone)}
                 </div>
 
                 <div style={{ minWidth: 0, flex: 1 }}>
@@ -565,49 +766,72 @@ export default function NavbarMobile({ menus, categorias, searchPlaceholder }: N
                     style={{
                       fontWeight: 900,
                       fontSize: 14,
+                      whiteSpace: "nowrap",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
                     }}
                   >
-                    {item.nome}
+                    {item.titulo}
                   </div>
-                  <div style={{ fontSize: 12, color: ui.muted, fontWeight: 700 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: ui.muted,
+                      fontWeight: 700,
+                    }}
+                  >
                     Toque para abrir
                   </div>
                 </div>
 
-                <i className="bi bi-chevron-right" style={{ color: ui.muted }} />
+                <FiChevronRight size={16} color={ui.muted} />
               </Link>
             ))}
           </div>
 
-          {/* Categorias */}
+          {/* CATEGORIAS */}
           {categorias?.length > 0 && (
             <div
               style={{
                 marginTop: 16,
                 padding: 12,
                 borderRadius: 18,
-                background: "linear-gradient(180deg, rgba(212,175,55,0.10), rgba(201,122,126,0.06))",
-                border: `1px solid ${ui.border}`,
+                background:
+                  "linear-gradient(180deg, rgba(214, 162, 74, 0.10), rgba(214, 162, 74, 0.04))",
+                border: `1px solid ${ui.accentSoftStrong}`,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
-                <i className="bi bi-tags" style={{ color: ui.accent }} />
-                <span style={{ fontWeight: 900, color: ui.text, fontSize: 14 }}>Categorias</span>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  marginBottom: 10,
+                }}
+              >
+                <FiTag size={16} color={ui.accent} />
+                <span
+                  style={{
+                    fontWeight: 900,
+                    color: ui.text,
+                    fontSize: 14,
+                  }}
+                >
+                  Categorias
+                </span>
               </div>
+
               <CategoryBar mobile />
             </div>
           )}
         </div>
 
-        {/* Footer */}
+        {/* FOOTER */}
         <div
           style={{
             padding: 12,
-            borderTop: "1px solid rgba(0,0,0,0.06)",
-            background: "rgba(255,255,255,0.75)",
+            borderTop: `1px solid ${ui.borderSoft}`,
+            background: "rgba(255,255,255,0.8)",
           }}
         >
           <Link
@@ -619,19 +843,20 @@ export default function NavbarMobile({ menus, categorias, searchPlaceholder }: N
               alignItems: "center",
               justifyContent: "center",
               gap: 10,
-              padding: "10px 12px",
+              padding: "11px 12px",
               borderRadius: 16,
-              background: "#fff",
-              border: `1px solid ${ui.border}`,
+              background: ui.white,
+              border: `1px solid ${ui.borderSoft}`,
               color: ui.text,
               fontWeight: 900,
+              boxShadow: ui.shadowSoft,
             }}
           >
-            <i className="bi bi-house" style={{ color: ui.accent }} />
+            <FiHome size={17} color={ui.accent} />
             Voltar para Home
           </Link>
         </div>
-      </div>
+      </aside>
     </>
   );
 }
