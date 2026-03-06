@@ -2,11 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import api from "@/Api/conectar";
 import Navbar from "@/components/site/menu/navbar";
 import FooterPrincipal from "@/components/site/Rodape/Footer";
-import { rotas } from "@/components/Bibioteca/config/rotas";
 
 interface Produto {
   id_produto: number;
@@ -36,7 +35,7 @@ interface Produto {
 
   criado?: string;
   atualizado?: string;
-  created_at?: string; // compat
+  created_at?: string;
   parcelas?: number;
 }
 
@@ -46,14 +45,6 @@ type ApiResponse<T> = {
   mensagem?: string;
   dados?: T;
   data?: T;
-};
-
-type CupomApi = {
-  codigo?: string;
-  valor?: number | string;
-  percentual?: number | string;
-  ativo?: number;
-  descricao?: string;
 };
 
 function resolveApi<T>(payload: any): T | null {
@@ -72,7 +63,10 @@ const getImagemUrl = (caminho?: string) => {
 };
 
 function formatBRL(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return v.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
 }
 
 function toNumber(v: unknown): number | null {
@@ -93,8 +87,9 @@ function formatDateBR(iso?: string) {
   return d.toLocaleString("pt-BR");
 }
 
-export default function ProdutoPage() {
+export default function ProdutoPainelPage() {
   const params = useParams();
+  const router = useRouter();
   const slugParam = params?.slug;
 
   const slug =
@@ -107,24 +102,10 @@ export default function ProdutoPage() {
   const [produto, setProduto] = useState<Produto | null>(null);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-
   const [activeIdx, setActiveIdx] = useState(0);
-
-  const [qtd, setQtd] = useState(1);
-  const [adding, setAdding] = useState(false);
-
-  const [cupomCodigo, setCupomCodigo] = useState("");
-  const [cupomLoading, setCupomLoading] = useState(false);
-  const [cupomAplicado, setCupomAplicado] = useState<{
-    codigo: string;
-    tipo: "percentual" | "valor";
-    valor: number;
-    descricao?: string;
-  } | null>(null);
-  const [cupomErro, setCupomErro] = useState<string | null>(null);
-
   const [copied, setCopied] = useState(false);
   const [fav, setFav] = useState(false);
+  const [removing, setRemoving] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -139,13 +120,14 @@ export default function ProdutoPage() {
         const res = await api.get<ApiResponse<Produto>>(
           `/produto/slug/${encodeURIComponent(slug)}`
         );
+
         const p = resolveApi<Produto>(res.data);
 
         if (!alive) return;
 
         if (!p) {
           setProduto(null);
-          setErro("Produto não encontrado");
+          setErro("Produto não encontrado.");
           return;
         }
 
@@ -165,17 +147,13 @@ export default function ProdutoPage() {
 
         setProduto(produtoFinal);
         setActiveIdx(0);
-        setQtd(1);
-        setCupomAplicado(null);
-        setCupomCodigo("");
-        setCupomErro(null);
       } catch (e: any) {
         if (!alive) return;
         setErro(
           e?.response?.data?.mensagem ||
             e?.response?.data?.message ||
             e?.message ||
-            "Erro ao buscar produto"
+            "Erro ao buscar produto."
         );
         setProduto(null);
       } finally {
@@ -185,6 +163,7 @@ export default function ProdutoPage() {
     }
 
     carregar();
+
     return () => {
       alive = false;
     };
@@ -192,6 +171,7 @@ export default function ProdutoPage() {
 
   useEffect(() => {
     if (!produto) return;
+
     try {
       const raw = localStorage.getItem("ui:favs");
       const ids: number[] = raw ? JSON.parse(raw) : [];
@@ -199,7 +179,7 @@ export default function ProdutoPage() {
     } catch {
       setFav(false);
     }
-  }, [produto?.id_produto]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [produto?.id_produto]);
 
   const imagens = useMemo(() => {
     if (!produto) return [];
@@ -211,132 +191,40 @@ export default function ProdutoPage() {
 
   const activeImg = imagens[activeIdx] || imagens[0] || undefined;
 
-  const indisponivel = useMemo(() => {
-    if (!produto) return true;
-    if ((produto.ilimitado ?? 0) === 1) return false;
-    return (produto.estoque ?? 0) <= 0;
-  }, [produto]);
+  const precoUnit = useMemo(() => Number(produto?.preco || 0), [produto?.preco]);
+  const precoPromo = useMemo(
+    () => toNumber(produto?.preco_promocional) ?? 0,
+    [produto?.preco_promocional]
+  );
+  const temPromo = precoPromo > 0 && precoPromo < precoUnit;
+  const precoFinal = temPromo ? precoPromo : precoUnit;
 
-  const precoBase = Number(produto?.preco || 0);
+  const estoqueTexto = useMemo(() => {
+    if (!produto) return "—";
 
-  const precoComCupom = useMemo(() => {
-    const base = precoBase * Math.max(1, qtd);
-    if (!cupomAplicado) return base;
-
-    if (cupomAplicado.tipo === "percentual") {
-      const desc = (base * cupomAplicado.valor) / 100;
-      return Math.max(0, base - desc);
+    if ((produto.ilimitado ?? 0) === 1) {
+      return "Disponível (ilimitado)";
     }
-    return Math.max(0, base - cupomAplicado.valor);
-  }, [precoBase, qtd, cupomAplicado]);
 
-  const parcelasTexto = useMemo(() => {
-    const parc = produto?.parcelas ?? 10;
-    if (!parc || parc <= 1) return "";
-    const v = precoComCupom / parc;
-    return `em até ${parc}x de ${formatBRL(v)}`;
-  }, [produto, precoComCupom]);
+    if ((produto.estoque ?? 0) > 0) {
+      return `Em estoque (${produto.estoque} un.)`;
+    }
+
+    return "Esgotado";
+  }, [produto]);
 
   const crumbs = useMemo(() => {
     const categoria = produto?.categoria_nome?.trim();
     return [
-      { label: "Início", href: "/" },
-      { label: "Catálogo", href: "/catalogo" },
-      ...(categoria ? [{ label: categoria, href: "/catalogo" }] : []),
+      { label: "Painel", href: "/painel" },
+      { label: "Produtos", href: "/painel/produtos" },
+      ...(categoria ? [{ label: categoria, href: "/painel/produtos" }] : []),
       {
         label: produto?.nome || "Produto",
-        href: slug ? `/produto/${encodeURIComponent(slug)}` : "/catalogo",
+        href: slug ? `/painel/produtos/${encodeURIComponent(slug)}` : "/painel/produtos",
       },
     ];
   }, [produto, slug]);
-
-  async function aplicarCupom() {
-    setCupomErro(null);
-    const codigo = cupomCodigo.trim();
-    if (!codigo) {
-      setCupomErro("Digite um cupom.");
-      return;
-    }
-
-    setCupomLoading(true);
-    try {
-      const res = await api.get<ApiResponse<CupomApi>>(
-        rotas.cupons.buscarPorCodigo(codigo)
-      );
-      const c = resolveApi<CupomApi>(res.data);
-
-      if (!c) {
-        setCupomAplicado(null);
-        setCupomErro("Cupom inválido.");
-        return;
-      }
-
-      const ativo = Number((c as any).ativo ?? 1);
-      if (ativo === 0) {
-        setCupomAplicado(null);
-        setCupomErro("Cupom inativo.");
-        return;
-      }
-
-      const perc = toNumber((c as any).percentual);
-      const val = toNumber((c as any).valor);
-
-      if (perc != null && perc > 0) {
-        setCupomAplicado({
-          codigo: (c.codigo || codigo).toUpperCase(),
-          tipo: "percentual",
-          valor: perc,
-          descricao: c.descricao,
-        });
-        return;
-      }
-
-      if (val != null && val > 0) {
-        setCupomAplicado({
-          codigo: (c.codigo || codigo).toUpperCase(),
-          tipo: "valor",
-          valor: val,
-          descricao: c.descricao,
-        });
-        return;
-      }
-
-      setCupomAplicado(null);
-      setCupomErro("Cupom sem desconto configurado.");
-    } catch (e: any) {
-      setCupomAplicado(null);
-      setCupomErro(
-        e?.response?.data?.mensagem ||
-          e?.response?.data?.message ||
-          e?.message ||
-          "Erro ao validar cupom"
-      );
-    } finally {
-      setCupomLoading(false);
-    }
-  }
-
-  function removerCupom() {
-    setCupomAplicado(null);
-    setCupomErro(null);
-    setCupomCodigo("");
-  }
-
-  async function adicionarCarrinho() {
-    if (!produto) return;
-    if (indisponivel) return;
-
-    setAdding(true);
-    try {
-      await api.post(
-        rotas.carrinho.adicionar,
-        { produto_id: produto.id_produto, qtd: Math.max(1, qtd) },
-        { withCredentials: true }
-      );
-    } finally {
-      setAdding(false);
-    }
-  }
 
   async function copiarLink() {
     try {
@@ -348,27 +236,9 @@ export default function ProdutoPage() {
     }
   }
 
-  async function compartilhar() {
-    const url = window.location.href;
-    try {
-      // @ts-ignore
-      if (navigator.share) {
-        // @ts-ignore
-        await navigator.share({
-          title: produto?.nome ?? "Produto",
-          text: "Confira esse produto:",
-          url,
-        });
-        return;
-      }
-    } catch {
-      return;
-    }
-    await copiarLink();
-  }
-
   function toggleFav() {
     if (!produto) return;
+
     try {
       const raw = localStorage.getItem("ui:favs");
       const ids: number[] = raw ? JSON.parse(raw) : [];
@@ -376,6 +246,7 @@ export default function ProdutoPage() {
       const next = has
         ? ids.filter((x) => x !== produto.id_produto)
         : [...ids, produto.id_produto];
+
       localStorage.setItem("ui:favs", JSON.stringify(next));
       setFav(!has);
     } catch {
@@ -383,9 +254,34 @@ export default function ProdutoPage() {
     }
   }
 
-  const precoUnit = useMemo(() => Number(produto?.preco || 0), [produto?.preco]);
-  const precoPromo = useMemo(() => toNumber(produto?.preco_promocional) ?? 0, [produto?.preco_promocional]);
-  const temPromo = precoPromo > 0 && precoPromo < precoUnit;
+  async function removerProduto() {
+    if (!produto) return;
+
+    const confirmar = window.confirm(
+      `Deseja realmente remover o produto "${produto.nome}"?`
+    );
+
+    if (!confirmar) return;
+
+    try {
+      setRemoving(true);
+
+      await api.delete(`/admin/produto/${produto.id_produto}/remover`, {
+        withCredentials: true,
+      });
+
+      router.push("/painel/produtos");
+      router.refresh();
+    } catch (e: any) {
+      alert(
+        e?.response?.data?.mensagem ||
+          e?.response?.data?.message ||
+          "Erro ao remover produto."
+      );
+    } finally {
+      setRemoving(false);
+    }
+  }
 
   return (
     <>
@@ -422,7 +318,7 @@ export default function ProdutoPage() {
           ) : erro ? (
             <div className="state err">{erro}</div>
           ) : !produto ? (
-            <div className="state err">Produto não encontrado</div>
+            <div className="state err">Produto não encontrado.</div>
           ) : (
             <>
               <header className="head">
@@ -435,20 +331,35 @@ export default function ProdutoPage() {
                         <span className="dot" /> {produto.categoria_nome}
                       </span>
                     ) : null}
+
                     {produto.sku ? (
                       <span className="subItem">
                         <span className="dot" /> SKU: {produto.sku}
                       </span>
                     ) : null}
+
                     {produto.modelo ? (
                       <span className="subItem">
                         <span className="dot" /> Modelo: {produto.modelo}
                       </span>
                     ) : null}
+
+                    <span className="subItem">
+                      <span className="dot" /> ID: #{produto.id_produto}
+                    </span>
                   </div>
 
                   <div className="badges">
-                    {produto.destaque ? <span className="chip chipHot">Destaque</span> : null}
+                    {produto.destaque ? (
+                      <span className="chip chipHot">Destaque</span>
+                    ) : null}
+
+                    {(produto.catalogo ?? 0) === 1 ? (
+                      <span className="chip chipGold">No catálogo</span>
+                    ) : (
+                      <span className="chip">Fora do catálogo</span>
+                    )}
+
                     {(produto.ilimitado ?? 0) === 1 ? (
                       <span className="chip chipOk">Disponível</span>
                     ) : produto.estoque > 0 ? (
@@ -460,12 +371,12 @@ export default function ProdutoPage() {
                 </div>
 
                 <div className="headRight">
-                  <button type="button" className="iconBtn" onClick={compartilhar} title="Compartilhar">
-                    <span className="ico">↗</span>
-                    <span className="txt">Compartilhar</span>
-                  </button>
-
-                  <button type="button" className="iconBtn" onClick={copiarLink} title="Copiar link">
+                  <button
+                    type="button"
+                    className="iconBtn"
+                    onClick={copiarLink}
+                    title="Copiar link"
+                  >
                     <span className="ico">⧉</span>
                     <span className="txt">{copied ? "Copiado!" : "Copiar link"}</span>
                   </button>
@@ -479,6 +390,11 @@ export default function ProdutoPage() {
                     <span className="ico">{fav ? "♥" : "♡"}</span>
                     <span className="txt">{fav ? "Favorito" : "Favoritar"}</span>
                   </button>
+
+                  <Link href="/painel/produtos" className="iconBtn btnLink">
+                    <span className="ico">←</span>
+                    <span className="txt">Voltar</span>
+                  </Link>
                 </div>
               </header>
 
@@ -487,7 +403,6 @@ export default function ProdutoPage() {
                   <div className="galleryCard">
                     <div className="media">
                       {activeImg ? (
-                        // eslint-disable-next-line @next/next/no-img-element
                         <img className="hero" src={activeImg} alt={produto.nome} />
                       ) : (
                         <div className="noimg">Sem imagem</div>
@@ -504,8 +419,11 @@ export default function ProdutoPage() {
                           aria-label="Selecionar imagem"
                           role="listitem"
                         >
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img className="thumb" src={src} alt={`${produto.nome} ${idx + 1}`} />
+                          <img
+                            className="thumb"
+                            src={src}
+                            alt={`${produto.nome} ${idx + 1}`}
+                          />
                         </button>
                       ))}
                     </div>
@@ -513,11 +431,13 @@ export default function ProdutoPage() {
 
                   <div className="cardsRow">
                     <div className="infoCard">
-                      <div className="cardTitle">Detalhes</div>
+                      <div className="cardTitle">Detalhes do produto</div>
+
                       <div className="kv">
                         <span className="k">ID</span>
                         <span className="v">#{produto.id_produto}</span>
                       </div>
+
                       <div className="kv">
                         <span className="k">Categoria</span>
                         <span className="v">
@@ -528,6 +448,7 @@ export default function ProdutoPage() {
                             : "—"}
                         </span>
                       </div>
+
                       <div className="kv">
                         <span className="k">Status</span>
                         <span className="v">
@@ -538,42 +459,49 @@ export default function ProdutoPage() {
                             : "—"}
                         </span>
                       </div>
+
                       <div className="kv">
-                        <span className="k">Criado</span>
-                        <span className="v">{formatDateBR(produto.criado) ?? "—"}</span>
+                        <span className="k">Slug</span>
+                        <span className="v">{produto.slug || "—"}</span>
                       </div>
+
                       <div className="kv">
-                        <span className="k">Atualizado</span>
-                        <span className="v">{formatDateBR(produto.atualizado) ?? "—"}</span>
+                        <span className="k">SKU</span>
+                        <span className="v">{produto.sku || "—"}</span>
+                      </div>
+
+                      <div className="kv">
+                        <span className="k">Modelo</span>
+                        <span className="v">{produto.modelo || "—"}</span>
                       </div>
                     </div>
 
                     <div className="infoCard">
-                      <div className="cardTitle">Entrega</div>
+                      <div className="cardTitle">Controle</div>
+
                       <div className="kv">
-                        <span className="k">Disponibilidade</span>
-                        <span className="v">
-                          {(produto.ilimitado ?? 0) === 1
-                            ? "Disponível (ilimitado)"
-                            : produto.estoque > 0
-                            ? `Em estoque (${produto.estoque} un.)`
-                            : "Esgotado"}
-                        </span>
-                      </div>
-                      <div className="kv">
-                        <span className="k">Ajuda</span>
-                        <span className="v">Envie pro WhatsApp se precisar.</span>
+                        <span className="k">Estoque</span>
+                        <span className="v">{estoqueTexto}</span>
                       </div>
 
-                      <div className="divider" />
+                      <div className="kv">
+                        <span className="k">Criado</span>
+                        <span className="v">{formatDateBR(produto.criado) ?? "—"}</span>
+                      </div>
 
-                      <div className="miniBtns">
-                        <button type="button" className="miniBtn" onClick={compartilhar}>
-                          Compartilhar
-                        </button>
-                        <button type="button" className="miniBtn" onClick={copiarLink}>
-                          Copiar link
-                        </button>
+                      <div className="kv">
+                        <span className="k">Atualizado</span>
+                        <span className="v">{formatDateBR(produto.atualizado) ?? "—"}</span>
+                      </div>
+
+                      <div className="kv">
+                        <span className="k">Catálogo</span>
+                        <span className="v">{(produto.catalogo ?? 0) === 1 ? "Sim" : "Não"}</span>
+                      </div>
+
+                      <div className="kv">
+                        <span className="k">Destaque</span>
+                        <span className="v">{produto.destaque ? "Sim" : "Não"}</span>
                       </div>
                     </div>
                   </div>
@@ -590,132 +518,74 @@ export default function ProdutoPage() {
 
                 <aside className="buyCol">
                   <div className="buyBox">
+                    <div className="boxTitle">Resumo administrativo</div>
+
                     <div className="priceArea">
                       <div className="priceRow">
-                        <div className="price">{formatBRL(precoComCupom)}</div>
+                        <div className="price">{formatBRL(precoFinal)}</div>
 
                         {temPromo ? (
                           <div className="promo">
                             <span className="from">de {formatBRL(precoUnit)}</span>
                             <span className="save">
-                              economize {formatBRL(Math.max(0, precoUnit - precoPromo))}
+                              desconto de{" "}
+                              {formatBRL(Math.max(0, precoUnit - precoPromo))}
                             </span>
                           </div>
                         ) : null}
                       </div>
 
-                      {parcelasTexto ? <div className="install">{parcelasTexto}</div> : null}
-                    </div>
-
-                    <div className="qtyRow">
-                      <span className="qtyLbl">Quantidade</span>
-                      <div className="qtyCtrl" aria-label="Controle de quantidade">
-                        <button
-                          type="button"
-                          className="qbtn"
-                          onClick={() => setQtd((v) => Math.max(1, v - 1))}
-                          disabled={qtd <= 1}
-                          aria-label="Diminuir"
-                        >
-                          −
-                        </button>
-                        <span className="qval">{qtd}</span>
-                        <button
-                          type="button"
-                          className="qbtn"
-                          onClick={() => setQtd((v) => Math.min(99, v + 1))}
-                          aria-label="Aumentar"
-                        >
-                          +
-                        </button>
+                      <div className="install">
+                        Preço unitário do produto cadastrado
                       </div>
                     </div>
 
-                    <div className="coupon">
-                      <div className="couponHead">
-                        <span className="couponTitle">Cupom</span>
-                        {cupomAplicado ? (
-                          <button type="button" className="couponRemove" onClick={removerCupom}>
-                            Remover
-                          </button>
-                        ) : null}
+                    <div className="adminList">
+                      <div className="adminRow">
+                        <span>Preço normal</span>
+                        <strong>{formatBRL(precoUnit)}</strong>
                       </div>
 
-                      {cupomAplicado ? (
-                        <div className="couponApplied">
-                          <span className="couponTag">
-                            {cupomAplicado.codigo} •{" "}
-                            {cupomAplicado.tipo === "percentual"
-                              ? `${cupomAplicado.valor}%`
-                              : formatBRL(cupomAplicado.valor)}
-                          </span>
-                          {cupomAplicado.descricao ? (
-                            <div className="couponHint">{cupomAplicado.descricao}</div>
-                          ) : null}
-                        </div>
-                      ) : (
-                        <div className="couponRow">
-                          <input
-                            className="couponInput"
-                            value={cupomCodigo}
-                            onChange={(e) => setCupomCodigo(e.target.value.toUpperCase())}
-                            placeholder="Digite seu cupom"
-                          />
-                          <button
-                            type="button"
-                            className="couponBtn"
-                            onClick={aplicarCupom}
-                            disabled={cupomLoading}
-                          >
-                            {cupomLoading ? "…" : "Aplicar"}
-                          </button>
-                        </div>
-                      )}
+                      <div className="adminRow">
+                        <span>Preço promocional</span>
+                        <strong>
+                          {precoPromo > 0 ? formatBRL(precoPromo) : "—"}
+                        </strong>
+                      </div>
 
-                      {cupomErro ? <div className="couponErr">{cupomErro}</div> : null}
+                      <div className="adminRow">
+                        <span>Estoque</span>
+                        <strong>{produto.estoque ?? 0}</strong>
+                      </div>
+
+                      <div className="adminRow">
+                        <span>Catálogo</span>
+                        <strong>{(produto.catalogo ?? 0) === 1 ? "Sim" : "Não"}</strong>
+                      </div>
                     </div>
 
                     <div className="cta">
+                      <Link href="/painel/produtos" className="btn ghost btnAsLink">
+                        Voltar para listagem
+                      </Link>
+
                       <button
                         type="button"
-                        className="btn buy"
-                        onClick={adicionarCarrinho}
-                        disabled={indisponivel || adding}
+                        className="btn ghost2"
+                        onClick={copiarLink}
                       >
-                        {adding ? "Adicionando…" : "Adicionar ao carrinho"}
+                        {copied ? "Link copiado!" : "Copiar link do produto"}
                       </button>
 
-                      <button type="button" className="btn ghost" disabled={indisponivel}>
-                        Comprar agora
+                      <button
+                        type="button"
+                        className="btn danger"
+                        onClick={removerProduto}
+                        disabled={removing}
+                      >
+                        {removing ? "Removendo..." : "Remover produto"}
                       </button>
-
-                      <button type="button" className="btn ghost2" onClick={compartilhar}>
-                        Compartilhar produto
-                      </button>
                     </div>
-
-                    <div className="backLine">
-                      <Link className="back" href="/catalogo">
-                        ← Voltar ao catálogo
-                      </Link>
-                    </div>
-                  </div>
-
-                  {/* CTA fixo no mobile */}
-                  <div className="mobileBar">
-                    <div className="mbLeft">
-                      <div className="mbPrice">{formatBRL(precoComCupom)}</div>
-                      {parcelasTexto ? <div className="mbInstall">{parcelasTexto}</div> : null}
-                    </div>
-
-                    <button
-                      type="button"
-                      className="mbBtn"
-                      onClick={adicionarCarrinho}
-                      disabled={indisponivel || adding}
-                    >
-                      {adding ? "Adicionando…" : "Adicionar"}
-                    </button>
                   </div>
                 </aside>
               </div>
@@ -724,7 +594,6 @@ export default function ProdutoPage() {
         </div>
 
         <style jsx>{`
-          /* Tema creme + rosa queimado */
           .pdp {
             background: radial-gradient(
                 900px 420px at 15% 10%,
@@ -745,7 +614,8 @@ export default function ProdutoPage() {
             max-width: 1200px;
             margin: 0 auto;
             padding: 0 16px;
-            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+            font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto,
+              Helvetica, Arial;
             color: #2b211c;
           }
 
@@ -758,23 +628,26 @@ export default function ProdutoPage() {
             color: rgba(43, 33, 28, 0.65);
             padding: 10px 0 12px;
           }
+
           .sep {
             margin: 0 6px;
             opacity: 0.7;
           }
+
           .link {
             color: #a85c5c;
             text-decoration: none;
           }
+
           .link:hover {
             text-decoration: underline;
           }
+
           .active {
             color: #2b211c;
             font-weight: 950;
           }
 
-          /* header */
           .head {
             margin-top: 6px;
             margin-bottom: 12px;
@@ -783,6 +656,7 @@ export default function ProdutoPage() {
             justify-content: space-between;
             gap: 12px;
           }
+
           .h1 {
             margin: 0;
             font-size: 22px;
@@ -790,6 +664,7 @@ export default function ProdutoPage() {
             letter-spacing: -0.2px;
             line-height: 1.2;
           }
+
           .sub {
             margin-top: 8px;
             display: flex;
@@ -799,11 +674,13 @@ export default function ProdutoPage() {
             font-weight: 900;
             font-size: 12px;
           }
+
           .subItem {
             display: inline-flex;
             align-items: center;
             gap: 8px;
           }
+
           .dot {
             width: 6px;
             height: 6px;
@@ -817,6 +694,7 @@ export default function ProdutoPage() {
             flex-wrap: wrap;
             gap: 8px;
           }
+
           .chip {
             font-size: 12px;
             font-weight: 950;
@@ -827,20 +705,29 @@ export default function ProdutoPage() {
             color: rgba(43, 33, 28, 0.78);
             backdrop-filter: blur(10px);
           }
+
           .chipHot {
             color: #a85c5c;
             background: rgba(180, 106, 106, 0.12);
             border-color: rgba(180, 106, 106, 0.22);
           }
+
           .chipOk {
             color: #0f5132;
             background: rgba(25, 135, 84, 0.12);
             border-color: rgba(25, 135, 84, 0.22);
           }
+
           .chipBad {
             color: #991b1b;
             background: rgba(185, 28, 28, 0.08);
             border-color: rgba(185, 28, 28, 0.22);
+          }
+
+          .chipGold {
+            color: #9a6a15;
+            background: rgba(214, 162, 74, 0.16);
+            border-color: rgba(214, 162, 74, 0.28);
           }
 
           .headRight {
@@ -849,7 +736,9 @@ export default function ProdutoPage() {
             flex-wrap: wrap;
             justify-content: flex-end;
           }
-          .iconBtn {
+
+          .iconBtn,
+          .btnLink {
             display: inline-flex;
             align-items: center;
             gap: 8px;
@@ -861,17 +750,23 @@ export default function ProdutoPage() {
             cursor: pointer;
             font-weight: 950;
             color: #2b211c;
-            transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
+            text-decoration: none;
+            transition: transform 0.12s ease, box-shadow 0.12s ease,
+              border-color 0.12s ease;
           }
-          .iconBtn:hover {
+
+          .iconBtn:hover,
+          .btnLink:hover {
             transform: translateY(-1px);
             border-color: rgba(180, 106, 106, 0.3);
             box-shadow: 0 14px 26px rgba(0, 0, 0, 0.08);
           }
+
           .iconBtn.on {
             border-color: rgba(180, 106, 106, 0.55);
             box-shadow: 0 0 0 4px rgba(180, 106, 106, 0.12);
           }
+
           .ico {
             width: 22px;
             height: 22px;
@@ -883,27 +778,32 @@ export default function ProdutoPage() {
             color: #a85c5c;
             font-weight: 980;
           }
+
           .txt {
             font-size: 13px;
             font-weight: 950;
           }
 
-          /* ✅ ações viram ícones no mobile */
           @media (max-width: 720px) {
             .head {
               flex-direction: column;
             }
+
             .headRight {
               width: 100%;
               justify-content: flex-start;
             }
-            .iconBtn {
+
+            .iconBtn,
+            .btnLink {
               padding: 10px;
               border-radius: 16px;
             }
+
             .txt {
               display: none;
             }
+
             .ico {
               width: 26px;
               height: 26px;
@@ -911,7 +811,6 @@ export default function ProdutoPage() {
             }
           }
 
-          /* states */
           .state {
             background: rgba(255, 255, 255, 0.82);
             border: 1px solid rgba(43, 33, 28, 0.1);
@@ -921,13 +820,13 @@ export default function ProdutoPage() {
             box-shadow: 0 18px 34px rgba(0, 0, 0, 0.06);
             backdrop-filter: blur(10px);
           }
+
           .err {
             border-color: rgba(185, 28, 28, 0.22);
             background: rgba(185, 28, 28, 0.05);
             color: #991b1b;
           }
 
-          /* Skeleton */
           .skTitle {
             width: 260px;
             height: 18px;
@@ -941,12 +840,14 @@ export default function ProdutoPage() {
             background-size: 200% 100%;
             animation: sk 1.1s infinite linear;
           }
+
           .skGrid {
             margin-top: 14px;
             display: grid;
             grid-template-columns: 1fr 380px;
             gap: 14px;
           }
+
           .skMedia,
           .skBuy {
             height: 520px;
@@ -960,6 +861,7 @@ export default function ProdutoPage() {
             background-size: 200% 100%;
             animation: sk 1.1s infinite linear;
           }
+
           @keyframes sk {
             0% {
               background-position: 0% 0%;
@@ -968,22 +870,24 @@ export default function ProdutoPage() {
               background-position: -200% 0%;
             }
           }
+
           @media (max-width: 1024px) {
             .skGrid {
               grid-template-columns: 1fr;
             }
+
             .skBuy {
               height: 360px;
             }
           }
 
-          /* layout */
           .grid {
             display: grid;
             grid-template-columns: 1fr 380px;
             gap: 14px;
             align-items: start;
           }
+
           @media (max-width: 1024px) {
             .grid {
               grid-template-columns: 1fr;
@@ -996,7 +900,6 @@ export default function ProdutoPage() {
             gap: 14px;
           }
 
-          /* gallery */
           .galleryCard {
             background: rgba(255, 255, 255, 0.82);
             border: 1px solid rgba(43, 33, 28, 0.1);
@@ -1005,12 +908,14 @@ export default function ProdutoPage() {
             box-shadow: 0 18px 34px rgba(0, 0, 0, 0.06);
             backdrop-filter: blur(10px);
           }
+
           .media {
             border-radius: 16px;
             overflow: hidden;
             border: 1px solid rgba(43, 33, 28, 0.1);
             background: #fff;
           }
+
           .hero {
             width: 100%;
             height: 520px;
@@ -1018,6 +923,7 @@ export default function ProdutoPage() {
             background: #fff;
             display: block;
           }
+
           .noimg {
             height: 520px;
             display: grid;
@@ -1025,6 +931,7 @@ export default function ProdutoPage() {
             font-weight: 950;
             color: rgba(43, 33, 28, 0.6);
           }
+
           @media (max-width: 680px) {
             .hero,
             .noimg {
@@ -1038,6 +945,7 @@ export default function ProdutoPage() {
             gap: 10px;
             flex-wrap: wrap;
           }
+
           .thumbBtn {
             width: 74px;
             height: 74px;
@@ -1047,17 +955,21 @@ export default function ProdutoPage() {
             background: rgba(255, 255, 255, 0.85);
             overflow: hidden;
             cursor: pointer;
-            transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
+            transition: transform 0.14s ease, box-shadow 0.14s ease,
+              border-color 0.14s ease;
           }
+
           .thumbBtn:hover {
             transform: translateY(-1px);
             border-color: rgba(180, 106, 106, 0.35);
             box-shadow: 0 12px 18px rgba(0, 0, 0, 0.06);
           }
+
           .thumbBtn.on {
             border-color: rgba(180, 106, 106, 0.65);
             box-shadow: 0 0 0 4px rgba(180, 106, 106, 0.14);
           }
+
           .thumb {
             width: 100%;
             height: 100%;
@@ -1065,7 +977,6 @@ export default function ProdutoPage() {
             display: block;
           }
 
-          /* ✅ thumbs viram carrossel sem barra feia no mobile */
           @media (max-width: 680px) {
             .thumbs {
               flex-wrap: nowrap;
@@ -1074,9 +985,11 @@ export default function ProdutoPage() {
               scrollbar-width: none;
               -ms-overflow-style: none;
             }
+
             .thumbs::-webkit-scrollbar {
               display: none;
             }
+
             .thumbBtn {
               flex: 0 0 auto;
               width: 66px;
@@ -1085,12 +998,12 @@ export default function ProdutoPage() {
             }
           }
 
-          /* info cards */
           .cardsRow {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 14px;
           }
+
           @media (max-width: 820px) {
             .cardsRow {
               grid-template-columns: 1fr;
@@ -1106,11 +1019,13 @@ export default function ProdutoPage() {
             box-shadow: 0 18px 34px rgba(0, 0, 0, 0.06);
             backdrop-filter: blur(10px);
           }
+
           .cardTitle {
             font-weight: 980;
             margin-bottom: 10px;
             letter-spacing: -0.15px;
           }
+
           .kv {
             display: flex;
             align-items: center;
@@ -1119,42 +1034,23 @@ export default function ProdutoPage() {
             padding: 10px 0;
             border-top: 1px solid rgba(43, 33, 28, 0.08);
           }
+
           .kv:first-of-type {
             border-top: none;
             padding-top: 0;
           }
+
           .k {
             color: rgba(43, 33, 28, 0.65);
             font-weight: 900;
             font-size: 12px;
           }
+
           .v {
             color: #2b211c;
             font-weight: 950;
             font-size: 12px;
             text-align: right;
-          }
-          .divider {
-            height: 1px;
-            background: rgba(43, 33, 28, 0.08);
-            margin: 12px 0;
-          }
-          .miniBtns {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-          }
-          .miniBtn {
-            border: 1px solid rgba(43, 33, 28, 0.12);
-            background: rgba(255, 255, 255, 0.78);
-            border-radius: 14px;
-            padding: 10px 12px;
-            cursor: pointer;
-            font-weight: 950;
-            color: #2b211c;
-          }
-          .miniBtn:hover {
-            border-color: rgba(180, 106, 106, 0.35);
           }
 
           .descText {
@@ -1165,7 +1061,6 @@ export default function ProdutoPage() {
             font-size: 13px;
           }
 
-          /* buy */
           .buyCol {
             position: relative;
           }
@@ -1180,6 +1075,7 @@ export default function ProdutoPage() {
             box-shadow: 0 18px 34px rgba(0, 0, 0, 0.06);
             backdrop-filter: blur(10px);
           }
+
           @media (max-width: 1024px) {
             .buyBox {
               position: relative;
@@ -1187,16 +1083,24 @@ export default function ProdutoPage() {
             }
           }
 
+          .boxTitle {
+            font-size: 14px;
+            font-weight: 980;
+            margin-bottom: 12px;
+          }
+
           .priceArea {
             padding-bottom: 12px;
             border-bottom: 1px solid rgba(43, 33, 28, 0.08);
           }
+
           .priceRow {
             display: flex;
             align-items: flex-end;
             justify-content: space-between;
             gap: 12px;
           }
+
           .price {
             font-size: 28px;
             font-weight: 980;
@@ -1204,18 +1108,21 @@ export default function ProdutoPage() {
             letter-spacing: -0.35px;
             white-space: nowrap;
           }
+
           .promo {
             text-align: right;
             display: flex;
             flex-direction: column;
             gap: 4px;
           }
+
           .from {
             font-size: 12px;
             font-weight: 900;
             color: rgba(43, 33, 28, 0.6);
             text-decoration: line-through;
           }
+
           .save {
             font-size: 12px;
             font-weight: 950;
@@ -1229,135 +1136,33 @@ export default function ProdutoPage() {
             color: rgba(43, 33, 28, 0.65);
           }
 
-          .qtyRow {
+          .adminList {
             margin-top: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+          }
+
+          .adminRow {
             display: flex;
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-          }
-          .qtyLbl {
-            font-size: 12px;
-            font-weight: 950;
-            color: rgba(43, 33, 28, 0.78);
-          }
-          .qtyCtrl {
-            display: inline-flex;
-            align-items: center;
-            border: 1px solid rgba(43, 33, 28, 0.12);
-            border-radius: 999px;
-            overflow: hidden;
-            background: rgba(255, 255, 255, 0.75);
-          }
-          .qbtn {
-            width: 38px;
-            height: 36px;
-            border: none;
-            background: transparent;
-            cursor: pointer;
-            font-weight: 980;
-            color: #2b211c;
-          }
-          .qbtn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-          }
-          .qval {
-            width: 44px;
-            text-align: center;
-            font-weight: 980;
-            color: #2b211c;
+            padding: 10px 12px;
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.74);
+            border: 1px solid rgba(43, 33, 28, 0.08);
+            font-size: 13px;
           }
 
-          /* cupom */
-          .coupon {
-            margin-top: 14px;
-            border-top: 1px solid rgba(43, 33, 28, 0.08);
-            padding-top: 14px;
-          }
-          .couponHead {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-          }
-          .couponTitle {
-            font-weight: 950;
-            font-size: 13px;
-            color: #2b211c;
-          }
-          .couponRemove {
-            border: none;
-            background: transparent;
-            color: #a85c5c;
-            cursor: pointer;
-            font-weight: 950;
-            text-decoration: underline;
-          }
-          .couponRow {
-            margin-top: 10px;
-            display: flex;
-            gap: 10px;
-          }
-          .couponInput {
-            flex: 1;
-            border: 1px solid rgba(43, 33, 28, 0.12);
-            border-radius: 14px;
-            padding: 10px 12px;
-            font-weight: 900;
-            outline: none;
-            background: rgba(255, 255, 255, 0.82);
-            min-width: 0;
-          }
-          .couponInput:focus {
-            border-color: rgba(180, 106, 106, 0.45);
-            box-shadow: 0 0 0 4px rgba(180, 106, 106, 0.14);
-          }
-          .couponBtn {
-            border: none;
-            border-radius: 14px;
-            padding: 10px 14px;
-            font-weight: 950;
-            cursor: pointer;
-            color: #fff;
-            background: linear-gradient(135deg, #b46a6a, #a85c5c);
-            box-shadow: 0 14px 26px rgba(180, 106, 106, 0.22);
-            white-space: nowrap;
-          }
-          .couponBtn:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-          }
-          .couponApplied {
-            margin-top: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-          }
-          .couponTag {
-            width: fit-content;
-            font-size: 12px;
-            font-weight: 950;
-            padding: 6px 10px;
-            border-radius: 999px;
-            background: rgba(180, 106, 106, 0.12);
-            border: 1px solid rgba(180, 106, 106, 0.22);
-            color: #a85c5c;
-          }
-          .couponHint {
-            font-size: 12px;
-            color: rgba(43, 33, 28, 0.65);
+          .adminRow span {
+            color: rgba(43, 33, 28, 0.66);
             font-weight: 800;
           }
-          .couponErr {
-            margin-top: 10px;
-            font-size: 12px;
-            font-weight: 900;
-            color: #991b1b;
-            background: rgba(185, 28, 28, 0.06);
-            border: 1px solid rgba(185, 28, 28, 0.18);
-            padding: 8px 10px;
-            border-radius: 14px;
+
+          .adminRow strong {
+            color: #2b211c;
+            font-weight: 950;
           }
 
           .cta {
@@ -1366,6 +1171,7 @@ export default function ProdutoPage() {
             flex-direction: column;
             gap: 10px;
           }
+
           .btn {
             width: 100%;
             border: none;
@@ -1373,115 +1179,50 @@ export default function ProdutoPage() {
             padding: 12px 12px;
             font-weight: 980;
             cursor: pointer;
+            text-align: center;
+            text-decoration: none;
             transition: transform 0.12s ease, opacity 0.12s ease, filter 0.12s ease;
           }
+
           .btn:active {
             transform: translateY(1px);
           }
+
           .btn:disabled {
             opacity: 0.55;
             cursor: not-allowed;
           }
-          .buy {
-            background: linear-gradient(135deg, #b46a6a, #a85c5c);
-            color: #fff;
-            box-shadow: 0 16px 30px rgba(180, 106, 106, 0.25);
-          }
+
           .ghost {
             background: rgba(255, 255, 255, 0.9);
             border: 1px solid rgba(43, 33, 28, 0.12);
             color: #2b211c;
           }
+
           .ghost2 {
             background: rgba(180, 106, 106, 0.1);
             border: 1px solid rgba(180, 106, 106, 0.22);
             color: #a85c5c;
           }
 
-          .backLine {
-            margin-top: 14px;
-            padding-top: 14px;
-            border-top: 1px solid rgba(43, 33, 28, 0.08);
-          }
-          .back {
-            color: #a85c5c;
-            text-decoration: none;
-            font-weight: 950;
-            font-size: 13px;
-          }
-          .back:hover {
-            text-decoration: underline;
+          .danger {
+            background: rgba(185, 28, 28, 0.08);
+            border: 1px solid rgba(185, 28, 28, 0.2);
+            color: #991b1b;
           }
 
-          /* ✅ Barra fixa no mobile */
-          .mobileBar {
-            display: none;
+          .btnAsLink {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
           }
+
           @media (max-width: 680px) {
-            .pdp {
-              padding-bottom: 96px;
-            }
-
-            .buyBox {
-              display: none;
-            }
-
-            .mobileBar {
-              position: fixed;
-              left: 0;
-              right: 0;
-              bottom: 0;
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              gap: 12px;
-              padding: 12px 14px calc(12px + env(safe-area-inset-bottom));
-              background: rgba(255, 255, 255, 0.9);
-              backdrop-filter: blur(12px);
-              border-top: 1px solid rgba(43, 33, 28, 0.12);
-              z-index: 50;
-            }
-            .mbLeft {
-              min-width: 0;
-              display: flex;
-              flex-direction: column;
-              gap: 2px;
-            }
-            .mbPrice {
-              font-size: 16px;
-              font-weight: 980;
-              color: #2b211c;
-              white-space: nowrap;
-            }
-            .mbInstall {
-              font-size: 12px;
-              font-weight: 850;
-              color: rgba(43, 33, 28, 0.62);
-              overflow: hidden;
-              text-overflow: ellipsis;
-              white-space: nowrap;
-              max-width: 220px;
-            }
-            .mbBtn {
-              border: none;
-              border-radius: 14px;
-              padding: 12px 14px;
-              font-weight: 980;
-              cursor: pointer;
-              color: #fff;
-              background: linear-gradient(135deg, #b46a6a, #a85c5c);
-              box-shadow: 0 16px 28px rgba(180, 106, 106, 0.22);
-              white-space: nowrap;
-            }
-            .mbBtn:disabled {
-              opacity: 0.55;
-              cursor: not-allowed;
-            }
-
             .priceRow {
               flex-direction: column;
               align-items: flex-start;
             }
+
             .promo {
               text-align: left;
             }
