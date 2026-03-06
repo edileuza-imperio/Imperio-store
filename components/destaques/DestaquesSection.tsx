@@ -26,19 +26,47 @@ function toNumber(value: unknown): number {
     return Number.isFinite(value) ? value : 0;
   }
 
-  if (typeof value === "string") {
-    const cleaned = value
-      .replace(/\s/g, "")
-      .replace(/R\$/gi, "")
-      .replace(/\./g, "")
-      .replace(",", ".")
-      .replace(/[^\d.-]/g, "");
-
-    const parsed = Number(cleaned);
-    return Number.isFinite(parsed) ? parsed : 0;
+  if (typeof value !== "string") {
+    return 0;
   }
 
-  return 0;
+  let cleaned = value.trim();
+
+  if (!cleaned) return 0;
+
+  cleaned = cleaned.replace(/R\$/gi, "").replace(/\s/g, "");
+
+  const hasComma = cleaned.includes(",");
+  const hasDot = cleaned.includes(".");
+
+  if (hasComma && hasDot) {
+    // Ex.: 1.234,56  => remove milhar e troca vírgula por ponto
+    if (cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")) {
+      cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+    } else {
+      // Ex.: 1,234.56 => remove milhar em vírgula
+      cleaned = cleaned.replace(/,/g, "");
+    }
+  } else if (hasComma) {
+    // Ex.: 115,00 => 115.00
+    cleaned = cleaned.replace(",", ".");
+  } else {
+    // Só ponto:
+    // Ex.: 115.00 deve continuar 115.00
+    // Ex.: 1.234 pode ser milhar -> se tiver mais de um ponto, remove todos menos o último
+    const dots = (cleaned.match(/\./g) || []).length;
+
+    if (dots > 1) {
+      const lastDot = cleaned.lastIndexOf(".");
+      cleaned =
+        cleaned.slice(0, lastDot).replace(/\./g, "") + cleaned.slice(lastDot);
+    }
+  }
+
+  cleaned = cleaned.replace(/[^\d.-]/g, "");
+
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 export default function DestaquesSection() {
@@ -76,16 +104,22 @@ export default function DestaquesSection() {
         status_codigo: c.status_codigo,
       };
 
-      const prodsUI: ProdutoUI[] = p.map((x) => ({
-        key: x.id_produto ?? `${x.slug ?? ""}-${x.ordem ?? ""}`,
-        id_produto: Number(x.id_produto ?? 0),
-        nome: String(x.nome ?? ""),
-        slug: String(x.slug ?? ""),
-        descricao: String(x.descricao ?? ""),
-        preco: toNumber(x.preco),
-        imagem: String(x.imagem ?? ""),
-        ordem: Number(x.ordem ?? 0),
-      }));
+      const prodsUI: ProdutoUI[] = p.map((x) => {
+        const precoConvertido = toNumber(x.preco);
+
+        console.log("PREÇO ORIGINAL:", x.preco, "=> PREÇO CONVERTIDO:", precoConvertido);
+
+        return {
+          key: x.id_produto ?? `${x.slug ?? ""}-${x.ordem ?? ""}`,
+          id_produto: Number(x.id_produto ?? 0),
+          nome: String(x.nome ?? ""),
+          slug: String(x.slug ?? ""),
+          descricao: String(x.descricao ?? ""),
+          preco: precoConvertido,
+          imagem: String(x.imagem ?? ""),
+          ordem: Number(x.ordem ?? 0),
+        };
+      });
 
       setCampanha(campUI);
       setProdutos(prodsUI);
