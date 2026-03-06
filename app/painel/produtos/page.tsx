@@ -157,7 +157,7 @@ export default function ProdutosPainelPage() {
       setCategorias(Array.isArray(listaCategorias) ? listaCategorias : []);
       setStatusList(Array.isArray(listaStatus) ? listaStatus : []);
     } catch (error) {
-      console.error("Erro ao carregar dados:", error);
+      console.error(error);
       alert("Erro ao carregar produtos.");
     } finally {
       setLoading(false);
@@ -185,6 +185,13 @@ export default function ProdutosPainelPage() {
 
     return () => URL.revokeObjectURL(url);
   }, [form.imagem, modoEdicao, produtoEditando]);
+
+  useEffect(() => {
+    document.body.style.overflow = modalProdutoOpen || modalImagemOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [modalProdutoOpen, modalImagemOpen]);
 
   const produtosFiltrados = useMemo(() => {
     return produtos.filter((produto) => {
@@ -608,270 +615,276 @@ export default function ProdutosPainelPage() {
       </div>
 
       {modalProdutoOpen && (
-        <div className="overlay-claro" onClick={fecharModalProduto}>
-          <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{modoEdicao ? "Editar produto" : "Cadastrar produto"}</h2>
-              <button className="btn-fechar" onClick={fecharModalProduto} type="button">
-                ×
-              </button>
-            </div>
+        <>
+          <div className="overlay-fundo" onClick={fecharModalProduto} />
+          <div className="modal-wrapper">
+            <div className="modal modal-lg">
+              <div className="modal-header">
+                <h2>{modoEdicao ? "Editar produto" : "Cadastrar produto"}</h2>
+                <button className="btn-fechar" onClick={fecharModalProduto} type="button">
+                  ×
+                </button>
+              </div>
 
-            <form onSubmit={salvarProduto} className="modal-body">
-              <div className="form-grid">
-                <div className="campo campo-full">
-                  <label>Nome</label>
-                  <input
-                    className="input"
-                    value={form.nome}
-                    onChange={handleNomeChange}
-                    placeholder="Nome do produto"
-                  />
-                </div>
+              <form onSubmit={salvarProduto} className="modal-body">
+                <div className="form-grid">
+                  <div className="campo campo-full">
+                    <label>Nome</label>
+                    <input
+                      className="input"
+                      value={form.nome}
+                      onChange={handleNomeChange}
+                      placeholder="Nome do produto"
+                    />
+                  </div>
 
-                <div className="campo">
-                  <label>Slug</label>
-                  <input
-                    className="input"
-                    value={form.slug}
-                    onChange={(e) => handleChange("slug", slugify(e.target.value))}
-                    placeholder="slug-do-produto"
-                  />
-                </div>
+                  <div className="campo">
+                    <label>Slug</label>
+                    <input
+                      className="input"
+                      value={form.slug}
+                      onChange={(e) => handleChange("slug", slugify(e.target.value))}
+                      placeholder="slug-do-produto"
+                    />
+                  </div>
 
-                <div className="campo">
-                  <label>SKU</label>
-                  <input
-                    className="input"
-                    value={form.sku}
-                    onChange={(e) => handleChange("sku", e.target.value)}
-                    placeholder="SKU"
-                  />
-                </div>
+                  <div className="campo">
+                    <label>SKU</label>
+                    <input
+                      className="input"
+                      value={form.sku}
+                      onChange={(e) => handleChange("sku", e.target.value)}
+                      placeholder="SKU"
+                    />
+                  </div>
 
-                <div className="campo">
-                  <label>Modelo</label>
-                  <input
-                    className="input"
-                    value={form.modelo}
-                    onChange={(e) => handleChange("modelo", e.target.value)}
-                    placeholder="Modelo"
-                  />
-                </div>
+                  <div className="campo">
+                    <label>Modelo</label>
+                    <input
+                      className="input"
+                      value={form.modelo}
+                      onChange={(e) => handleChange("modelo", e.target.value)}
+                      placeholder="Modelo"
+                    />
+                  </div>
 
-                <div className="campo">
-                  <label>Preço</label>
-                  <input
-                    className="input"
-                    value={form.preco}
-                    onChange={(e) => handleChange("preco", e.target.value)}
-                    placeholder="0.00"
-                  />
-                </div>
+                  <div className="campo">
+                    <label>Preço</label>
+                    <input
+                      className="input"
+                      value={form.preco}
+                      onChange={(e) => handleChange("preco", e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
 
-                <div className="campo">
-                  <label>Preço promocional</label>
-                  <input
-                    className="input"
-                    value={form.preco_promocional}
-                    onChange={(e) => handleChange("preco_promocional", e.target.value)}
-                    placeholder="0.00"
-                  />
-                </div>
+                  <div className="campo">
+                    <label>Preço promocional</label>
+                    <input
+                      className="input"
+                      value={form.preco_promocional}
+                      onChange={(e) => handleChange("preco_promocional", e.target.value)}
+                      placeholder="0.00"
+                    />
+                  </div>
 
-                <div className="campo">
-                  <label>Estoque</label>
-                  <input
-                    className="input"
-                    type="number"
-                    min="0"
-                    value={form.estoque}
-                    onChange={(e) => handleChange("estoque", e.target.value)}
-                  />
-                </div>
+                  <div className="campo">
+                    <label>Estoque</label>
+                    <input
+                      className="input"
+                      type="number"
+                      min="0"
+                      value={form.estoque}
+                      onChange={(e) => handleChange("estoque", e.target.value)}
+                    />
+                  </div>
 
-                <div className="campo">
-                  <label>Categoria</label>
-                  <select
-                    className="select"
-                    value={form.categoria_id}
-                    onChange={(e) => handleChange("categoria_id", e.target.value)}
-                  >
-                    <option value="">Selecione</option>
-                    {categorias.map((cat) => (
-                      <option key={cat.id_categoria} value={cat.id_categoria}>
-                        {cat.nome}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="campo">
-                  <label>Status</label>
-                  <select
-                    className="select"
-                    value={form.statusid}
-                    onChange={(e) => handleChange("statusid", e.target.value)}
-                  >
-                    <option value="">Selecione</option>
-                    {statusList.map((status, index) => {
-                      const value = status.id_status ?? status.id ?? index + 1;
-                      const label =
-                        status.nome || status.titulo || status.codigo || `Status ${value}`;
-
-                      return (
-                        <option key={value} value={value}>
-                          {label}
+                  <div className="campo">
+                    <label>Categoria</label>
+                    <select
+                      className="select"
+                      value={form.categoria_id}
+                      onChange={(e) => handleChange("categoria_id", e.target.value)}
+                    >
+                      <option value="">Selecione</option>
+                      {categorias.map((cat) => (
+                        <option key={cat.id_categoria} value={cat.id_categoria}>
+                          {cat.nome}
                         </option>
-                      );
-                    })}
-                  </select>
-                </div>
+                      ))}
+                    </select>
+                  </div>
 
-                <div className="campo campo-full">
-                  <label>Descrição</label>
-                  <textarea
-                    className="textarea"
-                    rows={4}
-                    value={form.descricao}
-                    onChange={(e) => handleChange("descricao", e.target.value)}
-                    placeholder="Descrição do produto"
-                  />
-                </div>
+                  <div className="campo">
+                    <label>Status</label>
+                    <select
+                      className="select"
+                      value={form.statusid}
+                      onChange={(e) => handleChange("statusid", e.target.value)}
+                    >
+                      <option value="">Selecione</option>
+                      {statusList.map((status, index) => {
+                        const value = status.id_status ?? status.id ?? index + 1;
+                        const label =
+                          status.nome || status.titulo || status.codigo || `Status ${value}`;
 
-                <div className="campo">
-                  <label>Imagem principal</label>
-                  <input
-                    className="input"
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleChange("imagem", e.target.files?.[0] || null)}
-                  />
-                </div>
+                        return (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
 
-                <div className="campo">
-                  <label>Prévia</label>
-                  <div className="preview">
-                    {previewImagem ? (
-                      <img src={previewImagem} alt="Prévia" className="preview-img" />
-                    ) : (
-                      <span>Sem imagem</span>
-                    )}
+                  <div className="campo campo-full">
+                    <label>Descrição</label>
+                    <textarea
+                      className="textarea"
+                      rows={4}
+                      value={form.descricao}
+                      onChange={(e) => handleChange("descricao", e.target.value)}
+                      placeholder="Descrição do produto"
+                    />
+                  </div>
+
+                  <div className="campo">
+                    <label>Imagem principal</label>
+                    <input
+                      className="input"
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleChange("imagem", e.target.files?.[0] || null)}
+                    />
+                  </div>
+
+                  <div className="campo">
+                    <label>Prévia</label>
+                    <div className="preview">
+                      {previewImagem ? (
+                        <img src={previewImagem} alt="Prévia" className="preview-img" />
+                      ) : (
+                        <span>Sem imagem</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="campo checks">
+                    <label className="check">
+                      <input
+                        type="checkbox"
+                        checked={form.catalogo}
+                        onChange={(e) => handleChange("catalogo", e.target.checked)}
+                      />
+                      No catálogo
+                    </label>
+
+                    <label className="check">
+                      <input
+                        type="checkbox"
+                        checked={form.ilimitado}
+                        onChange={(e) => handleChange("ilimitado", e.target.checked)}
+                      />
+                      Estoque ilimitado
+                    </label>
                   </div>
                 </div>
 
-                <div className="campo checks">
-                  <label className="check">
-                    <input
-                      type="checkbox"
-                      checked={form.catalogo}
-                      onChange={(e) => handleChange("catalogo", e.target.checked)}
-                    />
-                    No catálogo
-                  </label>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-soft" onClick={fecharModalProduto}>
+                    Cancelar
+                  </button>
 
-                  <label className="check">
-                    <input
-                      type="checkbox"
-                      checked={form.ilimitado}
-                      onChange={(e) => handleChange("ilimitado", e.target.checked)}
-                    />
-                    Estoque ilimitado
-                  </label>
+                  <button type="submit" className="btn btn-primary" disabled={salvandoProduto}>
+                    {salvandoProduto
+                      ? "Salvando..."
+                      : modoEdicao
+                      ? "Salvar alterações"
+                      : "Cadastrar produto"}
+                  </button>
                 </div>
-              </div>
-
-              <div className="modal-footer">
-                <button type="button" className="btn btn-soft" onClick={fecharModalProduto}>
-                  Cancelar
-                </button>
-
-                <button type="submit" className="btn btn-primary" disabled={salvandoProduto}>
-                  {salvandoProduto
-                    ? "Salvando..."
-                    : modoEdicao
-                    ? "Salvar alterações"
-                    : "Cadastrar produto"}
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {modalImagemOpen && (
-        <div className="overlay-claro" onClick={fecharModalImagens}>
-          <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div>
-                <h2>Imagens do produto</h2>
-                <p className="submodal">{produtoImagemAtual?.nome}</p>
-              </div>
+        <>
+          <div className="overlay-fundo" onClick={fecharModalImagens} />
+          <div className="modal-wrapper">
+            <div className="modal modal-lg">
+              <div className="modal-header">
+                <div>
+                  <h2>Imagens do produto</h2>
+                  <p className="submodal">{produtoImagemAtual?.nome}</p>
+                </div>
 
-              <button className="btn-fechar" onClick={fecharModalImagens} type="button">
-                ×
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <div className="upload-box">
-                <label>Adicionar imagens</label>
-                <input
-                  className="input"
-                  type="file"
-                  multiple
-                  accept="image/*"
-                  onChange={(e) => setNovasImagens(Array.from(e.target.files || []))}
-                />
-
-                <button
-                  className="btn btn-primary"
-                  type="button"
-                  onClick={enviarImagens}
-                  disabled={enviandoImagens}
-                >
-                  {enviandoImagens ? "Enviando..." : "Enviar imagens"}
+                <button className="btn-fechar" onClick={fecharModalImagens} type="button">
+                  ×
                 </button>
               </div>
 
-              {erroImagem ? <div className="estado">{erroImagem}</div> : null}
+              <div className="modal-body">
+                <div className="upload-box">
+                  <label>Adicionar imagens</label>
+                  <input
+                    className="input"
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={(e) => setNovasImagens(Array.from(e.target.files || []))}
+                  />
 
-              <div className="grid-imagens">
-                {galeria.length > 0 ? (
-                  galeria.map((img, index) => (
-                    <div className="card-imagem" key={`${img.imagem}-${index}`}>
-                      <img
-                        src={getImagemUrl(img.imagem)}
-                        alt={`Imagem ${index + 1}`}
-                        className="img-galeria"
-                      />
+                  <button
+                    className="btn btn-primary"
+                    type="button"
+                    onClick={enviarImagens}
+                    disabled={enviandoImagens}
+                  >
+                    {enviandoImagens ? "Enviando..." : "Enviar imagens"}
+                  </button>
+                </div>
 
-                      <div className="acoes-imagem">
-                        <button
-                          className="btn btn-soft"
-                          type="button"
-                          onClick={() => definirPrincipal(img.imagem)}
-                        >
-                          Principal
-                        </button>
+                {erroImagem ? <div className="estado">{erroImagem}</div> : null}
 
-                        <button
-                          className="btn btn-danger"
-                          type="button"
-                          onClick={() => removerImagem(img.id_imagem)}
-                        >
-                          Remover
-                        </button>
+                <div className="grid-imagens">
+                  {galeria.length > 0 ? (
+                    galeria.map((img, index) => (
+                      <div className="card-imagem" key={`${img.imagem}-${index}`}>
+                        <img
+                          src={getImagemUrl(img.imagem)}
+                          alt={`Imagem ${index + 1}`}
+                          className="img-galeria"
+                        />
+
+                        <div className="acoes-imagem">
+                          <button
+                            className="btn btn-soft"
+                            type="button"
+                            onClick={() => definirPrincipal(img.imagem)}
+                          >
+                            Principal
+                          </button>
+
+                          <button
+                            className="btn btn-danger"
+                            type="button"
+                            onClick={() => removerImagem(img.id_imagem)}
+                          >
+                            Remover
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="estado">Nenhuma imagem cadastrada.</div>
-                )}
+                    ))
+                  ) : (
+                    <div className="estado">Nenhuma imagem cadastrada.</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </>
       )}
 
       <style jsx>{`
@@ -971,12 +984,6 @@ export default function ProdutosPainelPage() {
           box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
           display: flex;
           flex-direction: column;
-          transition: transform 0.18s ease, box-shadow 0.18s ease;
-        }
-
-        .card-produto:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 18px 34px rgba(15, 23, 42, 0.08);
         }
 
         .imagem-box {
@@ -1104,14 +1111,9 @@ export default function ProdutosPainelPage() {
           text-align: center;
         }
 
-        .btn:hover {
-          transform: translateY(-1px);
-        }
-
         .btn-primary {
           background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
           color: #fff;
-          box-shadow: 0 10px 22px rgba(124, 58, 237, 0.25);
         }
 
         .btn-soft {
@@ -1136,17 +1138,22 @@ export default function ProdutosPainelPage() {
           font-weight: 700;
         }
 
-        .overlay-claro {
+        .overlay-fundo {
           position: fixed;
           inset: 0;
-          background: rgba(17, 24, 39, 0.22);
-          backdrop-filter: blur(4px);
-          -webkit-backdrop-filter: blur(4px);
+          background: rgba(17, 24, 39, 0.28);
+          z-index: 9998;
+        }
+
+        .modal-wrapper {
+          position: fixed;
+          inset: 0;
+          z-index: 9999;
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 20px;
-          z-index: 999;
+          pointer-events: none;
         }
 
         .modal {
@@ -1156,6 +1163,7 @@ export default function ProdutosPainelPage() {
           overflow: hidden;
           border: 1px solid #ececf2;
           box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+          pointer-events: auto;
         }
 
         .modal-lg {
@@ -1356,7 +1364,7 @@ export default function ProdutosPainelPage() {
             flex-direction: column;
           }
 
-          .overlay-claro {
+          .modal-wrapper {
             padding: 12px;
             align-items: flex-end;
           }
