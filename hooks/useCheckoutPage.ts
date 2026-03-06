@@ -55,6 +55,7 @@ export function useCheckoutPage() {
   const [mostrarFormularioEndereco, setMostrarFormularioEndereco] = React.useState(false);
 
   const [pedidoConcluido, setPedidoConcluido] = React.useState(false);
+  const [pedidoAguardandoPagamento, setPedidoAguardandoPagamento] = React.useState(false);
 
   const itensArray = Array.isArray(itens) ? itens : [];
 
@@ -384,6 +385,8 @@ export function useCheckoutPage() {
       }
 
       setPixErro(false);
+      setPedidoAguardandoPagamento(true);
+
       setPixPayload({
         qrUrl: qrCodeBase64 ? `data:image/png;base64,${qrCodeBase64}` : undefined,
         payload: qrCode,
@@ -391,7 +394,7 @@ export function useCheckoutPage() {
       });
 
       console.log("[Checkout] PIX gerado com sucesso");
-      toast.success("PIX gerado com sucesso!");
+      toast.success("Pedido criado e PIX gerado com sucesso!");
     } catch (e: any) {
       console.error("[Checkout] erro PIX completo:", e);
       console.error("[Checkout] erro PIX response:", e?.response?.data || e);
@@ -448,6 +451,7 @@ export function useCheckoutPage() {
 
       console.log("[Checkout] resposta finalizarPedidoCartao:", resp?.data);
 
+      setPedidoAguardandoPagamento(false);
       setPedidoConcluido(true);
       toast.success("Pedido finalizado!");
     } catch (e: any) {
@@ -477,7 +481,7 @@ export function useCheckoutPage() {
       return;
     }
 
-    toast.success("PIX já gerado. Faça o pagamento pelo QR Code ou copia e cola.");
+    toast.success("Pedido já criado. Faça o pagamento pelo QR Code ou Pix copia e cola.");
   }
 
   function selecionarPix() {
@@ -493,6 +497,7 @@ export function useCheckoutPage() {
     setMetodoPagamento("cartao");
     setPixSolicitado(false);
     setPixErro(false);
+    setPedidoAguardandoPagamento(false);
   }
 
   return {
@@ -534,6 +539,7 @@ export function useCheckoutPage() {
     setMostrarFormularioEndereco,
 
     pedidoConcluido,
+    pedidoAguardandoPagamento,
 
     subtotal,
     descontoValor,

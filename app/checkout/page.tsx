@@ -53,6 +53,7 @@ export default function CheckoutPage() {
     setMostrarFormularioEndereco,
 
     pedidoConcluido,
+    pedidoAguardandoPagamento,
 
     subtotal,
     descontoValor,
@@ -126,7 +127,7 @@ export default function CheckoutPage() {
       <main className="container pb-5">
         {erro ? (
           <div className="alert alert-warning">{erro}</div>
-        ) : pedidoConcluido ? (
+        ) : pedidoConcluido || pedidoAguardandoPagamento ? (
           <div className="surface p-5 text-center">
             <div
               style={{
@@ -134,19 +135,68 @@ export default function CheckoutPage() {
                 padding: "10px 14px",
                 borderRadius: 999,
                 fontWeight: 1000,
-                background: "rgba(34,197,94,0.12)",
-                border: "1px solid rgba(34,197,94,0.20)",
-                color: "#166534",
+                background: pedidoAguardandoPagamento
+                  ? "rgba(245,158,11,0.12)"
+                  : "rgba(34,197,94,0.12)",
+                border: pedidoAguardandoPagamento
+                  ? "1px solid rgba(245,158,11,0.20)"
+                  : "1px solid rgba(34,197,94,0.20)",
+                color: pedidoAguardandoPagamento ? "#b45309" : "#166534",
               }}
               className="mb-3"
             >
-              Pedido confirmado ✅
+              {pedidoAguardandoPagamento ? "Aguardando pagamento PIX ⏳" : "Pedido confirmado ✅"}
             </div>
 
-            <h4 style={{ fontWeight: 1000 }}>Obrigado pela compra!</h4>
+            <h4 style={{ fontWeight: 1000 }}>
+              {pedidoAguardandoPagamento ? "Pedido criado com sucesso!" : "Obrigado pela compra!"}
+            </h4>
+
             <p className="text-muted mb-4">
-              Você pode acompanhar seus pedidos na página “Meus Pedidos”.
+              {pedidoAguardandoPagamento
+                ? "Seu pedido foi gerado e está aguardando o pagamento via PIX. Você pode acompanhar em “Meus Pedidos”."
+                : "Você pode acompanhar seus pedidos na página “Meus Pedidos”."}
             </p>
+
+            {pedidoAguardandoPagamento && pixPayload?.qrUrl && (
+              <div className="mb-4 text-center">
+                <img
+                  src={pixPayload.qrUrl}
+                  alt="QR Code PIX"
+                  style={{
+                    width: 240,
+                    background: "#fff",
+                    padding: 12,
+                    borderRadius: 12,
+                  }}
+                />
+              </div>
+            )}
+
+            {pedidoAguardandoPagamento && pixPayload?.payload && (
+              <div className="mb-4">
+                <label className="form-label fw-bold">Pix copia e cola</label>
+                <textarea
+                  className="form-control pillInput"
+                  readOnly
+                  rows={4}
+                  value={pixPayload.payload}
+                />
+              </div>
+            )}
+
+            {pedidoAguardandoPagamento && pixPayload?.ticketUrl && (
+              <div className="mb-4">
+                <a
+                  href={pixPayload.ticketUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="btn btn-outline-brand"
+                >
+                  Abrir comprovante PIX
+                </a>
+              </div>
+            )}
 
             <div className="d-flex gap-2 justify-content-center flex-wrap">
               <button
@@ -374,7 +424,7 @@ export default function CheckoutPage() {
                 {metodoPagamento === "pix" && (
                   <div className="surface p-3" style={{ background: "#fff" }}>
                     <div className="text-muted">
-                      Ao escolher Pix, o sistema gera automaticamente o QR Code.
+                      Ao escolher Pix, o sistema cria o pedido e gera automaticamente o QR Code.
                     </div>
 
                     {(processing || pixGerandoAutomatico) && !pixPayload?.qrUrl && (
@@ -492,7 +542,9 @@ export default function CheckoutPage() {
                       ? metodoPagamento === "pix"
                         ? "Gerando PIX..."
                         : "Processando..."
-                      : "Finalizar compra"}
+                      : metodoPagamento === "pix"
+                        ? "Gerar pedido PIX"
+                        : "Finalizar compra"}
                   </button>
                 </div>
               </div>
