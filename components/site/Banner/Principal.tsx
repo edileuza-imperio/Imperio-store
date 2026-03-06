@@ -18,18 +18,16 @@ export default function Banner() {
   const [banners, setBanners] = useState<BannerItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-
   const [index, setIndex] = useState(0);
   const [isHover, setIsHover] = useState(false);
 
   const router = useRouter();
   const timerRef = useRef<number | null>(null);
+  const clickLockRef = useRef(false);
+  const lastViewRef = useRef<Record<number, number>>({});
 
   const intervalMs = 5000;
   const viewCooldownMs = 30000;
-
-  const lastViewRef = useRef<Record<number, number>>({});
-  const clickLockRef = useRef(false);
 
   useEffect(() => {
     let ativo = true;
@@ -45,7 +43,6 @@ export default function Banner() {
         for (const rota of tentativas) {
           try {
             const res = await api.get(rota);
-
             const payload = res?.data;
 
             const lista =
@@ -65,7 +62,6 @@ export default function Banner() {
         }
 
         if (!ativo) return;
-
         setBanners(encontrados);
       } catch (e: any) {
         if (!ativo) return;
@@ -104,7 +100,6 @@ export default function Banner() {
 
     const base = String(api.defaults.baseURL || "").replace(/\/+$/, "");
     const path = String(img).replace(/^\/+/, "");
-
     return `${base}/${path}`;
   };
 
@@ -153,7 +148,6 @@ export default function Banner() {
 
     if (id && !clickLockRef.current) {
       clickLockRef.current = true;
-
       api.put(rotas.banners.incrementarClick(id)).catch(() => {});
 
       window.setTimeout(() => {
@@ -177,9 +171,7 @@ export default function Banner() {
     }, intervalMs);
 
     return () => {
-      if (timerRef.current) {
-        window.clearInterval(timerRef.current);
-      }
+      if (timerRef.current) window.clearInterval(timerRef.current);
       timerRef.current = null;
     };
   }, [hasMany, isHover, safeBanners.length]);
@@ -196,33 +188,36 @@ export default function Banner() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [hasMany, index]);
 
+  const tituloPrincipal = banner?.titulo?.trim() || "Universo Império";
+  const descricaoPrincipal =
+    banner?.descricao?.trim() ||
+    "Moda, beleza e estilo que celebram a sua essência. Descubra peças únicas para cada momento da sua vida.";
+
   if (loading) {
     return (
       <>
-        <div className="hero-skeleton" aria-label="Carregando banners">
-          <div className="hero-skeleton-shine" />
-        </div>
+        <section className="banner-loading" aria-label="Carregando banner">
+          <div className="banner-loading-shine" />
+        </section>
 
         <style jsx>{`
-          .hero-skeleton {
+          .banner-loading {
             position: relative;
             width: 100%;
-            height: 460px;
-            border-radius: 22px;
+            min-height: 520px;
+            border-radius: 0;
             overflow: hidden;
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(0, 0, 0, 0.06);
-            margin-bottom: 20px;
+            background: linear-gradient(135deg, #2a0411 0%, #5a0a22 45%, #bb7f60 100%);
           }
 
-          .hero-skeleton-shine {
+          .banner-loading-shine {
             position: absolute;
             inset: 0;
             background: linear-gradient(
               90deg,
-              transparent,
-              rgba(255, 255, 255, 0.1),
-              transparent
+              transparent 0%,
+              rgba(255, 255, 255, 0.08) 50%,
+              transparent 100%
             );
             transform: translateX(-40%);
             animation: shine 1.2s linear infinite;
@@ -245,343 +240,388 @@ export default function Banner() {
   return (
     <>
       <section
-        className={`hero ${isHover ? "paused" : ""}`}
+        className={`lux-banner ${isHover ? "paused" : ""}`}
         onMouseEnter={() => setIsHover(true)}
         onMouseLeave={() => setIsHover(false)}
         aria-label="Banner principal"
       >
         <button
           type="button"
-          className="hero-bg"
+          className="lux-banner-bg"
           style={{ backgroundImage: `url(${imagemUrl})` }}
-          aria-label={banner?.titulo ? `Abrir: ${banner.titulo}` : "Abrir banner"}
           onClick={handleClick}
+          aria-label={tituloPrincipal}
         />
 
-        <div className="hero-overlay" />
+        <div className="lux-banner-overlay" />
+        <div className="lux-banner-glow" />
 
-        {hasMany && (
-          <>
-            <button type="button" className="hero-arrow left" onClick={prev} aria-label="Anterior">
-              <i className="bi bi-chevron-left" />
-            </button>
+        <div className="lux-banner-content">
+          <div className="lux-banner-text">
+            <span className="lux-badge">✦ NOVA COLEÇÃO 2025 ✦</span>
 
-            <button type="button" className="hero-arrow right" onClick={next} aria-label="Próximo">
-              <i className="bi bi-chevron-right" />
-            </button>
-          </>
-        )}
+            <div className="lux-brand-watermark">UNIVERSO IMPÉRIO</div>
 
-        <div className="container hero-inner">
-          <div className="row w-100">
-            <div className="col-lg-6">
-              <div className="hero-card">
-                <div className="hero-kicker">
-                  <span className="hero-kicker-badge" />
-                  Destaque
-                </div>
+            <h1 className="lux-title">
+              Viva o seu
+              <span>{tituloPrincipal}</span>
+            </h1>
 
-                <h1 className="hero-title">{banner?.titulo || "Universo Império"}</h1>
+            <div className="lux-divider" />
 
-                {banner?.descricao && <p className="hero-desc">{banner.descricao}</p>}
+            <p className="lux-desc">{descricaoPrincipal}</p>
 
-                <div className="hero-actions">
-                  {banner?.link && banner.link !== "#" ? (
-                    <button type="button" className="hero-btn primary" onClick={handleClick}>
-                      Ver agora <i className="bi bi-arrow-right" />
-                    </button>
-                  ) : (
-                    <span className="hero-btn ghost" style={{ opacity: 0.85 }}>
-                      <i className="bi bi-info-circle" /> Em destaque
-                    </span>
-                  )}
+            <div className="lux-actions">
+              <button type="button" className="lux-btn primary" onClick={handleClick}>
+                Comprar Agora <i className="bi bi-arrow-right" />
+              </button>
 
-                  {hasMany && (
-                    <button type="button" className="hero-btn" onClick={next}>
-                      Próximo <i className="bi bi-chevron-right" />
-                    </button>
-                  )}
-                </div>
-              </div>
+              <button type="button" className="lux-btn secondary" onClick={handleClick}>
+                Ver Coleção <i className="bi bi-arrow-right" />
+              </button>
             </div>
           </div>
         </div>
 
         {hasMany && (
-          <div className="hero-dots" aria-label="Seleção de banners">
-            {safeBanners.map((b, i) => (
-              <button
-                key={b?.id_banner ?? i}
-                type="button"
-                className={`hero-dot ${i === index ? "active" : ""}`}
-                onClick={() => setIndex(i)}
-                aria-label={`Ir para o banner ${i + 1}`}
-              />
-            ))}
-          </div>
-        )}
+          <>
+            <button type="button" className="lux-arrow left" onClick={prev} aria-label="Anterior">
+              <i className="bi bi-chevron-left" />
+            </button>
 
-        {hasMany && (
-          <div className="hero-progress">
-            <span />
-          </div>
+            <button type="button" className="lux-arrow right" onClick={next} aria-label="Próximo">
+              <i className="bi bi-chevron-right" />
+            </button>
+
+            <div className="lux-dots">
+              {safeBanners.map((item, i) => (
+                <button
+                  key={item.id_banner ?? i}
+                  type="button"
+                  className={`lux-dot ${i === index ? "active" : ""}`}
+                  onClick={() => setIndex(i)}
+                  aria-label={`Ir para o banner ${i + 1}`}
+                />
+              ))}
+            </div>
+
+            <div className="lux-progress">
+              <span />
+            </div>
+          </>
         )}
       </section>
 
       <style jsx>{`
-        :root {
-          --rose: #b76e79;
-          --roseSoft: #d9a5ad;
-          --gold: #d4af37;
-          --navy: #0b1220;
-          --navySoft: #142445;
-        }
-
-        .hero {
+        .lux-banner {
           position: relative;
           width: 100%;
-          height: 460px;
-          border-radius: 22px;
+          min-height: 520px;
           overflow: hidden;
-          background: linear-gradient(
-            135deg,
-            var(--navy) 0%,
-            var(--navySoft) 40%,
-            #2a1c2a 70%,
-            #000 100%
-          );
-          box-shadow: 0 30px 80px rgba(2, 6, 23, 0.25);
+          background: #2a0411;
           isolation: isolate;
-          margin-bottom: 24px;
         }
 
-        .hero-bg {
+        .lux-banner-bg {
           position: absolute;
           inset: 0;
-          border: 0;
+          width: 100%;
+          height: 100%;
+          border: none;
           padding: 0;
           margin: 0;
-          width: 100%;
-          height: 100%;
-          background-size: cover;
-          background-position: center;
-          background-repeat: no-repeat;
-          transform: scale(1.04);
-          transition: transform 900ms ease, filter 250ms ease;
-          filter: saturate(1.05) contrast(1.02);
           cursor: pointer;
+          background-size: cover;
+          background-position: center center;
+          background-repeat: no-repeat;
+          transform: scale(1.02);
+          transition: transform 900ms ease;
         }
 
-        .hero-bg:hover {
-          transform: scale(1.1);
-          filter: saturate(1.12) contrast(1.05);
+        .lux-banner:hover .lux-banner-bg {
+          transform: scale(1.06);
         }
 
-        .hero-overlay {
+        .lux-banner-overlay {
           position: absolute;
           inset: 0;
-          background: radial-gradient(
-              900px 420px at 20% 40%,
-              rgba(183, 110, 121, 0.45),
-              transparent 60%
-            ),
+          background:
             linear-gradient(
               90deg,
-              rgba(0, 0, 0, 0.82) 0%,
-              rgba(20, 36, 69, 0.65) 45%,
-              rgba(0, 0, 0, 0.35) 100%
+              rgba(23, 0, 8, 0.9) 0%,
+              rgba(60, 3, 22, 0.82) 23%,
+              rgba(98, 24, 34, 0.56) 45%,
+              rgba(127, 52, 41, 0.18) 65%,
+              rgba(255, 184, 120, 0.04) 100%
+            ),
+            radial-gradient(
+              circle at 82% 24%,
+              rgba(255, 214, 159, 0.28) 0%,
+              rgba(255, 214, 159, 0.08) 18%,
+              transparent 42%
+            ),
+            linear-gradient(
+              180deg,
+              rgba(0, 0, 0, 0.14) 0%,
+              rgba(0, 0, 0, 0.26) 100%
             );
           z-index: 1;
-          pointer-events: none;
         }
 
-        .hero-inner {
+        .lux-banner-glow {
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          pointer-events: none;
+          background:
+            radial-gradient(circle at 72% 55%, rgba(255, 177, 103, 0.22), transparent 24%),
+            radial-gradient(circle at 82% 18%, rgba(255, 206, 151, 0.25), transparent 18%),
+            radial-gradient(circle at 92% 24%, rgba(255, 209, 164, 0.16), transparent 14%),
+            radial-gradient(circle at 87% 70%, rgba(255, 185, 114, 0.12), transparent 16%);
+          mix-blend-mode: screen;
+        }
+
+        .lux-banner-content {
           position: relative;
           z-index: 2;
-          height: 100%;
+          width: 100%;
+          max-width: 1320px;
+          min-height: 520px;
+          margin: 0 auto;
           display: flex;
           align-items: center;
-          pointer-events: none;
+          padding: 60px 32px;
         }
 
-        .hero-card {
-          max-width: 560px;
-          padding: 26px;
-          border-radius: 22px;
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(183, 110, 121, 0.35);
-          backdrop-filter: blur(14px);
-          box-shadow: 0 30px 60px rgba(0, 0, 0, 0.35),
-            inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-          animation: fadeIn 420ms ease;
-          pointer-events: auto;
+        .lux-banner-text {
+          position: relative;
+          width: 100%;
+          max-width: 540px;
         }
 
-        .hero-kicker {
+        .lux-badge {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
-          font-size: 12px;
-          letter-spacing: 1px;
-          text-transform: uppercase;
-          color: rgba(243, 215, 220, 0.95);
-          margin-bottom: 14px;
-        }
-
-        .hero-kicker-badge {
-          width: 10px;
-          height: 10px;
+          justify-content: center;
+          min-height: 34px;
+          padding: 0 14px;
           border-radius: 999px;
-          background: var(--gold);
-          box-shadow: 0 0 0 6px rgba(212, 175, 55, 0.18);
+          margin-bottom: 18px;
+          font-size: 0.72rem;
+          font-weight: 800;
+          letter-spacing: 0.26em;
+          color: #f1c86b;
+          border: 1px solid rgba(241, 200, 107, 0.22);
+          background: rgba(59, 0, 16, 0.34);
+          backdrop-filter: blur(6px);
         }
 
-        .hero-title {
-          font-size: 2.9rem;
-          font-weight: 900;
-          line-height: 1.05;
+        .lux-brand-watermark {
+          position: absolute;
+          top: -22px;
+          left: 0;
+          font-size: clamp(2.9rem, 6vw, 5.6rem);
+          line-height: 0.95;
+          font-family: Georgia, "Times New Roman", serif;
+          color: rgba(255, 228, 205, 0.12);
+          letter-spacing: 0.03em;
+          pointer-events: none;
+          user-select: none;
+          white-space: nowrap;
+          text-transform: uppercase;
+        }
+
+        .lux-title {
+          position: relative;
+          z-index: 2;
+          display: flex;
+          flex-direction: column;
+          margin: 0;
           color: #fff;
-          margin: 0 0 12px;
-          text-shadow: 0 20px 40px rgba(0, 0, 0, 0.55);
+          font-family: Georgia, "Times New Roman", serif;
+          text-shadow: 0 8px 22px rgba(0, 0, 0, 0.28);
         }
 
-        .hero-desc {
-          font-size: 1.05rem;
-          margin: 0 0 18px;
-          color: rgba(255, 255, 255, 0.88);
+        .lux-title :global(span) {
+          margin-top: 2px;
+          font-size: clamp(2.8rem, 6vw, 5rem);
+          font-weight: 500;
+          font-style: italic;
+          line-height: 0.95;
+          color: #fff8f4;
         }
 
-        .hero-actions {
+        .lux-title {
+          font-size: clamp(2.6rem, 5vw, 4.6rem);
+          font-weight: 700;
+          line-height: 0.94;
+        }
+
+        .lux-divider {
+          width: 320px;
+          max-width: 72%;
+          height: 1px;
+          margin: 18px 0 20px;
+          background: linear-gradient(
+            90deg,
+            rgba(212, 171, 110, 0.9) 0%,
+            rgba(212, 171, 110, 0.28) 100%
+          );
+          position: relative;
+        }
+
+        .lux-divider::before {
+          content: "✦";
+          position: absolute;
+          right: -8px;
+          top: 50%;
+          transform: translateY(-50%);
+          font-size: 0.78rem;
+          color: #dcb06d;
+          background: transparent;
+        }
+
+        .lux-desc {
+          max-width: 420px;
+          margin: 0 0 26px;
+          color: rgba(255, 241, 235, 0.92);
+          font-size: 1.08rem;
+          line-height: 1.7;
+          text-shadow: 0 3px 10px rgba(0, 0, 0, 0.18);
+        }
+
+        .lux-actions {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
           flex-wrap: wrap;
-          pointer-events: auto;
         }
 
-        .hero-btn {
+        .lux-btn {
+          height: 50px;
+          padding: 0 22px;
+          border-radius: 0;
           display: inline-flex;
           align-items: center;
           gap: 10px;
-          padding: 12px 18px;
-          border-radius: 16px;
+          font-size: 0.96rem;
           font-weight: 800;
-          border: 1px solid rgba(255, 255, 255, 0.18);
-          background: rgba(255, 255, 255, 0.1);
+          cursor: pointer;
+          transition: 0.22s ease;
+        }
+
+        .lux-btn i {
+          font-size: 0.92rem;
+        }
+
+        .lux-btn.primary {
+          background: linear-gradient(135deg, #d10b6e 0%, #f02f83 100%);
           color: #fff;
-          transition: 0.18s ease;
-          user-select: none;
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 0 14px 28px rgba(209, 11, 110, 0.3);
         }
 
-        .hero-btn:hover {
-          transform: translateY(-1px);
-          background: rgba(255, 255, 255, 0.16);
+        .lux-btn.primary:hover {
+          transform: translateY(-2px);
+          filter: brightness(1.05);
         }
 
-        .hero-btn.primary {
-          background: linear-gradient(135deg, var(--rose), var(--roseSoft));
-          border: none;
-          color: #1a0f12;
-          box-shadow: 0 18px 40px rgba(183, 110, 121, 0.45);
+        .lux-btn.secondary {
+          background: rgba(255, 255, 255, 0.04);
+          color: #fff;
+          border: 1px solid rgba(255, 241, 235, 0.45);
+          backdrop-filter: blur(6px);
         }
 
-        .hero-btn.primary:hover {
-          filter: brightness(1.06);
+        .lux-btn.secondary:hover {
+          transform: translateY(-2px);
+          background: rgba(255, 255, 255, 0.08);
         }
 
-        .hero-arrow {
+        .lux-arrow {
           position: absolute;
           top: 50%;
           transform: translateY(-50%);
           z-index: 3;
-          width: 44px;
-          height: 44px;
-          border-radius: 16px;
-          border: 1px solid rgba(183, 110, 121, 0.35);
-          background: rgba(0, 0, 0, 0.25);
-          backdrop-filter: blur(10px);
+          width: 46px;
+          height: 46px;
+          border: none;
+          border-radius: 999px;
+          background: rgba(40, 2, 14, 0.5);
           color: #fff;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          transition: 0.18s ease;
+          backdrop-filter: blur(8px);
+          transition: 0.2s ease;
           opacity: 0;
           pointer-events: none;
         }
 
-        .hero:hover .hero-arrow {
+        .lux-banner:hover .lux-arrow {
           opacity: 1;
           pointer-events: auto;
         }
 
-        .hero-arrow:hover {
-          background: rgba(0, 0, 0, 0.33);
-          transform: translateY(-50%) scale(1.02);
+        .lux-arrow:hover {
+          background: rgba(91, 12, 34, 0.75);
+          transform: translateY(-50%) scale(1.05);
         }
 
-        .hero-arrow.left {
-          left: 14px;
+        .lux-arrow.left {
+          left: 18px;
         }
 
-        .hero-arrow.right {
-          right: 14px;
+        .lux-arrow.right {
+          right: 18px;
         }
 
-        .hero-dots {
+        .lux-dots {
           position: absolute;
-          bottom: 18px;
-          left: 50%;
-          transform: translateX(-50%);
-          display: flex;
-          gap: 8px;
-          padding: 10px 14px;
-          border-radius: 999px;
-          background: rgba(0, 0, 0, 0.35);
-          border: 1px solid rgba(183, 110, 121, 0.35);
-          backdrop-filter: blur(10px);
+          left: 32px;
+          bottom: 28px;
           z-index: 3;
+          display: flex;
+          align-items: center;
+          gap: 8px;
         }
 
-        .hero-dot {
-          width: 9px;
-          height: 9px;
+        .lux-dot {
+          width: 10px;
+          height: 10px;
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.45);
           border: none;
+          background: rgba(255, 255, 255, 0.42);
           transition: 0.2s ease;
-          cursor: pointer;
         }
 
-        .hero-dot:hover {
-          background: rgba(255, 255, 255, 0.7);
+        .lux-dot:hover {
+          background: rgba(255, 255, 255, 0.78);
         }
 
-        .hero-dot.active {
-          width: 26px;
-          background: linear-gradient(135deg, var(--gold), var(--rose));
+        .lux-dot.active {
+          width: 30px;
+          background: linear-gradient(135deg, #f02f83 0%, #f1c86b 100%);
         }
 
-        .hero-progress {
+        .lux-progress {
           position: absolute;
           left: 0;
           right: 0;
           bottom: 0;
-          height: 4px;
-          background: rgba(255, 255, 255, 0.12);
           z-index: 3;
+          height: 3px;
+          background: rgba(255, 255, 255, 0.08);
           overflow: hidden;
         }
 
-        .hero-progress > span {
+        .lux-progress span {
           display: block;
-          height: 100%;
           width: 100%;
+          height: 100%;
           transform-origin: left;
-          background: linear-gradient(135deg, var(--rose), var(--gold));
+          background: linear-gradient(90deg, #f02f83 0%, #f1c86b 100%);
           animation: progress ${intervalMs}ms linear infinite;
         }
 
-        .paused .hero-progress > span {
+        .paused .lux-progress span {
           animation-play-state: paused;
         }
 
@@ -594,34 +634,95 @@ export default function Banner() {
           }
         }
 
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(6px);
+        @media (max-width: 991px) {
+          .lux-banner,
+          .lux-banner-content {
+            min-height: 480px;
           }
-          to {
-            opacity: 1;
-            transform: translateY(0);
+
+          .lux-brand-watermark {
+            font-size: clamp(2.4rem, 9vw, 4.2rem);
+            top: -10px;
+          }
+
+          .lux-desc {
+            max-width: 100%;
           }
         }
 
         @media (max-width: 768px) {
-          .hero {
-            height: 360px;
-            border-radius: 18px;
+          .lux-banner,
+          .lux-banner-content {
+            min-height: 430px;
           }
 
-          .hero-title {
-            font-size: 2.05rem;
+          .lux-banner-content {
+            padding: 42px 18px 70px;
           }
 
-          .hero-card {
-            margin: 0 12px;
+          .lux-banner-text {
+            max-width: 100%;
           }
 
-          .hero-arrow {
+          .lux-brand-watermark {
+            font-size: 2.3rem;
+            top: 6px;
+            white-space: normal;
+            max-width: 90%;
+          }
+
+          .lux-title {
+            margin-top: 28px;
+            font-size: 2.4rem;
+            line-height: 0.98;
+          }
+
+          .lux-title :global(span) {
+            font-size: 3rem;
+          }
+
+          .lux-divider {
+            width: 190px;
+            max-width: 75%;
+          }
+
+          .lux-desc {
+            font-size: 0.98rem;
+            line-height: 1.6;
+            margin-bottom: 22px;
+          }
+
+          .lux-btn {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .lux-arrow {
             opacity: 1;
             pointer-events: auto;
+            width: 40px;
+            height: 40px;
+            top: auto;
+            bottom: 18px;
+            transform: none;
+          }
+
+          .lux-arrow:hover {
+            transform: scale(1.04);
+          }
+
+          .lux-arrow.left {
+            left: auto;
+            right: 64px;
+          }
+
+          .lux-arrow.right {
+            right: 18px;
+          }
+
+          .lux-dots {
+            left: 18px;
+            bottom: 30px;
           }
         }
       `}</style>
