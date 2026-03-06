@@ -9,53 +9,9 @@ import { maskCardNumber, maskExpiry } from "@/hooks/useCarrinhoCheckout";
 
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { isCardValid } from "@/components/Bibioteca/functions";
+import { EnderecoDB, Endereco, Cupom, PixPayload } from "@/components/Bibioteca/Bibiotecas";
+import { formatBRL } from "@/components/Bibioteca/functions";
 
-type CarrinhoItem = {
-  id_item: number;
-  nome_produto: string;
-  imagem?: string;
-  quantidade: number;
-  preco_unitario: string | number;
-};
-
-type Endereco = {
-  cep?: string;
-  rua?: string;
-  numero?: string;
-  complemento?: string;
-  bairro?: string;
-  cidade?: string;
-  estado?: string;
-};
-
-type EnderecoDB = {
-  id_endereco: number;
-  carrinho_id?: number;
-  cep?: string;
-  rua?: string;
-  numero?: string;
-  complemento?: string;
-  bairro?: string;
-  cidade?: string;
-  estado?: string;
-  criado?: string;
-  atualizado?: string;
-  nome?: string;
-};
-
-type Cupom = {
-  codigo: string;
-  tipo: "percentual" | "fixo";
-  valor: number;
-  descricao?: string;
-};
-
-type PixPayload = {
-  qrUrl?: string;
-  payload?: string;
-  ticketUrl?: string;
-};
 
 function num(v: any): number {
   if (typeof v === "number") return Number.isFinite(v) ? v : 0;
@@ -77,9 +33,7 @@ function num(v: any): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function formatBRL(v: number) {
-  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
+
 
 function pickCarrinho(resp: any): { itens: CarrinhoItem[]; endereco: any | null } {
   const base = resp?.dados ?? resp?.data ?? resp;
@@ -145,6 +99,24 @@ export default function CarrinhoPage() {
     return itensArray.reduce((acc, i) => acc + num(i.preco_unitario) * (i.quantidade || 1), 0);
   }, [itensArray]);
 
+function isCardValid(): boolean {
+    const digits = cardNumber.replace(/\D/g, "");
+    if (digits.length < 13) return false;
+    if (!cardName.trim()) return false;
+    if (!/^\d{3,4}$/.test(cardCVV)) return false;
+
+    const [mm, yy] = cardExpiry.split("/");
+    const m = Number(mm);
+    const y = Number(`20${yy}`);
+    if (!m || m < 1 || m > 12) return false;
+    if (!y || String(yy || "").length !== 2) return false;
+
+    const now = new Date();
+    const exp = new Date(y, m - 1, 1);
+    if (exp < new Date(now.getFullYear(), now.getMonth(), 1)) return false;
+
+    return true;
+  }
   const descontoValor = React.useMemo(() => {
     if (!cupomAplicado) return 0;
     if (cupomAplicado.tipo === "percentual") return subtotal * (cupomAplicado.valor / 100);
@@ -362,7 +334,7 @@ export default function CarrinhoPage() {
     }
   }
 
-  
+
 
   async function gerarPixCarrinho() {
     try {

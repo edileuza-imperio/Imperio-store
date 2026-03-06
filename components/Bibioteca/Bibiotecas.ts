@@ -85,3 +85,51 @@ export type ProdutoUI = {
   imagem: string;
   ordem: number;
 };
+
+
+
+export type CarrinhoItem = {
+  id_item: number;
+  nome_produto: string;
+  imagem?: string;
+  quantidade: number;
+  preco_unitario: string | number;
+};
+
+export type Endereco = {
+  cep?: string;
+  rua?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+};
+
+export type EnderecoDB = {
+  id_endereco: number;
+  carrinho_id?: number;
+  cep?: string;
+  rua?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
+  criado?: string;
+  atualizado?: string;
+  nome?: string;
+};
+
+export type Cupom = {
+  codigo: string;
+  tipo: "percentual" | "fixo";
+  valor: number;
+  descricao?: string;
+};
+
+export type PixPayload = {
+  qrUrl?: string;
+  payload?: string;
+  ticketUrl?: string;
+};
