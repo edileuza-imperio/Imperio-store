@@ -601,7 +601,7 @@ export default function ProdutosPainelPage() {
         </div>
 
         <section className="painel-filtros-card">
-          <div className="painel-field grow">
+          <div className="painel-field painel-field-busca">
             <label>Buscar produto</label>
             <input
               className="painel-input"
@@ -611,7 +611,7 @@ export default function ProdutosPainelPage() {
             />
           </div>
 
-          <div className="painel-field">
+          <div className="painel-field painel-field-categoria">
             <label>Categoria</label>
             <select
               className="painel-input"
@@ -627,7 +627,7 @@ export default function ProdutosPainelPage() {
             </select>
           </div>
 
-          <div className="painel-field small">
+          <div className="painel-field painel-field-pagina">
             <label>Página</label>
             <select
               className="painel-input"
@@ -642,25 +642,6 @@ export default function ProdutosPainelPage() {
             </select>
           </div>
         </section>
-
-        <div className="painel-resumo-bar">
-          <div className="painel-resumo-item">
-            <span>Total encontrado</span>
-            <strong>{produtosFiltrados.length}</strong>
-          </div>
-
-          <div className="painel-resumo-item">
-            <span>Exibindo nesta página</span>
-            <strong>{produtosPaginados.length}</strong>
-          </div>
-
-          <div className="painel-resumo-item">
-            <span>Página atual</span>
-            <strong>
-              {paginaAtual} / {totalPaginas}
-            </strong>
-          </div>
-        </div>
 
         {loading ? (
           <div className="painel-empty-box">Carregando produtos...</div>
@@ -680,8 +661,6 @@ export default function ProdutosPainelPage() {
                   ) : (
                     <div className="produto-card-no-image">Sem imagem</div>
                   )}
-
-                  <div className="produto-card-overlay" />
 
                   <div className="produto-badges">
                     {produto.destaque ? (
@@ -1055,9 +1034,8 @@ export default function ProdutosPainelPage() {
           min-height: 100vh;
           padding: 28px;
           background:
-            radial-gradient(circle at top left, rgba(190, 24, 93, 0.06), transparent 28%),
-            radial-gradient(circle at top right, rgba(244, 114, 182, 0.07), transparent 20%),
-            linear-gradient(180deg, #fffaf7 0%, #fffdfb 45%, #fff7fb 100%);
+            radial-gradient(circle at top left, rgba(190, 24, 93, 0.05), transparent 28%),
+            linear-gradient(180deg, #fff9fa 0%, #fffdfd 100%);
           color: #2f2430;
           font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
@@ -1071,24 +1049,21 @@ export default function ProdutosPainelPage() {
           padding: 26px;
           margin-bottom: 22px;
           border-radius: 28px;
-          background: linear-gradient(135deg, #fff8f3 0%, #ffffff 50%, #fff3f8 100%);
-          border: 1px solid #f5d6df;
-          box-shadow:
-            0 18px 50px rgba(190, 24, 93, 0.08),
-            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+          background: linear-gradient(135deg, #fff8f9 0%, #ffffff 100%);
+          border: 1px solid #f2d7e0;
+          box-shadow: 0 12px 32px rgba(91, 33, 52, 0.05);
         }
 
         .painel-topbar-badge {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
           padding: 8px 14px;
           border-radius: 999px;
-          background: #fff1f2;
-          color: #be185d;
+          background: #fff1f5;
+          color: #d61f69;
           font-size: 12px;
           font-weight: 800;
-          border: 1px solid #fbcfe8;
+          border: 1px solid #f5c8d8;
         }
 
         .painel-topbar h1 {
@@ -1097,114 +1072,91 @@ export default function ProdutosPainelPage() {
           line-height: 1.1;
           font-weight: 900;
           letter-spacing: -0.04em;
-          color: #2f2430;
+          color: #2d2230;
         }
 
         .painel-topbar p {
           margin: 0;
           max-width: 720px;
-          color: #7a5c68;
+          color: #7e6372;
           font-size: 14px;
           line-height: 1.7;
           font-weight: 500;
         }
 
         .painel-filtros-card {
-          display: flex;
-          gap: 14px;
-          flex-wrap: wrap;
+          display: grid;
+          grid-template-columns: minmax(0, 1.8fr) minmax(220px, 0.9fr) 180px;
+          gap: 16px;
           align-items: end;
-          margin-bottom: 18px;
+          margin-bottom: 24px;
           padding: 18px;
-          background: rgba(255, 255, 255, 0.9);
-          border: 1px solid #f3dce4;
+          background: #ffffff;
+          border: 1px solid #f2d7e0;
           border-radius: 24px;
-          box-shadow: 0 10px 28px rgba(62, 28, 43, 0.05);
-          backdrop-filter: blur(12px);
+          box-shadow: 0 10px 26px rgba(91, 33, 52, 0.04);
         }
 
         .painel-field {
           display: flex;
           flex-direction: column;
           gap: 8px;
-          min-width: 180px;
-        }
-
-        .painel-field.grow {
-          flex: 1;
-          min-width: 260px;
-        }
-
-        .painel-field.small {
-          width: 140px;
+          min-width: 0;
         }
 
         .painel-field label,
         .painel-label {
           font-size: 13px;
           font-weight: 800;
-          color: #6a4356;
+          color: #714a5d;
         }
 
         .painel-input,
         .painel-textarea {
           width: 100%;
           box-sizing: border-box;
-          border: 1px solid #efcfd9;
-          background: #fffefc;
+          height: 50px;
+          border: 1px solid #efcfd8;
+          background: #fff;
           color: #2f2430;
           border-radius: 16px;
-          padding: 13px 14px;
+          padding: 0 14px;
           font-size: 14px;
           font-weight: 500;
           outline: none;
           transition: 0.2s ease;
-        }
-
-        .painel-input::placeholder,
-        .painel-textarea::placeholder {
-          color: #b08a98;
-        }
-
-        .painel-input:focus,
-        .painel-textarea:focus {
-          border-color: #db2777;
-          box-shadow: 0 0 0 4px rgba(219, 39, 119, 0.12);
-          background: #ffffff;
+          box-shadow: none;
         }
 
         .painel-textarea {
           min-height: 130px;
+          height: auto;
+          padding: 14px;
           resize: vertical;
         }
 
-        .painel-resumo-bar {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 14px;
-          margin-bottom: 22px;
+        .painel-input::placeholder,
+        .painel-textarea::placeholder {
+          color: #b58a99;
         }
 
-        .painel-resumo-item {
-          padding: 18px;
-          border-radius: 22px;
-          background: linear-gradient(180deg, #ffffff 0%, #fff9fb 100%);
-          border: 1px solid #f3dce4;
-          box-shadow: 0 10px 24px rgba(62, 28, 43, 0.04);
+        .painel-input:focus,
+        .painel-textarea:focus {
+          border-color: #d61f69;
+          box-shadow: 0 0 0 4px rgba(214, 31, 105, 0.11);
         }
 
-        .painel-resumo-item span {
-          display: block;
-          font-size: 12px;
-          color: #9a6b80;
-          font-weight: 700;
-          margin-bottom: 8px;
-        }
-
-        .painel-resumo-item strong {
-          font-size: 22px;
-          font-weight: 900;
-          color: #2f2430;
+        select.painel-input {
+          appearance: none;
+          -webkit-appearance: none;
+          -moz-appearance: none;
+          padding-right: 42px;
+          background-image: linear-gradient(45deg, transparent 50%, #6d4a59 50%),
+            linear-gradient(135deg, #6d4a59 50%, transparent 50%);
+          background-position: calc(100% - 18px) calc(50% - 3px),
+            calc(100% - 12px) calc(50% - 3px);
+          background-size: 6px 6px, 6px 6px;
+          background-repeat: no-repeat;
         }
 
         .produto-grid {
@@ -1218,24 +1170,20 @@ export default function ProdutosPainelPage() {
           border-radius: 28px;
           border: 1px solid #f0d9e2;
           background: rgba(255, 255, 255, 0.98);
-          box-shadow:
-            0 16px 36px rgba(62, 28, 43, 0.06),
-            inset 0 1px 0 rgba(255, 255, 255, 0.75);
+          box-shadow: 0 16px 36px rgba(62, 28, 43, 0.06);
           transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
 
         .produto-card:hover {
           transform: translateY(-4px);
-          box-shadow:
-            0 22px 42px rgba(62, 28, 43, 0.08),
-            inset 0 1px 0 rgba(255, 255, 255, 0.85);
+          box-shadow: 0 22px 42px rgba(62, 28, 43, 0.08);
           border-color: #ebb3c9;
         }
 
         .produto-card-image-area {
           position: relative;
           height: 240px;
-          background: linear-gradient(180deg, #fff4f5 0%, #fff9ef 100%);
+          background: linear-gradient(180deg, #fff4f7 0%, #fffaf3 100%);
         }
 
         .produto-card-image {
@@ -1243,13 +1191,6 @@ export default function ProdutosPainelPage() {
           height: 100%;
           object-fit: cover;
           display: block;
-        }
-
-        .produto-card-overlay {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(to top, rgba(47, 36, 48, 0.18), transparent 50%);
-          pointer-events: none;
         }
 
         .produto-card-no-image {
@@ -1291,7 +1232,7 @@ export default function ProdutosPainelPage() {
         }
 
         .badge-gray {
-          background: rgba(255, 255, 255, 0.92);
+          background: rgba(255, 255, 255, 0.94);
           color: #6b7280;
           border: 1px solid #e5e7eb;
         }
@@ -1315,9 +1256,9 @@ export default function ProdutosPainelPage() {
           width: fit-content;
           padding: 7px 12px;
           border-radius: 999px;
-          background: #fff1f2;
-          color: #be185d;
-          border: 1px solid #fbcfe8;
+          background: #fff1f5;
+          color: #c51d64;
+          border: 1px solid #f7cade;
           font-size: 11px;
           font-weight: 900;
           letter-spacing: 0.03em;
@@ -1415,8 +1356,8 @@ export default function ProdutosPainelPage() {
         .btn-primary-ui {
           border: none;
           color: #fff;
-          background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
-          box-shadow: 0 12px 24px rgba(190, 24, 93, 0.2);
+          background: linear-gradient(135deg, #e11d74 0%, #c2185b 100%);
+          box-shadow: 0 12px 24px rgba(194, 24, 91, 0.2);
         }
 
         .btn-secondary-ui {
@@ -1474,9 +1415,7 @@ export default function ProdutosPainelPage() {
           background: linear-gradient(180deg, #ffffff 0%, #fffafb 100%);
           border: 1px solid #f0d9e2;
           border-radius: 30px;
-          box-shadow:
-            0 35px 90px rgba(18, 10, 16, 0.28),
-            inset 0 1px 0 rgba(255, 255, 255, 0.85);
+          box-shadow: 0 35px 90px rgba(18, 10, 16, 0.28);
           animation: modalUp 0.2s ease;
         }
 
@@ -1511,7 +1450,7 @@ export default function ProdutosPainelPage() {
           display: inline-flex;
           padding: 7px 12px;
           border-radius: 999px;
-          background: #fff1f2;
+          background: #fff1f5;
           border: 1px solid #fbcfe8;
           color: #be185d;
           font-size: 11px;
@@ -1687,10 +1626,7 @@ export default function ProdutosPainelPage() {
         }
 
         @media (max-width: 1024px) {
-          .painel-resumo-bar {
-            grid-template-columns: 1fr;
-          }
-
+          .painel-filtros-card,
           .painel-form-grid {
             grid-template-columns: 1fr;
           }
