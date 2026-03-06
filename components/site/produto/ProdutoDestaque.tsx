@@ -1,15 +1,14 @@
-"use client";
+'use client';
 
-import api from "@/Api/conectar";
-import { rotas } from "@/components/Bibioteca/config/rotas";
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import api from '@/Api/conectar';
+import { rotas } from '@/components/Bibioteca/config/rotas';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 
 type ProdutoDestaqueApi = {
   produto_id: number;
   ordem?: number;
   statusid: number;
-
   produto_nome: string;
   produto_slug: string;
   produto_imagem: string | null;
@@ -30,49 +29,44 @@ type ApiResponse<T> = {
 
 function resolveApiData<T>(payload: any): T {
   if (Array.isArray(payload)) return payload as T;
-
   if (payload?.data != null) return payload.data as T;
   if (payload?.dados != null) return payload.dados as T;
-
   if (payload?.dados?.dados != null) return payload.dados.dados as T;
   if (payload?.data?.data != null) return payload.data.data as T;
-
   return payload as T;
 }
 
 function toNumber(v: unknown): number | null {
   if (v == null) return null;
-  if (typeof v === "number") return Number.isFinite(v) ? v : null;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : null;
 
-  if (typeof v === "string") {
+  if (typeof v === 'string') {
     let cleaned = v.trim();
     if (!cleaned) return null;
 
-    cleaned = cleaned.replace(/R\$/gi, "").replace(/\s/g, "");
+    cleaned = cleaned.replace(/R\$/gi, '').replace(/\s/g, '');
 
-    const hasComma = cleaned.includes(",");
-    const hasDot = cleaned.includes(".");
+    const hasComma = cleaned.includes(',');
+    const hasDot = cleaned.includes('.');
 
     if (hasComma && hasDot) {
-      if (cleaned.lastIndexOf(",") > cleaned.lastIndexOf(".")) {
-        cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+      if (cleaned.lastIndexOf(',') > cleaned.lastIndexOf('.')) {
+        cleaned = cleaned.replace(/\./g, '').replace(',', '.');
       } else {
-        cleaned = cleaned.replace(/,/g, "");
+        cleaned = cleaned.replace(/,/g, '');
       }
     } else if (hasComma) {
-      cleaned = cleaned.replace(",", ".");
+      cleaned = cleaned.replace(',', '.');
     } else {
       const dots = (cleaned.match(/\./g) || []).length;
-
       if (dots > 1) {
-        const lastDot = cleaned.lastIndexOf(".");
+        const lastDot = cleaned.lastIndexOf('.');
         cleaned =
-          cleaned.slice(0, lastDot).replace(/\./g, "") + cleaned.slice(lastDot);
+          cleaned.slice(0, lastDot).replace(/\./g, '') + cleaned.slice(lastDot);
       }
     }
 
-    cleaned = cleaned.replace(/[^\d.-]/g, "");
-
+    cleaned = cleaned.replace(/[^\d.-]/g, '');
     const n = Number(cleaned);
     return Number.isFinite(n) ? n : null;
   }
@@ -81,18 +75,18 @@ function toNumber(v: unknown): number | null {
 }
 
 function formatBRL(value: number) {
-  return value.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
+  return value.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
   });
 }
 
 function buildImageUrl(path: string | null): string | null {
   if (!path) return null;
-  if (path.startsWith("http")) return path;
+  if (path.startsWith('http')) return path;
 
-  const base = (api.defaults.baseURL || "").replace(/\/$/, "");
-  const normalized = path.startsWith("/") ? path : `/${path}`;
+  const base = (api.defaults.baseURL || '').replace(/\/$/, '');
+  const normalized = path.startsWith('/') ? path : `/${path}`;
   return `${base}${normalized}`;
 }
 
@@ -118,13 +112,13 @@ export default function ProdutoDestaque() {
       try {
         const endpoint = rotas.produtos.destaques.listar;
 
-        console.log("[ProdutoDestaque] buscando destaques:", endpoint);
+        console.log('[ProdutoDestaque] buscando destaques:', endpoint);
 
         const res = await api.get<ApiResponse<ProdutoDestaqueApi[]>>(endpoint, {
           withCredentials: true,
         });
 
-        console.log("[ProdutoDestaque] resposta destaques:", res.data);
+        console.log('[ProdutoDestaque] resposta destaques:', res.data);
 
         const data = resolveApiData<ProdutoDestaqueApi[]>(res.data);
         if (!alive) return;
@@ -140,7 +134,7 @@ export default function ProdutoDestaque() {
         if (!alive) return;
 
         console.error(
-          "[ProdutoDestaque] erro ao carregar:",
+          '[ProdutoDestaque] erro ao carregar:',
           e?.response?.data || e
         );
 
@@ -148,7 +142,7 @@ export default function ProdutoDestaque() {
           e?.response?.data?.message ||
             e?.response?.data?.mensagem ||
             e?.message ||
-            "Erro ao carregar produtos em destaque"
+            'Erro ao carregar produtos em destaque'
         );
         setItens([]);
       } finally {
@@ -169,7 +163,7 @@ export default function ProdutoDestaque() {
       const produtoId = Number(item.produto_id || 0);
 
       if (!produtoId) {
-        alert("Produto inválido para adicionar ao carrinho.");
+        alert('Produto inválido para adicionar ao carrinho.');
         return;
       }
 
@@ -182,7 +176,7 @@ export default function ProdutoDestaque() {
         quantidade: 1,
       };
 
-      console.log("[ProdutoDestaque] enviando para carrinho:", {
+      console.log('[ProdutoDestaque] enviando para carrinho:', {
         rota: rotas.carrinho.adicionar,
         payload,
       });
@@ -191,12 +185,12 @@ export default function ProdutoDestaque() {
         withCredentials: true,
       });
 
-      console.log("[ProdutoDestaque] resposta carrinho:", res.data);
+      console.log('[ProdutoDestaque] resposta carrinho:', res.data);
 
       alert(`"${item.produto_nome}" foi adicionado ao carrinho!`);
     } catch (e: any) {
       console.error(
-        "[ProdutoDestaque] erro ao adicionar no carrinho:",
+        '[ProdutoDestaque] erro ao adicionar no carrinho:',
         e?.response?.data || e
       );
 
@@ -205,7 +199,7 @@ export default function ProdutoDestaque() {
           e?.response?.data?.mensagem ||
           e?.response?.data?.erro ||
           e?.message ||
-          "Erro ao adicionar no carrinho"
+          'Erro ao adicionar no carrinho'
       );
     } finally {
       setAddingId(null);
@@ -239,7 +233,7 @@ export default function ProdutoDestaque() {
       const adicionando = addingId === item.produto_id;
 
       return (
-        <article key={`${item.produto_id}-${item.ordem ?? ""}`} className="pdCard">
+        <article key={`${item.produto_id}-${item.ordem ?? ''}`} className="pdCard">
           <Link
             className="pdMedia"
             href={detalhesHref}
@@ -269,14 +263,14 @@ export default function ProdutoDestaque() {
           <div className="pdBody">
             <div className="pdTitle">{item.produto_nome}</div>
 
-            <div className="pdDesc">{item.produto_descricao || " "}</div>
+            <div className="pdDesc">{item.produto_descricao || ' '}</div>
 
             <div className="pdPriceRow">
               <div className="pdPrices">
                 <div className="pdPrice">
                   {precoFinal != null
                     ? formatBRL(precoFinal)
-                    : "Preço sob consulta"}
+                    : 'Preço sob consulta'}
                 </div>
 
                 {temPromo && preco != null ? (
@@ -284,8 +278,8 @@ export default function ProdutoDestaque() {
                 ) : null}
               </div>
 
-              <div className={`pdTag ${temPromo ? "pdTagOffer" : ""}`}>
-                {temPromo ? "Oferta" : "Destaque"}
+              <div className={`pdTag ${temPromo ? 'pdTagOffer' : ''}`}>
+                {temPromo ? 'Oferta' : 'Destaque'}
               </div>
             </div>
 
@@ -301,10 +295,10 @@ export default function ProdutoDestaque() {
                 disabled={semEstoque || adicionando}
               >
                 {semEstoque
-                  ? "Indisponível"
+                  ? 'Indisponível'
                   : adicionando
-                  ? "Adicionando..."
-                  : "Adicionar"}
+                  ? 'Adicionando...'
+                  : 'Adicionar'}
               </button>
             </div>
           </div>
@@ -323,7 +317,7 @@ export default function ProdutoDestaque() {
           </div>
 
           <div className="pdCount">
-            {!loading && !erro ? `${itens.length} item(ns)` : ""}
+            {!loading && !erro ? `${itens.length} item(ns)` : ''}
           </div>
         </div>
 
@@ -376,157 +370,324 @@ export default function ProdutoDestaque() {
       </div>
 
       <style>{`
-        .pdWrap{
-          padding: 34px 16px 46px;
-          background: radial-gradient(1200px 520px at 18% 0%, #fffaf1 0%, #f6efe4 55%, #f1e7d9 100%);
-        }
-        .pdContainer{ max-width: 1140px; margin: 0 auto; }
+        * { box-sizing: border-box; }
 
-        .pdHeader{
-          display:flex; align-items:flex-end; justify-content:space-between;
-          gap:16px; margin-bottom: 16px;
-        }
-        .pdH2{
-          margin:0; font-size: 28px; letter-spacing: -0.6px;
-          color:#3f3327; font-weight: 950;
-        }
-        .pdSub{ margin:6px 0 0; font-size: 13px; color:#6b5a49; font-weight: 650; }
-        .pdCount{
-          font-size: 12px; color:#6b5a49; font-weight: 900;
-          background: rgba(255,255,255,.62);
-          border: 1px solid rgba(111, 92, 73, .14);
-          padding: 8px 12px; border-radius: 999px;
-          backdrop-filter: blur(6px);
-          white-space: nowrap;
+        .pdWrap {
+          padding: 40px 16px 56px;
+          background: linear-gradient(135deg, #faf8f3 0%, #f5f0e8 50%, #f0e8df 100%);
+          min-height: 100vh;
         }
 
-        .pdLayout{
-          display: grid;
-          grid-template-columns: 320px 1fr;
+        .pdContainer {
+          max-width: 1280px;
+          margin: 0 auto;
+        }
+
+        /* Header */
+        .pdHeader {
+          display: flex;
+          align-items: flex-end;
+          justify-content: space-between;
           gap: 16px;
+          margin-bottom: 32px;
+          flex-wrap: wrap;
+        }
+
+        .pdH2 {
+          margin: 0;
+          font-size: 36px;
+          font-weight: 900;
+          letter-spacing: -0.8px;
+          color: #2d2416;
+          line-height: 1.1;
+        }
+
+        .pdSub {
+          margin: 8px 0 0;
+          font-size: 13px;
+          color: #6b5a49;
+          font-weight: 700;
+          letter-spacing: 0.3px;
+        }
+
+        .pdCount {
+          font-size: 12px;
+          color: #6b5a49;
+          font-weight: 900;
+          background: rgba(255, 255, 255, 0.7);
+          border: 1px solid rgba(111, 92, 73, 0.15);
+          padding: 10px 16px;
+          border-radius: 999px;
+          backdrop-filter: blur(8px);
+          white-space: nowrap;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+        }
+
+        /* Layout */
+        .pdLayout {
+          display: grid;
+          grid-template-columns: 340px 1fr;
+          gap: 24px;
           align-items: start;
         }
 
-        .pdBanner{ position: sticky; top: 14px; }
-        .pdBannerInner{
-          border-radius: 22px; overflow: hidden;
-          border: 1px solid rgba(111, 92, 73, .18);
-          background: linear-gradient(160deg, rgba(255,253,247,1) 0%, rgba(255,244,227,1) 45%, rgba(240,226,205,1) 100%);
-          box-shadow: 0 14px 40px rgba(0,0,0,.10);
-          padding: 16px;
+        /* Banner Sidebar */
+        .pdBanner {
+          position: sticky;
+          top: 20px;
         }
-        .pdBannerTop{ display:flex; gap:10px; align-items:center; margin-bottom: 12px; }
-        .pdBannerChip{
-          font-size: 12px; font-weight: 950; padding: 6px 10px; border-radius: 999px;
-          color:#3f3327; background: rgba(255,255,255,.65);
-          border: 1px solid rgba(111, 92, 73, .14);
-        }
-        .pdBannerChip2{ opacity: .92; }
-        .pdBannerTitle{
-          font-size: 22px; font-weight: 980; letter-spacing: -0.4px;
-          color:#2f261e; margin-bottom: 6px;
-        }
-        .pdBannerText{
-          font-size: 13px; line-height: 1.45; color:#6b5a49; font-weight: 650;
-          opacity: .95; margin-bottom: 14px;
-        }
-        .pdBannerCTA{
-          display:flex; align-items:center; justify-content:space-between;
-          gap:12px; margin-bottom: 14px;
-        }
-        .pdBannerBtn{
-          display:inline-flex; align-items:center; justify-content:center;
-          padding: 10px 12px; border-radius: 14px;
-          text-decoration:none; color:#ffffff; font-weight: 950; font-size: 13px;
-          background: linear-gradient(135deg, #d1a67f 0%, #b88962 100%);
-          box-shadow: 0 12px 24px rgba(184,137,98,.35);
-          border: 1px solid rgba(255,255,255,.18);
-        }
-        .pdBannerBtn:hover{ filter: brightness(1.02); color:#fff; }
-        .pdBannerHint{ font-size: 12px; color:#6b5a49; font-weight: 800; opacity: .9; text-align: right; }
-        .pdBannerMini{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .pdBannerMiniBox{
-          border-radius: 16px;
-          background: rgba(255,255,255,.55);
-          border: 1px solid rgba(111, 92, 73, .12);
-          padding: 10px;
-        }
-        .pdMiniLabel{ font-size: 11px; font-weight: 900; color:#6b5a49; opacity: .9; margin-bottom: 6px; }
-        .pdMiniValue{ font-size: 13px; font-weight: 980; color:#2f261e; letter-spacing: -0.2px; }
 
-        .pdRight{ min-width: 0; }
+        .pdBannerInner {
+          border-radius: 24px;
+          overflow: hidden;
+          border: 1px solid rgba(111, 92, 73, 0.16);
+          background: linear-gradient(160deg, rgba(255, 253, 248, 1) 0%, rgba(255, 246, 232, 1) 45%, rgba(240, 228, 208, 1) 100%);
+          box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+          padding: 24px;
+          backdrop-filter: blur(10px);
+        }
 
-        .pdGrid{
+        .pdBannerTop {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+          margin-bottom: 16px;
+        }
+
+        .pdBannerChip {
+          font-size: 12px;
+          font-weight: 900;
+          padding: 8px 14px;
+          border-radius: 999px;
+          color: #3f3327;
+          background: rgba(255, 255, 255, 0.7);
+          border: 1px solid rgba(111, 92, 73, 0.14);
+          backdrop-filter: blur(6px);
+          transition: all 0.2s ease;
+        }
+
+        .pdBannerChip:hover {
+          background: rgba(255, 255, 255, 0.85);
+          border-color: rgba(111, 92, 73, 0.22);
+        }
+
+        .pdBannerChip2 {
+          opacity: 0.85;
+        }
+
+        .pdBannerTitle {
+          font-size: 26px;
+          font-weight: 950;
+          letter-spacing: -0.4px;
+          color: #2d2416;
+          margin-bottom: 10px;
+          line-height: 1.2;
+        }
+
+        .pdBannerText {
+          font-size: 14px;
+          line-height: 1.5;
+          color: #6b5a49;
+          font-weight: 700;
+          opacity: 0.95;
+          margin-bottom: 18px;
+        }
+
+        .pdBannerCTA {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 18px;
+        }
+
+        .pdBannerBtn {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 12px 16px;
+          border-radius: 14px;
+          text-decoration: none;
+          color: #ffffff;
+          font-weight: 950;
+          font-size: 13px;
+          background: linear-gradient(135deg, #d4a574 0%, #b8896a 100%);
+          box-shadow: 0 12px 28px rgba(184, 137, 98, 0.38);
+          border: 1px solid rgba(255, 255, 255, 0.2);
+          transition: all 0.25s ease;
+          cursor: pointer;
+        }
+
+        .pdBannerBtn:hover {
+          filter: brightness(1.08);
+          transform: translateY(-2px);
+          box-shadow: 0 16px 36px rgba(184, 137, 98, 0.45);
+        }
+
+        .pdBannerBtn:active {
+          transform: translateY(0);
+        }
+
+        .pdBannerHint {
+          font-size: 11px;
+          color: #6b5a49;
+          font-weight: 900;
+          opacity: 0.85;
+          text-align: right;
+          letter-spacing: 0.2px;
+        }
+
+        .pdBannerMini {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(260px, 260px));
-          gap: 16px;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+          padding-top: 18px;
+          border-top: 1px solid rgba(111, 92, 73, 0.12);
+        }
+
+        .pdBannerMiniBox {
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.6);
+          border: 1px solid rgba(111, 92, 73, 0.12);
+          padding: 12px;
+          backdrop-filter: blur(6px);
+          transition: all 0.2s ease;
+        }
+
+        .pdBannerMiniBox:hover {
+          background: rgba(255, 255, 255, 0.75);
+          border-color: rgba(111, 92, 73, 0.18);
+        }
+
+        .pdMiniLabel {
+          font-size: 10px;
+          font-weight: 950;
+          color: #6b5a49;
+          opacity: 0.85;
+          margin-bottom: 6px;
+          letter-spacing: 0.3px;
+          text-transform: uppercase;
+        }
+
+        .pdMiniValue {
+          font-size: 14px;
+          font-weight: 950;
+          color: #2d2416;
+          letter-spacing: -0.2px;
+        }
+
+        /* Right Content */
+        .pdRight {
+          min-width: 0;
+        }
+
+        /* Grid */
+        .pdGrid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 20px;
           justify-content: start;
         }
 
-        .pdCard{
-          width: 260px;
-          border-radius: 22px;
-          overflow:hidden;
-          border: 1px solid rgba(111, 92, 73, .16);
-          background: linear-gradient(180deg, rgba(255,253,247,1) 0%, rgba(255,248,237,1) 100%);
-          box-shadow: 0 10px 32px rgba(0,0,0,.09);
-          transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
-        }
-        .pdCard:hover{
-          transform: translateY(-3px);
-          box-shadow: 0 16px 46px rgba(0,0,0,.13);
-          border-color: rgba(111, 92, 73, .26);
+        /* Card */
+        .pdCard {
+          width: 100%;
+          border-radius: 20px;
+          overflow: hidden;
+          border: 1px solid rgba(111, 92, 73, 0.15);
+          background: linear-gradient(180deg, rgba(255, 253, 248, 1) 0%, rgba(255, 248, 238, 1) 100%);
+          box-shadow: 0 12px 36px rgba(0, 0, 0, 0.08);
+          transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .pdMedia{
-          position: relative; display:block;
-          height: 190px;
-          background: #efe3d2;
-          overflow:hidden;
-          text-decoration:none;
+        .pdCard:hover {
+          transform: translateY(-6px);
+          box-shadow: 0 20px 52px rgba(0, 0, 0, 0.14);
+          border-color: rgba(111, 92, 73, 0.24);
         }
-        .pdImg{
-          width:100%; height:100%;
+
+        /* Media */
+        .pdMedia {
+          position: relative;
+          display: block;
+          height: 220px;
+          background: linear-gradient(135deg, #efe3d2 0%, #e8dcc8 100%);
+          overflow: hidden;
+          text-decoration: none;
+        }
+
+        .pdImg {
+          width: 100%;
+          height: 100%;
           object-fit: cover;
           transform: scale(1.02);
-          transition: transform .35s ease;
-          display:block;
-        }
-        .pdCard:hover .pdImg{ transform: scale(1.07); }
-        .pdImgFallback{
-          height:100%;
-          display:flex; align-items:center; justify-content:center;
-          color:#7b6a5a; font-weight:900; font-size: 13px;
+          transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          display: block;
         }
 
-        .pdBadge{
-          position:absolute; top: 12px; left: 12px;
-          padding: 7px 10px; border-radius: 999px;
-          font-weight: 980; font-size: 12px;
-          color: #ffffff; background: rgba(30, 20, 12, .92);
-          box-shadow: 0 10px 20px rgba(0,0,0,.18);
-        }
-        .pdStock{
-          position:absolute; top: 12px; right: 12px;
-          padding: 7px 10px; border-radius: 999px;
-          font-weight: 980; font-size: 12px;
-          color: #3f3327;
-          background: rgba(255, 255, 255, .78);
-          border: 1px solid rgba(111, 92, 73, .18);
-          backdrop-filter: blur(6px);
+        .pdCard:hover .pdImg {
+          transform: scale(1.09);
         }
 
-        .pdBody{ padding: 14px 14px 16px; }
-        .pdTitle{
-          color:#3f3327; font-weight: 980; font-size: 15px;
-          letter-spacing: -0.2px; line-height: 1.15;
-        }
-        .pdDesc{
-          margin-top: 8px;
-          color:#6b5a49;
+        .pdImgFallback {
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #8b7a6a;
+          font-weight: 950;
           font-size: 13px;
-          line-height: 1.35;
-          opacity: .92;
+        }
+
+        /* Badge */
+        .pdBadge {
+          position: absolute;
+          top: 14px;
+          left: 14px;
+          padding: 8px 12px;
+          border-radius: 999px;
+          font-weight: 950;
+          font-size: 12px;
+          color: #ffffff;
+          background: rgba(20, 10, 5, 0.92);
+          box-shadow: 0 12px 24px rgba(0, 0, 0, 0.22);
+          backdrop-filter: blur(8px);
+        }
+
+        .pdStock {
+          position: absolute;
+          top: 14px;
+          right: 14px;
+          padding: 8px 12px;
+          border-radius: 999px;
+          font-weight: 950;
+          font-size: 12px;
+          color: #3f3327;
+          background: rgba(255, 255, 255, 0.85);
+          border: 1px solid rgba(111, 92, 73, 0.18);
+          backdrop-filter: blur(8px);
+        }
+
+        /* Body */
+        .pdBody {
+          padding: 18px 16px 20px;
+        }
+
+        .pdTitle {
+          color: #3f3327;
+          font-weight: 950;
+          font-size: 15px;
+          letter-spacing: -0.2px;
+          line-height: 1.25;
+          margin: 0;
+        }
+
+        .pdDesc {
+          margin-top: 10px;
+          color: #6b5a49;
+          font-size: 13px;
+          line-height: 1.4;
+          opacity: 0.9;
           display: -webkit-box;
           -webkit-line-clamp: 2;
           -webkit-box-orient: vertical;
@@ -534,82 +695,225 @@ export default function ProdutoDestaque() {
           min-height: 36px;
         }
 
-        .pdPriceRow{
-          margin-top: 12px;
-          display:flex; align-items:center; justify-content:space-between;
-          gap: 10px;
+        /* Price Row */
+        .pdPriceRow {
+          margin-top: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding-top: 14px;
+          border-top: 1px solid rgba(111, 92, 73, 0.1);
         }
-        .pdPrices{ display:flex; align-items: baseline; gap: 10px; min-width: 0; }
-        .pdPrice{ font-weight: 980; font-size: 15px; color:#2f261e; letter-spacing: -0.2px; white-space: nowrap; }
-        .pdOldPrice{ font-weight: 850; font-size: 12px; color:#8b7a6a; text-decoration: line-through; white-space: nowrap; }
-        .pdTag{
-          font-size: 12px; font-weight: 980;
-          padding: 6px 10px; border-radius: 999px;
-          color:#3f3327;
-          background: rgba(255,255,255,.62);
-          border: 1px solid rgba(111, 92, 73, .14);
-          backdrop-filter: blur(6px);
+
+        .pdPrices {
+          display: flex;
+          align-items: baseline;
+          gap: 10px;
+          min-width: 0;
+        }
+
+        .pdPrice {
+          font-weight: 950;
+          font-size: 16px;
+          color: #2d2416;
+          letter-spacing: -0.2px;
           white-space: nowrap;
         }
-        .pdTagOffer{ background: rgba(255,255,255,.72); border-color: rgba(184,137,98,.28); }
 
-        .pdActions{ margin-top: 12px; display:flex; gap: 10px; }
-        .pdBtn{
-          flex: 1;
-          display:inline-flex; align-items:center; justify-content:center;
-          padding: 10px 12px;
-          border-radius: 14px;
-          font-weight: 980; font-size: 13px;
-          border: 1px solid transparent;
-          cursor:pointer;
-          text-decoration:none;
-          transition: transform .12s ease, filter .12s ease, background .12s ease, border-color .12s ease;
-          user-select:none;
-        }
-        .pdBtn:active{ transform: translateY(1px); }
-
-        .pdBtnGhost{
-          background: rgba(255,255,255,.72);
-          color:#3f3327;
-          border-color: rgba(111, 92, 73, .18);
-        }
-        .pdBtnGhost:hover{ filter: brightness(0.98); color:#3f3327; }
-
-        .pdBtnPrimary{
-          background: linear-gradient(135deg, #d1a67f 0%, #b88962 100%);
-          color: #ffffff;
-          box-shadow: 0 12px 26px rgba(184, 137, 98, .35);
-        }
-        .pdBtnPrimary:hover{ filter: brightness(1.02); }
-        .pdBtnPrimary:disabled{ opacity: .55; cursor:not-allowed; box-shadow:none; }
-
-        .pdAlert{
-          border-radius: 18px;
-          padding: 14px;
-          background: rgba(255,255,255,.65);
-          border: 1px solid rgba(111, 92, 73, .16);
-          color:#3f3327;
+        .pdOldPrice {
           font-weight: 850;
-        }
-        .pdAlertErr{
-          color:#8a1f1f;
-          background: rgba(185,28,28,.06);
-          border-color: rgba(185,28,28,.18);
+          font-size: 12px;
+          color: #8b7a6a;
+          text-decoration: line-through;
+          white-space: nowrap;
         }
 
-        @media (max-width: 980px){
-          .pdLayout{ grid-template-columns: 1fr; }
-          .pdBanner{ position: relative; top: 0; }
-          .pdGrid{ grid-template-columns: repeat(auto-fill, minmax(240px, 240px)); }
-          .pdCard{ width: 240px; }
+        .pdTag {
+          font-size: 11px;
+          font-weight: 950;
+          padding: 6px 10px;
+          border-radius: 999px;
+          color: #3f3327;
+          background: rgba(255, 255, 255, 0.65);
+          border: 1px solid rgba(111, 92, 73, 0.14);
+          backdrop-filter: blur(6px);
+          white-space: nowrap;
+          letter-spacing: 0.2px;
         }
-        @media (max-width: 560px){
-          .pdWrap{ padding: 26px 12px 34px; }
-          .pdH2{ font-size: 24px; }
-          .pdHeader{ align-items: flex-start; }
-          .pdCount{ margin-top: 4px; }
-          .pdGrid{ grid-template-columns: 1fr; justify-content: stretch; }
-          .pdCard{ width: 100%; }
+
+        .pdTagOffer {
+          background: rgba(255, 255, 255, 0.75);
+          border-color: rgba(184, 137, 98, 0.3);
+          color: #8b5f2f;
+        }
+
+        /* Actions */
+        .pdActions {
+          margin-top: 14px;
+          display: flex;
+          gap: 10px;
+        }
+
+        .pdBtn {
+          flex: 1;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 11px 12px;
+          border-radius: 12px;
+          font-weight: 950;
+          font-size: 12px;
+          border: 1px solid transparent;
+          cursor: pointer;
+          text-decoration: none;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          user-select: none;
+          font-family: inherit;
+        }
+
+        .pdBtn:active {
+          transform: translateY(1px);
+        }
+
+        .pdBtnGhost {
+          background: rgba(255, 255, 255, 0.75);
+          color: #3f3327;
+          border-color: rgba(111, 92, 73, 0.18);
+        }
+
+        .pdBtnGhost:hover {
+          filter: brightness(0.96);
+          border-color: rgba(111, 92, 73, 0.28);
+        }
+
+        .pdBtnPrimary {
+          background: linear-gradient(135deg, #d4a574 0%, #b8896a 100%);
+          color: #ffffff;
+          box-shadow: 0 10px 24px rgba(184, 137, 98, 0.35);
+        }
+
+        .pdBtnPrimary:hover {
+          filter: brightness(1.06);
+          transform: translateY(-1px);
+          box-shadow: 0 14px 32px rgba(184, 137, 98, 0.42);
+        }
+
+        .pdBtnPrimary:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          box-shadow: none;
+          transform: none;
+        }
+
+        /* Alert */
+        .pdAlert {
+          border-radius: 18px;
+          padding: 16px 18px;
+          background: rgba(255, 255, 255, 0.7);
+          border: 1px solid rgba(111, 92, 73, 0.16);
+          color: #3f3327;
+          font-weight: 850;
+          font-size: 14px;
+          text-align: center;
+          backdrop-filter: blur(6px);
+        }
+
+        .pdAlertErr {
+          color: #8a1f1f;
+          background: rgba(185, 28, 28, 0.08);
+          border-color: rgba(185, 28, 28, 0.18);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+          .pdLayout {
+            grid-template-columns: 1fr;
+          }
+
+          .pdBanner {
+            position: relative;
+            top: 0;
+          }
+
+          .pdGrid {
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          }
+        }
+
+        @media (max-width: 768px) {
+          .pdWrap {
+            padding: 32px 12px 44px;
+          }
+
+          .pdH2 {
+            font-size: 28px;
+          }
+
+          .pdHeader {
+            align-items: flex-start;
+            margin-bottom: 24px;
+          }
+
+          .pdCount {
+            margin-top: 4px;
+          }
+
+          .pdGrid {
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+          }
+
+          .pdCard {
+            border-radius: 16px;
+          }
+
+          .pdMedia {
+            height: 200px;
+          }
+
+          .pdBannerInner {
+            padding: 18px;
+          }
+
+          .pdBannerTitle {
+            font-size: 22px;
+          }
+        }
+
+        @media (max-width: 560px) {
+          .pdWrap {
+            padding: 24px 12px 32px;
+          }
+
+          .pdH2 {
+            font-size: 24px;
+          }
+
+          .pdHeader {
+            flex-direction: column;
+            gap: 12px;
+          }
+
+          .pdGrid {
+            grid-template-columns: 1fr;
+          }
+
+          .pdCard {
+            width: 100%;
+          }
+
+          .pdMedia {
+            height: 180px;
+          }
+
+          .pdBody {
+            padding: 14px 12px 16px;
+          }
+
+          .pdBtn {
+            padding: 10px 10px;
+            font-size: 11px;
+          }
         }
       `}</style>
     </section>
