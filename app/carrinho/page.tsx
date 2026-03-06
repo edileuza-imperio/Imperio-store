@@ -50,8 +50,29 @@ type Cupom = {
   descricao?: string;
 };
 
+type PixPayload = {
+  qrUrl?: string;
+  payload?: string;
+  ticketUrl?: string;
+};
+
 function num(v: any): number {
-  const n = typeof v === "string" ? Number(v.replace(",", ".")) : Number(v);
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
+
+  const raw = String(v ?? "").trim();
+  if (!raw) return 0;
+
+  const cleaned = raw.replace(/[^\d,.-]/g, "");
+
+  let normalized = cleaned;
+
+  if (cleaned.includes(",") && cleaned.includes(".")) {
+    normalized = cleaned.replace(/\./g, "").replace(",", ".");
+  } else if (cleaned.includes(",")) {
+    normalized = cleaned.replace(",", ".");
+  }
+
+  const n = Number(normalized);
   return Number.isFinite(n) ? n : 0;
 }
 
@@ -109,9 +130,7 @@ export default function CarrinhoPage() {
   const [cardExpiry, setCardExpiry] = React.useState("");
   const [cardCVV, setCardCVV] = React.useState("");
 
-  const [pixPayload, setPixPayload] = React.useState<{ qrUrl?: string; payload?: string } | null>(
-    null
-  );
+  const [pixPayload, setPixPayload] = React.useState<PixPayload | null>(null);
 
   const [enderecos, setEnderecos] = React.useState<EnderecoDB[]>([]);
   const [enderecosLoading, setEnderecosLoading] = React.useState(false);
@@ -182,7 +201,6 @@ export default function CarrinhoPage() {
 
     try {
       await api.get("/me");
-
       await carregarEnderecosSalvos();
 
       const carrinhoRes = await api.get("/carrinho");
@@ -252,7 +270,10 @@ export default function CarrinhoPage() {
 
   async function aplicarCupom() {
     const code = cupomInput.trim();
-    if (!code) return toast.info("Digite um cupom.");
+    if (!code) {
+      toast.info("Digite um cupom.");
+      return;
+    }
 
     setCupomLoading(true);
 
@@ -359,12 +380,57 @@ export default function CarrinhoPage() {
     return true;
   }
 
+  async function gerarPixCarrinho() {
+    try {
+      const okEnd = await salvarEndereco();
+      if (!okEnd) {
+        setEtapa(2);
+        return;
+      }
+
+      setProcessing(true);
+
+      const resp = await api.post("/carrinho/pix");
+      const dados = resp.data?.dados ?? {};
+      const pagamento = dados?.pagamento ?? null;
+
+      if (!pagamento) {
+        toast.error("Não foi possível gerar o PIX.");
+        return;
+      }
+
+      setPixPayload({
+        qrUrl: pagamento.qr_code_base64
+          ? `data:image/png;base64,${pagamento.qr_code_base64}`
+          : undefined,
+        payload: pagamento.qr_code ?? "",
+        ticketUrl: pagamento.ticket_url ?? "",
+      });
+
+      setMetodoPagamento("pix");
+      toast.success("QR Code PIX gerado!");
+    } catch (e: any) {
+      console.error(e?.response?.data || e);
+      toast.error(e?.response?.data?.mensagem || "Erro ao gerar pagamento PIX.");
+    } finally {
+      setProcessing(false);
+    }
+  }
+
   async function finalizarPedido() {
-    if (itensArray.length === 0) return toast.info("Seu carrinho está vazio.");
+    if (itensArray.length === 0) {
+      toast.info("Seu carrinho está vazio.");
+      return;
+    }
 
     const okEnd = await salvarEndereco();
     if (!okEnd) {
       setEtapa(2);
+      return;
+    }
+
+    if (metodoPagamento === "pix") {
+      await gerarPixCarrinho();
       return;
     }
 
@@ -392,16 +458,7 @@ export default function CarrinhoPage() {
         };
       }
 
-      const resp = await api.post("/pedido/finalizar", payload);
-      const base = resp.data?.dados ?? resp.data?.data ?? resp.data;
-
-      if (metodoPagamento === "pix") {
-        const info = base?.pagamento_info ?? null;
-        setPixPayload({
-          qrUrl: info?.qrUrl,
-          payload: info?.payload ?? "000201...pix-copia-cola",
-        });
-      }
+      await api.post("/pedido/finalizar", payload);
 
       setEtapa(4);
       toast.success("Pedido finalizado!");
@@ -686,7 +743,7 @@ export default function CarrinhoPage() {
 
                 <button
                   className="btn btn-brand w-100 mt-3"
-                  onClick={() => setEtapa((prev) => (prev < 4 ? ((prev + 1) as any) : prev))}
+                  onClick={() => setEtapa((prev) => (prev < 4 ? ((prev + 1) as 1 | 2 | 3 | 4) : prev))}
                   disabled={itensArray.length === 0 || processing || etapa === 4}
                 >
                   {etapa === 1
@@ -1017,13 +1074,19 @@ export default function CarrinhoPage() {
                     <div className="d-flex gap-2 mb-3">
                       <button
                         className={metodoPagamento === "pix" ? "btn btn-brand" : "btn btn-outline-brand"}
-                        onClick={() => setMetodoPagamento("pix")}
+                        onClick={async () => {
+                          setMetodoPagamento("pix");
+                          await gerarPixCarrinho();
+                        }}
+                        disabled={processing}
                       >
-                        Pix
+                        {processing && metodoPagamento === "pix" ? "Gerando PIX..." : "Pix"}
                       </button>
+
                       <button
                         className={metodoPagamento === "cartao" ? "btn btn-brand" : "btn btn-outline-brand"}
                         onClick={() => setMetodoPagamento("cartao")}
+                        disabled={processing}
                       >
                         Cartão
                       </button>
@@ -1032,21 +1095,56 @@ export default function CarrinhoPage() {
                     {metodoPagamento === "pix" && (
                       <div className="surface p-3" style={{ background: "#fff" }}>
                         <div className="text-muted">
-                          Ao finalizar, vamos gerar o Pix (se sua API retornar payload).
+                          Gere o QR Code PIX e pague escaneando ou copiando o código abaixo.
                         </div>
 
-                        {pixPayload?.qrUrl ? (
+                        {pixPayload?.qrUrl && (
                           <div className="mt-3 text-center">
-                            <img src={pixPayload.qrUrl} alt="QR Pix" style={{ width: 220 }} />
+                            <img
+                              src={pixPayload.qrUrl}
+                              alt="QR Code PIX"
+                              style={{
+                                width: 240,
+                                background: "#fff",
+                                padding: 12,
+                                borderRadius: 12,
+                              }}
+                            />
                           </div>
-                        ) : null}
+                        )}
 
-                        {pixPayload?.payload ? (
+                        {pixPayload?.payload && (
                           <div className="mt-3">
                             <label className="form-label fw-bold">Pix copia e cola</label>
-                            <input className="form-control pillInput" readOnly value={pixPayload.payload} />
+                            <textarea
+                              className="form-control pillInput"
+                              readOnly
+                              rows={4}
+                              value={pixPayload.payload}
+                            />
                           </div>
-                        ) : null}
+                        )}
+
+                        {pixPayload?.ticketUrl && (
+                          <div className="mt-3">
+                            <a
+                              href={pixPayload.ticketUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="btn btn-outline-brand"
+                            >
+                              Abrir comprovante PIX
+                            </a>
+                          </div>
+                        )}
+
+                        {!pixPayload?.qrUrl && !processing && (
+                          <div className="mt-3">
+                            <button className="btn btn-brand" onClick={gerarPixCarrinho}>
+                              Gerar QR Code PIX
+                            </button>
+                          </div>
+                        )}
                       </div>
                     )}
 
@@ -1106,9 +1204,16 @@ export default function CarrinhoPage() {
                       <button className="btn btn-outline-secondary" onClick={() => setEtapa(2)}>
                         Voltar
                       </button>
-                      <button className="btn btn-brand" onClick={finalizarPedido} disabled={processing}>
-                        {processing ? "Processando..." : "Finalizar pedido"}
-                      </button>
+
+                      {metodoPagamento === "cartao" ? (
+                        <button className="btn btn-brand" onClick={finalizarPedido} disabled={processing}>
+                          {processing ? "Processando..." : "Finalizar pedido"}
+                        </button>
+                      ) : (
+                        <button className="btn btn-brand" onClick={gerarPixCarrinho} disabled={processing}>
+                          {processing ? "Gerando PIX..." : "Gerar PIX"}
+                        </button>
+                      )}
                     </div>
                   </>
                 )}
@@ -1239,7 +1344,7 @@ export default function CarrinhoPage() {
 
                 <button
                   className="btn btn-brand w-100 mt-3"
-                  onClick={() => setEtapa((prev) => (prev < 4 ? ((prev + 1) as any) : prev))}
+                  onClick={() => setEtapa((prev) => (prev < 4 ? ((prev + 1) as 1 | 2 | 3 | 4) : prev))}
                   disabled={itensArray.length === 0 || processing || etapa === 4}
                 >
                   {etapa === 1
