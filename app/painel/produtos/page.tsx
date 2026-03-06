@@ -157,7 +157,7 @@ export default function ProdutosPainelPage() {
       <div className="painel-page">
         <section className="hero-card">
           <div className="hero-left">
-            <span className="hero-badge">Painel administrativo</span>
+            <span className="hero-badge">Painel</span>
             <h1>Produtos</h1>
             <p>
               Gerencie seu catálogo com uma interface mais limpa, moderna e fácil
@@ -169,7 +169,7 @@ export default function ProdutosPainelPage() {
             <button
               type="button"
               className="btn-primary-ui"
-              onClick={() => router.push("/admin/produtos/novo")}
+              onClick={() => router.push("/painel/produtos/novo")}
             >
               + Novo produto
             </button>
@@ -295,7 +295,7 @@ export default function ProdutosPainelPage() {
                       type="button"
                       className="btn-secondary-ui"
                       onClick={() =>
-                        router.push(`/admin/produtos/${produto.id_produto}/editar`)
+                        router.push(`/painel/produtos/${produto.id_produto}/editar`)
                       }
                     >
                       Editar
@@ -305,7 +305,7 @@ export default function ProdutosPainelPage() {
                       type="button"
                       className="btn-secondary-ui"
                       onClick={() =>
-                        router.push(`/admin/produtos/${produto.id_produto}/editar?aba=imagens`)
+                        router.push(`/painel/produtos/${produto.id_produto}/editar?aba=imagens`)
                       }
                     >
                       Imagens
