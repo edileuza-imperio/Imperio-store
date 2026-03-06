@@ -46,6 +46,7 @@ export function useCheckoutPage() {
   const [pixPayload, setPixPayload] = React.useState<PixPayload | null>(null);
   const [pixSolicitado, setPixSolicitado] = React.useState(false);
   const [pixGerandoAutomatico, setPixGerandoAutomatico] = React.useState(false);
+  const [pixErro, setPixErro] = React.useState(false);
 
   const [enderecos, setEnderecos] = React.useState<EnderecoDB[]>([]);
   const [enderecosLoading, setEnderecosLoading] = React.useState(false);
@@ -81,6 +82,8 @@ export function useCheckoutPage() {
     mostrarFormularioEndereco: boolean;
     endereco: Endereco;
   }) {
+    console.log("[Checkout] aplicarEstadoEnderecos:", data);
+
     setEnderecos(data.enderecos);
     setEnderecoSelecionadoId(data.enderecoSelecionadoId);
     setMostrarFormularioEndereco(data.mostrarFormularioEndereco);
@@ -110,22 +113,30 @@ export function useCheckoutPage() {
   }
 
   async function recarregarEnderecosSalvos() {
+    console.log("[Checkout] recarregarEnderecosSalvos iniciado");
     setEnderecosLoading(true);
 
     try {
       const enderecoState = await carregarEnderecosSalvosState();
+      console.log("[Checkout] recarregarEnderecosSalvos retorno:", enderecoState);
       aplicarEstadoEnderecos(enderecoState);
+    } catch (e) {
+      console.error("[Checkout] erro ao recarregar endereços:", e);
     } finally {
       setEnderecosLoading(false);
+      console.log("[Checkout] recarregarEnderecosSalvos finalizado");
     }
   }
 
   async function carregarTudo() {
+    console.log("[Checkout] carregarTudo iniciado");
     setLoading(true);
     setErro(null);
 
     try {
       const data = await carregarCheckoutInicial();
+
+      console.log("[Checkout] carregarTudo retorno:", data);
 
       setItens(data.itens || []);
       aplicarEstadoEnderecos({
@@ -135,9 +146,11 @@ export function useCheckoutPage() {
         endereco: data.endereco,
       });
     } catch (e: any) {
+      console.error("[Checkout] erro ao carregar tudo:", e?.response?.data || e);
       setErro(e?.response?.data?.mensagem || e?.message || "Erro ao carregar checkout.");
     } finally {
       setLoading(false);
+      console.log("[Checkout] carregarTudo finalizado");
     }
   }
 
@@ -151,25 +164,40 @@ export function useCheckoutPage() {
     const escolhido = enderecos.find((e) => e.id_endereco === enderecoSelecionadoId);
     if (!escolhido) return;
 
+    console.log("[Checkout] endereço selecionado:", escolhido);
     setEndereco(mapEnderecoSelecionado(escolhido));
   }, [enderecoSelecionadoId, enderecos]);
 
   React.useEffect(() => {
     async function autoGerarPix() {
+      console.log("[Checkout] autoGerarPix verificação", {
+        loading,
+        metodoPagamento,
+        pixSolicitado,
+        processing,
+        pixGerandoAutomatico,
+        pixErro,
+        possuiPixPayload: !!(pixPayload?.payload || pixPayload?.qrUrl),
+        itens: itensArray.length,
+      });
+
       if (loading) return;
       if (metodoPagamento !== "pix") return;
       if (!pixSolicitado) return;
       if (processing) return;
       if (pixGerandoAutomatico) return;
+      if (pixErro) return;
       if (pixPayload?.payload || pixPayload?.qrUrl) return;
       if (itensArray.length === 0) return;
 
       setPixGerandoAutomatico(true);
 
       try {
-        await gerarPixCarrinho();
+        console.log("[Checkout] autoGerarPix chamando gerarPixCarrinho(true)");
+        await gerarPixCarrinho(true);
       } finally {
         setPixGerandoAutomatico(false);
+        console.log("[Checkout] autoGerarPix finalizado");
       }
     }
 
@@ -180,12 +208,15 @@ export function useCheckoutPage() {
     loading,
     processing,
     pixGerandoAutomatico,
+    pixErro,
     pixPayload,
     itensArray.length,
   ]);
 
   async function aplicarCupom() {
     const code = cupomInput.trim();
+
+    console.log("[Checkout] aplicarCupom:", code);
 
     if (!code) {
       toast.info("Digite um cupom.");
@@ -198,6 +229,8 @@ export function useCheckoutPage() {
       const resp = await validarCupom(code);
       const base = resp.data?.dados ?? resp.data?.data ?? resp.data;
 
+      console.log("[Checkout] validarCupom retorno:", resp.data);
+
       if (!base || !base.codigo) {
         setCupomAplicado(null);
         toast.error("Cupom não encontrado.");
@@ -206,7 +239,8 @@ export function useCheckoutPage() {
 
       setCupomAplicado(base);
       toast.success("Cupom aplicado!");
-    } catch {
+    } catch (e) {
+      console.error("[Checkout] erro ao validar cupom:", e);
       setCupomAplicado(null);
       toast.error("Erro ao validar cupom.");
     } finally {
@@ -215,16 +249,24 @@ export function useCheckoutPage() {
   }
 
   async function salvarEndereco(): Promise<boolean> {
+    console.log("[Checkout] salvarEndereco iniciado", {
+      mostrarFormularioEndereco,
+      enderecoSelecionadoId,
+      endereco,
+      qtdEnderecos: enderecos.length,
+    });
+
     if (!mostrarFormularioEndereco && enderecoSelecionadoId) {
       const escolhido = enderecos.find((e) => e.id_endereco === enderecoSelecionadoId);
 
       if (!escolhido) {
+        console.error("[Checkout] endereço selecionado não encontrado");
         toast.error("Endereço selecionado não encontrado.");
         return false;
       }
 
       try {
-        await aplicarEnderecoSalvo({
+        const payload = {
           cep: (escolhido.cep ?? "").replace(/\D/g, "").slice(0, 8),
           rua: escolhido.rua ?? "",
           numero: escolhido.numero ?? "",
@@ -232,17 +274,24 @@ export function useCheckoutPage() {
           bairro: escolhido.bairro ?? "",
           cidade: escolhido.cidade ?? "",
           estado: escolhido.estado ?? "SP",
-        });
+        };
+
+        console.log("[Checkout] aplicarEnderecoSalvo payload:", payload);
+
+        await aplicarEnderecoSalvo(payload);
 
         toast.success("Endereço selecionado!");
         return true;
-      } catch {
+      } catch (e) {
+        console.error("[Checkout] erro ao aplicar endereço selecionado:", e);
         toast.error("Erro ao aplicar endereço selecionado.");
         return false;
       }
     }
 
     const payload = normalizarPayloadEndereco(endereco);
+
+    console.log("[Checkout] salvarEndereco payload normalizado:", payload);
 
     if (!payload.cep || payload.cep.length !== 8) {
       toast.error("CEP inválido.");
@@ -257,29 +306,48 @@ export function useCheckoutPage() {
     try {
       await salvarEnderecoCarrinho(payload, enderecos.length > 0);
 
+      console.log("[Checkout] endereço salvo com sucesso");
+
       toast.success("Endereço salvo!");
       await recarregarEnderecosSalvos();
       return true;
-    } catch {
+    } catch (e) {
+      console.error("[Checkout] erro ao salvar endereço:", e);
       toast.error("Erro ao salvar endereço.");
       return false;
     }
   }
 
-  async function gerarPixCarrinho() {
-    if (processing) return;
+  async function gerarPixCarrinho(auto = false) {
+    if (processing) {
+      console.log("[Checkout] gerarPixCarrinho cancelado: já está processando");
+      return;
+    }
 
     try {
+      console.log("[Checkout] gerarPixCarrinho iniciado", { auto });
+
       setProcessing(true);
+
+      if (!auto) {
+        setPixErro(false);
+      }
+
       setPixPayload(null);
 
       const okEnd = await salvarEndereco();
+      console.log("[Checkout] resultado salvarEndereco:", okEnd);
+
       if (!okEnd) {
+        setPixErro(true);
         toast.error("Não foi possível salvar o endereço.");
         return;
       }
 
+      console.log("[Checkout] chamando finalizarPedidoPix...");
       const resp = await finalizarPedidoPix();
+
+      console.log("[Checkout] resposta finalizarPedidoPix:", resp?.data);
 
       const root = resp?.data ?? {};
       const dados = root?.dados ?? root;
@@ -301,23 +369,37 @@ export function useCheckoutPage() {
         pagamento?.ticketUrl ??
         "";
 
+      console.log("[Checkout] dados pagamento PIX:", {
+        pagamento,
+        possuiQrCodeBase64: !!qrCodeBase64,
+        possuiQrCode: !!qrCode,
+        possuiTicketUrl: !!ticketUrl,
+      });
+
       if (!pagamento || (!qrCodeBase64 && !qrCode && !ticketUrl)) {
-        console.error("Resposta PIX inválida:", resp?.data);
+        console.error("[Checkout] resposta PIX inválida:", resp?.data);
+        setPixErro(true);
         toast.error("Não foi possível gerar o PIX.");
         return;
       }
 
+      setPixErro(false);
       setPixPayload({
         qrUrl: qrCodeBase64 ? `data:image/png;base64,${qrCodeBase64}` : undefined,
         payload: qrCode,
         ticketUrl,
       });
 
+      console.log("[Checkout] PIX gerado com sucesso");
       toast.success("PIX gerado com sucesso!");
     } catch (e: any) {
-      console.error("Erro PIX:", e?.response?.data || e);
+      console.error("[Checkout] erro PIX completo:", e);
+      console.error("[Checkout] erro PIX response:", e?.response?.data || e);
+
+      setPixErro(true);
 
       const mensagem =
+        e?.response?.data?.dados?.mensagem ||
         e?.response?.data?.mensagem ||
         e?.response?.data?.erro ||
         "Erro ao gerar pagamento PIX.";
@@ -325,19 +407,27 @@ export function useCheckoutPage() {
       toast.error(mensagem);
     } finally {
       setProcessing(false);
+      console.log("[Checkout] gerarPixCarrinho finalizado");
     }
   }
 
   async function finalizarPedidoCartao() {
+    console.log("[Checkout] finalizarPedidoCartao iniciado");
+
     if (itensArray.length === 0) {
       toast.info("Seu carrinho está vazio.");
       return;
     }
 
     const okEnd = await salvarEndereco();
+    console.log("[Checkout] finalizarPedidoCartao salvarEndereco:", okEnd);
+
     if (!okEnd) return;
 
-    if (!isCardValid()) {
+    const cardValido = isCardValid();
+    console.log("[Checkout] cartão válido:", cardValido);
+
+    if (!cardValido) {
       toast.error("Dados do cartão inválidos.");
       return;
     }
@@ -345,23 +435,36 @@ export function useCheckoutPage() {
     setProcessing(true);
 
     try {
-      await finalizarPedidoCartaoService({
+      const payload = {
         nome: cardName,
         numero: cardNumber.replace(/\s/g, ""),
         validade: cardExpiry,
         cvv: cardCVV,
-      });
+      };
+
+      console.log("[Checkout] payload cartão:", payload);
+
+      const resp = await finalizarPedidoCartaoService(payload);
+
+      console.log("[Checkout] resposta finalizarPedidoCartao:", resp?.data);
 
       setPedidoConcluido(true);
       toast.success("Pedido finalizado!");
     } catch (e: any) {
+      console.error("[Checkout] erro ao finalizar pedido cartão:", e?.response?.data || e);
       toast.error(e?.response?.data?.mensagem || "Erro ao finalizar pedido.");
     } finally {
       setProcessing(false);
+      console.log("[Checkout] finalizarPedidoCartao finalizado");
     }
   }
 
   async function finalizarCompra() {
+    console.log("[Checkout] finalizarCompra", {
+      metodoPagamento,
+      possuiPixPayload: !!(pixPayload?.payload || pixPayload?.qrUrl),
+    });
+
     if (metodoPagamento === "cartao") {
       await finalizarPedidoCartao();
       return;
@@ -369,7 +472,8 @@ export function useCheckoutPage() {
 
     if (!pixPayload?.payload && !pixPayload?.qrUrl) {
       setPixSolicitado(true);
-      await gerarPixCarrinho();
+      setPixErro(false);
+      await gerarPixCarrinho(false);
       return;
     }
 
@@ -377,14 +481,18 @@ export function useCheckoutPage() {
   }
 
   function selecionarPix() {
+    console.log("[Checkout] selecionarPix");
     setMetodoPagamento("pix");
     setPixSolicitado(true);
     setPixPayload(null);
+    setPixErro(false);
   }
 
   function selecionarCartao() {
+    console.log("[Checkout] selecionarCartao");
     setMetodoPagamento("cartao");
     setPixSolicitado(false);
+    setPixErro(false);
   }
 
   return {
@@ -416,6 +524,7 @@ export function useCheckoutPage() {
     pixPayload,
     pixSolicitado,
     pixGerandoAutomatico,
+    pixErro,
 
     enderecos,
     enderecosLoading,
