@@ -7,7 +7,7 @@ import 'bootstrap-icons/font/bootstrap-icons.css';
 import './../public/produto/produto.css';
 import './../public/produto/page.css';
 import './../public/carrinho/carrinho.css';
-
+import './../public/carrinho/checkout.css';
 export const metadata: Metadata = {
   title: "Universo imperio",
   description: "criado e desenvolvido por alvarado tech",
