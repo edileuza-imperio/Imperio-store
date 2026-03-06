@@ -1,5 +1,6 @@
 import api from "@/Api/conectar";
 import { PedidoApi } from "./pedidos";
+import { EnderecoDB } from "./Bibiotecas";
 
 export function getImagemUrl(caminho?: string) {
   if (!caminho) return "";
@@ -122,21 +123,46 @@ export function montarEndereco(obj: any): string {
 
   return [linha1 + complemento, linha2 + cep].filter(Boolean).join(" | ");
 }
-export function isCardValid(): boolean {
-    const digits = cardNumber.replace(/\D/g, "");
-    if (digits.length < 13) return false;
-    if (!cardName.trim()) return false;
-    if (!/^\d{3,4}$/.test(cardCVV)) return false;
 
-    const [mm, yy] = cardExpiry.split("/");
-    const m = Number(mm);
-    const y = Number(`20${yy}`);
-    if (!m || m < 1 || m > 12) return false;
-    if (!y || String(yy || "").length !== 2) return false;
 
-    const now = new Date();
-    const exp = new Date(y, m - 1, 1);
-    if (exp < new Date(now.getFullYear(), now.getMonth(), 1)) return false;
+export function num(v: any): number {
+  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
 
-    return true;
+  const raw = String(v ?? "").trim();
+  if (!raw) return 0;
+
+  const cleaned = raw.replace(/[^\d,.-]/g, "");
+  let normalized = cleaned;
+
+  if (cleaned.includes(",") && cleaned.includes(".")) {
+    normalized = cleaned.replace(/\./g, "").replace(",", ".");
+  } else if (cleaned.includes(",")) {
+    normalized = cleaned.replace(",", ".");
   }
+
+  const n = Number(normalized);
+  return Number.isFinite(n) ? n : 0;
+}
+
+export function pickCarrinho(resp: any): { itens: CarrinhoItem[]; endereco: any | null } {
+  const base = resp?.dados ?? resp?.data ?? resp;
+  const itens = Array.isArray(base?.itens) ? base.itens : [];
+  const endereco = base?.endereco ?? null;
+
+  return { itens, endereco };
+}
+
+export function enderecoResumo(e: EnderecoDB) {
+  const linha1 =
+    `${e.rua ?? ""}, ${e.numero ?? ""}` +
+    (e.complemento ? ` - ${e.complemento}` : "");
+
+  const linha2 = `${e.bairro ?? ""} • ${e.cidade ?? ""}/${e.estado ?? ""}`;
+  const linha3 = e.cep ? `CEP: ${e.cep}` : "";
+
+  return {
+    linha1: linha1.trim(),
+    linha2: linha2.trim(),
+    linha3,
+  };
+}

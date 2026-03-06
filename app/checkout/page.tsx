@@ -16,57 +16,10 @@ import {
   Cupom,
   PixPayload,
 } from "@/components/Bibioteca/Bibiotecas";
-import { formatBRL } from "@/components/Bibioteca/functions";
+import { enderecoResumo, formatBRL, num, pickCarrinho } from "@/components/Bibioteca/functions";
 
-type CarrinhoItem = {
-  id_item: number;
-  nome_produto: string;
-  preco_unitario: number | string;
-  quantidade: number;
-  imagem?: string;
-};
 
-function num(v: any): number {
-  if (typeof v === "number") return Number.isFinite(v) ? v : 0;
 
-  const raw = String(v ?? "").trim();
-  if (!raw) return 0;
-
-  const cleaned = raw.replace(/[^\d,.-]/g, "");
-  let normalized = cleaned;
-
-  if (cleaned.includes(",") && cleaned.includes(".")) {
-    normalized = cleaned.replace(/\./g, "").replace(",", ".");
-  } else if (cleaned.includes(",")) {
-    normalized = cleaned.replace(",", ".");
-  }
-
-  const n = Number(normalized);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function pickCarrinho(resp: any): { itens: CarrinhoItem[]; endereco: any | null } {
-  const base = resp?.dados ?? resp?.data ?? resp;
-  const itens = Array.isArray(base?.itens) ? base.itens : [];
-  const endereco = base?.endereco ?? null;
-
-  return { itens, endereco };
-}
-
-function enderecoResumo(e: EnderecoDB) {
-  const linha1 =
-    `${e.rua ?? ""}, ${e.numero ?? ""}` +
-    (e.complemento ? ` - ${e.complemento}` : "");
-
-  const linha2 = `${e.bairro ?? ""} • ${e.cidade ?? ""}/${e.estado ?? ""}`;
-  const linha3 = e.cep ? `CEP: ${e.cep}` : "";
-
-  return {
-    linha1: linha1.trim(),
-    linha2: linha2.trim(),
-    linha3,
-  };
-}
 
 export default function CheckoutPage() {
   const [loading, setLoading] = React.useState(true);

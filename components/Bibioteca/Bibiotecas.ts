@@ -94,7 +94,11 @@ export type CarrinhoItem = {
   imagem?: string;
   quantidade: number;
   preco_unitario: string | number;
+  
+  
 };
+
+
 
 export type Endereco = {
   cep?: string;
@@ -133,3 +137,5 @@ export type PixPayload = {
   payload?: string;
   ticketUrl?: string;
 };
+
+
