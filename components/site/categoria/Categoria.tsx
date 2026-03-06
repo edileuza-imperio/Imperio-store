@@ -4,6 +4,13 @@ import useCategoria from "@/hooks/categoria/useCategoria";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
+type Categoria = {
+  id_categoria?: number | string;
+  nome?: string;
+  slug?: string;
+  icone?: string;
+};
+
 export default function CategoriasDestaque() {
   const { categorias, loading, erro } = useCategoria();
 
@@ -15,7 +22,11 @@ export default function CategoriasDestaque() {
   const [canLeft, setCanLeft] = useState(false);
   const [canRight, setCanRight] = useState(false);
 
-  const top = useMemo(() => categorias.slice(0, 12), [categorias]);
+  const top = useMemo(() => {
+    const lista = Array.isArray(categorias) ? categorias : [];
+    return lista.slice(0, 12) as Categoria[];
+  }, [categorias]);
+
   const showArrows = top.length > 6;
 
   const updateArrows = () => {
@@ -49,7 +60,7 @@ export default function CategoriasDestaque() {
     const el = railRef.current;
     if (!el) return;
 
-    const amount = Math.max(260, Math.floor(el.clientWidth * 0.72));
+    const amount = Math.max(280, Math.floor(el.clientWidth * 0.78));
     el.scrollBy({
       left: dir === "left" ? -amount : amount,
       behavior: "smooth",
@@ -66,16 +77,10 @@ export default function CategoriasDestaque() {
     el.classList.add("dragging");
   };
 
-  const onMouseLeave = () => {
+  const stopDragging = () => {
     const el = railRef.current;
     if (!el) return;
-    isDownRef.current = false;
-    el.classList.remove("dragging");
-  };
 
-  const onMouseUp = () => {
-    const el = railRef.current;
-    if (!el) return;
     isDownRef.current = false;
     el.classList.remove("dragging");
   };
@@ -91,13 +96,13 @@ export default function CategoriasDestaque() {
 
   if (loading) return null;
   if (erro) return null;
-  if (!categorias || categorias.length === 0) return null;
+  if (!top.length) return null;
 
   return (
     <>
       <section className="categoriasSection" aria-label="Categorias em destaque">
         <div className="container">
-          <div className="box">
+          <div className="surface">
             <header className="header">
               <div className="headerLeft">
                 <div className="tag">
@@ -112,16 +117,13 @@ export default function CategoriasDestaque() {
               </div>
 
               <div className="headerRight">
-                <Link href="/catalogo" className="verTodasBtn">
-                  <span>Ver todas</span>
-                  <span className="arrowText" aria-hidden>
-                    →
-                  </span>
+                <Link href="/catalogo" className="allBtn">
+                  Ver todas <span aria-hidden>→</span>
                 </Link>
               </div>
             </header>
 
-            <div className="carouselArea">
+            <div className="carouselWrap">
               {showArrows && (
                 <>
                   <button
@@ -148,13 +150,14 @@ export default function CategoriasDestaque() {
                 ref={railRef}
                 className="rail"
                 onMouseDown={onMouseDown}
-                onMouseLeave={onMouseLeave}
-                onMouseUp={onMouseUp}
+                onMouseLeave={stopDragging}
+                onMouseUp={stopDragging}
                 onMouseMove={onMouseMove}
                 role="list"
                 aria-label="Lista de categorias"
               >
-                {top.map((c: any) => {
+                {top.map((c, index) => {
+                  const nome = String(c?.nome || "Categoria");
                   const slug = String(c?.slug || "").trim();
                   const href = slug
                     ? `/catalogo/categoria/${encodeURIComponent(slug)}`
@@ -162,19 +165,21 @@ export default function CategoriasDestaque() {
 
                   return (
                     <Link
-                      key={slug || c.id_categoria}
+                      key={String(c?.id_categoria || slug || index)}
                       href={href}
                       className={`card ${slug ? "" : "disabled"}`}
                       draggable={false}
                       role="listitem"
                     >
-                      <div className="iconCircle">
-                        <div className="iconCircleInner">
-                          <i className={`bi ${c.icone || "bi-grid"} icon`} />
-                        </div>
-                      </div>
+                      <span className="circle">
+                        <span className="circleInner">
+                          <i className={`bi ${c?.icone || "bi-grid"} icon`} />
+                        </span>
+                      </span>
 
-                      <span className="cardName">{c.nome}</span>
+                      <span className="name" title={nome}>
+                        {nome}
+                      </span>
                     </Link>
                   );
                 })}
@@ -186,34 +191,41 @@ export default function CategoriasDestaque() {
 
       <style jsx>{`
         :global(:root) {
-          --bg-soft: #f7f3ef;
+          --bg-page: #f6f2ee;
+          --bg-surface: #f8f5f2;
           --bg-card: #ffffff;
+
           --text-main: #111827;
           --text-soft: #6b7280;
-          --border-soft: #e8e2dc;
-          --border-card: #ebe7e3;
+
+          --border-surface: #e7e0da;
+          --border-card: #e6e2dd;
+          --border-btn: #ddd7d1;
+
           --gold: #d3b06c;
-          --rose: #d9b2bd;
-          --shadow-soft: 0 8px 24px rgba(17, 24, 39, 0.04);
+          --rose: #d8b2bc;
+
+          --shadow-soft: 0 6px 18px rgba(17, 24, 39, 0.05);
+          --shadow-hover: 0 10px 28px rgba(17, 24, 39, 0.08);
         }
 
         .categoriasSection {
-          padding: 34px 0 54px;
+          padding: 34px 0 56px;
           background: transparent;
         }
 
         .container {
           width: min(1280px, 100%);
           margin: 0 auto;
-          padding: 0 20px;
+          padding: 0 18px;
         }
 
-        .box {
-          background: linear-gradient(180deg, #f8f5f2 0%, #f5f2ef 100%);
-          border: 1px solid var(--border-soft);
-          border-radius: 34px;
-          padding: 28px 28px 24px;
+        .surface {
           position: relative;
+          background: linear-gradient(180deg, #f8f5f2 0%, #f6f2ee 100%);
+          border: 1px solid var(--border-surface);
+          border-radius: 30px;
+          padding: 26px 18px 26px;
           overflow: hidden;
         }
 
@@ -222,7 +234,8 @@ export default function CategoriasDestaque() {
           align-items: center;
           justify-content: space-between;
           gap: 18px;
-          margin-bottom: 26px;
+          margin-bottom: 22px;
+          padding: 0 8px;
           flex-wrap: wrap;
         }
 
@@ -234,40 +247,40 @@ export default function CategoriasDestaque() {
           display: inline-flex;
           align-items: center;
           gap: 8px;
-          min-height: 34px;
-          padding: 0 14px;
+          padding: 7px 14px;
           border-radius: 999px;
+          background: #f1ece7;
           border: 1px solid #ddd6cf;
-          background: #f2eeea;
+          color: #667085;
           font-size: 12px;
           font-weight: 800;
-          color: #6b7280;
           letter-spacing: 0.08em;
-          margin-bottom: 16px;
+          text-transform: uppercase;
+          margin-bottom: 14px;
         }
 
         .tagDot {
           width: 10px;
           height: 10px;
           border-radius: 999px;
-          background: linear-gradient(135deg, var(--gold), #c48c70);
+          background: linear-gradient(135deg, var(--gold), #c88977);
           flex-shrink: 0;
         }
 
         .title {
           margin: 0;
-          font-size: clamp(30px, 3vw, 38px);
-          line-height: 1.08;
-          font-weight: 900;
           color: #0f172a;
+          font-size: clamp(30px, 3.2vw, 40px);
+          line-height: 1.05;
+          font-weight: 900;
           letter-spacing: -0.04em;
         }
 
         .subtitle {
           margin: 12px 0 0;
-          font-size: 16px;
-          line-height: 1.5;
           color: var(--text-soft);
+          font-size: 16px;
+          line-height: 1.55;
         }
 
         .headerRight {
@@ -276,35 +289,32 @@ export default function CategoriasDestaque() {
           align-items: center;
         }
 
-        .verTodasBtn {
+        .allBtn {
           display: inline-flex;
           align-items: center;
           gap: 8px;
+          padding: 13px 18px;
           min-height: 48px;
-          padding: 0 18px;
           border-radius: 999px;
-          background: #fff;
-          border: 1px solid #dfd9d3;
-          color: #374151;
           text-decoration: none;
+          color: #374151;
+          background: #ffffff;
+          border: 1px solid var(--border-btn);
           font-size: 15px;
           font-weight: 700;
-          box-shadow: 0 2px 8px rgba(17, 24, 39, 0.03);
-          transition: all 0.2s ease;
           white-space: nowrap;
+          box-shadow: 0 2px 8px rgba(17, 24, 39, 0.03);
+          transition: transform 0.2s ease, box-shadow 0.2s ease,
+            background 0.2s ease;
         }
 
-        .verTodasBtn:hover {
+        .allBtn:hover {
           transform: translateY(-1px);
-          background: #ffffff;
+          background: #fff;
+          box-shadow: 0 6px 18px rgba(17, 24, 39, 0.05);
         }
 
-        .arrowText {
-          font-size: 18px;
-          line-height: 1;
-        }
-
-        .carouselArea {
+        .carouselWrap {
           position: relative;
         }
 
@@ -314,12 +324,13 @@ export default function CategoriasDestaque() {
           grid-auto-columns: max-content;
           gap: 16px;
           overflow-x: auto;
-          padding: 2px 56px 10px;
+          padding: 4px 58px 6px;
           scroll-snap-type: x mandatory;
-          -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
-          user-select: none;
+          -webkit-overflow-scrolling: touch;
           cursor: grab;
+          user-select: none;
+          align-items: stretch;
         }
 
         .rail::-webkit-scrollbar {
@@ -331,74 +342,78 @@ export default function CategoriasDestaque() {
         }
 
         .card {
-          width: 172px;
-          min-height: 194px;
-          border-radius: 26px;
-          background: #fcfcfc;
+          width: 158px;
+          min-height: 188px;
+          padding: 16px 12px 18px;
+          border-radius: 24px;
+          background: var(--bg-card);
           border: 1px solid var(--border-card);
+          text-decoration: none;
+          color: inherit;
+          scroll-snap-align: start;
+
           display: flex;
           flex-direction: column;
           align-items: center;
           justify-content: center;
           gap: 14px;
-          text-decoration: none;
-          color: inherit;
-          scroll-snap-align: start;
+
           transition: transform 0.2s ease, box-shadow 0.2s ease,
             border-color 0.2s ease;
-          box-shadow: none;
-          flex-shrink: 0;
         }
 
         .card:hover {
           transform: translateY(-3px);
-          border-color: #ddd5cf;
-          box-shadow: var(--shadow-soft);
+          box-shadow: var(--shadow-hover);
+          border-color: #ddd6d0;
         }
 
         .card.disabled {
           opacity: 0.72;
-          pointer-events: none;
         }
 
-        .iconCircle {
-          width: 102px;
-          height: 102px;
+        .circle {
+          width: 100px;
+          height: 100px;
           border-radius: 999px;
-          background: linear-gradient(135deg, #d7b56f 0%, #d8b9c7 100%);
           display: flex;
           align-items: center;
           justify-content: center;
-          position: relative;
+          background: linear-gradient(135deg, #d3b06c 0%, #d9b4c0 100%);
+          flex-shrink: 0;
         }
 
-        .iconCircleInner {
-          width: 84px;
-          height: 84px;
+        .circleInner {
+          width: 82px;
+          height: 82px;
           border-radius: 999px;
-          background: #fcfcfc;
+          background: #ffffff;
           display: flex;
           align-items: center;
           justify-content: center;
         }
 
         .icon {
-          font-size: 31px;
+          font-size: 30px;
           color: #3f4652;
           line-height: 1;
         }
 
-        .cardName {
+        .name {
           width: 100%;
-          padding: 0 12px;
+          max-width: 100%;
           text-align: center;
-          font-size: 16px;
-          font-weight: 800;
           color: #1f2937;
-          line-height: 1.25;
-          white-space: nowrap;
+          font-size: 15px;
+          font-weight: 800;
+          line-height: 1.3;
+
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
           overflow: hidden;
-          text-overflow: ellipsis;
+          word-break: break-word;
+          min-height: 39px;
         }
 
         .navBtn {
@@ -407,18 +422,19 @@ export default function CategoriasDestaque() {
           transform: translateY(-50%);
           width: 48px;
           height: 48px;
-          border-radius: 18px;
-          border: 1px solid #e2ddd8;
-          background: #f8f5f2;
+          border-radius: 16px;
+          border: 1px solid #e1dbd5;
+          background: #f6f2ee;
           display: flex;
           align-items: center;
           justify-content: center;
-          z-index: 5;
           cursor: pointer;
+          z-index: 4;
           opacity: 0;
           pointer-events: none;
-          transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
-          box-shadow: 0 4px 14px rgba(17, 24, 39, 0.04);
+          box-shadow: var(--shadow-soft);
+          transition: opacity 0.2s ease, background 0.2s ease,
+            transform 0.2s ease;
         }
 
         .navBtn.show {
@@ -431,26 +447,36 @@ export default function CategoriasDestaque() {
         }
 
         .navBtn.left {
-          left: 8px;
+          left: 10px;
         }
 
         .navBtn.right {
-          right: 8px;
+          right: 10px;
         }
 
         .navBtn span {
-          font-size: 30px;
-          line-height: 1;
+          font-size: 28px;
           color: #4b5563;
-          margin-top: -2px;
+          line-height: 1;
+          margin-top: -1px;
         }
 
-        @media (max-width: 900px) {
-          .box {
-            padding: 24px 18px 20px;
-            border-radius: 28px;
+        @media (max-width: 1024px) {
+          .surface {
+            padding: 24px 14px 24px;
           }
 
+          .rail {
+            padding: 4px 54px 6px;
+          }
+
+          .card {
+            width: 152px;
+            min-height: 182px;
+          }
+        }
+
+        @media (max-width: 768px) {
           .header {
             align-items: flex-start;
           }
@@ -464,105 +490,108 @@ export default function CategoriasDestaque() {
           }
 
           .subtitle {
-            font-size: 15px;
-          }
-
-          .rail {
-            padding: 2px 50px 8px;
-          }
-
-          .card {
-            width: 158px;
-            min-height: 184px;
-          }
-
-          .iconCircle {
-            width: 94px;
-            height: 94px;
-          }
-
-          .iconCircleInner {
-            width: 76px;
-            height: 76px;
-          }
-
-          .icon {
-            font-size: 28px;
-          }
-        }
-
-        @media (max-width: 640px) {
-          .categoriasSection {
-            padding: 24px 0 40px;
-          }
-
-          .container {
-            padding: 0 14px;
-          }
-
-          .box {
-            padding: 18px 14px 18px;
-            border-radius: 24px;
-          }
-
-          .tag {
-            margin-bottom: 14px;
-          }
-
-          .title {
-            font-size: 28px;
-          }
-
-          .subtitle {
             font-size: 14px;
           }
 
-          .verTodasBtn {
+          .card {
+            width: 146px;
+            min-height: 176px;
+            border-radius: 22px;
+          }
+
+          .circle {
+            width: 92px;
+            height: 92px;
+          }
+
+          .circleInner {
+            width: 74px;
+            height: 74px;
+          }
+
+          .icon {
+            font-size: 27px;
+          }
+
+          .name {
+            font-size: 14px;
+            min-height: 36px;
+          }
+        }
+
+        @media (max-width: 520px) {
+          .categoriasSection {
+            padding: 26px 0 42px;
+          }
+
+          .container {
+            padding: 0 12px;
+          }
+
+          .surface {
+            border-radius: 24px;
+            padding: 18px 10px 18px;
+          }
+
+          .header {
+            padding: 0 6px;
+            margin-bottom: 18px;
+          }
+
+          .tag {
+            margin-bottom: 12px;
+          }
+
+          .title {
+            font-size: 27px;
+          }
+
+          .subtitle {
+            margin-top: 10px;
+          }
+
+          .allBtn {
             min-height: 44px;
-            padding: 0 16px;
+            padding: 11px 16px;
             font-size: 14px;
           }
 
           .rail {
             gap: 14px;
-            padding: 2px 46px 6px;
+            padding: 4px 48px 6px;
           }
 
           .card {
-            width: 150px;
-            min-height: 176px;
-            border-radius: 22px;
+            width: 140px;
+            min-height: 170px;
+            padding: 14px 10px 16px;
           }
 
-          .iconCircle {
-            width: 88px;
-            height: 88px;
+          .circle {
+            width: 86px;
+            height: 86px;
           }
 
-          .iconCircleInner {
-            width: 72px;
-            height: 72px;
+          .circleInner {
+            width: 70px;
+            height: 70px;
           }
 
           .icon {
-            font-size: 26px;
-          }
-
-          .cardName {
-            font-size: 15px;
+            font-size: 24px;
           }
 
           .navBtn {
             width: 44px;
             height: 44px;
-            border-radius: 16px;
+            border-radius: 14px;
           }
         }
 
         @media (prefers-reduced-motion: reduce) {
           .card,
-          .navBtn,
-          .verTodasBtn {
+          .allBtn,
+          .navBtn {
             transition: none !important;
           }
         }
