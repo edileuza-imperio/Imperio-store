@@ -3,123 +3,14 @@
 import React from "react";
 import Navbar from "@/components/site/menu/navbar";
 import FooterPrincipal from "@/components/site/Rodape/Footer";
-import api from "@/Api/conectar"; // ajuste o caminho se necessário
+import api from "@/Api/conectar";
+import {
+  PedidoApi,
+  DetalhesApi,
+  PedidoItemApi,
+} from "@/components/Bibioteca/pedidos";
+import { toNumber, formatDate, formatBRL, pickObjectPayload, pickUserId, montarEndereco, resolveStatus } from "@/components/Bibioteca/functions";
 
-// ✅ Tipos flexíveis (porque o backend pode devolver campos variados)
-type MeResponse = {
-  erro?: boolean;
-  mensagem?: string;
-  data?: any;
-  usuario?: any;
-  user?: any;
-  usuario_id?: number;
-  id?: number;
-};
-
-type PedidoApi = {
-  id?: number;
-  pedido_id?: number;
-  usuario_id?: number;
-  statusid?: number;
-  status_id?: number;
-  status?: string;
-  status_nome?: string;
-  total?: number | string;
-  frete?: number | string;
-  endereco?: string;
-  metodo_pagamento?: string;
-  pagamento_info?: any;
-  created_at?: string;
-  data?: string;
-  itens?: any[];
-};
-
-type DetalhesApi = PedidoApi & {
-  itens?: Array<{
-    id?: number;
-    produto_id?: number;
-    nome?: string;
-    titulo?: string;
-    quantidade?: number;
-    preco_unitario?: number | string;
-    subtotal?: number | string;
-  }>;
-};
-
-function toNumber(v: any): number {
-  const n = typeof v === "string" ? Number(v.replace(",", ".")) : Number(v);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function formatBRL(value: number) {
-  return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function formatDate(d?: string) {
-  if (!d) return "-";
-  const date = new Date(d);
-  if (Number.isNaN(date.getTime())) return d;
-  return date.toLocaleDateString("pt-BR");
-}
-
-// ✅ Mapeia status (pode vir por id ou texto)
-function resolveStatus(
-  p: PedidoApi
-): { label: string; tone: "ok" | "warn" | "info" | "brand" | "danger" } {
-  const s = (p.status_nome || p.status || "").toString().trim().toLowerCase();
-  const id = (p.statusid ?? p.status_id) ?? 0;
-
-  // tenta por texto
-  if (s.includes("pend")) return { label: "Pendente", tone: "warn" };
-  if (s.includes("pag")) return { label: "Pago", tone: "ok" };
-  if (s.includes("envi")) return { label: "Enviado", tone: "info" };
-  if (s.includes("entre")) return { label: "Entregue", tone: "brand" };
-  if (s.includes("canc")) return { label: "Cancelado", tone: "danger" };
-
-  // fallback por id (ajuste se seus IDs forem diferentes)
-  if (id === 1) return { label: "Pendente", tone: "warn" };
-  if (id === 2) return { label: "Pago", tone: "ok" };
-  if (id === 3) return { label: "Enviado", tone: "info" };
-  if (id === 4) return { label: "Entregue", tone: "brand" };
-  if (id === 5) return { label: "Cancelado", tone: "danger" };
-
-  return { label: "Em andamento", tone: "brand" };
-}
-
-function pickUserId(me: any): number | null {
-  // O seu backend pode retornar em formatos diferentes.
-  // Tentamos várias chaves comuns.
-  const direct =
-    me?.usuario_id ??
-    me?.id ??
-    me?.data?.id ??
-    me?.data?.usuario_id ??
-    me?.usuario?.id ??
-    me?.usuario?.usuario_id ??
-    me?.user?.id;
-
-  const n = Number(direct);
-  return Number.isFinite(n) && n > 0 ? n : null;
-}
-
-function pickArrayPayload(res: any): any[] {
-  // Seu Basecontrolador costuma responder com {erro, mensagem, data}
-  // Então pegamos res.data.data se existir
-  const d = res?.data;
-  if (Array.isArray(d)) return d;
-  if (Array.isArray(d?.data)) return d.data;
-  if (Array.isArray(d?.dados)) return d.dados;
-  if (Array.isArray(d?.result)) return d.result;
-  return [];
-}
-
-function pickObjectPayload(res: any): any {
-  const d = res?.data;
-  if (d && typeof d === "object") {
-    return d.data ?? d.dados ?? d.result ?? d;
-  }
-  return d;
-}
 
 export default function PedidosPage() {
   const [loading, setLoading] = React.useState(true);
@@ -128,7 +19,6 @@ export default function PedidosPage() {
   const [usuarioId, setUsuarioId] = React.useState<number | null>(null);
   const [pedidos, setPedidos] = React.useState<PedidoApi[]>([]);
 
-  // modal detalhes
   const [modalOpen, setModalOpen] = React.useState(false);
   const [detLoading, setDetLoading] = React.useState(false);
   const [detalhes, setDetalhes] = React.useState<DetalhesApi | null>(null);
@@ -138,8 +28,7 @@ export default function PedidosPage() {
     setErro(null);
 
     try {
-      // 1) pega usuário logado (cookie)
-      const meRes = await api.get("me");
+      const meRes = await api.get("/me");
       const meObj = pickObjectPayload(meRes);
       const uid = pickUserId(meObj);
 
@@ -152,21 +41,29 @@ export default function PedidosPage() {
 
       setUsuarioId(uid);
 
-      // 2) lista pedidos do usuário
-      const pedidosRes = await api.get(`pedido/${uid}`);
-      const arr = pickArrayPayload(pedidosRes) as PedidoApi[];
+      const pedidosRes = await api.get("/pedidos");
+      const payload = pickObjectPayload(pedidosRes);
 
-      // normaliza id
-      const normalized = (arr || []).map((p) => ({
+      const lista: PedidoApi[] = Array.isArray(payload?.pedidos)
+        ? payload.pedidos
+        : Array.isArray(payload)
+        ? payload
+        : [];
+
+      const normalized = lista.map((p) => ({
         ...p,
-        id: p.id ?? p.pedido_id,
+        id: Number(p.id ?? p.id_pedido ?? p.pedido_id ?? 0),
       }));
 
       setPedidos(normalized);
     } catch (e: any) {
       const msg =
-        e?.response?.data?.mensagem || e?.message || "Erro ao carregar pedidos.";
+        e?.response?.data?.mensagem ||
+        e?.response?.data?.erro ||
+        e?.message ||
+        "Erro ao carregar pedidos.";
       setErro(String(msg));
+      setPedidos([]);
     } finally {
       setLoading(false);
     }
@@ -174,20 +71,63 @@ export default function PedidosPage() {
 
   async function abrirDetalhes(pedidoId?: number) {
     if (!pedidoId) return;
+
     setModalOpen(true);
     setDetLoading(true);
     setDetalhes(null);
 
     try {
-      const detRes = await api.get(`pedido/detalhes/${pedidoId}`);
-      const obj = pickObjectPayload(detRes) as DetalhesApi;
-      setDetalhes(obj);
+      const [pedidoRes, itensRes] = await Promise.all([
+        api.get(`/pedido/${pedidoId}`),
+        api.get(`/pedido/${pedidoId}/itens`),
+      ]);
+
+      const pedidoObj = pickObjectPayload(pedidoRes);
+      const itensObj = pickObjectPayload(itensRes);
+
+      const pedido = pedidoObj?.pedido ? pedidoObj.pedido : pedidoObj;
+
+      const itens: PedidoItemApi[] = Array.isArray(itensObj?.itens)
+        ? itensObj.itens
+        : Array.isArray(itensObj)
+        ? itensObj
+        : [];
+
+      const detalhesFormatados: DetalhesApi = {
+        id: Number(
+          pedido?.id_pedido ?? pedido?.pedido_id ?? pedido?.id ?? pedidoId
+        ),
+        statusid: pedido?.statusid ?? pedido?.status_id,
+        status: pedido?.status,
+        status_nome: pedido?.status_nome,
+        status_codigo: pedido?.status_codigo,
+        total: pedido?.total ?? 0,
+        frete: pedido?.frete ?? 0,
+        metodo_pagamento: pedido?.metodo_pagamento,
+        endereco: montarEndereco(
+          pedido?.endereco ??
+            pedido?.carrinho_endereco ??
+            pedido?.endereco_entrega
+        ),
+        itens,
+      };
+
+      setDetalhes(detalhesFormatados);
     } catch (e: any) {
       const msg =
         e?.response?.data?.mensagem ||
+        e?.response?.data?.erro ||
         e?.message ||
         "Erro ao carregar detalhes do pedido.";
-      setDetalhes({ id: pedidoId, status: "Erro", itens: [], endereco: msg });
+
+      setDetalhes({
+        id: pedidoId,
+        status: "Erro",
+        total: 0,
+        frete: 0,
+        itens: [],
+        endereco: msg,
+      });
     } finally {
       setDetLoading(false);
     }
@@ -195,7 +135,6 @@ export default function PedidosPage() {
 
   React.useEffect(() => {
     carregarPedidos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const totalPedidos = pedidos.length;
@@ -221,7 +160,7 @@ export default function PedidosPage() {
                 <div className="hero-card p-4">
                   <div className="d-flex align-items-center justify-content-between">
                     <div>
-                      <div className="hero-card-label">Pedidos (últimos)</div>
+                      <div className="hero-card-label">Pedidos</div>
                       <div className="hero-card-value">
                         {loading ? "…" : totalPedidos}
                       </div>
@@ -248,6 +187,7 @@ export default function PedidosPage() {
                     >
                       {loading ? "Carregando..." : "Atualizar"}
                     </button>
+
                     <button
                       className="btn btn-ghost"
                       type="button"
@@ -314,7 +254,11 @@ export default function PedidosPage() {
                     Assim que você comprar algo, seus pedidos vão aparecer aqui
                     com o status atualizado.
                   </p>
-                  <button className="btn btn-brand" type="button">
+                  <button
+                    className="btn btn-brand"
+                    type="button"
+                    onClick={() => (window.location.href = "/")}
+                  >
                     Ir para a loja
                   </button>
                 </div>
@@ -326,6 +270,7 @@ export default function PedidosPage() {
                         <th className="ps-4">Pedido</th>
                         <th>Data</th>
                         <th>Status</th>
+                        <th>Pagamento</th>
                         <th className="text-end">Total</th>
                         <th className="text-end pe-4">Ações</th>
                       </tr>
@@ -333,7 +278,7 @@ export default function PedidosPage() {
 
                     <tbody>
                       {pedidos.map((p) => {
-                        const id = p.id ?? p.pedido_id;
+                        const id = Number(p.id ?? p.id_pedido ?? p.pedido_id ?? 0);
                         const { label, tone } = resolveStatus(p);
                         const total = toNumber(p.total);
 
@@ -354,13 +299,22 @@ export default function PedidosPage() {
                             </td>
 
                             <td className="text-muted">
-                              {formatDate(p.created_at ?? p.data)}
+                              {formatDate(
+                                p.criado ??
+                                  p.created_at ??
+                                  p.data ??
+                                  p.atualizado
+                              )}
                             </td>
 
                             <td>
                               <span className={`badge badge-soft badge-${tone}`}>
                                 {label}
                               </span>
+                            </td>
+
+                            <td className="text-muted">
+                              {p.metodo_pagamento ?? "-"}
                             </td>
 
                             <td className="text-end fw-semibold">
@@ -375,6 +329,7 @@ export default function PedidosPage() {
                               >
                                 Detalhes
                               </button>
+
                               <button
                                 className="btn btn-sm btn-brand"
                                 type="button"
@@ -396,7 +351,6 @@ export default function PedidosPage() {
               )}
             </div>
 
-            {/* ✅ FOOTER SEM EXPOR ROTAS/API */}
             <div className="card-footer bg-transparent border-0 p-4 d-flex flex-column flex-md-row gap-3 align-items-md-center justify-content-end">
               <div className="d-flex gap-2">
                 <button
@@ -418,7 +372,6 @@ export default function PedidosPage() {
           </div>
         </main>
 
-        {/* Modal de detalhes (sem JS do bootstrap) */}
         {modalOpen && (
           <div className="ui-modal-backdrop" role="dialog" aria-modal="true">
             <div className="ui-modal">
@@ -454,7 +407,9 @@ export default function PedidosPage() {
                         <div className="detail-label">Status</div>
                         <div className="detail-value">
                           <span
-                            className={`badge badge-soft badge-${resolveStatus(detalhes).tone}`}
+                            className={`badge badge-soft badge-${resolveStatus(
+                              detalhes
+                            ).tone}`}
                           >
                             {resolveStatus(detalhes).label}
                           </span>
@@ -475,6 +430,13 @@ export default function PedidosPage() {
                         </div>
                       </div>
 
+                      <div className="detail-card">
+                        <div className="detail-label">Pagamento</div>
+                        <div className="detail-value">
+                          {detalhes.metodo_pagamento ?? "-"}
+                        </div>
+                      </div>
+
                       <div className="detail-card detail-wide">
                         <div className="detail-label">Endereço</div>
                         <div className="detail-value">
@@ -490,8 +452,8 @@ export default function PedidosPage() {
                     <hr className="my-3" />
 
                     <div className="fw-semibold mb-2">Itens</div>
-                    {Array.isArray(detalhes.itens) &&
-                    detalhes.itens.length > 0 ? (
+
+                    {Array.isArray(detalhes.itens) && detalhes.itens.length > 0 ? (
                       <div className="table-responsive">
                         <table className="table table-sm align-middle mb-0">
                           <thead className="table-head">
@@ -505,9 +467,11 @@ export default function PedidosPage() {
                           <tbody>
                             {detalhes.itens.map((it, idx) => {
                               const nome =
-                                it.nome ||
-                                it.titulo ||
+                                it.nome ??
+                                it.titulo ??
+                                it.nome_produto ??
                                 `Produto #${it.produto_id ?? ""}`;
+
                               const qtd = Number(it.quantidade ?? 0);
                               const unit = toNumber(it.preco_unitario);
                               const sub = toNumber(it.subtotal) || unit * qtd;
@@ -552,14 +516,12 @@ export default function PedidosPage() {
 
       <FooterPrincipal />
 
-      {/* CSS PURO (combinando com header/footer creme) */}
       <style jsx global>{`
         :root {
           --cream: #fff3ea;
           --cream-2: #fffaf5;
           --line: #eadfd3;
           --text: #2a2a2a;
-
           --brand: #15373e;
           --brand-2: #0e2328;
           --gold: #c7a16a;
@@ -683,6 +645,7 @@ export default function PedidosPage() {
         .row-hover {
           transition: background 130ms ease;
         }
+
         .row-hover:hover {
           background: rgba(255, 243, 234, 0.45);
         }
@@ -703,6 +666,7 @@ export default function PedidosPage() {
           font-weight: 800;
           letter-spacing: 0.2px;
         }
+
         .btn-brand:hover {
           filter: brightness(1.03);
           color: #fff;
@@ -715,6 +679,7 @@ export default function PedidosPage() {
           border-radius: 12px;
           font-weight: 800;
         }
+
         .btn-outline-brand:hover {
           background: rgba(21, 55, 62, 0.06);
           color: var(--brand);
@@ -728,6 +693,7 @@ export default function PedidosPage() {
           font-weight: 900;
           width: 44px;
         }
+
         .btn-ghost:hover {
           background: rgba(255, 255, 255, 0.14);
           color: #fff;
@@ -742,6 +708,7 @@ export default function PedidosPage() {
           width: 42px;
           height: 42px;
         }
+
         .btn-ghost-dark:hover {
           background: rgba(21, 55, 62, 0.12);
           color: var(--brand);
@@ -753,22 +720,27 @@ export default function PedidosPage() {
           font-weight: 800;
           border: 1px solid rgba(0, 0, 0, 0.06);
         }
+
         .badge-ok {
           background: rgba(34, 197, 94, 0.12);
           color: #166534;
         }
+
         .badge-warn {
           background: rgba(245, 158, 11, 0.14);
           color: #92400e;
         }
+
         .badge-info {
           background: rgba(59, 130, 246, 0.12);
           color: #1e3a8a;
         }
+
         .badge-brand {
           background: rgba(21, 55, 62, 0.12);
           color: var(--brand);
         }
+
         .badge-danger {
           background: rgba(239, 68, 68, 0.12);
           color: #991b1b;
@@ -778,7 +750,6 @@ export default function PedidosPage() {
           font-size: 2.4rem;
         }
 
-        /* skeleton */
         .skeleton-row {
           height: 52px;
           border-radius: 14px;
@@ -788,6 +759,7 @@ export default function PedidosPage() {
           border: 1px solid var(--line);
           margin-bottom: 12px;
         }
+
         @keyframes shimmer {
           0% {
             background-position: 200% 0;
@@ -797,7 +769,6 @@ export default function PedidosPage() {
           }
         }
 
-        /* Modal */
         .ui-modal-backdrop {
           position: fixed;
           inset: 0;
@@ -807,6 +778,7 @@ export default function PedidosPage() {
           padding: 16px;
           z-index: 9999;
         }
+
         .ui-modal {
           width: min(920px, 100%);
           background: var(--cream-2);
@@ -815,6 +787,7 @@ export default function PedidosPage() {
           box-shadow: 0 30px 120px rgba(0, 0, 0, 0.35);
           overflow: hidden;
         }
+
         .ui-modal-header {
           padding: 16px 18px;
           display: flex;
@@ -824,13 +797,16 @@ export default function PedidosPage() {
           border-bottom: 1px solid var(--line);
           background: rgba(255, 243, 234, 0.7);
         }
+
         .ui-modal-title {
           font-weight: 900;
           color: #1f2937;
         }
+
         .ui-modal-body {
           padding: 18px;
         }
+
         .ui-modal-footer {
           padding: 16px 18px;
           border-top: 1px solid var(--line);
@@ -842,24 +818,28 @@ export default function PedidosPage() {
 
         .detail-grid {
           display: grid;
-          grid-template-columns: repeat(3, 1fr);
+          grid-template-columns: repeat(4, 1fr);
           gap: 12px;
         }
+
         .detail-card {
           background: #fff;
           border: 1px solid var(--line);
           border-radius: 16px;
           padding: 12px;
         }
+
         .detail-wide {
           grid-column: 1 / -1;
         }
+
         .detail-label {
           font-size: 0.85rem;
           font-weight: 800;
           color: #6b7280;
           margin-bottom: 6px;
         }
+
         .detail-value {
           font-weight: 800;
           color: #111827;
