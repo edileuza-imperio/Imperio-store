@@ -122,3 +122,21 @@ export function montarEndereco(obj: any): string {
 
   return [linha1 + complemento, linha2 + cep].filter(Boolean).join(" | ");
 }
+export function isCardValid(): boolean {
+    const digits = cardNumber.replace(/\D/g, "");
+    if (digits.length < 13) return false;
+    if (!cardName.trim()) return false;
+    if (!/^\d{3,4}$/.test(cardCVV)) return false;
+
+    const [mm, yy] = cardExpiry.split("/");
+    const m = Number(mm);
+    const y = Number(`20${yy}`);
+    if (!m || m < 1 || m > 12) return false;
+    if (!y || String(yy || "").length !== 2) return false;
+
+    const now = new Date();
+    const exp = new Date(y, m - 1, 1);
+    if (exp < new Date(now.getFullYear(), now.getMonth(), 1)) return false;
+
+    return true;
+  }
