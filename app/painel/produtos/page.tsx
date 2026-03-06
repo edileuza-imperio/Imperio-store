@@ -174,7 +174,9 @@ export default function ProdutosPainelPage() {
 
   useEffect(() => {
     if (!form.imagem) {
-      setPreviewImagem(modoEdicao && produtoEditando?.imagem ? getImagemUrl(produtoEditando.imagem) : "");
+      setPreviewImagem(
+        modoEdicao && produtoEditando?.imagem ? getImagemUrl(produtoEditando.imagem) : ""
+      );
       return;
     }
 
@@ -325,7 +327,10 @@ export default function ProdutosPainelPage() {
       body.append("slug", form.slug.trim() || slugify(form.nome));
       body.append("descricao", form.descricao.trim());
       body.append("preco", String(form.preco).replace(",", "."));
-      body.append("preco_promocional", String(form.preco_promocional || "").replace(",", "."));
+      body.append(
+        "preco_promocional",
+        String(form.preco_promocional || "").replace(",", ".")
+      );
       body.append("estoque", form.estoque || "0");
       body.append("ilimitado", form.ilimitado ? "1" : "0");
       body.append("catalogo", form.catalogo ? "1" : "0");
@@ -603,11 +608,11 @@ export default function ProdutosPainelPage() {
       </div>
 
       {modalProdutoOpen && (
-        <div className="overlay-claro">
-          <div className="modal modal-lg">
+        <div className="overlay-claro" onClick={fecharModalProduto}>
+          <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{modoEdicao ? "Editar produto" : "Cadastrar produto"}</h2>
-              <button className="btn-fechar" onClick={fecharModalProduto}>
+              <button className="btn-fechar" onClick={fecharModalProduto} type="button">
                 ×
               </button>
             </div>
@@ -795,15 +800,15 @@ export default function ProdutosPainelPage() {
       )}
 
       {modalImagemOpen && (
-        <div className="overlay-claro">
-          <div className="modal modal-lg">
+        <div className="overlay-claro" onClick={fecharModalImagens}>
+          <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <div>
                 <h2>Imagens do produto</h2>
                 <p className="submodal">{produtoImagemAtual?.nome}</p>
               </div>
 
-              <button className="btn-fechar" onClick={fecharModalImagens}>
+              <button className="btn-fechar" onClick={fecharModalImagens} type="button">
                 ×
               </button>
             </div>
@@ -1134,8 +1139,9 @@ export default function ProdutosPainelPage() {
         .overlay-claro {
           position: fixed;
           inset: 0;
-          background: rgba(250, 247, 255, 0.72);
-          backdrop-filter: blur(6px);
+          background: rgba(17, 24, 39, 0.22);
+          backdrop-filter: blur(4px);
+          -webkit-backdrop-filter: blur(4px);
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1149,7 +1155,7 @@ export default function ProdutosPainelPage() {
           border-radius: 26px;
           overflow: hidden;
           border: 1px solid #ececf2;
-          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.14);
+          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
         }
 
         .modal-lg {
