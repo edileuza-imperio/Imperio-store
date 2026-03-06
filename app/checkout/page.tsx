@@ -363,43 +363,71 @@ export default function CheckoutPage() {
     }
   }
 
-  async function gerarPixCarrinho() {
-    if (processing) return;
+ async function gerarPixCarrinho() {
+  if (processing) return;
 
-    try {
-      const okEnd = await salvarEndereco();
-      if (!okEnd) return;
+  try {
+    setProcessing(true);
+    setPixPayload(null);
 
-      setProcessing(true);
-
-      const resp = await api.post("/pedido/finalizar", {
-        metodo_pagamento: "pix",
-      });
-
-      const dados = resp.data?.dados ?? resp.data ?? {};
-      const pagamento = dados?.pagamento ?? dados?.dados?.pagamento ?? null;
-
-      if (!pagamento) {
-        toast.error("Não foi possível gerar o PIX.");
-        return;
-      }
-
-      setPixPayload({
-        qrUrl: pagamento.qr_code_base64
-          ? `data:image/png;base64,${pagamento.qr_code_base64}`
-          : undefined,
-        payload: pagamento.qr_code ?? "",
-        ticketUrl: pagamento.ticket_url ?? "",
-      });
-
-      toast.success("PIX gerado com sucesso!");
-    } catch (e: any) {
-      console.error("Erro PIX:", e?.response?.data || e);
-      toast.error(e?.response?.data?.mensagem || "Erro ao gerar pagamento PIX.");
-    } finally {
-      setProcessing(false);
+    const okEnd = await salvarEndereco();
+    if (!okEnd) {
+      toast.error("Não foi possível salvar o endereço.");
+      return;
     }
+
+    const resp = await api.post("/pedido/finalizar", {
+      metodo_pagamento: "pix",
+    });
+
+    const root = resp?.data ?? {};
+    const dados = root?.dados ?? root;
+    const pagamento = dados?.pagamento ?? null;
+
+    const qrCodeBase64 =
+      pagamento?.qr_code_base64 ??
+      pagamento?.qrCodeBase64 ??
+      null;
+
+    const qrCode =
+      pagamento?.qr_code ??
+      pagamento?.payload ??
+      pagamento?.pix_copia_cola ??
+      "";
+
+    const ticketUrl =
+      pagamento?.ticket_url ??
+      pagamento?.ticketUrl ??
+      "";
+    console.log("RETORNO PIX:", resp.data);
+    if (!pagamento || (!qrCodeBase64 && !qrCode && !ticketUrl)) {
+      console.error("Resposta PIX inválida:", resp?.data);
+      toast.error("Não foi possível gerar o PIX.");
+      return;
+    }
+
+    setPixPayload({
+      qrUrl: qrCodeBase64
+        ? `data:image/png;base64,${qrCodeBase64}`
+        : undefined,
+      payload: qrCode,
+      ticketUrl,
+    });
+
+    toast.success("PIX gerado com sucesso!");
+  } catch (e: any) {
+    console.error("Erro PIX:", e?.response?.data || e);
+
+    const mensagem =
+      e?.response?.data?.mensagem ||
+      e?.response?.data?.erro ||
+      "Erro ao gerar pagamento PIX.";
+
+    toast.error(mensagem);
+  } finally {
+    setProcessing(false);
   }
+}
 
   async function finalizarPedidoCartao() {
     if (itensArray.length === 0) {
