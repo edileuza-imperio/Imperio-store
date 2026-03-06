@@ -21,6 +21,7 @@ export default function CategoriasDestaque() {
   const updateArrows = () => {
     const el = railRef.current;
     if (!el) return;
+
     const max = el.scrollWidth - el.clientWidth;
     setCanLeft(el.scrollLeft > 6);
     setCanRight(el.scrollLeft < max - 6);
@@ -47,11 +48,14 @@ export default function CategoriasDestaque() {
   const scrollByCards = (dir: "left" | "right") => {
     const el = railRef.current;
     if (!el) return;
-    const amount = Math.max(280, Math.floor(el.clientWidth * 0.75));
-    el.scrollBy({ left: dir === "left" ? -amount : amount, behavior: "smooth" });
+
+    const amount = Math.max(260, Math.floor(el.clientWidth * 0.72));
+    el.scrollBy({
+      left: dir === "left" ? -amount : amount,
+      behavior: "smooth",
+    });
   };
 
-  // ===== Drag to scroll (mouse) + touch friendly =====
   const onMouseDown = (e: React.MouseEvent) => {
     const el = railRef.current;
     if (!el) return;
@@ -59,7 +63,6 @@ export default function CategoriasDestaque() {
     isDownRef.current = true;
     startXRef.current = e.pageX;
     startScrollLeftRef.current = el.scrollLeft;
-
     el.classList.add("dragging");
   };
 
@@ -86,41 +89,44 @@ export default function CategoriasDestaque() {
     el.scrollLeft = startScrollLeftRef.current - dx;
   };
 
-  // ⚠️ retorno somente depois de todos os hooks
-  if (loading || erro || categorias.length === 0) return null;
+  if (loading) return null;
+  if (erro) return null;
+  if (!categorias || categorias.length === 0) return null;
 
   return (
     <>
-      <section className="sec" aria-label="Categorias em destaque">
-        <div className="wrap">
-          <div className="surface">
-            <header className="head">
-              <div className="titleBlock">
-                <div className="kicker">
-                  <span className="kDot" />
-                  CATEGORIAS
+      <section className="categoriasSection" aria-label="Categorias em destaque">
+        <div className="container">
+          <div className="box">
+            <header className="header">
+              <div className="headerLeft">
+                <div className="tag">
+                  <span className="tagDot" />
+                  <span>CATEGORIAS</span>
                 </div>
 
-                <h2 className="h2">Categorias em destaque</h2>
-                <p className="sub">Escolha uma categoria para ver os produtos disponíveis.</p>
+                <h2 className="title">Categorias em destaque</h2>
+                <p className="subtitle">
+                  Escolha uma categoria para ver os produtos disponíveis.
+                </p>
               </div>
 
-              <div className="rightSide">
-                <Link className="allBtn" href="/catalogo">
-                  Ver todas <span aria-hidden>→</span>
+              <div className="headerRight">
+                <Link href="/catalogo" className="verTodasBtn">
+                  <span>Ver todas</span>
+                  <span className="arrowText" aria-hidden>
+                    →
+                  </span>
                 </Link>
               </div>
             </header>
 
-            <div className="railWrap">
-              <div className={`fade left ${canLeft ? "on" : ""}`} />
-              <div className={`fade right ${canRight ? "on" : ""}`} />
-
+            <div className="carouselArea">
               {showArrows && (
                 <>
                   <button
                     type="button"
-                    className={`arrow left ${canLeft ? "on" : ""}`}
+                    className={`navBtn left ${canLeft ? "show" : ""}`}
                     onClick={() => scrollByCards("left")}
                     aria-label="Ver categorias anteriores"
                   >
@@ -129,7 +135,7 @@ export default function CategoriasDestaque() {
 
                   <button
                     type="button"
-                    className={`arrow right ${canRight ? "on" : ""}`}
+                    className={`navBtn right ${canRight ? "show" : ""}`}
                     onClick={() => scrollByCards("right")}
                     aria-label="Ver próximas categorias"
                   >
@@ -149,7 +155,7 @@ export default function CategoriasDestaque() {
                 aria-label="Lista de categorias"
               >
                 {top.map((c: any) => {
-                  const slug = (c?.slug || "").toString().trim();
+                  const slug = String(c?.slug || "").trim();
                   const href = slug
                     ? `/catalogo/categoria/${encodeURIComponent(slug)}`
                     : "/catalogo";
@@ -157,21 +163,18 @@ export default function CategoriasDestaque() {
                   return (
                     <Link
                       key={slug || c.id_categoria}
-                      className={`item ${slug ? "" : "disabled"}`}
                       href={href}
+                      className={`card ${slug ? "" : "disabled"}`}
                       draggable={false}
                       role="listitem"
                     >
-                      <span className="orb">
-                        <span className="orbGlow" />
-                        <span className="orbRing" />
-                        <span className="orbInner">
+                      <div className="iconCircle">
+                        <div className="iconCircleInner">
                           <i className={`bi ${c.icone || "bi-grid"} icon`} />
-                        </span>
-                      </span>
+                        </div>
+                      </div>
 
-                      <span className="name">{c.nome}</span>
-                      <span className="hint">Ver produtos →</span>
+                      <span className="cardName">{c.nome}</span>
                     </Link>
                   );
                 })}
@@ -183,353 +186,385 @@ export default function CategoriasDestaque() {
 
       <style jsx>{`
         :global(:root) {
-          --cream: #fff6ee;
-          --paper: rgba(255, 255, 255, 0.78);
-
-          --ink: #111827;
-          --muted: rgba(17, 24, 39, 0.62);
-
-          --rose: #b76e79;
-          --rose2: #d9a5ad;
-          --gold: #d4af37;
-
-          --line: rgba(17, 24, 39, 0.10);
-
-          --shadow: 0 18px 54px rgba(17, 24, 39, 0.10);
-          --shadow2: 0 32px 92px rgba(17, 24, 39, 0.18);
+          --bg-soft: #f7f3ef;
+          --bg-card: #ffffff;
+          --text-main: #111827;
+          --text-soft: #6b7280;
+          --border-soft: #e8e2dc;
+          --border-card: #ebe7e3;
+          --gold: #d3b06c;
+          --rose: #d9b2bd;
+          --shadow-soft: 0 8px 24px rgba(17, 24, 39, 0.04);
         }
 
-        .sec {
-          padding: 52px 0 78px;
-          background:
-            radial-gradient(1100px 480px at 10% -14%, rgba(183, 110, 121, 0.12), transparent 62%),
-            radial-gradient(980px 460px at 90% -14%, rgba(212, 175, 55, 0.10), transparent 64%),
-            linear-gradient(180deg, rgba(255, 246, 238, 0.0), rgba(255, 246, 238, 0.55));
+        .categoriasSection {
+          padding: 34px 0 54px;
+          background: transparent;
         }
 
-        .wrap {
-          width: min(1240px, 100%);
+        .container {
+          width: min(1280px, 100%);
           margin: 0 auto;
-          padding: 0 clamp(14px, 4vw, 28px);
+          padding: 0 20px;
         }
 
-        .surface {
-          border-radius: 26px;
-          border: 1px solid rgba(255, 255, 255, 0.55);
-          background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.52));
-          box-shadow: 0 24px 80px rgba(17, 24, 39, 0.10);
-          backdrop-filter: blur(14px);
+        .box {
+          background: linear-gradient(180deg, #f8f5f2 0%, #f5f2ef 100%);
+          border: 1px solid var(--border-soft);
+          border-radius: 34px;
+          padding: 28px 28px 24px;
+          position: relative;
           overflow: hidden;
-          position: relative;
         }
 
-        .surface::before {
-          content: "";
-          position: absolute;
-          inset: 0;
-          background:
-            radial-gradient(700px 240px at 14% 0%, rgba(183, 110, 121, 0.12), transparent 60%),
-            radial-gradient(680px 240px at 86% 0%, rgba(212, 175, 55, 0.10), transparent 60%);
-          pointer-events: none;
-        }
-
-        .head {
-          position: relative;
-          z-index: 1;
-          padding: 22px 22px 10px;
+        .header {
           display: flex;
-          align-items: flex-end;
+          align-items: center;
           justify-content: space-between;
-          gap: 16px;
+          gap: 18px;
+          margin-bottom: 26px;
           flex-wrap: wrap;
         }
 
-        .titleBlock {
-          max-width: 760px;
+        .headerLeft {
+          min-width: 0;
         }
 
-        .kicker {
+        .tag {
           display: inline-flex;
           align-items: center;
-          gap: 10px;
-          padding: 8px 12px;
+          gap: 8px;
+          min-height: 34px;
+          padding: 0 14px;
           border-radius: 999px;
-          background: rgba(17, 24, 39, 0.04);
-          border: 1px solid rgba(17, 24, 39, 0.08);
+          border: 1px solid #ddd6cf;
+          background: #f2eeea;
           font-size: 12px;
-          color: rgba(17, 24, 39, 0.70);
-          font-weight: 950;
-          letter-spacing: 0.9px;
-          width: fit-content;
-          margin-bottom: 10px;
-          text-transform: uppercase;
+          font-weight: 800;
+          color: #6b7280;
+          letter-spacing: 0.08em;
+          margin-bottom: 16px;
         }
 
-        .kDot {
+        .tagDot {
           width: 10px;
           height: 10px;
           border-radius: 999px;
-          background: linear-gradient(135deg, var(--gold), var(--rose));
-          box-shadow: 0 0 0 6px rgba(212, 175, 55, 0.10);
+          background: linear-gradient(135deg, var(--gold), #c48c70);
+          flex-shrink: 0;
         }
 
-        .h2 {
+        .title {
           margin: 0;
-          font-size: clamp(24px, 2.4vw, 34px);
-          letter-spacing: -0.05em;
-          color: var(--ink);
-          font-weight: 950;
-          line-height: 1.05;
+          font-size: clamp(30px, 3vw, 38px);
+          line-height: 1.08;
+          font-weight: 900;
+          color: #0f172a;
+          letter-spacing: -0.04em;
         }
 
-        .sub {
-          margin: 10px 0 0;
-          color: var(--muted);
-          font-size: 14px;
-          line-height: 1.6;
+        .subtitle {
+          margin: 12px 0 0;
+          font-size: 16px;
+          line-height: 1.5;
+          color: var(--text-soft);
         }
 
-        .rightSide {
+        .headerRight {
           margin-left: auto;
           display: flex;
           align-items: center;
-          gap: 10px;
-          flex-wrap: wrap;
-          justify-content: flex-end;
         }
 
-        .allBtn {
-          border: 1px solid rgba(17, 24, 39, 0.10);
-          background: rgba(255, 255, 255, 0.72);
+        .verTodasBtn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          min-height: 48px;
+          padding: 0 18px;
           border-radius: 999px;
-          padding: 12px 14px;
-          font-size: 12px;
-          font-weight: 950;
-          color: rgba(17, 24, 39, 0.86);
-          box-shadow: 0 18px 44px rgba(17, 24, 39, 0.08);
-          transition: transform 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
-          cursor: pointer;
-          white-space: nowrap;
+          background: #fff;
+          border: 1px solid #dfd9d3;
+          color: #374151;
           text-decoration: none;
+          font-size: 15px;
+          font-weight: 700;
+          box-shadow: 0 2px 8px rgba(17, 24, 39, 0.03);
+          transition: all 0.2s ease;
+          white-space: nowrap;
         }
-        .allBtn:hover {
+
+        .verTodasBtn:hover {
           transform: translateY(-1px);
-          background: rgba(255, 255, 255, 0.92);
-          box-shadow: 0 28px 70px rgba(17, 24, 39, 0.12);
+          background: #ffffff;
         }
 
-        .railWrap {
-          position: relative;
-          padding: 8px 0 18px;
-        }
-
-        .fade {
-          position: absolute;
-          top: 0;
-          bottom: 0;
-          width: 70px;
-          opacity: 0;
-          transition: opacity 0.2s ease;
-          pointer-events: none;
-          z-index: 2;
-        }
-        .fade.on { opacity: 1; }
-        .fade.left {
-          left: 0;
-          background: linear-gradient(90deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0));
-        }
-        .fade.right {
-          right: 0;
-          background: linear-gradient(270deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0));
-        }
-
-        .arrow {
-          position: absolute;
-          top: 50%;
-          transform: translateY(-50%);
-          width: 44px;
-          height: 44px;
-          border-radius: 16px;
-          border: 1px solid rgba(17, 24, 39, 0.12);
-          background: rgba(255, 255, 255, 0.62);
-          backdrop-filter: blur(14px);
-          box-shadow: 0 18px 56px rgba(17, 24, 39, 0.14);
-          display: grid;
-          place-items: center;
-          cursor: pointer;
-          z-index: 3;
-          opacity: 0;
-          pointer-events: none;
-          transition: opacity 0.2s ease, transform 0.18s ease, background 0.18s ease;
-        }
-        .arrow.on {
-          opacity: 1;
-          pointer-events: auto;
-        }
-        .arrow:hover {
-          transform: translateY(-50%) translateY(-1px);
-          background: rgba(255, 255, 255, 0.82);
-        }
-        .arrow.left { left: 10px; }
-        .arrow.right { right: 10px; }
-        .arrow span {
-          font-size: 24px;
-          font-weight: 950;
-          color: rgba(17, 24, 39, 0.78);
+        .arrowText {
+          font-size: 18px;
           line-height: 1;
         }
 
-        /* ====== SEMPRE CARROSSEL (inclusive desktop) ====== */
-        .rail {
+        .carouselArea {
           position: relative;
-          z-index: 1;
+        }
+
+        .rail {
           display: grid;
           grid-auto-flow: column;
           grid-auto-columns: max-content;
-          gap: 14px;
+          gap: 16px;
           overflow-x: auto;
-          padding: 10px 60px 6px;
-
+          padding: 2px 56px 10px;
           scroll-snap-type: x mandatory;
           -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
-
-          cursor: grab;
           user-select: none;
-          overscroll-behavior-x: contain;
+          cursor: grab;
         }
-        .rail::-webkit-scrollbar { display: none; }
-        .rail.dragging { cursor: grabbing; }
 
-        .item {
-          scroll-snap-align: start;
-          width: 160px;
-          display: grid;
-          justify-items: center;
-          gap: 10px;
-          padding: 16px 12px 14px;
-          border-radius: 22px;
+        .rail::-webkit-scrollbar {
+          display: none;
+        }
+
+        .rail.dragging {
+          cursor: grabbing;
+        }
+
+        .card {
+          width: 172px;
+          min-height: 194px;
+          border-radius: 26px;
+          background: #fcfcfc;
+          border: 1px solid var(--border-card);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 14px;
           text-decoration: none;
           color: inherit;
-          user-select: none;
-          -webkit-tap-highlight-color: transparent;
-
-          border: 1px solid rgba(17, 24, 39, 0.10);
-          background: rgba(255, 255, 255, 0.62);
-          backdrop-filter: blur(14px);
-          box-shadow: 0 16px 48px rgba(17, 24, 39, 0.08);
-
-          transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+          scroll-snap-align: start;
+          transition: transform 0.2s ease, box-shadow 0.2s ease,
+            border-color 0.2s ease;
+          box-shadow: none;
+          flex-shrink: 0;
         }
 
-        .item.disabled { opacity: 0.72; }
+        .card:hover {
+          transform: translateY(-3px);
+          border-color: #ddd5cf;
+          box-shadow: var(--shadow-soft);
+        }
 
-        .orb {
-          width: 96px;
-          height: 96px;
+        .card.disabled {
+          opacity: 0.72;
+          pointer-events: none;
+        }
+
+        .iconCircle {
+          width: 102px;
+          height: 102px;
           border-radius: 999px;
+          background: linear-gradient(135deg, #d7b56f 0%, #d8b9c7 100%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
           position: relative;
-          display: grid;
-          place-items: center;
-          overflow: hidden;
-          transform: translateZ(0);
         }
 
-        .orbGlow {
-          position: absolute;
-          inset: -40px;
-          background:
-            radial-gradient(circle at 26% 30%, rgba(212, 175, 55, 0.22), transparent 56%),
-            radial-gradient(circle at 72% 76%, rgba(183, 110, 121, 0.18), transparent 60%);
-        }
-
-        .orbRing {
-          position: absolute;
-          inset: 0;
+        .iconCircleInner {
+          width: 84px;
+          height: 84px;
           border-radius: 999px;
-          background: conic-gradient(
-            from 210deg,
-            rgba(212, 175, 55, 0.92),
-            rgba(183, 110, 121, 0.84),
-            rgba(255, 255, 255, 0.22),
-            rgba(183, 110, 121, 0.88),
-            rgba(212, 175, 55, 0.92)
-          );
-          opacity: 0.42;
-        }
-
-        .orbInner {
-          position: relative;
-          z-index: 1;
-          width: 78px;
-          height: 78px;
-          border-radius: 999px;
-          display: grid;
-          place-items: center;
-          background: rgba(255, 255, 255, 0.92);
-          border: 1px solid rgba(17, 24, 39, 0.10);
-          box-shadow: var(--shadow);
+          background: #fcfcfc;
+          display: flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .icon {
-          font-size: 30px;
-          color: rgba(17, 24, 39, 0.84);
-          transition: transform 0.18s ease, color 0.18s ease;
+          font-size: 31px;
+          color: #3f4652;
+          line-height: 1;
         }
 
-        .name {
+        .cardName {
           width: 100%;
+          padding: 0 12px;
           text-align: center;
-          font-size: 13px;
-          font-weight: 950;
-          color: rgba(17, 24, 39, 0.92);
-          letter-spacing: -0.01em;
-          line-height: 1.15;
+          font-size: 16px;
+          font-weight: 800;
+          color: #1f2937;
+          line-height: 1.25;
+          white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          white-space: nowrap;
         }
 
-        .hint {
-          font-size: 12px;
-          font-weight: 850;
-          color: rgba(17, 24, 39, 0.52);
+        .navBtn {
+          position: absolute;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 48px;
+          height: 48px;
+          border-radius: 18px;
+          border: 1px solid #e2ddd8;
+          background: #f8f5f2;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 5;
+          cursor: pointer;
           opacity: 0;
-          transform: translateY(-2px);
-          transition: 0.18s ease;
+          pointer-events: none;
+          transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+          box-shadow: 0 4px 14px rgba(17, 24, 39, 0.04);
         }
 
-        @media (hover: hover) and (pointer: fine) {
-          .item:hover {
-            transform: translateY(-3px);
-            box-shadow: var(--shadow2);
-            background: rgba(255, 255, 255, 0.78);
+        .navBtn.show {
+          opacity: 1;
+          pointer-events: auto;
+        }
+
+        .navBtn:hover {
+          background: #ffffff;
+        }
+
+        .navBtn.left {
+          left: 8px;
+        }
+
+        .navBtn.right {
+          right: 8px;
+        }
+
+        .navBtn span {
+          font-size: 30px;
+          line-height: 1;
+          color: #4b5563;
+          margin-top: -2px;
+        }
+
+        @media (max-width: 900px) {
+          .box {
+            padding: 24px 18px 20px;
+            border-radius: 28px;
           }
-          .item:hover .icon {
-            transform: scale(1.06);
-            color: rgba(159, 61, 95, 0.92);
+
+          .header {
+            align-items: flex-start;
           }
-          .item:hover .hint {
-            opacity: 1;
-            transform: translateY(0);
+
+          .headerRight {
+            margin-left: 0;
+          }
+
+          .title {
+            font-size: 30px;
+          }
+
+          .subtitle {
+            font-size: 15px;
+          }
+
+          .rail {
+            padding: 2px 50px 8px;
+          }
+
+          .card {
+            width: 158px;
+            min-height: 184px;
+          }
+
+          .iconCircle {
+            width: 94px;
+            height: 94px;
+          }
+
+          .iconCircleInner {
+            width: 76px;
+            height: 76px;
+          }
+
+          .icon {
+            font-size: 28px;
           }
         }
 
-        .item:active { transform: translateY(-1px) scale(0.995); }
+        @media (max-width: 640px) {
+          .categoriasSection {
+            padding: 24px 0 40px;
+          }
 
-        .item:focus-visible {
-          outline: 3px solid rgba(183, 110, 121, 0.22);
-          outline-offset: 6px;
-        }
+          .container {
+            padding: 0 14px;
+          }
 
-        @media (max-width: 520px) {
-          .head { padding: 18px 16px 8px; }
-          .rail { padding: 10px 54px 6px; }
-          .item { width: 150px; }
+          .box {
+            padding: 18px 14px 18px;
+            border-radius: 24px;
+          }
+
+          .tag {
+            margin-bottom: 14px;
+          }
+
+          .title {
+            font-size: 28px;
+          }
+
+          .subtitle {
+            font-size: 14px;
+          }
+
+          .verTodasBtn {
+            min-height: 44px;
+            padding: 0 16px;
+            font-size: 14px;
+          }
+
+          .rail {
+            gap: 14px;
+            padding: 2px 46px 6px;
+          }
+
+          .card {
+            width: 150px;
+            min-height: 176px;
+            border-radius: 22px;
+          }
+
+          .iconCircle {
+            width: 88px;
+            height: 88px;
+          }
+
+          .iconCircleInner {
+            width: 72px;
+            height: 72px;
+          }
+
+          .icon {
+            font-size: 26px;
+          }
+
+          .cardName {
+            font-size: 15px;
+          }
+
+          .navBtn {
+            width: 44px;
+            height: 44px;
+            border-radius: 16px;
+          }
         }
 
         @media (prefers-reduced-motion: reduce) {
-          .item, .allBtn, .arrow, .icon, .hint { transition: none !important; }
+          .card,
+          .navBtn,
+          .verTodasBtn {
+            transition: none !important;
+          }
         }
       `}</style>
     </>
