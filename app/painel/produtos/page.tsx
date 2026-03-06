@@ -1,6 +1,14 @@
 "use client";
 
-import { ChangeEvent, FormEvent, ReactNode, useEffect, useMemo, useState } from "react";
+import {
+  ChangeEvent,
+  FormEvent,
+  ReactNode,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import api from "@/Api/conectar";
 
 type Produto = {
@@ -89,9 +97,9 @@ function slugify(value: string) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
-    .replace(/[^a-z0-9\\s-]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
     .trim()
-    .replace(/\\s+/g, "-")
+    .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
 }
 
@@ -126,19 +134,47 @@ function ModalBase({
   onClose: () => void;
   children: ReactNode;
 }) {
-  if (!open) return null;
+  const [mounted, setMounted] = useState(false);
 
-  return (
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [open, onClose]);
+
+  if (!mounted || !open) return null;
+
+  return createPortal(
     <div className="painel-modal-overlay" onClick={onClose}>
-      <div className="painel-modal-wrapper">
-        <div className="painel-modal-card" onClick={(e) => e.stopPropagation()}>
+      <div className="painel-modal-shell">
+        <div
+          className="painel-modal-card"
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+        >
           <div className="painel-modal-header">
-            <div>
+            <div className="painel-modal-header-text">
+              <span className="painel-modal-mini-badge">Gerenciamento</span>
               <h2>{title}</h2>
               {subtitle ? <p>{subtitle}</p> : null}
             </div>
 
-            <button type="button" className="painel-modal-close" onClick={onClose}>
+            <button
+              type="button"
+              className="painel-modal-close"
+              onClick={onClose}
+              aria-label="Fechar modal"
+            >
               ×
             </button>
           </div>
@@ -146,7 +182,8 @@ function ModalBase({
           <div className="painel-modal-content">{children}</div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -179,7 +216,7 @@ export default function ProdutosPainelPage() {
   const [busca, setBusca] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
-  const itensPorPagina = 5;
+  const itensPorPagina = 6;
 
   const [modalProdutoOpen, setModalProdutoOpen] = useState(false);
   const [modalImagemOpen, setModalImagemOpen] = useState(false);
@@ -229,7 +266,8 @@ export default function ProdutosPainelPage() {
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = modalProdutoOpen || modalImagemOpen ? "hidden" : "";
+    document.body.style.overflow =
+      modalProdutoOpen || modalImagemOpen ? "hidden" : "";
     return () => {
       document.body.style.overflow = "";
     };
@@ -242,13 +280,16 @@ export default function ProdutosPainelPage() {
   useEffect(() => {
     if (!form.imagem) {
       setPreviewImagem(
-        modoEdicao && produtoEditando?.imagem ? getImagemUrl(produtoEditando.imagem) : ""
+        modoEdicao && produtoEditando?.imagem
+          ? getImagemUrl(produtoEditando.imagem)
+          : ""
       );
       return;
     }
 
     const url = URL.createObjectURL(form.imagem);
     setPreviewImagem(url);
+
     return () => URL.revokeObjectURL(url);
   }, [form.imagem, modoEdicao, produtoEditando]);
 
@@ -272,7 +313,10 @@ export default function ProdutosPainelPage() {
     });
   }, [produtos, busca, categoriaFiltro]);
 
-  const totalPaginas = Math.max(1, Math.ceil(produtosFiltrados.length / itensPorPagina));
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(produtosFiltrados.length / itensPorPagina)
+  );
 
   const produtosPaginados = useMemo(() => {
     const inicio = (paginaAtual - 1) * itensPorPagina;
@@ -281,10 +325,15 @@ export default function ProdutosPainelPage() {
   }, [produtosFiltrados, paginaAtual]);
 
   useEffect(() => {
-    if (paginaAtual > totalPaginas) setPaginaAtual(totalPaginas);
+    if (paginaAtual > totalPaginas) {
+      setPaginaAtual(totalPaginas);
+    }
   }, [paginaAtual, totalPaginas]);
 
-  function handleChange<K extends keyof ProdutoForm>(campo: K, valor: ProdutoForm[K]) {
+  function handleChange<K extends keyof ProdutoForm>(
+    campo: K,
+    valor: ProdutoForm[K]
+  ) {
     setForm((prev) => ({ ...prev, [campo]: valor }));
   }
 
@@ -352,10 +401,13 @@ export default function ProdutosPainelPage() {
 
       const payload = res.data;
       const imagens = resolveApi<any>(payload);
+
       const lista = Array.isArray(imagens?.imagens)
         ? imagens.imagens
         : Array.isArray(payload?.imagens)
         ? payload.imagens
+        : Array.isArray(imagens)
+        ? imagens
         : [];
 
       setGaleria(lista);
@@ -394,7 +446,10 @@ export default function ProdutosPainelPage() {
       body.append("slug", form.slug.trim() || slugify(form.nome));
       body.append("descricao", form.descricao.trim());
       body.append("preco", String(form.preco).replace(",", "."));
-      body.append("preco_promocional", String(form.preco_promocional || "").replace(",", "."));
+      body.append(
+        "preco_promocional",
+        String(form.preco_promocional || "").replace(",", ".")
+      );
       body.append("estoque", form.estoque || "0");
       body.append("ilimitado", form.ilimitado ? "1" : "0");
       body.append("catalogo", form.catalogo ? "1" : "0");
@@ -530,43 +585,49 @@ export default function ProdutosPainelPage() {
 
   return (
     <>
-      <div className="painel-produtos-page">
-        <section className="painel-produtos-hero">
+      <div className="painel-page">
+        <div className="painel-topbar">
           <div>
-            <span className="painel-produtos-badge-top">Painel • Catálogo</span>
-            <h1>Produtos</h1>
+            <span className="painel-topbar-badge">Painel administrativo</span>
+            <h1>Gerenciar produtos</h1>
             <p>
-              Cadastre, edite, organize imagens e mantenha seu catálogo com aparência profissional.
+              Organize seu catálogo com uma aparência mais moderna, clara e profissional.
             </p>
           </div>
 
           <button type="button" className="btn-primary-ui" onClick={abrirModalCriar}>
             + Novo produto
           </button>
-        </section>
+        </div>
 
-        <section className="painel-produtos-filtros">
-          <input
-            className="painel-input"
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por nome, slug, SKU ou categoria..."
-          />
+        <section className="painel-filtros-card">
+          <div className="painel-field grow">
+            <label>Buscar produto</label>
+            <input
+              className="painel-input"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Digite nome, slug, SKU ou categoria..."
+            />
+          </div>
 
-          <select
-            className="painel-input"
-            value={categoriaFiltro}
-            onChange={(e) => setCategoriaFiltro(e.target.value)}
-          >
-            <option value="">Todas as categorias</option>
-            {categorias.map((cat) => (
-              <option key={cat.id_categoria} value={cat.nome}>
-                {cat.nome}
-              </option>
-            ))}
-          </select>
+          <div className="painel-field">
+            <label>Categoria</label>
+            <select
+              className="painel-input"
+              value={categoriaFiltro}
+              onChange={(e) => setCategoriaFiltro(e.target.value)}
+            >
+              <option value="">Todas as categorias</option>
+              {categorias.map((cat) => (
+                <option key={cat.id_categoria} value={cat.nome}>
+                  {cat.nome}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <div className="painel-select-group">
+          <div className="painel-field small">
             <label>Página</label>
             <select
               className="painel-input"
@@ -582,9 +643,23 @@ export default function ProdutosPainelPage() {
           </div>
         </section>
 
-        <div className="painel-counter-box">
-          Mostrando <strong>{produtosPaginados.length}</strong> de{" "}
-          <strong>{produtosFiltrados.length}</strong> produtos
+        <div className="painel-resumo-bar">
+          <div className="painel-resumo-item">
+            <span>Total encontrado</span>
+            <strong>{produtosFiltrados.length}</strong>
+          </div>
+
+          <div className="painel-resumo-item">
+            <span>Exibindo nesta página</span>
+            <strong>{produtosPaginados.length}</strong>
+          </div>
+
+          <div className="painel-resumo-item">
+            <span>Página atual</span>
+            <strong>
+              {paginaAtual} / {totalPaginas}
+            </strong>
+          </div>
         </div>
 
         {loading ? (
@@ -592,10 +667,10 @@ export default function ProdutosPainelPage() {
         ) : produtosPaginados.length === 0 ? (
           <div className="painel-empty-box">Nenhum produto encontrado.</div>
         ) : (
-          <section className="painel-card-grid">
+          <section className="produto-grid">
             {produtosPaginados.map((produto) => (
               <article key={produto.id_produto} className="produto-card">
-                <div className="produto-card-image-wrap">
+                <div className="produto-card-image-area">
                   {produto.imagem ? (
                     <img
                       src={getImagemUrl(produto.imagem)}
@@ -606,36 +681,46 @@ export default function ProdutosPainelPage() {
                     <div className="produto-card-no-image">Sem imagem</div>
                   )}
 
-                  <div className="produto-card-badges">
-                    {produto.destaque ? <span className="badge-gold">Destaque</span> : null}
-                    {Number(produto.catalogo ?? 0) === 1 ? (
-                      <span className="badge-green">Catálogo</span>
+                  <div className="produto-card-overlay" />
+
+                  <div className="produto-badges">
+                    {produto.destaque ? (
+                      <span className="badge badge-gold">Destaque</span>
                     ) : null}
+
+                    {Number(produto.catalogo ?? 0) === 1 ? (
+                      <span className="badge badge-green">No catálogo</span>
+                    ) : (
+                      <span className="badge badge-gray">Oculto</span>
+                    )}
                   </div>
                 </div>
 
-                <div className="produto-card-body">
-                  <span className="produto-categoria-tag">
-                    {produto.categoria_nome || "Sem categoria"}
-                  </span>
+                <div className="produto-card-content">
+                  <div className="produto-top-line">
+                    <span className="produto-categoria">
+                      {produto.categoria_nome || "Sem categoria"}
+                    </span>
+                    <span className="produto-id">#{produto.id_produto}</span>
+                  </div>
 
                   <h3>{produto.nome}</h3>
 
                   <p>
                     {produto.descricao?.trim()
-                      ? produto.descricao.length > 95
-                        ? `${produto.descricao.slice(0, 95)}...`
+                      ? produto.descricao.length > 110
+                        ? `${produto.descricao.slice(0, 110)}...`
                         : produto.descricao
                       : "Sem descrição cadastrada."}
                   </p>
 
-                  <div className="produto-info-list">
-                    <div className="produto-info-item">
+                  <div className="produto-meta-grid">
+                    <div className="produto-meta-box">
                       <span>Preço</span>
                       <strong>{formatMoney(produto.preco)}</strong>
                     </div>
 
-                    <div className="produto-info-item">
+                    <div className="produto-meta-box">
                       <span>Estoque</span>
                       <strong>
                         {Number(produto.ilimitado ?? 0) === 1
@@ -644,13 +729,13 @@ export default function ProdutosPainelPage() {
                       </strong>
                     </div>
 
-                    <div className="produto-info-item">
+                    <div className="produto-meta-box full">
                       <span>Slug</span>
                       <strong>{produto.slug || "—"}</strong>
                     </div>
                   </div>
 
-                  <div className="produto-card-actions">
+                  <div className="produto-actions">
                     <button
                       type="button"
                       className="btn-secondary-ui"
@@ -686,8 +771,8 @@ export default function ProdutosPainelPage() {
           title={modoEdicao ? "Editar produto" : "Cadastrar produto"}
           subtitle={
             modoEdicao
-              ? "Atualize os dados do produto com mais organização."
-              : "Preencha as informações do novo produto."
+              ? "Atualize as informações do produto com mais organização."
+              : "Preencha os dados do novo produto."
           }
           onClose={fecharModalProduto}
         >
@@ -705,10 +790,15 @@ export default function ProdutosPainelPage() {
 
           <form onSubmit={salvarProduto}>
             {produtoTab === "geral" && (
-              <div className="painel-tab-grid">
+              <div className="painel-form-grid">
                 <div className="full">
                   <label className="painel-label">Nome</label>
-                  <input className="painel-input" value={form.nome} onChange={handleNomeChange} />
+                  <input
+                    className="painel-input"
+                    value={form.nome}
+                    onChange={handleNomeChange}
+                    placeholder="Digite o nome do produto"
+                  />
                 </div>
 
                 <div>
@@ -717,6 +807,7 @@ export default function ProdutosPainelPage() {
                     className="painel-input"
                     value={form.slug}
                     onChange={(e) => handleChange("slug", slugify(e.target.value))}
+                    placeholder="slug-do-produto"
                   />
                 </div>
 
@@ -726,6 +817,7 @@ export default function ProdutosPainelPage() {
                     className="painel-input"
                     value={form.sku}
                     onChange={(e) => handleChange("sku", e.target.value)}
+                    placeholder="SKU"
                   />
                 </div>
 
@@ -735,6 +827,7 @@ export default function ProdutosPainelPage() {
                     className="painel-input"
                     value={form.modelo}
                     onChange={(e) => handleChange("modelo", e.target.value)}
+                    placeholder="Modelo"
                   />
                 </div>
 
@@ -766,6 +859,7 @@ export default function ProdutosPainelPage() {
                       const value = status.id_status ?? status.id ?? index + 1;
                       const label =
                         status.nome || status.titulo || status.codigo || `Status ${value}`;
+
                       return (
                         <option key={value} value={value}>
                           {label}
@@ -781,19 +875,21 @@ export default function ProdutosPainelPage() {
                     className="painel-textarea"
                     value={form.descricao}
                     onChange={(e) => handleChange("descricao", e.target.value)}
+                    placeholder="Descreva o produto..."
                   />
                 </div>
               </div>
             )}
 
             {produtoTab === "preco" && (
-              <div className="painel-tab-grid">
+              <div className="painel-form-grid">
                 <div>
                   <label className="painel-label">Preço</label>
                   <input
                     className="painel-input"
                     value={form.preco}
                     onChange={(e) => handleChange("preco", e.target.value)}
+                    placeholder="0,00"
                   />
                 </div>
 
@@ -803,6 +899,7 @@ export default function ProdutosPainelPage() {
                     className="painel-input"
                     value={form.preco_promocional}
                     onChange={(e) => handleChange("preco_promocional", e.target.value)}
+                    placeholder="0,00"
                   />
                 </div>
 
@@ -824,7 +921,7 @@ export default function ProdutosPainelPage() {
                       checked={form.catalogo}
                       onChange={(e) => handleChange("catalogo", e.target.checked)}
                     />
-                    Produto no catálogo
+                    Produto visível no catálogo
                   </label>
 
                   <label className="painel-check-row">
@@ -840,7 +937,7 @@ export default function ProdutosPainelPage() {
             )}
 
             {produtoTab === "midia" && (
-              <div className="painel-tab-grid">
+              <div className="painel-form-grid">
                 <div>
                   <label className="painel-label">Imagem principal</label>
                   <input
@@ -855,7 +952,11 @@ export default function ProdutosPainelPage() {
                   <label className="painel-label">Prévia</label>
                   <div className="painel-preview-box">
                     {previewImagem ? (
-                      <img src={previewImagem} alt="Prévia" className="painel-preview-image" />
+                      <img
+                        src={previewImagem}
+                        alt="Prévia"
+                        className="painel-preview-image"
+                      />
                     ) : (
                       <span>Sem imagem</span>
                     )}
@@ -886,15 +987,18 @@ export default function ProdutosPainelPage() {
           subtitle={produtoImagemAtual?.nome}
           onClose={fecharModalImagens}
         >
-          <div className="painel-upload-section">
-            <label className="painel-label">Adicionar novas imagens</label>
-            <input
-              className="painel-input"
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={(e) => setNovasImagens(Array.from(e.target.files || []))}
-            />
+          <div className="painel-upload-top">
+            <div className="painel-field grow">
+              <label className="painel-label">Adicionar novas imagens</label>
+              <input
+                className="painel-input"
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={(e) => setNovasImagens(Array.from(e.target.files || []))}
+              />
+            </div>
+
             <button
               type="button"
               className="btn-primary-ui"
@@ -917,22 +1021,25 @@ export default function ProdutosPainelPage() {
                     className="painel-gallery-image"
                   />
 
-                  <div className="painel-gallery-actions">
-                    <button
-                      type="button"
-                      className="btn-secondary-ui"
-                      onClick={() => definirPrincipal(img.imagem)}
-                    >
-                      Principal
-                    </button>
+                  <div className="painel-gallery-footer">
+                    <span>Imagem {index + 1}</span>
+                    <div className="painel-gallery-actions">
+                      <button
+                        type="button"
+                        className="btn-secondary-ui"
+                        onClick={() => definirPrincipal(img.imagem)}
+                      >
+                        Principal
+                      </button>
 
-                    <button
-                      type="button"
-                      className="btn-danger-ui"
-                      onClick={() => removerImagem(img.id_imagem)}
-                    >
-                      Remover
-                    </button>
+                      <button
+                        type="button"
+                        className="btn-danger-ui"
+                        onClick={() => removerImagem(img.id_imagem)}
+                      >
+                        Remover
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))
@@ -944,142 +1051,191 @@ export default function ProdutosPainelPage() {
       </div>
 
       <style jsx>{`
-        .painel-produtos-page {
+        .painel-page {
           min-height: 100vh;
+          padding: 28px;
           background:
-            radial-gradient(circle at top left, rgba(124, 58, 237, 0.08), transparent 28%),
-            radial-gradient(circle at top right, rgba(16, 185, 129, 0.06), transparent 22%),
-            linear-gradient(180deg, #f8f7ff 0%, #f3f4f8 100%);
-          padding: 24px;
-          color: #111827;
+            radial-gradient(circle at top left, rgba(190, 24, 93, 0.06), transparent 28%),
+            radial-gradient(circle at top right, rgba(244, 114, 182, 0.07), transparent 20%),
+            linear-gradient(180deg, #fffaf7 0%, #fffdfb 45%, #fff7fb 100%);
+          color: #2f2430;
           font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         }
 
-        .painel-produtos-hero {
+        .painel-topbar {
           display: flex;
-          justify-content: space-between;
           align-items: center;
-          gap: 16px;
-          margin-bottom: 22px;
+          justify-content: space-between;
+          gap: 18px;
           flex-wrap: wrap;
-          background: linear-gradient(135deg, #ffffff 0%, #f6f1ff 100%);
-          border: 1px solid #ebe8ff;
-          border-radius: 28px;
           padding: 26px;
+          margin-bottom: 22px;
+          border-radius: 28px;
+          background: linear-gradient(135deg, #fff8f3 0%, #ffffff 50%, #fff3f8 100%);
+          border: 1px solid #f5d6df;
           box-shadow:
-            0 18px 50px rgba(91, 33, 182, 0.08),
-            inset 0 1px 0 rgba(255, 255, 255, 0.65);
+            0 18px 50px rgba(190, 24, 93, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
 
-        .painel-produtos-badge-top {
-          display: inline-block;
-          padding: 6px 12px;
+        .painel-topbar-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 14px;
           border-radius: 999px;
-          background: #ede9fe;
-          color: #6d28d9;
+          background: #fff1f2;
+          color: #be185d;
           font-size: 12px;
           font-weight: 800;
+          border: 1px solid #fbcfe8;
         }
 
-        .painel-produtos-hero h1 {
-          margin: 10px 0 6px;
+        .painel-topbar h1 {
+          margin: 12px 0 8px;
           font-size: 36px;
+          line-height: 1.1;
           font-weight: 900;
-          letter-spacing: -0.6px;
+          letter-spacing: -0.04em;
+          color: #2f2430;
         }
 
-        .painel-produtos-hero p {
+        .painel-topbar p {
           margin: 0;
-          color: #6b7280;
+          max-width: 720px;
+          color: #7a5c68;
           font-size: 14px;
-          line-height: 1.6;
-          max-width: 680px;
+          line-height: 1.7;
+          font-weight: 500;
         }
 
-        .painel-produtos-filtros {
-          display: grid;
-          grid-template-columns: 1.5fr 1fr 180px;
+        .painel-filtros-card {
+          display: flex;
           gap: 14px;
-          margin-bottom: 16px;
+          flex-wrap: wrap;
+          align-items: end;
+          margin-bottom: 18px;
+          padding: 18px;
           background: rgba(255, 255, 255, 0.9);
-          border: 1px solid #ececf2;
+          border: 1px solid #f3dce4;
           border-radius: 24px;
-          padding: 16px;
-          box-shadow: 0 10px 28px rgba(15, 23, 42, 0.04);
-          backdrop-filter: blur(10px);
+          box-shadow: 0 10px 28px rgba(62, 28, 43, 0.05);
+          backdrop-filter: blur(12px);
         }
 
-        .painel-select-group {
+        .painel-field {
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 8px;
+          min-width: 180px;
         }
 
-        .painel-select-group label,
+        .painel-field.grow {
+          flex: 1;
+          min-width: 260px;
+        }
+
+        .painel-field.small {
+          width: 140px;
+        }
+
+        .painel-field label,
         .painel-label {
           font-size: 13px;
           font-weight: 800;
-          color: #374151;
-        }
-
-        .painel-counter-box {
-          margin-bottom: 18px;
-          color: #4b5563;
-          font-weight: 600;
-          font-size: 14px;
+          color: #6a4356;
         }
 
         .painel-input,
         .painel-textarea {
           width: 100%;
-          border: 1px solid #ddd6fe;
-          background: #fff;
+          box-sizing: border-box;
+          border: 1px solid #efcfd9;
+          background: #fffefc;
+          color: #2f2430;
           border-radius: 16px;
-          padding: 12px 14px;
+          padding: 13px 14px;
           font-size: 14px;
+          font-weight: 500;
           outline: none;
           transition: 0.2s ease;
-          box-sizing: border-box;
+        }
+
+        .painel-input::placeholder,
+        .painel-textarea::placeholder {
+          color: #b08a98;
         }
 
         .painel-input:focus,
         .painel-textarea:focus {
-          border-color: #8b5cf6;
-          box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
+          border-color: #db2777;
+          box-shadow: 0 0 0 4px rgba(219, 39, 119, 0.12);
+          background: #ffffff;
         }
 
         .painel-textarea {
-          min-height: 120px;
+          min-height: 130px;
           resize: vertical;
         }
 
-        .painel-card-grid {
+        .painel-resumo-bar {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-          gap: 18px;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 14px;
+          margin-bottom: 22px;
+        }
+
+        .painel-resumo-item {
+          padding: 18px;
+          border-radius: 22px;
+          background: linear-gradient(180deg, #ffffff 0%, #fff9fb 100%);
+          border: 1px solid #f3dce4;
+          box-shadow: 0 10px 24px rgba(62, 28, 43, 0.04);
+        }
+
+        .painel-resumo-item span {
+          display: block;
+          font-size: 12px;
+          color: #9a6b80;
+          font-weight: 700;
+          margin-bottom: 8px;
+        }
+
+        .painel-resumo-item strong {
+          font-size: 22px;
+          font-weight: 900;
+          color: #2f2430;
+        }
+
+        .produto-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+          gap: 20px;
         }
 
         .produto-card {
-          background: rgba(255, 255, 255, 0.98);
-          border: 1px solid #ececf2;
-          border-radius: 26px;
           overflow: hidden;
-          box-shadow: 0 14px 34px rgba(15, 23, 42, 0.05);
-          display: flex;
-          flex-direction: column;
-          transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+          border-radius: 28px;
+          border: 1px solid #f0d9e2;
+          background: rgba(255, 255, 255, 0.98);
+          box-shadow:
+            0 16px 36px rgba(62, 28, 43, 0.06),
+            inset 0 1px 0 rgba(255, 255, 255, 0.75);
+          transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
         }
 
         .produto-card:hover {
           transform: translateY(-4px);
-          box-shadow: 0 20px 36px rgba(15, 23, 42, 0.08);
-          border-color: #ddd6fe;
+          box-shadow:
+            0 22px 42px rgba(62, 28, 43, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.85);
+          border-color: #ebb3c9;
         }
 
-        .produto-card-image-wrap {
+        .produto-card-image-area {
           position: relative;
-          height: 220px;
-          background: linear-gradient(180deg, #f7f8ff 0%, #eef1ff 100%);
+          height: 240px;
+          background: linear-gradient(180deg, #fff4f5 0%, #fff9ef 100%);
         }
 
         .produto-card-image {
@@ -1089,115 +1245,152 @@ export default function ProdutosPainelPage() {
           display: block;
         }
 
+        .produto-card-overlay {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(to top, rgba(47, 36, 48, 0.18), transparent 50%);
+          pointer-events: none;
+        }
+
         .produto-card-no-image {
           width: 100%;
           height: 100%;
           display: grid;
           place-items: center;
-          color: #6b7280;
-          font-weight: 700;
+          color: #946b7d;
+          font-weight: 800;
+          font-size: 14px;
         }
 
-        .produto-card-badges {
+        .produto-badges {
           position: absolute;
-          top: 12px;
-          left: 12px;
+          top: 14px;
+          left: 14px;
           display: flex;
           gap: 8px;
           flex-wrap: wrap;
+          z-index: 2;
         }
 
-        .badge-gold,
-        .badge-green {
-          padding: 6px 10px;
+        .badge {
+          padding: 7px 12px;
           border-radius: 999px;
-          color: #fff;
           font-size: 11px;
-          font-weight: 800;
-          box-shadow: 0 8px 18px rgba(0, 0, 0, 0.16);
+          font-weight: 900;
+          box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
         }
 
         .badge-gold {
           background: linear-gradient(135deg, #f59e0b, #d97706);
+          color: #fff;
         }
 
         .badge-green {
           background: linear-gradient(135deg, #10b981, #059669);
+          color: #fff;
         }
 
-        .produto-card-body {
+        .badge-gray {
+          background: rgba(255, 255, 255, 0.92);
+          color: #6b7280;
+          border: 1px solid #e5e7eb;
+        }
+
+        .produto-card-content {
           padding: 18px;
           display: flex;
           flex-direction: column;
-          gap: 12px;
-          flex: 1;
+          gap: 14px;
         }
 
-        .produto-categoria-tag {
+        .produto-top-line {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+        }
+
+        .produto-categoria {
           display: inline-flex;
           width: fit-content;
-          padding: 6px 10px;
+          padding: 7px 12px;
           border-radius: 999px;
-          background: #f3f0ff;
-          color: #7c3aed;
+          background: #fff1f2;
+          color: #be185d;
+          border: 1px solid #fbcfe8;
           font-size: 11px;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: 0.4px;
-        }
-
-        .produto-card-body h3 {
-          margin: 0;
-          font-size: 18px;
           font-weight: 900;
-          line-height: 1.3;
+          letter-spacing: 0.03em;
+          text-transform: uppercase;
         }
 
-        .produto-card-body p {
+        .produto-id {
+          font-size: 12px;
+          font-weight: 800;
+          color: #9a6b80;
+        }
+
+        .produto-card-content h3 {
           margin: 0;
-          color: #6b7280;
+          font-size: 20px;
+          line-height: 1.25;
+          font-weight: 900;
+          color: #2f2430;
+        }
+
+        .produto-card-content p {
+          margin: 0;
+          color: #7c6170;
           font-size: 14px;
-          line-height: 1.6;
-          min-height: 44px;
+          line-height: 1.7;
+          min-height: 48px;
         }
 
-        .produto-info-list {
+        .produto-meta-grid {
           display: grid;
-          gap: 10px;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
         }
 
-        .produto-info-item {
-          display: flex;
-          justify-content: space-between;
-          gap: 10px;
-          padding: 10px 12px;
-          border-radius: 14px;
-          background: #f9fafb;
-          border: 1px solid #ececf2;
-          font-size: 13px;
+        .produto-meta-box {
+          padding: 12px 14px;
+          border-radius: 18px;
+          background: linear-gradient(180deg, #fffefe 0%, #fff7fa 100%);
+          border: 1px solid #f3dce4;
         }
 
-        .produto-info-item span {
-          color: #6b7280;
+        .produto-meta-box.full {
+          grid-column: 1 / -1;
         }
 
-        .produto-info-item strong {
-          color: #111827;
-          text-align: right;
+        .produto-meta-box span {
+          display: block;
+          font-size: 12px;
+          font-weight: 700;
+          color: #9a6b80;
+          margin-bottom: 6px;
+        }
+
+        .produto-meta-box strong {
+          display: block;
+          color: #2f2430;
+          font-size: 14px;
+          font-weight: 900;
           word-break: break-word;
         }
 
-        .produto-card-actions {
-          margin-top: auto;
+        .produto-actions {
           display: grid;
-          grid-template-columns: 1fr 1fr 1fr;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 10px;
+          margin-top: 4px;
         }
 
         .btn-primary-ui,
         .btn-secondary-ui,
         .btn-danger-ui {
-          border-radius: 14px;
+          appearance: none;
+          border-radius: 16px;
           padding: 12px 16px;
           font-size: 14px;
           font-weight: 800;
@@ -1211,112 +1404,137 @@ export default function ProdutosPainelPage() {
           transform: translateY(-1px);
         }
 
+        .btn-primary-ui:disabled,
+        .btn-secondary-ui:disabled,
+        .btn-danger-ui:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+          transform: none;
+        }
+
         .btn-primary-ui {
           border: none;
-          background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
           color: #fff;
-          box-shadow: 0 12px 24px rgba(124, 58, 237, 0.2);
+          background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+          box-shadow: 0 12px 24px rgba(190, 24, 93, 0.2);
         }
 
         .btn-secondary-ui {
-          background: #f3f4f6;
-          color: #111827;
-          border: 1px solid #e5e7eb;
+          border: 1px solid #edd5dd;
+          background: #fff8fb;
+          color: #6a4356;
         }
 
         .btn-danger-ui {
-          background: #fee2e2;
-          color: #b91c1c;
           border: 1px solid #fecaca;
+          background: #fff1f2;
+          color: #be123c;
         }
 
         .painel-empty-box {
-          background: rgba(255, 255, 255, 0.98);
-          border: 1px solid #ececf2;
-          border-radius: 18px;
-          padding: 28px;
+          padding: 30px;
           text-align: center;
-          color: #6b7280;
-          font-weight: 700;
+          border-radius: 22px;
+          border: 1px solid #f0d9e2;
+          background: rgba(255, 255, 255, 0.98);
+          color: #8a6475;
+          font-weight: 800;
+          box-shadow: 0 10px 24px rgba(62, 28, 43, 0.04);
         }
 
         .painel-modal-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(15, 23, 42, 0.42);
+          z-index: 999999;
+          background: rgba(30, 20, 28, 0.52);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
           display: flex;
           align-items: center;
           justify-content: center;
           padding: 24px;
-          z-index: 99999;
-          backdrop-filter: blur(6px);
-          -webkit-backdrop-filter: blur(6px);
-          overflow-y: auto;
         }
 
-        .painel-modal-wrapper {
+        .painel-modal-shell {
           width: 100%;
-          max-width: 980px;
+          max-width: 1040px;
+          max-height: 100%;
           display: flex;
           align-items: center;
           justify-content: center;
-          margin: auto;
         }
 
         .painel-modal-card {
           width: 100%;
-          max-width: 980px;
+          max-width: 1040px;
           max-height: calc(100vh - 48px);
           overflow: hidden;
-          background: #fff;
-          border-radius: 28px;
-          border: 1px solid #ececf2;
-          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.22);
           display: flex;
           flex-direction: column;
-          animation: modalFadeUp 0.22s ease;
+          background: linear-gradient(180deg, #ffffff 0%, #fffafb 100%);
+          border: 1px solid #f0d9e2;
+          border-radius: 30px;
+          box-shadow:
+            0 35px 90px rgba(18, 10, 16, 0.28),
+            inset 0 1px 0 rgba(255, 255, 255, 0.85);
+          animation: modalUp 0.2s ease;
         }
 
         .painel-modal-header {
-          padding: 20px;
-          border-bottom: 1px solid #ececf2;
           display: flex;
+          align-items: flex-start;
           justify-content: space-between;
           gap: 16px;
-          align-items: flex-start;
-          background: rgba(255, 255, 255, 0.96);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
+          padding: 22px 22px 18px;
+          border-bottom: 1px solid #f1dce4;
+          background: rgba(255, 255, 255, 0.95);
           flex-shrink: 0;
         }
 
-        .painel-modal-header h2 {
-          margin: 0;
-          font-size: 24px;
+        .painel-modal-header-text h2 {
+          margin: 8px 0 6px;
+          font-size: 28px;
+          line-height: 1.1;
           font-weight: 900;
-          color: #111827;
+          color: #2f2430;
         }
 
-        .painel-modal-header p {
-          margin: 6px 0 0;
+        .painel-modal-header-text p {
+          margin: 0;
+          color: #896877;
           font-size: 14px;
-          color: #6b7280;
+          line-height: 1.6;
           font-weight: 600;
         }
 
+        .painel-modal-mini-badge {
+          display: inline-flex;
+          padding: 7px 12px;
+          border-radius: 999px;
+          background: #fff1f2;
+          border: 1px solid #fbcfe8;
+          color: #be185d;
+          font-size: 11px;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
         .painel-modal-close {
-          width: 42px;
-          height: 42px;
-          border: none;
-          border-radius: 14px;
-          background: #f3f4f6;
-          font-size: 24px;
+          width: 46px;
+          height: 46px;
+          border: 1px solid #edd5dd;
+          background: #fff7fa;
+          color: #7a5c68;
+          border-radius: 16px;
+          font-size: 28px;
+          line-height: 1;
           cursor: pointer;
           flex-shrink: 0;
         }
 
         .painel-modal-content {
-          padding: 20px;
+          padding: 22px;
           overflow-y: auto;
           flex: 1;
         }
@@ -1325,17 +1543,17 @@ export default function ProdutosPainelPage() {
           display: flex;
           gap: 10px;
           flex-wrap: wrap;
-          margin-bottom: 18px;
-          padding: 6px;
-          background: #f8fafc;
-          border: 1px solid #e5e7eb;
-          border-radius: 18px;
+          margin-bottom: 20px;
+          padding: 8px;
+          border-radius: 20px;
+          background: #fff7fa;
+          border: 1px solid #f0d9e2;
         }
 
         .painel-tab-button {
           border: none;
           background: transparent;
-          color: #475569;
+          color: #7a5c68;
           padding: 12px 16px;
           border-radius: 14px;
           cursor: pointer;
@@ -1345,107 +1563,122 @@ export default function ProdutosPainelPage() {
         }
 
         .painel-tab-button.active {
-          background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%);
           color: #fff;
-          box-shadow: 0 10px 22px rgba(124, 58, 237, 0.22);
+          background: linear-gradient(135deg, #db2777 0%, #be185d 100%);
+          box-shadow: 0 10px 22px rgba(190, 24, 93, 0.2);
         }
 
-        .painel-tab-grid {
+        .painel-form-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 16px;
         }
 
-        .painel-tab-grid .full {
+        .painel-form-grid .full {
           grid-column: 1 / -1;
         }
 
         .painel-checks-box {
           display: flex;
           flex-direction: column;
-          gap: 12px;
           justify-content: center;
-          background: #f9fafb;
-          border: 1px solid #ececf2;
-          border-radius: 18px;
+          gap: 12px;
           padding: 16px;
+          border-radius: 18px;
+          border: 1px solid #f0d9e2;
+          background: linear-gradient(180deg, #fffefe 0%, #fff7fa 100%);
         }
 
         .painel-check-row {
           display: inline-flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
           font-size: 14px;
           font-weight: 700;
-          color: #374151;
+          color: #6a4356;
         }
 
         .painel-preview-box {
-          min-height: 200px;
+          min-height: 210px;
           border-radius: 18px;
-          border: 1px dashed #d1d5db;
-          background: #f9fafb;
+          overflow: hidden;
           display: grid;
           place-items: center;
-          overflow: hidden;
-          color: #6b7280;
+          border: 1px dashed #e8bfd0;
+          background: linear-gradient(180deg, #fffdfd 0%, #fff7fa 100%);
+          color: #9a6b80;
+          font-weight: 700;
         }
 
         .painel-preview-image {
           width: 100%;
-          height: 200px;
+          height: 210px;
           object-fit: cover;
           display: block;
         }
 
         .painel-modal-footer {
-          margin-top: 24px;
           display: flex;
           justify-content: flex-end;
           gap: 12px;
           flex-wrap: wrap;
+          margin-top: 24px;
           padding-top: 18px;
-          border-top: 1px solid #ececf2;
+          border-top: 1px solid #f1dce4;
         }
 
-        .painel-upload-section {
+        .painel-upload-top {
           display: flex;
-          flex-direction: column;
-          gap: 10px;
+          gap: 14px;
+          align-items: end;
+          flex-wrap: wrap;
           margin-bottom: 20px;
         }
 
         .painel-image-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
           gap: 16px;
         }
 
         .painel-gallery-card {
-          border: 1px solid #ececf2;
-          border-radius: 18px;
           overflow: hidden;
-          background: #fff;
+          border-radius: 22px;
+          border: 1px solid #f0d9e2;
+          background: #ffffff;
+          box-shadow: 0 10px 24px rgba(62, 28, 43, 0.05);
         }
 
         .painel-gallery-image {
           width: 100%;
-          height: 220px;
+          height: 240px;
           object-fit: cover;
           display: block;
         }
 
+        .painel-gallery-footer {
+          padding: 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .painel-gallery-footer span {
+          font-size: 13px;
+          font-weight: 800;
+          color: #7a5c68;
+        }
+
         .painel-gallery-actions {
-          padding: 12px;
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 10px;
         }
 
-        @keyframes modalFadeUp {
+        @keyframes modalUp {
           from {
             opacity: 0;
-            transform: translateY(16px) scale(0.98);
+            transform: translateY(18px) scale(0.98);
           }
           to {
             opacity: 1;
@@ -1453,53 +1686,50 @@ export default function ProdutosPainelPage() {
           }
         }
 
-        @media (max-width: 980px) {
-          .painel-produtos-filtros,
-          .painel-tab-grid {
+        @media (max-width: 1024px) {
+          .painel-resumo-bar {
+            grid-template-columns: 1fr;
+          }
+
+          .painel-form-grid {
             grid-template-columns: 1fr;
           }
         }
 
         @media (max-width: 768px) {
-          .painel-produtos-page {
+          .painel-page {
             padding: 16px;
           }
 
-          .painel-produtos-hero {
+          .painel-topbar {
             padding: 18px;
+            border-radius: 22px;
           }
 
-          .painel-produtos-hero h1 {
+          .painel-topbar h1 {
             font-size: 28px;
           }
 
-          .produto-card-actions,
+          .produto-actions,
           .painel-gallery-actions {
             grid-template-columns: 1fr;
           }
 
           .painel-modal-overlay {
             padding: 12px;
-            align-items: center;
-            justify-content: center;
-          }
-
-          .painel-modal-wrapper {
-            max-width: 100%;
           }
 
           .painel-modal-card {
-            max-width: 100%;
             max-height: calc(100vh - 24px);
-            border-radius: 22px;
+            border-radius: 24px;
           }
 
           .painel-modal-header {
-            padding: 16px;
+            padding: 18px 18px 16px;
           }
 
-          .painel-modal-header h2 {
-            font-size: 20px;
+          .painel-modal-header-text h2 {
+            font-size: 22px;
           }
 
           .painel-modal-content {
