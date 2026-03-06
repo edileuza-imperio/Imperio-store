@@ -3,82 +3,36 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import api from "@/Api/conectar";
+import {
+  CampanhaApi,
+  CampanhaUI,
+  ProdutoApi,
+  ProdutoUI,
+} from "../Bibioteca/Bibiotecas";
+import { getImagemUrl } from "@/hooks/useCarrinhoCheckout";
+import { isImagePath, formatMoney } from "../Bibioteca/functions";
 
-type CampanhaApi = {
-  titulo?: string;
-  slug?: string;
-  descricao?: string;
-  banner?: string;
-  status_nome?: string;
-  status_codigo?: string;
-};
+function truncateText(text?: string, max = 80): string {
+  const value = String(text ?? "").trim();
 
-type ProdutoApi = {
-  id_produto?: number;
-  nome?: string;
-  slug?: string;
-  descricao?: string;
-  preco?: string | number;
-  imagem?: string;
-  ordem?: number;
-};
+  if (!value) return "";
+  if (value.length <= max) return value;
 
-type CampanhaUI = {
-  titulo: string;
-  slug: string;
-  descricao: string;
-  banner: string;
-  status_nome?: string;
-  status_codigo?: string;
-};
-
-type ProdutoUI = {
-  key: string | number;
-  nome: string;
-  slug: string;
-  descricao: string;
-  preco: string | number;
-  imagem: string;
-  ordem: number;
-};
-
-function getImagemUrl(caminho?: string) {
-  if (!caminho) return "";
-  const base = api.defaults.baseURL || "";
-  const clean = String(caminho).replace(/^\/+/, "");
-  return `${base}/${clean}`;
-}
-
-function formatMoney(value: any) {
-  const n = Number(value);
-  if (!Number.isFinite(n)) return "R$ 0,00";
-  return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
-
-function isImagePath(src?: string) {
-  if (!src) return false;
-  const s = src.toLowerCase().trim();
-  if (s.startsWith("upload/") || s.startsWith("/upload/")) return true;
-  return /\.(png|jpe?g|webp|gif|svg)$/.test(s);
-}
-
-function truncate(s: string, max = 85) {
-  const t = (s ?? "").trim();
-  if (!t) return "";
-  if (t.length <= max) return t;
-  return t.slice(0, max - 1).trim() + "…";
+  return `${value.slice(0, max).trim()}...`;
 }
 
 export default function DestaquesSection() {
   const [campanha, setCampanha] = useState<CampanhaUI | null>(null);
   const [produtos, setProdutos] = useState<ProdutoUI[]>([]);
   const [loading, setLoading] = useState(true);
+  const [addingSlug, setAddingSlug] = useState<string | null>(null);
 
   const trackRef = useRef<HTMLDivElement | null>(null);
 
   async function carregar() {
     try {
       setLoading(true);
+
       const res = await api.get("/admin/campanha/destaques");
       const dados = res.data?.dados ?? {};
 
@@ -102,6 +56,7 @@ export default function DestaquesSection() {
 
       const prodsUI: ProdutoUI[] = p.map((x) => ({
         key: x.id_produto ?? `${x.slug ?? ""}-${x.ordem ?? ""}`,
+        id_produto: Number(x.id_produto ?? 0),
         nome: String(x.nome ?? ""),
         slug: String(x.slug ?? ""),
         descricao: String(x.descricao ?? ""),
@@ -123,7 +78,6 @@ export default function DestaquesSection() {
 
   useEffect(() => {
     carregar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const produtosOrdenados = useMemo(() => {
@@ -141,7 +95,36 @@ export default function DestaquesSection() {
     const gap = 16;
 
     const amount = (cardW + gap) * 2;
-    el.scrollBy({ left: dir === "next" ? amount : -amount, behavior: "smooth" });
+    el.scrollBy({
+      left: dir === "next" ? amount : -amount,
+      behavior: "smooth",
+    });
+  }
+
+  async function adicionarAoCarrinho(produto: ProdutoUI) {
+    try {
+      if (!produto.id_produto || addingSlug) return;
+
+      setAddingSlug(produto.slug);
+
+      await api.post("/carrinho/adicionar", {
+        produto_id: produto.id_produto,
+        quantidade: 1,
+      });
+
+      alert(`"${produto.nome}" foi adicionado ao carrinho.`);
+    } catch (error: any) {
+      console.error("Erro ao adicionar ao carrinho:", error);
+
+      const mensagem =
+        error?.response?.data?.mensagem ||
+        error?.response?.data?.erro ||
+        "Não foi possível adicionar ao carrinho.";
+
+      alert(mensagem);
+    } finally {
+      setAddingSlug(null);
+    }
   }
 
   if (loading) {
@@ -170,9 +153,9 @@ export default function DestaquesSection() {
             border-radius: 18px;
             background: linear-gradient(
               90deg,
-              rgba(169, 96, 96, 0.10),
+              rgba(169, 96, 96, 0.1),
               rgba(169, 96, 96, 0.18),
-              rgba(169, 96, 96, 0.10)
+              rgba(169, 96, 96, 0.1)
             );
             background-size: 200% 100%;
             animation: sk 1.1s infinite linear;
@@ -213,7 +196,6 @@ export default function DestaquesSection() {
   return (
     <section className="py-5 ds-section">
       <div className="container">
-        {/* TOPO */}
         <div className="d-flex align-items-start justify-content-between gap-3 mb-3">
           <div className="d-flex flex-column gap-2">
             <h2 className="m-0 fw-bold ds-title">{campanha.titulo}</h2>
@@ -233,7 +215,6 @@ export default function DestaquesSection() {
         </div>
 
         <div className="row g-4 align-items-stretch">
-          {/* BANNER */}
           <div className="col-12 col-lg-4">
             <div className="card border-0 shadow-sm h-100 ds-banner">
               <div className="ds-bannerTop">
@@ -242,7 +223,9 @@ export default function DestaquesSection() {
                 ) : (
                   <div className="ds-bannerFallback">
                     <div className="ds-fallbackText">
-                      {campanha.banner?.trim() ? truncate(campanha.banner, 42) : campanha.titulo}
+                      {campanha.banner?.trim()
+                        ? truncateText(campanha.banner, 42)
+                        : campanha.titulo}
                     </div>
                   </div>
                 )}
@@ -276,10 +259,8 @@ export default function DestaquesSection() {
             </div>
           </div>
 
-          {/* CARROSSEL */}
           <div className="col-12 col-lg-8">
             <div className="position-relative ds-carouselWrap">
-              {/* setas no desktop */}
               <button
                 type="button"
                 className="btn ds-arrow ds-arrow-left d-none d-lg-inline-flex"
@@ -303,6 +284,7 @@ export default function DestaquesSection() {
               <div ref={trackRef} className="ds-track">
                 {produtosOrdenados.map((p, idx) => {
                   const img = getImagemUrl(p.imagem);
+                  const adicionando = addingSlug === p.slug;
 
                   return (
                     <div key={p.key} className="ds-slide">
@@ -342,11 +324,13 @@ export default function DestaquesSection() {
 
                           <small className="text-muted ds-desc" title={p.descricao}>
                             {p.descricao?.trim()
-                              ? truncate(p.descricao, 92)
+                              ? truncateText(p.descricao, 92)
                               : "Clique em detalhes para ver mais."}
                           </small>
 
-                          <div className="mt-2 fw-bold ds-price">{formatMoney(p.preco)}</div>
+                          <div className="mt-2 fw-bold ds-price">
+                            {formatMoney(p.preco)}
+                          </div>
 
                           <div className="mt-auto d-flex gap-2 pt-3">
                             <Link href={`/produto/${p.slug}`} className="btn ds-btn-outline w-100">
@@ -357,15 +341,24 @@ export default function DestaquesSection() {
                             <button
                               type="button"
                               className="btn w-100 ds-add"
-                              onClick={() => console.log("Adicionar ao carrinho:", p.slug)}
+                              disabled={adicionando || !p.id_produto}
+                              onClick={() => adicionarAoCarrinho(p)}
                             >
-                              <i className="bi bi-cart-plus" />
-                              <span className="ms-2 d-none d-sm-inline">Adicionar</span>
+                              {adicionando ? (
+                                <>
+                                  <span className="spinner-border spinner-border-sm" />
+                                  <span className="ms-2 d-none d-sm-inline">Adicionando</span>
+                                </>
+                              ) : (
+                                <>
+                                  <i className="bi bi-cart-plus" />
+                                  <span className="ms-2 d-none d-sm-inline">Adicionar</span>
+                                </>
+                              )}
                             </button>
                           </div>
                         </div>
 
-                        {/* brilho de borda */}
                         <div className="ds-borderGlow" />
                       </div>
                     </div>
@@ -384,14 +377,13 @@ export default function DestaquesSection() {
         </div>
 
         <style jsx>{`
-          /* Paleta: creme + rosa queimado */
           :global(:root) {
             --creme: #f7efe7;
             --creme2: #fff7f0;
-            --rosa: #b46a6a; /* rosa queimado */
+            --rosa: #b46a6a;
             --rosa2: #a85c5c;
             --marrom: #2b211c;
-            --borda: rgba(43, 33, 28, 0.10);
+            --borda: rgba(43, 33, 28, 0.1);
           }
 
           .ds-section {
@@ -412,7 +404,6 @@ export default function DestaquesSection() {
             backdrop-filter: blur(10px);
           }
 
-          /* status */
           .ds-status {
             background: rgba(255, 255, 255, 0.85);
             color: var(--marrom);
@@ -421,6 +412,7 @@ export default function DestaquesSection() {
             width: fit-content;
             backdrop-filter: blur(10px);
           }
+
           .ds-status-green {
             background: rgba(25, 135, 84, 0.12);
             color: #0f5132;
@@ -430,7 +422,6 @@ export default function DestaquesSection() {
             backdrop-filter: blur(10px);
           }
 
-          /* Banner */
           .ds-banner {
             background: var(--creme2);
             border-radius: 20px;
@@ -525,7 +516,6 @@ export default function DestaquesSection() {
             color: var(--marrom);
           }
 
-          /* Carrossel (✅ SEM BARRA DE ROLAGEM) */
           .ds-carouselWrap {
             padding: 0 6px;
           }
@@ -538,14 +528,12 @@ export default function DestaquesSection() {
             scroll-snap-type: x mandatory;
             -webkit-overflow-scrolling: touch;
             overscroll-behavior-x: contain;
-
-            /* ✅ esconde scrollbar */
-            scrollbar-width: none; /* Firefox */
-            -ms-overflow-style: none; /* IE/Edge antigo */
+            scrollbar-width: none;
+            -ms-overflow-style: none;
           }
 
           .ds-track::-webkit-scrollbar {
-            display: none; /* Chrome/Safari */
+            display: none;
           }
 
           .ds-slide {
@@ -583,11 +571,11 @@ export default function DestaquesSection() {
           .ds-arrow-left {
             left: -12px;
           }
+
           .ds-arrow-right {
             right: -12px;
           }
 
-          /* Cards (premium) */
           .ds-card {
             position: relative;
             border-radius: 22px;
@@ -673,7 +661,7 @@ export default function DestaquesSection() {
           }
 
           .ds-btn-outline {
-            border: 1px solid rgba(180, 106, 106, 0.30);
+            border: 1px solid rgba(180, 106, 106, 0.3);
             border-radius: 14px;
             font-weight: 900;
             background: rgba(255, 255, 255, 0.92);
@@ -698,12 +686,16 @@ export default function DestaquesSection() {
             filter: brightness(0.98);
           }
 
+          .ds-add:disabled {
+            opacity: 0.75;
+            cursor: not-allowed;
+          }
+
           .ds-hint {
             color: rgba(43, 33, 28, 0.65);
             font-weight: 800;
           }
 
-          /* botão flutuante no mobile não brigar */
           @media (max-width: 991px) {
             .ds-cta {
               position: static;

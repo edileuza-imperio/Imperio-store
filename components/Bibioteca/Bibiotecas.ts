@@ -8,7 +8,7 @@ export type ApiIndexResponse = {
   mensagem: string;
   dados?: ApiIndexData;
 };
-// src/types/menu.ts
+
 export interface MenuItem {
   id?: number;
   titulo?: string;
@@ -20,13 +20,14 @@ export interface MenuItem {
 
 export interface Menu {
   id?: number;
-  titulo?: string; // ✅ agora aceita undefined
+  titulo?: string;
   icone?: string;
   rota?: string | null;
   pesquisa_placeholder?: string | null;
   permissoes?: string[];
   itens?: MenuItem[];
 }
+
 export interface Banner {
   id_banner?: number;
   titulo: string;
@@ -45,3 +46,42 @@ export interface Categoria {
   statusid: number;
   criado: string;
 }
+
+export type CampanhaApi = {
+  titulo?: string;
+  slug?: string;
+  descricao?: string;
+  banner?: string;
+  status_nome?: string;
+  status_codigo?: string;
+};
+
+export type ProdutoApi = {
+  id_produto?: number;
+  nome?: string;
+  slug?: string;
+  descricao?: string;
+  preco?: string | number;
+  imagem?: string;
+  ordem?: number;
+};
+
+export type CampanhaUI = {
+  titulo: string;
+  slug: string;
+  descricao: string;
+  banner: string;
+  status_nome?: string;
+  status_codigo?: string;
+};
+
+export type ProdutoUI = {
+  key: string | number;
+  id_produto: number;
+  nome: string;
+  slug: string;
+  descricao: string;
+  preco: string | number;
+  imagem: string;
+  ordem: number;
+};
