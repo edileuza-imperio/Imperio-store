@@ -15,7 +15,7 @@ import './../public/destaque/destaque.css';
 import './../public/navbar/navbar.css';
 import './../public/navbar/mobile.css';
 
-import './../public/banner/banner.css';
+import './../public/Banner/banner.css';
 export const metadata: Metadata = {
   title: "Universo imperio",
   description: "criado e desenvolvido por alvarado tech",
