@@ -49,47 +49,6 @@ export default function NavbarDesktop({
   const [scrolled, setScrolled] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
 
-  // Paleta de cores profissional para e-commerce
-  const ui = useMemo(
-    () => ({
-      // Rosa Queimado (Dusty Rose/Terracotta)
-      rosaBurn: "#B8756B",
-      rosaBurnLight: "#D4A5A0",
-      rosaBurnDark: "#8B5A52",
-      
-      // Dourado (Gold)
-      gold: "#D4AF37",
-      goldLight: "#E8C547",
-      goldDark: "#AA8C2C",
-      
-      // Creme (Cream/Off-white)
-      cream: "#F5F1ED",
-      creamLight: "#FDFBF9",
-      creamDark: "#E8DFD7",
-      
-      // Neutros
-      text: "#2B2B2B",
-      textLight: "#5A5A5A",
-      textMuted: "#8B8B8B",
-      
-      // Backgrounds e Borders
-      bgPrimary: "#FDFBF9",
-      bgSecondary: "#F5F1ED",
-      borderColor: "rgba(184, 117, 107, 0.15)",
-      borderColorHover: "rgba(212, 175, 160, 0.3)",
-      
-      // Sombras sofisticadas
-      shadowSoft: "0 4px 12px rgba(0, 0, 0, 0.06)",
-      shadowMedium: "0 8px 24px rgba(0, 0, 0, 0.08)",
-      shadowHover: "0 12px 32px rgba(184, 117, 107, 0.12)",
-      
-      // Efectos
-      accentSoft: "rgba(212, 175, 160, 0.1)",
-      accentSoftGold: "rgba(212, 175, 160, 0.08)",
-    }),
-    []
-  );
-
   // Detectar scroll para efecto de vidrio
   useEffect(() => {
     const handleScroll = () => {
@@ -122,8 +81,18 @@ export default function NavbarDesktop({
 
   const searchMenu = menus.find((m) => m.pesquisa_placeholder);
   const accountMenu = menus.find((m) => (m.titulo || "").toLowerCase() === "login");
+  
+  // Encontrar el item del carrito en el menú
+  const carrinhoItem = menus.find((m) => 
+    (m.titulo || "").toLowerCase().includes("carrinho")
+  );
+
+  // Filtrar menús principales (excluyendo búsqueda, login y carrito)
   const mainMenus = menus.filter(
-    (m) => !m.pesquisa_placeholder && (m.titulo || "").toLowerCase() !== "login"
+    (m) =>
+      !m.pesquisa_placeholder &&
+      (m.titulo || "").toLowerCase() !== "login" &&
+      !(m.titulo || "").toLowerCase().includes("carrinho")
   );
 
   const accountItems = useMemo(() => {
@@ -163,116 +132,120 @@ export default function NavbarDesktop({
   };
 
   return (
-    <>
-      <header
-        ref={headerRef as any}
-        className={`ui-navbar ${scrolled ? "ui-navbar--scrolled" : ""}`}
-      >
-        {/* CONTAINER PRINCIPAL */}
-        <div className="ui-navbar-container">
-          {/* LOGO / BRAND */}
-          <div className="ui-brand">
-            <div className="ui-title">
-              <span className="ui-titleFirst">{first}</span>
-              <span className="ui-titleAccent">{rest}</span>
-              <span className="ui-dot" />
-            </div>
-            <div className="ui-subtitle">{subtituloNavbar || "Decorações & Eventos"}</div>
+    <header
+      ref={headerRef as any}
+      className={`ui-navbar ${scrolled ? "ui-navbar--scrolled" : ""}`}
+    >
+      <div className="ui-navbar-container">
+        {/* LOGO / BRAND */}
+        <div className="ui-brand">
+          <div className="ui-title">
+            <span className="ui-titleFirst">{first}</span>
+            <span className="ui-titleAccent">{rest}</span>
+            <span className="ui-dot" />
           </div>
+          <div className="ui-subtitle">{subtituloNavbar || "Decorações & Eventos"}</div>
+        </div>
 
-          {/* SEARCH BAR - CENTRO */}
-          {(searchMenu || searchPlaceholder) && (
-            <div className="ui-searchWrap">
-              <SearchBar
-                placeholder={searchPlaceholder || searchMenu?.pesquisa_placeholder || "Buscar produtos..."}
-                className="w-100"
-              />
-            </div>
-          )}
+        {/* SEARCH BAR - CENTRO */}
+        {(searchMenu || searchPlaceholder) && (
+          <div className="ui-searchWrap">
+            <SearchBar
+              placeholder={searchPlaceholder || searchMenu?.pesquisa_placeholder || "Buscar produtos..."}
+              className="w-100"
+            />
+          </div>
+        )}
 
-          {/* ACCIONES - DERECHA */}
-          <nav className="ui-actions">
-            {/* MENUS PRINCIPALES */}
-            <div className="ui-mainMenus">
-              {mainMenus.map((m) => (
-                <Link key={m.id} href={m.rota || "#"} className="ui-link">
-                  <span className="ui-pill ui-pill--primary">
-                    <span className="ui-pillIcon">{renderIcon(m.icone)}</span>
-                    <span className="ui-pillText">{m.titulo}</span>
-                  </span>
-                </Link>
-              ))}
-            </div>
-
-            {/* FAVORITOS (Opcional) */}
-            <button className="ui-iconBtn ui-iconBtn--heart" title="Mis favoritos">
-              <FiHeart size={20} />
-              <span className="ui-badge">0</span>
-            </button>
-
-            {/* CARRITO (Opcional) */}
-            <button className="ui-iconBtn ui-iconBtn--cart" title="Carrito de compras">
-              <FiShoppingCart size={20} />
-              <span className="ui-badge">0</span>
-            </button>
-
-            {/* LOGIN O USUARIO */}
-            {!usuarioLoading && !logado && (
-              <Link href="/login" className="ui-link">
-                <span className="ui-pill ui-pill--secondary">
-                  <span className="ui-pillIcon">{renderIcon(accountMenu?.icone || "bi-person")}</span>
-                  <span className="ui-pillText">Ingresar</span>
+        {/* ACCIONES - DERECHA */}
+        <nav className="ui-actions">
+          {/* MENUS PRINCIPALES */}
+          <div className="ui-mainMenus">
+            {mainMenus.map((m) => (
+              <Link key={m.id} href={m.rota || "#"} className="ui-link">
+                <span className="ui-pill ui-pill--primary">
+                  <span className="ui-pillIcon">{renderIcon(m.icone)}</span>
+                  <span className="ui-pillText">{m.titulo}</span>
                 </span>
               </Link>
-            )}
+            ))}
+          </div>
 
-            {!usuarioLoading && logado && (
-              <div className="ui-dropdown">
-                <button
-                  type="button"
-                  className="ui-pill ui-pill--secondary ui-userBtn"
-                  onClick={() => setOpenUserDropdown((v) => !v)}
-                  aria-expanded={openUserDropdown}
-                >
-                  <span className="ui-pillIcon">
-                    <FiUser size={18} />
-                  </span>
-                  <span className="ui-pillText ui-strong">
-                    {usuario?.nome?.split(" ")[0] || "Usuario"}
-                  </span>
-                  <FiChevronDown
-                    size={16}
-                    className={`ui-chevIcon ${openUserDropdown ? "open" : ""}`}
-                  />
-                </button>
+          {/* FAVORITOS */}
+          <button className="ui-iconBtn" title="Mis favoritos">
+            <FiHeart size={20} />
+            <span className="ui-badge">0</span>
+          </button>
 
-                {openUserDropdown && (
-                  <div className="ui-menu">
-                    {accountItems.map((it) => {
-                      const isSair = String(it.titulo).toLowerCase().includes("sair");
-                      return (
-                        <button
-                          key={it.id}
-                          type="button"
-                          className={`ui-item ${isSair ? "ui-item--danger" : ""}`}
-                          onClick={() => handleAccountItem(it)}
-                        >
-                          <span className="ui-itemIcon">{renderIcon(it.icone)}</span>
-                          <span className="ui-itemText">{it.titulo}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-          </nav>
-        </div>
-      </header>
+          {/* CARRITO - UNIFICADO */}
+          {carrinhoItem ? (
+            <Link href={carrinhoItem.rota || "/carrito"} className="ui-link">
+              <button className="ui-iconBtn" title="Carrito de compras">
+                <FiShoppingCart size={20} />
+                <span className="ui-badge">0</span>
+              </button>
+            </Link>
+          ) : (
+            <Link href="/carrito" className="ui-link">
+              <button className="ui-iconBtn" title="Carrito de compras">
+                <FiShoppingCart size={20} />
+                <span className="ui-badge">0</span>
+              </button>
+            </Link>
+          )}
 
-      <style jsx>{`
-       
-      `}</style>
-    </>
+          {/* LOGIN O USUARIO */}
+          {!usuarioLoading && !logado && (
+            <Link href="/login" className="ui-link">
+              <span className="ui-pill ui-pill--secondary">
+                <span className="ui-pillIcon">{renderIcon(accountMenu?.icone || "bi-person")}</span>
+                <span className="ui-pillText">Ingresar</span>
+              </span>
+            </Link>
+          )}
+
+          {!usuarioLoading && logado && (
+            <div className="ui-dropdown">
+              <button
+                type="button"
+                className="ui-pill ui-pill--secondary ui-userBtn"
+                onClick={() => setOpenUserDropdown((v) => !v)}
+                aria-expanded={openUserDropdown}
+              >
+                <span className="ui-pillIcon">
+                  <FiUser size={18} />
+                </span>
+                <span className="ui-pillText ui-strong">
+                  {usuario?.nome?.split(" ")[0] || "Usuario"}
+                </span>
+                <FiChevronDown
+                  size={16}
+                  className={`ui-chevIcon ${openUserDropdown ? "open" : ""}`}
+                />
+              </button>
+
+              {openUserDropdown && (
+                <div className="ui-menu">
+                  {accountItems.map((it) => {
+                    const isSair = String(it.titulo).toLowerCase().includes("sair");
+                    return (
+                      <button
+                        key={it.id}
+                        type="button"
+                        className={`ui-item ${isSair ? "ui-item--danger" : ""}`}
+                        onClick={() => handleAccountItem(it)}
+                      >
+                        <span className="ui-itemIcon">{renderIcon(it.icone)}</span>
+                        <span className="ui-itemText">{it.titulo}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </nav>
+      </div>
+    </header>
   );
 }
