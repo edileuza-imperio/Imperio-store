@@ -107,7 +107,7 @@ export default function AdicionarProdutoPage() {
         }));
       }
     } catch (error) {
-      console.error(error);
+      console.error("Erro ao carregar dependências:", error);
       alert("Erro ao carregar categorias e status.");
     } finally {
       setLoading(false);
@@ -187,16 +187,19 @@ export default function AdicionarProdutoPage() {
       body.append("descricao", form.descricao.trim());
       body.append("preco", form.preco || "0");
       body.append("preco_promocional", form.preco_promocional || "0");
-      body.append("slug", form.slug.trim());
       body.append("estoque", estoqueDesabilitado ? "0" : form.estoque || "0");
       body.append("ilimitado", form.ilimitado);
       body.append("statusid", form.statusid);
       body.append("catalogo", form.catalogo);
       body.append("categoria_id", form.categoria_id);
-      body.append("destaque", form.destaque || "");
-      body.append("sku", form.sku.trim());
-      body.append("modelo", form.modelo.trim());
-      body.append("parcelamento", form.parcelamento.trim());
+
+      if (form.slug.trim()) body.append("slug", form.slug.trim());
+      if (form.destaque.trim()) body.append("destaque", form.destaque.trim());
+      if (form.sku.trim()) body.append("sku", form.sku.trim());
+      if (form.modelo.trim()) body.append("modelo", form.modelo.trim());
+      if (form.parcelamento.trim()) {
+        body.append("parcelamento", form.parcelamento.trim());
+      }
 
       if (imagem) {
         body.append("imagem", imagem);
@@ -212,7 +215,7 @@ export default function AdicionarProdutoPage() {
       alert("Produto cadastrado com sucesso.");
       router.push("/painel/produtos");
     } catch (error: any) {
-      console.error(error);
+      console.error("Erro ao cadastrar produto:", error);
       alert(
         error?.response?.data?.mensagem ||
           error?.response?.data?.erro ||
@@ -397,7 +400,7 @@ export default function AdicionarProdutoPage() {
                       type="number"
                       value={form.destaque}
                       onChange={(e) => updateField("destaque", e.target.value)}
-                      placeholder="Ex: 1"
+                      placeholder="Opcional"
                     />
                   </div>
                 </div>
