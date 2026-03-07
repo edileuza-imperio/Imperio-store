@@ -1,0 +1,658 @@
+/* ✅ PAGE CONTAINER */
+.produtosPage {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 0;
+}
+
+/* ✅ PAGE HEADER */
+.pageHeader {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    padding: 28px 32px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.pageHeaderContent {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.pageHeaderLeft {
+    flex: 1;
+}
+
+.pageTitle {
+    margin: 0 0 8px;
+    font-size: 28px;
+    font-weight: 800;
+    color: #0f172a;
+    letter-spacing: -0.01em;
+}
+
+.pageDescription {
+    margin: 0;
+    font-size: 14px;
+    color: rgba(71, 85, 105, 0.8);
+    font-weight: 500;
+}
+
+/* ✅ BUTTONS */
+.btnPrimary {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 20px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    white-space: nowrap;
+}
+
+.btnPrimary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+}
+
+/* ✅ FILTERS SECTION */
+.filtersSection {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 32px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.filterGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.filterLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0f172a;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.filterInput {
+    padding: 10px 14px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #0f172a;
+    transition: all 0.2s ease;
+}
+
+.filterInput:focus {
+    outline: none;
+    background: rgba(255, 255, 255, 1);
+    border-color: rgba(59, 130, 246, 0.4);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filterInput::placeholder {
+    color: rgba(71, 85, 105, 0.6);
+}
+
+/* ✅ LOADING STATE */
+.loadingState {
+    max-width: 1400px;
+    margin: 60px auto;
+    text-align: center;
+    padding: 40px;
+}
+
+.loadingIcon {
+    font-size: 48px;
+    color: #3b82f6;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loadingState p {
+    font-size: 14px;
+    color: rgba(71, 85, 105, 0.8);
+    font-weight: 500;
+}
+
+/* ✅ EMPTY STATE */
+.emptyState {
+    max-width: 1400px;
+    margin: 60px auto;
+    text-align: center;
+    padding: 60px 32px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 2px dashed rgba(148, 163, 184, 0.2);
+    border-radius: 16px;
+}
+
+.emptyStateIcon {
+    font-size: 64px;
+    margin-bottom: 16px;
+}
+
+.emptyState h3 {
+    margin: 0 0 8px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.emptyState p {
+    margin: 0 0 24px;
+    font-size: 14px;
+    color: rgba(71, 85, 105, 0.8);
+}
+
+/* ✅ TABLE CONTAINER */
+.tableContainer {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 32px 24px;
+    overflow-x: auto;
+}
+
+.productsTable {
+    width: 100%;
+    border-collapse: collapse;
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.productsTable thead {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.productsTable th {
+    padding: 14px 16px;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0f172a;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tableRow {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.08);
+    transition: background 0.2s ease;
+}
+
+.tableRow:hover {
+    background: rgba(59, 130, 246, 0.02);
+}
+
+.productsTable td {
+    padding: 14px 16px;
+    font-size: 13px;
+    color: #0f172a;
+}
+
+/* TABLE CELLS */
+.cellImage {
+    width: 60px;
+}
+
+.productThumbnail {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    object-fit: cover;
+    border: 1px solid rgba(148, 163, 184, 0.12);
+}
+
+.productThumbnailPlaceholder {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+    background: rgba(248, 250, 252, 0.8);
+    border: 1px dashed rgba(148, 163, 184, 0.2);
+    display: grid;
+    place-items: center;
+    font-size: 20px;
+}
+
+.cellProduct {
+    width: 280px;
+}
+
+.productInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.productName {
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.4;
+}
+
+.productMeta {
+    font-size: 12px;
+    color: rgba(71, 85, 105, 0.8);
+}
+
+.cellCategory {
+    width: 140px;
+}
+
+.categoryBadge {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(139, 92, 246, 0.08));
+    color: #3b82f6;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.cellPrice {
+    width: 100px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.cellStock {
+    width: 80px;
+}
+
+.stockBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.stockBadge.ok {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+}
+
+.stockBadge.low {
+    background: rgba(251, 191, 36, 0.1);
+    color: #f59e0b;
+}
+
+.stockBadge.out {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.cellStatus {
+    width: 160px;
+}
+
+.statusBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: 6px;
+}
+
+.statusBadge.visible {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+}
+
+.statusBadge.hidden {
+    background: rgba(107, 114, 128, 0.15);
+    color: #6b7280;
+}
+
+.statusBadge.featured {
+    background: rgba(251, 191, 36, 0.15);
+    color: #f59e0b;
+}
+
+.cellActions {
+    width: 120px;
+}
+
+.actionButtons {
+    display: flex;
+    gap: 8px;
+}
+
+.actionBtn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.actionBtn.edit {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.actionBtn.edit:hover {
+    background: rgba(59, 130, 246, 0.2);
+}
+
+.actionBtn.images {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+}
+
+.actionBtn.images:hover {
+    background: rgba(139, 92, 246, 0.2);
+}
+
+.actionBtn.delete {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.actionBtn.delete:hover {
+    background: rgba(239, 68, 68, 0.2);
+}
+
+/* ✅ PAGINATION */
+.paginationSection {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.paginationInfo {
+    font-size: 13px;
+    color: rgba(71, 85, 105, 0.8);
+    font-weight: 500;
+}
+
+.paginationInfo p {
+    margin: 0;
+}
+
+.paginationInfo strong {
+    color: #0f172a;
+    font-weight: 700;
+}
+
+.paginationControls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.paginationBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 16px;
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.15);
+    border-radius: 10px;
+    color: rgba(71, 85, 105, 0.8);
+    font-weight: 600;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.paginationBtn:hover:not(:disabled) {
+    background: rgba(59, 130, 246, 0.1);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #3b82f6;
+}
+
+.paginationBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.paginationCounter {
+    font-size: 12px;
+    color: rgba(71, 85, 105, 0.8);
+    font-weight: 600;
+    min-width: 140px;
+    text-align: center;
+}
+
+/* ✅ RESPONSIVE */
+@media (max-width: 1024px) {
+    .pageHeaderContent {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .filtersSection {
+        grid-template-columns: repeat(2, 1fr);
+        padding: 16px 24px;
+    }
+
+    .tableContainer {
+        padding: 0 24px 16px;
+    }
+
+    .paginationSection {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 16px 24px;
+    }
+}
+
+@media (max-width: 768px) {
+    .pageHeader {
+        padding: 20px 16px;
+    }
+
+    .pageTitle {
+        font-size: 24px;
+    }
+
+    .pageDescription {
+        font-size: 12px;
+    }
+
+    .filtersSection {
+        grid-template-columns: 1fr;
+        padding: 12px 16px;
+        gap: 12px;
+    }
+
+    .tableContainer {
+        padding: 0 16px 12px;
+        overflow-x: auto;
+    }
+
+    .productsTable {
+        font-size: 12px;
+    }
+
+    .productsTable th,
+    .productsTable td {
+        padding: 10px 12px;
+    }
+
+    .cellProduct {
+        width: 200px;
+    }
+
+    .cellCategory {
+        width: 100px;
+    }
+
+    .actionButtons {
+        gap: 4px;
+    }
+
+    .actionBtn {
+        width: 32px;
+        height: 32px;
+        font-size: 12px;
+    }
+
+    .paginationSection {
+        padding: 12px 16px;
+    }
+
+    .paginationControls {
+        gap: 8px;
+        width: 100%;
+    }
+
+    .paginationBtn {
+        padding: 8px 12px;
+        font-size: 11px;
+    }
+
+    .paginationCounter {
+        min-width: 100px;
+        font-size: 11px;
+    }
+}
+
+@media (max-width: 480px) {
+    .pageHeader {
+        padding: 16px 12px;
+    }
+
+    .pageTitle {
+        font-size: 20px;
+    }
+
+    .pageHeaderContent {
+        gap: 12px;
+    }
+
+    .btnPrimary {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .filtersSection {
+        padding: 12px;
+        gap: 10px;
+    }
+
+    .tableContainer {
+        padding: 0 12px 12px;
+    }
+
+    .productsTable th {
+        font-size: 11px;
+        padding: 8px 10px;
+    }
+
+    .productsTable td {
+        padding: 8px 10px;
+        font-size: 11px;
+    }
+
+    .cellProduct {
+        width: 150px;
+    }
+
+    .productName {
+        font-size: 12px;
+    }
+
+    .productMeta {
+        font-size: 10px;
+    }
+
+    .cellCategory {
+        display: none;
+    }
+
+    .categoryBadge {
+        padding: 4px 8px;
+        font-size: 10px;
+    }
+
+    .cellPrice {
+        width: 70px;
+        font-size: 12px;
+    }
+
+    .cellStock {
+        width: 60px;
+    }
+
+    .stockBadge {
+        width: 36px;
+        height: 36px;
+        font-size: 12px;
+    }
+
+    .cellStatus {
+        display: none;
+    }
+
+    .paginationSection {
+        padding: 12px;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .paginationInfo {
+        text-align: center;
+        font-size: 11px;
+    }
+
+    .paginationControls {
+        width: 100%;
+    }
+
+    .paginationBtn {
+        flex: 1;
+        font-size: 10px;
+        padding: 8px 10px;
+    }
+
+    .paginationCounter {
+        min-width: auto;
+        font-size: 10px;
+    }
+}
