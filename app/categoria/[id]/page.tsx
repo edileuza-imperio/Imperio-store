@@ -120,56 +120,71 @@ export default function CategoriaPage() {
         <div className="container">
           <div className="breadcrumb">
             <Link href="/">Home</Link>
-            <span>›</span>
+            <span className="separator">›</span>
             <Link href="/categoria">Categorias</Link>
-            <span>›</span>
-            <span>{nomeCategoria}</span>
+            <span className="separator">›</span>
+            <span className="current">{nomeCategoria}</span>
           </div>
 
           <section className="hero">
-            <div className="heroText">
-              <span className="badge">Categoria</span>
-              <h1>{nomeCategoria}</h1>
-              <p>
-                Confira os produtos disponíveis nesta categoria e escolha o que
-                mais combina com seu pedido.
-              </p>
-            </div>
+            <div className="heroContent">
+              <div className="heroText">
+                <span className="badge">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M12 2L15.09 8.26H22L17.82 12.44L20.91 18.7L12 14.52L3.09 18.7L6.18 12.44L2 8.26H8.91L12 2Z" />
+                  </svg>
+                  Categoria
+                </span>
+                <h1>{nomeCategoria}</h1>
+                <p>
+                  Explore nossa seleção de produtos nesta categoria. Encontre exatamente o que você procura com preços competitivos e qualidade garantida.
+                </p>
+              </div>
 
-            <div className="heroInfo">
-              <div className="heroCard">
-                <strong>{produtos.length}</strong>
-                <span>{produtos.length === 1 ? "produto" : "produtos"}</span>
+              <div className="heroStats">
+                <div className="statCard">
+                  <div className="statNumber">{produtos.length}</div>
+                  <div className="statLabel">{produtos.length === 1 ? "Produto" : "Produtos"}</div>
+                </div>
               </div>
             </div>
           </section>
 
           {loading && (
-            <div className="stateBox">
-              <h3>Carregando produtos...</h3>
-              <p>Aguarde enquanto buscamos os itens desta categoria.</p>
+            <div className="stateContainer">
+              <div className="stateBox loading">
+                <div className="spinner"></div>
+                <h3>Carregando produtos...</h3>
+                <p>Aguarde enquanto buscamos os itens desta categoria.</p>
+              </div>
             </div>
           )}
 
           {!loading && erro && (
-            <div className="stateBox error">
-              <h3>Ops, ocorreu um problema</h3>
-              <p>{erro}</p>
-              <button type="button" className="retryBtn" onClick={carregarProdutos}>
-                Tentar novamente
-              </button>
+            <div className="stateContainer">
+              <div className="stateBox error">
+                <div className="errorIcon">⚠️</div>
+                <h3>Oops! Algo deu errado</h3>
+                <p>{erro}</p>
+                <button type="button" className="retryBtn" onClick={carregarProdutos}>
+                  Tentar novamente
+                </button>
+              </div>
             </div>
           )}
 
           {!loading && !erro && produtos.length === 0 && (
-            <div className="stateBox">
-              <h3>Nenhum produto encontrado</h3>
-              <p>Essa categoria ainda não possui produtos cadastrados.</p>
+            <div className="stateContainer">
+              <div className="stateBox empty">
+                <div className="emptyIcon">📦</div>
+                <h3>Nenhum produto encontrado</h3>
+                <p>Essa categoria ainda não possui produtos cadastrados. Volte em breve!</p>
+              </div>
             </div>
           )}
 
           {!loading && !erro && produtos.length > 0 && (
-            <section className="grid">
+            <section className="productsGrid">
               {produtos.map((produto) => {
                 const precoPromocional = Number(produto.preco_promocional || 0);
                 const precoNormal = Number(produto.preco || 0);
@@ -180,48 +195,64 @@ export default function CategoriaPage() {
                   Number(produto.ilimitado || 0) !== 1 &&
                   Number(produto.estoque || 0) <= 0;
 
-                return (
-                  <article key={produto.id_produto} className="card">
-                    <Link
-                      href={`/produto/${produto.slug || produto.id_produto}`}
-                      className="imageWrap"
-                    >
-                      <img
-                        src={getImagemUrl(produto.imagem)}
-                        alt={produto.nome}
-                        loading="lazy"
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).src = "/sem-imagem.png";
-                        }}
-                      />
-                      {precoPromocional > 0 && <span className="promoTag">Oferta</span>}
-                    </Link>
+                const percentualDesconto = precoPromocional > 0
+                  ? Math.round(((precoNormal - precoPromocional) / precoNormal) * 100)
+                  : 0;
 
-                    <div className="info">
-                      <span className="categoryMini">{produto.categoria_nome || nomeCategoria}</span>
+                return (
+                  <article key={produto.id_produto} className="productCard">
+                    <div className="imageContainer">
+                      <Link
+                        href={`/produto/${produto.slug || produto.id_produto}`}
+                        className="imageLink"
+                      >
+                        <img
+                          src={getImagemUrl(produto.imagem)}
+                          alt={produto.nome}
+                          loading="lazy"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).src = "/sem-imagem.png";
+                          }}
+                        />
+                      </Link>
+
+                      {precoPromocional > 0 && (
+                        <div className="badges">
+                          <span className="discountBadge">-{percentualDesconto}%</span>
+                        </div>
+                      )}
+
+                      {semEstoque && <div className="outOfStockOverlay">Sem estoque</div>}
+                    </div>
+
+                    <div className="cardContent">
+                      <span className="categoryTag">{produto.categoria_nome || nomeCategoria}</span>
 
                       <Link
                         href={`/produto/${produto.slug || produto.id_produto}`}
-                        className="titleLink"
+                        className="productTitle"
                       >
                         <h3 title={produto.nome}>{produto.nome}</h3>
                       </Link>
 
-                      <p className="desc">{resumoDescricao(produto.descricao)}</p>
+                      <p className="productDesc">{resumoDescricao(produto.descricao)}</p>
 
-                      <div className="priceBox">
+                      <div className="priceSection">
                         {precoPromocional > 0 && (
-                          <span className="old">{formatMoney(precoNormal)}</span>
+                          <span className="originalPrice">{formatMoney(precoNormal)}</span>
                         )}
-
-                        <span className="current">{formatMoney(precoFinal)}</span>
+                        <span className="finalPrice">{formatMoney(precoFinal)}</span>
                       </div>
 
-                      <div className="stockRow">
+                      <div className="stockStatus">
                         {semEstoque ? (
-                          <span className="stock out">Sem estoque</span>
+                          <span className="badge-stock out">
+                            <span className="dot"></span>
+                            Sem estoque
+                          </span>
                         ) : (
-                          <span className="stock in">
+                          <span className="badge-stock in">
+                            <span className="dot"></span>
                             {Number(produto.ilimitado || 0) === 1
                               ? "Disponível"
                               : `Estoque: ${produto.estoque ?? 0}`}
@@ -229,23 +260,41 @@ export default function CategoriaPage() {
                         )}
                       </div>
 
-                      <div className="actions">
+                      <div className="actionButtons">
                         <button
                           type="button"
-                          className="cartBtn"
+                          className="btnPrimary"
                           onClick={() => adicionarAoCarrinho(produto.id_produto)}
                           disabled={semEstoque || addingId === produto.id_produto}
+                          title={semEstoque ? "Produto sem estoque" : "Adicionar ao carrinho"}
                         >
-                          {addingId === produto.id_produto
-                            ? "Adicionando..."
-                            : "Adicionar ao carrinho"}
+                          {addingId === produto.id_produto ? (
+                            <>
+                              <span className="spinner-mini"></span>
+                              Adicionando...
+                            </>
+                          ) : (
+                            <>
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                <circle cx="9" cy="21" r="1"></circle>
+                                <circle cx="20" cy="21" r="1"></circle>
+                                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                              </svg>
+                              Carrinho
+                            </>
+                          )}
                         </button>
 
                         <Link
                           href={`/produto/${produto.slug || produto.id_produto}`}
-                          className="detailsBtn"
+                          className="btnSecondary"
+                          title="Ver detalhes do produto"
                         >
-                          Ver detalhes
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                            <circle cx="12" cy="12" r="3"></circle>
+                          </svg>
+                          Detalhes
                         </Link>
                       </div>
                     </div>
@@ -260,50 +309,87 @@ export default function CategoriaPage() {
       <FooterPrincipal />
 
       <style jsx>{`
+        * {
+          box-sizing: border-box;
+        }
+
         .page {
           min-height: 100vh;
-          background:
-            radial-gradient(circle at top, rgba(255, 240, 244, 0.9), transparent 28%),
-            linear-gradient(180deg, #fff 0%, #fff8fa 100%);
+          background: linear-gradient(135deg, #f8f9ff 0%, #fff5f8 50%, #fffbf0 100%);
+          padding: 40px 0;
         }
 
         .container {
-          max-width: 1280px;
+          max-width: 1320px;
           margin: 0 auto;
-          padding: 34px 20px 64px;
+          padding: 0 20px;
         }
 
+        /* Breadcrumb */
         .breadcrumb {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
           flex-wrap: wrap;
           font-size: 14px;
-          color: #7a7a7a;
-          margin-bottom: 22px;
+          color: #6b7280;
+          margin-bottom: 32px;
+          padding: 0;
         }
 
         .breadcrumb a {
-          color: #7a7a7a;
+          color: #6b7280;
           text-decoration: none;
-          transition: color 0.2s ease;
+          font-weight: 500;
+          transition: all 0.3s ease;
+          position: relative;
         }
 
         .breadcrumb a:hover {
-          color: #d6336c;
+          color: #ec4899;
         }
 
+        .breadcrumb a::after {
+          content: "";
+          position: absolute;
+          bottom: -2px;
+          left: 0;
+          width: 0;
+          height: 2px;
+          background: #ec4899;
+          transition: width 0.3s ease;
+        }
+
+        .breadcrumb a:hover::after {
+          width: 100%;
+        }
+
+        .breadcrumb .separator {
+          color: #d1d5db;
+          margin: 0 4px;
+        }
+
+        .breadcrumb .current {
+          color: #ec4899;
+          font-weight: 600;
+        }
+
+        /* Hero Section */
         .hero {
+          margin-bottom: 48px;
+          padding: 48px;
+          border-radius: 20px;
+          background: linear-gradient(135deg, #ffffff 0%, #fff8fc 100%);
+          border: 1px solid #f3e8f5;
+          box-shadow: 0 20px 60px rgba(236, 72, 153, 0.08);
+          backdrop-filter: blur(10px);
+        }
+
+        .heroContent {
           display: flex;
-          align-items: stretch;
+          align-items: center;
           justify-content: space-between;
-          gap: 18px;
-          margin-bottom: 34px;
-          padding: 28px;
-          border-radius: 24px;
-          background: linear-gradient(135deg, #ffffff 0%, #fff3f7 100%);
-          border: 1px solid #f3d9e3;
-          box-shadow: 0 12px 36px rgba(214, 51, 108, 0.08);
+          gap: 40px;
         }
 
         .heroText {
@@ -313,357 +399,641 @@ export default function CategoriaPage() {
         .badge {
           display: inline-flex;
           align-items: center;
-          justify-content: center;
-          padding: 8px 12px;
-          border-radius: 999px;
-          background: #ffe3ec;
-          color: #b02557;
-          font-size: 12px;
+          gap: 8px;
+          padding: 10px 16px;
+          border-radius: 50px;
+          background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
+          color: #be185d;
+          font-size: 13px;
           font-weight: 700;
-          letter-spacing: 0.05em;
+          letter-spacing: 0.5px;
           text-transform: uppercase;
-          margin-bottom: 14px;
+          margin-bottom: 16px;
+          width: fit-content;
+        }
+
+        .badge svg {
+          width: 16px;
+          height: 16px;
         }
 
         .heroText h1 {
-          margin: 0 0 8px;
-          font-size: 34px;
-          line-height: 1.1;
+          font-size: 42px;
           font-weight: 800;
-          color: #1f1f1f;
+          color: #1f2937;
+          line-height: 1.2;
+          margin: 0 0 16px 0;
+          letter-spacing: -1px;
         }
 
         .heroText p {
-          margin: 0;
-          max-width: 760px;
-          color: #6f6f6f;
-          font-size: 15px;
+          font-size: 16px;
+          color: #6b7280;
           line-height: 1.6;
+          margin: 0;
+          max-width: 500px;
         }
 
-        .heroInfo {
-          min-width: 170px;
+        .heroStats {
           display: flex;
+          gap: 24px;
           align-items: center;
-          justify-content: center;
         }
 
-        .heroCard {
-          width: 100%;
-          min-height: 120px;
-          border-radius: 20px;
-          background: linear-gradient(135deg, #d6336c 0%, #ef476f 100%);
-          color: #fff;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-direction: column;
-          box-shadow: 0 14px 30px rgba(214, 51, 108, 0.2);
+        .statCard {
+          padding: 32px 24px;
+          border-radius: 16px;
+          background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+          color: white;
+          text-align: center;
+          min-width: 140px;
+          box-shadow: 0 10px 30px rgba(236, 72, 153, 0.3);
         }
 
-        .heroCard strong {
-          font-size: 34px;
+        .statNumber {
+          font-size: 36px;
+          font-weight: 800;
           line-height: 1;
+          margin-bottom: 8px;
         }
 
-        .heroCard span {
-          margin-top: 6px;
-          font-size: 14px;
+        .statLabel {
+          font-size: 13px;
           opacity: 0.95;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+
+        /* State Containers */
+        .stateContainer {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 400px;
+          padding: 40px 20px;
         }
 
         .stateBox {
           text-align: center;
-          padding: 64px 20px;
+          padding: 60px 40px;
           border-radius: 20px;
-          background: #fff;
-          border: 1px solid #eee;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+          background: white;
+          border: 1px solid #f3e8f5;
+          max-width: 500px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
         }
 
         .stateBox h3 {
-          margin: 0 0 8px;
           font-size: 24px;
-          color: #222;
+          font-weight: 700;
+          color: #1f2937;
+          margin: 16px 0 8px 0;
         }
 
         .stateBox p {
-          margin: 0;
-          color: #737373;
+          font-size: 15px;
+          color: #6b7280;
+          margin: 0 0 24px 0;
+          line-height: 1.6;
         }
 
-        .stateBox.error {
-          border-color: #ffd2d2;
-          background: #fff8f8;
+        .spinner {
+          width: 50px;
+          height: 50px;
+          border: 4px solid #f3e8f5;
+          border-top-color: #ec4899;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+          margin: 0 auto 24px;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        .errorIcon,
+        .emptyIcon {
+          font-size: 48px;
+          margin-bottom: 16px;
         }
 
         .retryBtn {
-          margin-top: 18px;
-          border: 0;
-          border-radius: 12px;
-          padding: 12px 18px;
-          background: #d6336c;
-          color: #fff;
-          font-weight: 700;
+          padding: 12px 32px;
+          border: none;
+          border-radius: 10px;
+          background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+          color: white;
+          font-size: 15px;
+          font-weight: 600;
           cursor: pointer;
-          transition: 0.2s ease;
+          transition: all 0.3s ease;
+          box-shadow: 0 10px 20px rgba(236, 72, 153, 0.2);
         }
 
         .retryBtn:hover {
-          filter: brightness(1.05);
-          transform: translateY(-1px);
+          transform: translateY(-2px);
+          box-shadow: 0 15px 30px rgba(236, 72, 153, 0.3);
         }
 
-        .grid {
+        /* Products Grid */
+        .productsGrid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
-          gap: 22px;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 28px;
+          margin-top: 40px;
         }
 
-        .card {
+        /* Product Card */
+        .productCard {
           display: flex;
           flex-direction: column;
-          background: #fff;
-          border-radius: 22px;
+          border-radius: 16px;
+          background: white;
+          border: 1px solid #f3e8f5;
           overflow: hidden;
-          border: 1px solid #f0f0f0;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
-          transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+          height: 100%;
         }
 
-        .card:hover {
-          transform: translateY(-6px);
-          box-shadow: 0 18px 36px rgba(0, 0, 0, 0.1);
-          border-color: #f3c7d6;
+        .productCard:hover {
+          transform: translateY(-8px);
+          box-shadow: 0 20px 40px rgba(236, 72, 153, 0.15);
+          border-color: #fbcfe8;
         }
 
-        .imageWrap {
+        .imageContainer {
           position: relative;
+          width: 100%;
+          aspect-ratio: 1;
+          background: linear-gradient(135deg, #f8f9ff 0%, #fff5f8 100%);
+          overflow: hidden;
+        }
+
+        .imageLink {
+          display: block;
+          width: 100%;
+          height: 100%;
+          overflow: hidden;
+        }
+
+        .imageContainer img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: transform 0.4s ease;
+        }
+
+        .productCard:hover .imageContainer img {
+          transform: scale(1.08);
+        }
+
+        .badges {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          display: flex;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        .discountBadge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 8px 12px;
+          border-radius: 8px;
+          background: linear-gradient(135deg, #ef4444 0%, #f87171 100%);
+          color: white;
+          font-size: 13px;
+          font-weight: 700;
+          box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .outOfStockOverlay {
+          position: absolute;
+          inset: 0;
           display: flex;
           align-items: center;
           justify-content: center;
-          height: 230px;
-          background: linear-gradient(180deg, #fff 0%, #fff7fa 100%);
-          text-decoration: none;
-        }
-
-        .imageWrap img {
-          max-width: calc(100% - 24px);
-          max-height: calc(100% - 24px);
-          object-fit: contain;
-          transition: transform 0.25s ease;
-        }
-
-        .card:hover .imageWrap img {
-          transform: scale(1.03);
-        }
-
-        .promoTag {
-          position: absolute;
-          top: 14px;
-          left: 14px;
-          background: #e60023;
-          color: #fff;
-          font-size: 12px;
+          background: rgba(0, 0, 0, 0.5);
+          color: white;
           font-weight: 700;
-          padding: 7px 10px;
-          border-radius: 999px;
-          box-shadow: 0 6px 16px rgba(230, 0, 35, 0.24);
+          font-size: 16px;
+          backdrop-filter: blur(2px);
         }
 
-        .info {
+        .cardContent {
           display: flex;
           flex-direction: column;
-          padding: 18px;
-          gap: 10px;
           flex: 1;
+          padding: 20px;
         }
 
-        .categoryMini {
+        .categoryTag {
+          display: inline-block;
           font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 0.04em;
+          font-weight: 600;
+          color: #ec4899;
+          background: #fce7f3;
+          padding: 6px 10px;
+          border-radius: 6px;
+          width: fit-content;
           text-transform: uppercase;
-          color: #c2255c;
+          letter-spacing: 0.5px;
+          margin-bottom: 12px;
         }
 
-        .titleLink {
+        .productTitle {
           text-decoration: none;
-          color: inherit;
+          margin-bottom: 8px;
         }
 
-        .info h3 {
-          margin: 0;
-          font-size: 17px;
-          line-height: 1.35;
+        .productTitle h3 {
+          font-size: 16px;
           font-weight: 700;
-          color: #202020;
-          min-height: 46px;
-        }
-
-        .desc {
+          color: #1f2937;
+          line-height: 1.4;
           margin: 0;
-          color: #6f6f6f;
-          font-size: 14px;
-          line-height: 1.5;
-          min-height: 42px;
+          min-height: 48px;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          transition: color 0.3s ease;
         }
 
-        .priceBox {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          margin-top: 2px;
+        .productCard:hover .productTitle h3 {
+          color: #ec4899;
         }
 
-        .old {
+        .productDesc {
           font-size: 13px;
-          color: #989898;
-          text-decoration: line-through;
+          color: #6b7280;
+          line-height: 1.5;
+          margin: 0 0 12px 0;
+          min-height: 39px;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
 
-        .current {
-          font-size: 24px;
+        .priceSection {
+          display: flex;
+          align-items: baseline;
+          gap: 8px;
+          margin: 12px 0 16px 0;
+        }
+
+        .originalPrice {
+          font-size: 13px;
+          color: #9ca3af;
+          text-decoration: line-through;
+          font-weight: 500;
+        }
+
+        .finalPrice {
+          font-size: 28px;
           font-weight: 800;
-          color: #d6336c;
+          color: #ec4899;
           line-height: 1;
         }
 
-        .stockRow {
-          min-height: 22px;
+        .stockStatus {
+          margin-bottom: 16px;
         }
 
-        .stock {
+        .badge-stock {
           display: inline-flex;
           align-items: center;
-          font-size: 13px;
+          gap: 6px;
+          font-size: 12px;
           font-weight: 600;
-          border-radius: 999px;
-          padding: 6px 10px;
+          border-radius: 8px;
+          padding: 8px 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
-        .stock.in {
-          background: #ebfbee;
-          color: #2b8a3e;
+        .badge-stock.in {
+          background: #dcfce7;
+          color: #166534;
         }
 
-        .stock.out {
-          background: #fff5f5;
-          color: #c92a2a;
+        .badge-stock.out {
+          background: #fee2e2;
+          color: #991b1b;
         }
 
-        .actions {
+        .dot {
+          display: inline-block;
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: currentColor;
+        }
+
+        .actionButtons {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 10px;
           margin-top: auto;
-          padding-top: 4px;
         }
 
-        .cartBtn,
-        .detailsBtn {
-          min-height: 46px;
-          border-radius: 14px;
-          display: inline-flex;
+        .btnPrimary,
+        .btnSecondary {
+          display: flex;
           align-items: center;
           justify-content: center;
-          text-align: center;
-          text-decoration: none;
+          gap: 8px;
+          padding: 12px 16px;
+          border-radius: 10px;
           font-size: 14px;
-          font-weight: 700;
-          transition: 0.2s ease;
-        }
-
-        .cartBtn {
-          border: 0;
-          background: linear-gradient(135deg, #d6336c 0%, #ef476f 100%);
-          color: #fff;
+          font-weight: 600;
+          text-decoration: none;
+          transition: all 0.3s ease;
+          border: none;
           cursor: pointer;
-          box-shadow: 0 10px 20px rgba(214, 51, 108, 0.18);
+          white-space: nowrap;
+          min-height: 44px;
         }
 
-        .cartBtn:hover:not(:disabled) {
-          transform: translateY(-1px);
-          filter: brightness(1.03);
+        .btnPrimary {
+          background: linear-gradient(135deg, #ec4899 0%, #f472b6 100%);
+          color: white;
+          box-shadow: 0 10px 20px rgba(236, 72, 153, 0.2);
         }
 
-        .cartBtn:disabled {
+        .btnPrimary:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 15px 30px rgba(236, 72, 153, 0.3);
+        }
+
+        .btnPrimary:disabled {
+          opacity: 0.6;
           cursor: not-allowed;
-          opacity: 0.7;
-          box-shadow: none;
+          transform: none;
         }
 
-        .detailsBtn {
-          background: #fff;
-          color: #333;
-          border: 1px solid #e9e9e9;
+        .btnSecondary {
+          background: #f3f4f6;
+          color: #1f2937;
+          border: 1px solid #e5e7eb;
         }
 
-        .detailsBtn:hover {
-          border-color: #d6336c;
-          color: #d6336c;
-          transform: translateY(-1px);
+        .btnSecondary:hover {
+          background: #ec4899;
+          color: white;
+          border-color: #ec4899;
+          transform: translateY(-2px);
         }
 
-        @media (max-width: 900px) {
+        .spinner-mini {
+          display: inline-block;
+          width: 14px;
+          height: 14px;
+          border: 2px solid rgba(255, 255, 255, 0.3);
+          border-top-color: white;
+          border-radius: 50%;
+          animation: spin 0.6s linear infinite;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
           .hero {
-            flex-direction: column;
-            padding: 22px;
+            padding: 36px;
           }
 
-          .heroInfo {
+          .heroContent {
+            flex-direction: column;
+            gap: 24px;
+          }
+
+          .heroStats {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .statCard {
+            flex: 1;
             min-width: auto;
           }
 
-          .heroCard {
-            min-height: 96px;
+          .productsGrid {
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 24px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .page {
+            padding: 24px 0;
+          }
+
+          .container {
+            padding: 0 16px;
+          }
+
+          .hero {
+            padding: 28px;
+            margin-bottom: 32px;
+          }
+
+          .heroText h1 {
+            font-size: 32px;
+          }
+
+          .heroText p {
+            font-size: 15px;
+          }
+
+          .productsGrid {
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+          }
+
+          .cardContent {
+            padding: 16px;
+          }
+
+          .productTitle h3 {
+            font-size: 15px;
+            min-height: 44px;
+          }
+
+          .finalPrice {
+            font-size: 24px;
+          }
+
+          .actionButtons {
+            grid-template-columns: 1fr;
+          }
+
+          .btnPrimary,
+          .btnSecondary {
+            padding: 11px 14px;
+            font-size: 13px;
+            min-height: 40px;
           }
         }
 
         @media (max-width: 640px) {
-          .container {
-            padding: 24px 14px 48px;
+          .breadcrumb {
+            font-size: 12px;
+            margin-bottom: 24px;
+          }
+
+          .hero {
+            padding: 20px;
+            margin-bottom: 24px;
+          }
+
+          .badge {
+            font-size: 11px;
+            padding: 8px 12px;
           }
 
           .heroText h1 {
+            font-size: 26px;
+            margin-bottom: 12px;
+          }
+
+          .heroText p {
+            font-size: 14px;
+          }
+
+          .statCard {
+            padding: 24px 16px;
+            min-width: 120px;
+          }
+
+          .statNumber {
             font-size: 28px;
           }
 
-          .grid {
-            grid-template-columns: 1fr 1fr;
-            gap: 14px;
+          .statLabel {
+            font-size: 11px;
           }
 
-          .imageWrap {
-            height: 180px;
+          .productsGrid {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
           }
 
-          .info {
+          .imageContainer {
+            aspect-ratio: 1;
+          }
+
+          .cardContent {
             padding: 14px;
           }
 
-          .info h3 {
-            font-size: 15px;
+          .productTitle h3 {
+            font-size: 14px;
             min-height: 40px;
           }
 
-          .desc {
-            font-size: 13px;
-            min-height: 38px;
+          .productDesc {
+            font-size: 12px;
+            min-height: 36px;
           }
 
-          .current {
+          .finalPrice {
             font-size: 20px;
           }
 
-          .actions {
-            grid-template-columns: 1fr;
+          .stateBox {
+            padding: 40px 24px;
+          }
+
+          .stateBox h3 {
+            font-size: 20px;
+          }
+
+          .stateBox p {
+            font-size: 14px;
           }
         }
 
-        @media (max-width: 420px) {
-          .grid {
+        @media (max-width: 480px) {
+          .container {
+            padding: 0 12px;
+          }
+
+          .breadcrumb {
+            font-size: 11px;
+            gap: 6px;
+            margin-bottom: 16px;
+          }
+
+          .hero {
+            padding: 16px;
+            margin-bottom: 20px;
+          }
+
+          .heroText h1 {
+            font-size: 22px;
+          }
+
+          .heroText p {
+            font-size: 13px;
+          }
+
+          .heroStats {
+            flex-direction: row;
+            gap: 12px;
+          }
+
+          .statCard {
+            padding: 16px 12px;
+            min-width: 100px;
+          }
+
+          .statNumber {
+            font-size: 24px;
+          }
+
+          .productsGrid {
             grid-template-columns: 1fr;
+            gap: 14px;
+          }
+
+          .cardContent {
+            padding: 12px;
+          }
+
+          .productTitle h3 {
+            font-size: 13px;
+          }
+
+          .finalPrice {
+            font-size: 18px;
+          }
+
+          .btnPrimary,
+          .btnSecondary {
+            padding: 10px 12px;
+            font-size: 12px;
+            min-height: 38px;
+          }
+
+          .stateContainer {
+            min-height: 300px;
+            padding: 24px 12px;
+          }
+
+          .stateBox {
+            padding: 32px 20px;
+          }
+
+          .stateBox h3 {
+            font-size: 18px;
+          }
+
+          .stateBox p {
+            font-size: 13px;
           }
         }
       `}</style>
