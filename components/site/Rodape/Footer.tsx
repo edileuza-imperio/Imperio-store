@@ -20,7 +20,7 @@ export default function FooterProfissional() {
     { titulo: "Sobre Nós", url: "/sobre" },
     { titulo: "Contato", url: "/contato" },
     { titulo: "Política de Privacidade", url: "/politica" },
-    { titulo: "FAQ", url: "/faq" },
+    { titulo: "Perguntas Frequentes", url: "/faq" },
   ];
 
   const redesSociais = [
@@ -50,19 +50,19 @@ export default function FooterProfissional() {
             </div>
 
             <p className="footer-description">
-              Productos seleccionados para fiestas y eventos. Atención rápida, calidad y una experiencia premium del inicio al fin.
+              Produtos selecionados para festas e eventos. Atendimento rápido, qualidade premium e uma experiência luxuosa do início ao fim.
             </p>
 
             <div className="footer-badges">
               <span className="footer-badge">
-                <span className="footer-badge-dot" /> Pago seguro
+                <span className="footer-badge-dot" /> Pagamento Seguro
               </span>
               <span className="footer-badge">
-                <span className="footer-badge-dot" /> Soporte en WhatsApp
+                <span className="footer-badge-dot" /> Suporte WhatsApp
               </span>
             </div>
 
-            <div className="footer-social" aria-label="Redes sociales">
+            <div className="footer-social" aria-label="Redes sociais">
               {redesSociais.map((rede, idx) => (
                 <a
                   key={idx}
@@ -81,7 +81,7 @@ export default function FooterProfissional() {
 
           {/* LINKS SECTION */}
           <div className="col-lg-2 col-sm-6">
-            <h3 className="footer-section-title">Navegación</h3>
+            <h3 className="footer-section-title">Navegação</h3>
             <ul className="footer-links">
               {links.map((link, idx) => (
                 <li key={idx}>
@@ -96,16 +96,16 @@ export default function FooterProfissional() {
 
           {/* CONTACT SECTION */}
           <div className="col-lg-5">
-            <h3 className="footer-section-title">Contacto</h3>
+            <h3 className="footer-section-title">Contato</h3>
             <div className="footer-contact">
               <div className="footer-contact-item">
                 <div className="footer-contact-icon">
                   <FaMapMarkerAlt />
                 </div>
                 <div>
-                  <h4 className="footer-contact-title">Dirección</h4>
+                  <h4 className="footer-contact-title">Endereço</h4>
                   <p className="footer-contact-text">
-                    Calle Principal 123, São Paulo, SP 01234-567
+                    Avenida Paulista 1000, São Paulo, SP 01311-100
                   </p>
                 </div>
               </div>
@@ -129,7 +129,7 @@ export default function FooterProfissional() {
                   <FaPhoneAlt />
                 </div>
                 <div>
-                  <h4 className="footer-contact-title">Teléfono</h4>
+                  <h4 className="footer-contact-title">Telefone</h4>
                   <p className="footer-contact-text">
                     <a href="tel:+5511991483834" className="footer-contact-link">
                       +55 (11) 99148-3834
@@ -147,12 +147,12 @@ export default function FooterProfissional() {
         {/* BOTTOM SECTION */}
         <div className="footer-bottom">
           <p className="footer-bottom-text">
-            © 2024 Universo Império. Todos los derechos reservados.
+            © 2024 Universo Império. Todos os direitos reservados.
           </p>
 
           <div className="footer-payments">
             <span style={{ fontSize: "12px", fontWeight: "700", color: "var(--color-textMuted)", marginRight: "8px" }}>
-              Métodos de pago:
+              Formas de pagamento:
             </span>
             {metodosPagamento.map((metodo, idx) => (
               <div key={idx} className="footer-payment-item" title={metodo.label}>
@@ -164,12 +164,12 @@ export default function FooterProfissional() {
           <ul className="footer-bottom-links">
             <li>
               <a href="/politica" className="footer-bottom-link">
-                Política de Privacidad
+                Política de Privacidade
               </a>
             </li>
             <li>
               <a href="/terminos" className="footer-bottom-link">
-                Términos de Servicio
+                Termos de Serviço
               </a>
             </li>
           </ul>
