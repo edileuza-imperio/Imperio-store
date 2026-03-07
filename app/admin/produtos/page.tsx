@@ -70,7 +70,7 @@ export default function ProdutosPage() {
   const [categoriaSelecionada, setCategoriaSelecionada] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
 
-  const itensPorPagina = 10;
+  const itensPorPagina = 3;
 
   async function carregarTudo() {
     try {
@@ -151,13 +151,8 @@ export default function ProdutosPage() {
     let inicio = Math.max(1, paginaAtual - 2);
     let fim = Math.min(totalPaginas, paginaAtual + 2);
 
-    if (paginaAtual <= 3) {
-      fim = Math.min(totalPaginas, 5);
-    }
-
-    if (paginaAtual >= totalPaginas - 2) {
-      inicio = Math.max(1, totalPaginas - 4);
-    }
+    if (paginaAtual <= 3) fim = Math.min(totalPaginas, 5);
+    if (paginaAtual >= totalPaginas - 2) inicio = Math.max(1, totalPaginas - 4);
 
     for (let i = inicio; i <= fim; i++) {
       paginas.push(i);
@@ -173,13 +168,13 @@ export default function ProdutosPage() {
           <div className="heroLeft">
             <div className="heroBadge">
               <FiGrid size={15} />
-              Catálogo
+              Catálogo inteligente
             </div>
 
             <h1 className="heroTitle">Produtos</h1>
+
             <p className="heroText">
-              Pesquise, filtre por categoria e navegue pelos produtos de forma
-              rápida.
+              Filtre por categoria, pesquise rapidamente e navegue em lotes de 3 produtos por página.
             </p>
           </div>
 
@@ -212,10 +207,7 @@ export default function ProdutosPage() {
             >
               <option value="">Todas as categorias</option>
               {categorias.map((categoria) => (
-                <option
-                  key={categoria.id_categoria}
-                  value={categoria.id_categoria}
-                >
+                <option key={categoria.id_categoria} value={categoria.id_categoria}>
                   {categoria.nome}
                 </option>
               ))}
@@ -223,22 +215,13 @@ export default function ProdutosPage() {
           </div>
         </section>
 
-        <section className="summaryRow">
-          <div className="summaryCard">
-            <span className="summaryLabel">Total</span>
-            <strong className="summaryValue">{produtos.length}</strong>
-          </div>
-
-          <div className="summaryCard">
-            <span className="summaryLabel">Filtrados</span>
-            <strong className="summaryValue">{produtosFiltrados.length}</strong>
-          </div>
-
-          <div className="summaryCard">
-            <span className="summaryLabel">Página</span>
-            <strong className="summaryValue">
-              {paginaAtual}/{totalPaginas}
-            </strong>
+        <section className="infoBar">
+          <div className="infoCard">
+            <span className="infoLabel">Resultados encontrados</span>
+            <strong className="infoValue">{produtosFiltrados.length}</strong>
+            <small className="infoMeta">
+              Página {paginaAtual} de {totalPaginas}
+            </small>
           </div>
         </section>
 
@@ -253,7 +236,7 @@ export default function ProdutosPage() {
               <FiPackage size={26} />
             </div>
             <h3>Nenhum produto encontrado</h3>
-            <p>Tente mudar a pesquisa ou o filtro de categoria.</p>
+            <p>Tente mudar a busca ou selecionar outra categoria.</p>
           </div>
         ) : (
           <>
@@ -281,7 +264,7 @@ export default function ProdutosPage() {
                         />
                       ) : (
                         <div className="produtoSemImagem">
-                          <FiPackage size={24} />
+                          <FiPackage size={22} />
                           <span>Sem imagem</span>
                         </div>
                       )}
@@ -358,9 +341,7 @@ export default function ProdutosPage() {
                   <button
                     key={pagina}
                     type="button"
-                    className={`pageBtn number ${
-                      paginaAtual === pagina ? "active" : ""
-                    }`}
+                    className={`pageBtn number ${paginaAtual === pagina ? "active" : ""}`}
                     onClick={() => irParaPagina(pagina)}
                   >
                     {pagina}
