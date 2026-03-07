@@ -1,6 +1,8 @@
+
+
 /* ===== SECTION ===== */
 .ds-section {
-    background: linear-gradient(135deg, #fafafa 0%, #f8f8f8 100%);
+    background: linear-gradient(135deg, var(--creme-claro) 0%, var(--creme) 100%);
     padding: 4rem 0;
     min-height: 100vh;
 }
@@ -8,40 +10,41 @@
 /* ===== HEADER ===== */
 .ds-header {
     padding-bottom: 1rem;
-    border-bottom: 2px solid rgba(0, 0, 0, 0.08);
+    border-bottom: 2px solid var(--borda-suave);
 }
 
 .ds-title {
     font-size: 2.5rem;
     font-weight: 700;
-    color: #1a1a1a;
+    color: var(--texto-principal);
     letter-spacing: -0.5px;
 }
 
 .ds-badge-status {
-    background: linear-gradient(135deg, #f0f0f0, #e8e8e8);
-    color: #555;
+    background: linear-gradient(135deg, var(--creme-escuro), #e0d5cd);
+    color: var(--rosa-queimado-escuro);
     font-weight: 600;
     padding: 0.5rem 1rem;
     border-radius: 50px;
-    border: 1px solid rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--borda-suave);
     font-size: 0.9rem;
 }
 
 .ds-badge-status.ds-status-green {
-    background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
-    color: #2e7d32;
-    border-color: rgba(46, 125, 50, 0.2);
+    background: linear-gradient(135deg, #d4edda, #c3e6cb);
+    color: #155724;
+    border-color: rgba(21, 87, 36, 0.2);
 }
 
 .ds-badge-count {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, var(--rosa-queimado), var(--rosa-queimado-claro));
     color: white;
     font-weight: 600;
     padding: 0.6rem 1.2rem;
     border-radius: 50px;
     font-size: 0.95rem;
     white-space: nowrap;
+    box-shadow: 0 8px 20px rgba(168, 90, 90, 0.25);
 }
 
 /* ===== BANNER CARD ===== */
@@ -49,20 +52,20 @@
     border: none;
     border-radius: 24px;
     overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 20px 60px rgba(168, 90, 90, 0.12);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     background: white;
 }
 
 .ds-banner-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 30px 80px rgba(168, 90, 90, 0.18);
 }
 
 .ds-banner-top {
     height: 280px;
     overflow: hidden;
-    background: linear-gradient(135deg, #f5f5f5, #efefef);
+    background: linear-gradient(135deg, var(--creme-escuro), #ddd4cc);
     position: relative;
 }
 
@@ -83,7 +86,7 @@
     display: flex;
     align-items: flex-end;
     padding: 20px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, var(--rosa-queimado) 0%, var(--rosa-queimado-claro) 100%);
     position: relative;
     overflow: hidden;
 }
@@ -92,13 +95,13 @@
     content: "";
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.2), transparent 50%);
+    background: radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.15), transparent 50%);
 }
 
 .ds-fallback-text {
     font-weight: 700;
     color: white;
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.15);
     padding: 12px 16px;
     border-radius: 14px;
     backdrop-filter: blur(10px);
@@ -115,35 +118,36 @@
 
 .ds-banner-title {
     font-size: 1.4rem;
-    color: #1a1a1a;
+    color: var(--texto-principal);
     margin-bottom: 0.5rem;
 }
 
 .ds-banner-desc {
     font-size: 0.95rem;
     line-height: 1.6;
-    color: #666;
+    color: var(--texto-secundario);
     flex-grow: 1;
 }
 
 .ds-info-box {
-    background: linear-gradient(135deg, #f5f5f5, #efefef);
+    background: linear-gradient(135deg, var(--creme-escuro), #e8dfd7);
     padding: 1rem;
     border-radius: 14px;
-    border: 1px solid rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--borda-suave);
     text-align: center;
     transition: all 0.3s ease;
 }
 
 .ds-info-box:hover {
-    background: linear-gradient(135deg, #efefef, #e8e8e8);
-    border-color: rgba(0, 0, 0, 0.1);
+    background: linear-gradient(135deg, #ddd4cc, #d5ccc2);
+    border-color: rgba(168, 90, 90, 0.2);
+    transform: translateY(-2px);
 }
 
 .ds-info-label {
     font-size: 0.75rem;
     font-weight: 700;
-    color: #888;
+    color: var(--rosa-queimado-escuro);
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: 0.3rem;
@@ -152,12 +156,12 @@
 .ds-info-value {
     font-size: 1rem;
     font-weight: 700;
-    color: #1a1a1a;
+    color: var(--texto-principal);
 }
 
 /* ===== BUTTONS ===== */
 .ds-btn-primary {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, var(--rosa-queimado), var(--rosa-queimado-claro));
     color: white;
     border: none;
     border-radius: 14px;
@@ -165,14 +169,14 @@
     padding: 0.75rem 1.5rem;
     font-size: 0.95rem;
     transition: all 0.3s ease;
-    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 10px 25px rgba(168, 90, 90, 0.25);
 }
 
 .ds-btn-primary:hover {
     color: white;
     transform: translateY(-2px);
-    box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
-    filter: brightness(1.05);
+    box-shadow: 0 15px 35px rgba(168, 90, 90, 0.35);
+    filter: brightness(1.08);
 }
 
 .ds-btn-primary:active {
@@ -180,7 +184,7 @@
 }
 
 .ds-btn-add {
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, var(--rosa-queimado), var(--rosa-queimado-claro));
     color: white;
     border: none;
     border-radius: 12px;
@@ -188,14 +192,14 @@
     padding: 0.65rem 1.2rem;
     font-size: 0.9rem;
     transition: all 0.3s ease;
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.25);
+    box-shadow: 0 8px 20px rgba(168, 90, 90, 0.2);
 }
 
 .ds-btn-add:hover:not(:disabled) {
     color: white;
     transform: translateY(-2px);
-    box-shadow: 0 12px 30px rgba(102, 126, 234, 0.35);
-    filter: brightness(1.05);
+    box-shadow: 0 12px 30px rgba(168, 90, 90, 0.3);
+    filter: brightness(1.08);
 }
 
 .ds-btn-add:disabled {
@@ -205,8 +209,8 @@
 
 .ds-btn-outline {
     background: white;
-    color: #667eea;
-    border: 2px solid #667eea;
+    color: var(--rosa-queimado);
+    border: 2px solid var(--rosa-queimado);
     border-radius: 12px;
     font-weight: 700;
     padding: 0.65rem 1.2rem;
@@ -215,10 +219,10 @@
 }
 
 .ds-btn-outline:hover {
-    background: #667eea;
+    background: var(--rosa-queimado);
     color: white;
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.25);
+    box-shadow: 0 8px 20px rgba(168, 90, 90, 0.25);
 }
 
 /* ===== CAROUSEL ===== */
@@ -267,8 +271,8 @@
     height: 50px;
     border-radius: 50%;
     background: white;
-    border: 2px solid #667eea;
-    color: #667eea;
+    border: 2px solid var(--rosa-queimado);
+    color: var(--rosa-queimado);
     font-size: 1.2rem;
     cursor: pointer;
     display: flex;
@@ -276,14 +280,14 @@
     justify-content: center;
     z-index: 10;
     transition: all 0.3s ease;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 8px 24px rgba(168, 90, 90, 0.15);
 }
 
 .ds-arrow:hover {
-    background: #667eea;
+    background: var(--rosa-queimado);
     color: white;
     transform: translateY(-50%) scale(1.1);
-    box-shadow: 0 12px 32px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 12px 32px rgba(168, 90, 90, 0.3);
 }
 
 .ds-arrow-left {
@@ -299,7 +303,7 @@
     border: none;
     border-radius: 20px;
     overflow: hidden;
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 12px 40px rgba(168, 90, 90, 0.1);
     transition: all 0.3s ease;
     background: white;
     height: 100%;
@@ -309,14 +313,14 @@
 
 .ds-product-card:hover {
     transform: translateY(-6px);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+    box-shadow: 0 20px 60px rgba(168, 90, 90, 0.15);
 }
 
 .ds-product-image-wrapper {
     position: relative;
     height: 260px;
     overflow: hidden;
-    background: linear-gradient(135deg, #f5f5f5, #efefef);
+    background: linear-gradient(135deg, var(--creme-escuro), #ddd4cc);
 }
 
 .ds-product-img {
@@ -343,8 +347,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #f0f0f0, #e8e8e8);
-    color: #999;
+    background: linear-gradient(135deg, var(--creme-escuro), #ddd4cc);
+    color: rgba(168, 90, 90, 0.4);
     font-size: 3rem;
 }
 
@@ -352,13 +356,13 @@
     position: absolute;
     top: 12px;
     right: 12px;
-    background: linear-gradient(135deg, #667eea, #764ba2);
+    background: linear-gradient(135deg, var(--rosa-queimado), var(--rosa-queimado-claro));
     color: white;
     font-weight: 700;
     padding: 0.5rem 1rem;
     border-radius: 12px;
     font-size: 0.9rem;
-    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 8px 20px rgba(168, 90, 90, 0.3);
 }
 
 .ds-product-body {
@@ -370,7 +374,7 @@
 
 .ds-product-name {
     font-size: 1.05rem;
-    color: #1a1a1a;
+    color: var(--texto-principal);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -380,7 +384,7 @@
 
 .ds-product-desc {
     font-size: 0.85rem;
-    color: #888;
+    color: var(--texto-secundario);
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;

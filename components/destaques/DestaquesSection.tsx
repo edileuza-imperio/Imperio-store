@@ -212,16 +212,16 @@ export default function DestaquesSection() {
 
         <style jsx>{`
           .ds-loading {
-            background: linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%);
+            background: linear-gradient(135deg, #f5f1ed 0%, #f0ebe5 100%);
             padding: 3rem 0;
           }
           .ds-skel {
             border-radius: 20px;
             background: linear-gradient(
               90deg,
-              rgba(200, 200, 200, 0.15),
-              rgba(200, 200, 200, 0.25),
-              rgba(200, 200, 200, 0.15)
+              rgba(200, 150, 140, 0.15),
+              rgba(200, 150, 140, 0.25),
+              rgba(200, 150, 140, 0.15)
             );
             background-size: 200% 100%;
             animation: shimmer 1.5s infinite;
@@ -422,6 +422,7 @@ export default function DestaquesSection() {
         </div>
       </div>
 
+      
     </section>
   );
 }

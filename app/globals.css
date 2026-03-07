@@ -17,6 +17,15 @@
 
   --shadow-soft: 0 8px 22px rgba(17, 24, 39, 0.04);
   --shadow-hover: 0 14px 28px rgba(17, 24, 39, 0.07);
+  --rosa-queimado: #a85a5a;
+  --rosa-queimado-claro: #b87070;
+  --rosa-queimado-escuro: #8b4a4a;
+  --creme: #f5f1ed;
+  --creme-escuro: #e8dfd7;
+  --creme-claro: #faf7f3;
+  --texto-principal: #2a2a2a;
+  --texto-secundario: #666666;
+  --borda-suave: rgba(168, 90, 90, 0.12);
 }
 
 
