@@ -1,8 +1,22 @@
-
-
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --page: #f5f1ed;
+  --surface: #f7f4f1;
+  --surface-2: #f8f5f2;
+  --card: #fcfcfc;
+
+  --ink: #111827;
+  --muted: #6b7280;
+
+  --line: #e7e0da;
+  --line-2: #e5dfd9;
+
+  --gold: #d5b06e;
+  --rose: #d7b3be;
+
+  --shadow-soft: 0 8px 22px rgba(17, 24, 39, 0.04);
+  --shadow-hover: 0 14px 28px rgba(17, 24, 39, 0.07);
 }
 
 
@@ -19,5 +33,3 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-
-
