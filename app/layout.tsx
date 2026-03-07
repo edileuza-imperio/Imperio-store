@@ -20,7 +20,7 @@ import './../public/footer/footer.css';
 
 import './../public/produto/destaque.css';
 import './../public/admin/painel.css';
-
+import './../public/admin/cards.css';
 
 export const metadata: Metadata = {
   title: "Universo imperio",
