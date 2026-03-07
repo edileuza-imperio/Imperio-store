@@ -60,6 +60,48 @@
   /* Efectos */
   --color-accentSoft: rgba(212, 175, 160, 0.1);
   --color-accentSoftGold: rgba(212, 175, 160, 0.08);
+
+  /* Rosa Queimado (Dusty Rose/Terracotta) */
+  --color-rosaBurn: #B8756B;
+  --color-rosaBurnLight: #D4A5A0;
+  --color-rosaBurnDark: #8B5A52;
+
+  /* Dourado (Gold) */
+  --color-gold: #D4AF37;
+  --color-goldLight: #E8C547;
+  --color-goldDark: #AA8C2C;
+
+  /* Creme (Cream/Off-white) */
+  --color-cream: #F5F1ED;
+  --color-creamLight: #FDFBF9;
+  --color-creamDark: #E8DFD7;
+
+  /* Neutros */
+  --color-text: #2B2B2B;
+  --color-textLight: #5A5A5A;
+  --color-textMuted: #8B8B8B;
+  --color-white: #FFFFFF;
+
+  /* Backgrounds y Borders */
+  --color-bgPrimary: #FDFBF9;
+  --color-bgSecondary: #F5F1ED;
+  --color-borderColor: rgba(184, 117, 107, 0.15);
+  --color-borderColorHover: rgba(212, 175, 160, 0.3);
+
+  /* Danger */
+  --color-danger: #B54747;
+  --color-dangerBg: rgba(181, 71, 71, 0.08);
+  --color-dangerBorder: rgba(181, 71, 71, 0.18);
+
+  /* Sombras sofisticadas */
+  --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-medium: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-strong: 0 18px 45px rgba(0, 0, 0, 0.14);
+  --shadow-hover: 0 12px 32px rgba(184, 117, 107, 0.12);
+
+  /* Efectos */
+  --color-accentSoft: rgba(184, 117, 107, 0.14);
+  --color-accentSoftStrong: rgba(184, 117, 107, 0.22);
 }
 
 
