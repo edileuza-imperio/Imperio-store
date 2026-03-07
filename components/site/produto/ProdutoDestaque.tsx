@@ -295,7 +295,7 @@ export default function ProdutoDestaque() {
         <div className="pd-header">
           <div>
             <h2 className="pd-h2">Destaques</h2>
-            <p className="pd-sub">Selecionados com carinho • Coleção Premium</p>
+            <p className="pd-sub">Selecionados com carinho • Coleção Especial</p>
           </div>
 
           <div className="pd-count">
@@ -308,12 +308,12 @@ export default function ProdutoDestaque() {
             <div className="pd-banner-inner">
               <div className="pd-banner-top">
                 <div className="pd-banner-chip">Novidades</div>
-                <div className="pd-banner-chip pd-banner-chip2">Frete</div>
+                <div className="pd-banner-chip pd-banner-chip2">Frete Grátis</div>
               </div>
 
-              <div className="pd-banner-title">Coleção Premium</div>
+              <div className="pd-banner-title">Coleção Especial</div>
               <div className="pd-banner-text">
-                Produtos selecionados para presentear — delicados, elegantes e com preço especial.
+                Produtos selecionados com carinho para você. Qualidade premium, design elegante e preços especiais.
               </div>
 
               <div className="pd-banner-cta">
@@ -326,12 +326,12 @@ export default function ProdutoDestaque() {
 
               <div className="pd-banner-mini">
                 <div className="pd-banner-mini-box">
-                  <div className="pd-mini-label">Oferta do dia</div>
-                  <div className="pd-mini-value">até 30% OFF</div>
+                  <div className="pd-mini-label">Oferta</div>
+                  <div className="pd-mini-value">até 40% OFF</div>
                 </div>
                 <div className="pd-banner-mini-box">
                   <div className="pd-mini-label">Pagamento</div>
-                  <div className="pd-mini-value">Pix / Cartão</div>
+                  <div className="pd-mini-value">Pix • Cartão</div>
                 </div>
               </div>
             </div>
