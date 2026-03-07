@@ -96,7 +96,7 @@ export default function PainelPage() {
       </div>
 
       {loading && <p>Carregando...</p>}
-dsd
+
       <div className="grid">
         {cards.map((card, i) => (
           <div key={i} className="card">
