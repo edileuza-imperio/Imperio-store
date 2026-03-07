@@ -348,6 +348,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
           </button>
         </div>
       </aside>
+
     </>
   );
 }
