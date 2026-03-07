@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "@/Api/conectar";
 import Link from "next/link";
-
 import {
   FiBox,
   FiTag,
@@ -13,6 +12,9 @@ import {
   FiCreditCard,
   FiArrowRight,
   FiTrendingUp,
+  FiLayers,
+  FiActivity,
+  FiRefreshCw,
 } from "react-icons/fi";
 
 type Card = {
@@ -20,65 +22,76 @@ type Card = {
   quantidade: number;
 };
 
+function getIconComponent(titulo: string) {
+  const t = titulo.toLowerCase();
+
+  if (t.includes("galer") || (t.includes("imagen") && t.includes("galer"))) {
+    return FiImage;
+  }
+  if (t.includes("prod")) return FiBox;
+  if (t.includes("categ")) return FiTag;
+  if (t.includes("banner")) return FiImage;
+  if (t.includes("usu")) return FiUsers;
+  if (t.includes("carr")) return FiShoppingCart;
+  if (t.includes("cupom")) return FiCreditCard;
+  if (t.includes("camp")) return FiTrendingUp;
+
+  return FiLayers;
+}
+
+function getLink(titulo: string) {
+  const t = titulo.toLowerCase();
+
+  if (t.includes("galer") || (t.includes("imagen") && t.includes("galer"))) {
+    return "/painel/galeria";
+  }
+  if (t.includes("prod")) return "/painel/produtos";
+  if (t.includes("categ")) return "/painel/categorias";
+  if (t.includes("banner")) return "/painel/banners";
+  if (t.includes("usu")) return "/painel/usuarios";
+  if (t.includes("carr")) return "/painel/carrinhos";
+  if (t.includes("cupom")) return "/painel/cupons";
+  if (t.includes("camp")) return "/painel/campanhas";
+
+  return "/painel";
+}
+
+function getAccentClass(titulo: string) {
+  const t = titulo.toLowerCase();
+
+  if (t.includes("prod")) return "purple";
+  if (t.includes("categ")) return "pink";
+  if (t.includes("banner")) return "blue";
+  if (t.includes("usu")) return "cyan";
+  if (t.includes("carr")) return "orange";
+  if (t.includes("cupom")) return "green";
+  if (t.includes("camp")) return "indigo";
+
+  return "default";
+}
+
 export default function PainelPage() {
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
 
-  function getIcon(titulo: string) {
-    const t = titulo.toLowerCase();
-
-    if (t.includes("galer") || (t.includes("imagen") && t.includes("galer")))
-      return <FiImage size={22} />;
-
-    if (t.includes("prod")) return <FiBox size={22} />;
-
-    if (t.includes("categ")) return <FiTag size={22} />;
-
-    if (t.includes("banner")) return <FiImage size={22} />;
-
-    if (t.includes("usu")) return <FiUsers size={22} />;
-
-    if (t.includes("carr")) return <FiShoppingCart size={22} />;
-
-    if (t.includes("cupom")) return <FiCreditCard size={22} />;
-
-    if (t.includes("camp")) return <FiTrendingUp size={22} />;
-
-    return <FiBox size={22} />;
-  }
-
-  function getLink(titulo: string) {
-    const t = titulo.toLowerCase();
-
-    if (t.includes("galer") || (t.includes("imagen") && t.includes("galer")))
-      return "/painel/galeria";
-
-    if (t.includes("prod")) return "/painel/produtos";
-
-    if (t.includes("categ")) return "/painel/categorias";
-
-    if (t.includes("banner")) return "/painel/banners";
-
-    if (t.includes("usu")) return "/painel/usuarios";
-
-    if (t.includes("carr")) return "/painel/carrinhos";
-
-    if (t.includes("cupom")) return "/painel/cupons";
-
-    if (t.includes("camp")) return "/painel/campanhas"; // ✅ corrigido
-
-    return "/painel";
-  }
-
   async function carregarCards() {
     try {
-      const res = await api.get("/admin/cards");
+      setLoading(true);
 
-      const data = res?.data?.dados?.dados ?? [];
+      const res = await api.get("/admin/cards", {
+        withCredentials: true,
+      });
 
-      if (Array.isArray(data)) setCards(data);
+      const data = res?.data?.dados?.dados ?? res?.data?.dados ?? [];
+
+      if (Array.isArray(data)) {
+        setCards(data);
+      } else {
+        setCards([]);
+      }
     } catch (err) {
       console.error("Erro ao carregar cards:", err);
+      setCards([]);
     } finally {
       setLoading(false);
     }
@@ -88,123 +101,508 @@ export default function PainelPage() {
     carregarCards();
   }, []);
 
+  const totalGeral = useMemo(() => {
+    return cards.reduce((acc, item) => acc + Number(item.quantidade || 0), 0);
+  }, [cards]);
+
+  const topCard = useMemo(() => {
+    if (!cards.length) return null;
+    return [...cards].sort(
+      (a, b) => Number(b.quantidade || 0) - Number(a.quantidade || 0)
+    )[0];
+  }, [cards]);
+
   return (
-    <div className="dashboard">
-      <div className="header">
-        <h1>Dashboard</h1>
-        <p>Visão geral do sistema</p>
-      </div>
-
-      {loading && <p>Carregando...</p>}
-
-      <div className="grid">
-        {cards.map((card, i) => (
-          <div key={i} className="card">
-            <div className="top">
-              <div className="icon">{getIcon(card.titulo)}</div>
-
-              <div className="numero">{card.quantidade}</div>
+    <>
+      <div className="dashboardPage">
+        <section className="hero">
+          <div className="heroLeft">
+            <div className="heroBadge">
+              <FiActivity size={15} />
+              Painel em tempo real
             </div>
 
-            <div className="titulo">{card.titulo}</div>
+            <h2 className="heroTitle">Visão geral da administração</h2>
 
-            <Link href={getLink(card.titulo)} className="btn">
-              Ver {card.titulo}
-              <FiArrowRight size={16} />
-            </Link>
+            <p className="heroText">
+              Acompanhe os módulos principais da loja e acesse rapidamente cada
+              área do sistema.
+            </p>
           </div>
-        ))}
+
+          <div className="heroRight">
+            <div className="summaryCard primary">
+              <span className="summaryLabel">Total geral</span>
+              <strong className="summaryValue">{totalGeral}</strong>
+              <small className="summaryMeta">Soma dos registros exibidos</small>
+            </div>
+
+            <div className="summaryCard">
+              <span className="summaryLabel">Maior volume</span>
+              <strong className="summaryValue">
+                {topCard ? topCard.quantidade : 0}
+              </strong>
+              <small className="summaryMeta">
+                {topCard ? topCard.titulo : "Sem dados"}
+              </small>
+            </div>
+          </div>
+        </section>
+
+        <section className="dashboardHeader">
+          <div>
+            <h1 className="pageTitle">Dashboard</h1>
+            <p className="pageSubtitle">
+              Resumo visual dos módulos cadastrados no sistema
+            </p>
+          </div>
+
+          <button type="button" className="refreshBtn" onClick={carregarCards}>
+            <FiRefreshCw size={16} />
+            Atualizar
+          </button>
+        </section>
+
+        {loading ? (
+          <div className="loadingState">
+            <div className="loadingSpinner" />
+            <p>Carregando indicadores...</p>
+          </div>
+        ) : cards.length === 0 ? (
+          <div className="emptyState">
+            <div className="emptyIcon">
+              <FiLayers size={30} />
+            </div>
+            <h3>Nenhum dado encontrado</h3>
+            <p>Não foi possível carregar os cards do painel.</p>
+          </div>
+        ) : (
+          <section className="cardsGrid">
+            {cards.map((card, i) => {
+              const Icon = getIconComponent(card.titulo);
+              const accent = getAccentClass(card.titulo);
+
+              return (
+                <article key={i} className={`card ${accent}`}>
+                  <div className="cardGlow" />
+
+                  <div className="cardTop">
+                    <div className={`cardIcon ${accent}`}>
+                      <Icon size={22} />
+                    </div>
+
+                    <div className="cardNumberWrap">
+                      <span className="cardLabel">Quantidade</span>
+                      <strong className="cardNumber">{card.quantidade}</strong>
+                    </div>
+                  </div>
+
+                  <div className="cardBody">
+                    <h3 className="cardTitle">{card.titulo}</h3>
+                    <p className="cardDescription">
+                      Acesse este módulo para gerenciar os registros disponíveis.
+                    </p>
+                  </div>
+
+                  <Link href={getLink(card.titulo)} className="cardButton">
+                    Abrir módulo
+                    <FiArrowRight size={16} />
+                  </Link>
+                </article>
+              );
+            })}
+          </section>
+        )}
       </div>
 
       <style jsx>{`
-        .dashboard {
+        .dashboardPage {
           display: flex;
           flex-direction: column;
-          gap: 25px;
+          gap: 24px;
         }
 
-        .header h1 {
+        .hero {
+          display: grid;
+          grid-template-columns: 1.5fr 1fr;
+          gap: 20px;
+          padding: 26px;
+          border-radius: 28px;
+          background:
+            radial-gradient(circle at top right, rgba(129, 140, 248, 0.18) 0%, transparent 30%),
+            linear-gradient(135deg, #111827 0%, #1f2937 100%);
+          color: #fff;
+          overflow: hidden;
+          position: relative;
+        }
+
+        .heroLeft {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          gap: 14px;
+          min-width: 0;
+        }
+
+        .heroBadge {
+          width: fit-content;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          min-height: 34px;
+          padding: 0 12px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.12);
+          border: 1px solid rgba(255, 255, 255, 0.14);
+          font-size: 12px;
+          font-weight: 800;
+        }
+
+        .heroTitle {
+          margin: 0;
+          font-size: 32px;
+          line-height: 1.1;
+          font-weight: 900;
+          max-width: 520px;
+        }
+
+        .heroText {
+          margin: 0;
+          font-size: 15px;
+          line-height: 1.7;
+          color: rgba(255, 255, 255, 0.78);
+          max-width: 560px;
+        }
+
+        .heroRight {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 14px;
+          align-content: center;
+        }
+
+        .summaryCard {
+          border-radius: 22px;
+          padding: 18px;
+          background: rgba(255, 255, 255, 0.08);
+          border: 1px solid rgba(255, 255, 255, 0.12);
+          backdrop-filter: blur(8px);
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .summaryCard.primary {
+          background: linear-gradient(135deg, rgba(124, 58, 237, 0.32) 0%, rgba(79, 70, 229, 0.22) 100%);
+        }
+
+        .summaryLabel {
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          font-weight: 800;
+          color: rgba(255, 255, 255, 0.74);
+        }
+
+        .summaryValue {
+          font-size: 34px;
+          line-height: 1;
+          font-weight: 900;
+        }
+
+        .summaryMeta {
+          font-size: 13px;
+          color: rgba(255, 255, 255, 0.75);
+        }
+
+        .dashboardHeader {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+
+        .pageTitle {
+          margin: 0;
           font-size: 28px;
-          font-weight: 700;
+          line-height: 1.2;
+          font-weight: 900;
+          color: #111827;
         }
 
-        .header p {
-          color: #64748b;
+        .pageSubtitle {
+          margin: 6px 0 0;
+          color: #6b7280;
           font-size: 14px;
         }
 
-        .grid {
+        .refreshBtn {
+          border: 0;
+          outline: 0;
+          min-height: 46px;
+          padding: 0 16px;
+          border-radius: 16px;
+          background: #ffffff;
+          border: 1px solid #e8eaf1;
+          color: #111827;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-size: 14px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: 0.2s ease;
+          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+        }
+
+        .refreshBtn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 14px 26px rgba(15, 23, 42, 0.08);
+        }
+
+        .loadingState,
+        .emptyState {
+          min-height: 280px;
+          border-radius: 28px;
+          background: #fff;
+          border: 1px solid #ece7f5;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-direction: column;
+          gap: 12px;
+          text-align: center;
+          padding: 24px;
+        }
+
+        .loadingSpinner {
+          width: 28px;
+          height: 28px;
+          border: 3px solid #ddd6fe;
+          border-top-color: #7c3aed;
+          border-radius: 999px;
+          animation: spin 0.8s linear infinite;
+        }
+
+        .emptyIcon {
+          width: 72px;
+          height: 72px;
+          border-radius: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #f3ecff;
+          color: #6d28d9;
+        }
+
+        .emptyState h3 {
+          margin: 0;
+          font-size: 22px;
+          color: #111827;
+          font-weight: 900;
+        }
+
+        .emptyState p,
+        .loadingState p {
+          margin: 0;
+          color: #6b7280;
+          font-size: 14px;
+        }
+
+        .cardsGrid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
           gap: 20px;
         }
 
         .card {
           position: relative;
-          background: linear-gradient(180deg, #ffffff, #fafafa);
-          border-radius: 16px;
+          overflow: hidden;
+          border-radius: 24px;
           padding: 22px;
+          background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+          border: 1px solid #ece7f5;
+          box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
           display: flex;
           flex-direction: column;
-          gap: 15px;
-          border: 1px solid rgba(0, 0, 0, 0.05);
-          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
-          transition: 0.25s;
+          gap: 18px;
+          transition: transform 0.22s ease, box-shadow 0.22s ease;
         }
 
         .card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
+          transform: translateY(-4px);
+          box-shadow: 0 22px 45px rgba(15, 23, 42, 0.1);
         }
 
-        .top {
+        .cardGlow {
+          position: absolute;
+          top: -40px;
+          right: -40px;
+          width: 120px;
+          height: 120px;
+          border-radius: 999px;
+          opacity: 0.12;
+          pointer-events: none;
+        }
+
+        .card.purple .cardGlow { background: #7c3aed; }
+        .card.pink .cardGlow { background: #ec4899; }
+        .card.blue .cardGlow { background: #3b82f6; }
+        .card.cyan .cardGlow { background: #06b6d4; }
+        .card.orange .cardGlow { background: #f97316; }
+        .card.green .cardGlow { background: #22c55e; }
+        .card.indigo .cardGlow { background: #6366f1; }
+        .card.default .cardGlow { background: #64748b; }
+
+        .cardTop {
           display: flex;
+          align-items: flex-start;
           justify-content: space-between;
-          align-items: center;
+          gap: 16px;
         }
 
-        .icon {
-          width: 48px;
-          height: 48px;
+        .cardIcon {
+          width: 52px;
+          height: 52px;
+          border-radius: 16px;
           display: flex;
           align-items: center;
           justify-content: center;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #7c3aed, #9333ea);
-          color: white;
-          box-shadow: 0 6px 16px rgba(124, 58, 237, 0.3);
+          color: #fff;
+          flex-shrink: 0;
+          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.12);
         }
 
-        .numero {
-          font-size: 32px;
-          font-weight: 700;
+        .cardIcon.purple { background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%); }
+        .cardIcon.pink { background: linear-gradient(135deg, #ec4899 0%, #db2777 100%); }
+        .cardIcon.blue { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); }
+        .cardIcon.cyan { background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); }
+        .cardIcon.orange { background: linear-gradient(135deg, #f97316 0%, #ea580c 100%); }
+        .cardIcon.green { background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); }
+        .cardIcon.indigo { background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); }
+        .cardIcon.default { background: linear-gradient(135deg, #64748b 0%, #475569 100%); }
+
+        .cardNumberWrap {
+          text-align: right;
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+        }
+
+        .cardLabel {
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: #94a3b8;
+          font-weight: 800;
+        }
+
+        .cardNumber {
+          font-size: 36px;
+          line-height: 1;
+          font-weight: 900;
           color: #111827;
         }
 
-        .titulo {
-          font-size: 14px;
-          color: #64748b;
-          font-weight: 500;
+        .cardBody {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
         }
 
-        .btn {
-          display: flex;
+        .cardTitle {
+          margin: 0;
+          font-size: 18px;
+          line-height: 1.3;
+          color: #111827;
+          font-weight: 900;
+        }
+
+        .cardDescription {
+          margin: 0;
+          color: #6b7280;
+          font-size: 14px;
+          line-height: 1.6;
+        }
+
+        .cardButton {
+          margin-top: auto;
+          min-height: 46px;
+          border-radius: 16px;
+          background: #111827;
+          color: #fff;
+          display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 6px;
-          padding: 9px;
-          border-radius: 8px;
-          font-size: 13px;
-          background: #7c3aed;
-          color: white;
+          gap: 8px;
           text-decoration: none;
-          transition: 0.2s;
+          font-size: 14px;
+          font-weight: 800;
+          transition: 0.2s ease;
         }
 
-        .btn:hover {
-          background: #6d28d9;
+        .cardButton:hover {
+          transform: translateY(-1px);
+          background: #0f172a;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        @media (max-width: 1024px) {
+          .hero {
+            grid-template-columns: 1fr;
+          }
+
+          .heroTitle {
+            font-size: 28px;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .dashboardPage {
+            gap: 18px;
+          }
+
+          .hero {
+            padding: 20px;
+            border-radius: 22px;
+          }
+
+          .heroTitle {
+            font-size: 24px;
+          }
+
+          .heroText {
+            font-size: 14px;
+          }
+
+          .summaryValue {
+            font-size: 28px;
+          }
+
+          .pageTitle {
+            font-size: 24px;
+          }
+
+          .refreshBtn {
+            width: 100%;
+          }
+
+          .cardsGrid {
+            grid-template-columns: 1fr;
+          }
+
+          .cardNumber {
+            font-size: 32px;
+          }
         }
       `}</style>
-    </div>
+    </>
   );
 }

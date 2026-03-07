@@ -20,6 +20,7 @@ import {
   FiLayers,
   FiShoppingBag,
   FiSettings,
+  FiBell,
 } from "react-icons/fi";
 
 type SidebarItem = {
@@ -164,9 +165,7 @@ export default function AdminShell({ children }: Props) {
     if (!term) return menuItems;
 
     const match = (text?: string) =>
-      String(text || "")
-        .toLowerCase()
-        .includes(term);
+      String(text || "").toLowerCase().includes(term);
 
     return menuItems
       .map((item) => {
@@ -203,14 +202,14 @@ export default function AdminShell({ children }: Props) {
 
   return (
     <>
-      <div className="adminLayout">
-        <aside className={`adminSidebar ${menuOpen ? "open" : ""}`}>
-          <div className="sidebarHeader">
-            <Link href="/painel" className="brandBox">
-              <div className="brandLogo">UI</div>
+      <div className="shell">
+        <aside className={`sidebar ${menuOpen ? "open" : ""}`}>
+          <div className="sidebarTop">
+            <Link href="/painel" className="brand">
+              <div className="brandIcon">UI</div>
               <div className="brandText">
                 <strong>Universo Império</strong>
-                <span>Painel administrativo</span>
+                <span>Central administrativa</span>
               </div>
             </Link>
 
@@ -220,52 +219,52 @@ export default function AdminShell({ children }: Props) {
               onClick={() => setMenuOpen(false)}
               aria-label="Fechar menu"
             >
-              <FiX size={20} />
+              <FiX size={19} />
             </button>
           </div>
 
-          <div className="sidebarSearch">
+          <div className="searchBox">
             <FiSearch size={16} />
             <input
               type="text"
-              placeholder="Buscar menu..."
+              placeholder="Buscar menu"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               disabled={!usuario}
             />
           </div>
 
-          <div className="userPanel">
-            <div className="userAvatar">
+          <div className="profileCard">
+            <div className="profileAvatar">
               {String(nomeUsuario).charAt(0).toUpperCase()}
             </div>
 
-            <div className="userTexts">
+            <div className="profileText">
               <strong>{checkingAuth ? "Verificando..." : nomeUsuario}</strong>
               <span>{checkingAuth ? "Aguarde..." : emailUsuario}</span>
             </div>
 
-            <span className={`userStatus ${usuario ? "on" : "off"}`} />
+            <span className={`statusDot ${usuario ? "online" : "offline"}`} />
           </div>
 
-          <nav className="menuArea">
+          <nav className="navArea">
             {!checkingAuth && !usuario && (
-              <div className="loginWarning">
+              <div className="warningCard">
                 <div className="warningIcon">
                   <FiAlertCircle size={18} />
                 </div>
-                <div>
-                  <strong>Você precisa entrar</strong>
-                  <p>Faça login para acessar o painel administrativo.</p>
+                <div className="warningBody">
+                  <strong>Login necessário</strong>
+                  <p>Entre com sua conta para acessar o painel.</p>
                 </div>
-                <Link href="/login" className="loginBtn">
+                <Link href="/login" className="warningBtn">
                   Ir para login
                 </Link>
               </div>
             )}
 
             {usuario && loadingMenu && (
-              <div className="menuLoading">
+              <div className="loadingCard">
                 <div className="spinner" />
                 <span>Carregando menu...</span>
               </div>
@@ -281,12 +280,12 @@ export default function AdminShell({ children }: Props) {
                     <Link
                       key={`${item.label}-${index}`}
                       href={item.href || "#"}
-                      className={`menuLink ${isActive(item.href) ? "active" : ""}`}
+                      className={`navLink ${isActive(item.href) ? "active" : ""}`}
                     >
-                      <span className="menuIcon">
+                      <span className="navIcon">
                         <Icon size={18} />
                       </span>
-                      <span className="menuText">{item.label}</span>
+                      <span className="navLabel">{item.label}</span>
                     </Link>
                   );
                 }
@@ -295,10 +294,7 @@ export default function AdminShell({ children }: Props) {
                 const hasActiveChild = item.children?.some((c) => isActive(c.href));
 
                 return (
-                  <div
-                    key={`${item.label}-${index}`}
-                    className={`menuGroup ${expanded ? "expanded" : ""}`}
-                  >
+                  <div key={`${item.label}-${index}`} className="navGroup">
                     <button
                       type="button"
                       className={`groupButton ${hasActiveChild ? "active" : ""}`}
@@ -309,19 +305,19 @@ export default function AdminShell({ children }: Props) {
                         }))
                       }
                     >
-                      <span className="menuIcon">
+                      <span className="navIcon">
                         <Icon size={18} />
                       </span>
 
-                      <span className="menuText">{item.label}</span>
+                      <span className="navLabel">{item.label}</span>
 
                       <FiChevronDown
                         size={18}
-                        className={`groupChevron ${expanded ? "rotate" : ""}`}
+                        className={`chevron ${expanded ? "rotate" : ""}`}
                       />
                     </button>
 
-                    <div className={`submenu ${expanded ? "show" : ""}`}>
+                    <div className={`subMenu ${expanded ? "show" : ""}`}>
                       {item.children?.map((child, childIndex) => {
                         const ChildIcon = getIcon(child.label);
 
@@ -329,9 +325,9 @@ export default function AdminShell({ children }: Props) {
                           <Link
                             key={`${child.label}-${childIndex}`}
                             href={child.href || "#"}
-                            className={`submenuLink ${isActive(child.href) ? "active" : ""}`}
+                            className={`subLink ${isActive(child.href) ? "active" : ""}`}
                           >
-                            <span className="submenuIcon">
+                            <span className="subIcon">
                               <ChildIcon size={15} />
                             </span>
                             <span>{child.label}</span>
@@ -344,10 +340,10 @@ export default function AdminShell({ children }: Props) {
               })}
           </nav>
 
-          <div className="sidebarFooter">
+          <div className="sidebarBottom">
             <button
               type="button"
-              className="logoutButton"
+              className="logoutBtn"
               onClick={sair}
               disabled={!usuario}
             >
@@ -358,36 +354,40 @@ export default function AdminShell({ children }: Props) {
         </aside>
 
         <div
-          className={`sidebarOverlay ${menuOpen ? "show" : ""}`}
+          className={`overlay ${menuOpen ? "show" : ""}`}
           onClick={() => setMenuOpen(false)}
         />
 
-        <div className="adminMain">
-          <header className="adminTopbar">
+        <div className="main">
+          <header className="topbar">
             <div className="topbarLeft">
               <button
                 type="button"
-                className="menuToggle"
+                className="menuBtn"
                 onClick={() => setMenuOpen(true)}
                 aria-label="Abrir menu"
               >
                 <FiMenu size={20} />
               </button>
 
-              <div className="topbarTitleWrap">
-                <h1 className="topbarTitle">Painel Administrativo</h1>
-                <p className="topbarSubtitle">
-                  Gerencie produtos, categorias, banners e mais
+              <div className="titleWrap">
+                <h1 className="title">Painel Administrativo</h1>
+                <p className="subtitle">
+                  Controle geral da sua loja e do catálogo
                 </p>
               </div>
             </div>
 
             <div className="topbarRight">
-              <div className="miniUserCard">
+              <button type="button" className="notifyBtn" aria-label="Notificações">
+                <FiBell size={18} />
+              </button>
+
+              <div className="miniProfile">
                 <div className="miniAvatar">
                   {String(nomeUsuario).charAt(0).toUpperCase()}
                 </div>
-                <div className="miniUserTexts">
+                <div className="miniText">
                   <strong>{nomeUsuario}</strong>
                   <span>{emailUsuario}</span>
                 </div>
@@ -395,117 +395,122 @@ export default function AdminShell({ children }: Props) {
             </div>
           </header>
 
-          <main className="adminContent">{children}</main>
+          <main className="content">{children}</main>
         </div>
       </div>
 
       <style jsx>{`
-        .adminLayout {
+        .shell {
           min-height: 100vh;
           display: flex;
           background:
-            radial-gradient(circle at top left, #f7f1ff 0%, transparent 30%),
-            linear-gradient(180deg, #f8fafc 0%, #f3f4f6 100%);
+            radial-gradient(circle at top left, rgba(139, 92, 246, 0.08) 0%, transparent 22%),
+            radial-gradient(circle at bottom right, rgba(79, 70, 229, 0.08) 0%, transparent 20%),
+            #f8fafc;
         }
 
-        .adminSidebar {
-          width: 300px;
-          min-width: 300px;
-          background: rgba(255, 255, 255, 0.88);
-          backdrop-filter: blur(14px);
-          border-right: 1px solid #ebe7f2;
-          display: flex;
-          flex-direction: column;
+        .sidebar {
+          width: 310px;
+          min-width: 310px;
+          height: 100vh;
           position: sticky;
           top: 0;
-          height: 100vh;
+          display: flex;
+          flex-direction: column;
+          background: rgba(255, 255, 255, 0.92);
+          backdrop-filter: blur(14px);
+          border-right: 1px solid #ebe7f2;
           z-index: 40;
         }
 
-        .sidebarHeader {
+        .sidebarTop {
+          padding: 20px;
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 12px;
-          padding: 20px;
           border-bottom: 1px solid #f0ebf7;
         }
 
-        .brandBox {
+        .brand {
           display: flex;
           align-items: center;
           gap: 12px;
           text-decoration: none;
+          min-width: 0;
         }
 
-        .brandLogo {
-          width: 46px;
-          height: 46px;
-          border-radius: 14px;
+        .brandIcon {
+          width: 50px;
+          height: 50px;
+          border-radius: 16px;
+          background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+          color: #fff;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
-          color: #fff;
-          font-weight: 900;
           font-size: 15px;
-          box-shadow: 0 12px 24px rgba(124, 58, 237, 0.2);
+          font-weight: 900;
+          flex-shrink: 0;
+          box-shadow: 0 14px 28px rgba(124, 58, 237, 0.22);
         }
 
         .brandText {
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          min-width: 0;
         }
 
         .brandText strong {
-          color: #111827;
           font-size: 15px;
+          color: #111827;
           line-height: 1.2;
         }
 
         .brandText span {
-          color: #6b7280;
           font-size: 12px;
+          color: #6b7280;
+          margin-top: 2px;
         }
 
         .mobileClose {
           display: none;
-          width: 40px;
-          height: 40px;
+          width: 42px;
+          height: 42px;
           border: 0;
-          border-radius: 12px;
+          border-radius: 14px;
           background: #f5f3ff;
           color: #5b21b6;
           cursor: pointer;
+          flex-shrink: 0;
         }
 
-        .sidebarSearch {
+        .searchBox {
           margin: 18px 20px 0;
+          height: 48px;
+          border-radius: 16px;
+          background: #f8fafc;
+          border: 1px solid #e7e9f0;
           display: flex;
           align-items: center;
           gap: 10px;
           padding: 0 14px;
-          height: 46px;
-          border-radius: 14px;
-          background: #f8fafc;
-          border: 1px solid #e8eaf0;
         }
 
-        .sidebarSearch input {
+        .searchBox input {
           flex: 1;
           border: 0;
           outline: none;
           background: transparent;
-          font-size: 14px;
           color: #111827;
+          font-size: 14px;
         }
 
-        .userPanel {
+        .profileCard {
           margin: 18px 20px 0;
           padding: 16px;
-          border-radius: 20px;
-          background: linear-gradient(135deg, #faf7ff 0%, #f3ecff 100%);
+          border-radius: 22px;
+          background: linear-gradient(135deg, #faf7ff 0%, #f4edff 100%);
           border: 1px solid #eadcff;
           display: grid;
           grid-template-columns: auto 1fr auto;
@@ -513,29 +518,30 @@ export default function AdminShell({ children }: Props) {
           align-items: center;
         }
 
-        .userAvatar,
+        .profileAvatar,
         .miniAvatar {
-          width: 44px;
-          height: 44px;
+          width: 46px;
+          height: 46px;
           border-radius: 14px;
+          background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+          color: #fff;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-          color: white;
           font-weight: 900;
+          flex-shrink: 0;
         }
 
-        .userTexts,
-        .miniUserTexts {
+        .profileText,
+        .miniText {
+          min-width: 0;
           display: flex;
           flex-direction: column;
           gap: 3px;
-          min-width: 0;
         }
 
-        .userTexts strong,
-        .miniUserTexts strong {
+        .profileText strong,
+        .miniText strong {
           font-size: 14px;
           color: #111827;
           white-space: nowrap;
@@ -543,8 +549,8 @@ export default function AdminShell({ children }: Props) {
           text-overflow: ellipsis;
         }
 
-        .userTexts span,
-        .miniUserTexts span {
+        .profileText span,
+        .miniText span {
           font-size: 12px;
           color: #6b7280;
           white-space: nowrap;
@@ -552,142 +558,141 @@ export default function AdminShell({ children }: Props) {
           text-overflow: ellipsis;
         }
 
-        .userStatus {
+        .statusDot {
           width: 12px;
           height: 12px;
           border-radius: 999px;
-          display: inline-block;
+          display: block;
         }
 
-        .userStatus.on {
+        .statusDot.online {
           background: #22c55e;
           box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.14);
         }
 
-        .userStatus.off {
+        .statusDot.offline {
           background: #ef4444;
           box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.14);
         }
 
-        .menuArea {
+        .navArea {
           flex: 1;
           overflow-y: auto;
-          padding: 18px 14px 18px;
+          padding: 18px 14px;
         }
 
-        .menuArea::-webkit-scrollbar {
+        .navArea::-webkit-scrollbar {
           width: 8px;
         }
 
-        .menuArea::-webkit-scrollbar-thumb {
+        .navArea::-webkit-scrollbar-thumb {
           background: #ddd6fe;
           border-radius: 999px;
         }
 
-        .menuLink,
+        .navLink,
         .groupButton,
-        .submenuLink {
+        .subLink {
           width: 100%;
           text-decoration: none;
           border: 0;
           outline: 0;
-          cursor: pointer;
           display: flex;
           align-items: center;
           gap: 12px;
           text-align: left;
         }
 
-        .menuLink,
+        .navLink,
         .groupButton {
-          min-height: 48px;
+          min-height: 50px;
           padding: 0 14px;
           border-radius: 16px;
-          color: #334155;
           background: transparent;
-          margin-bottom: 8px;
+          color: #334155;
+          cursor: pointer;
           transition: 0.2s ease;
+          margin-bottom: 8px;
         }
 
-        .menuLink:hover,
+        .navLink:hover,
         .groupButton:hover {
           background: #f6f0ff;
           color: #5b21b6;
         }
 
-        .menuLink.active,
+        .navLink.active,
         .groupButton.active {
           background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
           color: #fff;
-          box-shadow: 0 10px 20px rgba(124, 58, 237, 0.2);
+          box-shadow: 0 14px 24px rgba(124, 58, 237, 0.22);
         }
 
-        .menuGroup {
+        .navGroup {
           margin-bottom: 8px;
         }
 
-        .menuIcon,
-        .submenuIcon {
+        .navIcon,
+        .subIcon {
           display: inline-flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
         }
 
-        .menuText {
+        .navLabel {
           flex: 1;
           font-size: 14px;
           font-weight: 700;
         }
 
-        .groupChevron {
+        .chevron {
           transition: transform 0.2s ease;
         }
 
-        .groupChevron.rotate {
+        .chevron.rotate {
           transform: rotate(180deg);
         }
 
-        .submenu {
+        .subMenu {
           display: none;
-          padding: 4px 0 8px 14px;
+          padding: 2px 0 8px 14px;
         }
 
-        .submenu.show {
+        .subMenu.show {
           display: block;
         }
 
-        .submenuLink {
+        .subLink {
           min-height: 42px;
-          padding: 0 14px;
           border-radius: 14px;
+          padding: 0 14px;
           color: #475569;
-          margin-top: 6px;
           font-size: 13px;
           font-weight: 700;
+          margin-top: 6px;
           transition: 0.2s ease;
         }
 
-        .submenuLink:hover {
+        .subLink:hover {
           background: #f8fafc;
           color: #4f46e5;
         }
 
-        .submenuLink.active {
+        .subLink.active {
           background: #ede9fe;
           color: #5b21b6;
         }
 
-        .sidebarFooter {
+        .sidebarBottom {
           padding: 16px 20px 20px;
           border-top: 1px solid #f0ebf7;
         }
 
-        .logoutButton {
+        .logoutBtn {
           width: 100%;
           min-height: 48px;
           border: 0;
-          outline: 0;
           border-radius: 16px;
           background: #fff1f2;
           color: #be123c;
@@ -701,27 +706,97 @@ export default function AdminShell({ children }: Props) {
           transition: 0.2s ease;
         }
 
-        .logoutButton:hover {
+        .logoutBtn:hover {
           background: #ffe4e6;
         }
 
-        .logoutButton:disabled {
+        .logoutBtn:disabled {
           opacity: 0.6;
           cursor: not-allowed;
         }
 
-        .adminMain {
+        .warningCard,
+        .loadingCard {
+          padding: 18px;
+          border-radius: 20px;
+          border: 1px solid #ece7f5;
+          background: #fff;
+        }
+
+        .warningCard {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+
+        .warningIcon {
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: #fff7ed;
+          color: #c2410c;
+        }
+
+        .warningBody strong {
+          color: #111827;
+          font-size: 15px;
+        }
+
+        .warningBody p {
+          margin: 4px 0 0;
+          color: #6b7280;
+          font-size: 13px;
+          line-height: 1.5;
+        }
+
+        .warningBtn {
+          width: fit-content;
+          min-height: 42px;
+          padding: 0 14px;
+          border-radius: 14px;
+          background: #111827;
+          color: #fff;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          text-decoration: none;
+          font-size: 13px;
+          font-weight: 800;
+        }
+
+        .loadingCard {
+          min-height: 120px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
+          color: #6b7280;
+        }
+
+        .spinner {
+          width: 18px;
+          height: 18px;
+          border: 2px solid #ddd6fe;
+          border-top-color: #7c3aed;
+          border-radius: 999px;
+          animation: spin 0.8s linear infinite;
+        }
+
+        .main {
           flex: 1;
           min-width: 0;
           display: flex;
           flex-direction: column;
         }
 
-        .adminTopbar {
+        .topbar {
           position: sticky;
           top: 0;
           z-index: 20;
-          min-height: 78px;
+          min-height: 82px;
           padding: 16px 24px;
           display: flex;
           align-items: center;
@@ -740,123 +815,72 @@ export default function AdminShell({ children }: Props) {
           min-width: 0;
         }
 
-        .topbarTitleWrap {
+        .titleWrap {
           min-width: 0;
         }
 
-        .topbarTitle {
+        .title {
           margin: 0;
-          font-size: 22px;
-          line-height: 1.2;
+          font-size: 24px;
           font-weight: 900;
+          line-height: 1.2;
           color: #111827;
         }
 
-        .topbarSubtitle {
+        .subtitle {
           margin: 4px 0 0;
           color: #6b7280;
           font-size: 13px;
         }
 
-        .menuToggle {
-          display: none;
+        .menuBtn,
+        .notifyBtn {
           width: 44px;
           height: 44px;
           border: 0;
           border-radius: 14px;
-          background: #f5f3ff;
-          color: #5b21b6;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           cursor: pointer;
+          transition: 0.2s ease;
         }
 
-        .miniUserCard {
+        .menuBtn {
+          display: none;
+          background: #f5f3ff;
+          color: #5b21b6;
+        }
+
+        .notifyBtn {
+          background: rgba(255, 255, 255, 0.88);
+          border: 1px solid #ece7f5;
+          color: #475569;
+        }
+
+        .notifyBtn:hover {
+          background: #fff;
+        }
+
+        .miniProfile {
           display: flex;
           align-items: center;
           gap: 12px;
           padding: 10px 12px;
           border-radius: 18px;
-          background: rgba(255, 255, 255, 0.88);
+          background: rgba(255, 255, 255, 0.9);
           border: 1px solid #ece7f5;
+          min-width: 0;
         }
 
-        .adminContent {
+        .content {
           padding: 24px;
           width: 100%;
           max-width: 100%;
         }
 
-        .sidebarOverlay {
+        .overlay {
           display: none;
-        }
-
-        .menuLoading,
-        .loginWarning {
-          border-radius: 18px;
-          border: 1px solid #ece7f5;
-          background: #fff;
-          padding: 18px;
-        }
-
-        .menuLoading {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          color: #6b7280;
-          min-height: 120px;
-        }
-
-        .spinner {
-          width: 18px;
-          height: 18px;
-          border: 2px solid #ddd6fe;
-          border-top-color: #7c3aed;
-          border-radius: 999px;
-          animation: spin 0.8s linear infinite;
-        }
-
-        .loginWarning {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .warningIcon {
-          width: 42px;
-          height: 42px;
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #fff7ed;
-          color: #c2410c;
-        }
-
-        .loginWarning strong {
-          color: #111827;
-          font-size: 15px;
-        }
-
-        .loginWarning p {
-          margin: 4px 0 0;
-          color: #6b7280;
-          font-size: 13px;
-          line-height: 1.5;
-        }
-
-        .loginBtn {
-          min-height: 42px;
-          padding: 0 14px;
-          border-radius: 14px;
-          background: #111827;
-          color: #fff;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          text-decoration: none;
-          font-size: 13px;
-          font-weight: 800;
-          width: fit-content;
         }
 
         @keyframes spin {
@@ -866,7 +890,7 @@ export default function AdminShell({ children }: Props) {
         }
 
         @media (max-width: 1100px) {
-          .adminSidebar {
+          .sidebar {
             position: fixed;
             top: 0;
             left: 0;
@@ -876,53 +900,53 @@ export default function AdminShell({ children }: Props) {
             box-shadow: 0 24px 80px rgba(15, 23, 42, 0.2);
           }
 
-          .adminSidebar.open {
+          .sidebar.open {
             transform: translateX(0);
           }
 
-          .sidebarOverlay {
+          .overlay {
             position: fixed;
             inset: 0;
             background: rgba(15, 23, 42, 0.45);
             z-index: 30;
           }
 
-          .sidebarOverlay.show {
+          .overlay.show {
             display: block;
           }
 
-          .menuToggle,
+          .menuBtn,
           .mobileClose {
             display: inline-flex;
             align-items: center;
             justify-content: center;
           }
 
-          .miniUserCard {
+          .miniProfile {
             display: none;
           }
         }
 
         @media (max-width: 768px) {
-          .adminTopbar {
+          .sidebar {
+            width: 290px;
+            min-width: 290px;
+          }
+
+          .topbar {
             padding: 14px 16px;
           }
 
-          .adminContent {
+          .content {
             padding: 16px;
           }
 
-          .topbarTitle {
-            font-size: 18px;
+          .title {
+            font-size: 19px;
           }
 
-          .topbarSubtitle {
+          .subtitle {
             font-size: 12px;
-          }
-
-          .adminSidebar {
-            width: 290px;
-            min-width: 290px;
           }
         }
       `}</style>
