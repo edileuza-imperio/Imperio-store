@@ -70,7 +70,7 @@ export default function ProdutosPage() {
   const [categoriaSelecionada, setCategoriaSelecionada] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
 
-  const itensPorPagina = 8;
+  const itensPorPagina = 10;
 
   async function carregarTudo() {
     try {
@@ -170,16 +170,16 @@ export default function ProdutosPage() {
     <>
       <div className="produtosPage">
         <section className="hero">
-          <div>
+          <div className="heroLeft">
             <div className="heroBadge">
               <FiGrid size={15} />
-              Catálogo de produtos
+              Catálogo
             </div>
 
-            <h1 className="heroTitle">Listagem de produtos</h1>
+            <h1 className="heroTitle">Produtos</h1>
             <p className="heroText">
-              Filtre por categoria, pesquise pelo nome e navegue pelas páginas
-              do catálogo.
+              Pesquise, filtre por categoria e navegue pelos produtos de forma
+              rápida.
             </p>
           </div>
 
@@ -225,19 +225,19 @@ export default function ProdutosPage() {
 
         <section className="summaryRow">
           <div className="summaryCard">
-            <span className="summaryLabel">Total de produtos</span>
+            <span className="summaryLabel">Total</span>
             <strong className="summaryValue">{produtos.length}</strong>
           </div>
 
           <div className="summaryCard">
-            <span className="summaryLabel">Resultados filtrados</span>
+            <span className="summaryLabel">Filtrados</span>
             <strong className="summaryValue">{produtosFiltrados.length}</strong>
           </div>
 
           <div className="summaryCard">
-            <span className="summaryLabel">Página atual</span>
+            <span className="summaryLabel">Página</span>
             <strong className="summaryValue">
-              {paginaAtual} / {totalPaginas}
+              {paginaAtual}/{totalPaginas}
             </strong>
           </div>
         </section>
@@ -250,10 +250,10 @@ export default function ProdutosPage() {
         ) : produtosPaginados.length === 0 ? (
           <div className="stateBox empty">
             <div className="emptyIcon">
-              <FiPackage size={28} />
+              <FiPackage size={26} />
             </div>
             <h3>Nenhum produto encontrado</h3>
-            <p>Tente alterar a busca ou o filtro de categoria.</p>
+            <p>Tente mudar a pesquisa ou o filtro de categoria.</p>
           </div>
         ) : (
           <>
@@ -266,16 +266,13 @@ export default function ProdutosPage() {
 
                 const precoFinal = temPromocao ? precoPromocional : precoNormal;
 
+                const href = produto.slug
+                  ? `/produto/${produto.slug}`
+                  : `/produto/${produto.id_produto}`;
+
                 return (
                   <article key={produto.id_produto} className="cardProduto">
-                    <Link
-                      href={
-                        produto.slug
-                          ? `/produto/${produto.slug}`
-                          : `/produto/${produto.id_produto}`
-                      }
-                      className="imageLink"
-                    >
+                    <Link href={href} className="imageLink">
                       {produto.imagem ? (
                         <img
                           src={getImagemUrl(produto.imagem)}
@@ -284,23 +281,27 @@ export default function ProdutosPage() {
                         />
                       ) : (
                         <div className="produtoSemImagem">
-                          <FiPackage size={28} />
+                          <FiPackage size={24} />
                           <span>Sem imagem</span>
                         </div>
                       )}
                     </Link>
 
                     <div className="cardBody">
-                      <span className="categoriaTag">
-                        {produto.categoria_nome || "Sem categoria"}
-                      </span>
+                      <div className="topInfo">
+                        <span className="categoriaTag">
+                          {produto.categoria_nome || "Sem categoria"}
+                        </span>
+
+                        {produto.destaque ? (
+                          <span className="destaqueTag">Destaque</span>
+                        ) : null}
+                      </div>
 
                       <h3 className="produtoNome">{produto.nome}</h3>
 
                       <p className="produtoDescricao">
-                        {produto.descricao
-                          ? produto.descricao
-                          : "Produto sem descrição cadastrada."}
+                        {produto.descricao || "Produto sem descrição cadastrada."}
                       </p>
 
                       <div className="precoArea">
@@ -320,22 +321,21 @@ export default function ProdutosPage() {
                         )}
                       </div>
 
-                      <div className="footerCard">
+                      <div className="infoRow">
                         <span className="skuText">
                           {produto.sku ? `SKU: ${produto.sku}` : "Sem SKU"}
                         </span>
 
-                        <Link
-                          href={
-                            produto.slug
-                              ? `/produto/${produto.slug}`
-                              : `/produto/${produto.id_produto}`
-                          }
-                          className="verMaisBtn"
-                        >
-                          Ver produto
-                        </Link>
+                        <span className="estoqueText">
+                          {Number(produto.ilimitado ?? 0) === 1
+                            ? "Estoque ∞"
+                            : `Estoque: ${Number(produto.estoque ?? 0)}`}
+                        </span>
                       </div>
+
+                      <Link href={href} className="verMaisBtn">
+                        Ver produto
+                      </Link>
                     </div>
                   </article>
                 );
@@ -382,9 +382,6 @@ export default function ProdutosPage() {
         )}
       </div>
 
-      <style jsx>{`
-        
-      `}</style>
     </>
   );
 }

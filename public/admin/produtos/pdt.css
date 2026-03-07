@@ -1,7 +1,7 @@
 .produtosPage {
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: 20px;
     width: 100%;
 }
 
@@ -9,9 +9,9 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 18px;
-    padding: 24px;
-    border-radius: 28px;
+    gap: 16px;
+    padding: 22px;
+    border-radius: 24px;
     background:
         radial-gradient(circle at top right, rgba(129, 140, 248, 0.16) 0%, transparent 30%),
         linear-gradient(135deg, #111827 0%, #1f2937 100%);
@@ -19,49 +19,53 @@
     flex-wrap: wrap;
 }
 
+.heroLeft {
+    min-width: 0;
+}
+
 .heroBadge {
     width: fit-content;
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    min-height: 34px;
+    min-height: 32px;
     padding: 0 12px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.12);
     border: 1px solid rgba(255, 255, 255, 0.14);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
-    margin-bottom: 14px;
+    margin-bottom: 12px;
 }
 
 .heroTitle {
     margin: 0;
-    font-size: 30px;
+    font-size: 28px;
     font-weight: 900;
     line-height: 1.1;
 }
 
 .heroText {
-    margin: 10px 0 0;
+    margin: 8px 0 0;
     color: rgba(255, 255, 255, 0.78);
     font-size: 14px;
-    line-height: 1.7;
-    max-width: 640px;
+    line-height: 1.6;
+    max-width: 560px;
 }
 
 .refreshBtn {
     border: 0;
     outline: 0;
-    min-height: 46px;
-    padding: 0 18px;
-    border-radius: 16px;
+    min-height: 44px;
+    padding: 0 16px;
+    border-radius: 14px;
     background: #fff;
     color: #111827;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 8px;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 800;
     cursor: pointer;
     transition: 0.2s ease;
@@ -79,14 +83,14 @@
 
 .filtersBox {
     display: grid;
-    grid-template-columns: 1.5fr 320px;
-    gap: 16px;
+    grid-template-columns: 1.5fr 280px;
+    gap: 14px;
 }
 
 .inputSearch,
 .selectWrap {
-    height: 52px;
-    border-radius: 18px;
+    height: 48px;
+    border-radius: 16px;
     background: #fff;
     border: 1px solid #e8eaf1;
     box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
@@ -96,7 +100,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 0 16px;
+    padding: 0 14px;
 }
 
 .inputSearch input {
@@ -118,7 +122,7 @@
     border: 0;
     outline: none;
     background: transparent;
-    padding: 0 16px;
+    padding: 0 14px;
     font-size: 14px;
     color: #111827;
     cursor: pointer;
@@ -127,22 +131,22 @@
 .summaryRow {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+    gap: 14px;
 }
 
 .summaryCard {
     background: #fff;
     border: 1px solid #ece7f5;
-    border-radius: 22px;
-    padding: 18px;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .summaryLabel {
-    font-size: 12px;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: #94a3b8;
@@ -150,17 +154,17 @@
 }
 
 .summaryValue {
-    font-size: 28px;
+    font-size: 24px;
     font-weight: 900;
     line-height: 1;
     color: #111827;
 }
 
 .stateBox {
-    min-height: 300px;
+    min-height: 260px;
     background: #fff;
     border: 1px solid #ece7f5;
-    border-radius: 28px;
+    border-radius: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -172,7 +176,7 @@
 
 .stateBox h3 {
     margin: 0;
-    font-size: 22px;
+    font-size: 20px;
     color: #111827;
     font-weight: 900;
 }
@@ -184,8 +188,8 @@
 }
 
 .spinner {
-    width: 28px;
-    height: 28px;
+    width: 26px;
+    height: 26px;
     border: 3px solid #ddd6fe;
     border-top-color: #7c3aed;
     border-radius: 999px;
@@ -193,9 +197,9 @@
 }
 
 .emptyIcon {
-    width: 72px;
-    height: 72px;
-    border-radius: 20px;
+    width: 66px;
+    height: 66px;
+    border-radius: 18px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -205,30 +209,30 @@
 
 .gridProdutos {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 16px;
 }
 
 .cardProduto {
-    background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+    background: #ffffff;
     border: 1px solid #ece7f5;
-    border-radius: 24px;
+    border-radius: 18px;
     overflow: hidden;
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
-    transition: 0.22s ease;
     display: flex;
     flex-direction: column;
+    transition: 0.2s;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
 }
 
 .cardProduto:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 22px 44px rgba(15, 23, 42, 0.1);
+    transform: translateY(-3px);
+    box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
 }
 
 .imageLink {
     display: block;
     width: 100%;
-    height: 240px;
+    height: 160px;
     background: #f8fafc;
 }
 
@@ -247,118 +251,136 @@
     gap: 8px;
     align-items: center;
     justify-content: center;
+    background: #faf7ff;
     color: #8b5cf6;
-    background: linear-gradient(180deg, #faf7ff 0%, #f3ecff 100%);
+    font-size: 13px;
     font-weight: 700;
-    font-size: 14px;
 }
 
 .cardBody {
-    padding: 18px;
+    padding: 14px;
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     flex: 1;
 }
 
-.categoriaTag {
-    width: fit-content;
-    max-width: 100%;
-    display: inline-flex;
+.topInfo {
+    display: flex;
     align-items: center;
-    min-height: 30px;
-    padding: 0 12px;
-    border-radius: 999px;
-    background: #f3ecff;
-    color: #6d28d9;
-    font-size: 11px;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.categoriaTag {
+    font-size: 10px;
     font-weight: 800;
+    color: #6d28d9;
+    background: #f3ecff;
+    padding: 5px 8px;
+    border-radius: 999px;
+    width: fit-content;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.destaqueTag {
+    font-size: 10px;
+    font-weight: 800;
+    color: #92400e;
+    background: #fef3c7;
+    padding: 5px 8px;
+    border-radius: 999px;
+    width: fit-content;
     text-transform: uppercase;
     letter-spacing: 0.04em;
 }
 
 .produtoNome {
     margin: 0;
-    font-size: 18px;
-    line-height: 1.35;
+    font-size: 14px;
+    font-weight: 800;
     color: #111827;
-    font-weight: 900;
+    line-height: 1.4;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    min-height: 48px;
+    min-height: 40px;
 }
 
 .produtoDescricao {
     margin: 0;
-    color: #6b7280;
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: 12px;
+    color: #64748b;
+    line-height: 1.55;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    min-height: 67px;
+    min-height: 38px;
 }
 
 .precoArea {
+    margin-top: 2px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 3px;
 }
 
 .precoAntigo {
-    font-size: 13px;
-    color: #94a3b8;
+    font-size: 11px;
     text-decoration: line-through;
+    color: #94a3b8;
     font-weight: 700;
 }
 
 .precoAtual {
-    font-size: 26px;
-    line-height: 1;
+    font-size: 19px;
     font-weight: 900;
     color: #111827;
+    line-height: 1.1;
 }
 
 .precoAtual.promo {
     color: #7c3aed;
 }
 
-.footerCard {
-    margin-top: auto;
+.infoRow {
     display: flex;
-    align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    align-items: center;
+    gap: 10px;
     flex-wrap: wrap;
+    margin-top: 2px;
 }
 
-.skuText {
-    font-size: 12px;
-    color: #64748b;
+.skuText,
+.estoqueText {
+    font-size: 11px;
+    color: #94a3b8;
     font-weight: 700;
 }
 
 .verMaisBtn {
-    min-height: 42px;
-    padding: 0 16px;
-    border-radius: 14px;
-    background: #111827;
-    color: #fff;
+    margin-top: auto;
+    min-height: 38px;
+    padding: 0 12px;
+    border-radius: 10px;
+    background: #7c3aed;
+    color: white;
     text-decoration: none;
+    font-weight: 800;
+    font-size: 12px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 13px;
-    font-weight: 800;
-    transition: 0.2s ease;
+    transition: 0.2s;
 }
 
 .verMaisBtn:hover {
-    background: #0f172a;
-    transform: translateY(-1px);
+    background: #6d28d9;
 }
 
 .pagination {
@@ -367,7 +389,7 @@
     justify-content: center;
     gap: 12px;
     flex-wrap: wrap;
-    margin-top: 6px;
+    margin-top: 4px;
 }
 
 .pageNumbers {
@@ -381,27 +403,27 @@
 .pageBtn {
     border: 0;
     outline: 0;
-    min-height: 44px;
-    border-radius: 14px;
+    min-height: 42px;
+    border-radius: 12px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 800;
     transition: 0.2s ease;
 }
 
 .pageBtn.nav {
-    padding: 0 16px;
+    padding: 0 14px;
     background: #ffffff;
     border: 1px solid #e8eaf1;
     color: #111827;
 }
 
 .pageBtn.number {
-    width: 44px;
+    width: 42px;
     background: #ffffff;
     border: 1px solid #e8eaf1;
     color: #111827;
@@ -411,7 +433,7 @@
     background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
     color: #fff;
     border-color: transparent;
-    box-shadow: 0 12px 22px rgba(124, 58, 237, 0.22);
+    box-shadow: 0 10px 18px rgba(124, 58, 237, 0.22);
 }
 
 .pageBtn:hover:not(:disabled) {
@@ -442,12 +464,12 @@
 
 @media (max-width: 768px) {
     .produtosPage {
-        gap: 18px;
+        gap: 16px;
     }
 
     .hero {
-        padding: 20px;
-        border-radius: 22px;
+        padding: 18px;
+        border-radius: 20px;
     }
 
     .heroTitle {
@@ -455,11 +477,16 @@
     }
 
     .heroText {
-        font-size: 14px;
+        font-size: 13px;
     }
 
     .gridProdutos {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+    }
+
+    .imageLink {
+        height: 140px;
     }
 
     .pagination {
@@ -473,5 +500,11 @@
 
     .pageBtn.nav {
         width: 100%;
+    }
+}
+
+@media (max-width: 560px) {
+    .gridProdutos {
+        grid-template-columns: 1fr;
     }
 }
