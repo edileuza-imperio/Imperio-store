@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/Api/conectar";
 
+// Tipos
 type Produto = {
   id_produto: number;
   nome: string;
@@ -24,21 +25,16 @@ type Produto = {
   modelo?: string;
 };
 
-type Categoria = {
-  id_categoria: number;
-  nome: string;
-};
-
+// Funções auxiliares
 function resolveApi<T>(payload: any): T {
   if (payload?.dados != null) return payload.dados as T;
   if (payload?.data != null) return payload.data as T;
   if (payload?.produtos != null) return payload.produtos as T;
-  if (payload?.categorias != null) return payload.categorias as T;
   return payload as T;
 }
 
 function getImagemUrl(caminho?: string) {
-  if (!caminho) return "";
+  if (!caminho) return "/placeholder-image.png";
   const base = api.defaults.baseURL || "";
   if (caminho.startsWith("http")) return caminho;
   return `${base.replace(/\/$/, "")}/${String(caminho).replace(/^\/+/, "")}`;
@@ -52,630 +48,382 @@ function formatMoney(value: number | string | undefined) {
   });
 }
 
+// Componente principal
 export default function ProdutosPainelPage() {
   const router = useRouter();
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
-
   const [busca, setBusca] = useState("");
-  const [categoriaFiltro, setCategoriaFiltro] = useState("");
-  const [paginaAtual, setPaginaAtual] = useState(1);
 
-  const itensPorPagina = 8;
-
-  async function carregarTudo() {
+  async function carregarProdutos() {
     try {
       setLoading(true);
-
-      const [resProdutos, resCategorias] = await Promise.all([
-        api.get("/admin/produtos", { withCredentials: true }),
-        api.get("/admin/categorias", { withCredentials: true }),
-      ]);
-
-      const listaProdutos = resolveApi<Produto[]>(resProdutos.data) || [];
-      const listaCategorias = resolveApi<Categoria[]>(resCategorias.data) || [];
-
-      setProdutos(Array.isArray(listaProdutos) ? listaProdutos : []);
-      setCategorias(Array.isArray(listaCategorias) ? listaCategorias : []);
+      const res = await api.get("/admin/produtos", { withCredentials: true });
+      const lista = resolveApi<Produto[]>(res.data) || [];
+      setProdutos(Array.isArray(lista) ? lista : []);
     } catch (error) {
-      console.error(error);
-      alert("Erro ao carregar produtos.");
+      console.error("Erro ao carregar produtos:", error);
+      alert("Não foi possível carregar os produtos. Tente novamente mais tarde.");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    carregarTudo();
+    carregarProdutos();
   }, []);
 
-  useEffect(() => {
-    setPaginaAtual(1);
-  }, [busca, categoriaFiltro]);
-
   const produtosFiltrados = useMemo(() => {
-    return produtos.filter((produto) => {
-      const termo = busca.trim().toLowerCase();
+    const termo = busca.trim().toLowerCase();
+    if (!termo) return produtos;
 
-      const matchBusca =
-        !termo ||
-        String(produto.nome || "").toLowerCase().includes(termo) ||
-        String(produto.slug || "").toLowerCase().includes(termo) ||
-        String(produto.categoria_nome || "").toLowerCase().includes(termo) ||
-        String(produto.sku || "").toLowerCase().includes(termo);
-
-      const matchCategoria =
-        !categoriaFiltro ||
-        String(produto.categoria_nome || "") === categoriaFiltro ||
-        String(produto.categoria_id || "") === categoriaFiltro;
-
-      return matchBusca && matchCategoria;
+    return produtos.filter((p) => {
+      return (
+        p.nome.toLowerCase().includes(termo) ||
+        (p.sku || "").toLowerCase().includes(termo) ||
+        (p.categoria_nome || "").toLowerCase().includes(termo)
+      );
     });
-  }, [produtos, busca, categoriaFiltro]);
-
-  const totalPaginas = Math.max(
-    1,
-    Math.ceil(produtosFiltrados.length / itensPorPagina)
-  );
-
-  const produtosPaginados = useMemo(() => {
-    const inicio = (paginaAtual - 1) * itensPorPagina;
-    const fim = inicio + itensPorPagina;
-    return produtosFiltrados.slice(inicio, fim);
-  }, [produtosFiltrados, paginaAtual]);
-
-  useEffect(() => {
-    if (paginaAtual > totalPaginas) {
-      setPaginaAtual(totalPaginas);
-    }
-  }, [paginaAtual, totalPaginas]);
+  }, [produtos, busca]);
 
   async function excluirProduto(produto: Produto) {
-    const ok = window.confirm(`Deseja excluir o produto "${produto.nome}"?`);
-    if (!ok) return;
+    const confirmou = window.confirm(
+      `Tem certeza que deseja excluir o produto "${produto.nome}"? Esta ação não pode ser desfeita.`
+    );
+    if (!confirmou) return;
 
     try {
       await api.delete(`/admin/produto/${produto.id_produto}/remover`, {
         withCredentials: true,
       });
-
-      await carregarTudo();
+      // Remove o produto da lista local para uma atualização de UI instantânea
+      setProdutos((anteriores) =>
+        anteriores.filter((p) => p.id_produto !== produto.id_produto)
+      );
     } catch (error: any) {
-      console.error(error);
+      console.error("Erro ao excluir produto:", error);
       alert(
-        error?.response?.data?.mensagem ||
-          error?.response?.data?.message ||
-          "Erro ao excluir produto."
+        error?.response?.data?.mensagem || "Ocorreu um erro ao excluir o produto."
       );
     }
   }
 
   return (
     <>
-      <div className="painel-page">
-        <section className="hero-card">
-          <div className="hero-left">
-            <span className="hero-badge">Painel</span>
-            <h1>Produtos</h1>
-            <p>
-              Gerencie seu catálogo com uma interface mais limpa, moderna e fácil
-              de manter.
-            </p>
+      <div className="painel-container">
+        <header className="painel-header">
+          <div className="header-content">
+            <h1>Catálogo de Produtos</h1>
+            <p>Gerencie seus produtos com eficiência e estilo.</p>
           </div>
+          <button
+            className="btn btn-primary"
+            onClick={() => router.push("/painel/produtos/novo")}
+          >
+            + Adicionar Produto
+          </button>
+        </header>
 
-          <div className="hero-actions">
-            <button
-              type="button"
-              className="btn-primary-ui"
-              onClick={() => router.push("/painel/produtos/novo")}
-            >
-              + Novo produto
-            </button>
-          </div>
-        </section>
-
-        <section className="filtros-card">
-          <div className="field field-busca">
-            <label>Buscar produto</label>
-            <input
-              className="input-ui"
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              placeholder="Digite nome, slug, SKU ou categoria..."
+        <div className="busca-wrapper">
+          <svg className="busca-icon" viewBox="0 0 20 20" fill="currentColor">
+            <path
+              fillRule="evenodd"
+              d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
+              clipRule="evenodd"
             />
-          </div>
-
-          <div className="field">
-            <label>Categoria</label>
-            <select
-              className="input-ui"
-              value={categoriaFiltro}
-              onChange={(e) => setCategoriaFiltro(e.target.value)}
-            >
-              <option value="">Todas as categorias</option>
-              {categorias.map((cat) => (
-                <option key={cat.id_categoria} value={cat.nome}>
-                  {cat.nome}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="field">
-            <label>Página</label>
-            <select
-              className="input-ui"
-              value={paginaAtual}
-              onChange={(e) => setPaginaAtual(Number(e.target.value))}
-            >
-              {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((pagina) => (
-                <option key={pagina} value={pagina}>
-                  {pagina}
-                </option>
-              ))}
-            </select>
-          </div>
-        </section>
+          </svg>
+          <input
+            type="text"
+            className="busca-input"
+            placeholder="Buscar por nome, SKU ou categoria..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        </div>
 
         {loading ? (
-          <div className="empty-box">Carregando produtos...</div>
-        ) : produtosPaginados.length === 0 ? (
-          <div className="empty-box">Nenhum produto encontrado.</div>
+          <div className="feedback-box">Carregando...</div>
+        ) : produtosFiltrados.length === 0 ? (
+          <div className="feedback-box">
+            {busca ? "Nenhum produto encontrado para sua busca." : "Nenhum produto cadastrado ainda."}
+          </div>
         ) : (
-          <section className="produto-grid">
-            {produtosPaginados.map((produto) => (
-              <article key={produto.id_produto} className="produto-card">
-                <div className="produto-card-image-area">
-                  {produto.imagem ? (
-                    <img
-                      src={getImagemUrl(produto.imagem)}
-                      alt={produto.nome}
-                      className="produto-card-image"
-                    />
-                  ) : (
-                    <div className="produto-card-no-image">Sem imagem</div>
-                  )}
-
-                  <div className="produto-badges">
+          <div className="produtos-grid">
+            {produtosFiltrados.map((produto) => (
+              <div key={produto.id_produto} className="produto-card">
+                <div className="card-imagem-wrapper">
+                  <img
+                    src={getImagemUrl(produto.imagem)}
+                    alt={produto.nome}
+                    className="card-imagem"
+                  />
+                  <div className="card-badges">
                     {produto.destaque ? (
-                      <span className="badge badge-gold">Destaque</span>
+                      <span className="badge badge-destaque">Destaque</span>
                     ) : null}
-
-                    {Number(produto.catalogo ?? 0) === 1 ? (
-                      <span className="badge badge-green">No catálogo</span>
-                    ) : (
-                      <span className="badge badge-gray">Oculto</span>
-                    )}
+                    <span
+                      className={`badge ${produto.catalogo ? "badge-ativo" : "badge-inativo"}`}
+                    >
+                      {produto.catalogo ? "Visível" : "Oculto"}
+                    </span>
                   </div>
                 </div>
-
-                <div className="produto-card-content">
-                  <div className="produto-top-line">
-                    <span className="produto-categoria">
-                      {produto.categoria_nome || "Sem categoria"}
-                    </span>
-                    <span className="produto-id">#{produto.id_produto}</span>
-                  </div>
-
-                  <h3>{produto.nome}</h3>
-
-                  <p>
-                    {produto.descricao?.trim()
-                      ? produto.descricao.length > 110
-                        ? `${produto.descricao.slice(0, 110)}...`
-                        : produto.descricao
-                      : "Sem descrição cadastrada."}
-                  </p>
-
-                  <div className="produto-meta-grid">
-                    <div className="produto-meta-box">
+                <div className="card-conteudo">
+                  <span className="card-categoria">
+                    {produto.categoria_nome || "Sem Categoria"}
+                  </span>
+                  <h3 className="card-titulo">{produto.nome}</h3>
+                  <div className="card-info-grid">
+                    <div className="info-item">
                       <span>Preço</span>
                       <strong>{formatMoney(produto.preco)}</strong>
                     </div>
-
-                    <div className="produto-meta-box">
+                    <div className="info-item">
                       <span>Estoque</span>
                       <strong>
-                        {Number(produto.ilimitado ?? 0) === 1
-                          ? "Ilimitado"
-                          : Number(produto.estoque ?? 0)}
+                        {produto.ilimitado ? "Ilimitado" : produto.estoque ?? 0}
                       </strong>
                     </div>
-
-                    <div className="produto-meta-box full">
-                      <span>Slug</span>
-                      <strong>{produto.slug || "—"}</strong>
-                    </div>
                   </div>
-
-                  <div className="produto-actions">
+                  <div className="card-acoes">
                     <button
-                      type="button"
-                      className="btn-secondary-ui"
+                      className="btn btn-secondary"
                       onClick={() =>
-                        router.push(`/painel/produtos/${produto.id_produto}/editar`)
+                        router.push(
+                          `/painel/produtos/${produto.id_produto}/editar`
+                        )
                       }
                     >
                       Editar
                     </button>
-
                     <button
-                      type="button"
-                      className="btn-secondary-ui"
-                      onClick={() =>
-                        router.push(`/painel/produtos/${produto.id_produto}/editar?aba=imagens`)
-                      }
-                    >
-                      Imagens
-                    </button>
-
-                    <button
-                      type="button"
-                      className="btn-danger-ui"
+                      className="btn btn-danger"
                       onClick={() => excluirProduto(produto)}
                     >
                       Excluir
                     </button>
                   </div>
                 </div>
-              </article>
+              </div>
             ))}
-          </section>
+          </div>
         )}
       </div>
 
       <style jsx>{`
-        .painel-page {
+        .painel-container {
+          background-color: #111827; // Dark background
+          color: #f9fafb; // Light text
           min-height: 100vh;
-          padding: 28px;
-          background:
-            radial-gradient(circle at top left, rgba(190, 24, 93, 0.06), transparent 30%),
-            linear-gradient(180deg, #fff9fb 0%, #fffdfd 100%);
-          color: #2f2430;
-          font-family: Inter, system-ui, sans-serif;
+          padding: 2rem;
+          font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
-        .hero-card {
+        .painel-header {
           display: flex;
-          align-items: center;
           justify-content: space-between;
-          gap: 20px;
+          align-items: center;
           flex-wrap: wrap;
-          padding: 28px;
-          margin-bottom: 22px;
-          border-radius: 30px;
-          background: linear-gradient(135deg, #fff8fa 0%, #ffffff 100%);
-          border: 1px solid #f2d7e0;
-          box-shadow: 0 18px 42px rgba(91, 33, 52, 0.06);
+          gap: 1.5rem;
+          margin-bottom: 2.5rem;
         }
 
-        .hero-badge {
-          display: inline-flex;
-          padding: 8px 14px;
-          border-radius: 999px;
-          background: #fff1f6;
-          color: #d61f69;
-          border: 1px solid #f8cada;
-          font-size: 12px;
+        .header-content h1 {
+          font-size: 2.25rem; // 36px
           font-weight: 800;
-        }
-
-        .hero-card h1 {
-          margin: 12px 0 8px;
-          font-size: 38px;
-          line-height: 1.05;
-          font-weight: 900;
-          letter-spacing: -0.04em;
-        }
-
-        .hero-card p {
+          letter-spacing: -0.025em;
           margin: 0;
-          max-width: 720px;
-          color: #7f6472;
-          font-size: 14px;
-          line-height: 1.7;
-          font-weight: 500;
         }
 
-        .filtros-card {
-          display: grid;
-          grid-template-columns: minmax(0, 1.8fr) minmax(220px, 1fr) 180px;
-          gap: 16px;
-          align-items: end;
-          margin-bottom: 24px;
-          padding: 18px;
-          background: #ffffff;
-          border: 1px solid #f2d7e0;
-          border-radius: 24px;
-          box-shadow: 0 10px 26px rgba(91, 33, 52, 0.04);
+        .header-content p {
+          font-size: 1rem; // 16px
+          color: #9ca3af; // Gray 400
+          margin-top: 0.5rem;
         }
 
-        .field {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          min-width: 0;
+        .btn {
+          padding: 0.75rem 1.5rem;
+          border: none;
+          border-radius: 0.5rem; // 8px
+          font-weight: 600;
+          font-size: 0.875rem; // 14px
+          cursor: pointer;
+          transition: all 0.2s ease;
         }
 
-        .field label {
-          font-size: 13px;
-          font-weight: 800;
-          color: #714a5d;
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
 
-        .input-ui {
+        .btn-primary {
+          background-color: #be185d; // Pink 700
+          color: white;
+        }
+        
+        .btn-secondary {
+          background-color: #374151; // Gray 700
+          color: #f9fafb; // Gray 50
+        }
+        
+        .btn-danger {
+          background-color: #991b1b; // Red 800
+          color: #f9fafb; // Gray 50
+        }
+
+        .busca-wrapper {
+          position: relative;
+          margin-bottom: 2.5rem;
+        }
+
+        .busca-icon {
+          position: absolute;
+          left: 1rem;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 1.25rem; // 20px
+          height: 1.25rem;
+          color: #6b7280; // Gray 500
+        }
+
+        .busca-input {
           width: 100%;
-          box-sizing: border-box;
-          height: 52px;
-          border: 1px solid #efcfd8;
-          background: #fff;
-          color: #2f2430;
-          border-radius: 16px;
-          padding: 0 14px;
-          font-size: 14px;
-          font-weight: 500;
+          background-color: #1f2937; // Gray 800
+          color: #f9fafb;
+          border: 1px solid #374151; // Gray 700
+          border-radius: 0.5rem;
+          padding: 1rem 1rem 1rem 3rem;
+          font-size: 1rem;
           outline: none;
-          transition: 0.2s ease;
         }
 
-        .input-ui:focus {
-          border-color: #d61f69;
-          box-shadow: 0 0 0 4px rgba(214, 31, 105, 0.11);
+        .busca-input:focus {
+          border-color: #be185d;
+          box-shadow: 0 0 0 3px rgba(190, 24, 93, 0.5);
         }
 
-        select.input-ui {
-          appearance: none;
-          -webkit-appearance: none;
-          -moz-appearance: none;
-          padding-right: 42px;
-          background-image: linear-gradient(45deg, transparent 50%, #6d4a59 50%),
-            linear-gradient(135deg, #6d4a59 50%, transparent 50%);
-          background-position: calc(100% - 18px) calc(50% - 3px),
-            calc(100% - 12px) calc(50% - 3px);
-          background-size: 6px 6px, 6px 6px;
-          background-repeat: no-repeat;
+        .feedback-box {
+          text-align: center;
+          padding: 4rem;
+          background-color: #1f2937;
+          border-radius: 1rem;
+          color: #9ca3af;
+          font-weight: 500;
         }
 
-        .produto-grid {
+        .produtos-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
-          gap: 20px;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 2rem;
         }
 
         .produto-card {
+          background-color: #1f2937; // Gray 800
+          border-radius: 1rem; // 16px
           overflow: hidden;
-          border-radius: 28px;
-          border: 1px solid #f0d9e2;
-          background: rgba(255, 255, 255, 0.98);
-          box-shadow: 0 16px 36px rgba(62, 28, 43, 0.06);
-          transition: 0.2s ease;
+          border: 1px solid #374151; // Gray 700
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .produto-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 22px 42px rgba(62, 28, 43, 0.08);
-          border-color: #ebb3c9;
+          transform: translateY(-5px);
+          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.25);
         }
 
-        .produto-card-image-area {
+        .card-imagem-wrapper {
           position: relative;
-          height: 250px;
-          background: linear-gradient(180deg, #fff3f8 0%, #fffaf4 100%);
+          height: 220px;
+          background-color: #374151;
         }
 
-        .produto-card-image {
+        .card-imagem {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          display: block;
         }
 
-        .produto-card-no-image {
-          width: 100%;
-          height: 100%;
-          display: grid;
-          place-items: center;
-          color: #946b7d;
-          font-weight: 800;
-        }
-
-        .produto-badges {
+        .card-badges {
           position: absolute;
-          top: 14px;
-          left: 14px;
+          top: 1rem;
+          left: 1rem;
           display: flex;
-          gap: 8px;
-          flex-wrap: wrap;
+          gap: 0.5rem;
         }
 
         .badge {
-          padding: 7px 12px;
+          padding: 0.375rem 0.75rem;
           border-radius: 999px;
-          font-size: 11px;
-          font-weight: 900;
-          box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
-        }
-
-        .badge-gold {
-          background: linear-gradient(135deg, #f59e0b, #d97706);
-          color: #fff;
-        }
-
-        .badge-green {
-          background: linear-gradient(135deg, #10b981, #059669);
-          color: #fff;
-        }
-
-        .badge-gray {
-          background: rgba(255, 255, 255, 0.94);
-          color: #6b7280;
-          border: 1px solid #e5e7eb;
-        }
-
-        .produto-card-content {
-          padding: 18px;
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-        }
-
-        .produto-top-line {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-        }
-
-        .produto-categoria {
-          display: inline-flex;
-          width: fit-content;
-          padding: 7px 12px;
-          border-radius: 999px;
-          background: #fff1f5;
-          color: #c51d64;
-          border: 1px solid #f7cade;
-          font-size: 11px;
-          font-weight: 900;
-          letter-spacing: 0.03em;
+          font-size: 0.75rem; // 12px
+          font-weight: 700;
           text-transform: uppercase;
         }
 
-        .produto-id {
-          font-size: 12px;
-          font-weight: 800;
-          color: #9a6b80;
+        .badge-destaque {
+          background-color: #f59e0b; // Amber 500
+          color: #111827;
         }
 
-        .produto-card-content h3 {
-          margin: 0;
-          font-size: 20px;
-          line-height: 1.25;
-          font-weight: 900;
+        .badge-ativo {
+          background-color: #10b981; // Green 500
+          color: #f9fafb;
         }
 
-        .produto-card-content p {
-          margin: 0;
-          color: #7c6170;
-          font-size: 14px;
-          line-height: 1.7;
-          min-height: 48px;
+        .badge-inativo {
+          background-color: #4b5563; // Gray 600
+          color: #d1d5db; // Gray 300
         }
 
-        .produto-meta-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 12px;
+        .card-conteudo {
+          padding: 1.5rem;
         }
 
-        .produto-meta-box {
-          padding: 12px 14px;
-          border-radius: 18px;
-          background: linear-gradient(180deg, #fffefe 0%, #fff7fa 100%);
-          border: 1px solid #f3dce4;
+        .card-categoria {
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: #be185d;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
         }
 
-        .produto-meta-box.full {
-          grid-column: 1 / -1;
-        }
-
-        .produto-meta-box span {
-          display: block;
-          font-size: 12px;
+        .card-titulo {
+          font-size: 1.25rem; // 20px
           font-weight: 700;
-          color: #9a6b80;
-          margin-bottom: 6px;
+          margin: 0.5rem 0 1rem;
         }
 
-        .produto-meta-box strong {
-          display: block;
-          color: #2f2430;
-          font-size: 14px;
-          font-weight: 900;
-          word-break: break-word;
-        }
-
-        .produto-actions {
+        .card-info-grid {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 10px;
-          margin-top: 4px;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
         }
 
-        .btn-primary-ui,
-        .btn-secondary-ui,
-        .btn-danger-ui {
-          appearance: none;
-          border-radius: 16px;
-          padding: 12px 16px;
-          font-size: 14px;
-          font-weight: 800;
-          cursor: pointer;
-          transition: 0.18s ease;
+        .info-item span {
+          font-size: 0.875rem;
+          color: #9ca3af;
+          display: block;
         }
 
-        .btn-primary-ui:hover,
-        .btn-secondary-ui:hover,
-        .btn-danger-ui:hover {
-          transform: translateY(-1px);
+        .info-item strong {
+          font-size: 1rem;
+          font-weight: 600;
+          color: #f9fafb;
         }
 
-        .btn-primary-ui {
-          border: none;
-          color: #fff;
-          background: linear-gradient(135deg, #e11d74 0%, #c2185b 100%);
-          box-shadow: 0 12px 24px rgba(194, 24, 91, 0.2);
+        .card-acoes {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.75rem;
         }
 
-        .btn-secondary-ui {
-          border: 1px solid #edd5dd;
-          background: #fff8fb;
-          color: #6a4356;
-        }
-
-        .btn-danger-ui {
-          border: 1px solid #fecaca;
-          background: #fff1f2;
-          color: #be123c;
-        }
-
-        .empty-box {
-          padding: 30px;
-          text-align: center;
-          border-radius: 22px;
-          border: 1px solid #f0d9e2;
-          background: rgba(255, 255, 255, 0.98);
-          color: #8a6475;
-          font-weight: 800;
-          box-shadow: 0 10px 24px rgba(62, 28, 43, 0.04);
-        }
-
-        @media (max-width: 1024px) {
-          .filtros-card {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .painel-page {
-            padding: 16px;
-          }
-
-          .hero-card {
-            padding: 20px;
-            border-radius: 22px;
-          }
-
-          .hero-card h1 {
-            font-size: 30px;
-          }
-
-          .produto-actions {
-            grid-template-columns: 1fr;
-          }
+        @media (max-width: 640px) {
+          .painel-container { padding: 1rem; }
+          .painel-header { text-align: center; justify-content: center; }
+          .card-acoes { grid-template-columns: 1fr; }
         }
       `}</style>
     </>
   );
 }
+
