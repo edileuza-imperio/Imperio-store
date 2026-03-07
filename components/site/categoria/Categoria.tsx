@@ -117,7 +117,7 @@ export default function CategoriasDestaque() {
               </div>
 
               <div className="rightSide">
-                <Link href="/catalogo" className="allBtn">
+                <Link href="/categoria/listar" className="allBtn">
                   <span>Ver todas</span>
                   <span aria-hidden>→</span>
                 </Link>
@@ -164,8 +164,8 @@ export default function CategoriasDestaque() {
                   const nome = String(c?.nome || "Categoria");
                   const slug = String(c?.slug || "").trim();
                   const href = slug
-                    ? `/catalogo/categoria/${encodeURIComponent(slug)}`
-                    : "/catalogo";
+                    ? `/categoria/listar/${encodeURIComponent(slug)}`
+                    : "/categoria/listar";
 
                   return (
                     <Link
@@ -193,10 +193,6 @@ export default function CategoriasDestaque() {
           </div>
         </div>
       </section>
-
-      <style jsx>{`
-       
-      `}</style>
     </>
   );
 }
