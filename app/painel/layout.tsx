@@ -5,76 +5,38 @@ import Header from "@/components/Painel/Header";
 import Sidebar from "@/components/Painel/Sidebar";
 
 export default function PainelLayout({ children }: { children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   return (
     <>
-      <div className="shell">
+      <div className="layoutContainer">
         {/* SIDEBAR */}
-        <Sidebar open={open} onClose={() => setOpen(false)} />
+        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-        {/* MAIN */}
-        <div className="main">
+        {/* MAIN CONTENT AREA */}
+        <div className="mainArea">
+          {/* HEADER */}
           <Header
             title="Painel"
             subtitle="Gerencie produtos, categorias e configurações"
-            onToggleSidebar={() => setOpen((v) => !v)}
+            onToggleSidebar={() => setSidebarOpen((v) => !v)}
             userName="Rhaian"
           />
 
-          <div className="content">{children}</div>
+          {/* PAGE CONTENT */}
+          <div className="contentArea">{children}</div>
         </div>
       </div>
 
-      {/* ✅ OVERLAY MOBILE (somente aqui) */}
+      {/* ✅ OVERLAY MOBILE */}
       <button
         type="button"
         aria-label="Fechar menu"
-        className={`overlay ${open ? "show" : ""}`}
-        onClick={() => setOpen(false)}
+        className={`mobileOverlay ${sidebarOpen ? "active" : ""}`}
+        onClick={() => setSidebarOpen(false)}
       />
 
-      <style jsx>{`
-        .shell {
-          min-height: 100vh;
-          display: grid;
-          grid-template-columns: 320px 1fr; /* ✅ combina com seu Sidebar (320px) */
-          background: #f6f7fb;
-        }
-
-        .main {
-          min-width: 0;
-          display: flex;
-          flex-direction: column;
-          height: 100vh;
-          overflow: hidden;
-        }
-
-        .content {
-          flex: 1;
-          overflow: auto;
-          padding: 24px;
-        }
-
-        /* ✅ overlay (mobile) */
-        .overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(2, 6, 23, 0.58);
-          border: none;
-          display: none;
-          z-index: 2500; /* ✅ abaixo do sidebar mobile (3000) e acima do resto */
-        }
-        .overlay.show {
-          display: block;
-        }
-
-        @media (max-width: 900px) {
-          .shell {
-            grid-template-columns: 1fr;
-          }
-        }
-      `}</style>
+      
     </>
   );
 }
