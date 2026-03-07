@@ -5,6 +5,9 @@ import { useParams } from "next/navigation";
 import api from "@/Api/conectar";
 import Link from "next/link";
 
+import Navbar from "@/components/site/menu/navbar";
+import FooterPrincipal from "@/components/site/Rodape/Footer";
+
 type Produto = {
   id_produto: number;
   nome: string;
@@ -33,6 +36,7 @@ function getImagemUrl(caminho?: string) {
 }
 
 export default function CategoriaPage() {
+
   const params = useParams();
   const id = params.id;
 
@@ -40,7 +44,9 @@ export default function CategoriaPage() {
   const [loading, setLoading] = useState(true);
 
   async function carregarProdutos() {
+
     try {
+
       setLoading(true);
 
       const res = await api.get(`/produtos/categoria/${id}`);
@@ -48,154 +54,205 @@ export default function CategoriaPage() {
       const lista = res.data?.dados || res.data || [];
 
       setProdutos(lista);
+
     } catch (erro) {
+
       console.error("Erro ao carregar produtos da categoria", erro);
+
     } finally {
+
       setLoading(false);
+
     }
   }
 
   useEffect(() => {
+
     if (id) carregarProdutos();
+
   }, [id]);
 
-  if (loading) {
-    return (
-      <div className="container">
-        <h2>Carregando produtos...</h2>
-      </div>
-    );
-  }
-
   return (
-    <div className="container">
+    <>
+      <Navbar />
 
-      <div className="header">
-        <h1>Produtos da Categoria</h1>
-      </div>
+      <div className="container">
 
-      {produtos.length === 0 && (
-        <div className="empty">
-          <p>Nenhum produto encontrado nessa categoria.</p>
+        {/* breadcrumb */}
+        <div className="breadcrumb">
+          <Link href="/">Home</Link>
+          <span>›</span>
+          <span>Categoria</span>
         </div>
-      )}
 
-      <div className="grid">
+        <div className="header">
+          <h1>Produtos da Categoria</h1>
+          <p>Confira os produtos disponíveis nesta categoria</p>
+        </div>
 
-        {produtos.map((produto) => {
-          const precoPromocional = Number(produto.preco_promocional || 0);
-          const precoNormal = Number(produto.preco || 0);
+        {loading && (
+          <div className="loading">
+            <h3>Carregando produtos...</h3>
+          </div>
+        )}
 
-          const precoFinal =
-            precoPromocional > 0 ? precoPromocional : precoNormal;
+        {!loading && produtos.length === 0 && (
+          <div className="empty">
+            <p>Nenhum produto encontrado nessa categoria.</p>
+          </div>
+        )}
 
-          return (
-            <Link
-              key={produto.id_produto}
-              href={`/produto/${produto.slug || produto.id_produto}`}
-              className="card"
-            >
-              <div className="imageWrap">
-                <img
-                  src={getImagemUrl(produto.imagem)}
-                  alt={produto.nome}
-                />
-              </div>
+        <div className="grid">
 
-              <div className="info">
-                <h3>{produto.nome}</h3>
+          {produtos.map((produto) => {
 
-                <div className="price">
+            const precoPromocional = Number(produto.preco_promocional || 0);
+            const precoNormal = Number(produto.preco || 0);
 
-                  {precoPromocional > 0 && (
-                    <span className="old">
-                      {formatMoney(precoNormal)}
+            const precoFinal =
+              precoPromocional > 0 ? precoPromocional : precoNormal;
+
+            return (
+              <Link
+                key={produto.id_produto}
+                href={`/produto/${produto.slug || produto.id_produto}`}
+                className="card"
+              >
+
+                <div className="imageWrap">
+                  <img
+                    src={getImagemUrl(produto.imagem)}
+                    alt={produto.nome}
+                  />
+                </div>
+
+                <div className="info">
+
+                  <h3>{produto.nome}</h3>
+
+                  <div className="price">
+
+                    {precoPromocional > 0 && (
+                      <span className="old">
+                        {formatMoney(precoNormal)}
+                      </span>
+                    )}
+
+                    <span className="current">
+                      {formatMoney(precoFinal)}
                     </span>
-                  )}
 
-                  <span className="current">
-                    {formatMoney(precoFinal)}
-                  </span>
+                  </div>
 
                 </div>
-              </div>
-            </Link>
-          );
-        })}
+
+              </Link>
+            );
+          })}
+
+        </div>
 
       </div>
+
+      <FooterPrincipal />
 
       <style jsx>{`
 
         .container{
           max-width:1200px;
           margin:auto;
-          padding:30px 20px;
+          padding:40px 20px;
+        }
+
+        .breadcrumb{
+          display:flex;
+          gap:10px;
+          font-size:14px;
+          margin-bottom:20px;
+          color:#777;
+        }
+
+        .breadcrumb a{
+          color:#777;
+          text-decoration:none;
+        }
+
+        .breadcrumb a:hover{
+          text-decoration:underline;
         }
 
         .header{
-          margin-bottom:30px;
+          margin-bottom:35px;
         }
 
         h1{
-          font-size:28px;
+          font-size:32px;
           font-weight:700;
+          margin-bottom:6px;
+        }
+
+        .header p{
+          color:#777;
         }
 
         .grid{
           display:grid;
           grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-          gap:20px;
+          gap:22px;
         }
 
         .card{
           background:white;
-          border-radius:10px;
+          border-radius:12px;
           overflow:hidden;
           text-decoration:none;
           color:black;
-          box-shadow:0 4px 10px rgba(0,0,0,0.06);
-          transition:all .2s;
+          border:1px solid #eee;
+          transition:all .25s ease;
         }
 
         .card:hover{
-          transform:translateY(-4px);
-          box-shadow:0 8px 20px rgba(0,0,0,0.1);
+          transform:translateY(-6px);
+          box-shadow:0 12px 28px rgba(0,0,0,0.1);
+          border-color:#ddd;
         }
 
         .imageWrap{
           width:100%;
-          height:180px;
+          height:200px;
           display:flex;
           align-items:center;
           justify-content:center;
-          background:#f5f5f5;
+          background:#fafafa;
         }
 
         .imageWrap img{
           max-width:100%;
           max-height:100%;
           object-fit:contain;
+          padding:10px;
         }
 
         .info{
-          padding:15px;
+          padding:16px;
         }
 
         h3{
           font-size:15px;
-          margin-bottom:8px;
+          margin-bottom:10px;
           font-weight:500;
+          min-height:38px;
         }
 
         .price{
           display:flex;
           flex-direction:column;
+          gap:4px;
         }
 
         .old{
           text-decoration:line-through;
-          color:#888;
+          color:#999;
           font-size:13px;
         }
 
@@ -206,12 +263,17 @@ export default function CategoriaPage() {
         }
 
         .empty{
-          padding:40px;
+          padding:60px;
           text-align:center;
           color:#777;
         }
 
+        .loading{
+          padding:60px;
+          text-align:center;
+        }
+
       `}</style>
-    </div>
+    </>
   );
 }
