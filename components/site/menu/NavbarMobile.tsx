@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import CategoryBar from "../categoria/CategoryBar";
 import SearchBar from "../Pesquisa/SearchBar";
 import useUsuario from "@/hooks/Auth/useUsuario";
 import api from "@/Api/conectar";
@@ -14,14 +13,9 @@ import {
   FiChevronRight,
   FiChevronDown,
   FiUser,
-  FiHome,
   FiLogOut,
   FiShoppingCart,
-  FiGrid,
   FiBox,
-  FiClipboard,
-  FiActivity,
-  FiUserCheck,
   FiTag,
   FiHeart,
 } from "react-icons/fi";
@@ -64,21 +58,10 @@ export default function NavbarMobile({
   const accountMenu =
     menus?.find((m) => (m.titulo || "").toLowerCase() === "login") || null;
 
-  const menuItems =
-    menus?.filter(
-      (m) =>
-        !m.pesquisa_placeholder &&
-        (m.titulo || "").toLowerCase() !== "login"
-    ) || [];
-
-  const carrinhoItem =
-    menuItems.find((item) =>
-      (item.titulo || "").toLowerCase().includes("carrinho")
-    ) || null;
-
-  const sidebarItems = menuItems.filter(
-    (item) => !(item.titulo || "").toLowerCase().includes("carrinho")
-  );
+  // Encontrar el item del carrito
+  const carrinhoItem = menus.find((m) =>
+    (m.titulo || "").toLowerCase().includes("carrinho")
+  ) || null;
 
   const accountItems = useMemo(() => {
     const itens = accountMenu?.itens || [];
@@ -96,17 +79,10 @@ export default function NavbarMobile({
 
   const renderIcon = (bi?: string) => {
     const name = (bi || "").toLowerCase();
-
     if (name.includes("bi-box-arrow-right")) return <FiLogOut size={18} />;
-    if (name.includes("bi-speedometer")) return <FiActivity size={18} />;
-    if (name.includes("bi-card-checklist")) return <FiClipboard size={18} />;
-    if (name.includes("bi-person-circle")) return <FiUserCheck size={18} />;
+    if (name.includes("bi-tags")) return <FiTag size={18} />;
     if (name.includes("bi-cart")) return <FiShoppingCart size={18} />;
     if (name.includes("bi-person")) return <FiUser size={18} />;
-    if (name.includes("bi-house")) return <FiHome size={18} />;
-    if (name.includes("bi-tags")) return <FiTag size={18} />;
-    if (name.includes("bi-grid")) return <FiGrid size={18} />;
-
     return <FiBox size={18} />;
   };
 
@@ -206,22 +182,30 @@ export default function NavbarMobile({
 
           {/* AÇÕES DIREITA */}
           <div className="mobile-actions" ref={dropdownRef}>
+            {/* FAVORITOS */}
             <button className="mobile-btn mobile-btn-badge" title="Mis favoritos">
               <FiHeart size={20} />
               <span className="mobile-badge">0</span>
             </button>
 
-            {carrinhoItem && (
+            {/* CARRITO - UNIFICADO */}
+            {carrinhoItem ? (
               <Link
-                href={carrinhoItem.rota || "#"}
+                href={carrinhoItem.rota || "/carrito"}
                 onClick={closeAll}
                 className="mobile-btn mobile-btn-badge"
               >
                 <FiShoppingCart size={20} />
                 <span className="mobile-badge">0</span>
               </Link>
+            ) : (
+              <Link href="/carrito" onClick={closeAll} className="mobile-btn mobile-btn-badge">
+                <FiShoppingCart size={20} />
+                <span className="mobile-badge">0</span>
+              </Link>
             )}
 
+            {/* LOGIN O USUARIO */}
             {!loading && !logado && (
               <Link href="/login" onClick={closeAll} className="mobile-btn">
                 <FiUser size={20} />
@@ -281,7 +265,7 @@ export default function NavbarMobile({
         <div className="mobile-sidebarOverlay" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* SIDEBAR */}
+      {/* SIDEBAR - SOLO CATEGORÍAS */}
       <aside
         className="mobile-sidebar"
         style={{
@@ -291,60 +275,35 @@ export default function NavbarMobile({
         }}
       >
         <div className="mobile-sidebarHeader">
-          <h2 className="mobile-sidebarTitle">Menú</h2>
+          <h2 className="mobile-sidebarTitle">Categorías</h2>
           <button type="button" onClick={() => setSidebarOpen(false)} className="mobile-sidebarCloseBtn">
             <FiX size={20} />
           </button>
         </div>
 
         <div className="mobile-sidebarContent">
-          {sidebarItems.length > 0 && (
+          {/* CATEGORÍAS */}
+          {categorias && categorias.length > 0 && (
             <nav>
-              {sidebarItems.map((item) => (
-                <Link key={item.id} href={item.rota || "#"} onClick={closeAll} className="mobile-menuItem">
-                  <span className="mobile-menuItemIcon">{renderIcon(item.icone)}</span>
-                  <span className="mobile-menuItemText">{item.titulo}</span>
-                  <FiChevronRight size={16} />
+              {categorias.map((cat) => (
+                <Link
+                  key={cat.id_categoria}
+                  href={`/categoria/${cat.slug}`}
+                  onClick={closeAll}
+                  className="mobile-categoryItem"
+                >
+                  <span className="mobile-categoryItemIcon">{renderIcon(cat.icone)}</span>
+                  <span>{cat.nome}</span>
+                  <FiChevronRight size={16} style={{ marginLeft: "auto" }} />
                 </Link>
               ))}
             </nav>
           )}
 
-          {categorias && categorias.length > 0 && (
-            <>
-              <div className="mobile-sidebarSectionTitle">Categorías</div>
-              <nav>
-                {categorias.map((cat) => (
-                  <Link key={cat.id_categoria} href={`/categoria/${cat.slug}`} onClick={closeAll} className="mobile-categoryItem">
-                    <span className="mobile-categoryItemIcon">{renderIcon(cat.icone)}</span>
-                    <span>{cat.nome}</span>
-                  </Link>
-                ))}
-              </nav>
-            </>
-          )}
-
-          {!loading && logado && (
-            <>
-              <div className="mobile-sidebarSectionTitle">Mi Cuenta</div>
-              <nav>
-                {accountItems.map((item) => {
-                  const isSair = String(item.titulo).toLowerCase().includes("sair");
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className="mobile-menuItem"
-                      onClick={() => handleAccountItem(item)}
-                      style={{ color: isSair ? "var(--color-danger)" : "inherit" }}
-                    >
-                      <span className="mobile-menuItemIcon">{renderIcon(item.icone)}</span>
-                      <span className="mobile-menuItemText">{item.titulo}</span>
-                    </button>
-                  );
-                })}
-              </nav>
-            </>
+          {(!categorias || categorias.length === 0) && (
+            <div style={{ padding: "20px 16px", textAlign: "center", color: "var(--color-textMuted)" }}>
+              No hay categorías disponibles
+            </div>
           )}
         </div>
       </aside>
