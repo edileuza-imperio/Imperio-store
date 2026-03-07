@@ -16,11 +16,9 @@ import {
   FiActivity,
   FiLogOut,
   FiChevronDown,
+  FiHeart,
 } from "react-icons/fi";
 import { Menu, MenuItem } from "@/components/Bibioteca/Bibiotecas";
-
-
-
 
 export interface Categoria {
   id_categoria?: number;
@@ -31,7 +29,7 @@ export interface Categoria {
 
 type Props = {
   menus: Menu[];
-  categorias?: Categoria[]; // se você não usa aqui, pode deixar opcional
+  categorias?: Categoria[];
   searchPlaceholder?: string;
   tituloNavbar?: string | null;
   subtituloNavbar?: string | null;
@@ -48,23 +46,60 @@ export default function NavbarDesktop({
   const { usuario, loading: usuarioLoading, logado } = useUsuario();
 
   const [openUserDropdown, setOpenUserDropdown] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
 
+  // Paleta de cores profissional para e-commerce
   const ui = useMemo(
     () => ({
-      accent: "#D6A24A",
-      accentSoft: "rgba(214, 162, 74, 0.18)",
-      text: "#2b2b2b",
-      muted: "#6c757d",
-      bg: "#f4efe8",
-      borderSoft: "rgba(43, 43, 43, 0.07)",
-      hoverBg: "#fdf4f2",
-      shadowSoft: "0 8px 30px rgba(0,0,0,0.08)",
+      // Rosa Queimado (Dusty Rose/Terracotta)
+      rosaBurn: "#B8756B",
+      rosaBurnLight: "#D4A5A0",
+      rosaBurnDark: "#8B5A52",
+      
+      // Dourado (Gold)
+      gold: "#D4AF37",
+      goldLight: "#E8C547",
+      goldDark: "#AA8C2C",
+      
+      // Creme (Cream/Off-white)
+      cream: "#F5F1ED",
+      creamLight: "#FDFBF9",
+      creamDark: "#E8DFD7",
+      
+      // Neutros
+      text: "#2B2B2B",
+      textLight: "#5A5A5A",
+      textMuted: "#8B8B8B",
+      
+      // Backgrounds e Borders
+      bgPrimary: "#FDFBF9",
+      bgSecondary: "#F5F1ED",
+      borderColor: "rgba(184, 117, 107, 0.15)",
+      borderColorHover: "rgba(212, 175, 160, 0.3)",
+      
+      // Sombras sofisticadas
+      shadowSoft: "0 4px 12px rgba(0, 0, 0, 0.06)",
+      shadowMedium: "0 8px 24px rgba(0, 0, 0, 0.08)",
+      shadowHover: "0 12px 32px rgba(184, 117, 107, 0.12)",
+      
+      // Efectos
+      accentSoft: "rgba(212, 175, 160, 0.1)",
+      accentSoftGold: "rgba(212, 175, 160, 0.08)",
     }),
     []
   );
 
-  // Fecha dropdown ao clicar fora + ESC
+  // Detectar scroll para efecto de vidrio
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Cerrar dropdown al hacer clic fuera + ESC
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       if (!headerRef.current) return;
@@ -85,7 +120,6 @@ export default function NavbarDesktop({
   const first = titleParts[0] || "Universo";
   const rest = titleParts.slice(1).join(" ") || "Império";
 
-  // quando você marca um menu pra ser o da search (pesquisa_placeholder)
   const searchMenu = menus.find((m) => m.pesquisa_placeholder);
   const accountMenu = menus.find((m) => (m.titulo || "").toLowerCase() === "login");
   const mainMenus = menus.filter(
@@ -132,257 +166,112 @@ export default function NavbarDesktop({
     <>
       <header
         ref={headerRef as any}
-        className="ui-navbar d-none d-lg-flex align-items-center justify-content-between px-5"
+        className={`ui-navbar ${scrolled ? "ui-navbar--scrolled" : ""}`}
       >
-        {/* LOGO */}
-        <div className="ui-brand">
-          <div className="ui-title">
-            <span className="ui-titleFirst">{first} </span>
-            <span className="ui-titleAccent">{rest}</span>
-            <span className="ui-dot" />
+        {/* CONTAINER PRINCIPAL */}
+        <div className="ui-navbar-container">
+          {/* LOGO / BRAND */}
+          <div className="ui-brand">
+            <div className="ui-title">
+              <span className="ui-titleFirst">{first}</span>
+              <span className="ui-titleAccent">{rest}</span>
+              <span className="ui-dot" />
+            </div>
+            <div className="ui-subtitle">{subtituloNavbar || "Decorações & Eventos"}</div>
           </div>
-          <div className="ui-subtitle">{subtituloNavbar || "Decorações & Eventos"}</div>
-        </div>
 
-        {/* SEARCH */}
-        {(searchMenu || searchPlaceholder) && (
-          <div className="ui-searchWrap">
-            <SearchBar
-              placeholder={searchPlaceholder || searchMenu?.pesquisa_placeholder || "Buscar produtos"}
-              className="w-100"
-            />
-          </div>
-        )}
-
-        {/* MENUS */}
-        <nav className="ui-actions">
-          {mainMenus.map((m) => (
-            <Link key={m.id} href={m.rota || "#"} className="ui-link">
-              <span className="ui-pill">
-                <span className="ui-pillIcon">{renderIcon(m.icone)}</span>
-                <span className="ui-pillText">{m.titulo}</span>
-              </span>
-            </Link>
-          ))}
-
-          {!usuarioLoading && !logado && (
-            <Link href="/login" className="ui-link">
-              <span className="ui-pill ui-pillSoft">
-                <span className="ui-pillIcon">{renderIcon(accountMenu?.icone || "bi-person")}</span>
-                <span className="ui-pillText">Login</span>
-              </span>
-            </Link>
-          )}
-
-          {!usuarioLoading && logado && (
-            <div className="ui-dropdown">
-              <button
-                type="button"
-                className="ui-pill ui-pillSoft ui-userBtn"
-                onClick={() => setOpenUserDropdown((v) => !v)}
-                aria-expanded={openUserDropdown}
-              >
-                <span className="ui-pillIcon">
-                  <FiUser size={18} />
-                </span>
-                <span className="ui-pillText ui-strong">Olá, {usuario?.nome}</span>
-                <FiChevronDown
-                  size={16}
-                  className={`ui-chevIcon ${openUserDropdown ? "open" : ""}`}
-                />
-              </button>
-
-              {openUserDropdown && (
-                <div className="ui-menu">
-                  {accountItems.map((it) => {
-                    const isSair = String(it.titulo).toLowerCase().includes("sair");
-                    return (
-                      <button
-                        key={it.id}
-                        type="button"
-                        className={`ui-item ${isSair ? "ui-itemDanger" : ""}`}
-                        onClick={() => handleAccountItem(it)}
-                      >
-                        <span className="ui-itemIcon">{renderIcon(it.icone)}</span>
-                        <span className="ui-itemText">{it.titulo}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
+          {/* SEARCH BAR - CENTRO */}
+          {(searchMenu || searchPlaceholder) && (
+            <div className="ui-searchWrap">
+              <SearchBar
+                placeholder={searchPlaceholder || searchMenu?.pesquisa_placeholder || "Buscar produtos..."}
+                className="w-100"
+              />
             </div>
           )}
-        </nav>
+
+          {/* ACCIONES - DERECHA */}
+          <nav className="ui-actions">
+            {/* MENUS PRINCIPALES */}
+            <div className="ui-mainMenus">
+              {mainMenus.map((m) => (
+                <Link key={m.id} href={m.rota || "#"} className="ui-link">
+                  <span className="ui-pill ui-pill--primary">
+                    <span className="ui-pillIcon">{renderIcon(m.icone)}</span>
+                    <span className="ui-pillText">{m.titulo}</span>
+                  </span>
+                </Link>
+              ))}
+            </div>
+
+            {/* FAVORITOS (Opcional) */}
+            <button className="ui-iconBtn ui-iconBtn--heart" title="Mis favoritos">
+              <FiHeart size={20} />
+              <span className="ui-badge">0</span>
+            </button>
+
+            {/* CARRITO (Opcional) */}
+            <button className="ui-iconBtn ui-iconBtn--cart" title="Carrito de compras">
+              <FiShoppingCart size={20} />
+              <span className="ui-badge">0</span>
+            </button>
+
+            {/* LOGIN O USUARIO */}
+            {!usuarioLoading && !logado && (
+              <Link href="/login" className="ui-link">
+                <span className="ui-pill ui-pill--secondary">
+                  <span className="ui-pillIcon">{renderIcon(accountMenu?.icone || "bi-person")}</span>
+                  <span className="ui-pillText">Ingresar</span>
+                </span>
+              </Link>
+            )}
+
+            {!usuarioLoading && logado && (
+              <div className="ui-dropdown">
+                <button
+                  type="button"
+                  className="ui-pill ui-pill--secondary ui-userBtn"
+                  onClick={() => setOpenUserDropdown((v) => !v)}
+                  aria-expanded={openUserDropdown}
+                >
+                  <span className="ui-pillIcon">
+                    <FiUser size={18} />
+                  </span>
+                  <span className="ui-pillText ui-strong">
+                    {usuario?.nome?.split(" ")[0] || "Usuario"}
+                  </span>
+                  <FiChevronDown
+                    size={16}
+                    className={`ui-chevIcon ${openUserDropdown ? "open" : ""}`}
+                  />
+                </button>
+
+                {openUserDropdown && (
+                  <div className="ui-menu">
+                    {accountItems.map((it) => {
+                      const isSair = String(it.titulo).toLowerCase().includes("sair");
+                      return (
+                        <button
+                          key={it.id}
+                          type="button"
+                          className={`ui-item ${isSair ? "ui-item--danger" : ""}`}
+                          onClick={() => handleAccountItem(it)}
+                        >
+                          <span className="ui-itemIcon">{renderIcon(it.icone)}</span>
+                          <span className="ui-itemText">{it.titulo}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+          </nav>
+        </div>
       </header>
 
       <style jsx>{`
-        .ui-navbar {
-          position: sticky;
-          top: 0;
-          z-index: 50;
-          height: 86px;
-          width: 100%;
-          background: ${ui.bg};
-          box-shadow: ${ui.shadowSoft};
-          gap: 18px;
-          border-bottom: 1px solid ${ui.borderSoft};
-        }
-
-        .ui-brand {
-          display: flex;
-          flex-direction: column;
-          line-height: 1.05;
-          min-width: 240px;
-        }
-
-        .ui-title {
-          display: flex;
-          align-items: baseline;
-          gap: 8px;
-          font-size: 23px;
-          font-weight: 950;
-          letter-spacing: -0.4px;
-        }
-
-        .ui-titleFirst {
-          color: ${ui.text};
-        }
-
-        .ui-titleAccent {
-          color: ${ui.accent};
-          font-style: italic;
-        }
-
-        .ui-dot {
-          width: 7px;
-          height: 7px;
-          border-radius: 999px;
-          background: ${ui.accent};
-          opacity: 0.65;
-          display: inline-block;
-          transform: translateY(-4px);
-        }
-
-        .ui-subtitle {
-          font-size: 13px;
-          color: ${ui.muted};
-          font-weight: 650;
-          margin-top: 2px;
-        }
-
-        .ui-searchWrap {
-          flex: 1;
-          max-width: 520px;
-          margin: 0 24px;
-        }
-
-        .ui-actions {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-
-        .ui-link {
-          text-decoration: none;
-        }
-
-        .ui-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-          padding: 10px 16px;
-          border-radius: 999px;
-          border: 1px solid ${ui.borderSoft};
-          background: #fff;
-          font-size: 14px;
-          font-weight: 750;
-          color: ${ui.text};
-          cursor: pointer;
-          transition: transform 0.15s ease, background 0.15s ease, box-shadow 0.15s ease,
-            border-color 0.15s ease;
-          user-select: none;
-        }
-
-        .ui-pill:hover {
-          background: ${ui.hoverBg};
-          transform: translateY(-1px);
-          box-shadow: 0 10px 22px rgba(0, 0, 0, 0.06);
-          border-color: rgba(43, 43, 43, 0.12);
-        }
-
-        .ui-pillSoft {
-          background: #fff8ef;
-          border-color: rgba(214, 162, 74, 0.25);
-        }
-
-        .ui-pillIcon {
-          display: inline-flex;
-          color: ${ui.accent};
-        }
-        .ui-pillText {
-          line-height: 1;
-        }
-        .ui-strong {
-          font-weight: 900;
-        }
-
-        .ui-dropdown {
-          position: relative;
-        }
-        .ui-userBtn {
-          border: 1px solid rgba(214, 162, 74, 0.25);
-        }
-
-        .ui-chevIcon {
-          opacity: 0.8;
-          transition: transform 0.15s ease;
-        }
-        .ui-chevIcon.open {
-          transform: rotate(180deg);
-        }
-
-        .ui-menu {
-          position: absolute;
-          top: 118%;
-          right: 0;
-          min-width: 270px;
-          background: #fff;
-          border: 1px solid ${ui.borderSoft};
-          border-radius: 16px;
-          box-shadow: ${ui.shadowSoft};
-          padding: 10px;
-          z-index: 99;
-          overflow: hidden;
-        }
-
-        .ui-item {
-          width: 100%;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 11px 12px;
-          border-radius: 12px;
-          border: none;
-          background: transparent;
-          cursor: pointer;
-          text-align: left;
-          font-size: 14px;
-          font-weight: 750;
-          color: ${ui.text};
-          transition: background 0.15s ease;
-        }
-
-        .ui-item:hover {
-          background: ${ui.hoverBg};
-        }
-        .ui-itemIcon {
-          display: inline-flex;
-          color: ${ui.accent};
-        }
-        .ui-itemDanger {
-          color: ${ui.accent};
-          font-weight: 900;
-        }
+       
       `}</style>
     </>
   );
