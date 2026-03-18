@@ -4,35 +4,55 @@ import { useState } from "react";
 import { useLoginConfig } from "@/hooks/useLoginConfig";
 import { useRouter } from "next/navigation";
 
-export default function LoginEntrar() {
+export default function LoginEntrar(){
 
   const router = useRouter();
-  const { handleLogin, loadingBtn, errorMsg } = useLoginConfig();
+
+  const {
+    config,
+    loading,
+    handleLogin,
+    loadingBtn,
+    errorMsg
+  } = useLoginConfig();
 
   const [usuario,setUsuario] = useState("");
   const [senha,setSenha] = useState("");
 
+  if (loading) {
+    return <p style={{color:"white",textAlign:"center"}}>Carregando...</p>;
+  }
+
   return (
 
-    <div className="page">
+    <div
+      className="page"
+      style={{background: config?.fundo}}
+    >
 
       <div className="card">
 
-        <h2>Entrar</h2>
+        {config?.logo && (
+          <img src={config.logo} className="logo"/>
+        )}
 
-        {errorMsg && <p className="error">{errorMsg}</p>}
+        <h2>{config?.titulo}</h2>
+
+        {errorMsg && (
+          <p className="error">{errorMsg}</p>
+        )}
 
         <input
           placeholder="Usuário ou email"
           value={usuario}
-          onChange={e=>setUsuario(e.target.value)}
+          onChange={(e)=>setUsuario(e.target.value)}
         />
 
         <input
           type="password"
           placeholder="Senha"
           value={senha}
-          onChange={e=>setSenha(e.target.value)}
+          onChange={(e)=>setSenha(e.target.value)}
         />
 
         <button
