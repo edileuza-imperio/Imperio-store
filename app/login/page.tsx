@@ -28,8 +28,6 @@ export default function LoginPage() {
   const theme = useMemo(() => {
     return {
       base: config?.fundo || "#050505",
-      primary: config?.cor_primaria || "#f4a6b7",
-      secondary: config?.cor_secundaria || "#ffffff",
     };
   }, [config]);
 
@@ -94,38 +92,34 @@ export default function LoginPage() {
 
         <main className="container">
           <section className="content">
-            {/* LADO ESQUERDO */}
+            {/* ESQUERDA */}
             <div className="infoSide">
               <div className="brandBlock">
-                {logo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={logo} alt="Logo da loja" className="logo" />
-                ) : (
-                  <div className="logoFallback">LOGO</div>
-                )}
+                <div className="logoContainer">
+                  {logo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={logo} alt="Logo da loja" className="logo" />
+                  ) : (
+                    <div className="logoFallback">LOGO</div>
+                  )}
+                </div>
 
                 <div className="textBlock">
                   <h1 className="title">{titulo}</h1>
                   <p className="message">{mensagem}</p>
-
-                  <div className="hint">
-                    <span className="dot" />
-                    <span>
-                      Se você for administrador, poderá ser solicitado um PIN de
-                      acesso.
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>
 
-            {/* LADO DIREITO */}
+            {/* DIREITA */}
             <div className="formSide">
               <div className="panel">
                 {step === "inicio" && (
                   <>
-                    <h2 className="panelTitle">{titulo}</h2>
-                    <p className="panelText">{mensagem}</p>
+                    <h2 className="panelTitle">Acesse sua conta</h2>
+                    <p className="panelText">
+                      Entre para continuar na loja.
+                    </p>
 
                     <button
                       className="btnPrimary"
@@ -150,7 +144,9 @@ export default function LoginPage() {
                 {step === "login" && (
                   <>
                     <h2 className="panelTitle">Entrar</h2>
-                    <p className="panelText">{mensagem}</p>
+                    <p className="panelText">
+                      Digite seus dados para acessar sua conta.
+                    </p>
 
                     {errorMsg && <p className="error">{errorMsg}</p>}
 
@@ -209,7 +205,7 @@ export default function LoginPage() {
                   <>
                     <h2 className="panelTitle">Verificação</h2>
                     <p className="panelText">
-                      Digite o PIN para continuar no sistema.
+                      Digite o PIN para continuar.
                     </p>
 
                     {errorMsg && <p className="error">{errorMsg}</p>}
@@ -270,8 +266,8 @@ export default function LoginPage() {
           position: absolute;
           inset: 0;
           background:
-            radial-gradient(circle at 12% 18%, rgba(255, 170, 195, 0.18), transparent 28%),
-            radial-gradient(circle at 88% 82%, rgba(255, 150, 185, 0.16), transparent 26%),
+            radial-gradient(circle at 12% 18%, rgba(255, 170, 195, 0.14), transparent 28%),
+            radial-gradient(circle at 88% 82%, rgba(255, 150, 185, 0.12), transparent 26%),
             linear-gradient(135deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
           pointer-events: none;
         }
@@ -299,24 +295,29 @@ export default function LoginPage() {
 
         .brandBlock {
           display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 20px;
+          max-width: 520px;
+        }
+
+        .logoContainer {
+          display: flex;
           align-items: center;
-          gap: 26px;
-          max-width: 620px;
+          justify-content: flex-start;
         }
 
         .logo {
-          width: 130px;
-          max-width: 100%;
+          width: 120px;
           height: auto;
           object-fit: contain;
-          flex-shrink: 0;
           filter: drop-shadow(0 10px 20px rgba(0,0,0,.35));
         }
 
         .logoFallback {
-          width: 130px;
-          height: 130px;
-          border-radius: 20px;
+          width: 120px;
+          height: 120px;
+          border-radius: 18px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -325,7 +326,6 @@ export default function LoginPage() {
           color: white;
           font-weight: 900;
           font-size: 20px;
-          flex-shrink: 0;
         }
 
         .textBlock {
@@ -347,31 +347,6 @@ export default function LoginPage() {
           line-height: 1.7;
           color: rgba(255,255,255,.82);
           max-width: 34ch;
-        }
-
-        .hint {
-          margin-top: 22px;
-          display: inline-flex;
-          align-items: center;
-          gap: 12px;
-          background: rgba(255,255,255,.04);
-          border: 1px solid rgba(255,255,255,.10);
-          color: rgba(255,255,255,.90);
-          padding: 14px 16px;
-          border-radius: 16px;
-          font-size: 14px;
-          line-height: 1.5;
-          max-width: 360px;
-          backdrop-filter: blur(10px);
-        }
-
-        .dot {
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          background: ${theme.primary};
-          flex-shrink: 0;
-          box-shadow: 0 0 0 6px rgba(255, 180, 200, .12);
         }
 
         .formSide {
@@ -465,7 +440,7 @@ export default function LoginPage() {
           font-weight: 900;
           cursor: pointer;
           margin-top: 6px;
-          background: ${theme.primary};
+          background: linear-gradient(90deg, #ffd0db, #f3a7b8);
           color: #1f0c12;
           transition: 0.2s ease;
           box-shadow: 0 10px 24px rgba(0,0,0,.28);
@@ -581,15 +556,12 @@ export default function LoginPage() {
           .brandBlock {
             width: 100%;
             max-width: 100%;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 18px;
+            align-items: center;
+            text-align: center;
           }
 
-          .logo,
-          .logoFallback {
-            width: 110px;
-            height: auto;
+          .logoContainer {
+            justify-content: center;
           }
 
           .title {
@@ -600,10 +572,6 @@ export default function LoginPage() {
           .message {
             max-width: 100%;
             font-size: 16px;
-          }
-
-          .hint {
-            max-width: 100%;
           }
 
           .formSide {
@@ -627,12 +595,17 @@ export default function LoginPage() {
           }
 
           .brandBlock {
-            align-items: center;
-            text-align: center;
+            gap: 16px;
           }
 
-          .textBlock {
-            width: 100%;
+          .logo {
+            width: 95px;
+          }
+
+          .logoFallback {
+            width: 95px;
+            height: 95px;
+            font-size: 16px;
           }
 
           .title {
@@ -643,11 +616,6 @@ export default function LoginPage() {
 
           .message {
             font-size: 15px;
-          }
-
-          .hint {
-            text-align: left;
-            width: 100%;
           }
 
           .panel {
