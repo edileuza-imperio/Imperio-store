@@ -9,11 +9,13 @@ import { rotas } from "@/components/Bibioteca/config/rotas";
 
 type Step = "inicio" | "login" | "pin" | "cadastro";
 
-type LoginConfig = {
+export type LoginConfig = {
   fundo: string;
   logo: string;
   titulo: string;
   mensagem_personalizada: string;
+  cor_primaria?: string;
+  cor_secundaria?: string;
 };
 
 const DEFAULT_CONFIG: LoginConfig = {
@@ -21,6 +23,8 @@ const DEFAULT_CONFIG: LoginConfig = {
   logo: "/images/logo.png",
   titulo: "Imperio Loja",
   mensagem_personalizada: "Entre com suas credenciais.",
+  cor_primaria: "#f4a6b7",
+  cor_secundaria: "#ffffff",
 };
 
 // ✅ resolve: suporta {dados: obj}, {dados: [obj]}, {data: obj}, {data:[obj]}
@@ -29,11 +33,13 @@ function resolveConfig(payload: any): LoginConfig | null {
 
   if (!root) return null;
 
-  // caso venha array
-  if (Array.isArray(root)) return (root[0] ?? null) as LoginConfig | null;
+  if (Array.isArray(root)) {
+    return (root[0] ?? null) as LoginConfig | null;
+  }
 
-  // caso venha objeto
-  if (typeof root === "object") return root as LoginConfig;
+  if (typeof root === "object") {
+    return root as LoginConfig;
+  }
 
   return null;
 }
@@ -53,7 +59,6 @@ export const useLoginConfig = () => {
 
     const fetchConfig = async () => {
       try {
-        // ✅ agora é na raiz: rotas.configLogin
         const response = await api.get(rotas.configLogin, {
           withCredentials: true,
         });
@@ -73,6 +78,7 @@ export const useLoginConfig = () => {
     };
 
     fetchConfig();
+
     return () => {
       alive = false;
     };
@@ -104,6 +110,7 @@ export const useLoginConfig = () => {
     };
 
     checkSession();
+
     return () => {
       alive = false;
     };
@@ -116,6 +123,7 @@ export const useLoginConfig = () => {
         e.preventDefault();
         toast.warning("Atalho bloqueado!");
       }
+
       if (e.key === "F12") {
         e.preventDefault();
         toast.warning("Atalho bloqueado!");
