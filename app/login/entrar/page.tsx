@@ -59,6 +59,11 @@ export default function LoginEntrar() {
     setPin("");
   };
 
+  const fecharModal = () => {
+    setShowPinModal(false);
+    setPin("");
+  };
+
   const validarPin = async () => {
     if (pin.length < 4) {
       toast.warning("Digite um PIN válido");
@@ -206,18 +211,10 @@ export default function LoginEntrar() {
               <button
                 type="button"
                 className="closeButton"
-                onClick={() => {
-                  setShowPinModal(false);
-                  setPin("");
-                }}
+                onClick={fecharModal}
               >
                 <FaTimes />
               </button>
-
-              {config?.logo && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={config.logo} className="modalLogo" alt="Logo" />
-              )}
 
               <div className="modalHeader">
                 <h3 className="modalTitle">Verificação de PIN</h3>
@@ -384,7 +381,11 @@ export default function LoginEntrar() {
           background: rgba(255, 255, 255, 0.08);
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
-          transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+          transition:
+            border-color 0.2s ease,
+            background 0.2s ease,
+            transform 0.2s ease,
+            box-shadow 0.2s ease;
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
         }
 
@@ -491,13 +492,14 @@ export default function LoginEntrar() {
           width: 100%;
           max-width: 420px;
           border-radius: 24px;
-          padding: 24px;
+          padding: 28px 24px 24px;
           background: rgba(20, 20, 20, 0.92);
           border: 1px solid rgba(255, 255, 255, 0.1);
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
           display: flex;
           flex-direction: column;
           gap: 16px;
+          z-index: 60;
         }
 
         .closeButton {
@@ -514,18 +516,17 @@ export default function LoginEntrar() {
           display: flex;
           align-items: center;
           justify-content: center;
+          transition: background 0.2s ease, transform 0.2s ease;
         }
 
-        .modalLogo {
-          width: 82px;
-          height: auto;
-          object-fit: contain;
-          display: block;
-          margin: 0 auto 4px auto;
+        .closeButton:hover {
+          background: rgba(255, 255, 255, 0.12);
+          transform: scale(1.04);
         }
 
         .modalHeader {
           text-align: center;
+          margin-top: 8px;
         }
 
         .modalTitle {
@@ -533,12 +534,14 @@ export default function LoginEntrar() {
           font-size: 28px;
           color: white;
           font-weight: 900;
+          line-height: 1.1;
         }
 
         .modalSubtitle {
           margin: 10px 0 0 0;
           color: rgba(255, 255, 255, 0.74);
           font-size: 14px;
+          line-height: 1.5;
         }
 
         .pinDisplayWrap {
@@ -701,7 +704,7 @@ export default function LoginEntrar() {
           }
 
           .modalBox {
-            padding: 20px 16px;
+            padding: 24px 16px 20px;
             border-radius: 20px;
           }
 
