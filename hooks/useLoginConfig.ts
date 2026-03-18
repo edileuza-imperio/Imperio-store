@@ -22,6 +22,8 @@ const DEFAULT_CONFIG: LoginConfig = {
   mensagem_personalizada: "Entre com suas credenciais.",
 };
 
+const STORAGE_KEY_TEMP_USER = "imperio_login_temp_user_id";
+
 function resolveConfig(payload: any): LoginConfig | null {
   const root = payload?.dados ?? payload?.data ?? payload;
 
@@ -36,6 +38,26 @@ function resolveConfig(payload: any): LoginConfig | null {
   }
 
   return null;
+}
+
+function salvarUsuarioTemp(id: number) {
+  if (typeof window === "undefined") return;
+  sessionStorage.setItem(STORAGE_KEY_TEMP_USER, String(id));
+}
+
+function obterUsuarioTempStorage(): number | null {
+  if (typeof window === "undefined") return null;
+
+  const valor = sessionStorage.getItem(STORAGE_KEY_TEMP_USER);
+  if (!valor) return null;
+
+  const numero = Number(valor);
+  return Number.isNaN(numero) ? null : numero;
+}
+
+function limparUsuarioTemp() {
+  if (typeof window === "undefined") return;
+  sessionStorage.removeItem(STORAGE_KEY_TEMP_USER);
 }
 
 export const useLoginConfig = () => {
@@ -81,6 +103,14 @@ export const useLoginConfig = () => {
     };
   }, []);
 
+  // Carregar usuário temporário salvo no navegador
+  useEffect(() => {
+    const tempId = obterUsuarioTempStorage();
+    if (tempId) {
+      setUsuarioTempId(tempId);
+    }
+  }, []);
+
   // Buscar usuário pendente de PIN no backend
   const buscarUsuarioPendente = async (): Promise<number | null> => {
     try {
@@ -93,12 +123,27 @@ export const useLoginConfig = () => {
       const pedirPin = dados?.pedir_pin;
 
       if (usuario?.id && pedirPin) {
-        setUsuarioTempId(usuario.id);
-        return usuario.id;
+        const id = Number(usuario.id);
+        setUsuarioTempId(id);
+        salvarUsuarioTemp(id);
+        return id;
+      }
+
+      // fallback para storage
+      const idStorage = obterUsuarioTempStorage();
+      if (idStorage) {
+        setUsuarioTempId(idStorage);
+        return idStorage;
       }
 
       return null;
     } catch {
+      const idStorage = obterUsuarioTempStorage();
+      if (idStorage) {
+        setUsuarioTempId(idStorage);
+        return idStorage;
+      }
+
       return null;
     }
   };
@@ -120,15 +165,31 @@ export const useLoginConfig = () => {
         if (!alive) return;
 
         if (usuario && !pedirPin) {
+          limparUsuarioTemp();
           router.push("/");
           return;
         }
 
-        if (usuario && pedirPin) {
-          setUsuarioTempId(usuario.id);
+        if (usuario && pedirPin && usuario?.id) {
+          const id = Number(usuario.id);
+          setUsuarioTempId(id);
+          salvarUsuarioTemp(id);
+          return;
+        }
+
+        // fallback do frontend
+        const idStorage = obterUsuarioTempStorage();
+        if (idStorage) {
+          setUsuarioTempId(idStorage);
         }
       } catch {
-        // não autenticado
+        if (!alive) return;
+
+        // fallback do frontend
+        const idStorage = obterUsuarioTempStorage();
+        if (idStorage) {
+          setUsuarioTempId(idStorage);
+        }
       }
     };
 
@@ -185,12 +246,15 @@ export const useLoginConfig = () => {
 
       if (data?.acao === "pedir_pin") {
         if (data?.id_usuario) {
-          setUsuarioTempId(Number(data.id_usuario));
+          const id = Number(data.id_usuario);
+          setUsuarioTempId(id);
+          salvarUsuarioTemp(id);
         }
 
         toast.info("Digite o PIN enviado.");
         router.push("/login/pin");
       } else {
+        limparUsuarioTemp();
         toast.success("Login realizado com sucesso!");
         router.push("/");
       }
@@ -215,6 +279,10 @@ export const useLoginConfig = () => {
       let idUsuario = usuarioTempId;
 
       if (!idUsuario) {
+        idUsuario = obterUsuarioTempStorage();
+      }
+
+      if (!idUsuario) {
         idUsuario = await buscarUsuarioPendente();
       }
 
@@ -228,6 +296,9 @@ export const useLoginConfig = () => {
         { id_usuario: idUsuario, pin },
         { withCredentials: true }
       );
+
+      limparUsuarioTemp();
+      setUsuarioTempId(null);
 
       toast.success("PIN confirmado! Acesso liberado.");
       router.push("/");
