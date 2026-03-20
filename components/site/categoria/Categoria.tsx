@@ -122,7 +122,7 @@ export default function CategoriasDestaque() {
             </div>
 
             <div className="rightSide">
-              <Link href="/categoria" className="allBtn">
+              <Link href="/viecategoria" className="allBtn">
                 <span>Ver todas</span>
                 <span aria-hidden>→</span>
               </Link>
@@ -167,16 +167,17 @@ export default function CategoriasDestaque() {
             >
               {top.map((c, index) => {
                 const nome = String(c?.nome || "Categoria");
-                const id = String(c?.id_categoria || "");
-                const href = id
-                  ? `/categoria/${encodeURIComponent(id)}`
-                  : "/categoria";
+                const slug = String(c?.slug || "").trim();
+
+                const href = slug
+                  ? `/viecategoria/${encodeURIComponent(slug)}`
+                  : "/viecategoria";
 
                 return (
                   <Link
-                    key={String(c?.id_categoria || index)}
+                    key={String(c?.id_categoria || c?.slug || index)}
                     href={href}
-                    className={`item ${id ? "" : "disabled"}`}
+                    className={`item ${slug ? "" : "disabled"}`}
                     draggable={false}
                     role="listitem"
                   >
