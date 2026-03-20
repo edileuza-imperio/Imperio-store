@@ -4,7 +4,12 @@ import { admin } from "./admin";
 type Id = number | string;
 
 export const rotas = {
-  
+  site: {
+    listar: "/site-configs",
+    buscar: (id: Id) => `/site-config/${id}`,
+    menu: "/menus",
+  },
+
   inicio: {
     home: "/",
     navbar: "/navbar",
@@ -17,96 +22,98 @@ export const rotas = {
   auth: {
     me: "/me",
     logout: "/logout",
-    loginEtapa1: "/login/etapa1",
-    loginEtapa2: "/login/etapa2",
+    loginEtapa1: "/login",
+    loginEtapa2: "/login2",
   },
+
+  configLogin: "/config-login",
 
   carrinho: {
     adicionar: "/carrinho/adicionar",
   },
 
-  admin,
-
-  configLogin: "/configuracoes/login",
-
   menu: {
-    listar: "/menu",
-    ativos: "/menu/ativos",
+    listar: "/menus",
     buscar: (id: Id) => `/menu/${id}`,
+    itensDoMenu: (menuId: Id) => `/menu/${menuId}/itens`,
+    menuCompleto: (menuId: Id) => `/menu/${menuId}/completo`,
     criar: "/menu",
     atualizar: (id: Id) => `/menu/${id}`,
     deletar: (id: Id) => `/menu/${id}`,
-    comItens: "/menu/com-itens",
-    itensDoMenu: (menuId: Id) => `/menu/${menuId}/itens`,
-    criarItem: (menuId: Id) => `/menu/${menuId}/itens`,
-    atualizarItem: (itemId: Id) => `/menu/item/${itemId}`,
-    deletarItem: (itemId: Id) => `/menu/item/${itemId}`,
+
+    criarItem: "/menu-item",
+    atualizarItem: (itemId: Id) => `/menu-item/${itemId}`,
+    deletarItem: (itemId: Id) => `/menu-item/${itemId}`,
   },
 
-  usuariosSistema: {
-    listar: "/usuarios-sistema",
-    buscar: (id: Id) => `/usuarios-sistema/${id}`,
-    criar: "/usuarios-sistema",
-    atualizar: (id: Id) => `/usuarios-sistema/${id}`,
-    deletar: (id: Id) => `/usuarios-sistema/${id}`,
+  usuarios: {
+    listar: "/usuarios",
+    buscar: (id: Id) => `/usuario/${id}`,
+    criar: "/criarusuarios",
+    atualizar: (id: Id) => `/usuario/${id}`,
+    atualizarSenha: (id: Id) => `/usuario/${id}/senha`,
+    atualizarPin: (id: Id) => `/usuario/${id}/pin`,
+    resetarPin: (id: Id) => `/usuario/${id}/resetar-pin`,
+    limparPin: (id: Id) => `/usuario/${id}/limpar-pin`,
+    deletar: (id: Id) => `/usuario/${id}`,
   },
 
-  banners: {
-    listar: "/banners",
-    ativos: "/banners/ativos",
-    buscar: (id: Id) => `/banners/${id}`,
-    criar: "/banners",
-    atualizar: (id: Id) => `/banners/${id}`,
-    deletar: (id: Id) => `/banners/${id}`,
-    incrementarView: (id: Id) => `/banners/${id}/view`,
-    incrementarClick: (id: Id) => `/banners/${id}/click`,
+  configuracaoLogin: {
+    listar: "/configuracoes-login",
+    buscar: (id: Id) => `/configuracao-login/${id}`,
+    ativa: "/configuracao-login-ativa",
+    criar: "/configuracao-login",
+    atualizar: (id: Id) => `/configuracao-login/${id}`,
+    atualizarStatus: (id: Id) => `/configuracao-login/${id}/status`,
+    deletar: (id: Id) => `/configuracao-login/${id}`,
+  },
+
+  tipoLogin: {
+    listar: "/tipos-login",
+    buscar: (id: Id) => `/tipo-login/${id}`,
+    criar: "/tipo-login",
+    atualizar: (id: Id) => `/tipo-login/${id}`,
+    deletar: (id: Id) => `/tipo-login/${id}`,
+  },
+
+  niveis: {
+    listar: "/niveis",
+    buscar: (id: Id) => `/nivel/${id}`,
+    criar: "/nivel",
+    atualizar: (id: Id) => `/nivel/${id}`,
+    deletar: (id: Id) => `/nivel/${id}`,
+  },
+
+  status: {
+    listar: "/status",
+    buscar: (id: Id) => `/status/${id}`,
+    criar: "/status",
+    atualizar: (id: Id) => `/status/${id}`,
+    deletar: (id: Id) => `/status/${id}`,
   },
 
   categorias: {
     listar: "/categorias",
-    ativas: "/categorias/ativas",
-    ordenadas: "/categorias/ordenadas",
-    buscar: (id: Id) => `/categorias/${id}`,
-    criar: "/categorias",
-    atualizar: (id: Id) => `/categorias/${id}`,
-    deletar: (id: Id) => `/categorias/${id}`,
+    buscar: (id: Id) => `/categoria/${id}`,
+    listarPorSite: (siteConfigId: Id) => `/categorias/site/${siteConfigId}`,
+    listarAtivasPorSite: (siteConfigId: Id) =>
+      `/categorias/site/${siteConfigId}/ativas`,
+    criar: "/categoria",
+    atualizar: (id: Id) => `/categoria/${id}`,
+    atualizarStatus: (id: Id) => `/categoria/${id}/status`,
+    deletar: (id: Id) => `/categoria/${id}`,
   },
 
-  produtos: {
-    listar: "/produtos",
-    buscar: (id: Id) => `/produtos/${id}`,
-
-    buscarPorSlugApi: (slug: string) =>
-      `/produto/slug/${encodeURIComponent(slug)}`,
-
-    pesquisar: "/produtos/pesquisa",
-
-    // ✅ AQUI ESTAVA ERRADO:
-    // catalogo: "/catalogo",
-    catalogo: "/produtos/catalogo",
-
-    criar: "/produtos",
-    atualizar: (id: Id) => `/produtos/${id}`,
-    deletar: (id: Id) => `/produtos/${id}`,
-
-    destaques: {
-      listar: "/produtos/destaques",
-      status: "/produtos/destaques/status",
-      criar: "/produtos/destaques",
-      atualizar: (id: Id) => `/produtos/destaques/${id}`,
-      deletar: (id: Id) => `/produtos/destaques/${id}`,
-    },
-
-    paginas: {
-      destaques: "/produtos/destaques",
-      produto: (slug: string) => `/produto/${encodeURIComponent(slug)}`,
-    },
+  banners: {
+    listar: "/banners",
+    buscar: (id: Id) => `/banner/${id}`,
+    criar: "/banner",
+    atualizar: (id: Id) => `/banner/${id}/atualizar`,
+    atualizarStatus: (id: Id) => `/banner/${id}/status`,
+    deletar: (id: Id) => `/banner/${id}`,
+    incrementarView: (id: Id) => `/banner/${id}/view`,
+    incrementarClick: (id: Id) => `/banner/${id}/click`,
   },
 
-  cupons: {
-    listar: "/cupons",
-    ativos: "/cupons/ativos",
-    inativos: "/cupons/inativos",
-    buscarPorCodigo: (codigo: string) => `/cupom/${encodeURIComponent(codigo)}`,
-  },
+  admin,
 } as const;

@@ -167,9 +167,7 @@ export default function CategoriasDestaque() {
             >
               {top.map((c, index) => {
                 const nome = String(c?.nome || "Categoria");
-
                 const id = String(c?.id_categoria || "");
-
                 const href = id
                   ? `/categoria/${encodeURIComponent(id)}`
                   : "/categoria";
@@ -184,11 +182,8 @@ export default function CategoriasDestaque() {
                   >
                     <span className="orb">
                       <span className="orbRing" />
-
                       <span className="orbInner">
-                        <i
-                          className={`bi ${c?.icone || "bi-grid"} icon`}
-                        />
+                        <i className={`bi ${c?.icone || "bi-grid"} icon`} />
                       </span>
                     </span>
 

@@ -1,7 +1,8 @@
 'use client';
 
 import DestaquesSection from "@/components/destaques/DestaquesSection";
-import Banner from "@/components/site/Banner/Principal";
+import Banner from "@/components/site/Banner/Banner";
+import CategoriasDestaque from "@/components/site/categoria/Categoria";
 import Categoria from "@/components/site/categoria/Categoria";
 import Cupons from "@/components/site/Cupons/Cupons";
 
@@ -16,13 +17,11 @@ export default function HomeContent() {
     <>
       <Navbar />
       <Banner />
-      <Categoria />
-      <ProdutoDestaque />
-      <Cupons />
-      <DestaquesSection />
+      <CategoriasDestaque />
+    
         
       
-      <FooterPrincipal />
+      
 
     </>
   );

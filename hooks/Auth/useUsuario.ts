@@ -1,46 +1,58 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from "react";
-import { buscarUsuarioAutenticado } from "@/services/usuarioService";
+import api from "@/Api/conectar";
+import { rotas } from "@/components/Bibioteca/config/rotas";
+import { useEffect, useState, useCallback } from "react";
 
-/**
- * Interface REAL do usuário autenticado
- * (tem que bater com o backend)
- */
-export interface Usuario {
-  id_usuario: number;
-  nome: string;
-  email: string;
-  nivel_id: number;
-  statusid: number;
-  criado: string;
-  atualizado: string;
-}
+export type Usuario = {
+  id_usuario?: number;
+  nome?: string;
+  email?: string;
+  nivel_id?: number;
+  status_id?: number;
+};
 
 export default function useUsuario() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const carregarUsuario = async () => {
-      const user = await buscarUsuarioAutenticado();
+  const carregarUsuario = useCallback(async () => {
+    try {
+      setLoading(true);
 
-      // 👇 garante que só seta se vier algo válido
-      if (user) {
-        setUsuario(user as Usuario);
-      } else {
-        setUsuario(null);
-      }
+      const response = await api.get(rotas.auth.me, {
+        withCredentials: true,
+      });
 
+      const data = response?.data;
+
+      const user =
+        data?.dados?.usuario ??
+        data?.dados ??
+        data?.usuario ??
+        null;
+
+      setUsuario(user);
+    } catch (error: any) {
+      console.error("Erro ao buscar usuário:", error?.response?.data || error);
+      setUsuario(null);
+    } finally {
       setLoading(false);
-    };
-
-    carregarUsuario();
+    }
   }, []);
+
+  useEffect(() => {
+    carregarUsuario();
+  }, [carregarUsuario]);
 
   return {
     usuario,
     loading,
     logado: !!usuario,
+    recarregarUsuario: carregarUsuario,
+    isSistema: usuario?.nivel_id === 1,
+    isAdministrador: usuario?.nivel_id === 2,
+    isCliente: usuario?.nivel_id === 3,
+    isAdmin: usuario?.nivel_id === 1 || usuario?.nivel_id === 2,
   };
 }

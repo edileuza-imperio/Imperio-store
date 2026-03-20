@@ -9,23 +9,28 @@ export type ApiIndexResponse = {
   dados?: ApiIndexData;
 };
 
-export interface MenuItem {
-  id?: number;
-  titulo?: string;
-  rota?: string | null;
-  icone?: string;
-  posicao?: number;
-  permissoes?: string[];
-}
-
 export interface Menu {
   id?: number;
+  id_menu?: number;
+  site_config_id?: number;
   titulo?: string;
-  icone?: string;
+  nome?: string;
+  icone?: string | null;
   rota?: string | null;
   pesquisa_placeholder?: string | null;
-  permissoes?: string[];
+  posicao?: number;
   itens?: MenuItem[];
+}
+
+export interface MenuItem {
+  id?: number;
+  id_item: number;
+  id_menu?: number;
+  titulo?: string;
+  nome?: string;
+  icone?: string | null;
+  rota?: string | null;
+  posicao?: number;
 }
 
 export interface Banner {
@@ -139,3 +144,30 @@ export type PixPayload = {
 };
 
 
+export type SiteConfig = {
+  id_site_config: number;
+  nome_site: string;
+  titulo: string;
+  subtitulo: string;
+  logo: string | null;
+  favicon: string | null;
+};
+
+export type SiteConfigResponse = {
+  status: number;
+  mensagem: string;
+  dados: SiteConfig[];
+};
+
+/**
+ * Interface REAL do usuário autenticado
+ */
+export interface Usuario {
+  id_usuario: number;
+  nome: string;
+  email: string;
+  nivel_id: number;
+  status_id: number;
+  criado: string;
+  atualizado: string;
+}

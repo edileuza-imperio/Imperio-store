@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/Api/conectar";
-import { rotas } from "@/components/Bibioteca/config/rotas";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import { rotas } from "@/components/Bibioteca/config/rotas";
 
 type BannerItem = {
   id_banner?: number;
@@ -13,6 +13,7 @@ type BannerItem = {
   imagem?: string;
   link?: string | null;
   statusid?: number;
+  status_id?: number;
 };
 
 export default function Banner() {
@@ -38,35 +39,34 @@ export default function Banner() {
         setLoading(true);
         setErro(null);
 
-        const tentativas = [rotas.banners.ativos, rotas.banners.listar];
-        let encontrados: BannerItem[] = [];
+        const res = await api.get(rotas.banners.listar);
+        const payload = res?.data;
 
-        for (const rota of tentativas) {
-          try {
-            const res = await api.get(rota);
-            const payload = res?.data;
+        const listaBase: BannerItem[] =
+          (Array.isArray(payload) && payload) ||
+          (Array.isArray(payload?.dados) && payload.dados) ||
+          (Array.isArray(payload?.banners) && payload.banners) ||
+          (Array.isArray(payload?.dados?.banners) && payload.dados.banners) ||
+          (Array.isArray(payload?.dados?.dados) && payload.dados.dados) ||
+          [];
 
-            const lista =
-              (Array.isArray(payload) && payload) ||
-              (Array.isArray(payload?.dados) && payload.dados) ||
-              (Array.isArray(payload?.dados?.banners) && payload.dados.banners) ||
-              (Array.isArray(payload?.banners) && payload.banners) ||
-              [];
+        const filtrados = listaBase.filter((item) => {
+          const status = Number(item?.statusid ?? item?.status_id ?? 1);
+          const temImagem =
+            typeof item?.imagem === "string" && item.imagem.trim() !== "";
 
-            if (lista.length > 0) {
-              encontrados = lista;
-              break;
-            }
-          } catch {
-            // tenta a próxima rota
-          }
-        }
+          return !!item && status === 1 && temImagem;
+        });
 
         if (!ativo) return;
-        setBanners(encontrados);
+        setBanners(filtrados);
       } catch (e: any) {
         if (!ativo) return;
-        setErro(e?.message || "Erro ao carregar banners");
+        setErro(
+          e?.response?.data?.mensagem ||
+            e?.message ||
+            "Erro ao carregar banners"
+        );
       } finally {
         if (ativo) setLoading(false);
       }
@@ -93,22 +93,29 @@ export default function Banner() {
   const banner = safeBanners[index];
 
   const makeImageUrl = (img?: string | null) => {
-    if (!img) return null;
+    if (!img || img.trim() === "") return null;
 
-    if (/^https?:\/\//i.test(img)) return img;
+    if (/^https?:\/\//i.test(img)) {
+      return img;
+    }
 
     const base = String(api.defaults.baseURL || "").replace(/\/+$/, "");
     const path = String(img).replace(/^\/+/, "");
+
     return `${base}/${path}`;
   };
 
-  const imagemUrl = useMemo(() => makeImageUrl(banner?.imagem), [banner?.imagem]);
+  const imagemUrl = useMemo(
+    () => makeImageUrl(banner?.imagem),
+    [banner?.imagem]
+  );
 
   useEffect(() => {
     if (!hasMany || !safeBanners.length) return;
 
     const nextIndex = (index + 1) % safeBanners.length;
     const nextImg = makeImageUrl(safeBanners[nextIndex]?.imagem);
+
     if (!nextImg) return;
 
     const img = new Image();
@@ -134,6 +141,7 @@ export default function Banner() {
     if (now - last < viewCooldownMs) return;
 
     lastViewRef.current[id] = now;
+
     api.put(rotas.banners.incrementarView(id)).catch(() => {});
   }, [banner?.id_banner]);
 
@@ -147,7 +155,9 @@ export default function Banner() {
 
     if (id && !clickLockRef.current) {
       clickLockRef.current = true;
+
       api.put(rotas.banners.incrementarClick(id)).catch(() => {});
+
       window.setTimeout(() => {
         clickLockRef.current = false;
       }, 800);
@@ -200,39 +210,27 @@ export default function Banner() {
 
   return (
     <section
-      className={`banner-container ${isHover ? "paused" : ""}`}
+      className={`banner-v2 ${isHover ? "paused" : ""}`}
       onMouseEnter={() => setIsHover(true)}
       onMouseLeave={() => setIsHover(false)}
       aria-label="Banner principal"
     >
-      {/* BACKGROUND IMAGE */}
-      <button
-        type="button"
-        className={`banner-bg ${possuiLink ? "clickable" : ""}`}
-        style={{ backgroundImage: `url(${imagemUrl})` }}
-        onClick={possuiLink ? handleClick : undefined}
-        aria-label={banner?.titulo || "Banner"}
-      />
+      <div className="banner-v2__inner">
+        <div className="banner-v2__content">
+          <span className="banner-v2__badge">Destaque</span>
 
-      {/* OVERLAYS */}
-      <div className="banner-overlay" />
-      <div className="banner-glow" />
-
-      {/* CONTENT */}
-      <div className="banner-content">
-        <div className="banner-text">
-          <h1 className="banner-title">{banner?.titulo || ""}</h1>
+          <h1 className="banner-v2__title">{banner?.titulo || ""}</h1>
 
           {banner?.descricao && (
-            <p className="banner-description">{banner.descricao}</p>
+            <p className="banner-v2__description">{banner.descricao}</p>
           )}
 
-          <div className="banner-actions">
+          <div className="banner-v2__actions">
             {possuiLink ? (
               <>
                 <button
                   type="button"
-                  className="banner-btn banner-btn--primary"
+                  className="banner-v2__btn banner-v2__btn--primary"
                   onClick={handleClick}
                 >
                   Acessar
@@ -241,65 +239,67 @@ export default function Banner() {
 
                 <button
                   type="button"
-                  className="banner-btn banner-btn--secondary"
+                  className="banner-v2__btn banner-v2__btn--secondary"
                   onClick={handleClick}
                 >
-                  Ver Más
+                  Ver mais
                   <FiChevronRight size={18} />
                 </button>
               </>
             ) : (
               <button
                 type="button"
-                className="banner-btn banner-btn--secondary"
+                className="banner-v2__btn banner-v2__btn--secondary"
                 disabled
               >
-                Saiba más
+                Saiba mais
               </button>
             )}
           </div>
         </div>
+
+        <div className="banner-v2__media">
+          <div className="banner-v2__imageWrap">
+            <img
+              src={imagemUrl}
+              alt={banner?.titulo || "Banner"}
+              className={`banner-v2__image ${possuiLink ? "is-clickable" : ""}`}
+              onClick={possuiLink ? handleClick : undefined}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* NAVIGATION CONTROLS */}
       {hasMany && (
         <>
-          {/* LEFT ARROW */}
           <button
             type="button"
-            className="banner-arrow left"
+            className="banner-v2__arrow banner-v2__arrow--left"
             onClick={prev}
             aria-label="Banner anterior"
           >
             <FiChevronLeft size={24} />
           </button>
 
-          {/* RIGHT ARROW */}
           <button
             type="button"
-            className="banner-arrow right"
+            className="banner-v2__arrow banner-v2__arrow--right"
             onClick={next}
             aria-label="Próximo banner"
           >
             <FiChevronRight size={24} />
           </button>
 
-          {/* DOTS INDICATORS */}
-          <div className="banner-dots">
+          <div className="banner-v2__dots">
             {safeBanners.map((item, i) => (
               <button
                 key={item.id_banner ?? i}
                 type="button"
-                className={`banner-dot ${i === index ? "active" : ""}`}
+                className={`banner-v2__dot ${i === index ? "active" : ""}`}
                 onClick={() => setIndex(i)}
                 aria-label={`Ir para o banner ${i + 1}`}
               />
             ))}
-          </div>
-
-          {/* PROGRESS BAR */}
-          <div className="banner-progress">
-            <span />
           </div>
         </>
       )}

@@ -43,9 +43,7 @@ export const useLoginConfig = () => {
 
   const [config, setConfig] = useState<LoginConfig | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const [usuarioTempId, setUsuarioTempId] = useState<number | null>(null);
-
+  const [precisaPin, setPrecisaPin] = useState(false);
   const [loadingBtn, setLoadingBtn] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -54,17 +52,15 @@ export const useLoginConfig = () => {
 
     const fetchConfig = async () => {
       try {
-        const response = await api.get(rotas.configLogin, {
-          withCredentials: true,
-        });
-
+        const response = await api.get(rotas.configLogin);
         const cfg = resolveConfig(response.data);
 
         if (!alive) return;
         setConfig(cfg ?? DEFAULT_CONFIG);
-      } catch {
+      } catch (error) {
+        console.error("Erro ao carregar config do login:", error);
+
         if (!alive) return;
-        toast.error("Erro ao carregar configuração de login");
         setConfig(DEFAULT_CONFIG);
       } finally {
         if (!alive) return;
@@ -84,23 +80,14 @@ export const useLoginConfig = () => {
 
     const checkSession = async () => {
       try {
-        const res = await api.get(rotas.auth.me, {
-          withCredentials: true,
-        });
-
+        const res = await api.get(rotas.auth.me);
         const dados = res.data?.dados ?? res.data?.data ?? res.data;
         const usuario = dados?.usuario;
-        const pedirPin = dados?.pedir_pin;
 
         if (!alive) return;
 
-        if (usuario && !pedirPin) {
-          router.push("/");
-          return;
-        }
-
-        if (usuario && pedirPin) {
-          setUsuarioTempId(Number(usuario.id));
+        if (usuario) {
+          router.replace("/");
         }
       } catch {
         // não autenticado
@@ -114,92 +101,54 @@ export const useLoginConfig = () => {
     };
   }, [router]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && ["a", "c", "v", "u"].includes(e.key.toLowerCase())) {
-        e.preventDefault();
-        toast.warning("Atalho bloqueado!");
-      }
+  const handleLogin = async (email: string, senha: string) => {
+    if (!email || !senha) {
+      const mensagem = "Preencha todos os campos!";
+      setErrorMsg(mensagem);
 
-      if (e.key === "F12") {
-        e.preventDefault();
-        toast.warning("Atalho bloqueado!");
-      }
-    };
-
-    const handleContextMenu = (e: MouseEvent) => e.preventDefault();
-
-    document.addEventListener("keydown", handleKeyDown);
-    document.addEventListener("contextmenu", handleContextMenu);
-
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.removeEventListener("contextmenu", handleContextMenu);
-    };
-  }, []);
-
-  const buscarUsuarioPendente = async (): Promise<number | null> => {
-    try {
-      const res = await api.get(rotas.auth.me, {
-        withCredentials: true,
-      });
-
-      const dados = res.data?.dados ?? res.data?.data ?? res.data;
-      const usuario = dados?.usuario;
-      const pedirPin = dados?.pedir_pin;
-
-      if (usuario?.id && pedirPin) {
-        const id = Number(usuario.id);
-        setUsuarioTempId(id);
-        return id;
-      }
-
-      return null;
-    } catch {
-      return null;
-    }
-  };
-
-  const handleLogin = async (usuario: string, senha: string) => {
-    if (!usuario || !senha) {
-      setErrorMsg("Preencha todos os campos!");
-      return { sucesso: false, pedirPin: false };
+      return {
+        sucesso: false,
+        pedirPin: false,
+        mensagem,
+      };
     }
 
     setLoadingBtn(true);
     setErrorMsg("");
 
     try {
-      const res = await api.post(
-        rotas.auth.loginEtapa1,
-        { usuario, senha },
-        { withCredentials: true }
-      );
+      const res = await api.post(rotas.auth.loginEtapa1, {
+        email,
+        senha,
+      });
 
       const data = res.data?.dados ?? res.data?.data ?? res.data;
 
-      if (data?.acao === "pedir_pin") {
-        if (data?.id_usuario) {
-          setUsuarioTempId(Number(data.id_usuario));
-        }
+      if (data?.etapa2 === true) {
+        setPrecisaPin(true);
+        toast.info("Informe o PIN para concluir o login.");
 
-        toast.info("Digite o PIN enviado.");
         return {
           sucesso: true,
           pedirPin: true,
-          idUsuario: data?.id_usuario ? Number(data.id_usuario) : null,
         };
       }
 
       toast.success("Login realizado com sucesso!");
-      router.push("/");
+      router.replace("/");
 
       return {
         sucesso: true,
         pedirPin: false,
       };
     } catch (err: any) {
-      const mensagem = err?.response?.data?.mensagem || "Erro ao logar.";
+      console.error("Erro no login:", err?.response?.data || err);
+
+      const mensagem =
+        err?.response?.data?.mensagem ||
+        err?.response?.data?.dados?.mensagem ||
+        "Erro ao logar.";
+
       setErrorMsg(mensagem);
 
       return {
@@ -214,40 +163,42 @@ export const useLoginConfig = () => {
 
   const handleValidarPin = async (pin: string) => {
     if (!pin) {
-      setErrorMsg("Informe o PIN.");
-      return { sucesso: false };
+      const mensagem = "Informe o PIN.";
+      setErrorMsg(mensagem);
+
+      return {
+        sucesso: false,
+        mensagem,
+      };
     }
 
     setLoadingBtn(true);
     setErrorMsg("");
 
     try {
-      let idUsuario = usuarioTempId;
+      await api.post(rotas.auth.loginEtapa2, { pin });
 
-      if (!idUsuario) {
-        idUsuario = await buscarUsuarioPendente();
-      }
-
-      if (!idUsuario) {
-        const mensagem = "Sessão expirada. Faça login novamente.";
-        setErrorMsg(mensagem);
-        return { sucesso: false, mensagem };
-      }
-
-      await api.post(
-        rotas.auth.loginEtapa2,
-        { id_usuario: idUsuario, pin },
-        { withCredentials: true }
-      );
-
+      setPrecisaPin(false);
       toast.success("PIN confirmado! Acesso liberado.");
-      router.push("/");
+      router.replace("/");
 
-      return { sucesso: true };
+      return {
+        sucesso: true,
+      };
     } catch (err: any) {
-      const mensagem = err?.response?.data?.mensagem || "PIN incorreto";
+      console.error("Erro no PIN:", err?.response?.data || err);
+
+      const mensagem =
+        err?.response?.data?.mensagem ||
+        err?.response?.data?.dados?.mensagem ||
+        "PIN incorreto.";
+
       setErrorMsg(mensagem);
-      return { sucesso: false, mensagem };
+
+      return {
+        sucesso: false,
+        mensagem,
+      };
     } finally {
       setLoadingBtn(false);
     }
@@ -256,7 +207,7 @@ export const useLoginConfig = () => {
   return {
     config,
     loading,
-    usuarioTempId,
+    precisaPin,
     loadingBtn,
     errorMsg,
     setErrorMsg,

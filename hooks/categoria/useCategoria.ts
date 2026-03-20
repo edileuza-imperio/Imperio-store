@@ -3,10 +3,9 @@
 
 import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
-import { rotas } from "@/components/Bibioteca/config/rotas";
+
 import { Categoria } from "@/components/Bibioteca/Bibiotecas";
-
-
+import { rotas } from "@/components/Bibioteca/config/rotas";
 
 export default function useCategoria() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
@@ -20,19 +19,23 @@ export default function useCategoria() {
 
       try {
         const response = await api.get(rotas.categorias.listar);
-
         const data = response.data;
 
-        if (data?.status !== 200) {
-          setErro(data?.mensagem || "Erro ao carregar categorias.");
+        if (Array.isArray(data)) {
+          setCategorias(data);
+        } else if (Array.isArray(data?.dados)) {
+          setCategorias(data.dados);
+        } else {
           setCategorias([]);
-          return;
+          setErro("Formato de resposta inválido ao carregar categorias.");
         }
-
-        setCategorias(data?.dados ?? []);
       } catch (error: any) {
         console.error("Erro ao carregar categorias:", error);
-        setErro(error?.message || "Não foi possível carregar as categorias.");
+        setErro(
+          error?.response?.data?.mensagem ||
+            error?.message ||
+            "Não foi possível carregar as categorias."
+        );
         setCategorias([]);
       } finally {
         setLoading(false);
