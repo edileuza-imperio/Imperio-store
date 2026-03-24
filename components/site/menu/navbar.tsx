@@ -2,9 +2,10 @@
 
 import { useMemo } from "react";
 import { useMenu } from "@/hooks/menu/useMenu";
-import useCategoria from "@/hooks/categoria/useCategoria";
+
 import NavbarDesktop from "./NavbarDesktop";
 import NavbarMobile from "./NavbarMobile";
+import useCategoria from "@/Hooks/Categoria/useCategoria";
 
 export default function Navbar() {
   const { menus, loading, error } = useMenu();

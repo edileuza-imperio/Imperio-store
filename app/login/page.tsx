@@ -162,6 +162,7 @@ export default function Login() {
 
           <div className="actions">
             <button
+              type="button"
               className="btn-login"
               onClick={() => router.push("/login/entra")}
             >
@@ -169,6 +170,7 @@ export default function Login() {
             </button>
 
             <button
+              type="button"
               className="btn-cadastro"
               onClick={() => router.push("/login/cadastro")}
             >

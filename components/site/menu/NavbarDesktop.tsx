@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useEffect, useRef, useState } from "react";
 import SearchBar from "../Pesquisa/SearchBar";
-import useUsuario from "@/hooks/Auth/useUsuario";
+
 import api from "@/Api/conectar";
 import { rotas } from "@/components/Bibioteca/config/rotas";
 
@@ -19,6 +19,7 @@ import {
   FiShoppingCart,
 } from "react-icons/fi";
 import { Menu, MenuItem } from "@/components/Bibioteca/Bibiotecas";
+import useUsuario from "@/hooks/Auth/useUsuario";
 
 export interface Categoria {
   id_categoria?: number;

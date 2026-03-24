@@ -1,9 +1,7 @@
-// src/hooks/categoria/useCategoria.ts
 "use client";
 
 import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
-
 import { Categoria } from "@/components/Bibioteca/Bibiotecas";
 import { rotas } from "@/components/Bibioteca/config/rotas";
 
@@ -13,6 +11,8 @@ export default function useCategoria() {
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
+    let ativo = true;
+
     const fetchCategorias = async () => {
       setLoading(true);
       setErro(null);
@@ -20,6 +20,8 @@ export default function useCategoria() {
       try {
         const response = await api.get(rotas.categorias.listar);
         const data = response.data;
+
+        if (!ativo) return;
 
         if (Array.isArray(data)) {
           setCategorias(data);
@@ -30,6 +32,8 @@ export default function useCategoria() {
           setErro("Formato de resposta inválido ao carregar categorias.");
         }
       } catch (error: any) {
+        if (!ativo) return;
+
         console.error("Erro ao carregar categorias:", error);
         setErro(
           error?.response?.data?.mensagem ||
@@ -38,11 +42,17 @@ export default function useCategoria() {
         );
         setCategorias([]);
       } finally {
-        setLoading(false);
+        if (ativo) {
+          setLoading(false);
+        }
       }
     };
 
     fetchCategorias();
+
+    return () => {
+      ativo = false;
+    };
   }, []);
 
   return { categorias, loading, erro };

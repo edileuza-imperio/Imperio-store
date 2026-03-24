@@ -123,7 +123,7 @@ export default function CategoriasDestaque() {
             </div>
 
             <div className="rightSide">
-              <Link href="/categoria/viecategoria/" className="allBtn">
+              <Link href="/viecategoria" className="allBtn">
                 <span>Ver todas</span>
                 <span aria-hidden>→</span>
               </Link>
