@@ -18,7 +18,14 @@ export const rotas = {
   paginas: {
     login: "/login",
   },
-
+  painel: {
+    campanhas: "/painel/campanhas",
+    campanhaCadastrar: "/painel/campanha",
+    campanhaBuscar: (id: number | string) => `/painel/campanha/${id}`,
+    campanhaAtualizar: (id: number | string) => `/painel/campanha/${id}`,
+    campanhaStatus: (id: number | string) => `/painel/campanha/${id}/status`,
+    status: "/painel/status",
+  },
   auth: {
     me: "/me",
     logout: "/logout",

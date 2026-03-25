@@ -272,7 +272,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </header>
 
         <main className="content">
-          <div className="content-inner">{children}</div>
+          <div className="content-shell">
+            <div className="content-inner">{children}</div>
+          </div>
         </main>
       </section>
 
@@ -280,53 +282,62 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         .admin-layout {
           min-height: 100vh;
           display: flex;
+          width: 100%;
+          max-width: 100%;
           background:
-            radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 25%),
-            radial-gradient(circle at bottom right, rgba(79, 70, 229, 0.1), transparent 30%),
+            radial-gradient(circle at top left, rgba(59, 130, 246, 0.1), transparent 24%),
+            radial-gradient(circle at bottom right, rgba(79, 70, 229, 0.08), transparent 28%),
             linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
           position: relative;
-          overflow: hidden;
+          overflow-x: hidden;
         }
 
         .sidebar {
-          width: 320px;
-          min-width: 320px;
-          position: relative;
+          width: 308px;
+          min-width: 308px;
+          max-width: 308px;
+          min-height: 100vh;
+          height: 100vh;
+          position: sticky;
+          top: 0;
+          align-self: flex-start;
           z-index: 30;
           color: #fff;
-          padding: 22px 18px 18px;
+          padding: 18px 16px 22px;
           display: flex;
           flex-direction: column;
-          gap: 22px;
+          gap: 18px;
           background:
             linear-gradient(180deg, rgba(9, 14, 28, 0.98) 0%, rgba(15, 23, 42, 0.98) 45%, rgba(22, 30, 49, 0.98) 100%);
           border-right: 1px solid rgba(255, 255, 255, 0.06);
-          box-shadow: 18px 0 50px rgba(2, 6, 23, 0.18);
+          box-shadow: 12px 0 38px rgba(2, 6, 23, 0.14);
           backdrop-filter: blur(16px);
+          box-sizing: border-box;
+          overflow: hidden;
         }
 
         .sidebar-glow {
           position: absolute;
           border-radius: 999px;
           filter: blur(60px);
-          opacity: 0.32;
+          opacity: 0.26;
           pointer-events: none;
         }
 
         .sidebar-glow-1 {
-          width: 170px;
-          height: 170px;
-          background: rgba(37, 99, 235, 0.35);
+          width: 160px;
+          height: 160px;
+          background: rgba(37, 99, 235, 0.34);
           top: -40px;
           left: -50px;
         }
 
         .sidebar-glow-2 {
-          width: 160px;
-          height: 160px;
-          background: rgba(99, 102, 241, 0.28);
+          width: 150px;
+          height: 150px;
+          background: rgba(99, 102, 241, 0.24);
           right: -40px;
-          bottom: 110px;
+          bottom: 90px;
         }
 
         .sidebar-top,
@@ -347,31 +358,39 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         .brand {
           display: flex;
           align-items: center;
-          gap: 13px;
+          gap: 12px;
+          min-width: 0;
         }
 
         .brand-icon {
-          width: 54px;
-          height: 54px;
-          border-radius: 18px;
+          width: 48px;
+          height: 48px;
+          border-radius: 16px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 20px;
+          font-size: 18px;
           font-weight: 800;
           color: #fff;
           background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
           box-shadow:
-            0 16px 30px rgba(37, 99, 235, 0.28),
-            inset 0 1px 0 rgba(255, 255, 255, 0.16);
+            0 14px 26px rgba(37, 99, 235, 0.24),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14);
           flex-shrink: 0;
+        }
+
+        .brand-text {
+          min-width: 0;
         }
 
         .brand-text h2 {
           margin: 0;
-          font-size: 23px;
+          font-size: 18px;
           font-weight: 800;
-          letter-spacing: 0.2px;
+          line-height: 1.1;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .brand-text span {
@@ -379,50 +398,52 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           margin-top: 4px;
           font-size: 12px;
           color: #94a3b8;
-          letter-spacing: 0.5px;
+          letter-spacing: 0.3px;
         }
 
         .mobile-close {
           display: none;
-          width: 40px;
-          height: 40px;
+          width: 38px;
+          height: 38px;
           border-radius: 12px;
           border: 1px solid rgba(255, 255, 255, 0.08);
           background: rgba(255, 255, 255, 0.05);
           color: #fff;
-          font-size: 24px;
+          font-size: 22px;
           cursor: pointer;
+          flex-shrink: 0;
         }
 
         .user-card {
           display: flex;
           align-items: center;
-          gap: 14px;
-          padding: 18px;
-          border-radius: 24px;
+          gap: 12px;
+          padding: 16px;
+          border-radius: 22px;
           background:
-            linear-gradient(135deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.04) 100%);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+            linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.035) 100%);
+          border: 1px solid rgba(255, 255, 255, 0.07);
           box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.05),
-            0 10px 24px rgba(2, 6, 23, 0.14);
+            inset 0 1px 0 rgba(255, 255, 255, 0.04),
+            0 10px 24px rgba(2, 6, 23, 0.12);
+          min-width: 0;
         }
 
         .avatar,
         .header-avatar {
-          width: 52px;
-          height: 52px;
+          width: 48px;
+          height: 48px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
           font-weight: 800;
-          font-size: 17px;
+          font-size: 16px;
           color: #fff;
           background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
           box-shadow:
-            0 16px 28px rgba(37, 99, 235, 0.3),
-            inset 0 1px 0 rgba(255, 255, 255, 0.16);
+            0 14px 24px rgba(37, 99, 235, 0.24),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14);
           flex-shrink: 0;
         }
 
@@ -434,7 +455,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         }
 
         .user-info strong {
-          font-size: 15px;
+          font-size: 14px;
           color: #fff;
           overflow: hidden;
           text-overflow: ellipsis;
@@ -458,11 +479,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         }
 
         .badge {
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 700;
           padding: 5px 9px;
           border-radius: 999px;
           border: 1px solid transparent;
+          white-space: nowrap;
         }
 
         .badge.online {
@@ -483,6 +505,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           gap: 12px;
           flex: 1;
           min-height: 0;
+          overflow: hidden;
         }
 
         .menu-header {
@@ -490,12 +513,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           align-items: center;
           justify-content: space-between;
           gap: 10px;
-          padding: 0 6px;
+          padding: 0 4px;
         }
 
         .menu-title {
           margin: 0;
-          font-size: 12px;
+          font-size: 11px;
           text-transform: uppercase;
           letter-spacing: 1px;
           color: #94a3b8;
@@ -503,14 +526,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         }
 
         .menu-count {
-          min-width: 24px;
-          height: 24px;
-          padding: 0 8px;
+          min-width: 22px;
+          height: 22px;
+          padding: 0 7px;
           border-radius: 999px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 700;
           color: #dbeafe;
           background: rgba(255, 255, 255, 0.07);
@@ -520,13 +543,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         .menu {
           display: flex;
           flex-direction: column;
-          gap: 8px;
+          gap: 7px;
           overflow: auto;
           padding-right: 2px;
+          min-width: 0;
         }
 
         .menu::-webkit-scrollbar {
-          width: 6px;
+          width: 5px;
         }
 
         .menu::-webkit-scrollbar-thumb {
@@ -539,22 +563,23 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           background: transparent;
           color: #e5e7eb;
           text-align: left;
-          padding: 14px;
-          border-radius: 18px;
+          padding: 12px;
+          border-radius: 16px;
           cursor: pointer;
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 600;
           transition: all 0.22s ease;
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
+          min-width: 0;
         }
 
         .menu-item:hover {
-          background: rgba(255, 255, 255, 0.07);
-          border-color: rgba(255, 255, 255, 0.07);
+          background: rgba(255, 255, 255, 0.06);
+          border-color: rgba(255, 255, 255, 0.06);
           color: #fff;
-          transform: translateX(4px);
+          transform: translateX(3px);
         }
 
         .menu-item.active {
@@ -562,13 +587,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           color: #fff;
           border-color: rgba(255, 255, 255, 0.12);
           box-shadow:
-            0 14px 30px rgba(37, 99, 235, 0.28),
-            inset 0 1px 0 rgba(255, 255, 255, 0.15);
+            0 12px 24px rgba(37, 99, 235, 0.24),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14);
         }
 
         .menu-icon {
-          width: 10px;
-          height: 10px;
+          width: 9px;
+          height: 9px;
           border-radius: 50%;
           flex-shrink: 0;
           background: rgba(255, 255, 255, 0.45);
@@ -576,21 +601,26 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
         .menu-item.active .menu-icon {
           background: #fff;
-          box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.16);
+          box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.14);
         }
 
         .menu-label {
           flex: 1;
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
         }
 
         .menu-active-pill {
           font-size: 10px;
           font-weight: 700;
-          padding: 4px 8px;
+          padding: 4px 7px;
           border-radius: 999px;
           color: #fff;
           background: rgba(255, 255, 255, 0.14);
           border: 1px solid rgba(255, 255, 255, 0.16);
+          flex-shrink: 0;
         }
 
         .menu-state {
@@ -598,13 +628,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           align-items: center;
           gap: 10px;
           color: #cbd5e1;
-          font-size: 14px;
-          padding: 12px 8px;
+          font-size: 13px;
+          padding: 12px 6px;
         }
 
         .loader {
-          width: 16px;
-          height: 16px;
+          width: 15px;
+          height: 15px;
           border-radius: 50%;
           border: 2px solid rgba(255, 255, 255, 0.2);
           border-top-color: #fff;
@@ -617,18 +647,20 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           border: 1px solid rgba(239, 68, 68, 0.22);
           padding: 12px;
           border-radius: 14px;
-          font-size: 14px;
+          font-size: 13px;
         }
 
         .sidebar-footer {
+          margin-top: auto;
+          padding-top: 6px;
           display: flex;
           flex-direction: column;
           gap: 12px;
         }
 
         .footer-box {
-          padding: 15px;
-          border-radius: 18px;
+          padding: 14px;
+          border-radius: 16px;
           background: rgba(255, 255, 255, 0.04);
           border: 1px solid rgba(255, 255, 255, 0.06);
         }
@@ -661,13 +693,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           align-items: center;
           justify-content: center;
           gap: 10px;
-          border-radius: 18px;
-          padding: 15px 16px;
+          border-radius: 16px;
+          padding: 14px 14px;
           background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
           color: #fff;
           box-shadow:
-            0 16px 30px rgba(239, 68, 68, 0.24),
-            inset 0 1px 0 rgba(255, 255, 255, 0.16);
+            0 14px 24px rgba(239, 68, 68, 0.2),
+            inset 0 1px 0 rgba(255, 255, 255, 0.14);
         }
 
         .logout-button:hover:not(:disabled) {
@@ -681,50 +713,59 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         }
 
         .logout-icon {
-          font-size: 15px;
+          font-size: 14px;
           line-height: 1;
         }
 
         .main-area {
           flex: 1;
           min-width: 0;
+          width: 100%;
           display: flex;
           flex-direction: column;
+          overflow-x: hidden;
         }
 
         .header {
           position: sticky;
           top: 0;
           z-index: 20;
-          min-height: 98px;
+          min-height: 88px;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 18px;
-          padding: 18px 28px;
+          gap: 16px;
+          padding: 14px 20px;
           background: rgba(255, 255, 255, 0.78);
-          backdrop-filter: blur(15px);
+          backdrop-filter: blur(14px);
           border-bottom: 1px solid rgba(226, 232, 240, 0.95);
+          box-sizing: border-box;
         }
 
         .header-left {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 14px;
           min-width: 0;
+          flex: 1;
         }
 
         .mobile-menu-button {
           display: none;
-          width: 46px;
-          height: 46px;
-          border-radius: 14px;
+          width: 42px;
+          height: 42px;
+          border-radius: 12px;
           border: 1px solid #dbeafe;
-          background: rgba(255, 255, 255, 0.95);
+          background: rgba(255, 255, 255, 0.96);
           color: #0f172a;
-          font-size: 20px;
+          font-size: 18px;
           cursor: pointer;
-          box-shadow: 0 10px 20px rgba(15, 23, 42, 0.06);
+          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+          flex-shrink: 0;
+        }
+
+        .header-title {
+          min-width: 0;
         }
 
         .header-kicker {
@@ -739,36 +780,41 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
         .header-title h1 {
           margin: 0;
-          font-size: 30px;
+          font-size: 24px;
           line-height: 1.1;
           color: #0f172a;
           font-weight: 800;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .header-title p {
-          margin: 8px 0 0 0;
+          margin: 6px 0 0 0;
           color: #64748b;
-          font-size: 14px;
-          max-width: 600px;
+          font-size: 13px;
+          max-width: 540px;
+          line-height: 1.5;
         }
 
         .header-right {
           display: flex;
           align-items: center;
-          gap: 14px;
+          gap: 10px;
           flex-wrap: wrap;
           justify-content: flex-end;
+          min-width: 0;
         }
 
         .header-status-card {
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 12px 14px;
-          border-radius: 18px;
-          background: rgba(255, 255, 255, 0.95);
+          padding: 10px 12px;
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.96);
           border: 1px solid #e2e8f0;
-          box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
         }
 
         .header-status-card strong {
@@ -780,7 +826,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         .header-status-card small {
           display: block;
           margin-top: 2px;
-          font-size: 12px;
+          font-size: 11px;
           color: #64748b;
         }
 
@@ -796,13 +842,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         .header-user {
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 10px 14px;
-          border-radius: 18px;
-          background: rgba(255, 255, 255, 0.95);
+          gap: 10px;
+          padding: 9px 12px;
+          border-radius: 16px;
+          background: rgba(255, 255, 255, 0.96);
           border: 1px solid #e2e8f0;
-          box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
           min-width: 0;
+          max-width: 280px;
         }
 
         .header-user-text {
@@ -812,30 +859,29 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         }
 
         .header-user-text strong {
-          font-size: 14px;
+          font-size: 13px;
           color: #0f172a;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-          max-width: 220px;
         }
 
         .header-user-text span {
-          font-size: 12px;
+          font-size: 11px;
           color: #64748b;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
-          max-width: 220px;
         }
 
         .header-logout {
-          border-radius: 16px;
-          padding: 12px 18px;
+          border-radius: 14px;
+          padding: 11px 16px;
           background: #fff;
           color: #dc2626;
           border: 1px solid #fecaca;
-          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+          white-space: nowrap;
         }
 
         .header-logout:hover:not(:disabled) {
@@ -844,20 +890,35 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
         .content {
           flex: 1;
-          padding: 30px;
+          width: 100%;
+          min-width: 0;
+          padding: 18px;
+          box-sizing: border-box;
+          overflow-x: hidden;
+        }
+
+        .content-shell {
+          width: 100%;
+          max-width: 1240px;
+          margin: 0 auto;
+          min-width: 0;
         }
 
         .content-inner {
-          min-height: calc(100vh - 158px);
-          padding: 30px;
-          border-radius: 30px;
+          width: 100%;
+          min-width: 0;
+          min-height: calc(100vh - 124px);
+          padding: 18px;
+          border-radius: 24px;
           background:
-            linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(255, 255, 255, 0.74) 100%);
+            linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.78) 100%);
           border: 1px solid rgba(226, 232, 240, 0.95);
           box-shadow:
-            0 20px 55px rgba(15, 23, 42, 0.07),
-            inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            0 16px 40px rgba(15, 23, 42, 0.06),
+            inset 0 1px 0 rgba(255, 255, 255, 0.55);
           backdrop-filter: blur(10px);
+          box-sizing: border-box;
+          overflow-x: hidden;
         }
 
         .mobile-overlay {
@@ -871,12 +932,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         }
 
         @media (max-width: 1200px) {
-          .header-right {
-            gap: 10px;
-          }
-
           .header-status-card {
             display: none;
+          }
+
+          .content-shell {
+            max-width: 100%;
           }
         }
 
@@ -886,6 +947,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             top: 0;
             left: -100%;
             height: 100vh;
+            min-height: 100vh;
             transition: left 0.25s ease;
           }
 
@@ -915,17 +977,17 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           }
 
           .header {
-            padding: 16px 18px;
+            padding: 14px 16px;
           }
 
           .content {
-            padding: 18px;
+            padding: 14px;
           }
 
           .content-inner {
-            min-height: calc(100vh - 130px);
-            padding: 18px;
-            border-radius: 22px;
+            min-height: calc(100vh - 110px);
+            padding: 14px;
+            border-radius: 20px;
           }
         }
 
@@ -945,20 +1007,22 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           }
 
           .header-user {
+            max-width: 100%;
             flex: 1;
           }
 
           .header-title h1 {
-            font-size: 24px;
+            font-size: 22px;
           }
 
           .header-title p {
-            font-size: 13px;
+            font-size: 12px;
           }
 
           .sidebar {
-            width: 290px;
-            min-width: 290px;
+            width: 286px;
+            min-width: 286px;
+            max-width: 286px;
           }
 
           .header-logout {
@@ -968,11 +1032,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
         @media (max-width: 520px) {
           .content {
-            padding: 14px;
+            padding: 10px;
           }
 
           .content-inner {
-            padding: 14px;
+            padding: 12px;
+            border-radius: 18px;
           }
 
           .header-user-text strong,

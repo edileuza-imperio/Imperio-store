@@ -49,6 +49,10 @@ function formatarPreco(valor: string) {
   return valor.replace(/[^\d.,]/g, "").replace(",", ".");
 }
 
+function limparTexto(valor: string) {
+  return String(valor || "").trim();
+}
+
 function dataAtualMysql() {
   const agora = new Date();
   const yyyy = agora.getFullYear();
@@ -245,6 +249,7 @@ export default function CadastrarProduto() {
 
     if (!tiposPermitidos.includes(file.type)) {
       toast.error("Envie uma imagem PNG, JPG, JPEG ou WEBP.");
+      e.target.value = "";
       return;
     }
 
@@ -270,39 +275,39 @@ export default function CadastrarProduto() {
 
   function validarEtapaAtual() {
     if (etapa === 1) {
-      if (!form.nome.trim()) {
+      if (!limparTexto(form.nome)) {
         toast.error("Preencha o nome do produto.");
         return false;
       }
 
-      if (!form.slug.trim()) {
+      if (!limparTexto(form.slug)) {
         toast.error("Preencha o slug do produto.");
         return false;
       }
 
-      if (!form.descricao.trim()) {
+      if (!limparTexto(form.descricao)) {
         toast.error("Preencha a descrição do produto.");
         return false;
       }
     }
 
     if (etapa === 2) {
-      if (!form.preco.trim()) {
+      if (!limparTexto(form.preco)) {
         toast.error("Preencha o preço.");
         return false;
       }
 
-      if (!form.marca.trim()) {
+      if (!limparTexto(form.marca)) {
         toast.error("Preencha a marca.");
         return false;
       }
 
-      if (!form.categoria_id.trim()) {
+      if (!limparTexto(form.categoria_id)) {
         toast.error("Selecione uma categoria.");
         return false;
       }
 
-      if (!form.status_id.trim()) {
+      if (!limparTexto(form.status_id)) {
         toast.error("Selecione um status.");
         return false;
       }
@@ -327,90 +332,120 @@ export default function CadastrarProduto() {
     setEtapa((prev) => Math.max(prev - 1, 1));
   }
 
-  async function handleSubmit(e: React.FormEvent) {
-  e.preventDefault();
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
 
-  if (!validarEtapaAtual()) return;
+    if (!validarEtapaAtual()) return;
 
-  try {
-    setSalvando(true);
-
-    const agora = dataAtualMysql();
-
-    const formData = new FormData();
-
-    formData.append("nome", form.nome.trim());
-    formData.append("slug", form.slug.trim());
-    formData.append("descricao", form.descricao.trim());
-    formData.append("preco", String(form.preco ? Number(form.preco) : 0));
-    formData.append(
-      "preco_promocional",
-      form.preco_promocional ? String(Number(form.preco_promocional)) : ""
-    );
-    formData.append("sku", form.sku.trim());
-    formData.append("modelo", form.modelo.trim());
-    formData.append("marca", form.marca.trim());
-    formData.append("categoria_id", String(Number(form.categoria_id)));
-    formData.append("status_id", String(Number(form.status_id)));
-    formData.append("criado_em", agora);
-    formData.append("atualizado_em", agora);
-
-    if (arquivoImagem) {
-      formData.append("imagem", arquivoImagem);
-    }
-
-    /* DEBUG DO FORM */
-    console.log("===== DEBUG FORM =====");
-
-    for (const pair of formData.entries()) {
-      console.log(pair[0], pair[1]);
-    }
-
-    console.log("arquivoImagem:", arquivoImagem);
-
-    /* REQUISIÇÃO */
-    const response = await api.post("/painel/produto", formData);
-
-    console.log("RESPOSTA API:", response);
-
-    const data = response?.data;
-
-    if (
-      response.status === 200 ||
-      response.status === 201 ||
-      data?.status === 200 ||
-      data?.status === 201
-    ) {
-      toast.success("Produto cadastrado com sucesso!");
-
-      setTimeout(() => {
-        router.push("/Admin/produtos");
-      }, 1800);
-
+    if (!arquivoImagem) {
+      toast.error("Envie uma imagem do produto.");
       return;
     }
 
-    toast.error(data?.mensagem || "Não foi possível cadastrar o produto.");
-  } catch (error: any) {
+    try {
+      setSalvando(true);
 
-    console.log("===== ERRO API =====");
-    console.error(error);
+      const agora = dataAtualMysql();
+      const formData = new FormData();
 
-    if (error?.response) {
-      console.log("STATUS:", error.response.status);
-      console.log("DATA:", error.response.data);
-      console.log("HEADERS:", error.response.headers);
+      const payload = {
+        nome: limparTexto(form.nome),
+        slug: limparTexto(form.slug),
+        descricao: limparTexto(form.descricao),
+        preco: limparTexto(form.preco),
+        preco_promocional: limparTexto(form.preco_promocional),
+        sku: limparTexto(form.sku),
+        modelo: limparTexto(form.modelo),
+        marca: limparTexto(form.marca),
+        categoria_id: limparTexto(form.categoria_id),
+        status_id: limparTexto(form.status_id),
+        criado_em: agora,
+        atualizado_em: agora,
+      };
+
+      formData.append("nome", payload.nome);
+      formData.append("slug", payload.slug);
+      formData.append("descricao", payload.descricao);
+      formData.append("preco", payload.preco);
+      formData.append("sku", payload.sku);
+      formData.append("marca", payload.marca);
+      formData.append("categoria_id", payload.categoria_id);
+      formData.append("status_id", payload.status_id);
+      formData.append("criado_em", payload.criado_em);
+      formData.append("atualizado_em", payload.atualizado_em);
+
+      if (payload.preco_promocional) {
+        formData.append("preco_promocional", payload.preco_promocional);
+      }
+
+      if (payload.modelo) {
+        formData.append("modelo", payload.modelo);
+      }
+
+      formData.append("imagem", arquivoImagem, arquivoImagem.name);
+
+      console.log("===== DEBUG FORM =====");
+      Object.entries(payload).forEach(([key, value]) => {
+        console.log(key, value);
+      });
+      console.log("imagem", arquivoImagem);
+      console.log("content-type automatico do browser (FormData)");
+
+      const response = await api.post("/painel/produto", formData, {
+        withCredentials: true,
+        transformRequest: [(data) => data],
+      });
+
+      console.log("RESPOSTA API:", response);
+
+      const data = response?.data;
+      const sucesso =
+        response.status === 200 ||
+        response.status === 201 ||
+        data?.status === 200 ||
+        data?.status === 201 ||
+        data?.dados?.status === 200 ||
+        data?.dados?.status === 201;
+
+      if (sucesso) {
+        toast.success(
+          data?.mensagem ||
+            data?.dados?.mensagem ||
+            "Produto cadastrado com sucesso!"
+        );
+
+        setTimeout(() => {
+          router.push("/Admin/produtos");
+        }, 1800);
+
+        return;
+      }
+
+      toast.error(
+        data?.mensagem ||
+          data?.dados?.mensagem ||
+          "Não foi possível cadastrar o produto."
+      );
+    } catch (error: any) {
+      console.log("===== ERRO API =====");
+      console.error(error);
+
+      if (error?.response) {
+        console.log("STATUS:", error.response.status);
+        console.log("DATA:", error.response.data);
+        console.log("HEADERS:", error.response.headers);
+      }
+
+      const mensagemErro =
+        error?.response?.data?.dados?.mensagem ||
+        error?.response?.data?.mensagem ||
+        "Erro ao conectar com a API ao cadastrar o produto.";
+
+      toast.error(mensagemErro);
+    } finally {
+      setSalvando(false);
     }
-
-    toast.error(
-      error?.response?.data?.mensagem ||
-      "Erro ao conectar com a API ao cadastrar o produto."
-    );
-
-  } finally {
-    setSalvando(false);
   }
-}
 
   return (
     <>
@@ -651,6 +686,7 @@ export default function CadastrarProduto() {
                     <input
                       ref={inputImagemRef}
                       type="file"
+                      name="imagem"
                       accept="image/png,image/jpeg,image/jpg,image/webp"
                       onChange={handleImagem}
                       hidden

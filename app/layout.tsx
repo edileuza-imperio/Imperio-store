@@ -4,6 +4,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 
 import './../public/produto/produto.css';
+
+import './../public/admin/admin.css';
 import './../public/produto/page.css';
 import './../public/carrinho/carrinho.css';
 import './../public/carrinho/checkout.css';
@@ -23,8 +25,9 @@ import './../public/admin/produtos/pdt.css';
 import './../public/admin/produtos/adicionar.css';
 
 import './../public/Login/Login.css';
-
+import './../public/admin/produtos/listar.css';
 import { getSiteConfig } from "@/services/siteConfig";
+
 
 
 

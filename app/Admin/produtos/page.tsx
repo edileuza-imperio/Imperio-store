@@ -33,51 +33,17 @@ function extrairListaProdutos(data: any): Produto[] {
   return [];
 }
 
-function formatarPreco(valor: number | string | null | undefined) {
-  const numero = Number(valor || 0);
-  return numero.toLocaleString("pt-BR", {
+function formatarPreco(valor: number) {
+  return valor.toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });
 }
 
-function formatarData(data?: string) {
-  if (!data) return "-";
-
-  const dt = new Date(data.replace(" ", "T"));
-  if (Number.isNaN(dt.getTime())) return data;
-
-  return dt.toLocaleDateString("pt-BR");
-}
-
-function obterIdProduto(produto: Produto) {
-  return String(produto.id_produto ?? produto.id ?? "");
-}
-
-function obterImagemProduto(produto: Produto) {
-  return produto.miniatura || produto.imagem || "";
-}
-
-function obterBadgeStatus(statusId?: number | string) {
-  const valor = String(statusId ?? "");
-
-  if (valor === "1") {
-    return { texto: "Ativo", classe: "ativo" };
-  }
-
-  if (valor === "2") {
-    return { texto: "Inativo", classe: "inativo" };
-  }
-
-  return { texto: `Status ${valor || "-"}`, classe: "neutro" };
-}
-
-export default function ProdutosPage() {
+export default function ProdutosResumoPage() {
   const router = useRouter();
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [busca, setBusca] = useState("");
-  const [filtroStatus, setFiltroStatus] = useState("todos");
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
@@ -87,10 +53,8 @@ export default function ProdutosPage() {
         setCarregando(true);
         setErro("");
 
-        // Ajuste esta rota se sua API listar produtos em outro endpoint
         const response = await api.get("/produtos");
         const lista = extrairListaProdutos(response?.data);
-
         setProdutos(lista);
       } catch (error: any) {
         console.error("Erro ao carregar produtos:", error);
@@ -106,263 +70,198 @@ export default function ProdutosPage() {
     carregarProdutos();
   }, []);
 
-  const produtosFiltrados = useMemo(() => {
-    return produtos.filter((produto) => {
-      const textoBusca = busca.trim().toLowerCase();
+  const resumo = useMemo(() => {
+    const total = produtos.length;
+    const ativos = produtos.filter(
+      (produto) => String(produto.status_id ?? "") === "1"
+    ).length;
+    const inativos = produtos.filter(
+      (produto) => String(produto.status_id ?? "") === "2"
+    ).length;
+    const comPromocao = produtos.filter(
+      (produto) =>
+        produto.preco_promocional !== null &&
+        produto.preco_promocional !== undefined &&
+        String(produto.preco_promocional).trim() !== "" &&
+        Number(produto.preco_promocional) > 0
+    ).length;
 
-      const nome = String(produto.nome || "").toLowerCase();
-      const sku = String(produto.sku || "").toLowerCase();
-      const marca = String(produto.marca || "").toLowerCase();
-      const slug = String(produto.slug || "").toLowerCase();
+    const valorTotal = produtos.reduce((acc, produto) => {
+      return acc + Number(produto.preco || 0);
+    }, 0);
 
-      const passouBusca =
-        !textoBusca ||
-        nome.includes(textoBusca) ||
-        sku.includes(textoBusca) ||
-        marca.includes(textoBusca) ||
-        slug.includes(textoBusca);
-
-      const statusProduto = String(produto.status_id ?? "");
-
-      const passouStatus =
-        filtroStatus === "todos" || statusProduto === filtroStatus;
-
-      return passouBusca && passouStatus;
-    });
-  }, [produtos, busca, filtroStatus]);
-
-  const totalProdutos = produtos.length;
-  const totalAtivos = produtos.filter(
-    (produto) => String(produto.status_id ?? "") === "1"
-  ).length;
-  const totalInativos = produtos.filter(
-    (produto) => String(produto.status_id ?? "") === "2"
-  ).length;
+    return {
+      total,
+      ativos,
+      inativos,
+      comPromocao,
+      valorTotal,
+    };
+  }, [produtos]);
 
   return (
-    <div className="pagina-produtos">
-      <div className="topo">
-        <div>
-          <span className="badge-painel">Painel Administrativo</span>
-          <h1>Produtos</h1>
+    <div className="pagina-dashboard">
+      <div className="hero">
+        <div className="hero-left">
+          <span className="tag">Painel de Produtos</span>
+          <h1>Visão geral do catálogo</h1>
           <p>
-            Gerencie seus produtos, visualize informações principais e acesse o
-            cadastro rapidamente.
+            Acompanhe o total de produtos, itens ativos, promoções e o valor
+            acumulado do catálogo em uma tela mais limpa e profissional.
           </p>
         </div>
 
-        <div className="acoes-topo">
-          <button
-            type="button"
-            className="btn-secundario"
-            onClick={() => router.push("/Admin")}
-          >
-            Voltar ao painel
-          </button>
+        <div className="hero-right">
+          <Link href="/Admin/produtos/lista" className="btn btn-primary">
+            Ver produtos
+          </Link>
 
-          <Link href="/Admin/produtos/cadastrar" className="btn-primario">
-            + Novo produto
+          <Link href="/Admin/produtos/cadastrar" className="btn btn-secondary">
+            Cadastrar novo
           </Link>
         </div>
       </div>
 
-      <div className="cards-resumo">
-        <div className="card-resumo">
-          <span>Total</span>
-          <strong>{totalProdutos}</strong>
-        </div>
-
-        <div className="card-resumo">
-          <span>Ativos</span>
-          <strong>{totalAtivos}</strong>
-        </div>
-
-        <div className="card-resumo">
-          <span>Inativos</span>
-          <strong>{totalInativos}</strong>
-        </div>
-      </div>
-
-      <div className="barra-filtros">
-        <div className="campo-busca">
-          <label>Buscar produto</label>
-          <input
-            type="text"
-            placeholder="Buscar por nome, SKU, marca ou slug..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
-        </div>
-
-        <div className="campo-filtro">
-          <label>Status</label>
-          <select
-            value={filtroStatus}
-            onChange={(e) => setFiltroStatus(e.target.value)}
-          >
-            <option value="todos">Todos</option>
-            <option value="1">Ativos</option>
-            <option value="2">Inativos</option>
-          </select>
-        </div>
-      </div>
-
       {carregando ? (
-        <div className="estado estado-loading">Carregando produtos...</div>
+        <div className="estado">Carregando resumo...</div>
       ) : erro ? (
-        <div className="estado estado-erro">{erro}</div>
-      ) : produtosFiltrados.length === 0 ? (
-        <div className="estado estado-vazio">
-          Nenhum produto encontrado com os filtros atuais.
-        </div>
+        <div className="estado erro">{erro}</div>
       ) : (
-        <div className="grid-produtos">
-          {produtosFiltrados.map((produto) => {
-            const id = obterIdProduto(produto);
-            const imagem = obterImagemProduto(produto);
-            const badge = obterBadgeStatus(produto.status_id);
-
-            return (
-              <div className="card-produto" key={id || Math.random()}>
-                <div className="imagem-produto">
-                  {imagem ? (
-                    <img src={imagem} alt={produto.nome || "Produto"} />
-                  ) : (
-                    <div className="sem-imagem">Sem imagem</div>
-                  )}
-                </div>
-
-                <div className="conteudo-card">
-                  <div className="linha-topo-card">
-                    <span className={`badge-status ${badge.classe}`}>
-                      {badge.texto}
-                    </span>
-
-                    <span className="sku">{produto.sku || "Sem SKU"}</span>
-                  </div>
-
-                  <h2>{produto.nome || "Produto sem nome"}</h2>
-
-                  <p className="descricao">
-                    {produto.descricao || "Sem descrição cadastrada."}
-                  </p>
-
-                  <div className="infos">
-                    <div>
-                      <span>Marca</span>
-                      <strong>{produto.marca || "-"}</strong>
-                    </div>
-
-                    <div>
-                      <span>Modelo</span>
-                      <strong>{produto.modelo || "-"}</strong>
-                    </div>
-
-                    <div>
-                      <span>Criado em</span>
-                      <strong>{formatarData(produto.criado_em)}</strong>
-                    </div>
-
-                    <div>
-                      <span>Slug</span>
-                      <strong>{produto.slug || "-"}</strong>
-                    </div>
-                  </div>
-
-                  <div className="precos">
-                    <strong className="preco-principal">
-                      {formatarPreco(produto.preco)}
-                    </strong>
-
-                    {produto.preco_promocional ? (
-                      <span className="preco-promocional">
-                        Promo: {formatarPreco(produto.preco_promocional)}
-                      </span>
-                    ) : (
-                      <span className="preco-promocional sem-promo">
-                        Sem promoção
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="acoes-card">
-                    <Link
-                      href={`/Admin/produtos/${id}`}
-                      className="btn-card-secundario"
-                    >
-                      Ver detalhes
-                    </Link>
-
-                    <Link
-                      href={`/Admin/produtos/editar/${id}`}
-                      className="btn-card-primario"
-                    >
-                      Editar
-                    </Link>
-                  </div>
-                </div>
+        <>
+          <section className="grid-resumo">
+            <div className="card-resumo destaque">
+              <div className="card-topo">
+                <span>Total de produtos</span>
+                <div className="icone">📦</div>
               </div>
-            );
-          })}
-        </div>
+              <strong>{resumo.total}</strong>
+              <small>Todos os produtos cadastrados na loja</small>
+            </div>
+
+            <div className="card-resumo">
+              <div className="card-topo">
+                <span>Produtos ativos</span>
+                <div className="icone">✅</div>
+              </div>
+              <strong>{resumo.ativos}</strong>
+              <small>Itens disponíveis e ativos no sistema</small>
+            </div>
+
+            <div className="card-resumo">
+              <div className="card-topo">
+                <span>Produtos inativos</span>
+                <div className="icone">⛔</div>
+              </div>
+              <strong>{resumo.inativos}</strong>
+              <small>Itens pausados ou desativados</small>
+            </div>
+
+            <div className="card-resumo">
+              <div className="card-topo">
+                <span>Em promoção</span>
+                <div className="icone">🏷️</div>
+              </div>
+              <strong>{resumo.comPromocao}</strong>
+              <small>Produtos com preço promocional</small>
+            </div>
+          </section>
+
+          <section className="painel-inferior">
+            <div className="box-grande">
+              <span className="box-label">Valor bruto do catálogo</span>
+              <h2>{formatarPreco(resumo.valorTotal)}</h2>
+              <p>
+                Soma simples dos preços cadastrados, útil para visão rápida do
+                catálogo.
+              </p>
+            </div>
+
+            <div className="box-acoes">
+              <button
+                type="button"
+                className="btn btn-secondary w-full"
+                onClick={() => router.push("/Admin")}
+              >
+                Voltar ao painel
+              </button>
+
+              <button
+                type="button"
+                className="btn btn-primary w-full"
+                onClick={() => router.push("/Admin/produtos/lista")}
+              >
+                Abrir listagem completa
+              </button>
+            </div>
+          </section>
+        </>
       )}
 
       <style jsx>{`
-        .pagina-produtos {
+        .pagina-dashboard {
           min-height: 100vh;
-          background: #f6f7fb;
           padding: 32px;
+          background:
+            radial-gradient(circle at top left, rgba(99, 102, 241, 0.14), transparent 28%),
+            radial-gradient(circle at bottom right, rgba(124, 58, 237, 0.12), transparent 30%),
+            #f6f7fb;
           color: #111827;
         }
 
-        .topo {
+        .hero {
           max-width: 1400px;
-          margin: 0 auto 24px;
+          margin: 0 auto 28px auto;
+          background: linear-gradient(135deg, #111827, #1f2937, #312e81);
+          border-radius: 32px;
+          padding: 32px;
+          color: #fff;
           display: flex;
           justify-content: space-between;
-          align-items: flex-start;
-          gap: 20px;
+          gap: 24px;
+          align-items: center;
+          box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
         }
 
-        .badge-painel {
+        .hero-left {
+          max-width: 760px;
+        }
+
+        .tag {
           display: inline-flex;
           padding: 8px 14px;
           border-radius: 999px;
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          color: #6b7280;
+          background: rgba(255, 255, 255, 0.12);
+          border: 1px solid rgba(255, 255, 255, 0.16);
+          margin-bottom: 16px;
           font-size: 13px;
-          margin-bottom: 14px;
         }
 
-        .topo h1 {
-          margin: 0 0 10px;
-          font-size: 2rem;
-          font-weight: 800;
+        .hero h1 {
+          margin: 0 0 12px 0;
+          font-size: 2.4rem;
+          line-height: 1.1;
         }
 
-        .topo p {
+        .hero p {
           margin: 0;
-          max-width: 680px;
-          color: #6b7280;
-          line-height: 1.6;
+          color: rgba(255, 255, 255, 0.82);
+          line-height: 1.7;
+          font-size: 1rem;
         }
 
-        .acoes-topo {
+        .hero-right {
           display: flex;
           gap: 12px;
           flex-wrap: wrap;
+          justify-content: flex-end;
         }
 
-        .btn-primario,
-        .btn-secundario,
-        .btn-card-primario,
-        .btn-card-secundario {
-          text-decoration: none;
+        .btn {
           border: none;
+          text-decoration: none;
           cursor: pointer;
-          border-radius: 14px;
-          padding: 13px 18px;
+          border-radius: 18px;
+          padding: 14px 20px;
           font-weight: 700;
           transition: 0.25s ease;
           display: inline-flex;
@@ -370,289 +269,181 @@ export default function ProdutosPage() {
           justify-content: center;
         }
 
-        .btn-primario,
-        .btn-card-primario {
-          background: linear-gradient(135deg, #7c3aed, #6366f1);
+        .btn-primary {
+          background: linear-gradient(135deg, #8b5cf6, #6366f1);
           color: #fff;
-          box-shadow: 0 10px 24px rgba(99, 102, 241, 0.22);
+          box-shadow: 0 12px 30px rgba(99, 102, 241, 0.3);
         }
 
-        .btn-secundario,
-        .btn-card-secundario {
-          background: #fff;
-          color: #374151;
-          border: 1px solid #d1d5db;
+        .btn-secondary {
+          background: rgba(255, 255, 255, 0.12);
+          color: #fff;
+          border: 1px solid rgba(255, 255, 255, 0.16);
         }
 
-        .cards-resumo {
-          max-width: 1400px;
-          margin: 0 auto 20px;
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 16px;
-        }
-
-        .card-resumo {
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 22px;
-          padding: 22px;
-          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
-        }
-
-        .card-resumo span {
-          display: block;
-          color: #6b7280;
-          font-size: 0.92rem;
-          margin-bottom: 8px;
-        }
-
-        .card-resumo strong {
-          font-size: 1.8rem;
-          color: #111827;
-        }
-
-        .barra-filtros {
-          max-width: 1400px;
-          margin: 0 auto 24px;
-          display: grid;
-          grid-template-columns: 1fr 220px;
-          gap: 16px;
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 24px;
-          padding: 20px;
-          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
-        }
-
-        .campo-busca,
-        .campo-filtro {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .campo-busca label,
-        .campo-filtro label {
-          font-size: 0.92rem;
-          font-weight: 600;
-          color: #374151;
-        }
-
-        .campo-busca input,
-        .campo-filtro select {
+        .w-full {
           width: 100%;
-          border: 1px solid #d1d5db;
-          background: #fff;
-          color: #111827;
-          border-radius: 16px;
-          padding: 14px 16px;
-          outline: none;
-          font-size: 0.97rem;
         }
 
         .estado {
           max-width: 1400px;
           margin: 0 auto;
-          background: #ffffff;
+          background: #fff;
           border: 1px solid #e5e7eb;
-          border-radius: 24px;
+          border-radius: 28px;
           padding: 28px;
           text-align: center;
-          color: #374151;
+          box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
         }
 
-        .estado-erro {
+        .estado.erro {
           color: #b91c1c;
-          background: #fff;
           border-color: #fecaca;
         }
 
-        .grid-produtos {
+        .grid-resumo {
           max-width: 1400px;
           margin: 0 auto;
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
-          gap: 20px;
+          grid-template-columns: repeat(4, minmax(0, 1fr));
+          gap: 18px;
         }
 
-        .card-produto {
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 24px;
-          overflow: hidden;
-          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
-          display: flex;
-          flex-direction: column;
+        .card-resumo {
+          background: rgba(255, 255, 255, 0.82);
+          backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.8);
+          border-radius: 28px;
+          padding: 24px;
+          box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
         }
 
-        .imagem-produto {
-          width: 100%;
-          height: 230px;
-          background: #f3f4f6;
+        .card-resumo.destaque {
+          background: linear-gradient(135deg, #6366f1, #7c3aed);
+          color: #fff;
         }
 
-        .imagem-produto img {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-          display: block;
-        }
-
-        .sem-imagem {
-          width: 100%;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #9ca3af;
-          font-weight: 600;
-        }
-
-        .conteudo-card {
-          padding: 20px;
-          display: flex;
-          flex-direction: column;
-          gap: 14px;
-        }
-
-        .linha-topo-card {
+        .card-topo {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          gap: 10px;
+          margin-bottom: 18px;
         }
 
-        .badge-status {
-          display: inline-flex;
+        .card-topo span {
+          font-size: 0.95rem;
+          font-weight: 600;
+        }
+
+        .icone {
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          background: rgba(255, 255, 255, 0.14);
+          display: flex;
           align-items: center;
           justify-content: center;
-          padding: 7px 12px;
-          border-radius: 999px;
-          font-size: 12px;
-          font-weight: 700;
+          font-size: 1.15rem;
         }
 
-        .badge-status.ativo {
-          background: #dcfce7;
-          color: #166534;
+        .card-resumo strong {
+          display: block;
+          font-size: 2.1rem;
+          margin-bottom: 8px;
         }
 
-        .badge-status.inativo {
-          background: #fee2e2;
-          color: #991b1b;
-        }
-
-        .badge-status.neutro {
-          background: #e5e7eb;
-          color: #374151;
-        }
-
-        .sku {
-          font-size: 0.82rem;
-          color: #6b7280;
-          font-weight: 600;
-        }
-
-        .conteudo-card h2 {
-          margin: 0;
-          font-size: 1.2rem;
-          color: #111827;
-        }
-
-        .descricao {
-          margin: 0;
-          color: #6b7280;
+        .card-resumo small {
+          display: block;
+          color: inherit;
+          opacity: 0.82;
           line-height: 1.6;
-          min-height: 50px;
         }
 
-        .infos {
+        .painel-inferior {
+          max-width: 1400px;
+          margin: 22px auto 0 auto;
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 12px;
+          grid-template-columns: 2fr 1fr;
+          gap: 18px;
         }
 
-        .infos span {
+        .box-grande,
+        .box-acoes {
+          background: rgba(255, 255, 255, 0.82);
+          backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.8);
+          border-radius: 28px;
+          padding: 28px;
+          box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+        }
+
+        .box-label {
           display: block;
           color: #6b7280;
-          font-size: 0.8rem;
-          margin-bottom: 4px;
-        }
-
-        .infos strong {
-          color: #111827;
-          font-size: 0.92rem;
-          word-break: break-word;
-        }
-
-        .precos {
-          display: flex;
-          flex-direction: column;
-          gap: 6px;
-          padding-top: 4px;
-        }
-
-        .preco-principal {
-          font-size: 1.3rem;
-          color: #111827;
-        }
-
-        .preco-promocional {
-          font-size: 0.92rem;
-          color: #16a34a;
+          margin-bottom: 10px;
           font-weight: 600;
         }
 
-        .preco-promocional.sem-promo {
-          color: #6b7280;
+        .box-grande h2 {
+          margin: 0 0 8px 0;
+          font-size: 2.2rem;
+          color: #111827;
         }
 
-        .acoes-card {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-          margin-top: 4px;
+        .box-grande p {
+          margin: 0;
+          color: #6b7280;
+          line-height: 1.7;
+        }
+
+        .box-acoes {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          justify-content: center;
         }
 
         @media (max-width: 1100px) {
-          .grid-produtos {
+          .grid-resumo {
             grid-template-columns: repeat(2, minmax(0, 1fr));
           }
 
-          .cards-resumo {
+          .painel-inferior {
             grid-template-columns: 1fr;
+          }
+
+          .hero {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .hero-right {
+            width: 100%;
+            justify-content: flex-start;
           }
         }
 
         @media (max-width: 768px) {
-          .pagina-produtos {
+          .pagina-dashboard {
             padding: 18px;
           }
 
-          .topo {
-            flex-direction: column;
+          .hero {
+            padding: 24px;
+            border-radius: 24px;
           }
 
-          .barra-filtros {
+          .hero h1 {
+            font-size: 1.8rem;
+          }
+
+          .grid-resumo {
             grid-template-columns: 1fr;
           }
 
-          .grid-produtos {
-            grid-template-columns: 1fr;
-          }
-
-          .acoes-topo {
+          .hero-right,
+          .btn {
             width: 100%;
-          }
-
-          .btn-primario,
-          .btn-secundario {
-            width: 100%;
-          }
-
-          .acoes-card {
-            grid-template-columns: 1fr;
           }
         }
       `}</style>
