@@ -40,6 +40,9 @@ type VitrineItem = {
 
 type Opcao = {
   id?: number | string;
+  id_produto?: number | string;
+  id_campanha?: number | string;
+  id_categoria?: number | string;
   nome?: string;
   titulo?: string;
   slug?: string;
@@ -52,8 +55,18 @@ function extrairLista(payload: any): any[] {
   return [];
 }
 
-function obterTextoOpcao(item: any) {
+function obterTextoOpcao(item: Opcao) {
   return item?.nome || item?.titulo || item?.slug || "Sem nome";
+}
+
+function obterIdOpcao(item: Opcao) {
+  return (
+    item?.id_produto ??
+    item?.id_campanha ??
+    item?.id_categoria ??
+    item?.id ??
+    ""
+  );
 }
 
 function formatarData(data?: string | null) {
@@ -80,6 +93,15 @@ function tipoLabel(tipo?: string) {
   }
 }
 
+function textoReferencia(item: VitrineItem) {
+  if (item.produto_id) return `Produto #${item.produto_id}`;
+  if (item.campanha_id) return `Campanha #${item.campanha_id}`;
+  if (item.categoria_id) return `Categoria #${item.categoria_id}`;
+  if (item.banner_id) return `Banner #${item.banner_id}`;
+  if (item.imagem_personalizada) return item.imagem_personalizada;
+  return "Sem referência";
+}
+
 export default function VitrineItensPage() {
   const router = useRouter();
   const params = useParams();
@@ -94,7 +116,10 @@ export default function VitrineItensPage() {
   const [loadingOpcoes, setLoadingOpcoes] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
+  const [modalAberto, setModalAberto] = useState(false);
+
   const [selecionadoId, setSelecionadoId] = useState("");
+  const [bannerTexto, setBannerTexto] = useState("");
   const [tituloPersonalizado, setTituloPersonalizado] = useState("");
   const [subtituloPersonalizado, setSubtituloPersonalizado] = useState("");
   const [imagemPersonalizada, setImagemPersonalizada] = useState("");
@@ -102,6 +127,8 @@ export default function VitrineItensPage() {
   const [ordem, setOrdem] = useState("0");
   const [adicionando, setAdicionando] = useState(false);
   const [removendoId, setRemovendoId] = useState<string | null>(null);
+
+  const isBanner = (vitrine?.tipo || "").toLowerCase() === "banner";
 
   const carregarVitrine = useCallback(async () => {
     const response = await api.get(`/painel/vitrine/${vitrineId}`, {
@@ -125,66 +152,62 @@ export default function VitrineItensPage() {
     return lista;
   }, [vitrineId]);
 
-  const carregarOpcoes = useCallback(
-    async (tipo: string) => {
-      setLoadingOpcoes(true);
+  const carregarOpcoes = useCallback(async (tipo: string) => {
+    const tipoNormalizado = (tipo || "").toLowerCase();
 
-      try {
-        let rota = "";
+    if (tipoNormalizado === "banner") {
+      setOpcoes([]);
+      setSelecionadoId("");
+      setLoadingOpcoes(false);
+      return;
+    }
 
-        switch ((tipo || "").toLowerCase()) {
-          case "produto":
-            rota = "/produtos";
-            break;
-          case "campanha":
-            rota = "/painel/campanhas";
-            break;
-          case "categoria":
-            rota = "/painel/categorias";
-            break;
-          case "banner":
-            rota = "/banners";
-            break;
-          default:
-            rota = "/produtos";
-            break;
-        }
+    setLoadingOpcoes(true);
 
-        const response = await api.get(rota, {
-          withCredentials: true,
-        });
+    try {
+      let rota = "";
 
-        const lista = extrairLista(response?.data);
-        setOpcoes(lista);
-
-        if (lista.length > 0) {
-          const primeiro =
-            lista[0]?.id_produto ??
-            lista[0]?.id_campanha ??
-            lista[0]?.id_categoria ??
-            lista[0]?.id_banner ??
-            lista[0]?.id ??
-            "";
-
-          setSelecionadoId(String(primeiro));
-        } else {
-          setSelecionadoId("");
-        }
-      } catch (error: any) {
-        console.error("Erro ao carregar opções:", error);
-        toast.error(
-          error?.response?.data?.mensagem ||
-            error?.message ||
-            "Não foi possível carregar os itens disponíveis."
-        );
-        setOpcoes([]);
-        setSelecionadoId("");
-      } finally {
-        setLoadingOpcoes(false);
+      switch (tipoNormalizado) {
+        case "produto":
+          rota = "/produtos";
+          break;
+        case "campanha":
+          rota = "/painel/campanhas";
+          break;
+        case "categoria":
+          rota = "/painel/categorias";
+          break;
+        default:
+          rota = "/produtos";
+          break;
       }
-    },
-    []
-  );
+
+      const response = await api.get(rota, {
+        withCredentials: true,
+      });
+
+      const lista = extrairLista(response?.data) as Opcao[];
+      setOpcoes(lista);
+
+      if (lista.length > 0) {
+        const primeiroId = obterIdOpcao(lista[0]);
+        setSelecionadoId(String(primeiroId));
+      } else {
+        setSelecionadoId("");
+      }
+    } catch (error: any) {
+      console.error("Erro ao carregar opções:", error);
+      toast.error(
+        error?.response?.data?.mensagem ||
+          error?.message ||
+          "Não foi possível carregar os itens disponíveis."
+      );
+      setOpcoes([]);
+      setSelecionadoId("");
+    } finally {
+      setLoadingOpcoes(false);
+    }
+  }, []);
 
   const carregarTudo = useCallback(async () => {
     try {
@@ -218,23 +241,54 @@ export default function VitrineItensPage() {
     }
   }, [vitrineId, carregarTudo]);
 
+  function limparFormulario() {
+    setSelecionadoId("");
+    setBannerTexto("");
+    setTituloPersonalizado("");
+    setSubtituloPersonalizado("");
+    setImagemPersonalizada("");
+    setLinkPersonalizado("");
+    setOrdem("0");
+
+    if (opcoes.length > 0) {
+      setSelecionadoId(String(obterIdOpcao(opcoes[0])));
+    }
+  }
+
+  function abrirModal() {
+    limparFormulario();
+    setModalAberto(true);
+  }
+
+  function fecharModal() {
+    setModalAberto(false);
+  }
+
   async function adicionarItem() {
     if (!vitrine) {
       toast.warning("Vitrine não carregada.");
       return;
     }
 
-    if (!selecionadoId) {
+    const tipo = (vitrine.tipo || "").toLowerCase();
+
+    if (tipo === "banner") {
+      if (!bannerTexto.trim()) {
+        toast.warning("Escreva o banner.");
+        return;
+      }
+    } else if (!selecionadoId) {
       toast.warning("Selecione um item.");
       return;
     }
 
-    const tipo = (vitrine.tipo || "").toLowerCase();
-
     const body: Record<string, any> = {
       titulo_personalizado: tituloPersonalizado.trim() || null,
       subtitulo_personalizado: subtituloPersonalizado.trim() || null,
-      imagem_personalizada: imagemPersonalizada.trim() || null,
+      imagem_personalizada:
+        tipo === "banner"
+          ? bannerTexto.trim()
+          : imagemPersonalizada.trim() || null,
       link_personalizado: linkPersonalizado.trim() || null,
       status_id: Number(vitrine.status_id || 1),
       nivel_id: Number(vitrine.nivel_id || 1),
@@ -244,7 +298,6 @@ export default function VitrineItensPage() {
     if (tipo === "produto") body.produto_id = Number(selecionadoId);
     if (tipo === "campanha") body.campanha_id = Number(selecionadoId);
     if (tipo === "categoria") body.categoria_id = Number(selecionadoId);
-    if (tipo === "banner") body.banner_id = Number(selecionadoId);
 
     try {
       setAdicionando(true);
@@ -266,14 +319,8 @@ export default function VitrineItensPage() {
       }
 
       toast.success(payload?.mensagem || "Item adicionado com sucesso.");
-
-      setTituloPersonalizado("");
-      setSubtituloPersonalizado("");
-      setImagemPersonalizada("");
-      setLinkPersonalizado("");
-      setOrdem("0");
-
       await carregarItens();
+      fecharModal();
     } catch (error: any) {
       console.error("Erro ao adicionar item:", error);
       toast.error(
@@ -331,14 +378,6 @@ export default function VitrineItensPage() {
     }
   }
 
-  function renderReferencia(item: VitrineItem) {
-    if (item.produto_id) return `Produto #${item.produto_id}`;
-    if (item.campanha_id) return `Campanha #${item.campanha_id}`;
-    if (item.categoria_id) return `Categoria #${item.categoria_id}`;
-    if (item.banner_id) return `Banner #${item.banner_id}`;
-    return "Sem referência";
-  }
-
   return (
     <>
       <ToastContainer position="top-right" autoClose={3000} />
@@ -376,109 +415,13 @@ export default function VitrineItensPage() {
             >
               Atualizar
             </button>
-          </div>
-        </div>
 
-        <div className="cardAdicionar">
-          <div className="cardAdicionarTexto">
-            <h2>Adicionar item</h2>
-            <p>
-              Selecione um {vitrine?.tipo ? tipoLabel(vitrine.tipo).toLowerCase() : "item"} para
-              vincular a esta vitrine.
-            </p>
-          </div>
-
-          <div className="formGrid">
-            <div className="campo campoGrande">
-              <label>Selecionar item</label>
-              <select
-                value={selecionadoId}
-                onChange={(e) => setSelecionadoId(e.target.value)}
-                disabled={loadingOpcoes}
-              >
-                {loadingOpcoes ? (
-                  <option value="">Carregando opções...</option>
-                ) : opcoes.length === 0 ? (
-                  <option value="">Nenhuma opção encontrada</option>
-                ) : (
-                  opcoes.map((item) => {
-                    const id =
-                      item?.id_produto ??
-                      item?.id_campanha ??
-                      item?.id_categoria ??
-                      item?.id_banner ??
-                      item?.id ??
-                      "";
-
-                    return (
-                      <option key={String(id)} value={String(id)}>
-                        {obterTextoOpcao(item)} — ID {String(id)}
-                      </option>
-                    );
-                  })
-                )}
-              </select>
-            </div>
-
-            <div className="campo">
-              <label>Ordem</label>
-              <input
-                type="number"
-                min="0"
-                value={ordem}
-                onChange={(e) => setOrdem(e.target.value)}
-              />
-            </div>
-
-            <div className="campo campoGrande">
-              <label>Título personalizado</label>
-              <input
-                type="text"
-                placeholder="Opcional"
-                value={tituloPersonalizado}
-                onChange={(e) => setTituloPersonalizado(e.target.value)}
-              />
-            </div>
-
-            <div className="campo campoGrande">
-              <label>Subtítulo personalizado</label>
-              <input
-                type="text"
-                placeholder="Opcional"
-                value={subtituloPersonalizado}
-                onChange={(e) => setSubtituloPersonalizado(e.target.value)}
-              />
-            </div>
-
-            <div className="campo campoGrande">
-              <label>Imagem personalizada</label>
-              <input
-                type="text"
-                placeholder="URL, caminho ou texto"
-                value={imagemPersonalizada}
-                onChange={(e) => setImagemPersonalizada(e.target.value)}
-              />
-            </div>
-
-            <div className="campo campoGrande">
-              <label>Link personalizado</label>
-              <input
-                type="text"
-                placeholder="/produto/exemplo"
-                value={linkPersonalizado}
-                onChange={(e) => setLinkPersonalizado(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="acoes">
             <button
               type="button"
               className="btnPrimario"
-              disabled={adicionando || !selecionadoId}
-              onClick={adicionarItem}
+              onClick={abrirModal}
             >
-              {adicionando ? "Adicionando..." : "Adicionar item"}
+              + Adicionar item
             </button>
           </div>
         </div>
@@ -499,7 +442,7 @@ export default function VitrineItensPage() {
         ) : itens.length === 0 ? (
           <div className="estado">
             <h3>Nenhum item cadastrado</h3>
-            <p>Adicione o primeiro item usando o formulário acima.</p>
+            <p>Abra o modal e adicione o primeiro item.</p>
           </div>
         ) : (
           <div className="lista">
@@ -510,8 +453,8 @@ export default function VitrineItensPage() {
                 <div className="card" key={id}>
                   <div className="cardHeader">
                     <div>
-                      <h2>{item.titulo_personalizado || renderReferencia(item)}</h2>
-                      <p className="sub">{renderReferencia(item)}</p>
+                      <h2>{item.titulo_personalizado || textoReferencia(item)}</h2>
+                      <p className="sub">{textoReferencia(item)}</p>
                     </div>
 
                     <span className="ordem">Ordem {item.ordem ?? 0}</span>
@@ -544,7 +487,7 @@ export default function VitrineItensPage() {
 
                     <div className="linhaInfo">
                       <div className="box boxFull">
-                        <span className="label">Imagem personalizada</span>
+                        <span className="label">Imagem / Banner</span>
                         <p>{item.imagem_personalizada?.trim() || "Não informado"}</p>
                       </div>
                     </div>
@@ -587,6 +530,144 @@ export default function VitrineItensPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {modalAberto && (
+          <div className="modalOverlay" onClick={fecharModal}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modalHeader">
+                <div>
+                  <h2>Adicionar item</h2>
+                  <p>
+                    {vitrine
+                      ? `Vitrine do tipo ${tipoLabel(vitrine.tipo)}`
+                      : "Adicionar item"}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  className="btnFechar"
+                  onClick={fecharModal}
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="formGrid">
+                {isBanner ? (
+                  <div className="campo campoGrande">
+                    <label>Banner *</label>
+                    <input
+                      type="text"
+                      placeholder="Escreva o banner, caminho ou texto"
+                      value={bannerTexto}
+                      onChange={(e) => setBannerTexto(e.target.value)}
+                    />
+                    <small>
+                      Para vitrine do tipo banner, o conteúdo é escrito manualmente.
+                    </small>
+                  </div>
+                ) : (
+                  <div className="campo campoGrande">
+                    <label>Selecionar item *</label>
+                    <select
+                      value={selecionadoId}
+                      onChange={(e) => setSelecionadoId(e.target.value)}
+                      disabled={loadingOpcoes}
+                    >
+                      {loadingOpcoes ? (
+                        <option value="">Carregando opções...</option>
+                      ) : opcoes.length === 0 ? (
+                        <option value="">Nenhuma opção encontrada</option>
+                      ) : (
+                        opcoes.map((item) => {
+                          const id = obterIdOpcao(item);
+
+                          return (
+                            <option key={String(id)} value={String(id)}>
+                              {obterTextoOpcao(item)} — ID {String(id)}
+                            </option>
+                          );
+                        })
+                      )}
+                    </select>
+                  </div>
+                )}
+
+                <div className="campo">
+                  <label>Ordem</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={ordem}
+                    onChange={(e) => setOrdem(e.target.value)}
+                  />
+                </div>
+
+                <div className="campo campoGrande">
+                  <label>Título personalizado</label>
+                  <input
+                    type="text"
+                    placeholder="Opcional"
+                    value={tituloPersonalizado}
+                    onChange={(e) => setTituloPersonalizado(e.target.value)}
+                  />
+                </div>
+
+                <div className="campo campoGrande">
+                  <label>Subtítulo personalizado</label>
+                  <input
+                    type="text"
+                    placeholder="Opcional"
+                    value={subtituloPersonalizado}
+                    onChange={(e) => setSubtituloPersonalizado(e.target.value)}
+                  />
+                </div>
+
+                {!isBanner && (
+                  <div className="campo campoGrande">
+                    <label>Imagem personalizada</label>
+                    <input
+                      type="text"
+                      placeholder="URL, caminho ou texto"
+                      value={imagemPersonalizada}
+                      onChange={(e) => setImagemPersonalizada(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                <div className="campo campoGrande">
+                  <label>Link personalizado</label>
+                  <input
+                    type="text"
+                    placeholder="/produto/exemplo"
+                    value={linkPersonalizado}
+                    onChange={(e) => setLinkPersonalizado(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="acoesModal">
+                <button
+                  type="button"
+                  className="btnSecundario"
+                  onClick={fecharModal}
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="button"
+                  className="btnPrimario"
+                  disabled={adicionando}
+                  onClick={adicionarItem}
+                >
+                  {adicionando ? "Adicionando..." : "Salvar item"}
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -641,75 +722,10 @@ export default function VitrineItensPage() {
           flex-wrap: wrap;
         }
 
-        .cardAdicionar {
-          background: #ffffff;
-          border-radius: 24px;
-          padding: 24px;
-          border: 1px solid #e4e7ec;
-          box-shadow: 0 18px 45px rgba(16, 24, 40, 0.04);
-          margin-bottom: 22px;
-        }
-
-        .cardAdicionarTexto h2 {
-          margin: 0 0 6px;
-          color: #101828;
-          font-size: 24px;
-        }
-
-        .cardAdicionarTexto p {
-          margin: 0 0 18px;
-          color: #475467;
-        }
-
-        .formGrid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 16px;
-        }
-
-        .campo {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .campoGrande {
-          grid-column: span 2;
-        }
-
-        .campo label {
-          font-size: 14px;
-          font-weight: 700;
-          color: #344054;
-        }
-
-        .campo input,
-        .campo select {
-          width: 100%;
-          border: 1px solid #d0d5dd;
-          background: #fff;
-          border-radius: 14px;
-          padding: 14px 16px;
-          font-size: 15px;
-          color: #101828;
-          outline: none;
-        }
-
-        .campo input:focus,
-        .campo select:focus {
-          border-color: #98a2b3;
-          box-shadow: 0 0 0 4px rgba(152, 162, 179, 0.12);
-        }
-
-        .acoes {
-          display: flex;
-          justify-content: flex-end;
-          margin-top: 20px;
-        }
-
         .btnPrimario,
         .btnSecundario,
-        .btnExcluir {
+        .btnExcluir,
+        .btnFechar {
           border: none;
           border-radius: 14px;
           padding: 14px 18px;
@@ -735,6 +751,12 @@ export default function VitrineItensPage() {
           background: #fdecec;
           color: #b42318;
           width: 100%;
+        }
+
+        .btnFechar {
+          background: #f2f4f7;
+          color: #344054;
+          padding: 10px 14px;
         }
 
         .btnPrimario:disabled,
@@ -881,6 +903,99 @@ export default function VitrineItensPage() {
           padding: 0 20px 20px;
         }
 
+        .modalOverlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.45);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          z-index: 9999;
+        }
+
+        .modal {
+          width: 100%;
+          max-width: 760px;
+          background: #ffffff;
+          border-radius: 24px;
+          border: 1px solid #e4e7ec;
+          box-shadow: 0 30px 80px rgba(16, 24, 40, 0.18);
+          padding: 24px;
+        }
+
+        .modalHeader {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 12px;
+          margin-bottom: 20px;
+        }
+
+        .modalHeader h2 {
+          margin: 0 0 6px;
+          font-size: 24px;
+          color: #101828;
+        }
+
+        .modalHeader p {
+          margin: 0;
+          color: #475467;
+        }
+
+        .formGrid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 16px;
+        }
+
+        .campo {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .campoGrande {
+          grid-column: span 2;
+        }
+
+        .campo label {
+          font-size: 14px;
+          font-weight: 700;
+          color: #344054;
+        }
+
+        .campo input,
+        .campo select {
+          width: 100%;
+          border: 1px solid #d0d5dd;
+          background: #fff;
+          border-radius: 14px;
+          padding: 14px 16px;
+          font-size: 15px;
+          color: #101828;
+          outline: none;
+        }
+
+        .campo input:focus,
+        .campo select:focus {
+          border-color: #98a2b3;
+          box-shadow: 0 0 0 4px rgba(152, 162, 179, 0.12);
+        }
+
+        .campo small {
+          color: #667085;
+          font-size: 12px;
+        }
+
+        .acoesModal {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          margin-top: 22px;
+          flex-wrap: wrap;
+        }
+
         @media (max-width: 1100px) {
           .lista {
             grid-template-columns: 1fr;
@@ -906,8 +1021,8 @@ export default function VitrineItensPage() {
             font-size: 26px;
           }
 
-          .cardAdicionar,
-          .estado {
+          .estado,
+          .modal {
             padding: 18px;
           }
 
@@ -920,7 +1035,7 @@ export default function VitrineItensPage() {
           }
 
           .topoAcoes,
-          .acoes {
+          .acoesModal {
             width: 100%;
           }
 
@@ -930,7 +1045,8 @@ export default function VitrineItensPage() {
             width: 100%;
           }
 
-          .cardHeader {
+          .cardHeader,
+          .modalHeader {
             flex-direction: column;
             align-items: flex-start;
           }
