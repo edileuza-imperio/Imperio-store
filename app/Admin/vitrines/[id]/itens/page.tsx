@@ -38,35 +38,11 @@ type VitrineItem = {
   atualizado_em?: string;
 };
 
-type Opcao = {
-  id?: number | string;
-  id_produto?: number | string;
-  id_campanha?: number | string;
-  id_categoria?: number | string;
-  nome?: string;
-  titulo?: string;
-  slug?: string;
-};
-
 function extrairLista(payload: any): any[] {
   if (Array.isArray(payload?.dados?.dados)) return payload.dados.dados;
   if (Array.isArray(payload?.dados)) return payload.dados;
   if (Array.isArray(payload)) return payload;
   return [];
-}
-
-function obterTextoOpcao(item: Opcao) {
-  return item?.nome || item?.titulo || item?.slug || "Sem nome";
-}
-
-function obterIdOpcao(item: Opcao) {
-  return (
-    item?.id_produto ??
-    item?.id_campanha ??
-    item?.id_categoria ??
-    item?.id ??
-    ""
-  );
 }
 
 function formatarData(data?: string | null) {
@@ -110,25 +86,9 @@ export default function VitrineItensPage() {
 
   const [vitrine, setVitrine] = useState<Vitrine | null>(null);
   const [itens, setItens] = useState<VitrineItem[]>([]);
-  const [opcoes, setOpcoes] = useState<Opcao[]>([]);
-
   const [loading, setLoading] = useState(true);
-  const [loadingOpcoes, setLoadingOpcoes] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-
-  const [modalAberto, setModalAberto] = useState(false);
-
-  const [selecionadoId, setSelecionadoId] = useState("");
-  const [bannerTexto, setBannerTexto] = useState("");
-  const [tituloPersonalizado, setTituloPersonalizado] = useState("");
-  const [subtituloPersonalizado, setSubtituloPersonalizado] = useState("");
-  const [imagemPersonalizada, setImagemPersonalizada] = useState("");
-  const [linkPersonalizado, setLinkPersonalizado] = useState("");
-  const [ordem, setOrdem] = useState("0");
-  const [adicionando, setAdicionando] = useState(false);
   const [removendoId, setRemovendoId] = useState<string | null>(null);
-
-  const isBanner = (vitrine?.tipo || "").toLowerCase() === "banner";
 
   const carregarVitrine = useCallback(async () => {
     const response = await api.get(`/painel/vitrine/${vitrineId}`, {
@@ -152,74 +112,13 @@ export default function VitrineItensPage() {
     return lista;
   }, [vitrineId]);
 
-  const carregarOpcoes = useCallback(async (tipo: string) => {
-    const tipoNormalizado = (tipo || "").toLowerCase();
-
-    if (tipoNormalizado === "banner") {
-      setOpcoes([]);
-      setSelecionadoId("");
-      setLoadingOpcoes(false);
-      return;
-    }
-
-    setLoadingOpcoes(true);
-
-    try {
-      let rota = "";
-
-      switch (tipoNormalizado) {
-        case "produto":
-          rota = "/produtos";
-          break;
-        case "campanha":
-          rota = "/painel/campanhas";
-          break;
-        case "categoria":
-          rota = "/painel/categorias";
-          break;
-        default:
-          rota = "/produtos";
-          break;
-      }
-
-      const response = await api.get(rota, {
-        withCredentials: true,
-      });
-
-      const lista = extrairLista(response?.data) as Opcao[];
-      setOpcoes(lista);
-
-      if (lista.length > 0) {
-        const primeiroId = obterIdOpcao(lista[0]);
-        setSelecionadoId(String(primeiroId));
-      } else {
-        setSelecionadoId("");
-      }
-    } catch (error: any) {
-      console.error("Erro ao carregar opções:", error);
-      toast.error(
-        error?.response?.data?.mensagem ||
-          error?.message ||
-          "Não foi possível carregar os itens disponíveis."
-      );
-      setOpcoes([]);
-      setSelecionadoId("");
-    } finally {
-      setLoadingOpcoes(false);
-    }
-  }, []);
-
   const carregarTudo = useCallback(async () => {
     try {
       setLoading(true);
       setErro(null);
 
-      const vitrineAtual = await carregarVitrine();
+      await carregarVitrine();
       await carregarItens();
-
-      if (vitrineAtual?.tipo) {
-        await carregarOpcoes(vitrineAtual.tipo);
-      }
     } catch (error: any) {
       console.error("Erro ao carregar página:", error);
       setErro(
@@ -229,109 +128,16 @@ export default function VitrineItensPage() {
       );
       setVitrine(null);
       setItens([]);
-      setOpcoes([]);
     } finally {
       setLoading(false);
     }
-  }, [carregarItens, carregarOpcoes, carregarVitrine]);
+  }, [carregarItens, carregarVitrine]);
 
   useEffect(() => {
     if (vitrineId) {
       carregarTudo();
     }
   }, [vitrineId, carregarTudo]);
-
-  function limparFormulario() {
-    setSelecionadoId("");
-    setBannerTexto("");
-    setTituloPersonalizado("");
-    setSubtituloPersonalizado("");
-    setImagemPersonalizada("");
-    setLinkPersonalizado("");
-    setOrdem("0");
-
-    if (opcoes.length > 0) {
-      setSelecionadoId(String(obterIdOpcao(opcoes[0])));
-    }
-  }
-
-  function abrirModal() {
-    limparFormulario();
-    setModalAberto(true);
-  }
-
-  function fecharModal() {
-    setModalAberto(false);
-  }
-
-  async function adicionarItem() {
-    if (!vitrine) {
-      toast.warning("Vitrine não carregada.");
-      return;
-    }
-
-    const tipo = (vitrine.tipo || "").toLowerCase();
-
-    if (tipo === "banner") {
-      if (!bannerTexto.trim()) {
-        toast.warning("Escreva o banner.");
-        return;
-      }
-    } else if (!selecionadoId) {
-      toast.warning("Selecione um item.");
-      return;
-    }
-
-    const body: Record<string, any> = {
-      titulo_personalizado: tituloPersonalizado.trim() || null,
-      subtitulo_personalizado: subtituloPersonalizado.trim() || null,
-      imagem_personalizada:
-        tipo === "banner"
-          ? bannerTexto.trim()
-          : imagemPersonalizada.trim() || null,
-      link_personalizado: linkPersonalizado.trim() || null,
-      status_id: Number(vitrine.status_id || 1),
-      nivel_id: Number(vitrine.nivel_id || 1),
-      ordem: Number(ordem || 0),
-    };
-
-    if (tipo === "produto") body.produto_id = Number(selecionadoId);
-    if (tipo === "campanha") body.campanha_id = Number(selecionadoId);
-    if (tipo === "categoria") body.categoria_id = Number(selecionadoId);
-
-    try {
-      setAdicionando(true);
-
-      const response = await api.post(`/painel/vitrine/${vitrineId}/item`, body, {
-        withCredentials: true,
-      });
-
-      const payload = response?.data;
-      const sucesso =
-        response?.status === 200 ||
-        response?.status === 201 ||
-        payload?.status === 200 ||
-        payload?.status === 201;
-
-      if (!sucesso) {
-        toast.error(payload?.mensagem || "Não foi possível adicionar o item.");
-        return;
-      }
-
-      toast.success(payload?.mensagem || "Item adicionado com sucesso.");
-      await carregarItens();
-      fecharModal();
-    } catch (error: any) {
-      console.error("Erro ao adicionar item:", error);
-      toast.error(
-        error?.response?.data?.mensagem ||
-          error?.message ||
-          "Erro ao adicionar item."
-      );
-    } finally {
-      setAdicionando(false);
-    }
-  }
 
   async function removerItem(itemId: string) {
     const confirmar = window.confirm(
@@ -383,300 +189,172 @@ export default function VitrineItensPage() {
       <ToastContainer position="top-right" autoClose={3000} />
 
       <div className="pagina">
-        <div className="topo">
-          <div>
-            <span className="badge">Painel Administrativo</span>
-            <h1>Itens da vitrine</h1>
-            <p>
-              {vitrine ? (
-                <>
-                  Gerencie os itens da vitrine <strong>{vitrine.titulo || vitrine.nome}</strong>{" "}
-                  do tipo <strong>{tipoLabel(vitrine.tipo)}</strong>.
-                </>
-              ) : (
-                "Gerencie os itens da vitrine."
-              )}
-            </p>
-          </div>
-
-          <div className="topoAcoes">
-            <button
-              type="button"
-              className="btnSecundario"
-              onClick={() => router.push("/Admin/vitrines")}
-            >
-              Voltar
-            </button>
-
-            <button
-              type="button"
-              className="btnSecundario"
-              onClick={carregarTudo}
-            >
-              Atualizar
-            </button>
-
-            <button
-              type="button"
-              className="btnPrimario"
-              onClick={abrirModal}
-            >
-              + Adicionar item
-            </button>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="estado">
-            <div className="loader" />
-            <p>Carregando itens da vitrine...</p>
-          </div>
-        ) : erro ? (
-          <div className="estado">
-            <h3>Erro ao carregar</h3>
-            <p>{erro}</p>
-            <button type="button" className="btnPrimario" onClick={carregarTudo}>
-              Tentar novamente
-            </button>
-          </div>
-        ) : itens.length === 0 ? (
-          <div className="estado">
-            <h3>Nenhum item cadastrado</h3>
-            <p>Abra o modal e adicione o primeiro item.</p>
-          </div>
-        ) : (
-          <div className="lista">
-            {itens.map((item) => {
-              const id = String(item.id_vitrine_item ?? "");
-
-              return (
-                <div className="card" key={id}>
-                  <div className="cardHeader">
-                    <div>
-                      <h2>{item.titulo_personalizado || textoReferencia(item)}</h2>
-                      <p className="sub">{textoReferencia(item)}</p>
-                    </div>
-
-                    <span className="ordem">Ordem {item.ordem ?? 0}</span>
-                  </div>
-
-                  <div className="cardBody">
-                    <div className="linhaInfo">
-                      <div className="box">
-                        <span className="label">ID do item</span>
-                        <strong>{id}</strong>
-                      </div>
-
-                      <div className="box">
-                        <span className="label">Status</span>
-                        <strong>{item.status_id ?? "—"}</strong>
-                      </div>
-
-                      <div className="box">
-                        <span className="label">Nível</span>
-                        <strong>{item.nivel_id ?? "—"}</strong>
-                      </div>
-                    </div>
-
-                    <div className="linhaInfo">
-                      <div className="box boxFull">
-                        <span className="label">Subtítulo personalizado</span>
-                        <p>{item.subtitulo_personalizado?.trim() || "Não informado"}</p>
-                      </div>
-                    </div>
-
-                    <div className="linhaInfo">
-                      <div className="box boxFull">
-                        <span className="label">Imagem / Banner</span>
-                        <p>{item.imagem_personalizada?.trim() || "Não informado"}</p>
-                      </div>
-                    </div>
-
-                    <div className="linhaInfo">
-                      <div className="box boxFull">
-                        <span className="label">Link personalizado</span>
-                        <p>{item.link_personalizado?.trim() || "Não informado"}</p>
-                      </div>
-                    </div>
-
-                    <div className="linhaInfo">
-                      <div className="box">
-                        <span className="label">Criado em</span>
-                        <strong>{formatarData(item.criado_em)}</strong>
-                      </div>
-
-                      <div className="box">
-                        <span className="label">Atualizado em</span>
-                        <strong>{formatarData(item.atualizado_em)}</strong>
-                      </div>
-
-                      <div className="box">
-                        <span className="label">Vitrine</span>
-                        <strong>{item.vitrine_id ?? "—"}</strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="cardFooter">
-                    <button
-                      type="button"
-                      className="btnExcluir"
-                      disabled={removendoId === id}
-                      onClick={() => removerItem(id)}
-                    >
-                      {removendoId === id ? "Removendo..." : "Remover item"}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-
-        {modalAberto && (
-          <div className="modalOverlay" onClick={fecharModal}>
-            <div className="modal" onClick={(e) => e.stopPropagation()}>
-              <div className="modalHeader">
-                <div>
-                  <h2>Adicionar item</h2>
-                  <p>
-                    {vitrine
-                      ? `Vitrine do tipo ${tipoLabel(vitrine.tipo)}`
-                      : "Adicionar item"}
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  className="btnFechar"
-                  onClick={fecharModal}
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="formGrid">
-                {isBanner ? (
-                  <div className="campo campoGrande">
-                    <label>Banner *</label>
-                    <input
-                      type="text"
-                      placeholder="Escreva o banner, caminho ou texto"
-                      value={bannerTexto}
-                      onChange={(e) => setBannerTexto(e.target.value)}
-                    />
-                    <small>
-                      Para vitrine do tipo banner, o conteúdo é escrito manualmente.
-                    </small>
-                  </div>
+        <div className="conteudoPrincipal">
+          <div className="topo">
+            <div>
+              <span className="badge">Painel Administrativo</span>
+              <h1>Itens da vitrine</h1>
+              <p>
+                {vitrine ? (
+                  <>
+                    Gerencie os itens da vitrine{" "}
+                    <strong>{vitrine.titulo || vitrine.nome}</strong> do tipo{" "}
+                    <strong>{tipoLabel(vitrine.tipo)}</strong>.
+                  </>
                 ) : (
-                  <div className="campo campoGrande">
-                    <label>Selecionar item *</label>
-                    <select
-                      value={selecionadoId}
-                      onChange={(e) => setSelecionadoId(e.target.value)}
-                      disabled={loadingOpcoes}
-                    >
-                      {loadingOpcoes ? (
-                        <option value="">Carregando opções...</option>
-                      ) : opcoes.length === 0 ? (
-                        <option value="">Nenhuma opção encontrada</option>
-                      ) : (
-                        opcoes.map((item) => {
-                          const id = obterIdOpcao(item);
-
-                          return (
-                            <option key={String(id)} value={String(id)}>
-                              {obterTextoOpcao(item)} — ID {String(id)}
-                            </option>
-                          );
-                        })
-                      )}
-                    </select>
-                  </div>
+                  "Gerencie os itens da vitrine."
                 )}
+              </p>
+            </div>
 
-                <div className="campo">
-                  <label>Ordem</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={ordem}
-                    onChange={(e) => setOrdem(e.target.value)}
-                  />
-                </div>
+            <div className="topoAcoes">
+              <button
+                type="button"
+                className="btnSecundario"
+                onClick={() => router.push("/Admin/vitrines")}
+              >
+                Voltar
+              </button>
 
-                <div className="campo campoGrande">
-                  <label>Título personalizado</label>
-                  <input
-                    type="text"
-                    placeholder="Opcional"
-                    value={tituloPersonalizado}
-                    onChange={(e) => setTituloPersonalizado(e.target.value)}
-                  />
-                </div>
+              <button
+                type="button"
+                className="btnSecundario"
+                onClick={carregarTudo}
+              >
+                Atualizar
+              </button>
 
-                <div className="campo campoGrande">
-                  <label>Subtítulo personalizado</label>
-                  <input
-                    type="text"
-                    placeholder="Opcional"
-                    value={subtituloPersonalizado}
-                    onChange={(e) => setSubtituloPersonalizado(e.target.value)}
-                  />
-                </div>
-
-                {!isBanner && (
-                  <div className="campo campoGrande">
-                    <label>Imagem personalizada</label>
-                    <input
-                      type="text"
-                      placeholder="URL, caminho ou texto"
-                      value={imagemPersonalizada}
-                      onChange={(e) => setImagemPersonalizada(e.target.value)}
-                    />
-                  </div>
-                )}
-
-                <div className="campo campoGrande">
-                  <label>Link personalizado</label>
-                  <input
-                    type="text"
-                    placeholder="/produto/exemplo"
-                    value={linkPersonalizado}
-                    onChange={(e) => setLinkPersonalizado(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="acoesModal">
-                <button
-                  type="button"
-                  className="btnSecundario"
-                  onClick={fecharModal}
-                >
-                  Cancelar
-                </button>
-
-                <button
-                  type="button"
-                  className="btnPrimario"
-                  disabled={adicionando}
-                  onClick={adicionarItem}
-                >
-                  {adicionando ? "Adicionando..." : "Salvar item"}
-                </button>
-              </div>
+              <button
+                type="button"
+                className="btnPrimario"
+                onClick={() =>
+                  router.push(`/Admin/vitrines/${vitrineId}/itens/novo`)
+                }
+              >
+                + Adicionar item
+              </button>
             </div>
           </div>
-        )}
+
+          {loading ? (
+            <div className="estado">
+              <div className="loader" />
+              <p>Carregando itens da vitrine...</p>
+            </div>
+          ) : erro ? (
+            <div className="estado">
+              <h3>Erro ao carregar</h3>
+              <p>{erro}</p>
+              <button type="button" className="btnPrimario" onClick={carregarTudo}>
+                Tentar novamente
+              </button>
+            </div>
+          ) : itens.length === 0 ? (
+            <div className="estado">
+              <h3>Nenhum item cadastrado</h3>
+              <p>Clique em “Adicionar item” para cadastrar o primeiro item.</p>
+            </div>
+          ) : (
+            <div className="lista">
+              {itens.map((item) => {
+                const id = String(item.id_vitrine_item ?? "");
+
+                return (
+                  <div className="card" key={id}>
+                    <div className="cardHeader">
+                      <div>
+                        <h2>{item.titulo_personalizado || textoReferencia(item)}</h2>
+                        <p className="sub">{textoReferencia(item)}</p>
+                      </div>
+
+                      <span className="ordemTag">Ordem {item.ordem ?? 0}</span>
+                    </div>
+
+                    <div className="cardBody">
+                      <div className="linhaInfo">
+                        <div className="box">
+                          <span className="label">ID do item</span>
+                          <strong>{id}</strong>
+                        </div>
+
+                        <div className="box">
+                          <span className="label">Status</span>
+                          <strong>{item.status_id ?? "—"}</strong>
+                        </div>
+
+                        <div className="box">
+                          <span className="label">Nível</span>
+                          <strong>{item.nivel_id ?? "—"}</strong>
+                        </div>
+                      </div>
+
+                      <div className="linhaInfo">
+                        <div className="box boxFull">
+                          <span className="label">Subtítulo personalizado</span>
+                          <p>{item.subtitulo_personalizado?.trim() || "Não informado"}</p>
+                        </div>
+                      </div>
+
+                      <div className="linhaInfo">
+                        <div className="box boxFull">
+                          <span className="label">Imagem / Banner</span>
+                          <p>{item.imagem_personalizada?.trim() || "Não informado"}</p>
+                        </div>
+                      </div>
+
+                      <div className="linhaInfo">
+                        <div className="box boxFull">
+                          <span className="label">Link personalizado</span>
+                          <p>{item.link_personalizado?.trim() || "Não informado"}</p>
+                        </div>
+                      </div>
+
+                      <div className="linhaInfo">
+                        <div className="box">
+                          <span className="label">Criado em</span>
+                          <strong>{formatarData(item.criado_em)}</strong>
+                        </div>
+
+                        <div className="box">
+                          <span className="label">Atualizado em</span>
+                          <strong>{formatarData(item.atualizado_em)}</strong>
+                        </div>
+
+                        <div className="box">
+                          <span className="label">Vitrine</span>
+                          <strong>{item.vitrine_id ?? "—"}</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="cardFooter">
+                      <button
+                        type="button"
+                        className="btnExcluir"
+                        disabled={removendoId === id}
+                        onClick={() => removerItem(id)}
+                      >
+                        {removendoId === id ? "Removendo..." : "Remover item"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       <style jsx>{`
         .pagina {
           min-height: 100%;
           padding: 24px;
-          background: #f5f7fa;
+          background: linear-gradient(180deg, #fffaf7 0%, #fff3ec 100%);
+          display: block;
+        }
+
+        .conteudoPrincipal {
+          width: 100%;
         }
 
         .topo {
@@ -691,8 +369,8 @@ export default function VitrineItensPage() {
         .badge {
           display: inline-block;
           margin-bottom: 10px;
-          background: #eef2f6;
-          color: #344054;
+          background: #f8e5df;
+          color: #8b5e5a;
           padding: 8px 14px;
           border-radius: 999px;
           font-size: 12px;
@@ -705,13 +383,13 @@ export default function VitrineItensPage() {
           margin: 0 0 8px;
           font-size: 32px;
           line-height: 1.1;
-          color: #101828;
+          color: #5c3a36;
           font-weight: 800;
         }
 
         .topo p {
           margin: 0;
-          color: #475467;
+          color: #7a5c57;
           font-size: 15px;
           max-width: 760px;
         }
@@ -724,8 +402,7 @@ export default function VitrineItensPage() {
 
         .btnPrimario,
         .btnSecundario,
-        .btnExcluir,
-        .btnFechar {
+        .btnExcluir {
           border: none;
           border-radius: 14px;
           padding: 14px 18px;
@@ -736,62 +413,57 @@ export default function VitrineItensPage() {
         }
 
         .btnPrimario {
-          background: #111827;
+          background: #b76e79;
           color: #fff;
-          box-shadow: 0 12px 24px rgba(17, 24, 39, 0.15);
+          box-shadow: 0 12px 24px rgba(183, 110, 121, 0.24);
+        }
+
+        .btnPrimario:hover {
+          background: #a85f6a;
         }
 
         .btnSecundario {
-          background: #fff;
-          color: #344054;
-          border: 1px solid #d0d5dd;
+          background: #fffdfb;
+          color: #6d4c47;
+          border: 1px solid #ead7cf;
+        }
+
+        .btnSecundario:hover {
+          background: #fff6f1;
         }
 
         .btnExcluir {
-          background: #fdecec;
-          color: #b42318;
+          background: #fff1ef;
+          color: #b54738;
           width: 100%;
         }
 
-        .btnFechar {
-          background: #f2f4f7;
-          color: #344054;
-          padding: 10px 14px;
-        }
-
-        .btnPrimario:disabled,
-        .btnSecundario:disabled,
-        .btnExcluir:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-
         .estado {
-          background: #ffffff;
+          background: #fffdfb;
           border-radius: 24px;
           padding: 40px 24px;
           text-align: center;
-          border: 1px solid #e4e7ec;
-          box-shadow: 0 18px 45px rgba(16, 24, 40, 0.04);
+          border: 1px solid #f0dfd7;
+          box-shadow: 0 18px 45px rgba(128, 86, 78, 0.06);
         }
 
         .estado h3 {
           margin: 0 0 10px;
-          color: #101828;
+          color: #5c3a36;
           font-size: 22px;
         }
 
         .estado p {
           margin: 0 0 18px;
-          color: #475467;
+          color: #7a5c57;
         }
 
         .loader {
           width: 42px;
           height: 42px;
           border-radius: 50%;
-          border: 4px solid #eaecf0;
-          border-top-color: #111827;
+          border: 4px solid #f2dfd7;
+          border-top-color: #b76e79;
           margin: 0 auto 14px;
           animation: girar 0.9s linear infinite;
         }
@@ -809,10 +481,10 @@ export default function VitrineItensPage() {
         }
 
         .card {
-          background: #ffffff;
+          background: #fffdfb;
           border-radius: 22px;
-          border: 1px solid #e4e7ec;
-          box-shadow: 0 18px 45px rgba(16, 24, 40, 0.04);
+          border: 1px solid #f0dfd7;
+          box-shadow: 0 18px 45px rgba(128, 86, 78, 0.06);
           overflow: hidden;
         }
 
@@ -822,22 +494,22 @@ export default function VitrineItensPage() {
           align-items: flex-start;
           gap: 14px;
           padding: 20px 20px 14px;
-          border-bottom: 1px solid #eaecf0;
+          border-bottom: 1px solid #f4e6df;
         }
 
         .cardHeader h2 {
           margin: 0 0 6px;
           font-size: 21px;
-          color: #101828;
+          color: #5c3a36;
         }
 
         .sub {
           margin: 0;
-          color: #667085;
+          color: #8e6f68;
           font-size: 13px;
         }
 
-        .ordem {
+        .ordemTag {
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -847,8 +519,8 @@ export default function VitrineItensPage() {
           font-size: 12px;
           font-weight: 700;
           white-space: nowrap;
-          background: #eef2f6;
-          color: #344054;
+          background: #f9ebe6;
+          color: #8b5e5a;
         }
 
         .cardBody {
@@ -865,8 +537,8 @@ export default function VitrineItensPage() {
         }
 
         .box {
-          background: #f9fafb;
-          border: 1px solid #eaecf0;
+          background: #fff8f4;
+          border: 1px solid #f3e3dc;
           border-radius: 16px;
           padding: 14px;
           min-width: 0;
@@ -882,19 +554,19 @@ export default function VitrineItensPage() {
           font-weight: 700;
           text-transform: uppercase;
           letter-spacing: 0.4px;
-          color: #667085;
+          color: #9b7b74;
           margin-bottom: 8px;
         }
 
         .box strong {
-          color: #101828;
+          color: #5c3a36;
           font-size: 14px;
           word-break: break-word;
         }
 
         .box p {
           margin: 0;
-          color: #475467;
+          color: #7a5c57;
           line-height: 1.6;
           word-break: break-word;
         }
@@ -903,112 +575,9 @@ export default function VitrineItensPage() {
           padding: 0 20px 20px;
         }
 
-        .modalOverlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(15, 23, 42, 0.45);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-          z-index: 9999;
-        }
-
-        .modal {
-          width: 100%;
-          max-width: 760px;
-          background: #ffffff;
-          border-radius: 24px;
-          border: 1px solid #e4e7ec;
-          box-shadow: 0 30px 80px rgba(16, 24, 40, 0.18);
-          padding: 24px;
-        }
-
-        .modalHeader {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 12px;
-          margin-bottom: 20px;
-        }
-
-        .modalHeader h2 {
-          margin: 0 0 6px;
-          font-size: 24px;
-          color: #101828;
-        }
-
-        .modalHeader p {
-          margin: 0;
-          color: #475467;
-        }
-
-        .formGrid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 16px;
-        }
-
-        .campo {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .campoGrande {
-          grid-column: span 2;
-        }
-
-        .campo label {
-          font-size: 14px;
-          font-weight: 700;
-          color: #344054;
-        }
-
-        .campo input,
-        .campo select {
-          width: 100%;
-          border: 1px solid #d0d5dd;
-          background: #fff;
-          border-radius: 14px;
-          padding: 14px 16px;
-          font-size: 15px;
-          color: #101828;
-          outline: none;
-        }
-
-        .campo input:focus,
-        .campo select:focus {
-          border-color: #98a2b3;
-          box-shadow: 0 0 0 4px rgba(152, 162, 179, 0.12);
-        }
-
-        .campo small {
-          color: #667085;
-          font-size: 12px;
-        }
-
-        .acoesModal {
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-          margin-top: 22px;
-          flex-wrap: wrap;
-        }
-
         @media (max-width: 1100px) {
           .lista {
             grid-template-columns: 1fr;
-          }
-        }
-
-        @media (max-width: 900px) {
-          .formGrid {
-            grid-template-columns: 1fr;
-          }
-
-          .campoGrande {
-            grid-column: span 1;
           }
         }
 
@@ -1021,8 +590,7 @@ export default function VitrineItensPage() {
             font-size: 26px;
           }
 
-          .estado,
-          .modal {
+          .estado {
             padding: 18px;
           }
 
@@ -1034,8 +602,7 @@ export default function VitrineItensPage() {
             grid-column: span 1;
           }
 
-          .topoAcoes,
-          .acoesModal {
+          .topoAcoes {
             width: 100%;
           }
 
@@ -1045,8 +612,7 @@ export default function VitrineItensPage() {
             width: 100%;
           }
 
-          .cardHeader,
-          .modalHeader {
+          .cardHeader {
             flex-direction: column;
             align-items: flex-start;
           }
