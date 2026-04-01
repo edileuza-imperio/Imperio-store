@@ -36,11 +36,18 @@ function resolverImagem(src?: string | null) {
     return valor;
   }
 
+  const baseURL =
+    typeof api === "string"
+      ? api
+      : (api as any)?.defaults?.baseURL || "";
+
+  if (!baseURL) return valor;
+
   if (valor.startsWith("/")) {
-    return `${api}${valor}`;
+    return `${baseURL}${valor}`;
   }
 
-  return `${api}/${valor}`;
+  return `${baseURL}/${valor}`;
 }
 
 function obterMelhorImagem(
@@ -49,13 +56,13 @@ function obterMelhorImagem(
 ) {
   return resolverImagem(
     item?.imagem_personalizada ||
-    entidade?.imagem ||
-    entidade?.miniatura ||
-    entidade?.banner ||
-    entidade?.foto ||
-    entidade?.desktop ||
-    entidade?.mobile ||
-    ""
+      entidade?.imagem ||
+      entidade?.miniatura ||
+      entidade?.banner ||
+      entidade?.foto ||
+      entidade?.desktop ||
+      entidade?.mobile ||
+      ""
   );
 }
 
@@ -125,6 +132,8 @@ export default function Destaques({
   const [erro, setErro] = useState<string>("");
   const [vitrine, setVitrine] = useState<Vitrine | null>(vitrineProp || null);
   const [itens, setItens] = useState<ItemResolvido[]>([]);
+  const [adicionandoId, setAdicionandoId] = useState<string | null>(null);
+  const [mensagemCarrinho, setMensagemCarrinho] = useState<string>("");
 
   const vitrineComItens = useMemo(() => {
     if (!vitrineProp) return null;
@@ -201,8 +210,8 @@ export default function Destaques({
 
                 const precoPromocional =
                   produto.preco_promocional !== null &&
-                    produto.preco_promocional !== undefined &&
-                    produto.preco_promocional !== ""
+                  produto.preco_promocional !== undefined &&
+                  produto.preco_promocional !== ""
                     ? produto.preco_promocional
                     : null;
 
@@ -361,13 +370,71 @@ export default function Destaques({
     };
   }, [slug, limite, vitrineComItens]);
 
-  function handleAdicionarCarrinho(item: ItemResolvido) {
+  async function adicionarNoCarrinhoBanco(item: ItemResolvido) {
+    if (item.tipo_item !== "produto" || !item.produto_id) {
+      return;
+    }
+
+    const precoBase =
+      item.preco_original !== null &&
+      item.preco_original !== undefined &&
+      item.preco_original !== ""
+        ? Number(item.preco_original)
+        : Number(item.preco_final || 0);
+
+    const precoPromocional =
+      item.preco_original !== null &&
+      item.preco_original !== undefined &&
+      item.preco_original !== ""
+        ? Number(item.preco_final || 0)
+        : null;
+
+    await api.post(
+      "/carrinho/adicionar",
+      {
+        produto_id: Number(item.produto_id),
+        quantidade: 1,
+        preco: Number.isNaN(precoBase) ? 0 : precoBase,
+        preco_promocional:
+          precoPromocional !== null && !Number.isNaN(precoPromocional)
+            ? precoPromocional
+            : null,
+      },
+      {
+        withCredentials: true,
+      }
+    );
+  }
+
+  async function handleAdicionarCarrinho(item: ItemResolvido) {
     if (onAdicionarCarrinho) {
       onAdicionarCarrinho(item);
       return;
     }
 
-    console.log("Adicionar ao carrinho:", item);
+    if (item.tipo_item !== "produto" || !item.produto_id) {
+      return;
+    }
+
+    try {
+      setMensagemCarrinho("");
+      setAdicionandoId(String(item.id_vitrine_item));
+
+      await adicionarNoCarrinhoBanco(item);
+
+      setMensagemCarrinho("Produto adicionado ao carrinho com sucesso.");
+    } catch (error: any) {
+      console.error("Erro ao adicionar no carrinho:", error);
+
+      const mensagemErro =
+        error?.response?.data?.dados?.erro ||
+        error?.response?.data?.mensagem ||
+        "Não foi possível adicionar o produto ao carrinho.";
+
+      setMensagemCarrinho(mensagemErro);
+    } finally {
+      setAdicionandoId(null);
+    }
   }
 
   if (loading) {
@@ -410,6 +477,23 @@ export default function Destaques({
           </Link>
         </div>
 
+        {mensagemCarrinho && (
+          <div
+            style={{
+              marginBottom: "16px",
+              padding: "12px 14px",
+              borderRadius: "12px",
+              background: "#fff7f1",
+              border: "1px solid #f0d2bf",
+              color: "#8a4b2f",
+              fontSize: "14px",
+              fontWeight: 600,
+            }}
+          >
+            {mensagemCarrinho}
+          </div>
+        )}
+
         <div className="destaques-carousel">
           {itens.map((item) => {
             const precoFormatado = formatarPreco(item.preco_final);
@@ -424,6 +508,9 @@ export default function Destaques({
             const linkVisualizarCard = slugVisualizacao
               ? `/Vitrine/visualizar/${slugVisualizacao}`
               : "#";
+
+            const estaAdicionando =
+              adicionandoId === String(item.id_vitrine_item);
 
             return (
               <article
@@ -481,9 +568,12 @@ export default function Destaques({
                         type="button"
                         className="btn-carrinho"
                         onClick={() => handleAdicionarCarrinho(item)}
+                        disabled={estaAdicionando}
                       >
                         <FiShoppingCart className="btn-icon" />
-                        <span>Carrinho</span>
+                        <span>
+                          {estaAdicionando ? "Adicionando..." : "Carrinho"}
+                        </span>
                       </button>
                     ) : (
                       <Link href={item.link_final || "#"} className="btn-carrinho">
