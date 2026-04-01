@@ -5,7 +5,8 @@ import { useMenu } from "@/hooks/menu/useMenu";
 
 import NavbarDesktop from "./NavbarDesktop";
 import NavbarMobile from "./NavbarMobile";
-import useCategoria from "@/Hooks/Categoria/useCategoria";
+import useCategoria from "@/hooks/categoria/useCategoria";
+
 
 export default function Navbar() {
   const { menus, loading, error } = useMenu();
