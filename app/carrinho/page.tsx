@@ -12,9 +12,12 @@ import { formatBRL } from "@/components/Bibioteca/functions";
 
 type CarrinhoItem = {
   id_item: number;
+  id_produto?: number;
   nome_produto: string;
   preco_unitario: number | string;
+  preco_promocional_unitario?: number | string | null;
   quantidade: number;
+  subtotal?: number | string;
   imagem?: string;
 };
 
@@ -38,13 +41,55 @@ function num(v: any): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function pickCarrinho(resp: any): CarrinhoItem[] {
+function pickCarrinho(resp: any): any[] {
   const base = resp?.dados ?? resp?.data ?? resp;
 
   if (Array.isArray(base)) return base;
   if (Array.isArray(base?.itens)) return base.itens;
 
   return [];
+}
+
+function normalizarItens(lista: any[]): CarrinhoItem[] {
+  return lista.map((item) => {
+    const precoPromo =
+      item?.preco_promocional_unitario !== undefined &&
+      item?.preco_promocional_unitario !== null &&
+      item?.preco_promocional_unitario !== ""
+        ? item.preco_promocional_unitario
+        : null;
+
+    const precoBase =
+      precoPromo !== null ? item?.preco_unitario : item?.preco_unitario;
+
+    return {
+      id_item: Number(
+        item?.id_item ??
+          item?.id_carrinho_item ??
+          item?.id ??
+          0
+      ),
+      id_produto: Number(item?.produto_id ?? item?.id_produto ?? 0) || undefined,
+      nome_produto:
+        String(
+          item?.nome_produto ??
+            item?.nome ??
+            item?.titulo ??
+            item?.produto_nome ??
+            "Produto"
+        ).trim(),
+      preco_unitario: precoBase ?? 0,
+      preco_promocional_unitario: precoPromo,
+      quantidade: Number(item?.quantidade ?? 1),
+      subtotal: item?.subtotal ?? null,
+      imagem:
+        item?.imagem ??
+        item?.miniatura ??
+        item?.imagem_produto ??
+        item?.foto ??
+        "",
+    };
+  });
 }
 
 function imagemUrl(path?: string) {
@@ -59,6 +104,12 @@ function imagemUrl(path?: string) {
   return `${base}/upload/${clean}`;
 }
 
+function precoFinalItem(item: CarrinhoItem) {
+  const promo = num(item.preco_promocional_unitario);
+  if (promo > 0) return promo;
+  return num(item.preco_unitario);
+}
+
 export default function CarrinhoPage() {
   const [loading, setLoading] = React.useState(true);
   const [erro, setErro] = React.useState<string | null>(null);
@@ -66,7 +117,7 @@ export default function CarrinhoPage() {
 
   const subtotal = React.useMemo(() => {
     return itens.reduce((acc, item) => {
-      return acc + num(item.preco_unitario) * (item.quantidade || 1);
+      return acc + precoFinalItem(item) * (item.quantidade || 1);
     }, 0);
   }, [itens]);
 
@@ -75,9 +126,14 @@ export default function CarrinhoPage() {
     setErro(null);
 
     try {
-      const resp = await api.get("/carrinho");
-      const lista = pickCarrinho(resp.data);
-      setItens(lista);
+      const resp = await api.get("/carrinho/itens", {
+        withCredentials: true,
+      });
+
+      const listaBruta = pickCarrinho(resp.data);
+      const listaNormalizada = normalizarItens(listaBruta);
+
+      setItens(listaNormalizada);
     } catch (e: any) {
       setErro(e?.response?.data?.mensagem || "Erro ao carregar carrinho.");
       setItens([]);
@@ -90,17 +146,29 @@ export default function CarrinhoPage() {
     carregarCarrinho();
   }, []);
 
-  async function alterarQuantidade(id: number, qtd: number) {
+  async function alterarQuantidade(item: CarrinhoItem, qtd: number) {
     if (qtd < 1) return;
 
     try {
-      await api.put(`/carrinho/item/${id}`, { quantidade: qtd });
-
-      setItens((prev) =>
-        prev.map((item) =>
-          item.id_item === id ? { ...item, quantidade: qtd } : item
-        )
+      await api.put(
+        `/carrinho/item/${item.id_item}`,
+        {
+          quantidade: qtd,
+          preco: num(item.preco_unitario),
+          preco_promocional:
+            item.preco_promocional_unitario !== null &&
+            item.preco_promocional_unitario !== undefined &&
+            item.preco_promocional_unitario !== ""
+              ? num(item.preco_promocional_unitario)
+              : null,
+        },
+        {
+          withCredentials: true,
+        }
       );
+
+      await carregarCarrinho();
+      toast.success("Quantidade atualizada.");
     } catch {
       toast.error("Erro ao atualizar quantidade.");
     }
@@ -108,8 +176,11 @@ export default function CarrinhoPage() {
 
   async function removerItem(id: number) {
     try {
-      await api.delete(`/carrinho/item/${id}`);
-      setItens((prev) => prev.filter((item) => item.id_item !== id));
+      await api.delete(`/carrinho/item/${id}`, {
+        withCredentials: true,
+      });
+
+      await carregarCarrinho();
       toast.success("Item removido do carrinho.");
     } catch {
       toast.error("Erro ao remover item.");
@@ -214,8 +285,6 @@ export default function CarrinhoPage() {
           <div className="alert alert-warning">{erro}</div>
         ) : (
           <div className="row g-4">
-
-            {/* LISTA DE PRODUTOS */}
             <div className="col-lg-8">
               <div className="surface p-4">
                 <h4 className="mb-4 fw-bold">Produtos no carrinho</h4>
@@ -226,84 +295,76 @@ export default function CarrinhoPage() {
                   </div>
                 ) : (
                   <div className="d-grid gap-3">
-                    {itens.map((item) => (
-                      <div key={item.id_item} className="itemCard">
-                        <img
-                          className="productImg"
-                          src={imagemUrl(item.imagem)}
-                          alt={item.nome_produto}
-                        />
+                    {itens.map((item) => {
+                      const precoExibido = precoFinalItem(item);
+                      const subtotalItem = precoExibido * item.quantidade;
 
-                        <div>
-                          <div className="fw-bold">
-                            {item.nome_produto}
+                      return (
+                        <div key={item.id_item} className="itemCard">
+                          <img
+                            className="productImg"
+                            src={imagemUrl(item.imagem)}
+                            alt={item.nome_produto}
+                          />
+
+                          <div>
+                            <div className="fw-bold">{item.nome_produto}</div>
+
+                            <div className="text-muted small">
+                              {formatBRL(precoExibido)}
+                            </div>
+
+                            <div className="text-muted small">
+                              Subtotal:{" "}
+                              <strong>{formatBRL(subtotalItem)}</strong>
+                            </div>
                           </div>
 
-                          <div className="text-muted small">
-                            {formatBRL(num(item.preco_unitario))}
-                          </div>
+                          <div className="d-grid gap-2">
+                            <div className="qtdBox">
+                              <button
+                                className="qtdBtn"
+                                onClick={() =>
+                                  alterarQuantidade(item, item.quantidade - 1)
+                                }
+                              >
+                                −
+                              </button>
 
-                          <div className="text-muted small">
-                            Subtotal:{" "}
-                            <strong>
-                              {formatBRL(
-                                num(item.preco_unitario) * item.quantidade
-                              )}
-                            </strong>
+                              <strong>{item.quantidade}</strong>
+
+                              <button
+                                className="qtdBtn"
+                                onClick={() =>
+                                  alterarQuantidade(item, item.quantidade + 1)
+                                }
+                              >
+                                +
+                              </button>
+                            </div>
+
+                            <button
+                              className="btn btn-outline-danger btn-sm"
+                              onClick={() => removerItem(item.id_item)}
+                            >
+                              Remover
+                            </button>
                           </div>
                         </div>
-
-                        <div className="d-grid gap-2">
-                          <div className="qtdBox">
-                            <button
-                              className="qtdBtn"
-                              onClick={() =>
-                                alterarQuantidade(
-                                  item.id_item,
-                                  item.quantidade - 1
-                                )
-                              }
-                            >
-                              −
-                            </button>
-
-                            <strong>{item.quantidade}</strong>
-
-                            <button
-                              className="qtdBtn"
-                              onClick={() =>
-                                alterarQuantidade(
-                                  item.id_item,
-                                  item.quantidade + 1
-                                )
-                              }
-                            >
-                              +
-                            </button>
-                          </div>
-
-                          <button
-                            className="btn btn-outline-danger btn-sm"
-                            onClick={() => removerItem(item.id_item)}
-                          >
-                            Remover
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* RESUMO */}
             <div className="col-lg-4">
               <div className="surface p-4 summarySticky">
                 <h5 className="fw-bold mb-3">Resumo</h5>
 
                 <div className="d-flex justify-content-between">
                   <span>Itens</span>
-                  <strong>{itens.length}</strong>
+                  <strong>{itens.reduce((acc, item) => acc + item.quantidade, 0)}</strong>
                 </div>
 
                 <hr />
@@ -336,7 +397,6 @@ export default function CarrinhoPage() {
                 </button>
               </div>
             </div>
-
           </div>
         )}
       </main>
