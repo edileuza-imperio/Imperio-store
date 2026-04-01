@@ -1,7 +1,8 @@
 "use client";
 
 
-import useCategoria from "@/Hooks/Categoria/useCategoria";
+
+import useCategoria from "@/hooks/categoria/useCategoria";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 
