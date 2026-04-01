@@ -27,14 +27,11 @@ export default function Home() {
 
   }, [loadingUser, logado, router]);
 
-  if (loadingUser) {
-    return <HomeSkeleton />;
-  }
+  
 
   return (
     <>
-      {loading && <HomeSkeleton />}
-      {!loading && error && <ApiError onRetry={refetch} />}
+      
       {!loading && !error && <HomeContent />}
     </>
   );
