@@ -1,5 +1,5 @@
 import api from "@/Api/conectar";
-import { PedidoApi } from "./pedidos";
+
 import { EnderecoDB } from "./Bibiotecas";
 
 export function getImagemUrl(caminho?: string) {
@@ -45,33 +45,7 @@ export function formatDate(d?: string) {
   return date.toLocaleDateString("pt-BR");
 }
 
-export function resolveStatus(
-  p: Partial<PedidoApi>
-): { label: string; tone: "ok" | "warn" | "info" | "brand" | "danger" } {
-  const s = String(p.status_nome ?? p.status ?? p.status_codigo ?? "")
-    .trim()
-    .toLowerCase();
 
-  const id = Number(p.statusid ?? p.status_id ?? 0);
-
-  if (s.includes("cancel")) return { label: "Cancelado", tone: "danger" };
-  if (s.includes("entreg")) return { label: "Entregue", tone: "brand" };
-  if (s.includes("envi")) return { label: "Enviado", tone: "info" };
-  if (s.includes("prepar")) return { label: "Preparando", tone: "info" };
-  if (s.includes("aprov")) return { label: "Pagamento aprovado", tone: "ok" };
-  if (s.includes("pend")) return { label: "Pagamento pendente", tone: "warn" };
-  if (s.includes("criad")) return { label: "Pedido criado", tone: "brand" };
-
-  if (id === 10) return { label: "Pedido criado", tone: "brand" };
-  if (id === 11) return { label: "Pagamento pendente", tone: "warn" };
-  if (id === 12) return { label: "Pagamento aprovado", tone: "ok" };
-  if (id === 13) return { label: "Preparando", tone: "info" };
-  if (id === 14) return { label: "Enviado", tone: "info" };
-  if (id === 15) return { label: "Entregue", tone: "brand" };
-  if (id === 16) return { label: "Cancelado", tone: "danger" };
-
-  return { label: "Em andamento", tone: "brand" };
-}
 
 export function pickUserId(me: any): number | null {
   const root = me?.dados ?? me?.data ?? me;
