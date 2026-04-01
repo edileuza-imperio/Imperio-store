@@ -72,23 +72,33 @@ export default function NovoItemVitrinePage() {
   const vitrineId = useMemo(() => String(params?.id ?? ""), [params]);
 
   const [vitrine, setVitrine] = useState<Vitrine | null>(null);
-  const [opcoes, setOpcoes] = useState<Opcao[]>([]);
+
+  const [produtos, setProdutos] = useState<Opcao[]>([]);
+  const [campanhas, setCampanhas] = useState<Opcao[]>([]);
+  const [categorias, setCategorias] = useState<Opcao[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [loadingOpcoes, setLoadingOpcoes] = useState(true);
 
-  const [selecionadoId, setSelecionadoId] = useState("");
+  const [produtoId, setProdutoId] = useState("");
+  const [campanhaId, setCampanhaId] = useState("");
+  const [categoriaId, setCategoriaId] = useState("");
+
   const [bannerTexto, setBannerTexto] = useState("");
   const [tituloPersonalizado, setTituloPersonalizado] = useState("");
   const [subtituloPersonalizado, setSubtituloPersonalizado] = useState("");
   const [imagemPersonalizada, setImagemPersonalizada] = useState("");
-  const [linkPersonalizado, setLinkPersonalizado] = useState("");
-  const [ordem, setOrdem] = useState("0");
   const [arquivoImagem, setArquivoImagem] = useState<File | null>(null);
   const [previewImagem, setPreviewImagem] = useState("");
   const [adicionando, setAdicionando] = useState(false);
   const [enviandoImagem, setEnviandoImagem] = useState(false);
 
-  const isBanner = (vitrine?.tipo || "").toLowerCase() === "banner";
+  const tipo = (vitrine?.tipo || "").toLowerCase();
+  const isBanner = tipo === "banner";
+  const isProduto = tipo === "produto";
+  const isCampanha = tipo === "campanha";
+  const isCategoria = tipo === "categoria";
+  const isMisto = tipo === "misto";
 
   const carregarVitrine = useCallback(async () => {
     const response = await api.get(`/painel/vitrine/${vitrineId}`, {
@@ -102,12 +112,13 @@ export default function NovoItemVitrinePage() {
     return dados || null;
   }, [vitrineId]);
 
-  const carregarOpcoes = useCallback(async (tipo: string) => {
-    const tipoNormalizado = (tipo || "").toLowerCase();
+  const carregarOpcoes = useCallback(async (tipoRecebido: string) => {
+    const tipoNormalizado = (tipoRecebido || "").toLowerCase();
 
     if (tipoNormalizado === "banner") {
-      setOpcoes([]);
-      setSelecionadoId("");
+      setProdutos([]);
+      setCampanhas([]);
+      setCategorias([]);
       setLoadingOpcoes(false);
       return;
     }
@@ -115,34 +126,77 @@ export default function NovoItemVitrinePage() {
     setLoadingOpcoes(true);
 
     try {
-      let rota = "";
+      if (tipoNormalizado === "produto") {
+        const response = await api.get("/produtos", {
+          withCredentials: true,
+        });
 
-      switch (tipoNormalizado) {
-        case "produto":
-          rota = "/produtos";
-          break;
-        case "campanha":
-          rota = "/painel/campanhas";
-          break;
-        case "categoria":
-          rota = "/painel/categorias";
-          break;
-        default:
-          rota = "/produtos";
-          break;
+        const lista = extrairLista(response?.data) as Opcao[];
+        setProdutos(lista);
+        setCampanhas([]);
+        setCategorias([]);
+
+        if (lista.length > 0) {
+          setProdutoId(String(obterIdOpcao(lista[0])));
+        }
       }
 
-      const response = await api.get(rota, {
-        withCredentials: true,
-      });
+      if (tipoNormalizado === "campanha") {
+        const response = await api.get("/painel/campanhas", {
+          withCredentials: true,
+        });
 
-      const lista = extrairLista(response?.data) as Opcao[];
-      setOpcoes(lista);
+        const lista = extrairLista(response?.data) as Opcao[];
+        setCampanhas(lista);
+        setProdutos([]);
+        setCategorias([]);
 
-      if (lista.length > 0) {
-        setSelecionadoId(String(obterIdOpcao(lista[0])));
-      } else {
-        setSelecionadoId("");
+        if (lista.length > 0) {
+          setCampanhaId(String(obterIdOpcao(lista[0])));
+        }
+      }
+
+      if (tipoNormalizado === "categoria") {
+        const response = await api.get("/painel/categorias", {
+          withCredentials: true,
+        });
+
+        const lista = extrairLista(response?.data) as Opcao[];
+        setCategorias(lista);
+        setProdutos([]);
+        setCampanhas([]);
+
+        if (lista.length > 0) {
+          setCategoriaId(String(obterIdOpcao(lista[0])));
+        }
+      }
+
+      if (tipoNormalizado === "misto") {
+        const [produtosRes, campanhasRes, categoriasRes] = await Promise.all([
+          api.get("/produtos", { withCredentials: true }),
+          api.get("/painel/campanhas", { withCredentials: true }),
+          api.get("/painel/categorias", { withCredentials: true }),
+        ]);
+
+        const listaProdutos = extrairLista(produtosRes?.data) as Opcao[];
+        const listaCampanhas = extrairLista(campanhasRes?.data) as Opcao[];
+        const listaCategorias = extrairLista(categoriasRes?.data) as Opcao[];
+
+        setProdutos(listaProdutos);
+        setCampanhas(listaCampanhas);
+        setCategorias(listaCategorias);
+
+        if (listaProdutos.length > 0) {
+          setProdutoId(String(obterIdOpcao(listaProdutos[0])));
+        }
+
+        if (listaCampanhas.length > 0) {
+          setCampanhaId(String(obterIdOpcao(listaCampanhas[0])));
+        }
+
+        if (listaCategorias.length > 0) {
+          setCategoriaId(String(obterIdOpcao(listaCategorias[0])));
+        }
       }
     } catch (error: any) {
       console.error("Erro ao carregar opções:", error);
@@ -151,8 +205,12 @@ export default function NovoItemVitrinePage() {
           error?.message ||
           "Não foi possível carregar os itens disponíveis."
       );
-      setOpcoes([]);
-      setSelecionadoId("");
+      setProdutos([]);
+      setCampanhas([]);
+      setCategorias([]);
+      setProdutoId("");
+      setCampanhaId("");
+      setCategoriaId("");
     } finally {
       setLoadingOpcoes(false);
     }
@@ -184,8 +242,21 @@ export default function NovoItemVitrinePage() {
     }
   }, [vitrineId, carregarVitrine, carregarOpcoes]);
 
+  useEffect(() => {
+    return () => {
+      if (previewImagem) {
+        URL.revokeObjectURL(previewImagem);
+      }
+    };
+  }, [previewImagem]);
+
   function onSelecionarArquivo(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0] || null;
+
+    if (previewImagem) {
+      URL.revokeObjectURL(previewImagem);
+    }
+
     setArquivoImagem(file);
 
     if (!file) {
@@ -216,13 +287,16 @@ export default function NovoItemVitrinePage() {
       const payload = response?.data;
 
       const caminho =
+        payload?.dados?.dados?.caminho ||
         payload?.dados?.caminho ||
+        payload?.dados?.dados?.imagem ||
         payload?.dados?.imagem ||
         payload?.caminho ||
         payload?.imagem ||
         null;
 
       if (!caminho) {
+        console.error("Retorno do upload sem caminho:", payload);
         toast.error("Upload concluído, mas o caminho da imagem não foi retornado.");
         return null;
       }
@@ -247,15 +321,30 @@ export default function NovoItemVitrinePage() {
       return;
     }
 
-    const tipo = (vitrine.tipo || "").toLowerCase();
-
-    if (tipo === "banner") {
+    if (isBanner) {
       if (!bannerTexto.trim() && !arquivoImagem) {
         toast.warning("Escreva o banner ou envie uma imagem.");
         return;
       }
-    } else if (!selecionadoId) {
-      toast.warning("Selecione um item.");
+    }
+
+    if (isProduto && !produtoId) {
+      toast.warning("Selecione um produto.");
+      return;
+    }
+
+    if (isCampanha && !campanhaId) {
+      toast.warning("Selecione uma campanha.");
+      return;
+    }
+
+    if (isCategoria && !categoriaId) {
+      toast.warning("Selecione uma categoria.");
+      return;
+    }
+
+    if (isMisto && !produtoId && !campanhaId && !categoriaId) {
+      toast.warning("Selecione ao menos produto, campanha ou categoria.");
       return;
     }
 
@@ -271,18 +360,16 @@ export default function NovoItemVitrinePage() {
       subtitulo_personalizado: subtituloPersonalizado.trim() || null,
       imagem_personalizada:
         caminhoImagem ||
-        (tipo === "banner"
+        (isBanner
           ? bannerTexto.trim() || null
           : imagemPersonalizada.trim() || null),
-      link_personalizado: linkPersonalizado.trim() || null,
       status_id: Number(vitrine.status_id || 1),
       nivel_id: Number(vitrine.nivel_id || 1),
-      ordem: Number(ordem || 0),
     };
 
-    if (tipo === "produto") body.produto_id = Number(selecionadoId);
-    if (tipo === "campanha") body.campanha_id = Number(selecionadoId);
-    if (tipo === "categoria") body.categoria_id = Number(selecionadoId);
+    if (produtoId) body.produto_id = Number(produtoId);
+    if (campanhaId) body.campanha_id = Number(campanhaId);
+    if (categoriaId) body.categoria_id = Number(categoriaId);
 
     try {
       setAdicionando(true);
@@ -401,7 +488,7 @@ export default function NovoItemVitrinePage() {
 
           <div className="card">
             <div className="formGrid">
-              {isBanner ? (
+              {isBanner && (
                 <div className="campo campoGrande">
                   <label>Banner</label>
                   <input
@@ -414,22 +501,23 @@ export default function NovoItemVitrinePage() {
                     Para vitrine do tipo banner, você pode escrever o banner ou enviar uma imagem.
                   </small>
                 </div>
-              ) : (
+              )}
+
+              {isProduto && (
                 <div className="campo campoGrande">
-                  <label>Selecionar item *</label>
+                  <label>Selecionar produto *</label>
                   <select
-                    value={selecionadoId}
-                    onChange={(e) => setSelecionadoId(e.target.value)}
+                    value={produtoId}
+                    onChange={(e) => setProdutoId(e.target.value)}
                     disabled={loadingOpcoes}
                   >
                     {loadingOpcoes ? (
-                      <option value="">Carregando opções...</option>
-                    ) : opcoes.length === 0 ? (
-                      <option value="">Nenhuma opção encontrada</option>
+                      <option value="">Carregando produtos...</option>
+                    ) : produtos.length === 0 ? (
+                      <option value="">Nenhum produto encontrado</option>
                     ) : (
-                      opcoes.map((item) => {
+                      produtos.map((item) => {
                         const id = obterIdOpcao(item);
-
                         return (
                           <option key={String(id)} value={String(id)}>
                             {obterTextoOpcao(item)} — ID {String(id)}
@@ -441,15 +529,118 @@ export default function NovoItemVitrinePage() {
                 </div>
               )}
 
-              <div className="campo">
-                <label>Ordem</label>
-                <input
-                  type="number"
-                  min="0"
-                  value={ordem}
-                  onChange={(e) => setOrdem(e.target.value)}
-                />
-              </div>
+              {isCampanha && (
+                <div className="campo campoGrande">
+                  <label>Selecionar campanha *</label>
+                  <select
+                    value={campanhaId}
+                    onChange={(e) => setCampanhaId(e.target.value)}
+                    disabled={loadingOpcoes}
+                  >
+                    {loadingOpcoes ? (
+                      <option value="">Carregando campanhas...</option>
+                    ) : campanhas.length === 0 ? (
+                      <option value="">Nenhuma campanha encontrada</option>
+                    ) : (
+                      campanhas.map((item) => {
+                        const id = obterIdOpcao(item);
+                        return (
+                          <option key={String(id)} value={String(id)}>
+                            {obterTextoOpcao(item)} — ID {String(id)}
+                          </option>
+                        );
+                      })
+                    )}
+                  </select>
+                </div>
+              )}
+
+              {isCategoria && (
+                <div className="campo campoGrande">
+                  <label>Selecionar categoria *</label>
+                  <select
+                    value={categoriaId}
+                    onChange={(e) => setCategoriaId(e.target.value)}
+                    disabled={loadingOpcoes}
+                  >
+                    {loadingOpcoes ? (
+                      <option value="">Carregando categorias...</option>
+                    ) : categorias.length === 0 ? (
+                      <option value="">Nenhuma categoria encontrada</option>
+                    ) : (
+                      categorias.map((item) => {
+                        const id = obterIdOpcao(item);
+                        return (
+                          <option key={String(id)} value={String(id)}>
+                            {obterTextoOpcao(item)} — ID {String(id)}
+                          </option>
+                        );
+                      })
+                    )}
+                  </select>
+                </div>
+              )}
+
+              {isMisto && (
+                <>
+                  <div className="campo">
+                    <label>Produto</label>
+                    <select
+                      value={produtoId}
+                      onChange={(e) => setProdutoId(e.target.value)}
+                      disabled={loadingOpcoes}
+                    >
+                      <option value="">Selecione um produto</option>
+                      {produtos.map((item) => {
+                        const id = obterIdOpcao(item);
+                        return (
+                          <option key={String(id)} value={String(id)}>
+                            {obterTextoOpcao(item)} — ID {String(id)}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <div className="campo">
+                    <label>Campanha</label>
+                    <select
+                      value={campanhaId}
+                      onChange={(e) => setCampanhaId(e.target.value)}
+                      disabled={loadingOpcoes}
+                    >
+                      <option value="">Selecione uma campanha</option>
+                      {campanhas.map((item) => {
+                        const id = obterIdOpcao(item);
+                        return (
+                          <option key={String(id)} value={String(id)}>
+                            {obterTextoOpcao(item)} — ID {String(id)}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <div className="campo campoGrande">
+                    <label>Categoria</label>
+                    <select
+                      value={categoriaId}
+                      onChange={(e) => setCategoriaId(e.target.value)}
+                      disabled={loadingOpcoes}
+                    >
+                      <option value="">Selecione uma categoria</option>
+                      {categorias.map((item) => {
+                        const id = obterIdOpcao(item);
+                        return (
+                          <option key={String(id)} value={String(id)}>
+                            {obterTextoOpcao(item)} — ID {String(id)}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                </>
+              )}
 
               <div className="campo campoGrande">
                 <label>Título personalizado</label>
@@ -499,16 +690,6 @@ export default function NovoItemVitrinePage() {
                   />
                 </div>
               )}
-
-              <div className="campo campoGrande">
-                <label>Link personalizado</label>
-                <input
-                  type="text"
-                  placeholder="/produto/exemplo"
-                  value={linkPersonalizado}
-                  onChange={(e) => setLinkPersonalizado(e.target.value)}
-                />
-              </div>
             </div>
 
             <div className="acoes">
@@ -626,6 +807,7 @@ export default function NovoItemVitrinePage() {
           font-size: 15px;
           color: #5c3a36;
           outline: none;
+          transition: all 0.2s ease;
         }
 
         .campo input:focus,
@@ -680,8 +862,13 @@ export default function NovoItemVitrinePage() {
           box-shadow: 0 12px 24px rgba(183, 110, 121, 0.24);
         }
 
-        .btnPrimario:hover {
+        .btnPrimario:hover:not(:disabled) {
           background: #a85f6a;
+        }
+
+        .btnPrimario:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
         }
 
         .btnSecundario {

@@ -25,6 +25,9 @@ import './../public/admin/produtos/pdt.css';
 import './../public/admin/produtos/adicionar.css';
 
 import './../public/Login/Login.css';
+import './../public/Vitrine/Destaque.css';
+import './../public/Vitrine/slug.css';
+
 import './../public/admin/produtos/listar.css';
 import { getSiteConfig } from "@/services/siteConfig";
 
