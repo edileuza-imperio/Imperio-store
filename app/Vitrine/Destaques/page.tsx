@@ -338,7 +338,7 @@ export default function Destaques({
   }
 
   const linkVerMais =
-    verMaisHref || (vitrine?.slug ? `/Vitrine/${vitrine.slug}` : "#");
+    verMaisHref || (vitrine?.slug ? `/vitrine/visualizar/${vitrine.slug}` : "#");
 
   if (loading) {
     return <section className={`destaques-section ${className}`}>Carregando...</section>;
