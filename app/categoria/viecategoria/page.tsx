@@ -5,7 +5,8 @@ import Link from "next/link";
 
 import Navbar from "@/components/site/menu/navbar";
 import FooterPrincipal from "@/components/site/Rodape/Footer";
-import useCategoria from "@/Hooks/Categoria/useCategoria";
+import useCategoria from "@/hooks/categoria/useCategoria";
+
 
 type Categoria = {
   id_categoria?: number | string;
