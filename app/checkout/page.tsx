@@ -12,7 +12,6 @@ import { formatBRL } from "@/components/Bibioteca/functions";
 import {
   FiMapPin,
   FiTruck,
-  FiCreditCard,
   FiShield,
   FiShoppingBag,
   FiUser,
@@ -42,7 +41,6 @@ type CheckoutForm = {
   bairro: string;
   cidade: string;
   estado: string;
-  pagamento: "pix" | "cartao" | "boleto";
 };
 
 function num(v: any): number {
@@ -135,6 +133,7 @@ export default function CheckoutPage() {
   const [enviando, setEnviando] = React.useState(false);
   const [erro, setErro] = React.useState<string | null>(null);
   const [itens, setItens] = React.useState<CarrinhoItem[]>([]);
+  const [carregandoUsuario, setCarregandoUsuario] = React.useState(true);
 
   const [form, setForm] = React.useState<CheckoutForm>({
     nome: "",
@@ -147,7 +146,6 @@ export default function CheckoutPage() {
     bairro: "",
     cidade: "",
     estado: "",
-    pagamento: "pix",
   });
 
   const subtotal = React.useMemo(() => {
@@ -168,9 +166,6 @@ export default function CheckoutPage() {
   const total = subtotal + frete;
 
   async function carregarCarrinho() {
-    setLoading(true);
-    setErro(null);
-
     try {
       const resp = await api.get("/carrinho/itens", {
         withCredentials: true,
@@ -183,13 +178,57 @@ export default function CheckoutPage() {
     } catch (e: any) {
       setErro(e?.response?.data?.mensagem || "Erro ao carregar checkout.");
       setItens([]);
+    }
+  }
+
+  async function carregarUsuarioLogado() {
+    try {
+      setCarregandoUsuario(true);
+
+      const response = await api.get("/me", {
+        withCredentials: true,
+      });
+
+      const dados = response?.data?.dados ?? response?.data ?? null;
+
+      if (!dados) return;
+
+      setForm((prev) => ({
+        ...prev,
+        nome: dados?.nome ?? prev.nome,
+        email: dados?.email ?? prev.email,
+        telefone:
+          dados?.telefone ??
+          dados?.celular ??
+          dados?.whatsapp ??
+          prev.telefone,
+      }));
+    } catch (error) {
+      console.error("Usuário não carregado no checkout:", error);
     } finally {
-      setLoading(false);
+      setCarregandoUsuario(false);
     }
   }
 
   React.useEffect(() => {
-    carregarCarrinho();
+    let ativo = true;
+
+    async function iniciar() {
+      try {
+        setLoading(true);
+        setErro(null);
+
+        await Promise.all([carregarCarrinho(), carregarUsuarioLogado()]);
+      } finally {
+        if (ativo) setLoading(false);
+      }
+    }
+
+    iniciar();
+
+    return () => {
+      ativo = false;
+    };
   }, []);
 
   function handleChange(
@@ -202,7 +241,7 @@ export default function CheckoutPage() {
     }));
   }
 
-  async function handleFinalizarPedido(e: React.FormEvent) {
+  async function handleContinuar(e: React.FormEvent) {
     e.preventDefault();
 
     if (itens.length === 0) {
@@ -223,20 +262,12 @@ export default function CheckoutPage() {
     try {
       setEnviando(true);
 
-      // Aqui você pode trocar depois pela rota real de pedido.
-      // Por enquanto deixei um fluxo visual pronto.
-      await api.put(
-        "/carrinho/finalizar",
-        {},
-        {
-          withCredentials: true,
-        }
-      );
-
-      toast.success("Pedido finalizado com sucesso.");
+      // Aqui depois você pode salvar os dados do checkout
+      // e redirecionar para a próxima tela de pagamento.
+      toast.success("Dados salvos. Continue para a próxima etapa.");
     } catch (error: any) {
       toast.error(
-        error?.response?.data?.mensagem || "Não foi possível finalizar o pedido."
+        error?.response?.data?.mensagem || "Não foi possível continuar."
       );
     } finally {
       setEnviando(false);
@@ -488,36 +519,6 @@ export default function CheckoutPage() {
           font-weight: 800;
         }
 
-        .payment-grid {
-          display: grid;
-          gap: 12px;
-        }
-
-        .payment-option {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 14px 16px;
-          border-radius: 16px;
-          border: 1px solid #ead7cc;
-          background: #fffaf7;
-        }
-
-        .payment-option input {
-          accent-color: #b55f53;
-        }
-
-        .payment-option strong {
-          color: #48342c;
-          font-size: 14px;
-        }
-
-        .payment-option p {
-          margin: 2px 0 0;
-          color: #7b6257;
-          font-size: 12px;
-        }
-
         .benefitsGrid {
           margin-top: 18px;
           display: grid;
@@ -561,6 +562,17 @@ export default function CheckoutPage() {
           text-align: center;
         }
 
+        .prefillInfo {
+          margin-top: -4px;
+          margin-bottom: 16px;
+          font-size: 13px;
+          color: #8b6b5d;
+          background: #fff8f3;
+          border: 1px solid #f0ddd2;
+          border-radius: 14px;
+          padding: 10px 12px;
+        }
+
         @media (max-width: 992px) {
           .summarySticky {
             position: static;
@@ -592,7 +604,7 @@ export default function CheckoutPage() {
               </div>
               <div>
                 <h1>Checkout</h1>
-                <p>Finalize sua compra com segurança e praticidade.</p>
+                <p>Confirme seus dados e siga para a próxima etapa.</p>
               </div>
             </div>
 
@@ -608,13 +620,19 @@ export default function CheckoutPage() {
               <div className="emptyBox">Seu carrinho está vazio.</div>
             </div>
           ) : (
-            <form onSubmit={handleFinalizarPedido}>
+            <form onSubmit={handleContinuar}>
               <div className="row g-4">
                 <div className="col-lg-8 d-grid gap-4">
                   <div className="checkout-surface checkout-card">
                     <div className="section-title">
                       <FiUser size={20} />
                       <span>Dados do cliente</span>
+                    </div>
+
+                    <div className="prefillInfo">
+                      {carregandoUsuario
+                        ? "Verificando dados do usuário..."
+                        : "Se você estiver logado, os dados disponíveis são preenchidos automaticamente."}
                     </div>
 
                     <div className="row g-3">
@@ -728,57 +746,6 @@ export default function CheckoutPage() {
                       </div>
                     </div>
                   </div>
-
-                  <div className="checkout-surface checkout-card">
-                    <div className="section-title">
-                      <FiCreditCard size={20} />
-                      <span>Forma de pagamento</span>
-                    </div>
-
-                    <div className="payment-grid">
-                      <label className="payment-option">
-                        <input
-                          type="radio"
-                          name="pagamento"
-                          value="pix"
-                          checked={form.pagamento === "pix"}
-                          onChange={handleChange}
-                        />
-                        <div>
-                          <strong>PIX</strong>
-                          <p>Pagamento rápido e prático.</p>
-                        </div>
-                      </label>
-
-                      <label className="payment-option">
-                        <input
-                          type="radio"
-                          name="pagamento"
-                          value="cartao"
-                          checked={form.pagamento === "cartao"}
-                          onChange={handleChange}
-                        />
-                        <div>
-                          <strong>Cartão</strong>
-                          <p>Crédito ou débito.</p>
-                        </div>
-                      </label>
-
-                      <label className="payment-option">
-                        <input
-                          type="radio"
-                          name="pagamento"
-                          value="boleto"
-                          checked={form.pagamento === "boleto"}
-                          onChange={handleChange}
-                        />
-                        <div>
-                          <strong>Boleto</strong>
-                          <p>Pagamento por boleto bancário.</p>
-                        </div>
-                      </label>
-                    </div>
-                  </div>
                 </div>
 
                 <div className="col-lg-4">
@@ -844,7 +811,7 @@ export default function CheckoutPage() {
                       className="btn btn-brand w-100 mt-4"
                       disabled={enviando || itens.length === 0}
                     >
-                      {enviando ? "Finalizando..." : "Finalizar pedido"}
+                      {enviando ? "Continuando..." : "Continuar para pagamento"}
                     </button>
 
                     <button
@@ -868,15 +835,7 @@ export default function CheckoutPage() {
                         <FiShield size={18} />
                         <div>
                           <strong>Compra protegida</strong>
-                          <p>Seus dados e pagamento com mais segurança.</p>
-                        </div>
-                      </div>
-
-                      <div className="benefitItem">
-                        <FiCreditCard size={18} />
-                        <div>
-                          <strong>Pagamento facilitado</strong>
-                          <p>Mais praticidade para concluir sua compra.</p>
+                          <p>Seus dados e pedido com mais segurança.</p>
                         </div>
                       </div>
                     </div>

@@ -7,6 +7,7 @@ import Destaques from "@/app/Vitrine/Destaques/page";
 import Banner from "@/components/site/Banner/Banner";
 import CategoriasDestaque from "@/components/site/categoria/Categoria";
 import Navbar from "@/components/site/menu/navbar";
+import Footer from "@/components/site/Rodape/Footer";
 
 type Vitrine = {
   id_vitrine: number | string;
@@ -64,6 +65,8 @@ export default function HomeContent() {
             vitrine={vitrine}
           />
         ))}
+
+        <Footer />
     </>
   );
 }
