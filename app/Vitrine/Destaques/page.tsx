@@ -4,87 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import api from "@/Api/conectar";
 import { FiShoppingCart, FiEye, FiArrowRight } from "react-icons/fi";
-
-type VitrineItem = {
-  id_vitrine_item: number | string;
-  vitrine_id?: number | string;
-  produto_id?: number | string | null;
-  campanha_id?: number | string | null;
-  categoria_id?: number | string | null;
-  titulo_personalizado?: string | null;
-  subtitulo_personalizado?: string | null;
-  imagem_personalizada?: string | null;
-  status_id?: number | string;
-  nivel_id?: number | string;
-  criado_em?: string;
-  atualizado_em?: string;
-};
-
-type Vitrine = {
-  id_vitrine: number | string;
-  nome?: string;
-  titulo?: string;
-  subtitulo?: string | null;
-  tipo?: string;
-  slug?: string;
-  status_id?: number | string;
-  nivel_id?: number | string;
-  itens?: VitrineItem[];
-};
-
-type EntidadeGenerica = {
-  id?: number | string;
-  id_produto?: number | string;
-  id_campanha?: number | string;
-  id_categoria?: number | string;
-  nome?: string;
-  titulo?: string;
-  subtitulo?: string;
-  descricao?: string;
-  descricao_curta?: string;
-  imagem?: string;
-  miniatura?: string;
-  banner?: string;
-  foto?: string;
-  desktop?: string;
-  mobile?: string;
-  slug?: string;
-  preco?: number | string;
-  preco_promocional?: number | string;
-  sku?: string;
-  marca?: string;
-};
-
-type ItemResolvido = VitrineItem & {
-  entidade: EntidadeGenerica | null;
-  tipo_item: "produto" | "campanha" | "categoria" | "banner" | "custom";
-  titulo_final: string;
-  subtitulo_final: string;
-  descricao_final: string;
-  imagem_final: string;
-  link_final: string;
-  preco_final?: number | string | null;
-  preco_original?: number | string | null;
-  marca_final?: string;
-  sku_final?: string;
-  economia_final?: string | null;
-};
-
-type Props = {
-  slug?: string;
-  vitrine?: Vitrine | null;
-  tituloPersonalizado?: string;
-  subtituloPersonalizado?: string;
-  limite?: number;
-  className?: string;
-  verMaisHref?: string;
-  verMaisTexto?: string;
-  onAdicionarCarrinho?: (item: ItemResolvido) => void;
-};
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://lightgrey-cattle-160990.hostingersite.com";
+import {
+  EntidadeGenerica,
+  ItemResolvido,
+  Props,
+  Vitrine,
+  VitrineItem,
+} from "@/components/Bibioteca/Bibiotecas";
 
 function normalizarDados<T = any>(payload: any): T | null {
   return payload?.dados?.dados ?? payload?.dados ?? payload ?? null;
@@ -111,22 +37,25 @@ function resolverImagem(src?: string | null) {
   }
 
   if (valor.startsWith("/")) {
-    return `${API_BASE}${valor}`;
+    return `${api}${valor}`;
   }
 
-  return `${API_BASE}/${valor}`;
+  return `${api}/${valor}`;
 }
 
-function obterMelhorImagem(item?: VitrineItem | null, entidade?: EntidadeGenerica | null) {
+function obterMelhorImagem(
+  item?: VitrineItem | null,
+  entidade?: EntidadeGenerica | null
+) {
   return resolverImagem(
     item?.imagem_personalizada ||
-      entidade?.imagem ||
-      entidade?.miniatura ||
-      entidade?.banner ||
-      entidade?.foto ||
-      entidade?.desktop ||
-      entidade?.mobile ||
-      ""
+    entidade?.imagem ||
+    entidade?.miniatura ||
+    entidade?.banner ||
+    entidade?.foto ||
+    entidade?.desktop ||
+    entidade?.mobile ||
+    ""
   );
 }
 
@@ -232,7 +161,9 @@ export default function Destaques({
             return;
           }
 
-          const itensResponse = await api.get(`/vitrine/${vitrineData.id_vitrine}/itens`);
+          const itensResponse = await api.get(
+            `/vitrine/${vitrineData.id_vitrine}/itens`
+          );
           let itensData = normalizarLista<VitrineItem>(itensResponse?.data);
 
           if (limite) {
@@ -255,7 +186,9 @@ export default function Destaques({
 
         setVitrine(vitrineAtual);
 
-        const listaItens = Array.isArray(vitrineAtual.itens) ? vitrineAtual.itens : [];
+        const listaItens = Array.isArray(vitrineAtual.itens)
+          ? vitrineAtual.itens
+          : [];
 
         const itensResolvidos: ItemResolvido[] = await Promise.all(
           listaItens.map(async (item) => {
@@ -268,8 +201,8 @@ export default function Destaques({
 
                 const precoPromocional =
                   produto.preco_promocional !== null &&
-                  produto.preco_promocional !== undefined &&
-                  produto.preco_promocional !== ""
+                    produto.preco_promocional !== undefined &&
+                    produto.preco_promocional !== ""
                     ? produto.preco_promocional
                     : null;
 
@@ -309,7 +242,8 @@ export default function Destaques({
 
               if (tipoItem === "campanha" && item.campanha_id) {
                 const res = await api.get(`/campanha/${item.campanha_id}`);
-                const campanha = normalizarDados<EntidadeGenerica>(res?.data) || {};
+                const campanha =
+                  normalizarDados<EntidadeGenerica>(res?.data) || {};
 
                 return {
                   ...item,
@@ -326,9 +260,7 @@ export default function Destaques({
                     campanha.descricao ||
                     "",
                   descricao_final:
-                    campanha.descricao_curta ||
-                    campanha.descricao ||
-                    "",
+                    campanha.descricao_curta || campanha.descricao || "",
                   imagem_final: obterMelhorImagem(item, campanha),
                   link_final: campanha.slug
                     ? `/campanha/${campanha.slug}`
@@ -343,7 +275,8 @@ export default function Destaques({
 
               if (tipoItem === "categoria" && item.categoria_id) {
                 const res = await api.get(`/categoria/${item.categoria_id}`);
-                const categoria = normalizarDados<EntidadeGenerica>(res?.data) || {};
+                const categoria =
+                  normalizarDados<EntidadeGenerica>(res?.data) || {};
 
                 return {
                   ...item,
@@ -360,9 +293,7 @@ export default function Destaques({
                     categoria.descricao_curta ||
                     "",
                   descricao_final:
-                    categoria.descricao_curta ||
-                    categoria.descricao ||
-                    "",
+                    categoria.descricao_curta || categoria.descricao || "",
                   imagem_final: obterMelhorImagem(item, categoria),
                   link_final: categoria.slug
                     ? `/categoria/${categoria.slug}`
@@ -439,16 +370,21 @@ export default function Destaques({
     console.log("Adicionar ao carrinho:", item);
   }
 
-  const linkVerMais =
-    verMaisHref || (vitrine?.slug ? `/Vitrine/${vitrine.slug}` : "#");
-
   if (loading) {
-    return <section className={`destaques-section ${className}`}>Carregando...</section>;
+    return (
+      <section className={`destaques-section ${className}`}>
+        Carregando...
+      </section>
+    );
   }
 
   if (erro || !vitrine || itens.length === 0) {
     return null;
   }
+
+  const linkVerMais =
+    verMaisHref ||
+    (vitrine.slug ? `/Vitrine/${vitrine.slug}` : slug ? `/Vitrine/${slug}` : "#");
 
   return (
     <section className={`destaques-section ${className}`}>
@@ -479,8 +415,21 @@ export default function Destaques({
             const precoFormatado = formatarPreco(item.preco_final);
             const precoOriginalFormatado = formatarPreco(item.preco_original);
 
+            const slugVisualizacao =
+              item.entidade?.slug ||
+              (item.produto_id ? String(item.produto_id) : null) ||
+              (item.campanha_id ? String(item.campanha_id) : null) ||
+              (item.categoria_id ? String(item.categoria_id) : null);
+
+            const linkVisualizarCard = slugVisualizacao
+              ? `/Vitrine/visualizar/${slugVisualizacao}`
+              : "#";
+
             return (
-              <article key={String(item.id_vitrine_item)} className="destaque-card destaque-slide">
+              <article
+                key={String(item.id_vitrine_item)}
+                className="destaque-card destaque-slide"
+              >
                 <div className="destaque-imagem-wrap">
                   <Link href={item.link_final || "#"} className="imagem-link">
                     {item.imagem_final ? (
@@ -513,11 +462,15 @@ export default function Destaques({
                   {(precoFormatado || precoOriginalFormatado) && (
                     <div className="destaque-precos">
                       {precoOriginalFormatado && (
-                        <span className="preco-original">{precoOriginalFormatado}</span>
+                        <span className="preco-original">
+                          {precoOriginalFormatado}
+                        </span>
                       )}
 
                       {precoFormatado && (
-                        <strong className="destaque-preco">{precoFormatado}</strong>
+                        <strong className="destaque-preco">
+                          {precoFormatado}
+                        </strong>
                       )}
                     </div>
                   )}
@@ -539,7 +492,7 @@ export default function Destaques({
                       </Link>
                     )}
 
-                    <Link href={item.link_final || "#"} className="btn-visualizar">
+                    <Link href={linkVisualizarCard} className="btn-visualizar">
                       <FiEye className="btn-icon" />
                       <span>Visualizar</span>
                     </Link>

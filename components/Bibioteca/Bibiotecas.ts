@@ -171,3 +171,81 @@ export interface Usuario {
   criado: string;
   atualizado: string;
 }
+
+
+export type VitrineItem = {
+  id_vitrine_item: number | string;
+  vitrine_id?: number | string;
+  produto_id?: number | string | null;
+  campanha_id?: number | string | null;
+  categoria_id?: number | string | null;
+  titulo_personalizado?: string | null;
+  subtitulo_personalizado?: string | null;
+  imagem_personalizada?: string | null;
+  status_id?: number | string;
+  nivel_id?: number | string;
+  criado_em?: string;
+  atualizado_em?: string;
+};
+
+export type Vitrine = {
+  id_vitrine: number | string;
+  nome?: string;
+  titulo?: string;
+  subtitulo?: string | null;
+  tipo?: string;
+  slug?: string;
+  status_id?: number | string;
+  nivel_id?: number | string;
+  itens?: VitrineItem[];
+};
+
+export type EntidadeGenerica = {
+  id?: number | string;
+  id_produto?: number | string;
+  id_campanha?: number | string;
+  id_categoria?: number | string;
+  nome?: string;
+  titulo?: string;
+  subtitulo?: string;
+  descricao?: string;
+  descricao_curta?: string;
+  imagem?: string;
+  miniatura?: string;
+  banner?: string;
+  foto?: string;
+  desktop?: string;
+  mobile?: string;
+  slug?: string;
+  preco?: number | string;
+  preco_promocional?: number | string;
+  sku?: string;
+  marca?: string;
+};
+
+ export type ItemResolvido = VitrineItem & {
+  entidade: EntidadeGenerica | null;
+  tipo_item: "produto" | "campanha" | "categoria" | "banner" | "custom";
+  titulo_final: string;
+  subtitulo_final: string;
+  descricao_final: string;
+  imagem_final: string;
+  link_final: string;
+  preco_final?: number | string | null;
+  preco_original?: number | string | null;
+  marca_final?: string;
+  sku_final?: string;
+  economia_final?: string | null;
+};
+
+export type Props = {
+  slug?: string;
+  vitrine?: Vitrine | null;
+  tituloPersonalizado?: string;
+  subtituloPersonalizado?: string;
+  limite?: number;
+  className?: string;
+  verMaisHref?: string;
+  verMaisTexto?: string;
+  onAdicionarCarrinho?: (item: ItemResolvido) => void;
+};

@@ -144,13 +144,7 @@ export function num(v: any): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-export function pickCarrinho(resp: any): { itens: CarrinhoItem[]; endereco: any | null } {
-  const base = resp?.dados ?? resp?.data ?? resp;
-  const itens = Array.isArray(base?.itens) ? base.itens : [];
-  const endereco = base?.endereco ?? null;
 
-  return { itens, endereco };
-}
 
 export function enderecoResumo(e: EnderecoDB) {
   const linha1 =

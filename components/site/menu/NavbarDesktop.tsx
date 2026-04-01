@@ -20,6 +20,7 @@ import {
 } from "react-icons/fi";
 import { Menu, MenuItem } from "@/components/Bibioteca/Bibiotecas";
 import useUsuario from "@/hooks/Auth/useUsuario";
+import CarrinhoQuantidade from "@/components/Carrinho/CarrinhoQuantidade";
 
 export interface Categoria {
   id_categoria?: number;
@@ -145,6 +146,16 @@ export default function NavbarDesktop({
     return nome.includes("painel administrativo");
   };
 
+  const isCartIcon = (icone?: string | null) => {
+    const name = String(icone || "").toLowerCase();
+    return (
+      name.includes("bi-cart") ||
+      name.includes("cart") ||
+      name.includes("carrito") ||
+      name.includes("carrinho")
+    );
+  };
+
   const searchMenu = menus.find((m) => m.pesquisa_placeholder);
 
   const accountMenu = menus.find(
@@ -193,6 +204,14 @@ export default function NavbarDesktop({
     if (name.includes("bi-box")) return <FiBox size={18} />;
 
     return <FiBox size={18} />;
+  };
+
+  const renderMenuIcon = (icone?: string | null) => {
+    if (isCartIcon(icone)) {
+      return <CarrinhoQuantidade size={18} />;
+    }
+
+    return renderIcon(icone);
   };
 
   const handleAccountItem = async (item: MenuItem) => {
@@ -276,7 +295,7 @@ export default function NavbarDesktop({
                       className="ui-pill ui-pill--primary ui-userBtn"
                       onClick={() => handleProtectedDropdown(menuId)}
                     >
-                      <span className="ui-pillIcon">{renderIcon(m.icone)}</span>
+                      <span className="ui-pillIcon">{renderMenuIcon(m.icone)}</span>
                       <span className="ui-pillText">{getMenuNome(m)}</span>
                       <FiChevronDown
                         size={16}
@@ -294,7 +313,7 @@ export default function NavbarDesktop({
                             onClick={() => handleAccountItem(it)}
                           >
                             <span className="ui-itemIcon">
-                              {renderIcon(it.icone)}
+                              {renderMenuIcon(it.icone)}
                             </span>
                             <span className="ui-itemText">
                               {getItemNome(it)}
@@ -320,7 +339,7 @@ export default function NavbarDesktop({
                     onClick={irParaLogin}
                   >
                     <span className="ui-pill ui-pill--primary">
-                      <span className="ui-pillIcon">{renderIcon(m.icone)}</span>
+                      <span className="ui-pillIcon">{renderMenuIcon(m.icone)}</span>
                       <span className="ui-pillText">{getMenuNome(m)}</span>
                     </span>
                   </button>
@@ -330,7 +349,7 @@ export default function NavbarDesktop({
               return (
                 <Link key={menuId} href={rota} className="ui-link">
                   <span className="ui-pill ui-pill--primary">
-                    <span className="ui-pillIcon">{renderIcon(m.icone)}</span>
+                    <span className="ui-pillIcon">{renderMenuIcon(m.icone)}</span>
                     <span className="ui-pillText">{getMenuNome(m)}</span>
                   </span>
                 </Link>
@@ -380,7 +399,7 @@ export default function NavbarDesktop({
                         onClick={() => handleAccountItem(it)}
                       >
                         <span className="ui-itemIcon">
-                          {renderIcon(it.icone)}
+                          {renderMenuIcon(it.icone)}
                         </span>
                         <span className="ui-itemText">{texto}</span>
                       </button>

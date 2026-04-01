@@ -8,6 +8,7 @@ export const rotas = {
     listar: "/site-configs",
     buscar: (id: Id) => `/site-config/${id}`,
     menu: "/menus",
+    vermais: "/Vitrine/{slug}",
   },
 
   inicio: {
