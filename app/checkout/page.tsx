@@ -29,9 +29,6 @@ type CarrinhoItem = {
 };
 
 type CheckoutForm = {
-  nome: string;
-  email: string;
-  telefone: string;
   cep: string;
   endereco: string;
   numero: string;
@@ -50,6 +47,23 @@ type CarrinhoResumo = {
   valor_frete?: number | string;
   valor_total?: number | string;
   itens?: any[];
+};
+
+type UsuarioLogado = {
+  id_usuario?: number;
+  nome?: string;
+  email?: string;
+  telefone?: string;
+  celular?: string;
+  whatsapp?: string;
+  cpf?: string;
+  cep?: string;
+  endereco?: string;
+  numero?: string;
+  complemento?: string;
+  bairro?: string;
+  cidade?: string;
+  estado?: string;
 };
 
 function num(v: any): number {
@@ -151,11 +165,9 @@ export default function CheckoutPage() {
   const [itens, setItens] = React.useState<CarrinhoItem[]>([]);
   const [carregandoUsuario, setCarregandoUsuario] = React.useState(true);
   const [carrinho, setCarrinho] = React.useState<CarrinhoResumo | null>(null);
+  const [usuario, setUsuario] = React.useState<UsuarioLogado | null>(null);
 
   const [form, setForm] = React.useState<CheckoutForm>({
-    nome: "",
-    email: "",
-    telefone: "",
     cep: "",
     endereco: "",
     numero: "",
@@ -196,6 +208,28 @@ export default function CheckoutPage() {
     if (valor > 0) return valor;
     return subtotal - desconto + frete;
   }, [carrinho, subtotal, desconto, frete]);
+
+  function getEnderecoStorageKey(usuarioId?: number) {
+    return `checkout_endereco_usuario_${usuarioId ?? "anonimo"}`;
+  }
+
+  function salvarEnderecoLocal(endereco: CheckoutForm, usuarioId?: number) {
+    if (typeof window === "undefined") return;
+    localStorage.setItem(getEnderecoStorageKey(usuarioId), JSON.stringify(endereco));
+  }
+
+  function carregarEnderecoLocal(usuarioId?: number): CheckoutForm | null {
+    if (typeof window === "undefined") return null;
+
+    const raw = localStorage.getItem(getEnderecoStorageKey(usuarioId));
+    if (!raw) return null;
+
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
 
   async function carregarCarrinho() {
     try {
@@ -258,20 +292,39 @@ export default function CheckoutPage() {
         withCredentials: true,
       });
 
-      const dados = response?.data?.dados ?? response?.data ?? null;
+      const dados = (response?.data?.dados ?? response?.data ?? null) as UsuarioLogado | null;
 
       if (!dados) return;
 
-      setForm((prev) => ({
-        ...prev,
-        nome: dados?.nome ?? prev.nome,
-        email: dados?.email ?? prev.email,
-        telefone:
-          dados?.telefone ??
-          dados?.celular ??
-          dados?.whatsapp ??
-          prev.telefone,
-      }));
+      setUsuario(dados);
+
+      const enderecoDoUsuario: CheckoutForm = {
+        cep: dados?.cep ?? "",
+        endereco: dados?.endereco ?? "",
+        numero: dados?.numero ?? "",
+        complemento: dados?.complemento ?? "",
+        bairro: dados?.bairro ?? "",
+        cidade: dados?.cidade ?? "",
+        estado: dados?.estado ?? "",
+      };
+
+      const enderecoUsuarioPreenchido = Boolean(
+        enderecoDoUsuario.cep ||
+          enderecoDoUsuario.endereco ||
+          enderecoDoUsuario.numero ||
+          enderecoDoUsuario.bairro ||
+          enderecoDoUsuario.cidade ||
+          enderecoDoUsuario.estado
+      );
+
+      const enderecoLocal = carregarEnderecoLocal(dados?.id_usuario);
+
+      if (enderecoUsuarioPreenchido) {
+        setForm(enderecoDoUsuario);
+        salvarEnderecoLocal(enderecoDoUsuario, dados?.id_usuario);
+      } else if (enderecoLocal) {
+        setForm(enderecoLocal);
+      }
     } catch {
     } finally {
       setCarregandoUsuario(false);
@@ -298,6 +351,12 @@ export default function CheckoutPage() {
     };
   }, []);
 
+  React.useEffect(() => {
+    if (usuario?.id_usuario) {
+      salvarEnderecoLocal(form, usuario.id_usuario);
+    }
+  }, [form, usuario?.id_usuario]);
+
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) {
@@ -317,8 +376,13 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!form.nome || !form.email || !form.telefone) {
-      toast.warning("Preencha os dados principais do cliente.");
+    if (!carrinho?.id_carrinho) {
+      toast.error("Não foi possível identificar o carrinho.");
+      return;
+    }
+
+    if (!carrinho?.usuario_id) {
+      toast.error("Não foi possível identificar o usuário do pedido.");
       return;
     }
 
@@ -334,16 +398,6 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!carrinho?.id_carrinho) {
-      toast.error("Não foi possível identificar o carrinho.");
-      return;
-    }
-
-    if (!carrinho?.usuario_id) {
-      toast.error("Não foi possível identificar o usuário do pedido.");
-      return;
-    }
-
     try {
       setEnviando(true);
 
@@ -356,11 +410,6 @@ export default function CheckoutPage() {
         valor_desconto: desconto,
         valor_frete: frete,
         valor_total: total,
-        cliente: {
-          nome: form.nome,
-          email: form.email,
-          telefone: form.telefone,
-        },
         endereco_entrega: {
           cep: form.cep,
           endereco: form.endereco,
@@ -396,6 +445,8 @@ export default function CheckoutPage() {
       });
 
       const dados = response?.data?.dados ?? response?.data ?? {};
+
+      salvarEnderecoLocal(form, carrinho.usuario_id);
 
       toast.success(dados?.mensagem || "Pedido cadastrado com sucesso.");
 
@@ -728,6 +779,25 @@ export default function CheckoutPage() {
           padding: 10px 12px;
         }
 
+        .userDataBox {
+          display: grid;
+          gap: 10px;
+          margin-top: 12px;
+          padding: 14px;
+          border-radius: 16px;
+          background: #fffaf7;
+          border: 1px solid #f0ddd2;
+        }
+
+        .userDataLine {
+          font-size: 14px;
+          color: #5d473f;
+        }
+
+        .userDataLine strong {
+          color: #3f2d26;
+        }
+
         @media (max-width: 992px) {
           .summarySticky {
             position: static;
@@ -759,7 +829,7 @@ export default function CheckoutPage() {
               </div>
               <div>
                 <h1>Checkout</h1>
-                <p>Confirme seus dados e siga para a próxima etapa.</p>
+                <p>Confirme o endereço e siga para a próxima etapa.</p>
               </div>
             </div>
 
@@ -781,44 +851,25 @@ export default function CheckoutPage() {
                   <div className="checkout-surface checkout-card">
                     <div className="section-title">
                       <FiUser size={20} />
-                      <span>Dados do cliente</span>
+                      <span>Dados da conta</span>
                     </div>
 
                     <div className="prefillInfo">
-                      {carregandoUsuario
-                        ? "Verificando dados do usuário..."
-                        : "Se você estiver logado, os dados disponíveis são preenchidos automaticamente."}
+                      Os dados do cliente são usados a partir do usuário logado.
                     </div>
 
-                    <div className="row g-3">
-                      <div className="col-md-6">
-                        <label className="field-label">Nome completo</label>
-                        <input
-                          className="field-input"
-                          name="nome"
-                          value={form.nome}
-                          onChange={handleChange}
-                        />
+                    <div className="userDataBox">
+                      <div className="userDataLine">
+                        <strong>Nome:</strong> {carregandoUsuario ? "Carregando..." : (usuario?.nome || "Não informado")}
                       </div>
-
-                      <div className="col-md-6">
-                        <label className="field-label">E-mail</label>
-                        <input
-                          className="field-input"
-                          name="email"
-                          value={form.email}
-                          onChange={handleChange}
-                        />
+                      <div className="userDataLine">
+                        <strong>E-mail:</strong> {carregandoUsuario ? "Carregando..." : (usuario?.email || "Não informado")}
                       </div>
-
-                      <div className="col-md-6">
-                        <label className="field-label">Telefone</label>
-                        <input
-                          className="field-input"
-                          name="telefone"
-                          value={form.telefone}
-                          onChange={handleChange}
-                        />
+                      <div className="userDataLine">
+                        <strong>Telefone:</strong> {carregandoUsuario ? "Carregando..." : (usuario?.telefone || usuario?.celular || usuario?.whatsapp || "Não informado")}
+                      </div>
+                      <div className="userDataLine">
+                        <strong>CPF:</strong> {carregandoUsuario ? "Carregando..." : (usuario?.cpf || "Não informado")}
                       </div>
                     </div>
                   </div>
@@ -827,6 +878,10 @@ export default function CheckoutPage() {
                     <div className="section-title">
                       <FiMapPin size={20} />
                       <span>Endereço de entrega</span>
+                    </div>
+
+                    <div className="prefillInfo">
+                      Se houver endereço salvo, ele será preenchido automaticamente.
                     </div>
 
                     <div className="row g-3">
