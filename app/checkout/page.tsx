@@ -73,22 +73,45 @@ function num(v: any): number {
 }
 
 function pickCarrinhoBase(resp: any): any {
-  return resp?.dados ?? resp?.data ?? resp ?? {};
+  const base = resp?.dados ?? resp?.data ?? resp ?? {};
+  console.log("[pickCarrinhoBase] resposta recebida:", resp);
+  console.log("[pickCarrinhoBase] base extraída:", base);
+  return base;
 }
 
 function pickItensDoCarrinho(resp: any): any[] {
   const base = pickCarrinhoBase(resp);
 
-  if (Array.isArray(base)) return base;
-  if (Array.isArray(base?.itens)) return base.itens;
-  if (Array.isArray(base?.carrinho?.itens)) return base.carrinho.itens;
-  if (Array.isArray(base?.dados?.itens)) return base.dados.itens;
+  console.log("[pickItensDoCarrinho] base:", base);
 
+  if (Array.isArray(base)) {
+    console.log("[pickItensDoCarrinho] base é array");
+    return base;
+  }
+
+  if (Array.isArray(base?.itens)) {
+    console.log("[pickItensDoCarrinho] usando base.itens");
+    return base.itens;
+  }
+
+  if (Array.isArray(base?.carrinho?.itens)) {
+    console.log("[pickItensDoCarrinho] usando base.carrinho.itens");
+    return base.carrinho.itens;
+  }
+
+  if (Array.isArray(base?.dados?.itens)) {
+    console.log("[pickItensDoCarrinho] usando base.dados.itens");
+    return base.dados.itens;
+  }
+
+  console.warn("[pickItensDoCarrinho] nenhum array de itens encontrado");
   return [];
 }
 
 function normalizarItens(lista: any[]): CarrinhoItem[] {
-  return lista.map((item) => {
+  console.log("[normalizarItens] lista bruta:", lista);
+
+  const normalizados = lista.map((item) => {
     const precoPromo =
       item?.preco_promocional_unitario !== undefined &&
       item?.preco_promocional_unitario !== null &&
@@ -96,7 +119,7 @@ function normalizarItens(lista: any[]): CarrinhoItem[] {
         ? item.preco_promocional_unitario
         : null;
 
-    return {
+    const resultado = {
       id_item: Number(item?.id_item ?? item?.id_carrinho_item ?? item?.id ?? 0),
       id_produto:
         Number(item?.produto_id ?? item?.id_produto ?? item?.idProduto ?? 0) ||
@@ -121,7 +144,13 @@ function normalizarItens(lista: any[]): CarrinhoItem[] {
         item?.produto_miniatura ??
         "",
     };
+
+    console.log("[normalizarItens] item normalizado:", resultado);
+    return resultado;
   });
+
+  console.log("[normalizarItens] resultado final:", normalizados);
+  return normalizados;
 }
 
 function imagemUrl(path?: string) {
@@ -165,79 +194,155 @@ export default function CheckoutPage() {
     estado: "",
   });
 
+  React.useEffect(() => {
+    console.log("[CheckoutPage] estado itens atualizado:", itens);
+    console.log("[CheckoutPage] quantidade de itens:", itens.length);
+  }, [itens]);
+
+  React.useEffect(() => {
+    console.log("[CheckoutPage] estado carrinho atualizado:", carrinho);
+  }, [carrinho]);
+
+  React.useEffect(() => {
+    console.log("[CheckoutPage] erro atualizado:", erro);
+  }, [erro]);
+
   const subtotalCalculado = React.useMemo(() => {
-    return itens.reduce((acc, item) => {
+    const valor = itens.reduce((acc, item) => {
       return acc + precoFinalItem(item) * (item.quantidade || 1);
     }, 0);
+
+    console.log("[subtotalCalculado]:", valor);
+    return valor;
   }, [itens]);
 
   const totalItens = React.useMemo(() => {
-    return itens.reduce((acc, item) => acc + item.quantidade, 0);
+    const valor = itens.reduce((acc, item) => acc + item.quantidade, 0);
+    console.log("[totalItens]:", valor);
+    return valor;
   }, [itens]);
 
   const frete = React.useMemo(() => {
     const valor = num(carrinho?.valor_frete);
-    if (valor > 0) return valor;
-    if (itens.length === 0) return 0;
+    if (valor > 0) {
+      console.log("[frete] vindo do carrinho:", valor);
+      return valor;
+    }
+    if (itens.length === 0) {
+      console.log("[frete] sem itens, frete = 0");
+      return 0;
+    }
+    console.log("[frete] fallback = 0");
     return 0;
   }, [carrinho, itens]);
 
   const subtotal = React.useMemo(() => {
     const valor = num(carrinho?.valor_produtos);
-    return valor > 0 ? valor : subtotalCalculado;
+    const finalValor = valor > 0 ? valor : subtotalCalculado;
+    console.log("[subtotal] valor final:", finalValor);
+    return finalValor;
   }, [carrinho, subtotalCalculado]);
 
   const desconto = React.useMemo(() => {
-    return num(carrinho?.valor_desconto);
+    const valor = num(carrinho?.valor_desconto);
+    console.log("[desconto]:", valor);
+    return valor;
   }, [carrinho]);
 
   const total = React.useMemo(() => {
     const valor = num(carrinho?.valor_total);
-    if (valor > 0) return valor;
-    return subtotal - desconto + frete;
+    const finalValor = valor > 0 ? valor : subtotal - desconto + frete;
+    console.log("[total] valor final:", finalValor);
+    return finalValor;
   }, [carrinho, subtotal, desconto, frete]);
 
   async function carregarCarrinho() {
     try {
       setErro(null);
 
+      console.log("======================================");
+      console.log("[carregarCarrinho] iniciando carregamento");
+      console.log("[carregarCarrinho] baseURL:", api.defaults.baseURL);
+
       try {
+        console.log("[carregarCarrinho] tentando GET /carrinho");
+
         const resp = await api.get("/carrinho", {
           withCredentials: true,
         });
+
+        console.log("[carregarCarrinho] resposta /carrinho:", resp);
+        console.log("[carregarCarrinho] response.data /carrinho:", resp.data);
 
         const base = pickCarrinhoBase(resp.data);
         const listaBruta = pickItensDoCarrinho(resp.data);
         const listaNormalizada = normalizarItens(listaBruta);
 
-        setCarrinho({
-          id_carrinho: Number(base?.id_carrinho ?? base?.carrinho?.id_carrinho ?? 0) || undefined,
-          usuario_id: Number(base?.usuario_id ?? base?.carrinho?.usuario_id ?? 0) || undefined,
-          status_id: Number(base?.status_id ?? base?.carrinho?.status_id ?? 0) || undefined,
-          valor_produtos: base?.valor_produtos ?? base?.carrinho?.valor_produtos ?? 0,
-          valor_desconto: base?.valor_desconto ?? base?.carrinho?.valor_desconto ?? 0,
+        const carrinhoNormalizado = {
+          id_carrinho:
+            Number(base?.id_carrinho ?? base?.carrinho?.id_carrinho ?? 0) ||
+            undefined,
+          usuario_id:
+            Number(base?.usuario_id ?? base?.carrinho?.usuario_id ?? 0) ||
+            undefined,
+          status_id:
+            Number(base?.status_id ?? base?.carrinho?.status_id ?? 0) ||
+            undefined,
+          valor_produtos:
+            base?.valor_produtos ?? base?.carrinho?.valor_produtos ?? 0,
+          valor_desconto:
+            base?.valor_desconto ?? base?.carrinho?.valor_desconto ?? 0,
           valor_frete: base?.valor_frete ?? base?.carrinho?.valor_frete ?? 0,
           valor_total: base?.valor_total ?? base?.carrinho?.valor_total ?? 0,
           itens: listaBruta,
-        });
+        };
 
+        console.log("[carregarCarrinho] carrinho normalizado:", carrinhoNormalizado);
+        console.log("[carregarCarrinho] listaBruta /carrinho:", listaBruta);
+        console.log("[carregarCarrinho] listaNormalizada /carrinho:", listaNormalizada);
+
+        setCarrinho(carrinhoNormalizado);
         setItens(listaNormalizada);
+
+        console.log("[carregarCarrinho] sucesso usando /carrinho");
+        console.log("======================================");
         return;
-      } catch {
+      } catch (erroCarrinho) {
+        console.warn("[carregarCarrinho] falhou GET /carrinho:", erroCarrinho);
+
+        console.log("[carregarCarrinho] tentando fallback GET /carrinho/itens");
+
         const respItens = await api.get("/carrinho/itens", {
           withCredentials: true,
         });
 
+        console.log("[carregarCarrinho] resposta /carrinho/itens:", respItens);
+        console.log("[carregarCarrinho] response.data /carrinho/itens:", respItens.data);
+
         const listaBruta = pickItensDoCarrinho(respItens.data);
         const listaNormalizada = normalizarItens(listaBruta);
 
+        console.log("[carregarCarrinho] listaBruta /carrinho/itens:", listaBruta);
+        console.log(
+          "[carregarCarrinho] listaNormalizada /carrinho/itens:",
+          listaNormalizada
+        );
+
         setCarrinho(null);
         setItens(listaNormalizada);
+
+        console.log("[carregarCarrinho] sucesso usando /carrinho/itens");
+        console.log("======================================");
       }
     } catch (e: any) {
+      console.error("[carregarCarrinho] erro final:", e);
+      console.error("[carregarCarrinho] response:", e?.response);
+      console.error("[carregarCarrinho] response.data:", e?.response?.data);
+
       setErro(e?.response?.data?.mensagem || "Erro ao carregar checkout.");
       setCarrinho(null);
       setItens([]);
+      console.log("======================================");
     }
   }
 
@@ -245,11 +350,18 @@ export default function CheckoutPage() {
     try {
       setCarregandoUsuario(true);
 
+      console.log("[carregarUsuarioLogado] tentando GET /me");
+
       const response = await api.get("/me", {
         withCredentials: true,
       });
 
+      console.log("[carregarUsuarioLogado] resposta /me:", response);
+      console.log("[carregarUsuarioLogado] response.data /me:", response.data);
+
       const dados = response?.data?.dados ?? response?.data ?? null;
+
+      console.log("[carregarUsuarioLogado] dados processados:", dados);
 
       if (!dados) return;
 
@@ -264,7 +376,7 @@ export default function CheckoutPage() {
           prev.telefone,
       }));
     } catch (error) {
-      console.error("Usuário não carregado no checkout:", error);
+      console.error("[carregarUsuarioLogado] erro:", error);
     } finally {
       setCarregandoUsuario(false);
     }
@@ -277,6 +389,8 @@ export default function CheckoutPage() {
       try {
         setLoading(true);
         setErro(null);
+
+        console.log("[CheckoutPage] iniciando página checkout");
 
         await Promise.all([carregarCarrinho(), carregarUsuarioLogado()]);
       } finally {
@@ -295,6 +409,9 @@ export default function CheckoutPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) {
     const { name, value } = e.target;
+
+    console.log("[handleChange] campo alterado:", name, value);
+
     setForm((prev) => ({
       ...prev,
       [name]: value,
@@ -304,12 +421,18 @@ export default function CheckoutPage() {
   async function handleContinuar(e: React.FormEvent) {
     e.preventDefault();
 
+    console.log("[handleContinuar] itens atuais:", itens);
+    console.log("[handleContinuar] carrinho atual:", carrinho);
+    console.log("[handleContinuar] form atual:", form);
+
     if (itens.length === 0) {
+      console.warn("[handleContinuar] bloqueado: carrinho vazio");
       toast.warning("Seu carrinho está vazio.");
       return;
     }
 
     if (!form.nome || !form.email || !form.telefone) {
+      console.warn("[handleContinuar] bloqueado: dados do cliente incompletos");
       toast.warning("Preencha os dados principais do cliente.");
       return;
     }
@@ -322,6 +445,7 @@ export default function CheckoutPage() {
       !form.cidade ||
       !form.estado
     ) {
+      console.warn("[handleContinuar] bloqueado: endereço incompleto");
       toast.warning("Preencha os dados de entrega.");
       return;
     }
@@ -353,11 +477,18 @@ export default function CheckoutPage() {
         },
       };
 
+      console.log("[handleContinuar] payload enviado para /carrinho/finalizar:", payload);
+
       const response = await api.put("/carrinho/finalizar", payload, {
         withCredentials: true,
       });
 
+      console.log("[handleContinuar] resposta /carrinho/finalizar:", response);
+      console.log("[handleContinuar] response.data /carrinho/finalizar:", response.data);
+
       const dados = response?.data?.dados ?? response?.data ?? {};
+
+      console.log("[handleContinuar] dados processados:", dados);
 
       toast.success(
         dados?.mensagem || "Carrinho finalizado com sucesso. Continue para o pagamento."
@@ -366,15 +497,21 @@ export default function CheckoutPage() {
       await carregarCarrinho();
 
       if (dados?.redirect) {
+        console.log("[handleContinuar] redirecionando para redirect:", dados.redirect);
         window.location.href = dados.redirect;
         return;
       }
 
       if (dados?.url) {
+        console.log("[handleContinuar] redirecionando para url:", dados.url);
         window.location.href = dados.url;
         return;
       }
     } catch (error: any) {
+      console.error("[handleContinuar] erro:", error);
+      console.error("[handleContinuar] error.response:", error?.response);
+      console.error("[handleContinuar] error.response.data:", error?.response?.data);
+
       toast.error(
         error?.response?.data?.mensagem ||
           error?.response?.data?.dados?.erro ||
