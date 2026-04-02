@@ -15,6 +15,8 @@ import {
   FiChevronRight,
   FiTag,
   FiBox,
+  FiTrash2,
+  FiRotateCcw,
 } from "react-icons/fi";
 
 type Produto = {
@@ -36,12 +38,28 @@ type Produto = {
   atualizado_em?: string;
 };
 
+type Categoria = {
+  id_categoria?: number | string;
+  id?: number | string;
+  nome?: string;
+  slug?: string;
+};
+
 function extrairListaProdutos(data: any): Produto[] {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.dados)) return data.dados;
   if (Array.isArray(data?.dados?.dados)) return data.dados.dados;
   if (Array.isArray(data?.produtos)) return data.produtos;
   if (Array.isArray(data?.dados?.produtos)) return data.dados.produtos;
+  return [];
+}
+
+function extrairListaCategorias(data: any): Categoria[] {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.dados)) return data.dados;
+  if (Array.isArray(data?.dados?.dados)) return data.dados.dados;
+  if (Array.isArray(data?.categorias)) return data.categorias;
+  if (Array.isArray(data?.dados?.categorias)) return data.dados.categorias;
   return [];
 }
 
@@ -71,28 +89,39 @@ export default function ProdutosListaPage() {
   const router = useRouter();
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [busca, setBusca] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [itensPorPagina, setItensPorPagina] = useState(5);
+  const [excluindoId, setExcluindoId] = useState<string | number | null>(null);
+  const [excluindoTodos, setExcluindoTodos] = useState(false);
 
   useEffect(() => {
-    carregarProdutos();
+    carregarDados();
   }, []);
 
-  async function carregarProdutos() {
+  async function carregarDados() {
     try {
       setCarregando(true);
       setErro("");
 
-      const response = await api.get("/produtos");
-      const lista = extrairListaProdutos(response?.data);
-      setProdutos(lista);
+      const [produtosResponse, categoriasResponse] = await Promise.all([
+        api.get("/painel/produtos"),
+        api.get("/painel/categorias"),
+      ]);
+
+      const listaProdutos = extrairListaProdutos(produtosResponse?.data);
+      const listaCategorias = extrairListaCategorias(categoriasResponse?.data);
+
+      setProdutos(listaProdutos);
+      setCategorias(listaCategorias);
     } catch (error: any) {
       console.error(error);
       setErro(
-        error?.response?.data?.mensagem || "Erro ao carregar produtos"
+        error?.response?.data?.mensagem ||
+          "Erro ao carregar produtos e categorias"
       );
     } finally {
       setCarregando(false);
@@ -102,6 +131,21 @@ export default function ProdutosListaPage() {
   useEffect(() => {
     setPaginaAtual(1);
   }, [busca, itensPorPagina]);
+
+  const categoriasMap = useMemo(() => {
+    const mapa = new Map<string, string>();
+
+    categorias.forEach((categoria) => {
+      const id = String(categoria.id_categoria ?? categoria.id ?? "");
+      const nome = categoria.nome || "Sem categoria";
+
+      if (id) {
+        mapa.set(id, nome);
+      }
+    });
+
+    return mapa;
+  }, [categorias]);
 
   const filtrados = useMemo(() => {
     const termo = busca.toLowerCase().trim();
@@ -113,6 +157,9 @@ export default function ProdutosListaPage() {
       const marca = (p.marca || "").toLowerCase();
       const modelo = (p.modelo || "").toLowerCase();
       const descricao = (p.descricao || "").toLowerCase();
+      const categoriaNome = (
+        categoriasMap.get(String(p.categoria_id ?? "")) || ""
+      ).toLowerCase();
 
       return (
         nome.includes(termo) ||
@@ -120,10 +167,11 @@ export default function ProdutosListaPage() {
         sku.includes(termo) ||
         marca.includes(termo) ||
         modelo.includes(termo) ||
-        descricao.includes(termo)
+        descricao.includes(termo) ||
+        categoriaNome.includes(termo)
       );
     });
-  }, [produtos, busca]);
+  }, [produtos, busca, categoriasMap]);
 
   const totalPaginas = Math.max(
     1,
@@ -145,12 +193,75 @@ export default function ProdutosListaPage() {
       : { label: "Inativo", className: "inativo" };
   }
 
+  function getCategoriaNome(categoriaId?: number | string) {
+    return categoriasMap.get(String(categoriaId ?? "")) || "Sem categoria";
+  }
+
   function irPaginaAnterior() {
     setPaginaAtual((prev) => Math.max(prev - 1, 1));
   }
 
   function irProximaPagina() {
     setPaginaAtual((prev) => Math.min(prev + 1, totalPaginas));
+  }
+
+  async function excluirProduto(id: number | string) {
+    const confirmou = window.confirm(
+      "Tem certeza que deseja excluir este produto?"
+    );
+    if (!confirmou) return;
+
+    try {
+      setExcluindoId(id);
+      await api.delete(`/painel/produto/${id}`);
+
+      setProdutos((prev) =>
+        prev.filter((produto) => String(getId(produto)) !== String(id))
+      );
+    } catch (error: any) {
+      console.error("Erro ao excluir produto:", error);
+      alert(
+        error?.response?.data?.mensagem ||
+          "Não foi possível excluir o produto."
+      );
+    } finally {
+      setExcluindoId(null);
+    }
+  }
+
+  async function excluirTodosDaPagina() {
+    if (produtosPaginados.length === 0) return;
+
+    const confirmou = window.confirm(
+      `Tem certeza que deseja excluir ${produtosPaginados.length} produto(s) desta página?`
+    );
+    if (!confirmou) return;
+
+    try {
+      setExcluindoTodos(true);
+
+      for (const produto of produtosPaginados) {
+        const id = getId(produto);
+        if (!id) continue;
+        await api.delete(`/painel/produto/${id}`);
+      }
+
+      const idsPagina = new Set(
+        produtosPaginados.map((produto) => String(getId(produto)))
+      );
+
+      setProdutos((prev) =>
+        prev.filter((produto) => !idsPagina.has(String(getId(produto))))
+      );
+    } catch (error: any) {
+      console.error("Erro ao excluir produtos da página:", error);
+      alert(
+        error?.response?.data?.mensagem ||
+          "Não foi possível excluir todos os produtos da página."
+      );
+    } finally {
+      setExcluindoTodos(false);
+    }
   }
 
   return (
@@ -164,13 +275,17 @@ export default function ProdutosListaPage() {
 
           <h1>Produtos em cards</h1>
           <p>
-            Visualize os produtos em um layout mais moderno, com imagem,
-            detalhes principais e paginação por cards.
+            Visualize os produtos com imagem, categoria, preços e ações em um
+            layout mais moderno e profissional.
           </p>
         </div>
 
         <div className="hero-right">
-          <button className="btn btn-light" onClick={carregarProdutos}>
+          <button
+            className="btn btn-light"
+            onClick={carregarDados}
+            type="button"
+          >
             <FiRefreshCw size={16} />
             <span>Atualizar</span>
           </button>
@@ -186,7 +301,7 @@ export default function ProdutosListaPage() {
         <div className="search-box">
           <FiSearch size={18} />
           <input
-            placeholder="Buscar por nome, slug, sku, marca, modelo..."
+            placeholder="Buscar por nome, slug, sku, marca, modelo ou categoria..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
@@ -211,6 +326,27 @@ export default function ProdutosListaPage() {
             <strong>{filtrados.length}</strong>
             <span>{filtrados.length === 1 ? "produto" : "produtos"}</span>
           </div>
+
+          <button
+            className="btn-action clear"
+            type="button"
+            onClick={excluirTodosDaPagina}
+            disabled={excluindoTodos || produtosPaginados.length === 0}
+          >
+            <FiTrash2 size={16} />
+            <span>
+              {excluindoTodos ? "Excluindo..." : "Excluir todos da página"}
+            </span>
+          </button>
+
+          <button
+            className="btn-action restore"
+            type="button"
+            onClick={carregarDados}
+          >
+            <FiRotateCcw size={16} />
+            <span>Restaurar lista</span>
+          </button>
         </div>
       </div>
 
@@ -226,9 +362,10 @@ export default function ProdutosListaPage() {
             {produtosPaginados.map((p) => {
               const status = getStatus(p.status_id);
               const imagem = normalizarImagem(p);
+              const id = getId(p);
 
               return (
-                <div className="produto-card" key={String(getId(p))}>
+                <div className="produto-card" key={String(id)}>
                   <div className="produto-imagem-box">
                     {imagem ? (
                       <img
@@ -250,12 +387,17 @@ export default function ProdutosListaPage() {
 
                   <div className="produto-conteudo">
                     <div className="produto-topo">
-                      <span className="produto-id">ID #{getId(p)}</span>
+                      <span className="produto-id">ID #{id}</span>
                       <span className="produto-sku">{p.sku || "Sem SKU"}</span>
                     </div>
 
                     <h3>{p.nome || "-"}</h3>
                     <p className="produto-slug">{p.slug || "-"}</p>
+
+                    <div className="categoria-badge">
+                      <FiTag size={14} />
+                      <span>{getCategoriaNome(p.categoria_id)}</span>
+                    </div>
 
                     <div className="produto-meta">
                       <div className="meta-item">
@@ -266,11 +408,6 @@ export default function ProdutosListaPage() {
                       <div className="meta-item">
                         <span className="meta-label">Modelo</span>
                         <strong>{p.modelo || "-"}</strong>
-                      </div>
-
-                      <div className="meta-item">
-                        <span className="meta-label">Categoria</span>
-                        <strong>{p.categoria_id || "-"}</strong>
                       </div>
                     </div>
 
@@ -298,9 +435,7 @@ export default function ProdutosListaPage() {
                     <div className="acoes-card">
                       <button
                         className="action-btn view"
-                        onClick={() =>
-                          router.push(`/Admin/produtos/${getId(p)}`)
-                        }
+                        onClick={() => router.push(`/Admin/produtos/${id}`)}
                         type="button"
                       >
                         <FiEye size={16} />
@@ -309,13 +444,23 @@ export default function ProdutosListaPage() {
 
                       <button
                         className="action-btn edit"
-                        onClick={() =>
-                          router.push(`/Admin/produtos/${getId(p)}/editar`)
-                        }
+                        onClick={() => router.push(`/Admin/produtos/${id}/editar`)}
                         type="button"
                       >
                         <FiEdit size={16} />
                         <span>Editar</span>
+                      </button>
+
+                      <button
+                        className="action-btn delete"
+                        onClick={() => excluirProduto(id!)}
+                        type="button"
+                        disabled={excluindoId === id}
+                      >
+                        <FiTrash2 size={16} />
+                        <span>
+                          {excluindoId === id ? "Excluindo..." : "Excluir"}
+                        </span>
                       </button>
                     </div>
                   </div>
@@ -529,6 +674,33 @@ export default function ProdutosListaPage() {
           font-size: 18px;
         }
 
+        .btn-action {
+          min-height: 42px;
+          padding: 0 14px;
+          border-radius: 12px;
+          border: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          font-weight: 700;
+          cursor: pointer;
+        }
+
+        .btn-action.clear {
+          background: rgba(239, 68, 68, 0.12);
+          color: #b91c1c;
+        }
+
+        .btn-action.restore {
+          background: rgba(59, 130, 246, 0.12);
+          color: #1d4ed8;
+        }
+
+        .btn-action:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
         .estado {
           max-width: 1450px;
           margin: 0 auto;
@@ -549,7 +721,7 @@ export default function ProdutosListaPage() {
           max-width: 1450px;
           margin: 0 auto;
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
           gap: 18px;
         }
 
@@ -567,7 +739,7 @@ export default function ProdutosListaPage() {
         .produto-imagem-box {
           position: relative;
           width: 100%;
-          height: 230px;
+          height: 240px;
           background: linear-gradient(135deg, #eef2ff, #f5f3ff);
           overflow: hidden;
         }
@@ -662,9 +834,23 @@ export default function ProdutosListaPage() {
           word-break: break-word;
         }
 
+        .categoria-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          min-height: 36px;
+          width: fit-content;
+          padding: 0 12px;
+          border-radius: 999px;
+          background: linear-gradient(135deg, #f5f3ff, #eef2ff);
+          color: #4f46e5;
+          font-size: 13px;
+          font-weight: 700;
+        }
+
         .produto-meta {
           display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 10px;
         }
 
@@ -727,7 +913,7 @@ export default function ProdutosListaPage() {
         .acoes-card {
           margin-top: auto;
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: repeat(3, minmax(0, 1fr));
           gap: 10px;
         }
 
@@ -752,6 +938,16 @@ export default function ProdutosListaPage() {
         .action-btn.edit {
           background: rgba(139, 92, 246, 0.12);
           color: #7c3aed;
+        }
+
+        .action-btn.delete {
+          background: rgba(239, 68, 68, 0.12);
+          color: #b91c1c;
+        }
+
+        .action-btn:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
 
         .pagination-card {
