@@ -118,7 +118,7 @@ export default function ProdutosListaPage() {
       setProdutos(listaProdutos);
       setCategorias(listaCategorias);
     } catch (error: any) {
-      console.error(error);
+      console.error("Erro ao carregar dados:", error);
       setErro(
         error?.response?.data?.mensagem ||
           "Erro ao carregar produtos e categorias"
@@ -213,6 +213,8 @@ export default function ProdutosListaPage() {
 
     try {
       setExcluindoId(id);
+
+      // rota do painel
       await api.delete(`/painel/produto/${id}`);
 
       setProdutos((prev) =>
@@ -243,6 +245,8 @@ export default function ProdutosListaPage() {
       for (const produto of produtosPaginados) {
         const id = getId(produto);
         if (!id) continue;
+
+        // rota do painel
         await api.delete(`/painel/produto/${id}`);
       }
 
@@ -257,7 +261,7 @@ export default function ProdutosListaPage() {
       console.error("Erro ao excluir produtos da página:", error);
       alert(
         error?.response?.data?.mensagem ||
-          "Não foi possível excluir todos os produtos da página."
+          "Não foi possível excluir todos os produtos."
       );
     } finally {
       setExcluindoTodos(false);
