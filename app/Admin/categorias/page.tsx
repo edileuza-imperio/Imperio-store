@@ -14,6 +14,8 @@ import {
   FiCheckCircle,
   FiAlertCircle,
   FiFolder,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 
 type Categoria = {
@@ -36,6 +38,8 @@ export default function CategoriasPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [itensPorPagina, setItensPorPagina] = useState(5);
 
   async function carregarCategorias() {
     try {
@@ -72,6 +76,10 @@ export default function CategoriasPage() {
     carregarCategorias();
   }, []);
 
+  useEffect(() => {
+    setPaginaAtual(1);
+  }, [busca, itensPorPagina]);
+
   const categoriasFiltradas = useMemo(() => {
     const termo = busca.trim().toLowerCase();
 
@@ -89,6 +97,17 @@ export default function CategoriasPage() {
       );
     });
   }, [categorias, busca]);
+
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(categoriasFiltradas.length / itensPorPagina)
+  );
+
+  const paginaSegura = Math.min(paginaAtual, totalPaginas);
+  const inicio = (paginaSegura - 1) * itensPorPagina;
+  const fim = inicio + itensPorPagina;
+
+  const categoriasPaginadas = categoriasFiltradas.slice(inicio, fim);
 
   function getId(categoria: Categoria) {
     return categoria.id_categoria ?? categoria.id ?? 0;
@@ -108,6 +127,14 @@ export default function CategoriasPage() {
       className: "inativo",
       icon: <FiAlertCircle size={14} />,
     };
+  }
+
+  function irParaPaginaAnterior() {
+    setPaginaAtual((prev) => Math.max(prev - 1, 1));
+  }
+
+  function irParaProximaPagina() {
+    setPaginaAtual((prev) => Math.min(prev + 1, totalPaginas));
   }
 
   return (
@@ -144,20 +171,40 @@ export default function CategoriasPage() {
       </div>
 
       <div className="toolbar">
-        <div className="search-box">
-          <input
-            type="text"
-            placeholder="Buscar por nome, slug ou descrição..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
+        <div className="toolbar-left">
+          <div className="search-box">
+            <input
+              type="text"
+              placeholder="Buscar por nome, slug ou descrição..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
+          </div>
         </div>
 
-        <div className="toolbar-info">
-          <strong>{categoriasFiltradas.length}</strong>
-          <span>
-            {categoriasFiltradas.length === 1 ? "categoria encontrada" : "categorias encontradas"}
-          </span>
+        <div className="toolbar-right">
+          <div className="select-box">
+            <label htmlFor="itensPorPagina">Por página</label>
+            <select
+              id="itensPorPagina"
+              value={itensPorPagina}
+              onChange={(e) => setItensPorPagina(Number(e.target.value))}
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={20}>20</option>
+            </select>
+          </div>
+
+          <div className="toolbar-info">
+            <strong>{categoriasFiltradas.length}</strong>
+            <span>
+              {categoriasFiltradas.length === 1
+                ? "categoria encontrada"
+                : "categorias encontradas"}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -190,96 +237,134 @@ export default function CategoriasPage() {
           </div>
         </div>
       ) : (
-        <div className="table-card">
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Nome</th>
-                  <th>Slug</th>
-                  <th>Descrição</th>
-                  <th>Site</th>
-                  <th>Ordem</th>
-                  <th>Status</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
+        <>
+          <div className="table-card">
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Slug</th>
+                    <th>Descrição</th>
+                    <th>Site</th>
+                    <th>Ordem</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
 
-              <tbody>
-                {categoriasFiltradas.map((categoria) => {
-                  const id = getId(categoria);
-                  const status = getStatusInfo(categoria.status_id);
+                <tbody>
+                  {categoriasPaginadas.map((categoria) => {
+                    const id = getId(categoria);
+                    const status = getStatusInfo(categoria.status_id);
 
-                  return (
-                    <tr key={id}>
-                      <td>
-                        <div className="cell-inline">
-                          <FiHash size={14} />
-                          <span>{id}</span>
-                        </div>
-                      </td>
+                    return (
+                      <tr key={id}>
+                        <td>
+                          <div className="cell-inline">
+                            <FiHash size={14} />
+                            <span>{id}</span>
+                          </div>
+                        </td>
 
-                      <td>
-                        <div className="cell-strong">
-                          <FiTag size={14} />
-                          <span>{categoria.nome || "-"}</span>
-                        </div>
-                      </td>
+                        <td>
+                          <div className="cell-strong">
+                            <FiTag size={14} />
+                            <span>{categoria.nome || "-"}</span>
+                          </div>
+                        </td>
 
-                      <td>
-                        <code>{categoria.slug || "-"}</code>
-                      </td>
+                        <td>
+                          <code>{categoria.slug || "-"}</code>
+                        </td>
 
-                      <td className="descricao-cell">
-                        {categoria.descricao?.trim() || "Sem descrição"}
-                      </td>
+                        <td className="descricao-cell">
+                          {categoria.descricao?.trim() || "Sem descrição"}
+                        </td>
 
-                      <td>
-                        <div className="cell-inline">
-                          <FiLayers size={14} />
-                          <span>{categoria.site_config_id ?? "-"}</span>
-                        </div>
-                      </td>
+                        <td>
+                          <div className="cell-inline">
+                            <FiLayers size={14} />
+                            <span>{categoria.site_config_id ?? "-"}</span>
+                          </div>
+                        </td>
 
-                      <td>{categoria.ordem ?? "-"}</td>
+                        <td>{categoria.ordem ?? "-"}</td>
 
-                      <td>
-                        <span className={`status-badge ${status.className}`}>
-                          {status.icon}
-                          {status.label}
-                        </span>
-                      </td>
+                        <td>
+                          <span className={`status-badge ${status.className}`}>
+                            {status.icon}
+                            {status.label}
+                          </span>
+                        </td>
 
-                      <td>
-                        <div className="actions">
-                          <Link
-                            href={`/Admin/categorias/${id}/editar`}
-                            className="icon-btn edit"
-                            title="Editar categoria"
-                          >
-                            <FiEdit size={16} />
-                          </Link>
+                        <td>
+                          <div className="actions">
+                            <Link
+                              href={`/Admin/categorias/${id}/editar`}
+                              className="icon-btn edit"
+                              title="Editar categoria"
+                            >
+                              <FiEdit size={16} />
+                            </Link>
 
-                          <button
-                            type="button"
-                            className="icon-btn delete"
-                            title="Excluir categoria"
-                            onClick={() => {
-                              alert(`Depois eu posso te montar a exclusão da categoria ID ${id}.`);
-                            }}
-                          >
-                            <FiTrash2 size={16} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                            <button
+                              type="button"
+                              className="icon-btn delete"
+                              title="Excluir categoria"
+                              onClick={() => {
+                                alert(`Depois eu posso te montar a exclusão da categoria ID ${id}.`);
+                              }}
+                            >
+                              <FiTrash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          <div className="pagination-card">
+            <div className="pagination-info">
+              <span>
+                Mostrando <strong>{categoriasPaginadas.length}</strong> de{" "}
+                <strong>{categoriasFiltradas.length}</strong> categorias
+              </span>
+            </div>
+
+            <div className="pagination-controls">
+              <button
+                type="button"
+                className="page-btn"
+                onClick={irParaPaginaAnterior}
+                disabled={paginaSegura === 1}
+              >
+                <FiChevronLeft size={16} />
+                <span>Anterior</span>
+              </button>
+
+              <div className="page-indicator">
+                Página <strong>{paginaSegura}</strong> de{" "}
+                <strong>{totalPaginas}</strong>
+              </div>
+
+              <button
+                type="button"
+                className="page-btn"
+                onClick={irParaProximaPagina}
+                disabled={paginaSegura === totalPaginas}
+              >
+                <span>Próxima</span>
+                <FiChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        </>
       )}
 
       <style jsx>{`
@@ -397,9 +482,20 @@ export default function CategoriasPage() {
           padding: 14px;
         }
 
-        .search-box {
+        .toolbar-left {
           flex: 1;
           min-width: 260px;
+        }
+
+        .toolbar-right {
+          display: flex;
+          align-items: center;
+          gap: 14px;
+          flex-wrap: wrap;
+        }
+
+        .search-box {
+          width: 100%;
         }
 
         .search-box input {
@@ -417,6 +513,33 @@ export default function CategoriasPage() {
         .search-box input:focus {
           border-color: #d18b72;
           box-shadow: 0 0 0 4px rgba(209, 139, 114, 0.12);
+        }
+
+        .select-box {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          background: #fff;
+          border: 1px solid #ead7cb;
+          border-radius: 14px;
+          padding: 8px 12px;
+        }
+
+        .select-box label {
+          font-size: 13px;
+          font-weight: 700;
+          color: #6f554b;
+          white-space: nowrap;
+        }
+
+        .select-box select {
+          border: none;
+          background: transparent;
+          outline: none;
+          color: #352720;
+          font-size: 14px;
+          font-weight: 700;
+          cursor: pointer;
         }
 
         .toolbar-info {
@@ -586,6 +709,77 @@ export default function CategoriasPage() {
           color: #b91c1c;
         }
 
+        .pagination-card {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+          border-radius: 20px;
+          background: rgba(255, 255, 255, 0.82);
+          border: 1px solid rgba(232, 214, 204, 0.92);
+          padding: 14px 16px;
+        }
+
+        .pagination-info {
+          color: #6f554b;
+          font-size: 14px;
+        }
+
+        .pagination-info strong {
+          color: #352720;
+        }
+
+        .pagination-controls {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .page-btn {
+          min-height: 42px;
+          padding: 0 14px;
+          border-radius: 12px;
+          border: 1px solid #ead7cb;
+          background: #fff;
+          color: #4a352e;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: 0.22s ease;
+        }
+
+        .page-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+        }
+
+        .page-btn:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+        }
+
+        .page-indicator {
+          min-height: 42px;
+          padding: 0 14px;
+          border-radius: 12px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          background: #fff7f2;
+          border: 1px solid #f0dfd6;
+          color: #6f554b;
+          font-size: 14px;
+        }
+
+        .page-indicator strong {
+          color: #352720;
+          margin: 0 4px;
+        }
+
         .spin {
           animation: spin 1s linear infinite;
         }
@@ -613,13 +807,43 @@ export default function CategoriasPage() {
             align-items: stretch;
           }
 
-          .toolbar-info {
+          .toolbar-left,
+          .toolbar-right {
             width: 100%;
-            justify-content: flex-start;
           }
 
-          .search-box {
-            min-width: 100%;
+          .toolbar-right {
+            justify-content: space-between;
+          }
+
+          .pagination-card {
+            align-items: stretch;
+          }
+
+          .pagination-controls {
+            width: 100%;
+            justify-content: space-between;
+          }
+        }
+
+        @media (max-width: 620px) {
+          .toolbar-right {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .select-box {
+            justify-content: space-between;
+          }
+
+          .pagination-controls {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .page-btn,
+          .page-indicator {
+            width: 100%;
           }
         }
       `}</style>
