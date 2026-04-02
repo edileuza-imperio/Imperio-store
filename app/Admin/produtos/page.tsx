@@ -118,7 +118,7 @@ export default function ProdutosListaPage() {
       setProdutos(listaProdutos);
       setCategorias(listaCategorias);
     } catch (error: any) {
-      console.error("Erro ao carregar dados:", error);
+      console.error("Erro ao carregar dados:", error?.response?.data || error);
       setErro(
         error?.response?.data?.mensagem ||
           "Erro ao carregar produtos e categorias"
@@ -214,14 +214,11 @@ export default function ProdutosListaPage() {
     try {
       setExcluindoId(id);
 
-      // rota do painel
       await api.delete(`/painel/produto/${id}`);
 
-      setProdutos((prev) =>
-        prev.filter((produto) => String(getId(produto)) !== String(id))
-      );
+      await carregarDados();
     } catch (error: any) {
-      console.error("Erro ao excluir produto:", error);
+      console.error("Erro ao excluir produto:", error?.response?.data || error);
       alert(
         error?.response?.data?.mensagem ||
           "Não foi possível excluir o produto."
@@ -246,19 +243,15 @@ export default function ProdutosListaPage() {
         const id = getId(produto);
         if (!id) continue;
 
-        // rota do painel
         await api.delete(`/painel/produto/${id}`);
       }
 
-      const idsPagina = new Set(
-        produtosPaginados.map((produto) => String(getId(produto)))
-      );
-
-      setProdutos((prev) =>
-        prev.filter((produto) => !idsPagina.has(String(getId(produto))))
-      );
+      await carregarDados();
     } catch (error: any) {
-      console.error("Erro ao excluir produtos da página:", error);
+      console.error(
+        "Erro ao excluir produtos da página:",
+        error?.response?.data || error
+      );
       alert(
         error?.response?.data?.mensagem ||
           "Não foi possível excluir todos os produtos."
@@ -448,7 +441,9 @@ export default function ProdutosListaPage() {
 
                       <button
                         className="action-btn edit"
-                        onClick={() => router.push(`/Admin/produtos/${id}/editar`)}
+                        onClick={() =>
+                          router.push(`/Admin/produtos/${id}/editar`)
+                        }
                         type="button"
                       >
                         <FiEdit size={16} />
