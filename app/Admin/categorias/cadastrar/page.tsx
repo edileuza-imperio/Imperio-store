@@ -5,362 +5,363 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import api from "@/Api/conectar";
 import {
-  FiArrowLeft,
-  FiCheckCircle,
-  FiFolder,
-  FiInfo,
-  FiLayers,
-  FiSave,
-  FiTag,
-  FiType,
-  FiAlertCircle,
-  FiGrid,
-  FiRefreshCw,
+    FiArrowLeft,
+    FiCheckCircle,
+    FiFolder,
+    FiInfo,
+    FiLayers,
+    FiSave,
+    FiTag,
+    FiType,
+    FiAlertCircle,
+    FiGrid,
+    FiRefreshCw,
 } from "react-icons/fi";
 
 type FormDataType = {
-  nome: string;
-  slug: string;
-  descricao: string;
-  icone: string;
-  ordem: string;
-  status_id: string;
+    nome: string;
+    slug: string;
+    descricao: string;
+    icone: string;
+    ordem: string;
+    status_id: string;
 };
 
 type StatusItem = {
-  id_status?: number;
-  id?: number;
-  nome?: string;
-  titulo?: string;
-  descricao?: string;
+    id_status?: number;
+    id?: number;
+    nome?: string;
+    titulo?: string;
+    descricao?: string;
 };
 
 function gerarSlug(texto: string) {
-  return texto
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/--+/g, "-");
+    return texto
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/--+/g, "-");
 }
 
 export default function CadastrarCategoriaPage() {
-  const router = useRouter();
+    const router = useRouter();
 
-  const [form, setForm] = useState<FormDataType>({
-    nome: "",
-    slug: "",
-    descricao: "",
-    icone: "",
-    ordem: "0",
-    status_id: "",
-  });
-
-  const [slugEditadoManual, setSlugEditadoManual] = useState(false);
-  const [salvando, setSalvando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
-  const [sucesso, setSucesso] = useState<string | null>(null);
-
-  const [statusList, setStatusList] = useState<StatusItem[]>([]);
-  const [carregandoAuxiliares, setCarregandoAuxiliares] = useState(true);
-
-  const previewSlug = useMemo(() => {
-    return form.slug?.trim() || "slug-da-categoria";
-  }, [form.slug]);
-
-  function atualizarCampo(campo: keyof FormDataType, valor: string) {
-    setForm((prev) => {
-      const novo = { ...prev, [campo]: valor };
-
-      if (campo === "nome" && !slugEditadoManual) {
-        novo.slug = gerarSlug(valor);
-      }
-
-      return novo;
+    const [form, setForm] = useState<FormDataType>({
+        nome: "",
+        slug: "",
+        descricao: "",
+        icone: "",
+        ordem: "0",
+        status_id: "",
     });
-  }
 
-  function getStatusId(item: StatusItem) {
-    return Number(item.id_status ?? item.id ?? 0);
-  }
+    const [slugEditadoManual, setSlugEditadoManual] = useState(false);
+    const [salvando, setSalvando] = useState(false);
+    const [erro, setErro] = useState<string | null>(null);
+    const [sucesso, setSucesso] = useState<string | null>(null);
 
-  function getStatusNome(item: StatusItem) {
-    return item.nome || item.titulo || item.descricao || `Status ${getStatusId(item)}`;
-  }
+    const [statusList, setStatusList] = useState<StatusItem[]>([]);
+    const [carregandoAuxiliares, setCarregandoAuxiliares] = useState(true);
 
-  async function carregarStatus() {
-    try {
-      setCarregandoAuxiliares(true);
-      setErro(null);
+    const previewSlug = useMemo(() => {
+        return form.slug?.trim() || "slug-da-categoria";
+    }, [form.slug]);
 
-      const response = await api.get("/painel/status");
-      const data = response?.data;
+    function atualizarCampo(campo: keyof FormDataType, valor: string) {
+        setForm((prev) => {
+            const novo = { ...prev, [campo]: valor };
 
-      const statusBruto: StatusItem[] = Array.isArray(data)
-        ? data
-        : Array.isArray(data?.dados)
-        ? data.dados
-        : Array.isArray(data?.status)
-        ? data.status
-        : [];
+            if (campo === "nome" && !slugEditadoManual) {
+                novo.slug = gerarSlug(valor);
+            }
 
-      setStatusList(statusBruto);
-
-      setForm((prev) => ({
-        ...prev,
-        status_id:
-          prev.status_id || (statusBruto.length > 0 ? String(getStatusId(statusBruto[0])) : ""),
-      }));
-    } catch (error: any) {
-      console.error("Erro ao carregar status:", error?.response?.data || error);
-
-      setStatusList([]);
-      setErro(
-        error?.response?.data?.mensagem ||
-          error?.message ||
-          "Erro ao carregar status."
-      );
-    } finally {
-      setCarregandoAuxiliares(false);
-    }
-  }
-
-  useEffect(() => {
-    carregarStatus();
-  }, []);
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-
-    setErro(null);
-    setSucesso(null);
-
-    if (!form.nome.trim()) {
-      setErro("Informe o nome da categoria.");
-      return;
+            return novo;
+        });
     }
 
-    if (!form.slug.trim()) {
-      setErro("Informe o slug da categoria.");
-      return;
+    function getStatusId(item: StatusItem) {
+        return Number(item.id_status ?? item.id ?? 0);
     }
 
-    if (form.ordem === "" || Number.isNaN(Number(form.ordem))) {
-      setErro("Informe uma ordem válida.");
-      return;
+    function getStatusNome(item: StatusItem) {
+        return item.nome || item.titulo || item.descricao || `Status ${getStatusId(item)}`;
     }
 
-    if (!form.status_id.trim()) {
-      setErro("Selecione o status.");
-      return;
+    async function carregarStatus() {
+        try {
+            setCarregandoAuxiliares(true);
+            setErro(null);
+
+            const response = await api.get("/painel/status");
+            const data = response?.data;
+
+            // 🔥 AQUI ESTÁ A CORREÇÃO
+            const statusBruto: StatusItem[] =
+                data?.dados?.dados || [];
+
+            setStatusList(statusBruto);
+
+            // define padrão como ID 1 (Ativo)
+            const statusAtivo = statusBruto.find((s) => getStatusId(s) === 1);
+
+            setForm((prev) => ({
+                ...prev,
+                status_id: statusAtivo
+                    ? String(getStatusId(statusAtivo))
+                    : "",
+            }));
+
+        } catch (error: any) {
+            console.error("Erro ao carregar status:", error?.response?.data || error);
+
+            setStatusList([]);
+            setErro(
+                error?.response?.data?.mensagem ||
+                error?.message ||
+                "Erro ao carregar status."
+            );
+        } finally {
+            setCarregandoAuxiliares(false);
+        }
     }
 
-    try {
-      setSalvando(true);
+    useEffect(() => {
+        carregarStatus();
+    }, []);
 
-      const payload = {
-        site_config_id: 1,
-        nome: form.nome.trim(),
-        slug: form.slug.trim(),
-        descricao: form.descricao.trim() || null,
-        icone: form.icone.trim() || null,
-        ordem: Number(form.ordem),
-        status_id: Number(form.status_id),
-      };
+    async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+        e.preventDefault();
 
-      const response = await api.post("/painel/categoria", payload);
+        setErro(null);
+        setSucesso(null);
 
-      setSucesso(
-        response?.data?.mensagem || "Categoria cadastrada com sucesso."
-      );
+        if (!form.nome.trim()) {
+            setErro("Informe o nome da categoria.");
+            return;
+        }
 
-      setTimeout(() => {
-        router.push("/Admin/categorias");
-      }, 1200);
-    } catch (error: any) {
-      console.error(
-        "Erro ao cadastrar categoria:",
-        error?.response?.data || error
-      );
+        if (!form.slug.trim()) {
+            setErro("Informe o slug da categoria.");
+            return;
+        }
 
-      setErro(
-        error?.response?.data?.mensagem ||
-          error?.message ||
-          "Erro ao cadastrar categoria."
-      );
-    } finally {
-      setSalvando(false);
+        if (form.ordem === "" || Number.isNaN(Number(form.ordem))) {
+            setErro("Informe uma ordem válida.");
+            return;
+        }
+
+        if (!form.status_id.trim()) {
+            setErro("Selecione o status.");
+            return;
+        }
+
+        try {
+            setSalvando(true);
+
+            const payload = {
+                site_config_id: 1,
+                nome: form.nome.trim(),
+                slug: form.slug.trim(),
+                descricao: form.descricao.trim() || null,
+                icone: form.icone.trim() || null,
+                ordem: Number(form.ordem),
+                status_id: Number(form.status_id),
+            };
+
+            const response = await api.post("/painel/categoria", payload);
+
+            setSucesso(
+                response?.data?.mensagem || "Categoria cadastrada com sucesso."
+            );
+
+            setTimeout(() => {
+                router.push("/Admin/categorias");
+            }, 1200);
+        } catch (error: any) {
+            console.error(
+                "Erro ao cadastrar categoria:",
+                error?.response?.data || error
+            );
+
+            setErro(
+                error?.response?.data?.mensagem ||
+                error?.message ||
+                "Erro ao cadastrar categoria."
+            );
+        } finally {
+            setSalvando(false);
+        }
     }
-  }
 
-  return (
-    <div className="categoria-cadastrar-page">
-      <div className="page-header">
-        <div className="header-left">
-          <div className="header-icon">
-            <FiFolder size={24} />
-          </div>
+    return (
+        <div className="categoria-cadastrar-page">
+            <div className="page-header">
+                <div className="header-left">
+                    <div className="header-icon">
+                        <FiFolder size={24} />
+                    </div>
 
-          <div>
-            <span className="page-kicker">Painel administrativo</span>
-            <h1>Cadastrar categoria</h1>
-            <p>Preencha os dados para criar uma nova categoria no sistema.</p>
-          </div>
-        </div>
+                    <div>
+                        <span className="page-kicker">Painel administrativo</span>
+                        <h1>Cadastrar categoria</h1>
+                        <p>Preencha os dados para criar uma nova categoria no sistema.</p>
+                    </div>
+                </div>
 
-        <div className="header-actions">
-          <Link href="/Admin/categorias" className="btn btn-light">
-            <FiArrowLeft size={16} />
-            <span>Voltar</span>
-          </Link>
-        </div>
-      </div>
-
-      {erro && (
-        <div className="feedback error">
-          <FiAlertCircle size={18} />
-          <div>
-            <strong>Não foi possível continuar</strong>
-            <p>{erro}</p>
-          </div>
-        </div>
-      )}
-
-      {sucesso && (
-        <div className="feedback success">
-          <FiCheckCircle size={18} />
-          <div>
-            <strong>Tudo certo</strong>
-            <p>{sucesso}</p>
-          </div>
-        </div>
-      )}
-
-      {carregandoAuxiliares ? (
-        <div className="feedback loading">
-          <FiRefreshCw size={18} className="spin" />
-          <div>
-            <strong>Carregando status</strong>
-            <p>Buscando os status disponíveis...</p>
-          </div>
-        </div>
-      ) : (
-        <form className="form-card" onSubmit={handleSubmit}>
-          <div className="form-grid">
-            <div className="field field-full">
-              <label htmlFor="nome">
-                <FiType size={16} />
-                <span>Nome da categoria *</span>
-              </label>
-              <input
-                id="nome"
-                type="text"
-                value={form.nome}
-                onChange={(e) => atualizarCampo("nome", e.target.value)}
-                placeholder="Ex: Decoração"
-              />
+                <div className="header-actions">
+                    <Link href="/Admin/categorias" className="btn btn-light">
+                        <FiArrowLeft size={16} />
+                        <span>Voltar</span>
+                    </Link>
+                </div>
             </div>
 
-            <div className="field field-full">
-              <label htmlFor="slug">
-                <FiTag size={16} />
-                <span>Slug *</span>
-              </label>
-              <input
-                id="slug"
-                type="text"
-                value={form.slug}
-                onChange={(e) => {
-                  setSlugEditadoManual(true);
-                  atualizarCampo("slug", gerarSlug(e.target.value));
-                }}
-                placeholder="decoracao"
-              />
-              <small>URL prevista: /categoria/{previewSlug}</small>
-            </div>
+            {erro && (
+                <div className="feedback error">
+                    <FiAlertCircle size={18} />
+                    <div>
+                        <strong>Não foi possível continuar</strong>
+                        <p>{erro}</p>
+                    </div>
+                </div>
+            )}
 
-            <div className="field field-full">
-              <label htmlFor="descricao">
-                <FiInfo size={16} />
-                <span>Descrição</span>
-              </label>
-              <textarea
-                id="descricao"
-                rows={4}
-                value={form.descricao}
-                onChange={(e) => atualizarCampo("descricao", e.target.value)}
-                placeholder="Descreva a categoria..."
-              />
-            </div>
+            {sucesso && (
+                <div className="feedback success">
+                    <FiCheckCircle size={18} />
+                    <div>
+                        <strong>Tudo certo</strong>
+                        <p>{sucesso}</p>
+                    </div>
+                </div>
+            )}
 
-            <div className="field">
-              <label htmlFor="icone">
-                <FiGrid size={16} />
-                <span>Ícone</span>
-              </label>
-              <input
-                id="icone"
-                type="text"
-                value={form.icone}
-                onChange={(e) => atualizarCampo("icone", e.target.value)}
-                placeholder="Ex: tags, box, grid..."
-              />
-            </div>
+            {carregandoAuxiliares ? (
+                <div className="feedback loading">
+                    <FiRefreshCw size={18} className="spin" />
+                    <div>
+                        <strong>Carregando status</strong>
+                        <p>Buscando os status disponíveis...</p>
+                    </div>
+                </div>
+            ) : (
+                <form className="form-card" onSubmit={handleSubmit}>
+                    <div className="form-grid">
+                        <div className="field field-full">
+                            <label htmlFor="nome">
+                                <FiType size={16} />
+                                <span>Nome da categoria *</span>
+                            </label>
+                            <input
+                                id="nome"
+                                type="text"
+                                value={form.nome}
+                                onChange={(e) => atualizarCampo("nome", e.target.value)}
+                                placeholder="Ex: Decoração"
+                            />
+                        </div>
 
-            <div className="field">
-              <label htmlFor="ordem">
-                <FiLayers size={16} />
-                <span>Ordem *</span>
-              </label>
-              <input
-                id="ordem"
-                type="number"
-                value={form.ordem}
-                onChange={(e) => atualizarCampo("ordem", e.target.value)}
-                placeholder="0"
-              />
-            </div>
+                        <div className="field field-full">
+                            <label htmlFor="slug">
+                                <FiTag size={16} />
+                                <span>Slug *</span>
+                            </label>
+                            <input
+                                id="slug"
+                                type="text"
+                                value={form.slug}
+                                onChange={(e) => {
+                                    setSlugEditadoManual(true);
+                                    atualizarCampo("slug", gerarSlug(e.target.value));
+                                }}
+                                placeholder="decoracao"
+                            />
+                            <small>URL prevista: /categoria/{previewSlug}</small>
+                        </div>
 
-            <div className="field field-full">
-              <label htmlFor="status_id">
-                <FiCheckCircle size={16} />
-                <span>Status *</span>
-              </label>
+                        <div className="field field-full">
+                            <label htmlFor="descricao">
+                                <FiInfo size={16} />
+                                <span>Descrição</span>
+                            </label>
+                            <textarea
+                                id="descricao"
+                                rows={4}
+                                value={form.descricao}
+                                onChange={(e) => atualizarCampo("descricao", e.target.value)}
+                                placeholder="Descreva a categoria..."
+                            />
+                        </div>
 
-              <select
-                id="status_id"
-                value={form.status_id}
-                onChange={(e) => atualizarCampo("status_id", e.target.value)}
-              >
-                <option value="">Selecione um status</option>
-                {statusList.map((status) => {
-                  const id = getStatusId(status);
-                  return (
-                    <option key={id} value={id}>
-                      {getStatusNome(status)}
-                    </option>
-                  );
-                })}
-              </select>
-            </div>
-          </div>
+                        <div className="field">
+                            <label htmlFor="icone">
+                                <FiGrid size={16} />
+                                <span>Ícone</span>
+                            </label>
+                            <input
+                                id="icone"
+                                type="text"
+                                value={form.icone}
+                                onChange={(e) => atualizarCampo("icone", e.target.value)}
+                                placeholder="Ex: tags, box, grid..."
+                            />
+                        </div>
 
-          <div className="form-footer">
-            <Link href="/Admin/categorias" className="btn btn-light">
-              Cancelar
-            </Link>
+                        <div className="field">
+                            <label htmlFor="ordem">
+                                <FiLayers size={16} />
+                                <span>Ordem *</span>
+                            </label>
+                            <input
+                                id="ordem"
+                                type="number"
+                                value={form.ordem}
+                                onChange={(e) => atualizarCampo("ordem", e.target.value)}
+                                placeholder="0"
+                            />
+                        </div>
 
-            <button type="submit" className="btn btn-primary" disabled={salvando}>
-              <FiSave size={16} />
-              <span>{salvando ? "Salvando..." : "Cadastrar categoria"}</span>
-            </button>
-          </div>
-        </form>
-      )}
+                        <div className="field field-full">
+                            <label htmlFor="status_id">
+                                <FiCheckCircle size={16} />
+                                <span>Status *</span>
+                            </label>
 
-      <style jsx>{`
+                            <select
+                                id="status_id"
+                                value={form.status_id}
+                                onChange={(e) => atualizarCampo("status_id", e.target.value)}
+                            >
+                                <option value="">Selecione um status</option>
+                                {statusList.map((status) => {
+                                    const id = getStatusId(status);
+                                    return (
+                                        <option key={id} value={id}>
+                                            {getStatusNome(status)}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="form-footer">
+                        <Link href="/Admin/categorias" className="btn btn-light">
+                            Cancelar
+                        </Link>
+
+                        <button type="submit" className="btn btn-primary" disabled={salvando}>
+                            <FiSave size={16} />
+                            <span>{salvando ? "Salvando..." : "Cadastrar categoria"}</span>
+                        </button>
+                    </div>
+                </form>
+            )}
+
+            <style jsx>{`
         .categoria-cadastrar-page {
           display: flex;
           flex-direction: column;
@@ -616,6 +617,6 @@ export default function CadastrarCategoriaPage() {
           }
         }
       `}</style>
-    </div>
-  );
+        </div>
+    );
 }
