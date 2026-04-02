@@ -16,8 +16,6 @@ import {
   FiShoppingBag,
   FiHome,
   FiCheckCircle,
-  FiPlusCircle,
-  FiSave,
 } from "react-icons/fi";
 
 type CarrinhoItem = {
@@ -171,18 +169,6 @@ function enderecoToForm(endereco?: Partial<EnderecoUsuario> | null): CheckoutFor
   };
 }
 
-function formVazio(form: CheckoutForm) {
-  return !(
-    form.cep ||
-    form.endereco ||
-    form.numero ||
-    form.complemento ||
-    form.bairro ||
-    form.cidade ||
-    form.estado
-  );
-}
-
 export default function CheckoutPage() {
   const [loading, setLoading] = React.useState(true);
   const [enviando, setEnviando] = React.useState(false);
@@ -202,8 +188,9 @@ export default function CheckoutPage() {
 
   const [enderecos, setEnderecos] = React.useState<EnderecoUsuario[]>([]);
   const [carregandoEnderecos, setCarregandoEnderecos] = React.useState(true);
-  const [salvandoEndereco, setSalvandoEndereco] = React.useState(false);
   const [enderecoSelecionadoId, setEnderecoSelecionadoId] = React.useState<number | null>(null);
+
+  const temEnderecoCadastrado = enderecos.length > 0;
 
   const subtotalCalculado = React.useMemo(() => {
     return itens.reduce((acc, item) => {
@@ -244,9 +231,7 @@ export default function CheckoutPage() {
       let carrinhoResumo: CarrinhoResumo | null = null;
       let listaNormalizada: CarrinhoItem[] = [];
 
-      const resp = await api.get("/carrinho", {
-        withCredentials: true,
-      });
+      const resp = await api.get("/carrinho");
 
       console.log("[checkout] resposta /carrinho:", resp.data);
 
@@ -275,9 +260,7 @@ export default function CheckoutPage() {
       if (Array.isArray(listaBruta) && listaBruta.length > 0) {
         listaNormalizada = normalizarItens(listaBruta);
       } else {
-        const respItens = await api.get("/carrinho/itens", {
-          withCredentials: true,
-        });
+        const respItens = await api.get("/carrinho/itens");
 
         console.log("[checkout] resposta /carrinho/itens:", respItens.data);
 
@@ -302,9 +285,7 @@ export default function CheckoutPage() {
     try {
       setCarregandoEnderecos(true);
 
-      const response = await api.get("/usuario/endereco", {
-        withCredentials: true,
-      });
+      const response = await api.get("/usuario/endereco");
 
       console.log("[endereco] resposta GET /usuario/endereco:", response.data);
 
@@ -380,30 +361,12 @@ export default function CheckoutPage() {
       ...prev,
       [name]: value,
     }));
-
-    if (enderecoSelecionadoId) {
-      setEnderecoSelecionadoId(null);
-    }
   }
 
   function selecionarEndereco(endereco: EnderecoUsuario) {
     console.log("[endereco] card clicado:", endereco);
     setEnderecoSelecionadoId(Number(endereco.id_endereco));
     setForm(enderecoToForm(endereco));
-  }
-
-  function novoEndereco() {
-    console.log("[endereco] limpando formulário para novo endereço");
-    setEnderecoSelecionadoId(null);
-    setForm({
-      cep: "",
-      endereco: "",
-      numero: "",
-      complemento: "",
-      bairro: "",
-      cidade: "",
-      estado: "",
-    });
   }
 
   async function salvarEnderecoUsuario() {
@@ -421,8 +384,6 @@ export default function CheckoutPage() {
     }
 
     try {
-      setSalvandoEndereco(true);
-
       const payload = {
         cep: form.cep,
         endereco: form.endereco,
@@ -431,30 +392,16 @@ export default function CheckoutPage() {
         bairro: form.bairro,
         cidade: form.cidade,
         estado: form.estado,
-        principal: enderecos.length === 0 || enderecoSelecionadoId ? 1 : 0,
+        principal: 1,
       };
 
-      console.log("[endereco] iniciando salvamento");
-      console.log("[endereco] enderecoSelecionadoId:", enderecoSelecionadoId);
       console.log("[endereco] payload enviado:", payload);
 
-      if (enderecoSelecionadoId) {
-        const response = await api.put(`/usuario/endereco/${enderecoSelecionadoId}`, payload, {
-          withCredentials: true,
-        });
+      const response = await api.post("/usuario/endereco", payload);
 
-        console.log("[endereco] resposta PUT /usuario/endereco/:id:", response.data);
+      console.log("[endereco] resposta POST /usuario/endereco:", response.data);
 
-        toast.success("Endereço atualizado com sucesso.");
-      } else {
-        const response = await api.post("/usuario/endereco", payload, {
-          withCredentials: true,
-        });
-
-        console.log("[endereco] resposta POST /usuario/endereco:", response.data);
-
-        toast.success("Endereço salvo com sucesso.");
-      }
+      toast.success(response?.data?.mensagem || "Endereço salvo com sucesso.");
 
       await carregarEnderecos();
     } catch (error: any) {
@@ -468,8 +415,6 @@ export default function CheckoutPage() {
       toast.error(
         error?.response?.data?.mensagem || "Não foi possível salvar o endereço."
       );
-    } finally {
-      setSalvandoEndereco(false);
     }
   }
 
@@ -547,9 +492,7 @@ export default function CheckoutPage() {
 
       console.log("[checkout] payload /pedido/checkout:", payload);
 
-      const response = await api.post("/pedido/checkout", payload, {
-        withCredentials: true,
-      });
+      const response = await api.post("/pedido/checkout", payload);
 
       console.log("[checkout] resposta /pedido/checkout:", response.data);
 
@@ -705,8 +648,7 @@ export default function CheckoutPage() {
           display: block;
         }
 
-        .field-input,
-        .field-select {
+        .field-input {
           width: 100%;
           min-height: 48px;
           border-radius: 14px;
@@ -718,8 +660,7 @@ export default function CheckoutPage() {
           transition: 0.2s ease;
         }
 
-        .field-input:focus,
-        .field-select:focus {
+        .field-input:focus {
           border-color: #d18b72;
           box-shadow: 0 0 0 4px rgba(209, 139, 114, 0.12);
         }
@@ -957,13 +898,6 @@ export default function CheckoutPage() {
           margin: 0;
         }
 
-        .addressActions {
-          display: flex;
-          gap: 10px;
-          flex-wrap: wrap;
-          margin-bottom: 18px;
-        }
-
         @media (max-width: 992px) {
           .summarySticky {
             position: static;
@@ -1026,63 +960,50 @@ export default function CheckoutPage() {
 
                     {carregandoEnderecos ? (
                       <div className="emptyBox">Carregando endereços...</div>
-                    ) : enderecos.length > 0 ? (
-                      <>
-                        <div className="addressCardsGrid">
-                          {enderecos.map((endereco) => {
-                            const ativo =
-                              Number(enderecoSelecionadoId) === Number(endereco.id_endereco);
+                    ) : temEnderecoCadastrado ? (
+                      <div className="addressCardsGrid">
+                        {enderecos.map((endereco) => {
+                          const ativo =
+                            Number(enderecoSelecionadoId) === Number(endereco.id_endereco);
 
-                            return (
-                              <button
-                                key={endereco.id_endereco}
-                                type="button"
-                                className={`addressCard ${ativo ? "active" : ""}`}
-                                onClick={() => selecionarEndereco(endereco)}
-                              >
-                                <div className="addressCardHead">
-                                  <div className="addressCardTitle">
-                                    <FiHome size={16} />
-                                    <span>Endereço #{endereco.id_endereco}</span>
-                                  </div>
-
-                                  {Number(endereco.principal) === 1 && (
-                                    <span className="addressPrincipal">
-                                      <FiCheckCircle size={13} />
-                                      Principal
-                                    </span>
-                                  )}
+                          return (
+                            <button
+                              key={endereco.id_endereco}
+                              type="button"
+                              className={`addressCard ${ativo ? "active" : ""}`}
+                              onClick={() => selecionarEndereco(endereco)}
+                            >
+                              <div className="addressCardHead">
+                                <div className="addressCardTitle">
+                                  <FiHome size={16} />
+                                  <span>Endereço #{endereco.id_endereco}</span>
                                 </div>
 
-                                <p className="addressCardText">
-                                  {endereco.endereco || "Endereço não informado"}
-                                  {endereco.numero ? `, ${endereco.numero}` : ""}
-                                  <br />
-                                  {endereco.bairro ? `${endereco.bairro} - ` : ""}
-                                  {endereco.cidade || ""}
-                                  {endereco.estado ? `/${endereco.estado}` : ""}
-                                  <br />
-                                  CEP: {endereco.cep || "Não informado"}
-                                  {endereco.complemento
-                                    ? ` • ${endereco.complemento}`
-                                    : ""}
-                                </p>
-                              </button>
-                            );
-                          })}
-                        </div>
+                                {Number(endereco.principal) === 1 && (
+                                  <span className="addressPrincipal">
+                                    <FiCheckCircle size={13} />
+                                    Principal
+                                  </span>
+                                )}
+                              </div>
 
-                        <div className="addressActions">
-                          <button
-                            type="button"
-                            className="btn btn-outline-brand"
-                            onClick={novoEndereco}
-                          >
-                            <FiPlusCircle size={18} style={{ marginRight: 8 }} />
-                            Novo endereço
-                          </button>
-                        </div>
-                      </>
+                              <p className="addressCardText">
+                                {endereco.endereco || "Endereço não informado"}
+                                {endereco.numero ? `, ${endereco.numero}` : ""}
+                                <br />
+                                {endereco.bairro ? `${endereco.bairro} - ` : ""}
+                                {endereco.cidade || ""}
+                                {endereco.estado ? `/${endereco.estado}` : ""}
+                                <br />
+                                CEP: {endereco.cep || "Não informado"}
+                                {endereco.complemento
+                                  ? ` • ${endereco.complemento}`
+                                  : ""}
+                              </p>
+                            </button>
+                          );
+                        })}
+                      </div>
                     ) : (
                       <div className="emptyBox">
                         Você ainda não possui endereço salvo.
@@ -1090,106 +1011,100 @@ export default function CheckoutPage() {
                     )}
                   </div>
 
-                  <div className="checkout-surface checkout-card">
-                    <div className="section-title">
-                      <FiMapPin size={20} />
-                      <span>
-                        {enderecoSelecionadoId ? "Editar endereço" : "Novo endereço"}
-                      </span>
-                    </div>
-
-                    <div className="prefillInfo">
-                      Preencha os dados e clique em salvar para guardar no usuário.
-                    </div>
-
-                    <div className="row g-3">
-                      <div className="col-md-4">
-                        <label className="field-label">CEP</label>
-                        <input
-                          className="field-input"
-                          name="cep"
-                          value={form.cep}
-                          onChange={handleChange}
-                        />
+                  {!temEnderecoCadastrado && (
+                    <div className="checkout-surface checkout-card">
+                      <div className="section-title">
+                        <FiMapPin size={20} />
+                        <span>Cadastrar endereço</span>
                       </div>
 
-                      <div className="col-md-8">
-                        <label className="field-label">Endereço</label>
-                        <input
-                          className="field-input"
-                          name="endereco"
-                          value={form.endereco}
-                          onChange={handleChange}
-                        />
+                      <div className="prefillInfo">
+                        Preencha os dados e clique em salvar para guardar no usuário.
                       </div>
 
-                      <div className="col-md-3">
-                        <label className="field-label">Número</label>
-                        <input
-                          className="field-input"
-                          name="numero"
-                          value={form.numero}
-                          onChange={handleChange}
-                        />
-                      </div>
+                      <div className="row g-3">
+                        <div className="col-md-4">
+                          <label className="field-label">CEP</label>
+                          <input
+                            className="field-input"
+                            name="cep"
+                            value={form.cep}
+                            onChange={handleChange}
+                          />
+                        </div>
 
-                      <div className="col-md-9">
-                        <label className="field-label">Complemento</label>
-                        <input
-                          className="field-input"
-                          name="complemento"
-                          value={form.complemento}
-                          onChange={handleChange}
-                        />
-                      </div>
+                        <div className="col-md-8">
+                          <label className="field-label">Endereço</label>
+                          <input
+                            className="field-input"
+                            name="endereco"
+                            value={form.endereco}
+                            onChange={handleChange}
+                          />
+                        </div>
 
-                      <div className="col-md-5">
-                        <label className="field-label">Bairro</label>
-                        <input
-                          className="field-input"
-                          name="bairro"
-                          value={form.bairro}
-                          onChange={handleChange}
-                        />
-                      </div>
+                        <div className="col-md-3">
+                          <label className="field-label">Número</label>
+                          <input
+                            className="field-input"
+                            name="numero"
+                            value={form.numero}
+                            onChange={handleChange}
+                          />
+                        </div>
 
-                      <div className="col-md-5">
-                        <label className="field-label">Cidade</label>
-                        <input
-                          className="field-input"
-                          name="cidade"
-                          value={form.cidade}
-                          onChange={handleChange}
-                        />
-                      </div>
+                        <div className="col-md-9">
+                          <label className="field-label">Complemento</label>
+                          <input
+                            className="field-input"
+                            name="complemento"
+                            value={form.complemento}
+                            onChange={handleChange}
+                          />
+                        </div>
 
-                      <div className="col-md-2">
-                        <label className="field-label">Estado</label>
-                        <input
-                          className="field-input"
-                          name="estado"
-                          value={form.estado}
-                          onChange={handleChange}
-                        />
-                      </div>
+                        <div className="col-md-5">
+                          <label className="field-label">Bairro</label>
+                          <input
+                            className="field-input"
+                            name="bairro"
+                            value={form.bairro}
+                            onChange={handleChange}
+                          />
+                        </div>
 
-                      <div className="col-12">
-                        <button
-                          type="button"
-                          className="btn btn-outline-brand"
-                          onClick={salvarEnderecoUsuario}
-                          disabled={salvandoEndereco || formVazio(form)}
-                        >
-                          <FiSave size={18} style={{ marginRight: 8 }} />
-                          {salvandoEndereco
-                            ? "Salvando endereço..."
-                            : enderecoSelecionadoId
-                            ? "Atualizar endereço"
-                            : "Salvar endereço"}
-                        </button>
+                        <div className="col-md-5">
+                          <label className="field-label">Cidade</label>
+                          <input
+                            className="field-input"
+                            name="cidade"
+                            value={form.cidade}
+                            onChange={handleChange}
+                          />
+                        </div>
+
+                        <div className="col-md-2">
+                          <label className="field-label">Estado</label>
+                          <input
+                            className="field-input"
+                            name="estado"
+                            value={form.estado}
+                            onChange={handleChange}
+                          />
+                        </div>
+
+                        <div className="col-12">
+                          <button
+                            type="button"
+                            className="btn btn-outline-brand"
+                            onClick={salvarEnderecoUsuario}
+                          >
+                            Salvar endereço
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
                 </div>
 
                 <div className="col-lg-4">

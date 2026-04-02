@@ -4,10 +4,25 @@ import { ReactNode, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import api from "@/Api/conectar";
 import useUsuario from "@/hooks/Auth/useUsuario";
+import {
+  FiMenu,
+  FiX,
+  FiLogOut,
+  FiChevronRight,
+  FiShield,
+  FiChevronDown,
+} from "react-icons/fi";
 
-type SidebarItem = {
+type SidebarChild = {
   url: string;
   label: string;
+};
+
+type SidebarItem = {
+  url?: string;
+  label: string;
+  icon?: string;
+  children?: SidebarChild[];
 };
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -21,6 +36,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const [menuErro, setMenuErro] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [saindo, setSaindo] = useState(false);
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     if (loading) return;
@@ -35,12 +51,69 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         setMenuLoading(true);
         setMenuErro(null);
 
-        const response = await api.get("/painel/dados", {
-          withCredentials: true,
-        });
+        const response = await api.get("/painel/dados");
 
-        const data = response.data;
-        setMenu(data?.dados?.dados?.sidebar || []);
+        const sidebar =
+          response?.data?.dados?.sidebar ||
+          response?.data?.dados?.dados?.sidebar ||
+          [];
+
+        const menuNormalizado: SidebarItem[] = Array.isArray(sidebar)
+          ? sidebar.map((item: any) => ({
+              url:
+                typeof item?.url === "string" && item.url.trim()
+                  ? item.url.trim()
+                  : undefined,
+              label:
+                typeof item?.label === "string" && item.label.trim()
+                  ? item.label.trim()
+                  : typeof item?.nome === "string" && item.nome.trim()
+                  ? item.nome.trim()
+                  : "Sem nome",
+              icon:
+                typeof item?.icon === "string" && item.icon.trim()
+                  ? item.icon.trim()
+                  : typeof item?.icone === "string" && item.icone.trim()
+                  ? item.icone.trim()
+                  : undefined,
+              children: Array.isArray(item?.children)
+                ? item.children
+                    .map((child: any) => ({
+                      url:
+                        typeof child?.url === "string" && child.url.trim()
+                          ? child.url.trim()
+                          : typeof child?.rota === "string" && child.rota.trim()
+                          ? child.rota.trim()
+                          : "",
+                      label:
+                        typeof child?.label === "string" && child.label.trim()
+                          ? child.label.trim()
+                          : typeof child?.nome === "string" && child.nome.trim()
+                          ? child.nome.trim()
+                          : "Sem nome",
+                    }))
+                    .filter(
+                      (child: SidebarChild) =>
+                        child.url.length > 0 &&
+                        child.url !== "#" &&
+                        child.url.toLowerCase() !== "null" &&
+                        child.url.toLowerCase() !== "undefined"
+                    )
+                : [],
+            }))
+          : [];
+
+        setMenu(menuNormalizado);
+
+        const openState: Record<string, boolean> = {};
+        menuNormalizado.forEach((item) => {
+          if (item.children?.length) {
+            openState[item.label] = item.children.some(
+              (child) => child.url === pathname
+            );
+          }
+        });
+        setOpenMenus(openState);
       } catch (error: any) {
         console.error("Erro ao carregar menu:", error?.response?.data || error);
 
@@ -56,19 +129,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     }
 
     carregarMenu();
-  }, [loading, logado, router]);
+  }, [loading, logado, router, pathname]);
 
   async function handleLogout() {
     try {
       setSaindo(true);
-
-      await api.post(
-        "/painel/logout",
-        {},
-        {
-          withCredentials: true,
-        }
-      );
+      await api.post("/painel/logout", {});
     } catch (error: any) {
       console.error("Erro ao sair:", error?.response?.data || error);
     } finally {
@@ -80,6 +146,31 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       router.refresh();
       setSaindo(false);
     }
+  }
+
+  function handleNavigate(url?: string) {
+    if (typeof url !== "string") return;
+
+    const destino = url.trim();
+
+    if (
+      !destino ||
+      destino === "#" ||
+      destino === "null" ||
+      destino === "undefined"
+    ) {
+      return;
+    }
+
+    router.push(destino);
+    setMobileMenuOpen(false);
+  }
+
+  function toggleMenu(label: string) {
+    setOpenMenus((prev) => ({
+      ...prev,
+      [label]: !prev[label],
+    }));
   }
 
   const inicial = useMemo(() => {
@@ -115,16 +206,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <div className="admin-layout">
       <aside className={`sidebar ${mobileMenuOpen ? "open" : ""}`}>
-        <div className="sidebar-glow sidebar-glow-1" />
-        <div className="sidebar-glow sidebar-glow-2" />
-
         <div className="sidebar-top">
-          <div className="brand">
+          <div className="brand-box">
             <div className="brand-icon">{inicial}</div>
 
             <div className="brand-text">
-              <h2>Admin Panel</h2>
-              <span>Gestão profissional</span>
+              <strong>Império Admin</strong>
+              <span>Painel profissional</span>
             </div>
           </div>
 
@@ -134,60 +222,108 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             aria-label="Fechar menu"
             type="button"
           >
-            ×
+            <FiX size={20} />
           </button>
         </div>
 
         <div className="user-card">
-          <div className="avatar">{inicial}</div>
+          <div className="user-avatar">{inicial}</div>
 
-          <div className="user-info">
+          <div className="user-content">
             <strong title={usuario?.nome || "Usuário"}>
               {usuario?.nome || "Usuário"}
             </strong>
 
-            <small title={usuario?.email || "Sem e-mail"}>
+            <span title={usuario?.email || "Sem e-mail"}>
               {usuario?.email || "Sem e-mail"}
-            </small>
+            </span>
 
-            <div className="user-meta">
-              <span className="badge online">Online</span>
-              <span className="badge nivel">{nivelNome}</span>
+            <div className="user-badges">
+              <span className="badge badge-online">Online</span>
+              <span className="badge badge-role">{nivelNome}</span>
             </div>
           </div>
         </div>
 
-        <div className="menu-wrapper">
-          <div className="menu-header">
-            <p className="menu-title">Navegação</p>
-            <span className="menu-count">{menu.length}</span>
+        <div className="nav-section">
+          <div className="nav-header">
+            <span>Navegação</span>
+            <small>{menu.length}</small>
           </div>
 
-          <nav className="menu">
+          <nav className="nav-list">
             {menuLoading ? (
-              <div className="menu-state">
-                <span className="loader" />
-                <p>Carregando menu...</p>
-              </div>
+              <div className="menu-state">Carregando menu...</div>
             ) : menuErro ? (
-              <div className="erro">{menuErro}</div>
+              <div className="menu-error">{menuErro}</div>
+            ) : menu.length === 0 ? (
+              <div className="menu-state">Nenhum item de menu disponível.</div>
             ) : (
               menu.map((item, index) => {
-                const ativo = pathname === item.url;
+                const temChildren = Array.isArray(item.children) && item.children.length > 0;
+                const ativoPai = !!item.url && pathname === item.url;
+                const submenuAberto = !!openMenus[item.label];
+                const childAtivo = temChildren
+                  ? item.children!.some((child) => pathname === child.url)
+                  : false;
+
+                if (temChildren) {
+                  return (
+                    <div
+                      key={`${item.label}-${index}`}
+                      className={`nav-group ${submenuAberto ? "open" : ""} ${childAtivo ? "group-active" : ""}`}
+                    >
+                      <button
+                        type="button"
+                        className={`nav-item nav-parent ${childAtivo ? "active" : ""}`}
+                        onClick={() => toggleMenu(item.label)}
+                      >
+                        <div className="nav-item-left">
+                          <span className="nav-dot" />
+                          <span className="nav-label">{item.label}</span>
+                        </div>
+
+                        {submenuAberto ? (
+                          <FiChevronDown size={16} className="nav-arrow" />
+                        ) : (
+                          <FiChevronRight size={16} className="nav-arrow" />
+                        )}
+                      </button>
+
+                      <div className={`submenu ${submenuAberto ? "show" : ""}`}>
+                        {item.children!.map((child, childIndex) => {
+                          const ativoFilho = pathname === child.url;
+
+                          return (
+                            <button
+                              key={`${child.url}-${childIndex}`}
+                              type="button"
+                              className={`submenu-item ${ativoFilho ? "active" : ""}`}
+                              onClick={() => handleNavigate(child.url)}
+                            >
+                              <span className="submenu-bullet" />
+                              <span className="submenu-label">{child.label}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                }
 
                 return (
                   <button
-                    key={`${item.url}-${index}`}
+                    key={`${item.url || item.label}-${index}`}
                     type="button"
-                    className={`menu-item ${ativo ? "active" : ""}`}
-                    onClick={() => {
-                      router.push(item.url);
-                      setMobileMenuOpen(false);
-                    }}
+                    className={`nav-item ${ativoPai ? "active" : ""}`}
+                    onClick={() => handleNavigate(item.url)}
                   >
-                    <span className="menu-icon" />
-                    <span className="menu-label">{item.label}</span>
-                    {ativo && <span className="menu-active-pill">Ativo</span>}
+                    <div className="nav-item-left">
+                      <span className="nav-dot" />
+                      <span className="nav-label">{item.label}</span>
+                    </div>
+
+                    <FiChevronRight size={16} className="nav-arrow" />
                   </button>
                 );
               })
@@ -196,9 +332,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         </div>
 
         <div className="sidebar-footer">
-          <div className="footer-box">
-            <p>Sessão autenticada</p>
-            <small>Seu acesso está ativo e protegido.</small>
+          <div className="footer-info">
+            <FiShield size={16} />
+            <div>
+              <strong>Sessão segura</strong>
+              <span>Seu acesso está ativo.</span>
+            </div>
           </div>
 
           <button
@@ -207,7 +346,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             onClick={handleLogout}
             disabled={saindo}
           >
-            <span className="logout-icon">↩</span>
+            <FiLogOut size={17} />
             <span>{saindo ? "Saindo..." : "Sair da conta"}</span>
           </button>
         </div>
@@ -221,59 +360,46 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       )}
 
       <section className="main-area">
-        <header className="header">
-          <div className="header-left">
+        <header className="topbar">
+          <div className="topbar-left">
             <button
               className="mobile-menu-button"
               onClick={() => setMobileMenuOpen(true)}
               aria-label="Abrir menu"
               type="button"
             >
-              ☰
+              <FiMenu size={20} />
             </button>
 
-            <div className="header-title">
-              <span className="header-kicker">Painel administrativo</span>
+            <div className="topbar-title">
+              <span className="topbar-kicker">Painel administrativo</span>
               <h1>Olá, {primeiroNome}</h1>
-              <p>
-                Gerencie seu sistema com uma interface mais moderna e
-                profissional.
-              </p>
+              <p>Gerencie seu sistema com um visual mais limpo e profissional.</p>
             </div>
           </div>
 
-          <div className="header-right">
-            <div className="header-status-card">
-              <span className="status-dot" />
+          <div className="topbar-right">
+            <div className="status-card">
+              <span className="status-indicator" />
               <div>
                 <strong>{nivelNome}</strong>
                 <small>Sessão ativa</small>
               </div>
             </div>
 
-            <div className="header-user">
-              <div className="header-avatar">{inicial}</div>
-
-              <div className="header-user-text">
+            <div className="profile-chip">
+              <div className="profile-avatar">{inicial}</div>
+              <div className="profile-text">
                 <strong>{usuario?.nome || "Usuário"}</strong>
                 <span>{usuario?.email || "Sem e-mail"}</span>
               </div>
             </div>
-
-            <button
-              type="button"
-              className="header-logout"
-              onClick={handleLogout}
-              disabled={saindo}
-            >
-              {saindo ? "Saindo..." : "Sair"}
-            </button>
           </div>
         </header>
 
-        <main className="content">
-          <div className="content-shell">
-            <div className="content-inner">{children}</div>
+        <main className="content-area">
+          <div className="content-wrapper">
+            <div className="content-card">{children}</div>
           </div>
         </main>
       </section>
@@ -282,80 +408,40 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         .admin-layout {
           min-height: 100vh;
           display: flex;
-          width: 100%;
-          max-width: 100%;
           background:
-            radial-gradient(circle at top left, rgba(59, 130, 246, 0.1), transparent 24%),
-            radial-gradient(circle at bottom right, rgba(79, 70, 229, 0.08), transparent 28%),
-            linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
-          position: relative;
+            radial-gradient(circle at top left, rgba(210, 140, 108, 0.08), transparent 22%),
+            radial-gradient(circle at bottom right, rgba(181, 95, 83, 0.08), transparent 24%),
+            linear-gradient(180deg, #fffaf6 0%, #fff4ec 100%);
+          color: #2f241f;
           overflow-x: hidden;
         }
 
         .sidebar {
-          width: 308px;
-          min-width: 308px;
-          max-width: 308px;
+          width: 300px;
+          min-width: 300px;
+          max-width: 300px;
           min-height: 100vh;
-          height: 100vh;
+          background: linear-gradient(180deg, #2c201c 0%, #3a2924 100%);
+          border-right: 1px solid rgba(255, 255, 255, 0.06);
+          padding: 20px 16px;
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
           position: sticky;
           top: 0;
           align-self: flex-start;
           z-index: 30;
-          color: #fff;
-          padding: 18px 16px 22px;
-          display: flex;
-          flex-direction: column;
-          gap: 18px;
-          background:
-            linear-gradient(180deg, rgba(9, 14, 28, 0.98) 0%, rgba(15, 23, 42, 0.98) 45%, rgba(22, 30, 49, 0.98) 100%);
-          border-right: 1px solid rgba(255, 255, 255, 0.06);
-          box-shadow: 12px 0 38px rgba(2, 6, 23, 0.14);
-          backdrop-filter: blur(16px);
-          box-sizing: border-box;
-          overflow: hidden;
-        }
-
-        .sidebar-glow {
-          position: absolute;
-          border-radius: 999px;
-          filter: blur(60px);
-          opacity: 0.26;
-          pointer-events: none;
-        }
-
-        .sidebar-glow-1 {
-          width: 160px;
-          height: 160px;
-          background: rgba(37, 99, 235, 0.34);
-          top: -40px;
-          left: -50px;
-        }
-
-        .sidebar-glow-2 {
-          width: 150px;
-          height: 150px;
-          background: rgba(99, 102, 241, 0.24);
-          right: -40px;
-          bottom: 90px;
-        }
-
-        .sidebar-top,
-        .user-card,
-        .menu-wrapper,
-        .sidebar-footer {
-          position: relative;
-          z-index: 2;
+          box-shadow: 12px 0 40px rgba(52, 30, 20, 0.16);
         }
 
         .sidebar-top {
           display: flex;
-          align-items: flex-start;
+          align-items: center;
           justify-content: space-between;
           gap: 12px;
         }
 
-        .brand {
+        .brand-box {
           display: flex;
           align-items: center;
           gap: 12px;
@@ -369,24 +455,23 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 18px;
-          font-weight: 800;
+          background: linear-gradient(135deg, #d18b72 0%, #b55f53 100%);
           color: #fff;
-          background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
-          box-shadow:
-            0 14px 26px rgba(37, 99, 235, 0.24),
-            inset 0 1px 0 rgba(255, 255, 255, 0.14);
+          font-weight: 900;
+          font-size: 18px;
           flex-shrink: 0;
+          box-shadow: 0 12px 24px rgba(181, 95, 83, 0.26);
         }
 
         .brand-text {
+          display: flex;
+          flex-direction: column;
           min-width: 0;
         }
 
-        .brand-text h2 {
-          margin: 0;
-          font-size: 18px;
-          font-weight: 800;
+        .brand-text strong {
+          color: #fff;
+          font-size: 17px;
           line-height: 1.1;
           white-space: nowrap;
           overflow: hidden;
@@ -394,11 +479,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         }
 
         .brand-text span {
-          display: block;
-          margin-top: 4px;
+          color: rgba(255, 255, 255, 0.68);
           font-size: 12px;
-          color: #94a3b8;
-          letter-spacing: 0.3px;
+          margin-top: 4px;
         }
 
         .mobile-close {
@@ -406,10 +489,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           width: 38px;
           height: 38px;
           border-radius: 12px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.08);
           color: #fff;
-          font-size: 22px;
           cursor: pointer;
           flex-shrink: 0;
         }
@@ -420,329 +502,355 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           gap: 12px;
           padding: 16px;
           border-radius: 22px;
-          background:
-            linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.035) 100%);
-          border: 1px solid rgba(255, 255, 255, 0.07);
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.04),
-            0 10px 24px rgba(2, 6, 23, 0.12);
-          min-width: 0;
+          background: rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.08);
         }
 
-        .avatar,
-        .header-avatar {
-          width: 48px;
-          height: 48px;
+        .user-avatar,
+        .profile-avatar {
+          width: 50px;
+          height: 50px;
           border-radius: 50%;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-weight: 800;
-          font-size: 16px;
+          background: linear-gradient(135deg, #d18b72 0%, #b55f53 100%);
           color: #fff;
-          background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
-          box-shadow:
-            0 14px 24px rgba(37, 99, 235, 0.24),
-            inset 0 1px 0 rgba(255, 255, 255, 0.14);
+          font-weight: 900;
+          font-size: 16px;
           flex-shrink: 0;
         }
 
-        .user-info {
+        .user-content {
           display: flex;
           flex-direction: column;
           min-width: 0;
           flex: 1;
         }
 
-        .user-info strong {
-          font-size: 14px;
+        .user-content strong {
           color: #fff;
+          font-size: 14px;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        .user-info small {
+        .user-content span {
+          color: rgba(255, 255, 255, 0.7);
           font-size: 12px;
-          color: #cbd5e1;
           margin-top: 4px;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        .user-meta {
+        .user-badges {
           display: flex;
-          flex-wrap: wrap;
           gap: 8px;
+          flex-wrap: wrap;
           margin-top: 10px;
         }
 
         .badge {
-          font-size: 10px;
-          font-weight: 700;
-          padding: 5px 9px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 5px 10px;
           border-radius: 999px;
-          border: 1px solid transparent;
-          white-space: nowrap;
+          font-size: 10px;
+          font-weight: 800;
         }
 
-        .badge.online {
+        .badge-online {
+          background: rgba(34, 197, 94, 0.14);
           color: #bbf7d0;
-          background: rgba(34, 197, 94, 0.12);
-          border-color: rgba(34, 197, 94, 0.18);
+          border: 1px solid rgba(34, 197, 94, 0.22);
         }
 
-        .badge.nivel {
-          color: #dbeafe;
-          background: rgba(59, 130, 246, 0.12);
-          border-color: rgba(59, 130, 246, 0.18);
+        .badge-role {
+          background: rgba(255, 255, 255, 0.08);
+          color: #fff3ea;
+          border: 1px solid rgba(255, 255, 255, 0.12);
         }
 
-        .menu-wrapper {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
+        .nav-section {
           flex: 1;
           min-height: 0;
-          overflow: hidden;
+          display: flex;
+          flex-direction: column;
         }
 
-        .menu-header {
+        .nav-header {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 10px;
-          padding: 0 4px;
-        }
-
-        .menu-title {
-          margin: 0;
-          font-size: 11px;
+          color: rgba(255, 255, 255, 0.72);
+          font-size: 12px;
+          font-weight: 800;
           text-transform: uppercase;
-          letter-spacing: 1px;
-          color: #94a3b8;
-          font-weight: 700;
+          letter-spacing: 0.08em;
+          margin-bottom: 12px;
+          padding: 0 6px;
         }
 
-        .menu-count {
+        .nav-header small {
           min-width: 22px;
           height: 22px;
-          padding: 0 7px;
           border-radius: 999px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          font-size: 10px;
-          font-weight: 700;
-          color: #dbeafe;
-          background: rgba(255, 255, 255, 0.07);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(255, 255, 255, 0.08);
+          color: #fff;
+          font-size: 11px;
         }
 
-        .menu {
+        .nav-list {
           display: flex;
           flex-direction: column;
-          gap: 7px;
+          gap: 8px;
           overflow: auto;
-          padding-right: 2px;
-          min-width: 0;
+          padding-right: 4px;
         }
 
-        .menu::-webkit-scrollbar {
+        .nav-list::-webkit-scrollbar {
           width: 5px;
         }
 
-        .menu::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.12);
+        .nav-list::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.14);
           border-radius: 999px;
         }
 
-        .menu-item {
+        .nav-group {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .nav-item {
           border: 1px solid transparent;
           background: transparent;
-          color: #e5e7eb;
-          text-align: left;
-          padding: 12px;
+          color: #f7ede8;
           border-radius: 16px;
+          min-height: 50px;
+          padding: 0 14px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
           cursor: pointer;
-          font-size: 14px;
-          font-weight: 600;
           transition: all 0.22s ease;
+          text-align: left;
+        }
+
+        .nav-parent {
+          width: 100%;
+        }
+
+        .nav-item-left {
           display: flex;
           align-items: center;
           gap: 10px;
           min-width: 0;
+          flex: 1;
         }
 
-        .menu-item:hover {
-          background: rgba(255, 255, 255, 0.06);
-          border-color: rgba(255, 255, 255, 0.06);
-          color: #fff;
-          transform: translateX(3px);
-        }
-
-        .menu-item.active {
-          background: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
-          color: #fff;
-          border-color: rgba(255, 255, 255, 0.12);
-          box-shadow:
-            0 12px 24px rgba(37, 99, 235, 0.24),
-            inset 0 1px 0 rgba(255, 255, 255, 0.14);
-        }
-
-        .menu-icon {
+        .nav-dot {
           width: 9px;
           height: 9px;
           border-radius: 50%;
+          background: rgba(255, 255, 255, 0.46);
           flex-shrink: 0;
-          background: rgba(255, 255, 255, 0.45);
         }
 
-        .menu-item.active .menu-icon {
-          background: #fff;
-          box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.14);
-        }
-
-        .menu-label {
-          flex: 1;
-          min-width: 0;
+        .nav-label {
+          font-size: 14px;
+          font-weight: 700;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        .menu-active-pill {
-          font-size: 10px;
-          font-weight: 700;
-          padding: 4px 7px;
-          border-radius: 999px;
-          color: #fff;
-          background: rgba(255, 255, 255, 0.14);
-          border: 1px solid rgba(255, 255, 255, 0.16);
+        .nav-arrow {
+          opacity: 0.55;
           flex-shrink: 0;
         }
 
-        .menu-state {
+        .nav-item:hover {
+          background: rgba(255, 255, 255, 0.08);
+          border-color: rgba(255, 255, 255, 0.08);
+          transform: translateX(3px);
+        }
+
+        .nav-item.active {
+          background: linear-gradient(135deg, #d18b72 0%, #b55f53 100%);
+          color: #fff;
+          box-shadow: 0 14px 26px rgba(181, 95, 83, 0.24);
+        }
+
+        .nav-item.active .nav-dot {
+          background: #fff;
+          box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.16);
+        }
+
+        .nav-item.active .nav-arrow {
+          opacity: 1;
+        }
+
+        .submenu {
+          display: none;
+          flex-direction: column;
+          gap: 6px;
+          padding-left: 18px;
+          margin-top: 2px;
+        }
+
+        .submenu.show {
+          display: flex;
+        }
+
+        .submenu-item {
+          border: 1px solid transparent;
+          background: rgba(255, 255, 255, 0.04);
+          color: rgba(255, 255, 255, 0.88);
+          border-radius: 14px;
+          min-height: 42px;
+          padding: 0 12px;
           display: flex;
           align-items: center;
           gap: 10px;
-          color: #cbd5e1;
-          font-size: 13px;
-          padding: 12px 6px;
+          cursor: pointer;
+          text-align: left;
+          transition: all 0.22s ease;
         }
 
-        .loader {
-          width: 15px;
-          height: 15px;
+        .submenu-item:hover {
+          background: rgba(255, 255, 255, 0.08);
+          border-color: rgba(255, 255, 255, 0.08);
+          transform: translateX(2px);
+        }
+
+        .submenu-item.active {
+          background: rgba(209, 139, 114, 0.18);
+          border-color: rgba(209, 139, 114, 0.34);
+          color: #fff;
+          box-shadow: inset 0 0 0 1px rgba(209, 139, 114, 0.12);
+        }
+
+        .submenu-bullet {
+          width: 8px;
+          height: 8px;
           border-radius: 50%;
-          border: 2px solid rgba(255, 255, 255, 0.2);
-          border-top-color: #fff;
-          animation: spin 0.8s linear infinite;
+          background: #d9b2a5;
+          flex-shrink: 0;
         }
 
-        .erro {
+        .submenu-item.active .submenu-bullet {
+          background: #fff;
+        }
+
+        .submenu-label {
+          font-size: 13px;
+          font-weight: 700;
+          line-height: 1.2;
+        }
+
+        .menu-state,
+        .menu-error {
+          border-radius: 16px;
+          padding: 14px;
+          font-size: 13px;
+        }
+
+        .menu-state {
+          color: rgba(255, 255, 255, 0.72);
+          background: rgba(255, 255, 255, 0.05);
+        }
+
+        .menu-error {
           color: #fecaca;
           background: rgba(239, 68, 68, 0.12);
-          border: 1px solid rgba(239, 68, 68, 0.22);
-          padding: 12px;
-          border-radius: 14px;
-          font-size: 13px;
+          border: 1px solid rgba(239, 68, 68, 0.16);
         }
 
         .sidebar-footer {
-          margin-top: auto;
-          padding-top: 6px;
           display: flex;
           flex-direction: column;
           gap: 12px;
         }
 
-        .footer-box {
+        .footer-info {
+          display: flex;
+          align-items: flex-start;
+          gap: 10px;
           padding: 14px;
-          border-radius: 16px;
-          background: rgba(255, 255, 255, 0.04);
+          border-radius: 18px;
+          background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.06);
+          color: rgba(255, 255, 255, 0.84);
         }
 
-        .footer-box p {
-          margin: 0;
-          font-size: 13px;
-          color: #e2e8f0;
-          font-weight: 700;
-        }
-
-        .footer-box small {
+        .footer-info strong {
           display: block;
-          margin-top: 6px;
-          font-size: 12px;
-          color: #94a3b8;
+          font-size: 13px;
+          color: #fff;
         }
 
-        .logout-button,
-        .header-logout {
-          border: none;
-          cursor: pointer;
-          transition: 0.22s ease;
-          font-weight: 700;
+        .footer-info span {
+          display: block;
+          font-size: 12px;
+          margin-top: 4px;
+          color: rgba(255, 255, 255, 0.68);
         }
 
         .logout-button {
-          width: 100%;
+          border: none;
+          min-height: 50px;
+          border-radius: 16px;
+          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+          color: #fff;
+          font-weight: 800;
           display: flex;
           align-items: center;
           justify-content: center;
           gap: 10px;
-          border-radius: 16px;
-          padding: 14px 14px;
-          background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-          color: #fff;
-          box-shadow:
-            0 14px 24px rgba(239, 68, 68, 0.2),
-            inset 0 1px 0 rgba(255, 255, 255, 0.14);
+          cursor: pointer;
+          transition: 0.22s ease;
+          box-shadow: 0 14px 24px rgba(239, 68, 68, 0.18);
         }
 
         .logout-button:hover:not(:disabled) {
           transform: translateY(-1px);
         }
 
-        .logout-button:disabled,
-        .header-logout:disabled {
+        .logout-button:disabled {
           opacity: 0.7;
           cursor: not-allowed;
-        }
-
-        .logout-icon {
-          font-size: 14px;
-          line-height: 1;
         }
 
         .main-area {
           flex: 1;
           min-width: 0;
-          width: 100%;
           display: flex;
           flex-direction: column;
-          overflow-x: hidden;
         }
 
-        .header {
+        .topbar {
           position: sticky;
           top: 0;
           z-index: 20;
-          min-height: 88px;
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 16px;
-          padding: 14px 20px;
-          background: rgba(255, 255, 255, 0.78);
-          backdrop-filter: blur(14px);
-          border-bottom: 1px solid rgba(226, 232, 240, 0.95);
-          box-sizing: border-box;
+          padding: 18px 24px;
+          background: rgba(255, 250, 246, 0.82);
+          backdrop-filter: blur(12px);
+          border-bottom: 1px solid rgba(228, 210, 199, 0.9);
         }
 
-        .header-left {
+        .topbar-left {
           display: flex;
           align-items: center;
           gap: 14px;
@@ -755,82 +863,67 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           width: 42px;
           height: 42px;
           border-radius: 12px;
-          border: 1px solid #dbeafe;
-          background: rgba(255, 255, 255, 0.96);
-          color: #0f172a;
-          font-size: 18px;
+          border: 1px solid #ead7cb;
+          background: #fff;
+          color: #533b33;
           cursor: pointer;
-          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
           flex-shrink: 0;
+          box-shadow: 0 10px 18px rgba(83, 59, 51, 0.06);
         }
 
-        .header-title {
+        .topbar-title {
           min-width: 0;
         }
 
-        .header-kicker {
+        .topbar-kicker {
           display: inline-block;
           margin-bottom: 6px;
+          color: #b55f53;
           font-size: 11px;
-          font-weight: 800;
+          font-weight: 900;
           text-transform: uppercase;
-          letter-spacing: 1px;
-          color: #2563eb;
+          letter-spacing: 0.08em;
         }
 
-        .header-title h1 {
+        .topbar-title h1 {
           margin: 0;
-          font-size: 24px;
+          font-size: 28px;
           line-height: 1.1;
-          color: #0f172a;
-          font-weight: 800;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          color: #352720;
+          font-weight: 900;
         }
 
-        .header-title p {
-          margin: 6px 0 0 0;
-          color: #64748b;
-          font-size: 13px;
-          max-width: 540px;
-          line-height: 1.5;
+        .topbar-title p {
+          margin: 6px 0 0;
+          color: #7d6358;
+          font-size: 14px;
+          max-width: 580px;
         }
 
-        .header-right {
+        .topbar-right {
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
           flex-wrap: wrap;
           justify-content: flex-end;
-          min-width: 0;
         }
 
-        .header-status-card {
+        .status-card,
+        .profile-chip {
+          background: rgba(255, 255, 255, 0.9);
+          border: 1px solid rgba(230, 212, 201, 0.9);
+          border-radius: 18px;
+          box-shadow: 0 12px 24px rgba(83, 59, 51, 0.05);
+        }
+
+        .status-card {
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 10px 12px;
-          border-radius: 16px;
-          background: rgba(255, 255, 255, 0.96);
-          border: 1px solid #e2e8f0;
-          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+          padding: 10px 14px;
         }
 
-        .header-status-card strong {
-          display: block;
-          font-size: 13px;
-          color: #0f172a;
-        }
-
-        .header-status-card small {
-          display: block;
-          margin-top: 2px;
-          font-size: 11px;
-          color: #64748b;
-        }
-
-        .status-dot {
+        .status-indicator {
           width: 10px;
           height: 10px;
           border-radius: 50%;
@@ -839,115 +932,88 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           flex-shrink: 0;
         }
 
-        .header-user {
+        .status-card strong {
+          display: block;
+          font-size: 13px;
+          color: #352720;
+        }
+
+        .status-card small {
+          display: block;
+          margin-top: 2px;
+          font-size: 11px;
+          color: #7d6358;
+        }
+
+        .profile-chip {
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 9px 12px;
-          border-radius: 16px;
-          background: rgba(255, 255, 255, 0.96);
-          border: 1px solid #e2e8f0;
-          box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+          padding: 10px 12px;
           min-width: 0;
-          max-width: 280px;
+          max-width: 290px;
         }
 
-        .header-user-text {
+        .profile-text {
           display: flex;
           flex-direction: column;
           min-width: 0;
         }
 
-        .header-user-text strong {
+        .profile-text strong {
           font-size: 13px;
-          color: #0f172a;
+          color: #352720;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        .header-user-text span {
+        .profile-text span {
           font-size: 11px;
-          color: #64748b;
+          color: #7d6358;
           overflow: hidden;
           text-overflow: ellipsis;
           white-space: nowrap;
         }
 
-        .header-logout {
-          border-radius: 14px;
-          padding: 11px 16px;
-          background: #fff;
-          color: #dc2626;
-          border: 1px solid #fecaca;
-          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
-          white-space: nowrap;
-        }
-
-        .header-logout:hover:not(:disabled) {
-          background: #fff5f5;
-        }
-
-        .content {
+        .content-area {
           flex: 1;
-          width: 100%;
-          min-width: 0;
-          padding: 18px;
-          box-sizing: border-box;
-          overflow-x: hidden;
+          padding: 22px;
         }
 
-        .content-shell {
+        .content-wrapper {
           width: 100%;
-          max-width: 1240px;
+          max-width: 1320px;
           margin: 0 auto;
-          min-width: 0;
         }
 
-        .content-inner {
-          width: 100%;
-          min-width: 0;
-          min-height: calc(100vh - 124px);
-          padding: 18px;
-          border-radius: 24px;
-          background:
-            linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.78) 100%);
-          border: 1px solid rgba(226, 232, 240, 0.95);
-          box-shadow:
-            0 16px 40px rgba(15, 23, 42, 0.06),
-            inset 0 1px 0 rgba(255, 255, 255, 0.55);
-          backdrop-filter: blur(10px);
-          box-sizing: border-box;
-          overflow-x: hidden;
+        .content-card {
+          min-height: calc(100vh - 138px);
+          background: rgba(255, 255, 255, 0.78);
+          border: 1px solid rgba(232, 214, 204, 0.92);
+          border-radius: 30px;
+          box-shadow: 0 20px 50px rgba(83, 59, 51, 0.08);
+          backdrop-filter: blur(8px);
+          padding: 22px;
+          overflow: hidden;
         }
 
         .mobile-overlay {
           display: none;
         }
 
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        @media (max-width: 1200px) {
-          .header-status-card {
+        @media (max-width: 1180px) {
+          .status-card {
             display: none;
           }
-
-          .content-shell {
-            max-width: 100%;
-          }
         }
 
-        @media (max-width: 1100px) {
+        @media (max-width: 1080px) {
           .sidebar {
             position: fixed;
             top: 0;
             left: -100%;
             height: 100vh;
-            min-height: 100vh;
             transition: left 0.25s ease;
           }
 
@@ -972,51 +1038,51 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             position: fixed;
             inset: 0;
             z-index: 25;
-            background: rgba(15, 23, 42, 0.45);
+            background: rgba(33, 24, 20, 0.4);
             backdrop-filter: blur(2px);
           }
 
-          .header {
-            padding: 14px 16px;
+          .topbar {
+            padding: 16px 18px;
           }
 
-          .content {
-            padding: 14px;
+          .content-area {
+            padding: 16px;
           }
 
-          .content-inner {
-            min-height: calc(100vh - 110px);
-            padding: 14px;
-            border-radius: 20px;
+          .content-card {
+            min-height: calc(100vh - 120px);
+            padding: 16px;
+            border-radius: 24px;
           }
         }
 
         @media (max-width: 760px) {
-          .header {
-            align-items: flex-start;
+          .topbar {
             flex-direction: column;
+            align-items: flex-start;
           }
 
-          .header-left,
-          .header-right {
+          .topbar-left,
+          .topbar-right {
             width: 100%;
           }
 
-          .header-right {
+          .topbar-right {
             justify-content: flex-start;
           }
 
-          .header-user {
+          .profile-chip {
             max-width: 100%;
-            flex: 1;
+            width: 100%;
           }
 
-          .header-title h1 {
-            font-size: 22px;
+          .topbar-title h1 {
+            font-size: 24px;
           }
 
-          .header-title p {
-            font-size: 12px;
+          .topbar-title p {
+            font-size: 13px;
           }
 
           .sidebar {
@@ -1024,25 +1090,21 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             min-width: 286px;
             max-width: 286px;
           }
-
-          .header-logout {
-            width: 100%;
-          }
         }
 
         @media (max-width: 520px) {
-          .content {
+          .content-area {
             padding: 10px;
           }
 
-          .content-inner {
+          .content-card {
             padding: 12px;
             border-radius: 18px;
           }
 
-          .header-user-text strong,
-          .header-user-text span {
-            max-width: 150px;
+          .profile-text strong,
+          .profile-text span {
+            max-width: 160px;
           }
         }
       `}</style>
