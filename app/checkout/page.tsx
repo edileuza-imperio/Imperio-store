@@ -15,8 +15,6 @@ import {
   FiShield,
   FiShoppingBag,
   FiUser,
-  FiPhone,
-  FiMail,
 } from "react-icons/fi";
 
 type CarrinhoItem = {
@@ -43,6 +41,17 @@ type CheckoutForm = {
   estado: string;
 };
 
+type CarrinhoResumo = {
+  id_carrinho?: number;
+  usuario_id?: number;
+  status_id?: number;
+  valor_produtos?: number | string;
+  valor_desconto?: number | string;
+  valor_frete?: number | string;
+  valor_total?: number | string;
+  itens?: any[];
+};
+
 function num(v: any): number {
   if (typeof v === "number") return Number.isFinite(v) ? v : 0;
 
@@ -63,11 +72,17 @@ function num(v: any): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-function pickCarrinho(resp: any): any[] {
-  const base = resp?.dados ?? resp?.data ?? resp;
+function pickCarrinhoBase(resp: any): any {
+  return resp?.dados ?? resp?.data ?? resp ?? {};
+}
+
+function pickItensDoCarrinho(resp: any): any[] {
+  const base = pickCarrinhoBase(resp);
 
   if (Array.isArray(base)) return base;
   if (Array.isArray(base?.itens)) return base.itens;
+  if (Array.isArray(base?.carrinho?.itens)) return base.carrinho.itens;
+  if (Array.isArray(base?.dados?.itens)) return base.dados.itens;
 
   return [];
 }
@@ -84,7 +99,8 @@ function normalizarItens(lista: any[]): CarrinhoItem[] {
     return {
       id_item: Number(item?.id_item ?? item?.id_carrinho_item ?? item?.id ?? 0),
       id_produto:
-        Number(item?.produto_id ?? item?.id_produto ?? 0) || undefined,
+        Number(item?.produto_id ?? item?.id_produto ?? item?.idProduto ?? 0) ||
+        undefined,
       nome_produto: String(
         item?.nome_produto ??
           item?.nome ??
@@ -134,6 +150,7 @@ export default function CheckoutPage() {
   const [erro, setErro] = React.useState<string | null>(null);
   const [itens, setItens] = React.useState<CarrinhoItem[]>([]);
   const [carregandoUsuario, setCarregandoUsuario] = React.useState(true);
+  const [carrinho, setCarrinho] = React.useState<CarrinhoResumo | null>(null);
 
   const [form, setForm] = React.useState<CheckoutForm>({
     nome: "",
@@ -148,7 +165,7 @@ export default function CheckoutPage() {
     estado: "",
   });
 
-  const subtotal = React.useMemo(() => {
+  const subtotalCalculado = React.useMemo(() => {
     return itens.reduce((acc, item) => {
       return acc + precoFinalItem(item) * (item.quantidade || 1);
     }, 0);
@@ -159,24 +176,67 @@ export default function CheckoutPage() {
   }, [itens]);
 
   const frete = React.useMemo(() => {
+    const valor = num(carrinho?.valor_frete);
+    if (valor > 0) return valor;
     if (itens.length === 0) return 0;
     return 0;
-  }, [itens]);
+  }, [carrinho, itens]);
 
-  const total = subtotal + frete;
+  const subtotal = React.useMemo(() => {
+    const valor = num(carrinho?.valor_produtos);
+    return valor > 0 ? valor : subtotalCalculado;
+  }, [carrinho, subtotalCalculado]);
+
+  const desconto = React.useMemo(() => {
+    return num(carrinho?.valor_desconto);
+  }, [carrinho]);
+
+  const total = React.useMemo(() => {
+    const valor = num(carrinho?.valor_total);
+    if (valor > 0) return valor;
+    return subtotal - desconto + frete;
+  }, [carrinho, subtotal, desconto, frete]);
 
   async function carregarCarrinho() {
     try {
-      const resp = await api.get("/carrinho/itens", {
-        withCredentials: true,
-      });
+      setErro(null);
 
-      const listaBruta = pickCarrinho(resp.data);
-      const listaNormalizada = normalizarItens(listaBruta);
+      try {
+        const resp = await api.get("/carrinho", {
+          withCredentials: true,
+        });
 
-      setItens(listaNormalizada);
+        const base = pickCarrinhoBase(resp.data);
+        const listaBruta = pickItensDoCarrinho(resp.data);
+        const listaNormalizada = normalizarItens(listaBruta);
+
+        setCarrinho({
+          id_carrinho: Number(base?.id_carrinho ?? base?.carrinho?.id_carrinho ?? 0) || undefined,
+          usuario_id: Number(base?.usuario_id ?? base?.carrinho?.usuario_id ?? 0) || undefined,
+          status_id: Number(base?.status_id ?? base?.carrinho?.status_id ?? 0) || undefined,
+          valor_produtos: base?.valor_produtos ?? base?.carrinho?.valor_produtos ?? 0,
+          valor_desconto: base?.valor_desconto ?? base?.carrinho?.valor_desconto ?? 0,
+          valor_frete: base?.valor_frete ?? base?.carrinho?.valor_frete ?? 0,
+          valor_total: base?.valor_total ?? base?.carrinho?.valor_total ?? 0,
+          itens: listaBruta,
+        });
+
+        setItens(listaNormalizada);
+        return;
+      } catch {
+        const respItens = await api.get("/carrinho/itens", {
+          withCredentials: true,
+        });
+
+        const listaBruta = pickItensDoCarrinho(respItens.data);
+        const listaNormalizada = normalizarItens(listaBruta);
+
+        setCarrinho(null);
+        setItens(listaNormalizada);
+      }
     } catch (e: any) {
       setErro(e?.response?.data?.mensagem || "Erro ao carregar checkout.");
+      setCarrinho(null);
       setItens([]);
     }
   }
@@ -254,7 +314,14 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (!form.cep || !form.endereco || !form.numero || !form.cidade || !form.estado) {
+    if (
+      !form.cep ||
+      !form.endereco ||
+      !form.numero ||
+      !form.bairro ||
+      !form.cidade ||
+      !form.estado
+    ) {
       toast.warning("Preencha os dados de entrega.");
       return;
     }
@@ -262,12 +329,56 @@ export default function CheckoutPage() {
     try {
       setEnviando(true);
 
-      // Aqui depois você pode salvar os dados do checkout
-      // e redirecionar para a próxima tela de pagamento.
-      toast.success("Dados salvos. Continue para a próxima etapa.");
+      const payload = {
+        cliente: {
+          nome: form.nome,
+          email: form.email,
+          telefone: form.telefone,
+        },
+        entrega: {
+          cep: form.cep,
+          endereco: form.endereco,
+          numero: form.numero,
+          complemento: form.complemento,
+          bairro: form.bairro,
+          cidade: form.cidade,
+          estado: form.estado,
+        },
+        resumo: {
+          valor_produtos: subtotal,
+          valor_desconto: desconto,
+          valor_frete: frete,
+          valor_total: total,
+          total_itens: totalItens,
+        },
+      };
+
+      const response = await api.put("/carrinho/finalizar", payload, {
+        withCredentials: true,
+      });
+
+      const dados = response?.data?.dados ?? response?.data ?? {};
+
+      toast.success(
+        dados?.mensagem || "Carrinho finalizado com sucesso. Continue para o pagamento."
+      );
+
+      await carregarCarrinho();
+
+      if (dados?.redirect) {
+        window.location.href = dados.redirect;
+        return;
+      }
+
+      if (dados?.url) {
+        window.location.href = dados.url;
+        return;
+      }
     } catch (error: any) {
       toast.error(
-        error?.response?.data?.mensagem || "Não foi possível continuar."
+        error?.response?.data?.mensagem ||
+          error?.response?.data?.dados?.erro ||
+          "Não foi possível continuar."
       );
     } finally {
       setEnviando(false);
@@ -796,6 +907,13 @@ export default function CheckoutPage() {
                       <strong>{formatBRL(subtotal)}</strong>
                     </div>
 
+                    {desconto > 0 && (
+                      <div className="summaryLine">
+                        <span>Desconto</span>
+                        <strong>- {formatBRL(desconto)}</strong>
+                      </div>
+                    )}
+
                     <div className="summaryLine">
                       <span>Frete</span>
                       <strong>{frete > 0 ? formatBRL(frete) : "Grátis"}</strong>
@@ -811,7 +929,7 @@ export default function CheckoutPage() {
                       className="btn btn-brand w-100 mt-4"
                       disabled={enviando || itens.length === 0}
                     >
-                      {enviando ? "Continuando..." : "Continuar para pagamento"}
+                      {enviando ? "Finalizando..." : "Continuar para pagamento"}
                     </button>
 
                     <button
