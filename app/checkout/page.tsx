@@ -14,7 +14,10 @@ import {
   FiTruck,
   FiShield,
   FiShoppingBag,
-  FiUser,
+  FiHome,
+  FiCheckCircle,
+  FiPlusCircle,
+  FiSave,
 } from "react-icons/fi";
 
 type CarrinhoItem = {
@@ -49,14 +52,9 @@ type CarrinhoResumo = {
   itens?: any[];
 };
 
-type UsuarioLogado = {
-  id_usuario?: number;
-  nome?: string;
-  email?: string;
-  telefone?: string;
-  celular?: string;
-  whatsapp?: string;
-  cpf?: string;
+type EnderecoUsuario = {
+  id_endereco: number;
+  usuario_id: number;
   cep?: string;
   endereco?: string;
   numero?: string;
@@ -64,6 +62,9 @@ type UsuarioLogado = {
   bairro?: string;
   cidade?: string;
   estado?: string;
+  principal?: number;
+  criado?: string;
+  atualizado?: string;
 };
 
 function num(v: any): number {
@@ -158,14 +159,36 @@ function precoFinalItem(item: CarrinhoItem) {
   return num(item.preco_unitario);
 }
 
+function enderecoToForm(endereco?: Partial<EnderecoUsuario> | null): CheckoutForm {
+  return {
+    cep: endereco?.cep ?? "",
+    endereco: endereco?.endereco ?? "",
+    numero: endereco?.numero ?? "",
+    complemento: endereco?.complemento ?? "",
+    bairro: endereco?.bairro ?? "",
+    cidade: endereco?.cidade ?? "",
+    estado: endereco?.estado ?? "",
+  };
+}
+
+function formVazio(form: CheckoutForm) {
+  return !(
+    form.cep ||
+    form.endereco ||
+    form.numero ||
+    form.complemento ||
+    form.bairro ||
+    form.cidade ||
+    form.estado
+  );
+}
+
 export default function CheckoutPage() {
   const [loading, setLoading] = React.useState(true);
   const [enviando, setEnviando] = React.useState(false);
   const [erro, setErro] = React.useState<string | null>(null);
   const [itens, setItens] = React.useState<CarrinhoItem[]>([]);
-  const [carregandoUsuario, setCarregandoUsuario] = React.useState(true);
   const [carrinho, setCarrinho] = React.useState<CarrinhoResumo | null>(null);
-  const [usuario, setUsuario] = React.useState<UsuarioLogado | null>(null);
 
   const [form, setForm] = React.useState<CheckoutForm>({
     cep: "",
@@ -176,6 +199,11 @@ export default function CheckoutPage() {
     cidade: "",
     estado: "",
   });
+
+  const [enderecos, setEnderecos] = React.useState<EnderecoUsuario[]>([]);
+  const [carregandoEnderecos, setCarregandoEnderecos] = React.useState(true);
+  const [salvandoEndereco, setSalvandoEndereco] = React.useState(false);
+  const [enderecoSelecionadoId, setEnderecoSelecionadoId] = React.useState<number | null>(null);
 
   const subtotalCalculado = React.useMemo(() => {
     return itens.reduce((acc, item) => {
@@ -208,28 +236,6 @@ export default function CheckoutPage() {
     if (valor > 0) return valor;
     return subtotal - desconto + frete;
   }, [carrinho, subtotal, desconto, frete]);
-
-  function getEnderecoStorageKey(usuarioId?: number) {
-    return `checkout_endereco_usuario_${usuarioId ?? "anonimo"}`;
-  }
-
-  function salvarEnderecoLocal(endereco: CheckoutForm, usuarioId?: number) {
-    if (typeof window === "undefined") return;
-    localStorage.setItem(getEnderecoStorageKey(usuarioId), JSON.stringify(endereco));
-  }
-
-  function carregarEnderecoLocal(usuarioId?: number): CheckoutForm | null {
-    if (typeof window === "undefined") return null;
-
-    const raw = localStorage.getItem(getEnderecoStorageKey(usuarioId));
-    if (!raw) return null;
-
-    try {
-      return JSON.parse(raw);
-    } catch {
-      return null;
-    }
-  }
 
   async function carregarCarrinho() {
     try {
@@ -284,50 +290,45 @@ export default function CheckoutPage() {
     }
   }
 
-  async function carregarUsuarioLogado() {
+  async function carregarEnderecos() {
     try {
-      setCarregandoUsuario(true);
+      setCarregandoEnderecos(true);
 
-      const response = await api.get("/me", {
+      const response = await api.get("/usuario/endereco", {
         withCredentials: true,
       });
 
-      const dados = (response?.data?.dados ?? response?.data ?? null) as UsuarioLogado | null;
+      const lista = response?.data?.dados ?? response?.data ?? [];
+      const enderecosLista = Array.isArray(lista) ? lista : [];
 
-      if (!dados) return;
+      setEnderecos(enderecosLista);
 
-      setUsuario(dados);
+      if (enderecosLista.length > 0) {
+        const principal =
+          enderecosLista.find((item) => Number(item?.principal) === 1) ??
+          enderecosLista[0];
 
-      const enderecoDoUsuario: CheckoutForm = {
-        cep: dados?.cep ?? "",
-        endereco: dados?.endereco ?? "",
-        numero: dados?.numero ?? "",
-        complemento: dados?.complemento ?? "",
-        bairro: dados?.bairro ?? "",
-        cidade: dados?.cidade ?? "",
-        estado: dados?.estado ?? "",
-      };
-
-      const enderecoUsuarioPreenchido = Boolean(
-        enderecoDoUsuario.cep ||
-          enderecoDoUsuario.endereco ||
-          enderecoDoUsuario.numero ||
-          enderecoDoUsuario.bairro ||
-          enderecoDoUsuario.cidade ||
-          enderecoDoUsuario.estado
-      );
-
-      const enderecoLocal = carregarEnderecoLocal(dados?.id_usuario);
-
-      if (enderecoUsuarioPreenchido) {
-        setForm(enderecoDoUsuario);
-        salvarEnderecoLocal(enderecoDoUsuario, dados?.id_usuario);
-      } else if (enderecoLocal) {
-        setForm(enderecoLocal);
+        if (principal) {
+          setEnderecoSelecionadoId(Number(principal.id_endereco));
+          setForm(enderecoToForm(principal));
+        }
+      } else {
+        setEnderecoSelecionadoId(null);
+        setForm({
+          cep: "",
+          endereco: "",
+          numero: "",
+          complemento: "",
+          bairro: "",
+          cidade: "",
+          estado: "",
+        });
       }
-    } catch {
+    } catch (error: any) {
+      setEnderecos([]);
+      setEnderecoSelecionadoId(null);
     } finally {
-      setCarregandoUsuario(false);
+      setCarregandoEnderecos(false);
     }
   }
 
@@ -338,7 +339,7 @@ export default function CheckoutPage() {
       try {
         setLoading(true);
         setErro(null);
-        await Promise.all([carregarCarrinho(), carregarUsuarioLogado()]);
+        await Promise.all([carregarCarrinho(), carregarEnderecos()]);
       } finally {
         if (ativo) setLoading(false);
       }
@@ -351,12 +352,6 @@ export default function CheckoutPage() {
     };
   }, []);
 
-  React.useEffect(() => {
-    if (usuario?.id_usuario) {
-      salvarEnderecoLocal(form, usuario.id_usuario);
-    }
-  }, [form, usuario?.id_usuario]);
-
   function handleChange(
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
   ) {
@@ -366,6 +361,79 @@ export default function CheckoutPage() {
       ...prev,
       [name]: value,
     }));
+
+    if (enderecoSelecionadoId) {
+      setEnderecoSelecionadoId(null);
+    }
+  }
+
+  function selecionarEndereco(endereco: EnderecoUsuario) {
+    setEnderecoSelecionadoId(Number(endereco.id_endereco));
+    setForm(enderecoToForm(endereco));
+  }
+
+  function novoEndereco() {
+    setEnderecoSelecionadoId(null);
+    setForm({
+      cep: "",
+      endereco: "",
+      numero: "",
+      complemento: "",
+      bairro: "",
+      cidade: "",
+      estado: "",
+    });
+  }
+
+  async function salvarEnderecoUsuario() {
+    if (
+      !form.cep ||
+      !form.endereco ||
+      !form.numero ||
+      !form.bairro ||
+      !form.cidade ||
+      !form.estado
+    ) {
+      toast.warning("Preencha os dados do endereço antes de salvar.");
+      return;
+    }
+
+    try {
+      setSalvandoEndereco(true);
+
+      const payload = {
+        cep: form.cep,
+        endereco: form.endereco,
+        numero: form.numero,
+        complemento: form.complemento,
+        bairro: form.bairro,
+        cidade: form.cidade,
+        estado: form.estado,
+        principal: enderecos.length === 0 || enderecoSelecionadoId ? 1 : 0,
+      };
+
+      if (enderecoSelecionadoId) {
+        await api.put(`/usuario/endereco/${enderecoSelecionadoId}`, payload, {
+          withCredentials: true,
+        });
+
+        toast.success("Endereço atualizado com sucesso.");
+      } else {
+        await api.post("/usuario/endereco", payload, {
+          withCredentials: true,
+        });
+
+        toast.success("Endereço salvo com sucesso.");
+      }
+
+      await carregarEnderecos();
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.mensagem || "Não foi possível salvar o endereço."
+      );
+    } finally {
+      setSalvandoEndereco(false);
+    }
   }
 
   async function handleContinuar(e: React.FormEvent) {
@@ -394,7 +462,7 @@ export default function CheckoutPage() {
       !form.cidade ||
       !form.estado
     ) {
-      toast.warning("Preencha os dados de entrega.");
+      toast.warning("Preencha ou selecione um endereço de entrega.");
       return;
     }
 
@@ -445,8 +513,6 @@ export default function CheckoutPage() {
       });
 
       const dados = response?.data?.dados ?? response?.data ?? {};
-
-      salvarEnderecoLocal(form, carrinho.usuario_id);
 
       toast.success(dados?.mensagem || "Pedido cadastrado com sucesso.");
 
@@ -779,23 +845,78 @@ export default function CheckoutPage() {
           padding: 10px 12px;
         }
 
-        .userDataBox {
+        .addressCardsGrid {
           display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 14px;
+          margin-bottom: 18px;
+        }
+
+        .addressCard {
+          width: 100%;
+          text-align: left;
+          border: 1px solid #ecd8ce;
+          background: #fff;
+          border-radius: 18px;
+          padding: 16px;
+          transition: 0.2s ease;
+          cursor: pointer;
+        }
+
+        .addressCard:hover {
+          border-color: #d9a58f;
+          transform: translateY(-1px);
+          box-shadow: 0 12px 24px rgba(185, 101, 88, 0.08);
+        }
+
+        .addressCard.active {
+          border-color: #b55f53;
+          background: #fff7f4;
+          box-shadow: 0 0 0 4px rgba(181, 95, 83, 0.1);
+        }
+
+        .addressCardHead {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 10px;
+        }
+
+        .addressCardTitle {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 15px;
+          font-weight: 800;
+          color: #4b372f;
+        }
+
+        .addressPrincipal {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 12px;
+          font-weight: 800;
+          color: #8f433a;
+          background: #fff1ec;
+          border: 1px solid #f0d1c7;
+          padding: 6px 10px;
+          border-radius: 999px;
+        }
+
+        .addressCardText {
+          font-size: 13px;
+          color: #6c564c;
+          line-height: 1.5;
+          margin: 0;
+        }
+
+        .addressActions {
+          display: flex;
           gap: 10px;
-          margin-top: 12px;
-          padding: 14px;
-          border-radius: 16px;
-          background: #fffaf7;
-          border: 1px solid #f0ddd2;
-        }
-
-        .userDataLine {
-          font-size: 14px;
-          color: #5d473f;
-        }
-
-        .userDataLine strong {
-          color: #3f2d26;
+          flex-wrap: wrap;
+          margin-bottom: 18px;
         }
 
         @media (max-width: 992px) {
@@ -829,7 +950,7 @@ export default function CheckoutPage() {
               </div>
               <div>
                 <h1>Checkout</h1>
-                <p>Confirme o endereço e siga para a próxima etapa.</p>
+                <p>Selecione um endereço salvo ou cadastre um novo.</p>
               </div>
             </div>
 
@@ -850,38 +971,90 @@ export default function CheckoutPage() {
                 <div className="col-lg-8 d-grid gap-4">
                   <div className="checkout-surface checkout-card">
                     <div className="section-title">
-                      <FiUser size={20} />
-                      <span>Dados da conta</span>
+                      <FiMapPin size={20} />
+                      <span>Endereços salvos</span>
                     </div>
 
                     <div className="prefillInfo">
-                      Os dados do cliente são usados a partir do usuário logado.
+                      Clique em um card para usar o endereço no pedido.
                     </div>
 
-                    <div className="userDataBox">
-                      <div className="userDataLine">
-                        <strong>Nome:</strong> {carregandoUsuario ? "Carregando..." : (usuario?.nome || "Não informado")}
+                    {carregandoEnderecos ? (
+                      <div className="emptyBox">Carregando endereços...</div>
+                    ) : enderecos.length > 0 ? (
+                      <>
+                        <div className="addressCardsGrid">
+                          {enderecos.map((endereco) => {
+                            const ativo =
+                              Number(enderecoSelecionadoId) === Number(endereco.id_endereco);
+
+                            return (
+                              <button
+                                key={endereco.id_endereco}
+                                type="button"
+                                className={`addressCard ${ativo ? "active" : ""}`}
+                                onClick={() => selecionarEndereco(endereco)}
+                              >
+                                <div className="addressCardHead">
+                                  <div className="addressCardTitle">
+                                    <FiHome size={16} />
+                                    <span>Endereço #{endereco.id_endereco}</span>
+                                  </div>
+
+                                  {Number(endereco.principal) === 1 && (
+                                    <span className="addressPrincipal">
+                                      <FiCheckCircle size={13} />
+                                      Principal
+                                    </span>
+                                  )}
+                                </div>
+
+                                <p className="addressCardText">
+                                  {endereco.endereco || "Endereço não informado"}
+                                  {endereco.numero ? `, ${endereco.numero}` : ""}
+                                  <br />
+                                  {endereco.bairro ? `${endereco.bairro} - ` : ""}
+                                  {endereco.cidade || ""}
+                                  {endereco.estado ? `/${endereco.estado}` : ""}
+                                  <br />
+                                  CEP: {endereco.cep || "Não informado"}
+                                  {endereco.complemento
+                                    ? ` • ${endereco.complemento}`
+                                    : ""}
+                                </p>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        <div className="addressActions">
+                          <button
+                            type="button"
+                            className="btn btn-outline-brand"
+                            onClick={novoEndereco}
+                          >
+                            <FiPlusCircle size={18} style={{ marginRight: 8 }} />
+                            Novo endereço
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="emptyBox">
+                        Você ainda não possui endereço salvo.
                       </div>
-                      <div className="userDataLine">
-                        <strong>E-mail:</strong> {carregandoUsuario ? "Carregando..." : (usuario?.email || "Não informado")}
-                      </div>
-                      <div className="userDataLine">
-                        <strong>Telefone:</strong> {carregandoUsuario ? "Carregando..." : (usuario?.telefone || usuario?.celular || usuario?.whatsapp || "Não informado")}
-                      </div>
-                      <div className="userDataLine">
-                        <strong>CPF:</strong> {carregandoUsuario ? "Carregando..." : (usuario?.cpf || "Não informado")}
-                      </div>
-                    </div>
+                    )}
                   </div>
 
                   <div className="checkout-surface checkout-card">
                     <div className="section-title">
                       <FiMapPin size={20} />
-                      <span>Endereço de entrega</span>
+                      <span>
+                        {enderecoSelecionadoId ? "Editar endereço" : "Novo endereço"}
+                      </span>
                     </div>
 
                     <div className="prefillInfo">
-                      Se houver endereço salvo, ele será preenchido automaticamente.
+                      Preencha os dados e clique em salvar para guardar no usuário.
                     </div>
 
                     <div className="row g-3">
@@ -953,6 +1126,22 @@ export default function CheckoutPage() {
                           value={form.estado}
                           onChange={handleChange}
                         />
+                      </div>
+
+                      <div className="col-12">
+                        <button
+                          type="button"
+                          className="btn btn-outline-brand"
+                          onClick={salvarEnderecoUsuario}
+                          disabled={salvandoEndereco || formVazio(form)}
+                        >
+                          <FiSave size={18} style={{ marginRight: 8 }} />
+                          {salvandoEndereco
+                            ? "Salvando endereço..."
+                            : enderecoSelecionadoId
+                            ? "Atualizar endereço"
+                            : "Salvar endereço"}
+                        </button>
                       </div>
                     </div>
                   </div>
