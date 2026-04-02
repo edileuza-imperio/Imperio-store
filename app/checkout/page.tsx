@@ -85,7 +85,7 @@ function pickItensDoCarrinho(resp: any): any[] {
   console.log("[pickItensDoCarrinho] base:", base);
 
   if (Array.isArray(base)) {
-    console.log("[pickItensDoCarrinho] base é array");
+    console.log("[pickItensDoCarrinho] usando base como array");
     return base;
   }
 
@@ -264,6 +264,9 @@ export default function CheckoutPage() {
       console.log("[carregarCarrinho] iniciando carregamento");
       console.log("[carregarCarrinho] baseURL:", api.defaults.baseURL);
 
+      let carrinhoResumo: CarrinhoResumo | null = null;
+      let listaNormalizada: CarrinhoItem[] = [];
+
       try {
         console.log("[carregarCarrinho] tentando GET /carrinho");
 
@@ -276,9 +279,8 @@ export default function CheckoutPage() {
 
         const base = pickCarrinhoBase(resp.data);
         const listaBruta = pickItensDoCarrinho(resp.data);
-        const listaNormalizada = normalizarItens(listaBruta);
 
-        const carrinhoNormalizado = {
+        carrinhoResumo = {
           id_carrinho:
             Number(base?.id_carrinho ?? base?.carrinho?.id_carrinho ?? 0) ||
             undefined,
@@ -297,42 +299,46 @@ export default function CheckoutPage() {
           itens: listaBruta,
         };
 
-        console.log("[carregarCarrinho] carrinho normalizado:", carrinhoNormalizado);
+        console.log("[carregarCarrinho] carrinhoResumo:", carrinhoResumo);
         console.log("[carregarCarrinho] listaBruta /carrinho:", listaBruta);
-        console.log("[carregarCarrinho] listaNormalizada /carrinho:", listaNormalizada);
 
-        setCarrinho(carrinhoNormalizado);
+        if (Array.isArray(listaBruta) && listaBruta.length > 0) {
+          listaNormalizada = normalizarItens(listaBruta);
+          console.log("[carregarCarrinho] itens encontrados em /carrinho");
+        } else {
+          console.warn(
+            "[carregarCarrinho] /carrinho veio sem itens, tentando /carrinho/itens"
+          );
+
+          const respItens = await api.get("/carrinho/itens", {
+            withCredentials: true,
+          });
+
+          console.log("[carregarCarrinho] resposta /carrinho/itens:", respItens);
+          console.log(
+            "[carregarCarrinho] response.data /carrinho/itens:",
+            respItens.data
+          );
+
+          const listaBrutaItens = pickItensDoCarrinho(respItens.data);
+          console.log(
+            "[carregarCarrinho] listaBruta /carrinho/itens:",
+            listaBrutaItens
+          );
+
+          listaNormalizada = normalizarItens(listaBrutaItens);
+        }
+
+        console.log("[carregarCarrinho] listaNormalizada final:", listaNormalizada);
+
+        setCarrinho(carrinhoResumo);
         setItens(listaNormalizada);
 
-        console.log("[carregarCarrinho] sucesso usando /carrinho");
+        console.log("[carregarCarrinho] sucesso final");
         console.log("======================================");
-        return;
       } catch (erroCarrinho) {
-        console.warn("[carregarCarrinho] falhou GET /carrinho:", erroCarrinho);
-
-        console.log("[carregarCarrinho] tentando fallback GET /carrinho/itens");
-
-        const respItens = await api.get("/carrinho/itens", {
-          withCredentials: true,
-        });
-
-        console.log("[carregarCarrinho] resposta /carrinho/itens:", respItens);
-        console.log("[carregarCarrinho] response.data /carrinho/itens:", respItens.data);
-
-        const listaBruta = pickItensDoCarrinho(respItens.data);
-        const listaNormalizada = normalizarItens(listaBruta);
-
-        console.log("[carregarCarrinho] listaBruta /carrinho/itens:", listaBruta);
-        console.log(
-          "[carregarCarrinho] listaNormalizada /carrinho/itens:",
-          listaNormalizada
-        );
-
-        setCarrinho(null);
-        setItens(listaNormalizada);
-
-        console.log("[carregarCarrinho] sucesso usando /carrinho/itens");
-        console.log("======================================");
+        console.error("[carregarCarrinho] erro ao carregar carrinho:", erroCarrinho);
+        throw erroCarrinho;
       }
     } catch (e: any) {
       console.error("[carregarCarrinho] erro final:", e);
