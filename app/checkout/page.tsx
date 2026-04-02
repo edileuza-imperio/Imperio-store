@@ -248,6 +248,8 @@ export default function CheckoutPage() {
         withCredentials: true,
       });
 
+      console.log("[checkout] resposta /carrinho:", resp.data);
+
       const base = pickCarrinhoBase(resp.data);
       const listaBruta = pickItensDoCarrinho(resp.data);
 
@@ -277,6 +279,8 @@ export default function CheckoutPage() {
           withCredentials: true,
         });
 
+        console.log("[checkout] resposta /carrinho/itens:", respItens.data);
+
         const listaBrutaItens = pickItensDoCarrinho(respItens.data);
         listaNormalizada = normalizarItens(listaBrutaItens);
       }
@@ -284,6 +288,10 @@ export default function CheckoutPage() {
       setCarrinho(carrinhoResumo);
       setItens(listaNormalizada);
     } catch (e: any) {
+      console.log("[checkout] erro ao carregar carrinho:", e);
+      console.log("[checkout] erro response:", e?.response);
+      console.log("[checkout] erro response data:", e?.response?.data);
+
       setErro(e?.response?.data?.mensagem || "Erro ao carregar checkout.");
       setCarrinho(null);
       setItens([]);
@@ -298,8 +306,12 @@ export default function CheckoutPage() {
         withCredentials: true,
       });
 
+      console.log("[endereco] resposta GET /usuario/endereco:", response.data);
+
       const lista = response?.data?.dados ?? response?.data ?? [];
       const enderecosLista = Array.isArray(lista) ? lista : [];
+
+      console.log("[endereco] lista normalizada:", enderecosLista);
 
       setEnderecos(enderecosLista);
 
@@ -309,6 +321,7 @@ export default function CheckoutPage() {
           enderecosLista[0];
 
         if (principal) {
+          console.log("[endereco] principal selecionado automaticamente:", principal);
           setEnderecoSelecionadoId(Number(principal.id_endereco));
           setForm(enderecoToForm(principal));
         }
@@ -325,6 +338,10 @@ export default function CheckoutPage() {
         });
       }
     } catch (error: any) {
+      console.log("[endereco] erro ao carregar endereços:", error);
+      console.log("[endereco] erro response:", error?.response);
+      console.log("[endereco] erro response data:", error?.response?.data);
+
       setEnderecos([]);
       setEnderecoSelecionadoId(null);
     } finally {
@@ -357,6 +374,8 @@ export default function CheckoutPage() {
   ) {
     const { name, value } = e.target;
 
+    console.log("[endereco] alterando campo:", name, value);
+
     setForm((prev) => ({
       ...prev,
       [name]: value,
@@ -368,11 +387,13 @@ export default function CheckoutPage() {
   }
 
   function selecionarEndereco(endereco: EnderecoUsuario) {
+    console.log("[endereco] card clicado:", endereco);
     setEnderecoSelecionadoId(Number(endereco.id_endereco));
     setForm(enderecoToForm(endereco));
   }
 
   function novoEndereco() {
+    console.log("[endereco] limpando formulário para novo endereço");
     setEnderecoSelecionadoId(null);
     setForm({
       cep: "",
@@ -394,6 +415,7 @@ export default function CheckoutPage() {
       !form.cidade ||
       !form.estado
     ) {
+      console.log("[endereco] formulário inválido:", form);
       toast.warning("Preencha os dados do endereço antes de salvar.");
       return;
     }
@@ -412,22 +434,37 @@ export default function CheckoutPage() {
         principal: enderecos.length === 0 || enderecoSelecionadoId ? 1 : 0,
       };
 
+      console.log("[endereco] iniciando salvamento");
+      console.log("[endereco] enderecoSelecionadoId:", enderecoSelecionadoId);
+      console.log("[endereco] payload enviado:", payload);
+
       if (enderecoSelecionadoId) {
-        await api.put(`/usuario/endereco/${enderecoSelecionadoId}`, payload, {
+        const response = await api.put(`/usuario/endereco/${enderecoSelecionadoId}`, payload, {
           withCredentials: true,
         });
 
+        console.log("[endereco] resposta PUT /usuario/endereco/:id:", response.data);
+
         toast.success("Endereço atualizado com sucesso.");
       } else {
-        await api.post("/usuario/endereco", payload, {
+        const response = await api.post("/usuario/endereco", payload, {
           withCredentials: true,
         });
+
+        console.log("[endereco] resposta POST /usuario/endereco:", response.data);
 
         toast.success("Endereço salvo com sucesso.");
       }
 
       await carregarEnderecos();
     } catch (error: any) {
+      console.log("[endereco] erro ao salvar endereço:", error);
+      console.log("[endereco] error.message:", error?.message);
+      console.log("[endereco] error.response:", error?.response);
+      console.log("[endereco] error.response.status:", error?.response?.status);
+      console.log("[endereco] error.response.data:", error?.response?.data);
+      console.log("[endereco] error.config:", error?.config);
+
       toast.error(
         error?.response?.data?.mensagem || "Não foi possível salvar o endereço."
       );
@@ -508,9 +545,13 @@ export default function CheckoutPage() {
         })),
       };
 
+      console.log("[checkout] payload /pedido/checkout:", payload);
+
       const response = await api.post("/pedido/checkout", payload, {
         withCredentials: true,
       });
+
+      console.log("[checkout] resposta /pedido/checkout:", response.data);
 
       const dados = response?.data?.dados ?? response?.data ?? {};
 
@@ -535,6 +576,10 @@ export default function CheckoutPage() {
 
       window.location.href = "/pagamento";
     } catch (error: any) {
+      console.log("[checkout] erro ao finalizar pedido:", error);
+      console.log("[checkout] erro response:", error?.response);
+      console.log("[checkout] erro response data:", error?.response?.data);
+
       toast.error(
         error?.response?.data?.dados?.erro ||
           error?.response?.data?.erro ||
