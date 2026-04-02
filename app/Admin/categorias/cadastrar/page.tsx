@@ -19,7 +19,6 @@ import {
 } from "react-icons/fi";
 
 type FormDataType = {
-  site_config_id: string;
   nome: string;
   slug: string;
   descricao: string;
@@ -34,14 +33,6 @@ type StatusItem = {
   nome?: string;
   titulo?: string;
   descricao?: string;
-};
-
-type SiteConfigItem = {
-  id_site_config?: number;
-  id?: number;
-  nome_site?: string;
-  titulo?: string;
-  subtitulo?: string;
 };
 
 function gerarSlug(texto: string) {
@@ -59,13 +50,12 @@ export default function CadastrarCategoriaPage() {
   const router = useRouter();
 
   const [form, setForm] = useState<FormDataType>({
-    site_config_id: "1",
     nome: "",
     slug: "",
     descricao: "",
     icone: "",
     ordem: "0",
-    status_id: "1",
+    status_id: "",
   });
 
   const [slugEditadoManual, setSlugEditadoManual] = useState(false);
@@ -74,7 +64,6 @@ export default function CadastrarCategoriaPage() {
   const [sucesso, setSucesso] = useState<string | null>(null);
 
   const [statusList, setStatusList] = useState<StatusItem[]>([]);
-  const [sitesList, setSitesList] = useState<SiteConfigItem[]>([]);
   const [carregandoAuxiliares, setCarregandoAuxiliares] = useState(true);
 
   const previewSlug = useMemo(() => {
@@ -101,69 +90,37 @@ export default function CadastrarCategoriaPage() {
     return item.nome || item.titulo || item.descricao || `Status ${getStatusId(item)}`;
   }
 
-  function getSiteId(item: SiteConfigItem) {
-    return Number(item.id_site_config ?? item.id ?? 0);
-  }
-
-  function getSiteNome(item: SiteConfigItem) {
-    return item.nome_site || item.titulo || item.subtitulo || `Site ${getSiteId(item)}`;
-  }
-
-  async function carregarAuxiliares() {
+  async function carregarStatus() {
     try {
       setCarregandoAuxiliares(true);
       setErro(null);
 
-      const [statusResponse, sitesResponse] = await Promise.all([
-        api.get("/painel/status"),
-        api.get("/painel/site/visualizar"),
-      ]);
+      const response = await api.get("/painel/status");
+      const data = response?.data;
 
-      const statusData = statusResponse?.data;
-      const sitesData = sitesResponse?.data;
-
-      const statusBruto: StatusItem[] = Array.isArray(statusData)
-        ? statusData
-        : Array.isArray(statusData?.dados)
-        ? statusData.dados
-        : Array.isArray(statusData?.status)
-        ? statusData.status
+      const statusBruto: StatusItem[] = Array.isArray(data)
+        ? data
+        : Array.isArray(data?.dados)
+        ? data.dados
+        : Array.isArray(data?.status)
+        ? data.status
         : [];
 
-      const sitesBruto: SiteConfigItem[] = Array.isArray(sitesData)
-        ? sitesData
-        : Array.isArray(sitesData?.dados?.sites)
-        ? sitesData.dados.sites
-        : Array.isArray(sitesData?.sites)
-        ? sitesData.sites
-        : Array.isArray(sitesData?.dados)
-        ? sitesData.dados
-        : [];
-
-      // deixa somente ID 1
-      const statusSomenteUm = statusBruto.filter((item) => getStatusId(item) === 1);
-      const sitesSomenteUm = sitesBruto.filter((item) => getSiteId(item) === 1);
-
-      setStatusList(statusSomenteUm);
-      setSitesList(sitesSomenteUm);
+      setStatusList(statusBruto);
 
       setForm((prev) => ({
         ...prev,
-        status_id: statusSomenteUm.length > 0 ? String(getStatusId(statusSomenteUm[0])) : "1",
-        site_config_id: sitesSomenteUm.length > 0 ? String(getSiteId(sitesSomenteUm[0])) : "1",
+        status_id:
+          prev.status_id || (statusBruto.length > 0 ? String(getStatusId(statusBruto[0])) : ""),
       }));
     } catch (error: any) {
-      console.error(
-        "Erro ao carregar status/site config:",
-        error?.response?.data || error
-      );
+      console.error("Erro ao carregar status:", error?.response?.data || error);
 
       setStatusList([]);
-      setSitesList([]);
       setErro(
         error?.response?.data?.mensagem ||
           error?.message ||
-          "Erro ao carregar status e site config."
+          "Erro ao carregar status."
       );
     } finally {
       setCarregandoAuxiliares(false);
@@ -171,7 +128,7 @@ export default function CadastrarCategoriaPage() {
   }
 
   useEffect(() => {
-    carregarAuxiliares();
+    carregarStatus();
   }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -179,11 +136,6 @@ export default function CadastrarCategoriaPage() {
 
     setErro(null);
     setSucesso(null);
-
-    if (!form.site_config_id.trim()) {
-      setErro("Selecione o site.");
-      return;
-    }
 
     if (!form.nome.trim()) {
       setErro("Informe o nome da categoria.");
@@ -215,7 +167,7 @@ export default function CadastrarCategoriaPage() {
         descricao: form.descricao.trim() || null,
         icone: form.icone.trim() || null,
         ordem: Number(form.ordem),
-        status_id: 1,
+        status_id: Number(form.status_id),
       };
 
       const response = await api.post("/painel/categoria", payload);
@@ -290,69 +242,13 @@ export default function CadastrarCategoriaPage() {
         <div className="feedback loading">
           <FiRefreshCw size={18} className="spin" />
           <div>
-            <strong>Carregando dados auxiliares</strong>
-            <p>Buscando status e site config...</p>
+            <strong>Carregando status</strong>
+            <p>Buscando os status disponíveis...</p>
           </div>
         </div>
       ) : (
         <form className="form-card" onSubmit={handleSubmit}>
           <div className="form-grid">
-            <div className="field">
-              <label htmlFor="site_config_id">
-                <FiLayers size={16} />
-                <span>Site *</span>
-              </label>
-
-              <select
-                id="site_config_id"
-                value={form.site_config_id}
-                disabled
-                onChange={(e) => atualizarCampo("site_config_id", e.target.value)}
-              >
-                {sitesList.length > 0 ? (
-                  sitesList.map((site) => {
-                    const id = getSiteId(site);
-                    return (
-                      <option key={id} value={id}>
-                        {getSiteNome(site)}
-                      </option>
-                    );
-                  })
-                ) : (
-                  <option value="1">Site 1</option>
-                )}
-              </select>
-              <small>Fixado somente no site ID 1.</small>
-            </div>
-
-            <div className="field">
-              <label htmlFor="status_id">
-                <FiCheckCircle size={16} />
-                <span>Status *</span>
-              </label>
-
-              <select
-                id="status_id"
-                value={form.status_id}
-                disabled
-                onChange={(e) => atualizarCampo("status_id", e.target.value)}
-              >
-                {statusList.length > 0 ? (
-                  statusList.map((status) => {
-                    const id = getStatusId(status);
-                    return (
-                      <option key={id} value={id}>
-                        {getStatusNome(status)}
-                      </option>
-                    );
-                  })
-                ) : (
-                  <option value="1">Status 1</option>
-                )}
-              </select>
-              <small>Fixado somente no status ID 1.</small>
-            </div>
-
             <div className="field field-full">
               <label htmlFor="nome">
                 <FiType size={16} />
@@ -425,6 +321,29 @@ export default function CadastrarCategoriaPage() {
                 onChange={(e) => atualizarCampo("ordem", e.target.value)}
                 placeholder="0"
               />
+            </div>
+
+            <div className="field field-full">
+              <label htmlFor="status_id">
+                <FiCheckCircle size={16} />
+                <span>Status *</span>
+              </label>
+
+              <select
+                id="status_id"
+                value={form.status_id}
+                onChange={(e) => atualizarCampo("status_id", e.target.value)}
+              >
+                <option value="">Selecione um status</option>
+                {statusList.map((status) => {
+                  const id = getStatusId(status);
+                  return (
+                    <option key={id} value={id}>
+                      {getStatusNome(status)}
+                    </option>
+                  );
+                })}
+              </select>
             </div>
           </div>
 
@@ -607,12 +526,6 @@ export default function CadastrarCategoriaPage() {
         .field textarea:focus {
           border-color: #d18b72;
           box-shadow: 0 0 0 4px rgba(209, 139, 114, 0.12);
-        }
-
-        .field select:disabled {
-          background: #f8f5f2;
-          color: #6f554b;
-          cursor: not-allowed;
         }
 
         .field small {
