@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import api from "@/Api/conectar";
@@ -8,13 +8,14 @@ import {
   FiArrowLeft,
   FiCheckCircle,
   FiFolder,
-  FiImage,
   FiInfo,
   FiLayers,
   FiSave,
   FiTag,
   FiType,
   FiAlertCircle,
+  FiGrid,
+  FiRefreshCw,
 } from "react-icons/fi";
 
 type FormDataType = {
@@ -23,9 +24,23 @@ type FormDataType = {
   slug: string;
   descricao: string;
   icone: string;
-  imagem: string;
   ordem: string;
   status_id: string;
+};
+
+type StatusItem = {
+  id_status?: number;
+  id?: number;
+  nome?: string;
+  titulo?: string;
+};
+
+type SiteConfigItem = {
+  id_site_config?: number;
+  id?: number;
+  nome_site?: string;
+  titulo?: string;
+  subtitulo?: string;
 };
 
 function gerarSlug(texto: string) {
@@ -43,14 +58,13 @@ export default function CadastrarCategoriaPage() {
   const router = useRouter();
 
   const [form, setForm] = useState<FormDataType>({
-    site_config_id: "1",
+    site_config_id: "",
     nome: "",
     slug: "",
     descricao: "",
     icone: "",
-    imagem: "",
     ordem: "0",
-    status_id: "1",
+    status_id: "",
   });
 
   const [slugEditadoManual, setSlugEditadoManual] = useState(false);
@@ -58,14 +72,15 @@ export default function CadastrarCategoriaPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState<string | null>(null);
 
+  const [statusList, setStatusList] = useState<StatusItem[]>([]);
+  const [sitesList, setSitesList] = useState<SiteConfigItem[]>([]);
+  const [carregandoAuxiliares, setCarregandoAuxiliares] = useState(true);
+
   const previewSlug = useMemo(() => {
     return form.slug?.trim() || "slug-da-categoria";
   }, [form.slug]);
 
-  function atualizarCampo(
-    campo: keyof FormDataType,
-    valor: string
-  ) {
+  function atualizarCampo(campo: keyof FormDataType, valor: string) {
     setForm((prev) => {
       const novo = { ...prev, [campo]: valor };
 
@@ -77,6 +92,92 @@ export default function CadastrarCategoriaPage() {
     });
   }
 
+  function getStatusId(item: StatusItem) {
+    return item.id_status ?? item.id ?? 0;
+  }
+
+  function getStatusNome(item: StatusItem) {
+    return item.nome || item.titulo || `Status ${getStatusId(item)}`;
+  }
+
+  function getSiteId(item: SiteConfigItem) {
+    return item.id_site_config ?? item.id ?? 0;
+  }
+
+  function getSiteNome(item: SiteConfigItem) {
+    return (
+      item.nome_site ||
+      item.titulo ||
+      item.subtitulo ||
+      `Site ${getSiteId(item)}`
+    );
+  }
+
+  async function carregarAuxiliares() {
+    try {
+      setCarregandoAuxiliares(true);
+      setErro(null);
+
+      const [statusResponse, sitesResponse] = await Promise.all([
+        api.get("/painel/status"),
+        api.get("/painel/site/visualizar"),
+      ]);
+
+      const statusData = statusResponse?.data;
+      const sitesData = sitesResponse?.data;
+
+      const statusNormalizados: StatusItem[] = Array.isArray(statusData)
+        ? statusData
+        : Array.isArray(statusData?.dados)
+        ? statusData.dados
+        : Array.isArray(statusData?.status)
+        ? statusData.status
+        : [];
+
+      const sitesNormalizados: SiteConfigItem[] = Array.isArray(sitesData)
+        ? sitesData
+        : Array.isArray(sitesData?.dados?.sites)
+        ? sitesData.dados.sites
+        : Array.isArray(sitesData?.sites)
+        ? sitesData.sites
+        : Array.isArray(sitesData?.dados)
+        ? sitesData.dados
+        : [];
+
+      setStatusList(statusNormalizados);
+      setSitesList(sitesNormalizados);
+
+      setForm((prev) => ({
+        ...prev,
+        status_id:
+          prev.status_id || statusNormalizados.length > 0
+            ? prev.status_id || String(getStatusId(statusNormalizados[0]))
+            : "",
+        site_config_id:
+          prev.site_config_id || sitesNormalizados.length > 0
+            ? prev.site_config_id || String(getSiteId(sitesNormalizados[0]))
+            : "",
+      }));
+    } catch (error: any) {
+      console.error(
+        "Erro ao carregar status/site config:",
+        error?.response?.data || error
+      );
+
+      setErro(
+        error?.response?.data?.mensagem ||
+          error?.message ||
+          "Erro ao carregar status e site config."
+      );
+    } finally {
+      setCarregandoAuxiliares(false);
+    }
+  }
+
+  useEffect(() => {
+    carregarAuxiliares();
+  }, []);
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
@@ -84,7 +185,7 @@ export default function CadastrarCategoriaPage() {
     setSucesso(null);
 
     if (!form.site_config_id.trim()) {
-      setErro("Informe o site_config_id.");
+      setErro("Selecione o site.");
       return;
     }
 
@@ -104,7 +205,7 @@ export default function CadastrarCategoriaPage() {
     }
 
     if (!form.status_id.trim()) {
-      setErro("Informe o status_id.");
+      setErro("Selecione o status.");
       return;
     }
 
@@ -117,7 +218,6 @@ export default function CadastrarCategoriaPage() {
         slug: form.slug.trim(),
         descricao: form.descricao.trim() || null,
         icone: form.icone.trim() || null,
-        imagem: form.imagem.trim() || null,
         ordem: Number(form.ordem),
         status_id: Number(form.status_id),
       };
@@ -132,7 +232,10 @@ export default function CadastrarCategoriaPage() {
         router.push("/Admin/categorias");
       }, 1200);
     } catch (error: any) {
-      console.error("Erro ao cadastrar categoria:", error?.response?.data || error);
+      console.error(
+        "Erro ao cadastrar categoria:",
+        error?.response?.data || error
+      );
 
       setErro(
         error?.response?.data?.mensagem ||
@@ -171,7 +274,7 @@ export default function CadastrarCategoriaPage() {
         <div className="feedback error">
           <FiAlertCircle size={18} />
           <div>
-            <strong>Não foi possível cadastrar</strong>
+            <strong>Não foi possível continuar</strong>
             <p>{erro}</p>
           </div>
         </div>
@@ -187,139 +290,152 @@ export default function CadastrarCategoriaPage() {
         </div>
       )}
 
-      <form className="form-card" onSubmit={handleSubmit}>
-        <div className="form-grid">
-          <div className="field">
-            <label htmlFor="site_config_id">
-              <FiLayers size={16} />
-              <span>Site Config ID *</span>
-            </label>
-            <input
-              id="site_config_id"
-              type="number"
-              min="1"
-              value={form.site_config_id}
-              onChange={(e) => atualizarCampo("site_config_id", e.target.value)}
-              placeholder="Ex: 1"
-            />
-          </div>
-
-          <div className="field">
-            <label htmlFor="status_id">
-              <FiCheckCircle size={16} />
-              <span>Status ID *</span>
-            </label>
-            <select
-              id="status_id"
-              value={form.status_id}
-              onChange={(e) => atualizarCampo("status_id", e.target.value)}
-            >
-              <option value="1">1 - Ativo</option>
-              <option value="2">2 - Inativo</option>
-              <option value="3">3 - Bloqueado</option>
-            </select>
-          </div>
-
-          <div className="field field-full">
-            <label htmlFor="nome">
-              <FiType size={16} />
-              <span>Nome da categoria *</span>
-            </label>
-            <input
-              id="nome"
-              type="text"
-              value={form.nome}
-              onChange={(e) => atualizarCampo("nome", e.target.value)}
-              placeholder="Ex: Decoração"
-            />
-          </div>
-
-          <div className="field field-full">
-            <label htmlFor="slug">
-              <FiTag size={16} />
-              <span>Slug *</span>
-            </label>
-            <input
-              id="slug"
-              type="text"
-              value={form.slug}
-              onChange={(e) => {
-                setSlugEditadoManual(true);
-                atualizarCampo("slug", gerarSlug(e.target.value));
-              }}
-              placeholder="decoracao"
-            />
-            <small>URL prevista: /categoria/{previewSlug}</small>
-          </div>
-
-          <div className="field field-full">
-            <label htmlFor="descricao">
-              <FiInfo size={16} />
-              <span>Descrição</span>
-            </label>
-            <textarea
-              id="descricao"
-              rows={4}
-              value={form.descricao}
-              onChange={(e) => atualizarCampo("descricao", e.target.value)}
-              placeholder="Descreva a categoria..."
-            />
-          </div>
-
-          <div className="field">
-            <label htmlFor="icone">
-              <FiTag size={16} />
-              <span>Ícone</span>
-            </label>
-            <input
-              id="icone"
-              type="text"
-              value={form.icone}
-              onChange={(e) => atualizarCampo("icone", e.target.value)}
-              placeholder="Ex: bi bi-grid"
-            />
-          </div>
-
-          <div className="field">
-            <label htmlFor="ordem">
-              <FiLayers size={16} />
-              <span>Ordem *</span>
-            </label>
-            <input
-              id="ordem"
-              type="number"
-              value={form.ordem}
-              onChange={(e) => atualizarCampo("ordem", e.target.value)}
-              placeholder="0"
-            />
-          </div>
-
-          <div className="field field-full">
-            <label htmlFor="imagem">
-              <FiImage size={16} />
-              <span>Imagem</span>
-            </label>
-            <input
-              id="imagem"
-              type="text"
-              value={form.imagem}
-              onChange={(e) => atualizarCampo("imagem", e.target.value)}
-              placeholder="/upload/categorias/minha-imagem.png"
-            />
+      {carregandoAuxiliares ? (
+        <div className="feedback loading">
+          <FiRefreshCw size={18} className="spin" />
+          <div>
+            <strong>Carregando dados auxiliares</strong>
+            <p>Buscando status e sites configurados...</p>
           </div>
         </div>
+      ) : (
+        <form className="form-card" onSubmit={handleSubmit}>
+          <div className="form-grid">
+            <div className="field">
+              <label htmlFor="site_config_id">
+                <FiLayers size={16} />
+                <span>Site *</span>
+              </label>
 
-        <div className="form-footer">
-          <Link href="/Admin/categorias" className="btn btn-light">
-            Cancelar
-          </Link>
+              <select
+                id="site_config_id"
+                value={form.site_config_id}
+                onChange={(e) =>
+                  atualizarCampo("site_config_id", e.target.value)
+                }
+              >
+                <option value="">Selecione um site</option>
+                {sitesList.map((site) => {
+                  const id = getSiteId(site);
+                  return (
+                    <option key={id} value={id}>
+                      {getSiteNome(site)}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
 
-          <button type="submit" className="btn btn-primary" disabled={salvando}>
-            <FiSave size={16} />
-            <span>{salvando ? "Salvando..." : "Cadastrar categoria"}</span>
-          </button>
-        </div>
-      </form>
+            <div className="field">
+              <label htmlFor="status_id">
+                <FiCheckCircle size={16} />
+                <span>Status *</span>
+              </label>
+
+              <select
+                id="status_id"
+                value={form.status_id}
+                onChange={(e) => atualizarCampo("status_id", e.target.value)}
+              >
+                <option value="">Selecione um status</option>
+                {statusList.map((status) => {
+                  const id = getStatusId(status);
+                  return (
+                    <option key={id} value={id}>
+                      {getStatusNome(status)}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            <div className="field field-full">
+              <label htmlFor="nome">
+                <FiType size={16} />
+                <span>Nome da categoria *</span>
+              </label>
+              <input
+                id="nome"
+                type="text"
+                value={form.nome}
+                onChange={(e) => atualizarCampo("nome", e.target.value)}
+                placeholder="Ex: Decoração"
+              />
+            </div>
+
+            <div className="field field-full">
+              <label htmlFor="slug">
+                <FiTag size={16} />
+                <span>Slug *</span>
+              </label>
+              <input
+                id="slug"
+                type="text"
+                value={form.slug}
+                onChange={(e) => {
+                  setSlugEditadoManual(true);
+                  atualizarCampo("slug", gerarSlug(e.target.value));
+                }}
+                placeholder="decoracao"
+              />
+              <small>URL prevista: /categoria/{previewSlug}</small>
+            </div>
+
+            <div className="field field-full">
+              <label htmlFor="descricao">
+                <FiInfo size={16} />
+                <span>Descrição</span>
+              </label>
+              <textarea
+                id="descricao"
+                rows={4}
+                value={form.descricao}
+                onChange={(e) => atualizarCampo("descricao", e.target.value)}
+                placeholder="Descreva a categoria..."
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="icone">
+                <FiGrid size={16} />
+                <span>Ícone</span>
+              </label>
+              <input
+                id="icone"
+                type="text"
+                value={form.icone}
+                onChange={(e) => atualizarCampo("icone", e.target.value)}
+                placeholder="Ex: bi bi-grid, box, tags..."
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="ordem">
+                <FiLayers size={16} />
+                <span>Ordem *</span>
+              </label>
+              <input
+                id="ordem"
+                type="number"
+                value={form.ordem}
+                onChange={(e) => atualizarCampo("ordem", e.target.value)}
+                placeholder="0"
+              />
+            </div>
+          </div>
+
+          <div className="form-footer">
+            <Link href="/Admin/categorias" className="btn btn-light">
+              Cancelar
+            </Link>
+
+            <button type="submit" className="btn btn-primary" disabled={salvando}>
+              <FiSave size={16} />
+              <span>{salvando ? "Salvando..." : "Cadastrar categoria"}</span>
+            </button>
+          </div>
+        </form>
+      )}
 
       <style jsx>{`
         .categoria-cadastrar-page {
@@ -416,6 +532,12 @@ export default function CadastrarCategoriaPage() {
           background: rgba(240, 253, 244, 0.95);
           border-color: rgba(34, 197, 94, 0.16);
           color: #166534;
+        }
+
+        .feedback.loading {
+          background: rgba(255, 255, 255, 0.9);
+          border-color: rgba(232, 214, 204, 0.92);
+          color: #5b433a;
         }
 
         .form-card {
@@ -533,6 +655,16 @@ export default function CadastrarCategoriaPage() {
           background: linear-gradient(135deg, #d18b72 0%, #b55f53 100%);
           color: #fff;
           box-shadow: 0 14px 24px rgba(181, 95, 83, 0.2);
+        }
+
+        .spin {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         @media (max-width: 900px) {
