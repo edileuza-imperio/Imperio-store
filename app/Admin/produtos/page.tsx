@@ -11,11 +11,9 @@ import {
   FiRefreshCw,
   FiSearch,
   FiPlus,
-  FiTag,
-  FiHash,
   FiChevronLeft,
   FiChevronRight,
-  FiCalendar,
+  FiTag,
   FiBox,
 } from "react-icons/fi";
 
@@ -54,13 +52,19 @@ function formatarPreco(valor: number) {
   });
 }
 
-function formatarData(data?: string) {
-  if (!data) return "-";
+function normalizarImagem(produto: Produto) {
+  const imagem = produto.imagem || produto.miniatura || "";
+  if (!imagem) return "";
 
-  const d = new Date(data);
-  if (Number.isNaN(d.getTime())) return data;
+  if (imagem.startsWith("http://") || imagem.startsWith("https://")) {
+    return imagem;
+  }
 
-  return d.toLocaleDateString("pt-BR");
+  if (imagem.startsWith("/")) {
+    return imagem;
+  }
+
+  return `/${imagem}`;
 }
 
 export default function ProdutosListaPage() {
@@ -84,7 +88,6 @@ export default function ProdutosListaPage() {
 
       const response = await api.get("/produtos");
       const lista = extrairListaProdutos(response?.data);
-
       setProdutos(lista);
     } catch (error: any) {
       console.error(error);
@@ -159,10 +162,10 @@ export default function ProdutosListaPage() {
             <span>Gestão de Produtos</span>
           </div>
 
-          <h1>Listagem de produtos</h1>
+          <h1>Produtos em cards</h1>
           <p>
-            Visualize os produtos cadastrados com mais detalhes, pesquisa rápida
-            e paginação organizada.
+            Visualize os produtos em um layout mais moderno, com imagem,
+            detalhes principais e paginação por cards.
           </p>
         </div>
 
@@ -206,9 +209,7 @@ export default function ProdutosListaPage() {
 
           <div className="contador">
             <strong>{filtrados.length}</strong>
-            <span>
-              {filtrados.length === 1 ? "produto" : "produtos"}
-            </span>
+            <span>{filtrados.length === 1 ? "produto" : "produtos"}</span>
           </div>
         </div>
       </div>
@@ -221,114 +222,106 @@ export default function ProdutosListaPage() {
         <div className="estado">Nenhum produto encontrado.</div>
       ) : (
         <>
-          <div className="table-card">
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Produto</th>
-                    <th>SKU</th>
-                    <th>Marca / Modelo</th>
-                    <th>Preço</th>
-                    <th>Promoção</th>
-                    <th>Categoria</th>
-                    <th>Status</th>
-                    <th>Criado</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
+          <div className="grid-cards">
+            {produtosPaginados.map((p) => {
+              const status = getStatus(p.status_id);
+              const imagem = normalizarImagem(p);
 
-                <tbody>
-                  {produtosPaginados.map((p) => {
-                    const status = getStatus(p.status_id);
+              return (
+                <div className="produto-card" key={String(getId(p))}>
+                  <div className="produto-imagem-box">
+                    {imagem ? (
+                      <img
+                        src={imagem}
+                        alt={p.nome || "Produto"}
+                        className="produto-imagem"
+                      />
+                    ) : (
+                      <div className="imagem-vazia">
+                        <FiBox size={28} />
+                        <span>Sem imagem</span>
+                      </div>
+                    )}
 
-                    return (
-                      <tr key={String(getId(p))}>
-                        <td>
-                          <div className="cell-inline">
-                            <FiHash size={14} />
-                            <span>{getId(p)}</span>
-                          </div>
-                        </td>
+                    <span className={`status-badge ${status.className}`}>
+                      {status.label}
+                    </span>
+                  </div>
 
-                        <td>
-                          <div className="produto-cell">
-                            <div className="produto-icon">
-                              <FiBox size={16} />
-                            </div>
+                  <div className="produto-conteudo">
+                    <div className="produto-topo">
+                      <span className="produto-id">ID #{getId(p)}</span>
+                      <span className="produto-sku">{p.sku || "Sem SKU"}</span>
+                    </div>
 
-                            <div className="produto-info">
-                              <strong>{p.nome || "-"}</strong>
-                              <span>{p.slug || "-"}</span>
-                            </div>
-                          </div>
-                        </td>
+                    <h3>{p.nome || "-"}</h3>
+                    <p className="produto-slug">{p.slug || "-"}</p>
 
-                        <td>{p.sku || "-"}</td>
+                    <div className="produto-meta">
+                      <div className="meta-item">
+                        <span className="meta-label">Marca</span>
+                        <strong>{p.marca || "-"}</strong>
+                      </div>
 
-                        <td>
-                          <div className="stack">
-                            <span>{p.marca || "-"}</span>
-                            <small>{p.modelo || "-"}</small>
-                          </div>
-                        </td>
+                      <div className="meta-item">
+                        <span className="meta-label">Modelo</span>
+                        <strong>{p.modelo || "-"}</strong>
+                      </div>
 
-                        <td>{formatarPreco(Number(p.preco || 0))}</td>
+                      <div className="meta-item">
+                        <span className="meta-label">Categoria</span>
+                        <strong>{p.categoria_id || "-"}</strong>
+                      </div>
+                    </div>
 
-                        <td>
+                    <div className="produto-descricao">
+                      {p.descricao?.trim() || "Sem descrição cadastrada."}
+                    </div>
+
+                    <div className="precos">
+                      <div className="preco-box">
+                        <span>Preço</span>
+                        <strong>{formatarPreco(Number(p.preco || 0))}</strong>
+                      </div>
+
+                      <div className="preco-box promocional">
+                        <span>Promoção</span>
+                        <strong>
                           {p.preco_promocional &&
                           Number(p.preco_promocional) > 0
                             ? formatarPreco(Number(p.preco_promocional))
                             : "-"}
-                        </td>
+                        </strong>
+                      </div>
+                    </div>
 
-                        <td>{p.categoria_id || "-"}</td>
+                    <div className="acoes-card">
+                      <button
+                        className="action-btn view"
+                        onClick={() =>
+                          router.push(`/Admin/produtos/${getId(p)}`)
+                        }
+                        type="button"
+                      >
+                        <FiEye size={16} />
+                        <span>Ver</span>
+                      </button>
 
-                        <td>
-                          <span className={`status ${status.className}`}>
-                            {status.label}
-                          </span>
-                        </td>
-
-                        <td>
-                          <div className="cell-inline">
-                            <FiCalendar size={14} />
-                            <span>{formatarData(p.criado_em)}</span>
-                          </div>
-                        </td>
-
-                        <td>
-                          <div className="acoes-tabela">
-                            <button
-                              className="icon-btn view"
-                              onClick={() =>
-                                router.push(`/Admin/produtos/${getId(p)}`)
-                              }
-                              title="Ver produto"
-                              type="button"
-                            >
-                              <FiEye size={16} />
-                            </button>
-
-                            <button
-                              className="icon-btn edit"
-                              onClick={() =>
-                                router.push(`/Admin/produtos/${getId(p)}/editar`)
-                              }
-                              title="Editar produto"
-                              type="button"
-                            >
-                              <FiEdit size={16} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                      <button
+                        className="action-btn edit"
+                        onClick={() =>
+                          router.push(`/Admin/produtos/${getId(p)}/editar`)
+                        }
+                        type="button"
+                      >
+                        <FiEdit size={16} />
+                        <span>Editar</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           <div className="pagination-card">
@@ -552,147 +545,211 @@ export default function ProdutosListaPage() {
           border-color: #fecaca;
         }
 
-        .table-card {
+        .grid-cards {
           max-width: 1450px;
           margin: 0 auto;
-          background: rgba(255, 255, 255, 0.88);
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 18px;
+        }
+
+        .produto-card {
+          background: rgba(255, 255, 255, 0.9);
           border: 1px solid rgba(229, 231, 235, 0.9);
           border-radius: 24px;
           overflow: hidden;
           box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
+          display: flex;
+          flex-direction: column;
+          min-height: 100%;
         }
 
-        .table-wrap {
+        .produto-imagem-box {
+          position: relative;
           width: 100%;
-          overflow-x: auto;
+          height: 230px;
+          background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+          overflow: hidden;
         }
 
-        table {
+        .produto-imagem {
           width: 100%;
-          border-collapse: collapse;
-          min-width: 1250px;
+          height: 100%;
+          object-fit: cover;
+          display: block;
         }
 
-        th,
-        td {
-          border-bottom: 1px solid #eef2f7;
-          padding: 14px 16px;
-          text-align: left;
-          vertical-align: middle;
-        }
-
-        th {
-          background: #f8fafc;
-          color: #475569;
-          font-size: 12px;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        tbody tr:hover {
-          background: rgba(99, 102, 241, 0.03);
-        }
-
-        .cell-inline {
-          display: inline-flex;
+        .imagem-vazia {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          flex-direction: column;
           align-items: center;
+          justify-content: center;
           gap: 8px;
-        }
-
-        .produto-cell {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          min-width: 220px;
-        }
-
-        .produto-icon {
-          width: 40px;
-          height: 40px;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #6366f1, #7c3aed);
-          color: #fff;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .produto-info {
-          display: flex;
-          flex-direction: column;
-          gap: 3px;
-        }
-
-        .produto-info strong {
-          font-size: 14px;
-          color: #111827;
-        }
-
-        .produto-info span {
-          font-size: 12px;
           color: #6b7280;
         }
 
-        .stack {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-        }
-
-        .stack span {
-          color: #111827;
-          font-weight: 600;
-        }
-
-        .stack small {
-          color: #6b7280;
-        }
-
-        .status {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
+        .status-badge {
+          position: absolute;
+          top: 12px;
+          right: 12px;
           min-height: 30px;
           padding: 0 10px;
           border-radius: 999px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           font-size: 12px;
           font-weight: 700;
+          backdrop-filter: blur(8px);
         }
 
-        .status.ativo {
-          background: rgba(34, 197, 94, 0.14);
-          color: #166534;
+        .status-badge.ativo {
+          background: rgba(34, 197, 94, 0.9);
+          color: #fff;
         }
 
-        .status.inativo {
-          background: rgba(239, 68, 68, 0.12);
-          color: #b91c1c;
+        .status-badge.inativo {
+          background: rgba(239, 68, 68, 0.9);
+          color: #fff;
         }
 
-        .acoes-tabela {
+        .produto-conteudo {
+          padding: 18px;
           display: flex;
-          gap: 8px;
+          flex-direction: column;
+          gap: 14px;
+          flex: 1;
         }
 
-        .icon-btn {
-          width: 38px;
-          height: 38px;
-          border-radius: 12px;
+        .produto-topo {
+          display: flex;
+          justify-content: space-between;
+          gap: 10px;
+          align-items: center;
+          flex-wrap: wrap;
+        }
+
+        .produto-id {
+          font-size: 12px;
+          font-weight: 700;
+          color: #4f46e5;
+          background: #eef2ff;
+          padding: 6px 10px;
+          border-radius: 999px;
+        }
+
+        .produto-sku {
+          font-size: 12px;
+          color: #6b7280;
+          background: #f8fafc;
+          padding: 6px 10px;
+          border-radius: 999px;
+        }
+
+        .produto-conteudo h3 {
+          margin: 0;
+          font-size: 18px;
+          color: #111827;
+          line-height: 1.3;
+        }
+
+        .produto-slug {
+          margin: -6px 0 0;
+          font-size: 13px;
+          color: #6b7280;
+          word-break: break-word;
+        }
+
+        .produto-meta {
+          display: grid;
+          grid-template-columns: repeat(3, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .meta-item {
+          background: #f8fafc;
+          border-radius: 14px;
+          padding: 10px;
+        }
+
+        .meta-label {
+          display: block;
+          font-size: 11px;
+          color: #6b7280;
+          margin-bottom: 4px;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+        }
+
+        .meta-item strong {
+          font-size: 13px;
+          color: #111827;
+          word-break: break-word;
+        }
+
+        .produto-descricao {
+          color: #4b5563;
+          font-size: 13px;
+          line-height: 1.6;
+          min-height: 42px;
+        }
+
+        .precos {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .preco-box {
+          background: #f8fafc;
+          border-radius: 16px;
+          padding: 12px;
+        }
+
+        .preco-box span {
+          display: block;
+          font-size: 12px;
+          color: #6b7280;
+          margin-bottom: 6px;
+        }
+
+        .preco-box strong {
+          font-size: 16px;
+          color: #111827;
+        }
+
+        .preco-box.promocional {
+          background: linear-gradient(135deg, #fdf2f8, #f5f3ff);
+        }
+
+        .acoes-card {
+          margin-top: auto;
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .action-btn {
+          min-height: 44px;
+          border-radius: 14px;
           border: none;
           display: inline-flex;
           align-items: center;
           justify-content: center;
+          gap: 8px;
+          font-weight: 700;
           cursor: pointer;
           transition: 0.22s ease;
         }
 
-        .icon-btn.view {
+        .action-btn.view {
           background: rgba(59, 130, 246, 0.12);
           color: #1d4ed8;
         }
 
-        .icon-btn.edit {
+        .action-btn.edit {
           background: rgba(139, 92, 246, 0.12);
           color: #7c3aed;
         }
@@ -783,6 +840,11 @@ export default function ProdutosListaPage() {
             justify-content: space-between;
           }
 
+          .produto-meta,
+          .precos {
+            grid-template-columns: 1fr;
+          }
+
           .pagination-card {
             flex-direction: column;
             align-items: stretch;
@@ -818,6 +880,10 @@ export default function ProdutosListaPage() {
 
           .select-box {
             justify-content: space-between;
+          }
+
+          .acoes-card {
+            grid-template-columns: 1fr;
           }
 
           .pagination-controls {
