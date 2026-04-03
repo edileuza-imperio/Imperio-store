@@ -1,38 +1,48 @@
 "use client";
 
 import api from "@/Api/conectar";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-type Permissao = {
-  id_permissao: number;
+type Menu = {
+  id_menu: number;
+  site_config_id: number;
+  nome: string;
+  icone: string | null;
+  rota: string | null;
+  pesquisa_placeholder: string | null;
+  itens?: MenuItem[];
+};
+
+type MenuItem = {
+  id_item: number;
   menu_id: number;
-  item_id: number | null;
-  nivel_id: number;
-  status_id: number;
-  criado?: string | null;
-};
-
-type Nivel = {
-  id_nivel: number;
   nome: string;
+  rota: string | null;
+  icone: string | null;
+  posicao: number;
 };
 
-type Status = {
-  id_status: number;
-  nome: string;
+type ApiResponse = {
+  status: number;
+  mensagem: string;
+  dados:
+    | Menu[]
+    | {
+        mensagem?: string;
+        dados?: Menu[];
+      };
 };
 
-export default function AdicionarPermissaoPage() {
+export default function AdicionarItemMenuPage() {
   const [menuId, setMenuId] = useState<number | null>(null);
+  const [menuNome, setMenuNome] = useState<string>("");
 
-  const [itemId, setItemId] = useState("");
-  const [nivelId, setNivelId] = useState("");
-  const [statusId, setStatusId] = useState("");
+  const [nome, setNome] = useState("");
+  const [rota, setRota] = useState("");
+  const [icone, setIcone] = useState("");
+  const [posicao, setPosicao] = useState("0");
 
-  const [permissoes, setPermissoes] = useState<Permissao[]>([]);
-  const [niveis, setNiveis] = useState<Nivel[]>([]);
-  const [statusList, setStatusList] = useState<Status[]>([]);
-
+  const [itens, setItens] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -50,85 +60,64 @@ export default function AdicionarPermissaoPage() {
     }
   }, []);
 
-  async function carregarPermissoes(id: number) {
+  async function carregarNomeMenu(id: number) {
     try {
-      const response = await api.get(`/painel/menu/${id}/permissoes`);
-      const dados = response?.data?.dados;
+      const response = await api.get<ApiResponse>("/painel/menus");
+      const payload = response.data;
 
-      if (Array.isArray(dados)) {
-        setPermissoes(dados);
-        return;
+      let listaMenus: Menu[] = [];
+
+      if (Array.isArray(payload?.dados)) {
+        listaMenus = payload.dados;
+      } else if (payload?.dados && Array.isArray(payload.dados.dados)) {
+        listaMenus = payload.dados.dados;
       }
 
-      if (dados && Array.isArray(dados.dados)) {
-        setPermissoes(dados.dados);
-        return;
-      }
+      const menuEncontrado = listaMenus.find((menu) => menu.id_menu === id);
 
-      setPermissoes([]);
+      if (menuEncontrado) {
+        setMenuNome(menuEncontrado.nome);
+      } else {
+        setMenuNome("");
+      }
     } catch (error) {
-      console.error("Erro ao carregar permissões:", error);
-      setPermissoes([]);
+      console.error("Erro ao carregar nome do menu:", error);
+      setMenuNome("");
     }
   }
 
-  async function carregarNiveis() {
+  async function carregarItens(id: number) {
     try {
-      const response = await api.get("/painel/niveis");
+      const response = await api.get(`/painel/menu/${id}/itens`);
       const dados = response?.data?.dados;
 
       if (Array.isArray(dados)) {
-        setNiveis(dados);
+        setItens(dados);
         return;
       }
 
       if (dados && Array.isArray(dados.dados)) {
-        setNiveis(dados.dados);
+        setItens(dados.dados);
         return;
       }
 
-      setNiveis([]);
+      setItens([]);
     } catch (error) {
-      console.error("Erro ao carregar níveis:", error);
-      setNiveis([]);
-    }
-  }
-
-  async function carregarStatus() {
-    try {
-      const response = await api.get("/painel/status");
-      const dados = response?.data?.dados;
-
-      if (Array.isArray(dados)) {
-        setStatusList(dados);
-        return;
-      }
-
-      if (dados && Array.isArray(dados.dados)) {
-        setStatusList(dados.dados);
-        return;
-      }
-
-      setStatusList([]);
-    } catch (error) {
-      console.error("Erro ao carregar status:", error);
-      setStatusList([]);
+      console.error("Erro ao carregar itens do menu:", error);
+      setItens([]);
     }
   }
 
   useEffect(() => {
     async function carregarTudo() {
+      if (!menuId) {
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        setErro(null);
-
-        await Promise.all([carregarNiveis(), carregarStatus()]);
-
-        if (menuId) {
-          await carregarPermissoes(menuId);
-        }
-      } catch (error) {
-        console.error(error);
+        await Promise.all([carregarNomeMenu(menuId), carregarItens(menuId)]);
       } finally {
         setLoading(false);
       }
@@ -136,6 +125,11 @@ export default function AdicionarPermissaoPage() {
 
     carregarTudo();
   }, [menuId]);
+
+  const posicaoNumero = useMemo(() => {
+    const n = Number(posicao);
+    return Number.isNaN(n) ? 0 : n;
+  }, [posicao]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -148,38 +142,35 @@ export default function AdicionarPermissaoPage() {
       return;
     }
 
-    if (!nivelId) {
-      setErro("Selecione um nível.");
-      return;
-    }
-
-    if (!statusId) {
-      setErro("Selecione um status.");
+    if (!nome.trim()) {
+      setErro("O nome do item é obrigatório.");
       return;
     }
 
     try {
       setSalvando(true);
 
-      await api.post("/painel/menu-permissao", {
+      await api.post("/painel/menu-item", {
         menu_id: menuId,
-        item_id: itemId ? Number(itemId) : null,
-        nivel_id: Number(nivelId),
-        status_id: Number(statusId),
+        nome: nome.trim(),
+        rota: rota.trim() || null,
+        icone: icone.trim() || null,
+        posicao: posicaoNumero,
       });
 
-      setSucesso("Permissão cadastrada com sucesso.");
-      setItemId("");
-      setNivelId("");
-      setStatusId("");
+      setSucesso("Item cadastrado com sucesso.");
+      setNome("");
+      setRota("");
+      setIcone("");
+      setPosicao("0");
 
-      await carregarPermissoes(menuId);
+      await carregarItens(menuId);
     } catch (error: any) {
-      console.error("Erro ao cadastrar permissão:", error);
+      console.error("Erro ao cadastrar item:", error);
 
       setErro(
         error?.response?.data?.mensagem ||
-          "Não foi possível cadastrar a permissão."
+          "Não foi possível cadastrar o item."
       );
     } finally {
       setSalvando(false);
@@ -205,9 +196,11 @@ export default function AdicionarPermissaoPage() {
       <div style={styles.container}>
         <div style={styles.topBar}>
           <div>
-            <h1 style={styles.title}>Adicionar Permissão</h1>
+            <h1 style={styles.title}>Adicionar Item ao Menu</h1>
             <p style={styles.subtitle}>
-              Cadastre permissões para o menu selecionado.
+              {menuNome
+                ? `Menu selecionado: ${menuNome}`
+                : "Cadastre um novo item para o menu selecionado."}
             </p>
           </div>
 
@@ -218,9 +211,9 @@ export default function AdicionarPermissaoPage() {
 
         <section style={styles.card}>
           <div style={styles.cardHeader}>
-            <h2 style={styles.cardTitle}>Dados da permissão</h2>
+            <h2 style={styles.cardTitle}>Dados do item</h2>
             <span style={styles.badge}>
-              Menu ID: {menuId ?? "não informado"}
+              {menuNome ? `${menuNome} • ID ${menuId}` : `Menu ID: ${menuId ?? "não informado"}`}
             </span>
           </div>
 
@@ -236,52 +229,44 @@ export default function AdicionarPermissaoPage() {
           <form onSubmit={handleSubmit} style={styles.form}>
             <div style={styles.grid}>
               <div style={styles.field}>
-                <label style={styles.label}>Item do menu (opcional)</label>
+                <label style={styles.label}>Nome do item *</label>
                 <input
                   style={styles.input}
-                  type="number"
-                  value={itemId}
-                  onChange={(e) => setItemId(e.target.value)}
-                  placeholder="Ex.: 1"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  placeholder="Ex.: Painel Administrativo"
                 />
               </div>
 
               <div style={styles.field}>
-                <label style={styles.label}>Nível *</label>
-                <select
+                <label style={styles.label}>Rota</label>
+                <input
                   style={styles.input}
-                  value={nivelId}
-                  onChange={(e) => setNivelId(e.target.value)}
-                >
-                  <option value="">Selecione</option>
-                  {niveis.map((nivel: any) => (
-                    <option
-                      key={nivel.id_nivel ?? nivel.id ?? nivel.nivel_id}
-                      value={nivel.id_nivel ?? nivel.id ?? nivel.nivel_id}
-                    >
-                      {nivel.nome ?? nivel.titulo ?? `Nível ${nivel.id_nivel}`}
-                    </option>
-                  ))}
-                </select>
+                  value={rota}
+                  onChange={(e) => setRota(e.target.value)}
+                  placeholder="Ex.: /Admin"
+                />
               </div>
 
               <div style={styles.field}>
-                <label style={styles.label}>Status *</label>
-                <select
+                <label style={styles.label}>Ícone</label>
+                <input
                   style={styles.input}
-                  value={statusId}
-                  onChange={(e) => setStatusId(e.target.value)}
-                >
-                  <option value="">Selecione</option>
-                  {statusList.map((status: any) => (
-                    <option
-                      key={status.id_status ?? status.id}
-                      value={status.id_status ?? status.id}
-                    >
-                      {status.nome ?? status.titulo ?? `Status ${status.id_status}`}
-                    </option>
-                  ))}
-                </select>
+                  value={icone}
+                  onChange={(e) => setIcone(e.target.value)}
+                  placeholder="Ex.: bi-house"
+                />
+              </div>
+
+              <div style={styles.field}>
+                <label style={styles.label}>Posição</label>
+                <input
+                  style={styles.input}
+                  type="number"
+                  value={posicao}
+                  onChange={(e) => setPosicao(e.target.value)}
+                  placeholder="0"
+                />
               </div>
             </div>
 
@@ -299,7 +284,7 @@ export default function AdicionarPermissaoPage() {
                 style={styles.primaryButton}
                 disabled={salvando || !menuId}
               >
-                {salvando ? "Salvando..." : "Salvar permissão"}
+                {salvando ? "Salvando..." : "Salvar item"}
               </button>
             </div>
           </form>
@@ -307,40 +292,34 @@ export default function AdicionarPermissaoPage() {
 
         <section style={styles.card}>
           <div style={styles.cardHeader}>
-            <h2 style={styles.cardTitle}>Permissões cadastradas</h2>
-            <span style={styles.badge}>{permissoes.length} permissão(ões)</span>
+            <h2 style={styles.cardTitle}>
+              {menuNome ? `Itens do menu ${menuNome}` : "Itens já cadastrados"}
+            </h2>
+            <span style={styles.badge}>{itens.length} item(ns)</span>
           </div>
 
-          {permissoes.length === 0 ? (
-            <div style={styles.infoBox}>
-              Nenhuma permissão cadastrada para este menu.
-            </div>
+          {itens.length === 0 ? (
+            <div style={styles.infoBox}>Nenhum item cadastrado para este menu.</div>
           ) : (
             <div style={styles.tableWrapper}>
               <table style={styles.table}>
                 <thead>
                   <tr>
                     <th style={styles.th}>ID</th>
-                    <th style={styles.th}>Menu</th>
-                    <th style={styles.th}>Item</th>
-                    <th style={styles.th}>Nível</th>
-                    <th style={styles.th}>Status</th>
-                    <th style={styles.th}>Criado</th>
+                    <th style={styles.th}>Nome</th>
+                    <th style={styles.th}>Rota</th>
+                    <th style={styles.th}>Ícone</th>
+                    <th style={styles.th}>Posição</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {permissoes.map((permissao) => (
-                    <tr key={permissao.id_permissao}>
-                      <td style={styles.td}>{permissao.id_permissao}</td>
-                      <td style={styles.td}>{permissao.menu_id}</td>
-                      <td style={styles.td}>
-                        {permissao.item_id ?? "Sem item"}
-                      </td>
-                      <td style={styles.td}>{permissao.nivel_id}</td>
-                      <td style={styles.td}>{permissao.status_id}</td>
-                      <td style={styles.td}>
-                        {permissao.criado || "Não informado"}
-                      </td>
+                  {itens.map((item) => (
+                    <tr key={item.id_item}>
+                      <td style={styles.td}>{item.id_item}</td>
+                      <td style={styles.td}>{item.nome}</td>
+                      <td style={styles.td}>{item.rota || "Sem rota"}</td>
+                      <td style={styles.td}>{item.icone || "Sem ícone"}</td>
+                      <td style={styles.td}>{item.posicao ?? 0}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -406,8 +385,8 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#0f172a",
   },
   badge: {
-    background: "#ede9fe",
-    color: "#6d28d9",
+    background: "#eff6ff",
+    color: "#1d4ed8",
     padding: "6px 10px",
     borderRadius: "999px",
     fontSize: "12px",
@@ -437,7 +416,6 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "0 14px",
     fontSize: "14px",
     outline: "none",
-    background: "#fff",
   },
   actions: {
     display: "flex",
@@ -450,7 +428,7 @@ const styles: Record<string, React.CSSProperties> = {
     border: "none",
     borderRadius: "12px",
     padding: "12px 18px",
-    background: "#7c3aed",
+    background: "#2563eb",
     color: "#fff",
     fontWeight: 700,
     cursor: "pointer",
