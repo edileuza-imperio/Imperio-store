@@ -3,6 +3,15 @@
 import api from "@/Api/conectar";
 import { useEffect, useState } from "react";
 
+type MenuPermissao = {
+  id_permissao: number;
+  menu_id: number;
+  item_id: number | null;
+  nivel_id: number;
+  status_id: number;
+  criado?: string | null;
+};
+
 type MenuItem = {
   id_item: number;
   menu_id: number;
@@ -20,6 +29,7 @@ type Menu = {
   rota: string | null;
   pesquisa_placeholder: string | null;
   itens: MenuItem[];
+  permissoes?: MenuPermissao[];
 };
 
 type ApiResponse = {
@@ -38,6 +48,22 @@ export default function MenusPage() {
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
+  function normalizarLista<T>(dados: any): T[] {
+    if (Array.isArray(dados)) return dados;
+    if (dados && Array.isArray(dados.dados)) return dados.dados;
+    return [];
+  }
+
+  async function carregarPermissoesDoMenu(menuId: number): Promise<MenuPermissao[]> {
+    try {
+      const response = await api.get(`/painel/menu/${menuId}/permissoes`);
+      return normalizarLista<MenuPermissao>(response?.data?.dados);
+    } catch (error) {
+      console.error(`Erro ao carregar permissões do menu ${menuId}:`, error);
+      return [];
+    }
+  }
+
   useEffect(() => {
     async function carregarMenus() {
       try {
@@ -55,7 +81,18 @@ export default function MenusPage() {
           listaMenus = payload.dados.dados;
         }
 
-        setMenus(listaMenus);
+        const menusComPermissoes = await Promise.all(
+          listaMenus.map(async (menu) => {
+            const permissoes = await carregarPermissoesDoMenu(menu.id_menu);
+
+            return {
+              ...menu,
+              permissoes,
+            };
+          })
+        );
+
+        setMenus(menusComPermissoes);
       } catch (error: any) {
         console.error("Erro ao buscar menus:", error);
 
@@ -81,6 +118,16 @@ export default function MenusPage() {
     window.location.href = `/Admin/menus/adicionar-permissao?menu_id=${menuId}`;
   }
 
+  function getNiveisUnicos(menu: Menu) {
+    const niveis = (menu.permissoes || []).map((p) => p.nivel_id);
+    return [...new Set(niveis)];
+  }
+
+  function getStatusUnicos(menu: Menu) {
+    const status = (menu.permissoes || []).map((p) => p.status_id);
+    return [...new Set(status)];
+  }
+
   return (
     <main style={styles.page}>
       <div style={styles.container}>
@@ -88,7 +135,7 @@ export default function MenusPage() {
           <div>
             <h1 style={styles.title}>Listar Menus</h1>
             <p style={styles.subtitle}>
-              Visualização dos menus cadastrados com seus itens.
+              Visualização dos menus cadastrados com seus itens e permissões.
             </p>
           </div>
 
@@ -134,6 +181,16 @@ export default function MenusPage() {
                   {menus.reduce((total, menu) => total + (menu.itens?.length || 0), 0)}
                 </strong>
               </div>
+
+              <div style={styles.statCard}>
+                <span style={styles.statLabel}>Total de permissões</span>
+                <strong style={styles.statValue}>
+                  {menus.reduce(
+                    (total, menu) => total + (menu.permissoes?.length || 0),
+                    0
+                  )}
+                </strong>
+              </div>
             </section>
 
             <section style={styles.tableSection}>
@@ -149,9 +206,8 @@ export default function MenusPage() {
                         <th style={styles.th}>ID</th>
                         <th style={styles.th}>Nome</th>
                         <th style={styles.th}>Rota</th>
-                        <th style={styles.th}>Ícone</th>
-                        <th style={styles.th}>Placeholder</th>
                         <th style={styles.th}>Itens</th>
+                        <th style={styles.th}>Permissões</th>
                         <th style={styles.th}>Ações</th>
                       </tr>
                     </thead>
@@ -161,11 +217,8 @@ export default function MenusPage() {
                           <td style={styles.td}>{menu.id_menu}</td>
                           <td style={styles.td}>{menu.nome}</td>
                           <td style={styles.td}>{menu.rota || "Sem rota"}</td>
-                          <td style={styles.td}>{menu.icone || "Sem ícone"}</td>
-                          <td style={styles.td}>
-                            {menu.pesquisa_placeholder || "Sem placeholder"}
-                          </td>
                           <td style={styles.td}>{menu.itens?.length || 0}</td>
+                          <td style={styles.td}>{menu.permissoes?.length || 0}</td>
                           <td style={styles.td}>
                             <div style={styles.actionsInline}>
                               <button
@@ -253,6 +306,36 @@ export default function MenusPage() {
                           >
                             Adicionar Permissão
                           </button>
+                        </div>
+
+                        <div style={styles.permissionsBox}>
+                          <h4 style={styles.itemsTitle}>
+                            Permissões ({menu.permissoes?.length || 0})
+                          </h4>
+
+                          <div style={styles.badgesWrap}>
+                            <span style={styles.permissionCountBadge}>
+                              {menu.permissoes?.length || 0} permissões
+                            </span>
+
+                            {getNiveisUnicos(menu).map((nivelId) => (
+                              <span key={`nivel-${menu.id_menu}-${nivelId}`} style={styles.levelBadge}>
+                                Nível {nivelId}
+                              </span>
+                            ))}
+
+                            {getStatusUnicos(menu).map((statusId) => (
+                              <span key={`status-${menu.id_menu}-${statusId}`} style={styles.statusBadge}>
+                                Status {statusId}
+                              </span>
+                            ))}
+                          </div>
+
+                          {(menu.permissoes?.length || 0) === 0 && (
+                            <p style={styles.emptyText}>
+                              Esse menu não possui permissões cadastradas.
+                            </p>
+                          )}
                         </div>
 
                         <div style={styles.itemsBox}>
@@ -519,6 +602,43 @@ const styles: Record<string, React.CSSProperties> = {
     cursor: "pointer",
     fontWeight: 700,
     fontSize: "13px",
+  },
+  permissionsBox: {
+    marginTop: "16px",
+    padding: "14px",
+    background: "#faf5ff",
+    borderRadius: "14px",
+    border: "1px solid #e9d5ff",
+  },
+  badgesWrap: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "8px",
+    marginTop: "10px",
+  },
+  permissionCountBadge: {
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#6d28d9",
+    background: "#ede9fe",
+    padding: "6px 10px",
+    borderRadius: "999px",
+  },
+  levelBadge: {
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#1d4ed8",
+    background: "#dbeafe",
+    padding: "6px 10px",
+    borderRadius: "999px",
+  },
+  statusBadge: {
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#065f46",
+    background: "#d1fae5",
+    padding: "6px 10px",
+    borderRadius: "999px",
   },
   itemsBox: {
     marginTop: "16px",
