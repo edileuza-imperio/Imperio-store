@@ -4,17 +4,28 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
 
+type MenuItem = {
+  id_item?: number;
+  id?: number;
+  menu_id?: number;
+  nome?: string;
+  rota?: string | null;
+  icone?: string | null;
+  posicao?: number;
+};
+
 type Menu = {
   id_menu?: number;
   id?: number;
   nome?: string;
   titulo?: string;
-  icone?: string;
-  rota?: string;
+  icone?: string | null;
+  rota?: string | null;
   pesquisa_placeholder?: string | null;
   site_config_id?: number | string | null;
   criado?: string;
   atualizado?: string;
+  itens?: MenuItem[];
 };
 
 const api = axios.create({
@@ -46,6 +57,22 @@ function formatarData(data?: string) {
   }).format(d);
 }
 
+function rotaValida(rota?: string | null) {
+  if (!rota) return false;
+
+  const rotaLimpa = String(rota).trim();
+
+  if (!rotaLimpa) return false;
+  if (rotaLimpa === "0") return false;
+  if (rotaLimpa.toLowerCase() === "null") return false;
+
+  return true;
+}
+
+function textoRota(rota?: string | null) {
+  return rotaValida(rota) ? String(rota) : "-";
+}
+
 export default function MenusPage() {
   const [menus, setMenus] = useState<Menu[]>([]);
   const [busca, setBusca] = useState("");
@@ -57,13 +84,19 @@ export default function MenusPage() {
     return Number(menu.id_menu ?? menu.id ?? 0);
   }, []);
 
+  const quantidadeItens = useCallback((menu: Menu) => {
+    return Array.isArray(menu.itens) ? menu.itens.length : 0;
+  }, []);
+
   const carregarMenus = useCallback(async () => {
     try {
       setCarregando(true);
       setErro("");
 
       const resposta = await api.get("/painel/menus");
-      setMenus(getMenusFromResponse(resposta.data));
+      const lista = getMenusFromResponse(resposta.data);
+
+      setMenus(Array.isArray(lista) ? lista : []);
     } catch (error: any) {
       console.error("Erro ao carregar menus:", error);
 
@@ -71,8 +104,12 @@ export default function MenusPage() {
         setErro("Sessão inválida. Faça login novamente.");
       } else if (error?.response?.status === 403) {
         setErro("Você não tem permissão para acessar esta página.");
+      } else if (error?.response?.status === 404) {
+        setErro("A rota /painel/menus não foi encontrada.");
       } else {
-        setErro("Não foi possível carregar os menus.");
+        setErro(
+          error?.response?.data?.mensagem || "Não foi possível carregar os menus."
+        );
       }
 
       setMenus([]);
@@ -97,6 +134,20 @@ export default function MenusPage() {
       const rota = String(menu.rota ?? "").toLowerCase();
       const placeholder = String(menu.pesquisa_placeholder ?? "").toLowerCase();
       const siteConfig = String(menu.site_config_id ?? "").toLowerCase();
+      const itensTexto = Array.isArray(menu.itens)
+        ? menu.itens
+            .map((item) =>
+              [
+                item.nome ?? "",
+                item.rota ?? "",
+                item.icone ?? "",
+                item.posicao ?? "",
+              ]
+                .join(" ")
+                .toLowerCase()
+            )
+            .join(" ")
+        : "";
 
       return (
         id.includes(termo) ||
@@ -104,19 +155,28 @@ export default function MenusPage() {
         icone.includes(termo) ||
         rota.includes(termo) ||
         placeholder.includes(termo) ||
-        siteConfig.includes(termo)
+        siteConfig.includes(termo) ||
+        itensTexto.includes(termo)
       );
     });
   }, [busca, menus, normalizarMenuId]);
 
   const menusComRota = useMemo(
-    () => menus.filter((menu) => String(menu.rota ?? "").trim() !== "").length,
+    () => menus.filter((menu) => rotaValida(menu.rota)).length,
     [menus]
   );
 
   const menusComIcone = useMemo(
     () => menus.filter((menu) => String(menu.icone ?? "").trim() !== "").length,
     [menus]
+  );
+
+  const totalItens = useMemo(
+    () =>
+      menus.reduce((total, menu) => {
+        return total + quantidadeItens(menu);
+      }, 0),
+    [menus, quantidadeItens]
   );
 
   const excluirMenu = useCallback(
@@ -146,7 +206,9 @@ export default function MenusPage() {
           <div className="hero-topo">
             <span className="hero-tag">Painel Administrativo</span>
             <h1>Menus do sistema</h1>
-            <p>Gerencie os menus do site em uma tabela moderna, limpa e responsiva.</p>
+            <p>
+              Gerencie os menus do site em uma tabela moderna, limpa e responsiva.
+            </p>
           </div>
 
           <div className="hero-acoes">
@@ -180,9 +242,9 @@ export default function MenusPage() {
           </div>
 
           <div className="stat-card">
-            <span>Resultados</span>
-            <strong>{menusFiltrados.length}</strong>
-            <small>Após busca</small>
+            <span>Subitens</span>
+            <strong>{totalItens}</strong>
+            <small>Itens vinculados aos menus</small>
           </div>
         </section>
 
@@ -190,7 +252,7 @@ export default function MenusPage() {
           <div className="search-box">
             <input
               type="text"
-              placeholder="Buscar por nome, rota, ícone, placeholder..."
+              placeholder="Buscar por nome, rota, ícone, placeholder ou subitens..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
@@ -220,6 +282,7 @@ export default function MenusPage() {
                     <th>Ícone</th>
                     <th>Rota</th>
                     <th>Placeholder</th>
+                    <th>Itens</th>
                     <th>Site Config</th>
                     <th>Criado em</th>
                     <th className="col-acoes">Ações</th>
@@ -229,13 +292,16 @@ export default function MenusPage() {
                 <tbody>
                   {menusFiltrados.map((menu) => {
                     const id = normalizarMenuId(menu);
+                    const totalDeItens = quantidadeItens(menu);
 
                     return (
                       <tr key={id}>
                         <td>
                           <div className="menu-cell">
                             <div className="menu-avatar">
-                              {(menu.nome?.charAt(0) || menu.titulo?.charAt(0) || "M").toUpperCase()}
+                              {(menu.nome?.charAt(0) ||
+                                menu.titulo?.charAt(0) ||
+                                "M").toUpperCase()}
                             </div>
 
                             <div className="menu-info">
@@ -250,14 +316,20 @@ export default function MenusPage() {
                         </td>
 
                         <td>
-                          <code className="rota-code">{menu.rota || "-"}</code>
+                          <code className="rota-code">{textoRota(menu.rota)}</code>
                         </td>
 
                         <td>{menu.pesquisa_placeholder || "-"}</td>
 
+                        <td>
+                          <span className="badge badge-soft">
+                            {totalDeItens} {totalDeItens === 1 ? "item" : "itens"}
+                          </span>
+                        </td>
+
                         <td>{menu.site_config_id ?? "-"}</td>
 
-                        <td>{formatarData(menu.criado)}</td>
+                        <td>{formatarData(menu.criado || menu.atualizado)}</td>
 
                         <td>
                           <div className="acoes-cell">
@@ -273,6 +345,13 @@ export default function MenusPage() {
                               className="acao-btn acao-editar"
                             >
                               Editar
+                            </Link>
+
+                            <Link
+                              href={`/Admin/menus/${id}/itens`}
+                              className="acao-btn acao-itens"
+                            >
+                              Itens
                             </Link>
 
                             <button
@@ -497,7 +576,7 @@ export default function MenusPage() {
 
         .menus-table {
           width: 100%;
-          min-width: 1080px;
+          min-width: 1180px;
           border-collapse: separate;
           border-spacing: 0;
         }
@@ -604,12 +683,13 @@ export default function MenusPage() {
           border-radius: 10px;
           color: #334155;
           font-size: 12px;
-          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+            "Liberation Mono", "Courier New", monospace;
           word-break: break-all;
         }
 
         .col-acoes {
-          min-width: 210px;
+          min-width: 290px;
         }
 
         .acoes-cell {
@@ -648,6 +728,12 @@ export default function MenusPage() {
           background: linear-gradient(135deg, #dcfce7 0%, #ecfdf5 100%);
           color: #166534;
           border: 1px solid #86efac;
+        }
+
+        .acao-itens {
+          background: linear-gradient(135deg, #ede9fe 0%, #f5f3ff 100%);
+          color: #5b21b6;
+          border: 1px solid #c4b5fd;
         }
 
         .acao-excluir {
