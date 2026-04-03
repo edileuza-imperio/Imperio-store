@@ -32,8 +32,6 @@ type Menu = {
   site_config_id?: number | string | null;
   criado?: string;
   atualizado?: string;
-  itens?: MenuItem[];
-  items?: MenuItem[];
 };
 
 const api = axios.create({
@@ -46,10 +44,23 @@ const api = axios.create({
 
 function getObjeto<T>(payload: any): T | null {
   if (!payload) return null;
+
   if (payload?.dados && !Array.isArray(payload.dados)) return payload.dados as T;
   if (payload?.data && !Array.isArray(payload.data)) return payload.data as T;
-  if (payload?.dados?.dados && !Array.isArray(payload.dados.dados)) return payload.dados.dados as T;
+  if (payload?.dados?.dados && !Array.isArray(payload.dados.dados)) {
+    return payload.dados.dados as T;
+  }
+
   return payload as T;
+}
+
+function getLista<T>(payload: any): T[] {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.dados)) return payload.dados;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.dados?.dados)) return payload.dados.dados;
+  if (Array.isArray(payload?.data?.dados)) return payload.data.dados;
+  return [];
 }
 
 function formatarData(data?: string) {
@@ -68,18 +79,27 @@ export default function VerMenuPage({ params }: PageProps) {
   const { id } = use(params);
 
   const [menu, setMenu] = useState<Menu | null>(null);
+  const [itens, setItens] = useState<MenuItem[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
+
+  const menuId = useMemo(() => Number(id), [id]);
 
   const carregarMenu = useCallback(async () => {
     try {
       setCarregando(true);
       setErro("");
 
-      const resposta = await api.get(`/menu/${id}/completo`);
-      const dados = getObjeto<Menu>(resposta.data);
+      const [resMenu, resItens] = await Promise.all([
+        api.get(`/menu/${id}`),
+        api.get(`/menu/${id}/itens`),
+      ]);
 
-      setMenu(dados);
+      const dadosMenu = getObjeto<Menu>(resMenu.data);
+      const dadosItens = getLista<MenuItem>(resItens.data);
+
+      setMenu(dadosMenu);
+      setItens(dadosItens);
     } catch (error: any) {
       console.error("Erro ao carregar menu:", error);
 
@@ -94,6 +114,7 @@ export default function VerMenuPage({ params }: PageProps) {
       }
 
       setMenu(null);
+      setItens([]);
     } finally {
       setCarregando(false);
     }
@@ -102,15 +123,6 @@ export default function VerMenuPage({ params }: PageProps) {
   useEffect(() => {
     carregarMenu();
   }, [carregarMenu]);
-
-  const itens = useMemo(() => {
-    if (!menu) return [];
-    return Array.isArray(menu.itens)
-      ? menu.itens
-      : Array.isArray(menu.items)
-      ? menu.items
-      : [];
-  }, [menu]);
 
   return (
     <div className="ver-menu-page">
@@ -125,7 +137,7 @@ export default function VerMenuPage({ params }: PageProps) {
           </div>
 
           <h1>Detalhes do menu</h1>
-          <p>Visualize as informações do menu e seus itens cadastrados.</p>
+          <p>Visualize as informações do menu e gerencie seus itens cadastrados.</p>
         </section>
 
         {carregando ? (
@@ -196,6 +208,13 @@ export default function VerMenuPage({ params }: PageProps) {
                   Editar menu
                 </Link>
 
+                <Link
+                  href={`/Admin/menus/${id}/itens/cadastrar`}
+                  className="action-btn btn-item"
+                >
+                  Cadastrar item
+                </Link>
+
                 <Link href="/Admin/menus" className="action-btn btn-voltar">
                   Voltar para lista
                 </Link>
@@ -204,12 +223,23 @@ export default function VerMenuPage({ params }: PageProps) {
 
             <section className="tabela-card">
               <div className="tabela-topo">
-                <h3>Itens do menu</h3>
-                <p>{itens.length} item(ns) encontrado(s).</p>
+                <div>
+                  <h3>Itens do menu</h3>
+                  <p>{itens.length} item(ns) encontrado(s).</p>
+                </div>
+
+                <Link
+                  href={`/Admin/menus/${id}/itens/cadastrar`}
+                  className="topo-btn"
+                >
+                  + Novo item
+                </Link>
               </div>
 
               {itens.length === 0 ? (
-                <div className="estado-box sem-borda">Nenhum item cadastrado neste menu.</div>
+                <div className="estado-box sem-borda">
+                  Nenhum item cadastrado neste menu.
+                </div>
               ) : (
                 <div className="tabela-wrapper">
                   <table className="itens-table">
@@ -220,25 +250,50 @@ export default function VerMenuPage({ params }: PageProps) {
                         <th>Ícone</th>
                         <th>Posição</th>
                         <th>Status</th>
+                        <th className="col-acoes">Ações</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {itens.map((item, index) => (
-                        <tr key={item.id_item ?? item.id ?? index}>
-                          <td>
-                            <div className="item-main">
-                              <strong>{item.nome || item.titulo || "Sem nome"}</strong>
-                              <small>ID #{item.id_item ?? item.id ?? "-"}</small>
-                            </div>
-                          </td>
-                          <td>
-                            <code className="rota-code">{item.rota || "-"}</code>
-                          </td>
-                          <td>{item.icone || "-"}</td>
-                          <td>{item.posicao ?? "-"}</td>
-                          <td>{item.status_id ?? "-"}</td>
-                        </tr>
-                      ))}
+                      {itens.map((item, index) => {
+                        const itemId = item.id_item ?? item.id ?? index;
+
+                        return (
+                          <tr key={itemId}>
+                            <td>
+                              <div className="item-main">
+                                <strong>{item.nome || item.titulo || "Sem nome"}</strong>
+                                <small>ID #{itemId}</small>
+                              </div>
+                            </td>
+
+                            <td>
+                              <code className="rota-code">{item.rota || "-"}</code>
+                            </td>
+
+                            <td>{item.icone || "-"}</td>
+                            <td>{item.posicao ?? "-"}</td>
+                            <td>{item.status_id ?? "-"}</td>
+
+                            <td>
+                              <div className="acoes-cell">
+                                <Link
+                                  href={`/Admin/menus/${menuId}/itens/${itemId}`}
+                                  className="acao-btn acao-ver"
+                                >
+                                  Ver
+                                </Link>
+
+                                <Link
+                                  href={`/Admin/menus/${menuId}/itens/${itemId}/editar`}
+                                  className="acao-btn acao-editar"
+                                >
+                                  Editar
+                                </Link>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -446,7 +501,8 @@ export default function VerMenuPage({ params }: PageProps) {
           flex-wrap: wrap;
         }
 
-        .action-btn {
+        .action-btn,
+        .topo-btn {
           min-height: 46px;
           padding: 12px 14px;
           border-radius: 16px;
@@ -461,7 +517,8 @@ export default function VerMenuPage({ params }: PageProps) {
           transition: 0.2s ease;
         }
 
-        .action-btn:hover {
+        .action-btn:hover,
+        .topo-btn:hover {
           transform: translateY(-2px);
         }
 
@@ -469,6 +526,13 @@ export default function VerMenuPage({ params }: PageProps) {
           background: linear-gradient(135deg, #dcfce7 0%, #ecfdf5 100%);
           color: #166534;
           border: 1px solid #86efac;
+        }
+
+        .btn-item,
+        .topo-btn {
+          background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
+          color: #1d4ed8;
+          border: 1px solid #93c5fd;
         }
 
         .btn-voltar {
@@ -479,6 +543,11 @@ export default function VerMenuPage({ params }: PageProps) {
 
         .tabela-topo {
           padding: 22px 22px 0 22px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
         }
 
         .tabela-topo h3 {
@@ -502,7 +571,7 @@ export default function VerMenuPage({ params }: PageProps) {
 
         .itens-table {
           width: 100%;
-          min-width: 780px;
+          min-width: 980px;
           border-collapse: separate;
           border-spacing: 0;
         }
@@ -569,6 +638,48 @@ export default function VerMenuPage({ params }: PageProps) {
           font-size: 12px;
           font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
           word-break: break-all;
+        }
+
+        .col-acoes {
+          min-width: 160px;
+        }
+
+        .acoes-cell {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .acao-btn {
+          min-height: 36px;
+          padding: 8px 12px;
+          border-radius: 12px;
+          text-decoration: none;
+          font-size: 12px;
+          font-weight: 900;
+          border: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: 0.2s ease;
+          white-space: nowrap;
+        }
+
+        .acao-btn:hover {
+          transform: translateY(-1px);
+        }
+
+        .acao-ver {
+          background: #f8fafc;
+          color: #0f172a;
+          border: 1px solid #dbe3ee;
+        }
+
+        .acao-editar {
+          background: linear-gradient(135deg, #dcfce7 0%, #ecfdf5 100%);
+          color: #166534;
+          border: 1px solid #86efac;
         }
 
         @media (max-width: 900px) {
