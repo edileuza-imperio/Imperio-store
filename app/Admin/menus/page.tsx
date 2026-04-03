@@ -73,6 +73,14 @@ export default function MenusPage() {
     carregarMenus();
   }, []);
 
+  function irParaAdicionarItem(menuId: number) {
+    window.location.href = `/Admin/menus/adicionar-item?menu_id=${menuId}`;
+  }
+
+  function irParaAdicionarPermissao(menuId: number) {
+    window.location.href = `/Admin/menus/adicionar-permissao?menu_id=${menuId}`;
+  }
+
   return (
     <main style={styles.page}>
       <div style={styles.container}>
@@ -144,6 +152,7 @@ export default function MenusPage() {
                         <th style={styles.th}>Ícone</th>
                         <th style={styles.th}>Placeholder</th>
                         <th style={styles.th}>Itens</th>
+                        <th style={styles.th}>Ações</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -157,6 +166,23 @@ export default function MenusPage() {
                             {menu.pesquisa_placeholder || "Sem placeholder"}
                           </td>
                           <td style={styles.td}>{menu.itens?.length || 0}</td>
+                          <td style={styles.td}>
+                            <div style={styles.actionsInline}>
+                              <button
+                                style={styles.itemButton}
+                                onClick={() => irParaAdicionarItem(menu.id_menu)}
+                              >
+                                + Item
+                              </button>
+
+                              <button
+                                style={styles.permissionButton}
+                                onClick={() => irParaAdicionarPermissao(menu.id_menu)}
+                              >
+                                + Permissão
+                              </button>
+                            </div>
+                          </td>
                         </tr>
                       ))}
                     </tbody>
@@ -211,6 +237,22 @@ export default function MenusPage() {
                           <span style={styles.infoValue}>
                             {menu.pesquisa_placeholder || "Sem placeholder"}
                           </span>
+                        </div>
+
+                        <div style={styles.actionRow}>
+                          <button
+                            style={styles.itemButton}
+                            onClick={() => irParaAdicionarItem(menu.id_menu)}
+                          >
+                            Adicionar Item
+                          </button>
+
+                          <button
+                            style={styles.permissionButton}
+                            onClick={() => irParaAdicionarPermissao(menu.id_menu)}
+                          >
+                            Adicionar Permissão
+                          </button>
                         </div>
 
                         <div style={styles.itemsBox}>
@@ -377,6 +419,7 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#334155",
     fontSize: "13px",
     borderBottom: "1px solid #e2e8f0",
+    whiteSpace: "nowrap",
   },
   td: {
     padding: "14px 16px",
@@ -384,6 +427,11 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: "14px",
     color: "#0f172a",
     verticalAlign: "top",
+  },
+  actionsInline: {
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
   },
   grid: {
     display: "grid",
@@ -445,6 +493,32 @@ const styles: Record<string, React.CSSProperties> = {
     color: "#0f172a",
     fontWeight: 600,
     textAlign: "right",
+  },
+  actionRow: {
+    display: "flex",
+    gap: "10px",
+    flexWrap: "wrap",
+    marginTop: "16px",
+  },
+  itemButton: {
+    border: "none",
+    borderRadius: "12px",
+    padding: "10px 14px",
+    background: "#2563eb",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: 700,
+    fontSize: "13px",
+  },
+  permissionButton: {
+    border: "none",
+    borderRadius: "12px",
+    padding: "10px 14px",
+    background: "#7c3aed",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: 700,
+    fontSize: "13px",
   },
   itemsBox: {
     marginTop: "16px",
