@@ -78,16 +78,6 @@ function formatarData(data?: string) {
   }).format(d);
 }
 
-function mascararCpf(cpf?: string | null) {
-  if (!cpf) return "-";
-  return cpf;
-}
-
-function mascararTelefone(telefone?: string | null) {
-  if (!telefone) return "-";
-  return telefone;
-}
-
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [niveis, setNiveis] = useState<Nivel[]>([]);
@@ -113,9 +103,7 @@ export default function UsuariosPage() {
   const buscarStatusPorId = useCallback(
     (statusId?: number | string) => {
       const id = Number(statusId ?? 0);
-      return (
-        statusList.find((status) => Number(status.id_status ?? 0) === id) ?? null
-      );
+      return statusList.find((status) => Number(status.id_status ?? 0) === id) ?? null;
     },
     [statusList]
   );
@@ -240,8 +228,7 @@ export default function UsuariosPage() {
   const totalAtivos = useMemo(
     () =>
       usuarios.filter(
-        (usuario) =>
-          obterCodigoStatus(usuario.status_id).toUpperCase() === "ATIVO"
+        (usuario) => obterCodigoStatus(usuario.status_id).toUpperCase() === "ATIVO"
       ).length,
     [usuarios, obterCodigoStatus]
   );
@@ -252,10 +239,7 @@ export default function UsuariosPage() {
     try {
       await navigator.clipboard.writeText(pin);
       setCopiadoId(id);
-
-      setTimeout(() => {
-        setCopiadoId(null);
-      }, 1800);
+      setTimeout(() => setCopiadoId(null), 1500);
     } catch (error) {
       console.error("Erro ao copiar PIN:", error);
     }
@@ -263,9 +247,7 @@ export default function UsuariosPage() {
 
   const excluirUsuario = useCallback(
     async (id: number) => {
-      const confirmar = window.confirm(
-        "Tem certeza que deseja excluir este usuário?"
-      );
+      const confirmar = window.confirm("Tem certeza que deseja excluir este usuário?");
       if (!confirmar) return;
 
       try {
@@ -278,8 +260,7 @@ export default function UsuariosPage() {
       } catch (error: any) {
         console.error("Erro ao excluir usuário:", error);
         alert(
-          error?.response?.data?.mensagem ||
-            "Não foi possível excluir o usuário."
+          error?.response?.data?.mensagem || "Não foi possível excluir o usuário."
         );
       } finally {
         setExcluindoId(null);
@@ -292,11 +273,11 @@ export default function UsuariosPage() {
     (statusId?: number | string) => {
       const codigo = obterCodigoStatus(statusId).toUpperCase();
 
-      if (codigo === "ATIVO") return "badge-status badge-status-ativo";
-      if (codigo === "INATIVO") return "badge-status badge-status-inativo";
-      if (codigo === "BLOQUEADO") return "badge-status badge-status-bloqueado";
+      if (codigo === "ATIVO") return "badge badge-status-ativo";
+      if (codigo === "INATIVO") return "badge badge-status-inativo";
+      if (codigo === "BLOQUEADO") return "badge badge-status-bloqueado";
 
-      return "badge-status badge-status-padrao";
+      return "badge badge-status-padrao";
     },
     [obterCodigoStatus]
   );
@@ -305,21 +286,21 @@ export default function UsuariosPage() {
     <div className="usuarios-page">
       <div className="usuarios-container">
         <section className="hero">
-          <div className="hero-conteudo">
-            <div className="hero-tag">Administração</div>
-            <h1>Gestão de usuários</h1>
+          <div className="hero-topo">
+            <span className="hero-tag">Painel Administrativo</span>
+            <h1>Usuários do sistema</h1>
             <p>
-              Visualize, pesquise e gerencie os usuários do sistema em um painel
-              moderno, limpo e responsivo.
+              Gerencie usuários com um layout mais limpo, centralizado e com
+              ações melhor organizadas.
             </p>
           </div>
 
           <div className="hero-acoes">
-            <button className="btn btn-light" onClick={carregarDados}>
+            <button className="btn btn-secundario" onClick={carregarDados}>
               Atualizar lista
             </button>
 
-            <Link href="/Admin/usuarios/novo" className="btn btn-dark">
+            <Link href="/Admin/usuarios/novo" className="btn btn-primario">
               Novo usuário
             </Link>
           </div>
@@ -335,39 +316,24 @@ export default function UsuariosPage() {
           <div className="stat-card">
             <span>Ativos</span>
             <strong>{totalAtivos}</strong>
-            <small>Status ativo no sistema</small>
+            <small>Status ativo</small>
           </div>
 
           <div className="stat-card">
             <span>Protegidos</span>
             <strong>{totalProtegidos}</strong>
-            <small>Nível de sistema</small>
+            <small>Nível sistema</small>
           </div>
 
           <div className="stat-card">
             <span>Resultados</span>
             <strong>{usuariosFiltrados.length}</strong>
-            <small>Após filtro da busca</small>
+            <small>Após busca</small>
           </div>
         </section>
 
         <section className="toolbar">
           <div className="search-box">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              className="search-icon"
-              aria-hidden="true"
-            >
-              <path
-                d="M21 21L16.65 16.65M11 18C7.13401 18 4 14.866 4 11C4 7.13401 7.13401 4 11 4C14.866 4 18 7.13401 18 11C18 14.866 14.866 18 11 18Z"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-
             <input
               type="text"
               placeholder="Buscar por nome, email, PIN, CPF, nível, status..."
@@ -393,60 +359,52 @@ export default function UsuariosPage() {
 
               return (
                 <article className="user-card" key={id}>
-                  <div className="card-glow" />
-
-                  <div className="card-top">
-                    <div className="avatar">
-                      {(usuario.nome?.charAt(0) || "U").toUpperCase()}
-                    </div>
-
-                    <div className="user-main">
-                      <div className="title-row">
-                        <h2>{usuario.nome || "Sem nome"}</h2>
-
-                        {protegido && (
-                          <span className="badge-protected">Protegido</span>
-                        )}
-                      </div>
-
-                      <p className="email">{usuario.email || "-"}</p>
-                    </div>
+                  <div className="avatar">
+                    {(usuario.nome?.charAt(0) || "U").toUpperCase()}
                   </div>
 
-                  <div className="badge-row">
-                    <span className="badge-soft">ID #{id}</span>
-                    <span className="badge-soft badge-level">{nomeNivel}</span>
+                  <div className="user-header">
+                    <div className="titulo-linha">
+                      <h2>{usuario.nome || "Sem nome"}</h2>
+                      {protegido && (
+                        <span className="badge badge-protected">Protegido</span>
+                      )}
+                    </div>
+
+                    <p className="email">{usuario.email || "-"}</p>
+                  </div>
+
+                  <div className="badges-wrap">
+                    <span className="badge badge-soft">ID #{id}</span>
+                    <span className="badge badge-level">{nomeNivel}</span>
                     <span className={getStatusClass(usuario.status_id)}>
                       {nomeStatus}
                     </span>
                   </div>
 
                   <div className="info-grid">
-                    <div className="info-card destaque">
+                    <div className="info-card info-pin">
                       <span>PIN</span>
+                      <strong>{usuario.pin || "-"}</strong>
 
-                      <div className="pin-row">
-                        <strong>{usuario.pin || "-"}</strong>
-
-                        <button
-                          type="button"
-                          className="copy-btn"
-                          onClick={() => copiarPin(usuario.pin, id)}
-                          disabled={!usuario.pin}
-                        >
-                          {copiadoId === id ? "Copiado" : "Copiar"}
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        className="mini-btn"
+                        onClick={() => copiarPin(usuario.pin, id)}
+                        disabled={!usuario.pin}
+                      >
+                        {copiadoId === id ? "Copiado" : "Copiar PIN"}
+                      </button>
                     </div>
 
                     <div className="info-card">
                       <span>Telefone</span>
-                      <strong>{mascararTelefone(usuario.telefone)}</strong>
+                      <strong>{usuario.telefone || "-"}</strong>
                     </div>
 
                     <div className="info-card">
                       <span>CPF</span>
-                      <strong>{mascararCpf(usuario.cpf)}</strong>
+                      <strong>{usuario.cpf || "-"}</strong>
                     </div>
 
                     <div className="info-card">
@@ -455,33 +413,26 @@ export default function UsuariosPage() {
                     </div>
                   </div>
 
-                  <div className="footer-line" />
-
-                  <div className="card-actions">
+                  <div className="acoes-card">
                     <Link
                       href={`/Admin/usuarios/${id}`}
-                      className="action-btn action-btn-view"
+                      className="action-btn btn-ver"
                     >
                       Visualizar
                     </Link>
 
                     <Link
                       href={`/Admin/usuarios/${id}/editar`}
-                      className="action-btn action-btn-edit"
+                      className="action-btn btn-editar"
                     >
                       Editar
                     </Link>
 
                     <button
                       type="button"
-                      className="action-btn action-btn-delete"
+                      className="action-btn btn-excluir"
                       onClick={() => excluirUsuario(id)}
                       disabled={excluindoId === id || protegido}
-                      title={
-                        protegido
-                          ? "Usuário protegido não pode ser excluído."
-                          : ""
-                      }
                     >
                       {excluindoId === id ? "Excluindo..." : "Excluir"}
                     </button>
@@ -497,70 +448,62 @@ export default function UsuariosPage() {
         .usuarios-page {
           min-height: 100vh;
           padding: 24px;
-          background:
-            radial-gradient(circle at top left, rgba(59, 130, 246, 0.08), transparent 28%),
-            radial-gradient(circle at bottom right, rgba(17, 24, 39, 0.08), transparent 28%),
-            linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+          background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
         }
 
         .usuarios-container {
-          max-width: 1460px;
+          max-width: 1400px;
           margin: 0 auto;
         }
 
         .hero {
           display: flex;
-          justify-content: space-between;
+          flex-direction: column;
           align-items: flex-start;
-          gap: 20px;
-          flex-wrap: wrap;
-          background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
-          border: 1px solid rgba(226, 232, 240, 0.95);
-          border-radius: 30px;
+          gap: 18px;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 28px;
           padding: 28px;
-          box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+          box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
           margin-bottom: 20px;
         }
 
-        .hero-conteudo {
-          flex: 1;
-          min-width: 280px;
+        .hero-topo {
+          width: 100%;
         }
 
         .hero-tag {
           display: inline-flex;
-          align-items: center;
-          padding: 8px 12px;
+          padding: 7px 12px;
           border-radius: 999px;
           background: #eef2ff;
           color: #3730a3;
           font-size: 12px;
           font-weight: 800;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
           margin-bottom: 12px;
         }
 
         .hero h1 {
-          margin: 0 0 10px;
-          font-size: 38px;
-          line-height: 1.05;
+          margin: 0 0 8px;
+          font-size: 36px;
           color: #0f172a;
           font-weight: 900;
         }
 
         .hero p {
           margin: 0;
-          max-width: 760px;
-          color: #475569;
+          color: #64748b;
           font-size: 15px;
           line-height: 1.7;
+          max-width: 760px;
         }
 
         .hero-acoes {
           display: flex;
           gap: 12px;
           flex-wrap: wrap;
+          width: 100%;
         }
 
         .btn {
@@ -575,24 +518,23 @@ export default function UsuariosPage() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+          transition: 0.2s ease;
         }
 
         .btn:hover {
           transform: translateY(-2px);
         }
 
-        .btn-dark {
+        .btn-primario {
           background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
           color: #ffffff;
-          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
+          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
         }
 
-        .btn-light {
+        .btn-secundario {
           background: #ffffff;
           color: #0f172a;
           border: 1px solid #dbe3ee;
-          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
         }
 
         .stats-grid {
@@ -603,11 +545,11 @@ export default function UsuariosPage() {
         }
 
         .stat-card {
-          background: linear-gradient(180deg, #ffffff 0%, #fcfdff 100%);
+          background: #ffffff;
           border: 1px solid #e2e8f0;
-          border-radius: 24px;
+          border-radius: 22px;
           padding: 20px;
-          box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+          box-shadow: 0 10px 26px rgba(15, 23, 42, 0.04);
         }
 
         .stat-card span {
@@ -617,14 +559,12 @@ export default function UsuariosPage() {
           font-weight: 700;
           margin-bottom: 8px;
           text-transform: uppercase;
-          letter-spacing: 0.04em;
         }
 
         .stat-card strong {
           display: block;
           font-size: 30px;
           color: #0f172a;
-          line-height: 1;
           margin-bottom: 6px;
         }
 
@@ -638,23 +578,11 @@ export default function UsuariosPage() {
         }
 
         .search-box {
-          position: relative;
-          display: flex;
-          align-items: center;
           background: #ffffff;
           border: 1px solid #dbe3ee;
-          border-radius: 22px;
-          padding: 0 16px 0 48px;
-          min-height: 58px;
-          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
-        }
-
-        .search-icon {
-          position: absolute;
-          left: 16px;
-          width: 20px;
-          height: 20px;
-          color: #64748b;
+          border-radius: 20px;
+          padding: 14px 16px;
+          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
         }
 
         .search-box input {
@@ -664,7 +592,6 @@ export default function UsuariosPage() {
           background: transparent;
           color: #0f172a;
           font-size: 14px;
-          font-weight: 500;
         }
 
         .search-box input::placeholder {
@@ -679,7 +606,6 @@ export default function UsuariosPage() {
           text-align: center;
           color: #334155;
           font-weight: 700;
-          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
         }
 
         .estado-erro {
@@ -690,43 +616,21 @@ export default function UsuariosPage() {
 
         .cards-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
           gap: 18px;
         }
 
         .user-card {
-          position: relative;
-          overflow: hidden;
-          background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+          background: #ffffff;
           border: 1px solid #e2e8f0;
-          border-radius: 28px;
+          border-radius: 26px;
           padding: 22px;
-          box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
-          transition: transform 0.22s ease, box-shadow 0.22s ease;
-        }
-
-        .user-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 20px 42px rgba(15, 23, 42, 0.1);
-        }
-
-        .card-glow {
-          position: absolute;
-          top: -40px;
-          right: -20px;
-          width: 120px;
-          height: 120px;
-          background: radial-gradient(circle, rgba(59, 130, 246, 0.12), transparent 70%);
-          pointer-events: none;
-        }
-
-        .card-top {
+          box-shadow: 0 14px 34px rgba(15, 23, 42, 0.05);
           display: flex;
-          gap: 14px;
-          align-items: center;
-          margin-bottom: 16px;
-          position: relative;
-          z-index: 1;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 16px;
+          text-align: left;
         }
 
         .avatar {
@@ -741,28 +645,25 @@ export default function UsuariosPage() {
           color: #0f172a;
           background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
           border: 1px solid #bfdbfe;
-          flex-shrink: 0;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
         }
 
-        .user-main {
-          min-width: 0;
-          flex: 1;
-        }
-
-        .title-row {
+        .user-header {
           display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .titulo-linha {
+          display: flex;
+          flex-wrap: wrap;
           align-items: center;
           gap: 8px;
-          flex-wrap: wrap;
-          margin-bottom: 4px;
         }
 
-        .title-row h2 {
+        .titulo-linha h2 {
           margin: 0;
+          font-size: 22px;
           color: #0f172a;
-          font-size: 21px;
-          line-height: 1.2;
           font-weight: 900;
         }
 
@@ -770,36 +671,19 @@ export default function UsuariosPage() {
           margin: 0;
           color: #64748b;
           font-size: 14px;
-          line-height: 1.5;
           word-break: break-word;
         }
 
-        .badge-protected {
-          display: inline-flex;
-          align-items: center;
-          padding: 6px 10px;
-          border-radius: 999px;
-          background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
-          color: #ffffff;
-          font-size: 11px;
-          font-weight: 800;
-          letter-spacing: 0.03em;
-          text-transform: uppercase;
-        }
-
-        .badge-row {
+        .badges-wrap {
           display: flex;
-          gap: 8px;
           flex-wrap: wrap;
-          margin-bottom: 16px;
-          position: relative;
-          z-index: 1;
+          gap: 8px;
         }
 
-        .badge-soft,
-        .badge-status {
+        .badge {
           display: inline-flex;
           align-items: center;
+          justify-content: center;
           min-height: 32px;
           padding: 6px 10px;
           border-radius: 999px;
@@ -818,6 +702,11 @@ export default function UsuariosPage() {
           background: #eef2ff;
           color: #3730a3;
           border-color: #c7d2fe;
+        }
+
+        .badge-protected {
+          background: #0f172a;
+          color: #ffffff;
         }
 
         .badge-status-ativo {
@@ -846,33 +735,31 @@ export default function UsuariosPage() {
 
         .info-grid {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: 1fr 1fr;
           gap: 12px;
-          margin-bottom: 18px;
-          position: relative;
-          z-index: 1;
         }
 
         .info-card {
-          background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+          background: #f8fafc;
           border: 1px solid #e2e8f0;
-          border-radius: 20px;
+          border-radius: 18px;
           padding: 14px;
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
         }
 
-        .info-card.destaque {
+        .info-pin {
           background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
           border-color: #bfdbfe;
         }
 
         .info-card span {
-          display: block;
           color: #64748b;
           font-size: 11px;
           font-weight: 800;
           text-transform: uppercase;
-          letter-spacing: 0.05em;
-          margin-bottom: 8px;
+          letter-spacing: 0.04em;
         }
 
         .info-card strong {
@@ -882,89 +769,63 @@ export default function UsuariosPage() {
           word-break: break-word;
         }
 
-        .pin-row {
-          display: flex;
-          gap: 8px;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .pin-row strong {
-          font-size: 16px;
-          font-weight: 900;
-        }
-
-        .copy-btn {
+        .mini-btn {
+          align-self: flex-start;
           border: none;
           background: #0f172a;
           color: #ffffff;
           border-radius: 12px;
-          min-height: 34px;
-          padding: 6px 10px;
+          padding: 8px 12px;
           font-size: 12px;
           font-weight: 800;
           cursor: pointer;
-          transition: opacity 0.2s ease, transform 0.2s ease;
-          white-space: nowrap;
         }
 
-        .copy-btn:hover:not(:disabled) {
-          transform: translateY(-1px);
-        }
-
-        .copy-btn:disabled {
-          opacity: 0.55;
+        .mini-btn:disabled {
+          opacity: 0.6;
           cursor: not-allowed;
         }
 
-        .footer-line {
-          height: 1px;
-          background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
-          margin-bottom: 16px;
-        }
-
-        .card-actions {
+        .acoes-card {
           display: flex;
+          flex-direction: column;
           gap: 10px;
-          flex-wrap: wrap;
-          position: relative;
-          z-index: 1;
+          margin-top: 4px;
         }
 
         .action-btn {
-          flex: 1;
-          min-width: 100px;
+          width: 100%;
           min-height: 46px;
-          padding: 10px 14px;
+          padding: 12px 14px;
           border-radius: 16px;
           text-decoration: none;
-          font-size: 13px;
+          font-size: 14px;
           font-weight: 900;
-          cursor: pointer;
           border: none;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+          cursor: pointer;
+          transition: 0.2s ease;
         }
 
         .action-btn:hover:not(:disabled) {
           transform: translateY(-2px);
         }
 
-        .action-btn-view {
+        .btn-ver {
           background: #f8fafc;
           color: #0f172a;
           border: 1px solid #dbe3ee;
         }
 
-        .action-btn-edit {
+        .btn-editar {
           background: linear-gradient(135deg, #dcfce7 0%, #ecfdf5 100%);
           color: #166534;
           border: 1px solid #86efac;
         }
 
-        .action-btn-delete {
+        .btn-excluir {
           background: linear-gradient(135deg, #ffe4e6 0%, #fff1f2 100%);
           color: #be123c;
           border: 1px solid #fda4af;
@@ -975,27 +836,17 @@ export default function UsuariosPage() {
           cursor: not-allowed;
         }
 
-        @media (max-width: 900px) {
-          .hero {
-            padding: 22px;
-          }
-
-          .hero h1 {
-            font-size: 32px;
-          }
-        }
-
         @media (max-width: 768px) {
           .usuarios-page {
             padding: 16px;
           }
 
-          .hero {
-            flex-direction: column;
+          .hero h1 {
+            font-size: 28px;
           }
 
           .hero-acoes {
-            width: 100%;
+            flex-direction: column;
           }
 
           .hero-acoes .btn {
@@ -1008,18 +859,6 @@ export default function UsuariosPage() {
 
           .info-grid {
             grid-template-columns: 1fr;
-          }
-
-          .card-actions {
-            flex-direction: column;
-          }
-
-          .action-btn {
-            width: 100%;
-          }
-
-          .hero h1 {
-            font-size: 28px;
           }
         }
       `}</style>
