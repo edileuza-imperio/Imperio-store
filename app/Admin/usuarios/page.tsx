@@ -7,14 +7,31 @@ import axios from "axios";
 type Usuario = {
   id_usuario?: number;
   id?: number;
-  nome: string;
-  email: string;
+  nome?: string;
+  email?: string;
+  senha?: string;
+  pin?: string | null;
   nivel_id?: number;
   status_id?: number;
   telefone?: string | null;
   cpf?: string | null;
   criado?: string;
   atualizado?: string;
+};
+
+type Nivel = {
+  id_nivel?: number;
+  id?: number;
+  nome?: string;
+  descricao?: string;
+};
+
+type Status = {
+  id_status?: number;
+  id?: number;
+  nome?: string;
+  codigo?: string;
+  descricao?: string;
 };
 
 const api = axios.create({
@@ -28,51 +45,92 @@ const api = axios.create({
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [usuariosFiltrados, setUsuariosFiltrados] = useState<Usuario[]>([]);
+  const [niveis, setNiveis] = useState<Nivel[]>([]);
+  const [statusList, setStatusList] = useState<Status[]>([]);
   const [busca, setBusca] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [excluindoId, setExcluindoId] = useState<number | null>(null);
 
-  const normalizarId = useCallback((usuario: Usuario) => {
-    return usuario.id_usuario ?? usuario.id ?? 0;
+  const normalizarResposta = (res: any) => {
+    if (Array.isArray(res?.data)) return res.data;
+    if (Array.isArray(res?.data?.dados)) return res.data.dados;
+    if (Array.isArray(res?.data?.data)) return res.data.data;
+    return [];
+  };
+
+  const normalizarUsuarioId = useCallback((usuario: Usuario) => {
+    return Number(usuario.id_usuario ?? usuario.id ?? 0);
   }, []);
 
-  const carregarUsuarios = useCallback(async () => {
+  const normalizarNivelId = (nivel: Nivel) => {
+    return Number(nivel.id_nivel ?? nivel.id ?? 0);
+  };
+
+  const normalizarStatusId = (status: Status) => {
+    return Number(status.id_status ?? status.id ?? 0);
+  };
+
+  const obterNomeNivel = useCallback(
+    (nivelId?: number) => {
+      if (!nivelId) return "-";
+      const nivel = niveis.find((item) => normalizarNivelId(item) === Number(nivelId));
+      return nivel?.nome || `Nível ${nivelId}`;
+    },
+    [niveis]
+  );
+
+  const obterNomeStatus = useCallback(
+    (statusId?: number) => {
+      if (!statusId) return "-";
+      const status = statusList.find((item) => normalizarStatusId(item) === Number(statusId));
+      return status?.nome || `Status ${statusId}`;
+    },
+    [statusList]
+  );
+
+  const carregarDados = useCallback(async () => {
     try {
       setCarregando(true);
       setErro("");
 
-      const resposta = await api.get("/painel/usuarios");
+      const [resUsuarios, resNiveis, resStatus] = await Promise.all([
+        api.get("/painel/usuarios"),
+        api.get("/painel/niveis"),
+        api.get("/painel/status"),
+      ]);
 
-      const dados = Array.isArray(resposta.data)
-        ? resposta.data
-        : Array.isArray(resposta.data?.dados)
-        ? resposta.data.dados
-        : [];
+      const listaUsuarios = normalizarResposta(resUsuarios);
+      const listaNiveis = normalizarResposta(resNiveis);
+      const listaStatus = normalizarResposta(resStatus);
 
-      setUsuarios(dados);
-      setUsuariosFiltrados(dados);
+      setUsuarios(listaUsuarios);
+      setUsuariosFiltrados(listaUsuarios);
+      setNiveis(listaNiveis);
+      setStatusList(listaStatus);
     } catch (error: any) {
-      console.error("Erro ao carregar usuários:", error);
+      console.error("Erro ao carregar dados:", error);
 
       if (error?.response?.status === 401) {
         setErro("Sessão inválida. Faça login novamente.");
       } else if (error?.response?.status === 403) {
-        setErro("Você não tem permissão para acessar os usuários.");
+        setErro("Você não tem permissão para acessar essa página.");
       } else {
         setErro("Não foi possível carregar os usuários.");
       }
 
       setUsuarios([]);
       setUsuariosFiltrados([]);
+      setNiveis([]);
+      setStatusList([]);
     } finally {
       setCarregando(false);
     }
   }, []);
 
   useEffect(() => {
-    carregarUsuarios();
-  }, [carregarUsuarios]);
+    carregarDados();
+  }, [carregarDados]);
 
   useEffect(() => {
     const termo = busca.trim().toLowerCase();
@@ -83,13 +141,14 @@ export default function UsuariosPage() {
     }
 
     const filtrados = usuarios.filter((usuario) => {
-      const id = String(normalizarId(usuario));
-      const nome = String(usuario.nome || "").toLowerCase();
-      const email = String(usuario.email || "").toLowerCase();
-      const telefone = String(usuario.telefone || "").toLowerCase();
-      const cpf = String(usuario.cpf || "").toLowerCase();
-      const nivel = String(usuario.nivel_id || "");
-      const status = String(usuario.status_id || "");
+      const id = String(normalizarUsuarioId(usuario));
+      const nome = String(usuario.nome ?? "").toLowerCase();
+      const email = String(usuario.email ?? "").toLowerCase();
+      const telefone = String(usuario.telefone ?? "").toLowerCase();
+      const cpf = String(usuario.cpf ?? "").toLowerCase();
+      const pin = String(usuario.pin ?? "").toLowerCase();
+      const nivelNome = obterNomeNivel(usuario.nivel_id).toLowerCase();
+      const statusNome = obterNomeStatus(usuario.status_id).toLowerCase();
 
       return (
         id.includes(termo) ||
@@ -97,42 +156,40 @@ export default function UsuariosPage() {
         email.includes(termo) ||
         telefone.includes(termo) ||
         cpf.includes(termo) ||
-        nivel.includes(termo) ||
-        status.includes(termo)
+        pin.includes(termo) ||
+        nivelNome.includes(termo) ||
+        statusNome.includes(termo)
       );
     });
 
     setUsuariosFiltrados(filtrados);
-  }, [busca, usuarios, normalizarId]);
+  }, [busca, usuarios, obterNomeNivel, obterNomeStatus, normalizarUsuarioId]);
 
   const totalUsuarios = useMemo(() => usuarios.length, [usuarios]);
 
   const excluirUsuario = useCallback(
     async (id: number) => {
-      const confirmar = window.confirm(
-        "Tem certeza que deseja excluir este usuário?"
-      );
-
+      const confirmar = window.confirm("Tem certeza que deseja excluir este usuário?");
       if (!confirmar) return;
 
       try {
         setExcluindoId(id);
         await api.delete(`/painel/usuario/${id}`);
 
-        setUsuarios((prev) =>
-          prev.filter((usuario) => normalizarId(usuario) !== id)
+        setUsuarios((prev) => prev.filter((usuario) => normalizarUsuarioId(usuario) !== id));
+        setUsuariosFiltrados((prev) =>
+          prev.filter((usuario) => normalizarUsuarioId(usuario) !== id)
         );
       } catch (error: any) {
         console.error("Erro ao excluir usuário:", error);
         alert(
-          error?.response?.data?.mensagem ||
-            "Não foi possível excluir o usuário."
+          error?.response?.data?.mensagem || "Não foi possível excluir o usuário."
         );
       } finally {
         setExcluindoId(null);
       }
     },
-    [normalizarId]
+    [normalizarUsuarioId]
   );
 
   return (
@@ -146,7 +203,7 @@ export default function UsuariosPage() {
           </div>
 
           <div className="acoes-topo">
-            <button onClick={carregarUsuarios} className="btn btn-secundario">
+            <button onClick={carregarDados} className="btn btn-secundario">
               Atualizar
             </button>
 
@@ -158,12 +215,12 @@ export default function UsuariosPage() {
 
         <div className="resumo-grid">
           <div className="card-resumo">
-            <span>Total</span>
+            <span>Total de usuários</span>
             <strong>{totalUsuarios}</strong>
           </div>
 
           <div className="card-resumo">
-            <span>Resultados</span>
+            <span>Resultados filtrados</span>
             <strong>{usuariosFiltrados.length}</strong>
           </div>
         </div>
@@ -171,7 +228,7 @@ export default function UsuariosPage() {
         <div className="filtros">
           <input
             type="text"
-            placeholder="Buscar por nome, email, CPF, telefone, nível, status..."
+            placeholder="Buscar por nome, email, CPF, telefone, PIN, nível ou status..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
@@ -182,9 +239,7 @@ export default function UsuariosPage() {
         ) : erro ? (
           <div className="estado estado-erro">{erro}</div>
         ) : usuariosFiltrados.length === 0 ? (
-          <div className="estado estado-vazio">
-            Nenhum usuário encontrado.
-          </div>
+          <div className="estado estado-vazio">Nenhum usuário encontrado.</div>
         ) : (
           <div className="tabela-wrapper">
             <table className="tabela">
@@ -193,6 +248,7 @@ export default function UsuariosPage() {
                   <th>ID</th>
                   <th>Nome</th>
                   <th>Email</th>
+                  <th>PIN</th>
                   <th>Telefone</th>
                   <th>CPF</th>
                   <th>Nível</th>
@@ -203,17 +259,18 @@ export default function UsuariosPage() {
 
               <tbody>
                 {usuariosFiltrados.map((usuario) => {
-                  const id = normalizarId(usuario);
+                  const id = normalizarUsuarioId(usuario);
 
                   return (
                     <tr key={id}>
                       <td>#{id}</td>
                       <td>{usuario.nome || "-"}</td>
                       <td>{usuario.email || "-"}</td>
+                      <td>{usuario.pin || "-"}</td>
                       <td>{usuario.telefone || "-"}</td>
                       <td>{usuario.cpf || "-"}</td>
-                      <td>{usuario.nivel_id ?? "-"}</td>
-                      <td>{usuario.status_id ?? "-"}</td>
+                      <td>{obterNomeNivel(usuario.nivel_id)}</td>
+                      <td>{obterNomeStatus(usuario.status_id)}</td>
                       <td>
                         <div className="acoes-linha">
                           <Link
@@ -253,16 +310,14 @@ export default function UsuariosPage() {
         .usuarios-page {
           min-height: 100vh;
           padding: 24px;
-          background:
-            radial-gradient(circle at top, rgba(37, 99, 235, 0.16), transparent 30%),
-            linear-gradient(135deg, #0f172a 0%, #111827 45%, #1e293b 100%);
+          background: #f5f5f5;
         }
 
         .usuarios-container {
           width: 100%;
           max-width: 1400px;
           margin: 0 auto;
-          color: #e5e7eb;
+          color: #1f2937;
         }
 
         .topo {
@@ -279,25 +334,26 @@ export default function UsuariosPage() {
           align-items: center;
           padding: 6px 12px;
           border-radius: 999px;
-          background: rgba(59, 130, 246, 0.16);
-          color: #93c5fd;
+          background: #f3f4f6;
+          color: #374151;
           font-size: 12px;
           font-weight: 700;
           letter-spacing: 0.04em;
           text-transform: uppercase;
           margin-bottom: 12px;
+          border: 1px solid #e5e7eb;
         }
 
         h1 {
           margin: 0 0 8px;
           font-size: 32px;
           font-weight: 800;
-          color: #ffffff;
+          color: #111827;
         }
 
         p {
           margin: 0;
-          color: #cbd5e1;
+          color: #6b7280;
           font-size: 15px;
         }
 
@@ -321,19 +377,18 @@ export default function UsuariosPage() {
         }
 
         .btn-primario {
-          background: linear-gradient(135deg, #2563eb, #1d4ed8);
-          color: #fff;
-          box-shadow: 0 10px 30px rgba(37, 99, 235, 0.24);
+          background: #111827;
+          color: #ffffff;
         }
 
         .btn-primario:hover {
-          transform: translateY(-1px);
+          opacity: 0.92;
         }
 
         .btn-secundario {
-          background: rgba(255, 255, 255, 0.08);
-          color: #fff;
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: #ffffff;
+          color: #111827;
+          border: 1px solid #d1d5db;
         }
 
         .resumo-grid {
@@ -344,24 +399,23 @@ export default function UsuariosPage() {
         }
 
         .card-resumo {
-          background: rgba(255, 255, 255, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          backdrop-filter: blur(14px);
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
           border-radius: 20px;
           padding: 20px;
-          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
         }
 
         .card-resumo span {
           display: block;
           font-size: 14px;
-          color: #94a3b8;
+          color: #6b7280;
           margin-bottom: 8px;
         }
 
         .card-resumo strong {
           font-size: 28px;
-          color: #ffffff;
+          color: #111827;
         }
 
         .filtros {
@@ -372,15 +426,15 @@ export default function UsuariosPage() {
           width: 100%;
           padding: 14px 16px;
           border-radius: 16px;
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          background: rgba(15, 23, 42, 0.75);
-          color: #fff;
+          border: 1px solid #d1d5db;
+          background: #ffffff;
+          color: #111827;
           outline: none;
           font-size: 14px;
         }
 
         .filtros input::placeholder {
-          color: #94a3b8;
+          color: #9ca3af;
         }
 
         .estado {
@@ -388,58 +442,58 @@ export default function UsuariosPage() {
           padding: 20px;
           text-align: center;
           font-weight: 600;
+          border: 1px solid #e5e7eb;
+          background: #ffffff;
         }
 
         .estado-loading {
-          background: rgba(59, 130, 246, 0.08);
-          color: #bfdbfe;
+          color: #374151;
         }
 
         .estado-erro {
-          background: rgba(239, 68, 68, 0.12);
-          color: #fecaca;
+          color: #b91c1c;
+          background: #fef2f2;
+          border-color: #fecaca;
         }
 
         .estado-vazio {
-          background: rgba(255, 255, 255, 0.06);
-          color: #cbd5e1;
+          color: #4b5563;
         }
 
         .tabela-wrapper {
           overflow-x: auto;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
           border-radius: 22px;
-          backdrop-filter: blur(14px);
-          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
         }
 
         .tabela {
           width: 100%;
           border-collapse: collapse;
-          min-width: 980px;
+          min-width: 1100px;
         }
 
         .tabela thead th {
           text-align: left;
           padding: 18px 16px;
           font-size: 13px;
-          color: #93c5fd;
+          color: #374151;
           text-transform: uppercase;
           letter-spacing: 0.04em;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-          background: rgba(15, 23, 42, 0.55);
+          border-bottom: 1px solid #e5e7eb;
+          background: #f9fafb;
         }
 
         .tabela tbody td {
           padding: 16px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-          color: #e5e7eb;
+          border-bottom: 1px solid #f3f4f6;
+          color: #111827;
           vertical-align: middle;
         }
 
         .tabela tbody tr:hover {
-          background: rgba(255, 255, 255, 0.04);
+          background: #fafafa;
         }
 
         .acoes-linha {
@@ -460,18 +514,21 @@ export default function UsuariosPage() {
         }
 
         .btn-visualizar {
-          background: rgba(59, 130, 246, 0.14);
-          color: #bfdbfe;
+          background: #f3f4f6;
+          color: #111827;
+          border: 1px solid #e5e7eb;
         }
 
         .btn-editar {
-          background: rgba(16, 185, 129, 0.14);
-          color: #a7f3d0;
+          background: #ecfdf5;
+          color: #065f46;
+          border: 1px solid #a7f3d0;
         }
 
         .btn-excluir {
-          background: rgba(239, 68, 68, 0.14);
-          color: #fecaca;
+          background: #fef2f2;
+          color: #b91c1c;
+          border: 1px solid #fecaca;
         }
 
         .btn-acao:disabled {
