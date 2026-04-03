@@ -62,7 +62,7 @@ export default function MenusPage() {
       setCarregando(true);
       setErro("");
 
-      const resposta = await api.get("/menus");
+      const resposta = await api.get("/painel/menus");
       setMenus(getMenusFromResponse(resposta.data));
     } catch (error: any) {
       console.error("Erro ao carregar menus:", error);
@@ -126,7 +126,7 @@ export default function MenusPage() {
 
       try {
         setExcluindoId(id);
-        await api.delete(`/menu/${id}`);
+        await api.delete(`/painel/menu/${id}`);
 
         setMenus((prev) => prev.filter((menu) => normalizarMenuId(menu) !== id));
       } catch (error: any) {
