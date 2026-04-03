@@ -273,11 +273,11 @@ export default function UsuariosPage() {
     (statusId?: number | string) => {
       const codigo = obterCodigoStatus(statusId).toUpperCase();
 
-      if (codigo === "ATIVO") return "badge badge-status-ativo";
-      if (codigo === "INATIVO") return "badge badge-status-inativo";
-      if (codigo === "BLOQUEADO") return "badge badge-status-bloqueado";
+      if (codigo === "ATIVO") return "status-badge status-ativo";
+      if (codigo === "INATIVO") return "status-badge status-inativo";
+      if (codigo === "BLOQUEADO") return "status-badge status-bloqueado";
 
-      return "badge badge-status-padrao";
+      return "status-badge status-padrao";
     },
     [obterCodigoStatus]
   );
@@ -289,10 +289,7 @@ export default function UsuariosPage() {
           <div className="hero-topo">
             <span className="hero-tag">Painel Administrativo</span>
             <h1>Usuários do sistema</h1>
-            <p>
-              Gerencie usuários com um layout mais limpo, centralizado e com
-              ações melhor organizadas.
-            </p>
+            <p>Gerencie os usuários em uma tabela moderna, limpa e responsiva.</p>
           </div>
 
           <div className="hero-acoes">
@@ -350,96 +347,117 @@ export default function UsuariosPage() {
         ) : usuariosFiltrados.length === 0 ? (
           <div className="estado-box">Nenhum usuário encontrado.</div>
         ) : (
-          <section className="cards-grid">
-            {usuariosFiltrados.map((usuario) => {
-              const id = normalizarUsuarioId(usuario);
-              const nomeNivel = obterNomeNivel(usuario.nivel_id);
-              const nomeStatus = obterNomeStatus(usuario.status_id);
-              const protegido = ehProtegido(usuario);
+          <section className="tabela-card">
+            <div className="tabela-topo">
+              <div>
+                <h2>Lista de usuários</h2>
+                <p>Visualize, copie PIN e gerencie os registros do sistema.</p>
+              </div>
+            </div>
 
-              return (
-                <article className="user-card" key={id}>
-                  <div className="avatar">
-                    {(usuario.nome?.charAt(0) || "U").toUpperCase()}
-                  </div>
+            <div className="tabela-wrapper">
+              <table className="usuarios-table">
+                <thead>
+                  <tr>
+                    <th>Usuário</th>
+                    <th>Nível</th>
+                    <th>Status</th>
+                    <th>PIN</th>
+                    <th>Telefone</th>
+                    <th>CPF</th>
+                    <th>Criado em</th>
+                    <th className="col-acoes">Ações</th>
+                  </tr>
+                </thead>
 
-                  <div className="user-header">
-                    <div className="titulo-linha">
-                      <h2>{usuario.nome || "Sem nome"}</h2>
-                      {protegido && (
-                        <span className="badge badge-protected">Protegido</span>
-                      )}
-                    </div>
+                <tbody>
+                  {usuariosFiltrados.map((usuario) => {
+                    const id = normalizarUsuarioId(usuario);
+                    const nomeNivel = obterNomeNivel(usuario.nivel_id);
+                    const nomeStatus = obterNomeStatus(usuario.status_id);
+                    const protegido = ehProtegido(usuario);
 
-                    <p className="email">{usuario.email || "-"}</p>
-                  </div>
+                    return (
+                      <tr key={id}>
+                        <td>
+                          <div className="usuario-cell">
+                            <div className="avatar">
+                              {(usuario.nome?.charAt(0) || "U").toUpperCase()}
+                            </div>
 
-                  <div className="badges-wrap">
-                    <span className="badge badge-soft">ID #{id}</span>
-                    <span className="badge badge-level">{nomeNivel}</span>
-                    <span className={getStatusClass(usuario.status_id)}>
-                      {nomeStatus}
-                    </span>
-                  </div>
+                            <div className="usuario-info">
+                              <div className="usuario-nome-linha">
+                                <strong>{usuario.nome || "Sem nome"}</strong>
+                                {protegido && (
+                                  <span className="protect-badge">Protegido</span>
+                                )}
+                              </div>
+                              <span>{usuario.email || "-"}</span>
+                              <small>ID #{id}</small>
+                            </div>
+                          </div>
+                        </td>
 
-                  <div className="info-grid">
-                    <div className="info-card info-pin">
-                      <span>PIN</span>
-                      <strong>{usuario.pin || "-"}</strong>
+                        <td>
+                          <span className="nivel-badge">{nomeNivel}</span>
+                        </td>
 
-                      <button
-                        type="button"
-                        className="mini-btn"
-                        onClick={() => copiarPin(usuario.pin, id)}
-                        disabled={!usuario.pin}
-                      >
-                        {copiadoId === id ? "Copiado" : "Copiar PIN"}
-                      </button>
-                    </div>
+                        <td>
+                          <span className={getStatusClass(usuario.status_id)}>
+                            {nomeStatus}
+                          </span>
+                        </td>
 
-                    <div className="info-card">
-                      <span>Telefone</span>
-                      <strong>{usuario.telefone || "-"}</strong>
-                    </div>
+                        <td>
+                          <div className="pin-cell">
+                            <strong>{usuario.pin || "-"}</strong>
+                            <button
+                              type="button"
+                              className="mini-btn"
+                              onClick={() => copiarPin(usuario.pin, id)}
+                              disabled={!usuario.pin}
+                            >
+                              {copiadoId === id ? "Copiado" : "Copiar"}
+                            </button>
+                          </div>
+                        </td>
 
-                    <div className="info-card">
-                      <span>CPF</span>
-                      <strong>{usuario.cpf || "-"}</strong>
-                    </div>
+                        <td>{usuario.telefone || "-"}</td>
+                        <td>{usuario.cpf || "-"}</td>
+                        <td>{formatarData(usuario.criado)}</td>
 
-                    <div className="info-card">
-                      <span>Criado em</span>
-                      <strong>{formatarData(usuario.criado)}</strong>
-                    </div>
-                  </div>
+                        <td>
+                          <div className="acoes-cell">
+                            <Link
+                              href={`/Admin/usuarios/${id}`}
+                              className="acao-btn acao-ver"
+                            >
+                              Ver
+                            </Link>
 
-                  <div className="acoes-card">
-                    <Link
-                      href={`/Admin/usuarios/${id}`}
-                      className="action-btn btn-ver"
-                    >
-                      Visualizar
-                    </Link>
+                            <Link
+                              href={`/Admin/usuarios/${id}/editar`}
+                              className="acao-btn acao-editar"
+                            >
+                              Editar
+                            </Link>
 
-                    <Link
-                      href={`/Admin/usuarios/${id}/editar`}
-                      className="action-btn btn-editar"
-                    >
-                      Editar
-                    </Link>
-
-                    <button
-                      type="button"
-                      className="action-btn btn-excluir"
-                      onClick={() => excluirUsuario(id)}
-                      disabled={excluindoId === id || protegido}
-                    >
-                      {excluindoId === id ? "Excluindo..." : "Excluir"}
-                    </button>
-                  </div>
-                </article>
-              );
-            })}
+                            <button
+                              type="button"
+                              className="acao-btn acao-excluir"
+                              onClick={() => excluirUsuario(id)}
+                              disabled={excluindoId === id || protegido}
+                            >
+                              {excluindoId === id ? "Excluindo..." : "Excluir"}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
       </div>
@@ -452,14 +470,13 @@ export default function UsuariosPage() {
         }
 
         .usuarios-container {
-          max-width: 1400px;
+          max-width: 1440px;
           margin: 0 auto;
         }
 
         .hero {
           display: flex;
           flex-direction: column;
-          align-items: flex-start;
           gap: 18px;
           background: #ffffff;
           border: 1px solid #e2e8f0;
@@ -614,73 +631,147 @@ export default function UsuariosPage() {
           color: #be123c;
         }
 
-        .cards-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-          gap: 18px;
-        }
-
-        .user-card {
+        .tabela-card {
           background: #ffffff;
           border: 1px solid #e2e8f0;
           border-radius: 26px;
-          padding: 22px;
           box-shadow: 0 14px 34px rgba(15, 23, 42, 0.05);
-          display: flex;
-          flex-direction: column;
-          align-items: stretch;
-          gap: 16px;
+          overflow: hidden;
+        }
+
+        .tabela-topo {
+          padding: 22px 22px 0 22px;
+        }
+
+        .tabela-topo h2 {
+          margin: 0 0 6px;
+          font-size: 22px;
+          color: #0f172a;
+          font-weight: 900;
+        }
+
+        .tabela-topo p {
+          margin: 0;
+          color: #64748b;
+          font-size: 14px;
+        }
+
+        .tabela-wrapper {
+          width: 100%;
+          overflow-x: auto;
+          padding: 22px;
+        }
+
+        .usuarios-table {
+          width: 100%;
+          min-width: 1150px;
+          border-collapse: separate;
+          border-spacing: 0;
+        }
+
+        .usuarios-table thead th {
+          background: #f8fafc;
+          color: #334155;
+          font-size: 12px;
+          font-weight: 900;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          padding: 16px 14px;
           text-align: left;
+          border-top: 1px solid #e2e8f0;
+          border-bottom: 1px solid #e2e8f0;
+        }
+
+        .usuarios-table thead th:first-child {
+          border-left: 1px solid #e2e8f0;
+          border-top-left-radius: 16px;
+        }
+
+        .usuarios-table thead th:last-child {
+          border-right: 1px solid #e2e8f0;
+          border-top-right-radius: 16px;
+        }
+
+        .usuarios-table tbody td {
+          padding: 16px 14px;
+          border-bottom: 1px solid #eef2f7;
+          color: #0f172a;
+          font-size: 14px;
+          vertical-align: middle;
+          background: #ffffff;
+        }
+
+        .usuarios-table tbody tr:hover td {
+          background: #fbfdff;
+        }
+
+        .usuario-cell {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 250px;
         }
 
         .avatar {
-          width: 62px;
-          height: 62px;
-          border-radius: 20px;
+          width: 48px;
+          height: 48px;
+          border-radius: 16px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 22px;
+          font-size: 18px;
           font-weight: 900;
           color: #0f172a;
           background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
           border: 1px solid #bfdbfe;
+          flex-shrink: 0;
         }
 
-        .user-header {
+        .usuario-info {
+          min-width: 0;
           display: flex;
           flex-direction: column;
-          gap: 6px;
+          gap: 4px;
         }
 
-        .titulo-linha {
+        .usuario-nome-linha {
           display: flex;
-          flex-wrap: wrap;
           align-items: center;
           gap: 8px;
+          flex-wrap: wrap;
         }
 
-        .titulo-linha h2 {
-          margin: 0;
-          font-size: 22px;
-          color: #0f172a;
-          font-weight: 900;
-        }
-
-        .email {
-          margin: 0;
-          color: #64748b;
+        .usuario-info strong {
           font-size: 14px;
+          color: #0f172a;
+        }
+
+        .usuario-info span {
+          color: #64748b;
+          font-size: 13px;
           word-break: break-word;
         }
 
-        .badges-wrap {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
+        .usuario-info small {
+          color: #94a3b8;
+          font-size: 12px;
         }
 
-        .badge {
+        .protect-badge {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 26px;
+          padding: 4px 8px;
+          border-radius: 999px;
+          background: #0f172a;
+          color: #ffffff;
+          font-size: 11px;
+          font-weight: 800;
+        }
+
+        .nivel-badge,
+        .status-badge {
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -690,83 +781,49 @@ export default function UsuariosPage() {
           font-size: 12px;
           font-weight: 800;
           border: 1px solid transparent;
+          white-space: nowrap;
         }
 
-        .badge-soft {
-          background: #f8fafc;
-          color: #334155;
-          border-color: #e2e8f0;
-        }
-
-        .badge-level {
+        .nivel-badge {
           background: #eef2ff;
           color: #3730a3;
           border-color: #c7d2fe;
         }
 
-        .badge-protected {
-          background: #0f172a;
-          color: #ffffff;
-        }
-
-        .badge-status-ativo {
+        .status-ativo {
           background: #ecfdf5;
           color: #047857;
           border-color: #a7f3d0;
         }
 
-        .badge-status-inativo {
+        .status-inativo {
           background: #fff7ed;
           color: #c2410c;
           border-color: #fdba74;
         }
 
-        .badge-status-bloqueado {
+        .status-bloqueado {
           background: #fef2f2;
           color: #b91c1c;
           border-color: #fecaca;
         }
 
-        .badge-status-padrao {
+        .status-padrao {
           background: #f1f5f9;
           color: #334155;
           border-color: #cbd5e1;
         }
 
-        .info-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-        }
-
-        .info-card {
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 18px;
-          padding: 14px;
+        .pin-cell {
           display: flex;
           flex-direction: column;
           gap: 8px;
+          min-width: 90px;
         }
 
-        .info-pin {
-          background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
-          border-color: #bfdbfe;
-        }
-
-        .info-card span {
-          color: #64748b;
-          font-size: 11px;
-          font-weight: 800;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-        }
-
-        .info-card strong {
+        .pin-cell strong {
           color: #0f172a;
-          font-size: 15px;
-          line-height: 1.45;
-          word-break: break-word;
+          font-size: 14px;
         }
 
         .mini-btn {
@@ -774,11 +831,16 @@ export default function UsuariosPage() {
           border: none;
           background: #0f172a;
           color: #ffffff;
-          border-radius: 12px;
-          padding: 8px 12px;
-          font-size: 12px;
+          border-radius: 10px;
+          padding: 7px 10px;
+          font-size: 11px;
           font-weight: 800;
           cursor: pointer;
+          transition: 0.2s ease;
+        }
+
+        .mini-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
         }
 
         .mini-btn:disabled {
@@ -786,20 +848,22 @@ export default function UsuariosPage() {
           cursor: not-allowed;
         }
 
-        .acoes-card {
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          margin-top: 4px;
+        .col-acoes {
+          min-width: 210px;
         }
 
-        .action-btn {
-          width: 100%;
-          min-height: 46px;
-          padding: 12px 14px;
-          border-radius: 16px;
+        .acoes-cell {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .acao-btn {
+          min-height: 36px;
+          padding: 8px 12px;
+          border-radius: 12px;
           text-decoration: none;
-          font-size: 14px;
+          font-size: 12px;
           font-weight: 900;
           border: none;
           display: inline-flex;
@@ -807,31 +871,32 @@ export default function UsuariosPage() {
           justify-content: center;
           cursor: pointer;
           transition: 0.2s ease;
+          white-space: nowrap;
         }
 
-        .action-btn:hover:not(:disabled) {
-          transform: translateY(-2px);
+        .acao-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
         }
 
-        .btn-ver {
+        .acao-ver {
           background: #f8fafc;
           color: #0f172a;
           border: 1px solid #dbe3ee;
         }
 
-        .btn-editar {
+        .acao-editar {
           background: linear-gradient(135deg, #dcfce7 0%, #ecfdf5 100%);
           color: #166534;
           border: 1px solid #86efac;
         }
 
-        .btn-excluir {
+        .acao-excluir {
           background: linear-gradient(135deg, #ffe4e6 0%, #fff1f2 100%);
           color: #be123c;
           border: 1px solid #fda4af;
         }
 
-        .action-btn:disabled {
+        .acao-btn:disabled {
           opacity: 0.55;
           cursor: not-allowed;
         }
@@ -853,11 +918,21 @@ export default function UsuariosPage() {
             width: 100%;
           }
 
-          .cards-grid {
-            grid-template-columns: 1fr;
+          .stats-grid {
+            grid-template-columns: 1fr 1fr;
           }
 
-          .info-grid {
+          .tabela-topo {
+            padding: 18px 18px 0 18px;
+          }
+
+          .tabela-wrapper {
+            padding: 18px;
+          }
+        }
+
+        @media (max-width: 560px) {
+          .stats-grid {
             grid-template-columns: 1fr;
           }
         }
