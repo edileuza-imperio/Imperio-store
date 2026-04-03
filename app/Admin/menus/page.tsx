@@ -1,7 +1,7 @@
 "use client";
 
 import api from "@/Api/conectar";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type MenuPermissao = {
   id_permissao: number;
@@ -32,6 +32,21 @@ type Menu = {
   permissoes?: MenuPermissao[];
 };
 
+type Nivel = {
+  id_nivel?: number;
+  id?: number;
+  nivel_id?: number;
+  nome?: string;
+  titulo?: string;
+};
+
+type StatusItem = {
+  id_status?: number;
+  id?: number;
+  nome?: string;
+  titulo?: string;
+};
+
 type ApiResponse = {
   status: number;
   mensagem: string;
@@ -45,6 +60,8 @@ type ApiResponse = {
 
 export default function MenusPage() {
   const [menus, setMenus] = useState<Menu[]>([]);
+  const [niveis, setNiveis] = useState<Nivel[]>([]);
+  const [statusList, setStatusList] = useState<StatusItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [menuAberto, setMenuAberto] = useState<number | null>(null);
@@ -65,14 +82,39 @@ export default function MenusPage() {
     }
   }
 
+  async function carregarNiveis(): Promise<Nivel[]> {
+    try {
+      const response = await api.get("/painel/niveis");
+      return normalizarLista<Nivel>(response?.data?.dados);
+    } catch (error) {
+      console.error("Erro ao carregar níveis:", error);
+      return [];
+    }
+  }
+
+  async function carregarStatus(): Promise<StatusItem[]> {
+    try {
+      const response = await api.get("/painel/status");
+      return normalizarLista<StatusItem>(response?.data?.dados);
+    } catch (error) {
+      console.error("Erro ao carregar status:", error);
+      return [];
+    }
+  }
+
   useEffect(() => {
-    async function carregarMenus() {
+    async function carregarTudo() {
       try {
         setLoading(true);
         setErro(null);
 
-        const response = await api.get<ApiResponse>("/painel/menus");
-        const payload = response.data;
+        const [responseMenus, niveisData, statusData] = await Promise.all([
+          api.get<ApiResponse>("/painel/menus"),
+          carregarNiveis(),
+          carregarStatus(),
+        ]);
+
+        const payload = responseMenus.data;
 
         let listaMenus: Menu[] = [];
 
@@ -94,8 +136,10 @@ export default function MenusPage() {
         );
 
         setMenus(menusComPermissoes);
+        setNiveis(niveisData);
+        setStatusList(statusData);
       } catch (error: any) {
-        console.error("Erro ao buscar menus:", error);
+        console.error("Erro ao buscar dados:", error);
 
         const mensagem =
           error?.response?.data?.mensagem ||
@@ -108,8 +152,38 @@ export default function MenusPage() {
       }
     }
 
-    carregarMenus();
+    carregarTudo();
   }, []);
+
+  const niveisMap = useMemo(() => {
+    const mapa = new Map<number, string>();
+
+    niveis.forEach((nivel) => {
+      const id = Number(nivel.id_nivel ?? nivel.id ?? nivel.nivel_id ?? 0);
+      const nome = nivel.nome ?? nivel.titulo ?? `Nível ${id}`;
+
+      if (id > 0) {
+        mapa.set(id, nome);
+      }
+    });
+
+    return mapa;
+  }, [niveis]);
+
+  const statusMap = useMemo(() => {
+    const mapa = new Map<number, string>();
+
+    statusList.forEach((status) => {
+      const id = Number(status.id_status ?? status.id ?? 0);
+      const nome = status.nome ?? status.titulo ?? `Status ${id}`;
+
+      if (id > 0) {
+        mapa.set(id, nome);
+      }
+    });
+
+    return mapa;
+  }, [statusList]);
 
   function irParaAdicionarItem(menuId: number) {
     window.location.href = `/Admin/menus/adicionar-item?menu_id=${menuId}`;
@@ -124,19 +198,27 @@ export default function MenusPage() {
   }
 
   function getNiveisUnicos(menu: Menu) {
-    const niveis = (menu.permissoes || []).map((p) => p.nivel_id);
-    return [...new Set(niveis)];
+    const niveisIds = (menu.permissoes || []).map((p) => p.nivel_id);
+    return [...new Set(niveisIds)];
   }
 
   function getStatusUnicos(menu: Menu) {
-    const status = (menu.permissoes || []).map((p) => p.status_id);
-    return [...new Set(status)];
+    const statusIds = (menu.permissoes || []).map((p) => p.status_id);
+    return [...new Set(statusIds)];
   }
 
   function getNomeItem(menu: Menu, itemId: number | null) {
     if (!itemId) return "Menu inteiro";
     const item = (menu.itens || []).find((i) => i.id_item === itemId);
     return item ? item.nome : `Item ${itemId}`;
+  }
+
+  function getNomeNivel(nivelId: number) {
+    return niveisMap.get(nivelId) || `Nível ${nivelId}`;
+  }
+
+  function getNomeStatus(statusId: number) {
+    return statusMap.get(statusId) || `Status ${statusId}`;
   }
 
   return (
@@ -354,7 +436,7 @@ export default function MenusPage() {
                                   key={`nivel-${menu.id_menu}-${nivelId}`}
                                   style={styles.levelBadge}
                                 >
-                                  Nível {nivelId}
+                                  {getNomeNivel(nivelId)}
                                 </span>
                               ))}
 
@@ -363,7 +445,7 @@ export default function MenusPage() {
                                   key={`status-${menu.id_menu}-${statusId}`}
                                   style={styles.statusBadge}
                                 >
-                                  Status {statusId}
+                                  {getNomeStatus(statusId)}
                                 </span>
                               ))}
                             </div>
@@ -403,10 +485,12 @@ export default function MenusPage() {
                                         {getNomeItem(menu, permissao.item_id)}
                                       </p>
                                       <p style={styles.permissionText}>
-                                        <strong>Nível:</strong> {permissao.nivel_id}
+                                        <strong>Nível:</strong>{" "}
+                                        {getNomeNivel(permissao.nivel_id)}
                                       </p>
                                       <p style={styles.permissionText}>
-                                        <strong>Status:</strong> {permissao.status_id}
+                                        <strong>Status:</strong>{" "}
+                                        {getNomeStatus(permissao.status_id)}
                                       </p>
                                       <p style={styles.permissionText}>
                                         <strong>Criado:</strong>{" "}
