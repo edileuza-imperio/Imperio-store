@@ -11,8 +11,8 @@ type Usuario = {
   email?: string;
   senha?: string;
   pin?: string | null;
-  nivel_id?: number;
-  status_id?: number;
+  nivel_id?: number | string;
+  status_id?: number | string;
   telefone?: string | null;
   cpf?: string | null;
   criado?: string;
@@ -23,10 +23,12 @@ type Nivel = {
   id_nivel?: number;
   id?: number;
   nome?: string;
+  codigo?: string;
   descricao?: string;
+  prioridade?: number;
 };
 
-type Status = {
+type StatusItem = {
   id_status?: number;
   id?: number;
   nome?: string;
@@ -42,51 +44,104 @@ const api = axios.create({
   },
 });
 
+function extractArray(payload: any): any[] {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.dados)) return payload.dados;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.dados?.data)) return payload.dados.data;
+  return [];
+}
+
+function extractConfiguracoes(payload: any): { niveis: Nivel[]; status: StatusItem[] } {
+  const dados = payload?.dados ?? payload?.data ?? {};
+  return {
+    niveis: Array.isArray(dados?.niveis) ? dados.niveis : [],
+    status: Array.isArray(dados?.status) ? dados.status : [],
+  };
+}
+
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
-  const [usuariosFiltrados, setUsuariosFiltrados] = useState<Usuario[]>([]);
   const [niveis, setNiveis] = useState<Nivel[]>([]);
-  const [statusList, setStatusList] = useState<Status[]>([]);
+  const [statusList, setStatusList] = useState<StatusItem[]>([]);
   const [busca, setBusca] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [excluindoId, setExcluindoId] = useState<number | null>(null);
 
-  const normalizarResposta = (res: any) => {
-    if (Array.isArray(res?.data)) return res.data;
-    if (Array.isArray(res?.data?.dados)) return res.data.dados;
-    if (Array.isArray(res?.data?.data)) return res.data.data;
-    return [];
-  };
-
   const normalizarUsuarioId = useCallback((usuario: Usuario) => {
     return Number(usuario.id_usuario ?? usuario.id ?? 0);
   }, []);
 
-  const normalizarNivelId = (nivel: Nivel) => {
+  const normalizarNivelId = useCallback((nivel: Nivel) => {
     return Number(nivel.id_nivel ?? nivel.id ?? 0);
-  };
+  }, []);
 
-  const normalizarStatusId = (status: Status) => {
+  const normalizarStatusId = useCallback((status: StatusItem) => {
     return Number(status.id_status ?? status.id ?? 0);
-  };
+  }, []);
+
+  const buscarNivel = useCallback(
+    (nivelId?: number | string) => {
+      const id = Number(nivelId ?? 0);
+      return niveis.find((nivel) => normalizarNivelId(nivel) === id) ?? null;
+    },
+    [niveis, normalizarNivelId]
+  );
+
+  const buscarStatus = useCallback(
+    (statusId?: number | string) => {
+      const id = Number(statusId ?? 0);
+      return statusList.find((status) => normalizarStatusId(status) === id) ?? null;
+    },
+    [statusList, normalizarStatusId]
+  );
 
   const obterNomeNivel = useCallback(
-    (nivelId?: number) => {
-      if (!nivelId) return "-";
-      const nivel = niveis.find((item) => normalizarNivelId(item) === Number(nivelId));
-      return nivel?.nome || `Nível ${nivelId}`;
+    (nivelId?: number | string) => {
+      const nivel = buscarNivel(nivelId);
+      return nivel?.nome?.trim() || "-";
     },
-    [niveis]
+    [buscarNivel]
+  );
+
+  const obterCodigoNivel = useCallback(
+    (nivelId?: number | string) => {
+      const nivel = buscarNivel(nivelId);
+      return nivel?.codigo?.trim() || "";
+    },
+    [buscarNivel]
   );
 
   const obterNomeStatus = useCallback(
-    (statusId?: number) => {
-      if (!statusId) return "-";
-      const status = statusList.find((item) => normalizarStatusId(item) === Number(statusId));
-      return status?.nome || `Status ${statusId}`;
+    (statusId?: number | string) => {
+      const status = buscarStatus(statusId);
+      return status?.nome?.trim() || "-";
     },
-    [statusList]
+    [buscarStatus]
+  );
+
+  const obterCodigoStatus = useCallback(
+    (statusId?: number | string) => {
+      const status = buscarStatus(statusId);
+      return status?.codigo?.trim() || "";
+    },
+    [buscarStatus]
+  );
+
+  const ehUsuarioProtegido = useCallback(
+    (usuario: Usuario) => {
+      const nivelId = Number(usuario.nivel_id ?? 0);
+      const nomeNivel = obterNomeNivel(usuario.nivel_id).toLowerCase();
+      const codigoNivel = obterCodigoNivel(usuario.nivel_id).toLowerCase();
+
+      return (
+        nivelId === 1 ||
+        nomeNivel.includes("sistema") ||
+        codigoNivel.includes("sistema")
+      );
+    },
+    [obterCodigoNivel, obterNomeNivel]
   );
 
   const carregarDados = useCallback(async () => {
@@ -94,22 +149,21 @@ export default function UsuariosPage() {
       setCarregando(true);
       setErro("");
 
-      const [resUsuarios, resNiveis, resStatus] = await Promise.all([
+      const [resUsuarios, resConfiguracoes] = await Promise.all([
         api.get("/painel/usuarios"),
-        api.get("/painel/niveis"),
-        api.get("/painel/status"),
+        api.get("/painel/configuracoes"),
       ]);
 
-      const listaUsuarios = normalizarResposta(resUsuarios);
-      const listaNiveis = normalizarResposta(resNiveis);
-      const listaStatus = normalizarResposta(resStatus);
+      const listaUsuarios = extractArray(resUsuarios.data);
+      const { niveis: listaNiveis, status: listaStatus } = extractConfiguracoes(
+        resConfiguracoes.data
+      );
 
       setUsuarios(listaUsuarios);
-      setUsuariosFiltrados(listaUsuarios);
       setNiveis(listaNiveis);
       setStatusList(listaStatus);
     } catch (error: any) {
-      console.error("Erro ao carregar dados:", error);
+      console.error("Erro ao carregar usuários:", error);
 
       if (error?.response?.status === 401) {
         setErro("Sessão inválida. Faça login novamente.");
@@ -120,7 +174,6 @@ export default function UsuariosPage() {
       }
 
       setUsuarios([]);
-      setUsuariosFiltrados([]);
       setNiveis([]);
       setStatusList([]);
     } finally {
@@ -132,23 +185,22 @@ export default function UsuariosPage() {
     carregarDados();
   }, [carregarDados]);
 
-  useEffect(() => {
+  const usuariosFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
 
-    if (!termo) {
-      setUsuariosFiltrados(usuarios);
-      return;
-    }
+    if (!termo) return usuarios;
 
-    const filtrados = usuarios.filter((usuario) => {
+    return usuarios.filter((usuario) => {
       const id = String(normalizarUsuarioId(usuario));
       const nome = String(usuario.nome ?? "").toLowerCase();
       const email = String(usuario.email ?? "").toLowerCase();
       const telefone = String(usuario.telefone ?? "").toLowerCase();
       const cpf = String(usuario.cpf ?? "").toLowerCase();
       const pin = String(usuario.pin ?? "").toLowerCase();
-      const nivelNome = obterNomeNivel(usuario.nivel_id).toLowerCase();
-      const statusNome = obterNomeStatus(usuario.status_id).toLowerCase();
+      const nomeNivel = obterNomeNivel(usuario.nivel_id).toLowerCase();
+      const codigoNivel = obterCodigoNivel(usuario.nivel_id).toLowerCase();
+      const nomeStatus = obterNomeStatus(usuario.status_id).toLowerCase();
+      const codigoStatus = obterCodigoStatus(usuario.status_id).toLowerCase();
 
       return (
         id.includes(termo) ||
@@ -157,15 +209,21 @@ export default function UsuariosPage() {
         telefone.includes(termo) ||
         cpf.includes(termo) ||
         pin.includes(termo) ||
-        nivelNome.includes(termo) ||
-        statusNome.includes(termo)
+        nomeNivel.includes(termo) ||
+        codigoNivel.includes(termo) ||
+        nomeStatus.includes(termo) ||
+        codigoStatus.includes(termo)
       );
     });
-
-    setUsuariosFiltrados(filtrados);
-  }, [busca, usuarios, obterNomeNivel, obterNomeStatus, normalizarUsuarioId]);
-
-  const totalUsuarios = useMemo(() => usuarios.length, [usuarios]);
+  }, [
+    busca,
+    usuarios,
+    normalizarUsuarioId,
+    obterCodigoNivel,
+    obterCodigoStatus,
+    obterNomeNivel,
+    obterNomeStatus,
+  ]);
 
   const excluirUsuario = useCallback(
     async (id: number) => {
@@ -175,15 +233,14 @@ export default function UsuariosPage() {
       try {
         setExcluindoId(id);
         await api.delete(`/painel/usuario/${id}`);
-
-        setUsuarios((prev) => prev.filter((usuario) => normalizarUsuarioId(usuario) !== id));
-        setUsuariosFiltrados((prev) =>
+        setUsuarios((prev) =>
           prev.filter((usuario) => normalizarUsuarioId(usuario) !== id)
         );
       } catch (error: any) {
         console.error("Erro ao excluir usuário:", error);
         alert(
-          error?.response?.data?.mensagem || "Não foi possível excluir o usuário."
+          error?.response?.data?.mensagem ||
+            "Não foi possível excluir o usuário."
         );
       } finally {
         setExcluindoId(null);
@@ -196,10 +253,10 @@ export default function UsuariosPage() {
     <div className="usuarios-page">
       <div className="usuarios-container">
         <div className="topo">
-          <div>
-            <span className="badge">Painel Administrativo</span>
+          <div className="topo-info">
+            <span className="badge-topo">Painel Administrativo</span>
             <h1>Usuários</h1>
-            <p>Gerencie os usuários cadastrados no sistema.</p>
+            <p>Gerencie os usuários cadastrados com um visual em cards.</p>
           </div>
 
           <div className="acoes-topo">
@@ -214,21 +271,26 @@ export default function UsuariosPage() {
         </div>
 
         <div className="resumo-grid">
-          <div className="card-resumo">
+          <div className="resumo-card">
             <span>Total de usuários</span>
-            <strong>{totalUsuarios}</strong>
+            <strong>{usuarios.length}</strong>
           </div>
 
-          <div className="card-resumo">
-            <span>Resultados filtrados</span>
+          <div className="resumo-card">
+            <span>Resultados</span>
             <strong>{usuariosFiltrados.length}</strong>
+          </div>
+
+          <div className="resumo-card">
+            <span>Protegidos</span>
+            <strong>{usuarios.filter((usuario) => ehUsuarioProtegido(usuario)).length}</strong>
           </div>
         </div>
 
         <div className="filtros">
           <input
             type="text"
-            placeholder="Buscar por nome, email, CPF, telefone, PIN, nível ou status..."
+            placeholder="Buscar por nome, email, PIN, nível, status, CPF..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
@@ -241,67 +303,86 @@ export default function UsuariosPage() {
         ) : usuariosFiltrados.length === 0 ? (
           <div className="estado estado-vazio">Nenhum usuário encontrado.</div>
         ) : (
-          <div className="tabela-wrapper">
-            <table className="tabela">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Nome</th>
-                  <th>Email</th>
-                  <th>PIN</th>
-                  <th>Telefone</th>
-                  <th>CPF</th>
-                  <th>Nível</th>
-                  <th>Status</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
+          <div className="grid-cards">
+            {usuariosFiltrados.map((usuario) => {
+              const id = normalizarUsuarioId(usuario);
+              const nomeNivel = obterNomeNivel(usuario.nivel_id);
+              const nomeStatus = obterNomeStatus(usuario.status_id);
+              const protegido = ehUsuarioProtegido(usuario);
 
-              <tbody>
-                {usuariosFiltrados.map((usuario) => {
-                  const id = normalizarUsuarioId(usuario);
+              return (
+                <div key={id} className="usuario-card">
+                  <div className="card-header">
+                    <div className="avatar">
+                      {(usuario.nome?.trim()?.charAt(0) || "U").toUpperCase()}
+                    </div>
 
-                  return (
-                    <tr key={id}>
-                      <td>#{id}</td>
-                      <td>{usuario.nome || "-"}</td>
-                      <td>{usuario.email || "-"}</td>
-                      <td>{usuario.pin || "-"}</td>
-                      <td>{usuario.telefone || "-"}</td>
-                      <td>{usuario.cpf || "-"}</td>
-                      <td>{obterNomeNivel(usuario.nivel_id)}</td>
-                      <td>{obterNomeStatus(usuario.status_id)}</td>
-                      <td>
-                        <div className="acoes-linha">
-                          <Link
-                            href={`/Admin/usuarios/${id}`}
-                            className="btn-acao btn-visualizar"
-                          >
-                            Visualizar
-                          </Link>
+                    <div className="card-header-info">
+                      <div className="linha-titulo">
+                        <h2>{usuario.nome || "Sem nome"}</h2>
 
-                          <Link
-                            href={`/Admin/usuarios/${id}/editar`}
-                            className="btn-acao btn-editar"
-                          >
-                            Editar
-                          </Link>
+                        {protegido && (
+                          <span className="badge-protegido">Protegido</span>
+                        )}
+                      </div>
 
-                          <button
-                            type="button"
-                            className="btn-acao btn-excluir"
-                            onClick={() => excluirUsuario(id)}
-                            disabled={excluindoId === id}
-                          >
-                            {excluindoId === id ? "Excluindo..." : "Excluir"}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      <p className="email">{usuario.email || "-"}</p>
+                    </div>
+                  </div>
+
+                  <div className="meta-badges">
+                    <span className="badge-info">ID #{id}</span>
+                    <span className="badge-info badge-nivel">{nomeNivel}</span>
+                    <span className="badge-info badge-status">{nomeStatus}</span>
+                  </div>
+
+                  <div className="dados-grid">
+                    <div className="dado">
+                      <span>PIN</span>
+                      <strong>{usuario.pin || "-"}</strong>
+                    </div>
+
+                    <div className="dado">
+                      <span>Telefone</span>
+                      <strong>{usuario.telefone || "-"}</strong>
+                    </div>
+
+                    <div className="dado">
+                      <span>CPF</span>
+                      <strong>{usuario.cpf || "-"}</strong>
+                    </div>
+
+                    <div className="dado">
+                      <span>Status</span>
+                      <strong>{nomeStatus}</strong>
+                    </div>
+                  </div>
+
+                  <div className="card-footer">
+                    <Link href={`/Admin/usuarios/${id}`} className="btn-acao btn-visualizar">
+                      Visualizar
+                    </Link>
+
+                    <Link
+                      href={`/Admin/usuarios/${id}/editar`}
+                      className="btn-acao btn-editar"
+                    >
+                      Editar
+                    </Link>
+
+                    <button
+                      type="button"
+                      className="btn-acao btn-excluir"
+                      onClick={() => excluirUsuario(id)}
+                      disabled={excluindoId === id || protegido}
+                      title={protegido ? "Usuário protegido não pode ser excluído aqui." : ""}
+                    >
+                      {excluindoId === id ? "Excluindo..." : "Excluir"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
@@ -310,14 +391,13 @@ export default function UsuariosPage() {
         .usuarios-page {
           min-height: 100vh;
           padding: 24px;
-          background: #f5f5f5;
+          background: #f6f7fb;
         }
 
         .usuarios-container {
           width: 100%;
-          max-width: 1400px;
+          max-width: 1440px;
           margin: 0 auto;
-          color: #1f2937;
         }
 
         .topo {
@@ -329,32 +409,31 @@ export default function UsuariosPage() {
           margin-bottom: 24px;
         }
 
-        .badge {
-          display: inline-flex;
-          align-items: center;
-          padding: 6px 12px;
-          border-radius: 999px;
-          background: #f3f4f6;
-          color: #374151;
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-          margin-bottom: 12px;
-          border: 1px solid #e5e7eb;
-        }
-
-        h1 {
+        .topo-info h1 {
           margin: 0 0 8px;
-          font-size: 32px;
-          font-weight: 800;
+          font-size: 34px;
+          line-height: 1.1;
           color: #111827;
+          font-weight: 800;
         }
 
-        p {
+        .topo-info p {
           margin: 0;
           color: #6b7280;
           font-size: 15px;
+        }
+
+        .badge-topo {
+          display: inline-flex;
+          align-items: center;
+          padding: 7px 12px;
+          border-radius: 999px;
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          color: #374151;
+          font-size: 12px;
+          font-weight: 700;
+          margin-bottom: 12px;
         }
 
         .acoes-topo {
@@ -364,9 +443,6 @@ export default function UsuariosPage() {
         }
 
         .btn {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
           border: none;
           border-radius: 14px;
           padding: 12px 18px;
@@ -374,15 +450,15 @@ export default function UsuariosPage() {
           text-decoration: none;
           cursor: pointer;
           transition: 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .btn-primario {
-          background: #111827;
+          background: linear-gradient(135deg, #111827, #1f2937);
           color: #ffffff;
-        }
-
-        .btn-primario:hover {
-          opacity: 0.92;
+          box-shadow: 0 10px 24px rgba(17, 24, 39, 0.14);
         }
 
         .btn-secundario {
@@ -398,39 +474,40 @@ export default function UsuariosPage() {
           margin-bottom: 20px;
         }
 
-        .card-resumo {
+        .resumo-card {
           background: #ffffff;
           border: 1px solid #e5e7eb;
-          border-radius: 20px;
+          border-radius: 22px;
           padding: 20px;
-          box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
         }
 
-        .card-resumo span {
+        .resumo-card span {
           display: block;
-          font-size: 14px;
           color: #6b7280;
+          font-size: 14px;
           margin-bottom: 8px;
         }
 
-        .card-resumo strong {
+        .resumo-card strong {
           font-size: 28px;
           color: #111827;
         }
 
         .filtros {
-          margin-bottom: 20px;
+          margin-bottom: 22px;
         }
 
         .filtros input {
           width: 100%;
-          padding: 14px 16px;
-          border-radius: 16px;
-          border: 1px solid #d1d5db;
+          padding: 15px 18px;
           background: #ffffff;
+          border: 1px solid #d8dee8;
+          border-radius: 18px;
+          font-size: 14px;
           color: #111827;
           outline: none;
-          font-size: 14px;
+          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.03);
         }
 
         .filtros input::placeholder {
@@ -438,12 +515,12 @@ export default function UsuariosPage() {
         }
 
         .estado {
-          border-radius: 18px;
-          padding: 20px;
-          text-align: center;
-          font-weight: 600;
-          border: 1px solid #e5e7eb;
           background: #ffffff;
+          border-radius: 20px;
+          padding: 24px;
+          text-align: center;
+          border: 1px solid #e5e7eb;
+          font-weight: 700;
         }
 
         .estado-loading {
@@ -460,56 +537,167 @@ export default function UsuariosPage() {
           color: #4b5563;
         }
 
-        .tabela-wrapper {
-          overflow-x: auto;
-          background: #ffffff;
+        .grid-cards {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+          gap: 18px;
+        }
+
+        .usuario-card {
+          background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
           border: 1px solid #e5e7eb;
-          border-radius: 22px;
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+          border-radius: 24px;
+          padding: 20px;
+          box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .tabela {
-          width: 100%;
-          border-collapse: collapse;
-          min-width: 1100px;
+        .usuario-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 18px 40px rgba(15, 23, 42, 0.09);
         }
 
-        .tabela thead th {
-          text-align: left;
-          padding: 18px 16px;
-          font-size: 13px;
-          color: #374151;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          border-bottom: 1px solid #e5e7eb;
-          background: #f9fafb;
+        .card-header {
+          display: flex;
+          gap: 14px;
+          align-items: center;
+          margin-bottom: 14px;
         }
 
-        .tabela tbody td {
-          padding: 16px;
-          border-bottom: 1px solid #f3f4f6;
+        .avatar {
+          width: 56px;
+          height: 56px;
+          border-radius: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 20px;
+          font-weight: 800;
           color: #111827;
-          vertical-align: middle;
+          background: linear-gradient(135deg, #e5e7eb, #f9fafb);
+          border: 1px solid #d1d5db;
+          flex-shrink: 0;
         }
 
-        .tabela tbody tr:hover {
-          background: #fafafa;
+        .card-header-info {
+          min-width: 0;
+          flex: 1;
         }
 
-        .acoes-linha {
+        .linha-titulo {
+          display: flex;
+          gap: 10px;
+          align-items: center;
+          flex-wrap: wrap;
+          margin-bottom: 4px;
+        }
+
+        .linha-titulo h2 {
+          margin: 0;
+          font-size: 20px;
+          color: #111827;
+          font-weight: 800;
+        }
+
+        .email {
+          margin: 0;
+          color: #6b7280;
+          font-size: 14px;
+          word-break: break-word;
+        }
+
+        .badge-protegido {
+          display: inline-flex;
+          align-items: center;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: #111827;
+          color: #ffffff;
+          font-size: 12px;
+          font-weight: 800;
+          letter-spacing: 0.02em;
+        }
+
+        .meta-badges {
           display: flex;
           gap: 8px;
+          flex-wrap: wrap;
+          margin-bottom: 16px;
+        }
+
+        .badge-info {
+          display: inline-flex;
+          align-items: center;
+          padding: 7px 10px;
+          border-radius: 999px;
+          background: #f3f4f6;
+          color: #374151;
+          border: 1px solid #e5e7eb;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .badge-nivel {
+          background: #eef2ff;
+          color: #3730a3;
+          border-color: #c7d2fe;
+        }
+
+        .badge-status {
+          background: #ecfdf5;
+          color: #065f46;
+          border-color: #a7f3d0;
+        }
+
+        .dados-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 12px;
+          margin-bottom: 18px;
+        }
+
+        .dado {
+          background: #f9fafb;
+          border: 1px solid #eef2f7;
+          border-radius: 18px;
+          padding: 14px;
+        }
+
+        .dado span {
+          display: block;
+          font-size: 12px;
+          color: #6b7280;
+          margin-bottom: 6px;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          font-weight: 700;
+        }
+
+        .dado strong {
+          display: block;
+          color: #111827;
+          font-size: 15px;
+          line-height: 1.4;
+          word-break: break-word;
+        }
+
+        .card-footer {
+          display: flex;
+          gap: 10px;
           flex-wrap: wrap;
         }
 
         .btn-acao {
-          border: none;
+          flex: 1;
+          min-width: 100px;
+          text-align: center;
+          border-radius: 14px;
+          padding: 12px 14px;
           text-decoration: none;
-          cursor: pointer;
-          border-radius: 12px;
-          padding: 10px 12px;
           font-size: 13px;
-          font-weight: 700;
+          font-weight: 800;
+          cursor: pointer;
+          border: none;
           transition: 0.2s ease;
         }
 
@@ -532,17 +720,13 @@ export default function UsuariosPage() {
         }
 
         .btn-acao:disabled {
-          opacity: 0.7;
+          opacity: 0.65;
           cursor: not-allowed;
         }
 
         @media (max-width: 768px) {
           .usuarios-page {
             padding: 16px;
-          }
-
-          h1 {
-            font-size: 26px;
           }
 
           .topo {
@@ -555,6 +739,26 @@ export default function UsuariosPage() {
 
           .acoes-topo .btn {
             width: 100%;
+          }
+
+          .grid-cards {
+            grid-template-columns: 1fr;
+          }
+
+          .dados-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .card-footer {
+            flex-direction: column;
+          }
+
+          .btn-acao {
+            width: 100%;
+          }
+
+          .topo-info h1 {
+            font-size: 28px;
           }
         }
       `}</style>
