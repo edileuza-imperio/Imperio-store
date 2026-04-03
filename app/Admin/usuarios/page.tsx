@@ -21,19 +21,19 @@ type Usuario = {
 
 type Nivel = {
   id_nivel?: number;
-  id?: number;
   nome?: string;
   codigo?: string;
-  descricao?: string;
   prioridade?: number;
+  descricao?: string;
+  criado?: string;
 };
 
 type StatusItem = {
   id_status?: number;
-  id?: number;
   nome?: string;
   codigo?: string;
   descricao?: string;
+  criado?: string;
 };
 
 const api = axios.create({
@@ -44,20 +44,27 @@ const api = axios.create({
   },
 });
 
-function extractArray(payload: any): any[] {
+function getUsuariosFromResponse(payload: any): Usuario[] {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.dados)) return payload.dados;
   if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.dados?.data)) return payload.dados.data;
+  if (Array.isArray(payload?.dados?.dados)) return payload.dados.dados;
+  if (Array.isArray(payload?.data?.dados)) return payload.data.dados;
   return [];
 }
 
-function extractConfiguracoes(payload: any): { niveis: Nivel[]; status: StatusItem[] } {
-  const dados = payload?.dados ?? payload?.data ?? {};
-  return {
-    niveis: Array.isArray(dados?.niveis) ? dados.niveis : [],
-    status: Array.isArray(dados?.status) ? dados.status : [],
-  };
+function getNiveisFromResponse(payload: any): Nivel[] {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.dados)) return payload.dados;
+  if (Array.isArray(payload?.dados?.dados)) return payload.dados.dados;
+  return [];
+}
+
+function getStatusFromResponse(payload: any): StatusItem[] {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.dados)) return payload.dados;
+  if (Array.isArray(payload?.dados?.dados)) return payload.dados.dados;
+  return [];
 }
 
 export default function UsuariosPage() {
@@ -73,63 +80,57 @@ export default function UsuariosPage() {
     return Number(usuario.id_usuario ?? usuario.id ?? 0);
   }, []);
 
-  const normalizarNivelId = useCallback((nivel: Nivel) => {
-    return Number(nivel.id_nivel ?? nivel.id ?? 0);
-  }, []);
-
-  const normalizarStatusId = useCallback((status: StatusItem) => {
-    return Number(status.id_status ?? status.id ?? 0);
-  }, []);
-
-  const buscarNivel = useCallback(
+  const buscarNivelPorId = useCallback(
     (nivelId?: number | string) => {
       const id = Number(nivelId ?? 0);
-      return niveis.find((nivel) => normalizarNivelId(nivel) === id) ?? null;
+      return niveis.find((nivel) => Number(nivel.id_nivel ?? 0) === id) ?? null;
     },
-    [niveis, normalizarNivelId]
+    [niveis]
   );
 
-  const buscarStatus = useCallback(
+  const buscarStatusPorId = useCallback(
     (statusId?: number | string) => {
       const id = Number(statusId ?? 0);
-      return statusList.find((status) => normalizarStatusId(status) === id) ?? null;
+      return (
+        statusList.find((status) => Number(status.id_status ?? 0) === id) ?? null
+      );
     },
-    [statusList, normalizarStatusId]
+    [statusList]
   );
 
   const obterNomeNivel = useCallback(
     (nivelId?: number | string) => {
-      const nivel = buscarNivel(nivelId);
-      return nivel?.nome?.trim() || "-";
+      const nivel = buscarNivelPorId(nivelId);
+      return nivel?.nome || "-";
     },
-    [buscarNivel]
+    [buscarNivelPorId]
   );
 
   const obterCodigoNivel = useCallback(
     (nivelId?: number | string) => {
-      const nivel = buscarNivel(nivelId);
-      return nivel?.codigo?.trim() || "";
+      const nivel = buscarNivelPorId(nivelId);
+      return nivel?.codigo || "";
     },
-    [buscarNivel]
+    [buscarNivelPorId]
   );
 
   const obterNomeStatus = useCallback(
     (statusId?: number | string) => {
-      const status = buscarStatus(statusId);
-      return status?.nome?.trim() || "-";
+      const status = buscarStatusPorId(statusId);
+      return status?.nome || "-";
     },
-    [buscarStatus]
+    [buscarStatusPorId]
   );
 
   const obterCodigoStatus = useCallback(
     (statusId?: number | string) => {
-      const status = buscarStatus(statusId);
-      return status?.codigo?.trim() || "";
+      const status = buscarStatusPorId(statusId);
+      return status?.codigo || "";
     },
-    [buscarStatus]
+    [buscarStatusPorId]
   );
 
-  const ehUsuarioProtegido = useCallback(
+  const ehProtegido = useCallback(
     (usuario: Usuario) => {
       const nivelId = Number(usuario.nivel_id ?? 0);
       const nomeNivel = obterNomeNivel(usuario.nivel_id).toLowerCase();
@@ -137,8 +138,9 @@ export default function UsuariosPage() {
 
       return (
         nivelId === 1 ||
-        nomeNivel.includes("sistema") ||
-        codigoNivel.includes("sistema")
+        nomeNivel === "sistema" ||
+        codigoNivel === "sistema" ||
+        codigoNivel === "sistema".toUpperCase().toLowerCase()
       );
     },
     [obterCodigoNivel, obterNomeNivel]
@@ -149,15 +151,15 @@ export default function UsuariosPage() {
       setCarregando(true);
       setErro("");
 
-      const [resUsuarios, resConfiguracoes] = await Promise.all([
+      const [resUsuarios, resNiveis, resStatus] = await Promise.all([
         api.get("/painel/usuarios"),
-        api.get("/painel/configuracoes"),
+        api.get("/painel/niveis"),
+        api.get("/painel/status"),
       ]);
 
-      const listaUsuarios = extractArray(resUsuarios.data);
-      const { niveis: listaNiveis, status: listaStatus } = extractConfiguracoes(
-        resConfiguracoes.data
-      );
+      const listaUsuarios = getUsuariosFromResponse(resUsuarios.data);
+      const listaNiveis = getNiveisFromResponse(resNiveis.data);
+      const listaStatus = getStatusFromResponse(resStatus.data);
 
       setUsuarios(listaUsuarios);
       setNiveis(listaNiveis);
@@ -168,9 +170,9 @@ export default function UsuariosPage() {
       if (error?.response?.status === 401) {
         setErro("Sessão inválida. Faça login novamente.");
       } else if (error?.response?.status === 403) {
-        setErro("Você não tem permissão para acessar essa página.");
+        setErro("Você não tem permissão para acessar esta página.");
       } else {
-        setErro("Não foi possível carregar os usuários.");
+        setErro("Não foi possível carregar os dados dos usuários.");
       }
 
       setUsuarios([]);
@@ -219,20 +221,23 @@ export default function UsuariosPage() {
     busca,
     usuarios,
     normalizarUsuarioId,
-    obterCodigoNivel,
-    obterCodigoStatus,
     obterNomeNivel,
+    obterCodigoNivel,
     obterNomeStatus,
+    obterCodigoStatus,
   ]);
 
   const excluirUsuario = useCallback(
     async (id: number) => {
-      const confirmar = window.confirm("Tem certeza que deseja excluir este usuário?");
+      const confirmar = window.confirm(
+        "Tem certeza que deseja excluir este usuário?"
+      );
       if (!confirmar) return;
 
       try {
         setExcluindoId(id);
         await api.delete(`/painel/usuario/${id}`);
+
         setUsuarios((prev) =>
           prev.filter((usuario) => normalizarUsuarioId(usuario) !== id)
         );
@@ -253,14 +258,14 @@ export default function UsuariosPage() {
     <div className="usuarios-page">
       <div className="usuarios-container">
         <div className="topo">
-          <div className="topo-info">
-            <span className="badge-topo">Painel Administrativo</span>
+          <div className="topo-esquerda">
+            <span className="topo-badge">Painel Administrativo</span>
             <h1>Usuários</h1>
-            <p>Gerencie os usuários cadastrados com um visual em cards.</p>
+            <p>Gerencie usuários com um layout moderno em cards.</p>
           </div>
 
-          <div className="acoes-topo">
-            <button onClick={carregarDados} className="btn btn-secundario">
+          <div className="topo-acoes">
+            <button className="btn btn-secundario" onClick={carregarDados}>
               Atualizar
             </button>
 
@@ -283,57 +288,56 @@ export default function UsuariosPage() {
 
           <div className="resumo-card">
             <span>Protegidos</span>
-            <strong>{usuarios.filter((usuario) => ehUsuarioProtegido(usuario)).length}</strong>
+            <strong>{usuarios.filter((u) => ehProtegido(u)).length}</strong>
           </div>
         </div>
 
-        <div className="filtros">
+        <div className="filtro-box">
           <input
             type="text"
-            placeholder="Buscar por nome, email, PIN, nível, status, CPF..."
+            placeholder="Buscar por nome, email, PIN, nível, status, telefone ou CPF..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
         </div>
 
         {carregando ? (
-          <div className="estado estado-loading">Carregando usuários...</div>
+          <div className="estado">Carregando usuários...</div>
         ) : erro ? (
-          <div className="estado estado-erro">{erro}</div>
+          <div className="estado erro">{erro}</div>
         ) : usuariosFiltrados.length === 0 ? (
-          <div className="estado estado-vazio">Nenhum usuário encontrado.</div>
+          <div className="estado">Nenhum usuário encontrado.</div>
         ) : (
-          <div className="grid-cards">
+          <div className="cards-grid">
             {usuariosFiltrados.map((usuario) => {
               const id = normalizarUsuarioId(usuario);
               const nomeNivel = obterNomeNivel(usuario.nivel_id);
               const nomeStatus = obterNomeStatus(usuario.status_id);
-              const protegido = ehUsuarioProtegido(usuario);
+              const protegido = ehProtegido(usuario);
 
               return (
-                <div key={id} className="usuario-card">
-                  <div className="card-header">
+                <div className="usuario-card" key={id}>
+                  <div className="card-topo">
                     <div className="avatar">
-                      {(usuario.nome?.trim()?.charAt(0) || "U").toUpperCase()}
+                      {(usuario.nome?.charAt(0) || "U").toUpperCase()}
                     </div>
 
-                    <div className="card-header-info">
-                      <div className="linha-titulo">
+                    <div className="usuario-info">
+                      <div className="titulo-linha">
                         <h2>{usuario.nome || "Sem nome"}</h2>
-
                         {protegido && (
                           <span className="badge-protegido">Protegido</span>
                         )}
                       </div>
 
-                      <p className="email">{usuario.email || "-"}</p>
+                      <p>{usuario.email || "-"}</p>
                     </div>
                   </div>
 
-                  <div className="meta-badges">
-                    <span className="badge-info">ID #{id}</span>
-                    <span className="badge-info badge-nivel">{nomeNivel}</span>
-                    <span className="badge-info badge-status">{nomeStatus}</span>
+                  <div className="badges-linha">
+                    <span className="badge-item">ID #{id}</span>
+                    <span className="badge-item badge-nivel">{nomeNivel}</span>
+                    <span className="badge-item badge-status">{nomeStatus}</span>
                   </div>
 
                   <div className="dados-grid">
@@ -358,8 +362,11 @@ export default function UsuariosPage() {
                     </div>
                   </div>
 
-                  <div className="card-footer">
-                    <Link href={`/Admin/usuarios/${id}`} className="btn-acao btn-visualizar">
+                  <div className="acoes">
+                    <Link
+                      href={`/Admin/usuarios/${id}`}
+                      className="btn-acao btn-visualizar"
+                    >
                       Visualizar
                     </Link>
 
@@ -375,7 +382,6 @@ export default function UsuariosPage() {
                       className="btn-acao btn-excluir"
                       onClick={() => excluirUsuario(id)}
                       disabled={excluindoId === id || protegido}
-                      title={protegido ? "Usuário protegido não pode ser excluído aqui." : ""}
                     >
                       {excluindoId === id ? "Excluindo..." : "Excluir"}
                     </button>
@@ -395,7 +401,6 @@ export default function UsuariosPage() {
         }
 
         .usuarios-container {
-          width: 100%;
           max-width: 1440px;
           margin: 0 auto;
         }
@@ -409,23 +414,8 @@ export default function UsuariosPage() {
           margin-bottom: 24px;
         }
 
-        .topo-info h1 {
-          margin: 0 0 8px;
-          font-size: 34px;
-          line-height: 1.1;
-          color: #111827;
-          font-weight: 800;
-        }
-
-        .topo-info p {
-          margin: 0;
-          color: #6b7280;
-          font-size: 15px;
-        }
-
-        .badge-topo {
+        .topo-badge {
           display: inline-flex;
-          align-items: center;
           padding: 7px 12px;
           border-radius: 999px;
           background: #ffffff;
@@ -436,7 +426,20 @@ export default function UsuariosPage() {
           margin-bottom: 12px;
         }
 
-        .acoes-topo {
+        .topo-esquerda h1 {
+          margin: 0 0 8px;
+          font-size: 34px;
+          color: #111827;
+          font-weight: 800;
+        }
+
+        .topo-esquerda p {
+          margin: 0;
+          color: #6b7280;
+          font-size: 15px;
+        }
+
+        .topo-acoes {
           display: flex;
           gap: 12px;
           flex-wrap: wrap;
@@ -449,7 +452,6 @@ export default function UsuariosPage() {
           font-weight: 700;
           text-decoration: none;
           cursor: pointer;
-          transition: 0.2s ease;
           display: inline-flex;
           align-items: center;
           justify-content: center;
@@ -457,12 +459,11 @@ export default function UsuariosPage() {
 
         .btn-primario {
           background: linear-gradient(135deg, #111827, #1f2937);
-          color: #ffffff;
-          box-shadow: 0 10px 24px rgba(17, 24, 39, 0.14);
+          color: #fff;
         }
 
         .btn-secundario {
-          background: #ffffff;
+          background: #fff;
           color: #111827;
           border: 1px solid #d1d5db;
         }
@@ -475,7 +476,7 @@ export default function UsuariosPage() {
         }
 
         .resumo-card {
-          background: #ffffff;
+          background: #fff;
           border: 1px solid #e5e7eb;
           border-radius: 22px;
           padding: 20px;
@@ -494,50 +495,38 @@ export default function UsuariosPage() {
           color: #111827;
         }
 
-        .filtros {
+        .filtro-box {
           margin-bottom: 22px;
         }
 
-        .filtros input {
+        .filtro-box input {
           width: 100%;
           padding: 15px 18px;
-          background: #ffffff;
+          background: #fff;
           border: 1px solid #d8dee8;
           border-radius: 18px;
           font-size: 14px;
           color: #111827;
           outline: none;
-          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.03);
-        }
-
-        .filtros input::placeholder {
-          color: #9ca3af;
         }
 
         .estado {
-          background: #ffffff;
+          background: #fff;
           border-radius: 20px;
           padding: 24px;
           text-align: center;
           border: 1px solid #e5e7eb;
           font-weight: 700;
-        }
-
-        .estado-loading {
           color: #374151;
         }
 
-        .estado-erro {
+        .estado.erro {
           color: #b91c1c;
           background: #fef2f2;
           border-color: #fecaca;
         }
 
-        .estado-vazio {
-          color: #4b5563;
-        }
-
-        .grid-cards {
+        .cards-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
           gap: 18px;
@@ -549,15 +538,9 @@ export default function UsuariosPage() {
           border-radius: 24px;
           padding: 20px;
           box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .usuario-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 18px 40px rgba(15, 23, 42, 0.09);
-        }
-
-        .card-header {
+        .card-topo {
           display: flex;
           gap: 14px;
           align-items: center;
@@ -579,12 +562,12 @@ export default function UsuariosPage() {
           flex-shrink: 0;
         }
 
-        .card-header-info {
+        .usuario-info {
           min-width: 0;
           flex: 1;
         }
 
-        .linha-titulo {
+        .titulo-linha {
           display: flex;
           gap: 10px;
           align-items: center;
@@ -592,14 +575,14 @@ export default function UsuariosPage() {
           margin-bottom: 4px;
         }
 
-        .linha-titulo h2 {
+        .titulo-linha h2 {
           margin: 0;
           font-size: 20px;
           color: #111827;
           font-weight: 800;
         }
 
-        .email {
+        .usuario-info p {
           margin: 0;
           color: #6b7280;
           font-size: 14px;
@@ -612,20 +595,19 @@ export default function UsuariosPage() {
           padding: 6px 10px;
           border-radius: 999px;
           background: #111827;
-          color: #ffffff;
+          color: #fff;
           font-size: 12px;
           font-weight: 800;
-          letter-spacing: 0.02em;
         }
 
-        .meta-badges {
+        .badges-linha {
           display: flex;
           gap: 8px;
           flex-wrap: wrap;
           margin-bottom: 16px;
         }
 
-        .badge-info {
+        .badge-item {
           display: inline-flex;
           align-items: center;
           padding: 7px 10px;
@@ -681,7 +663,7 @@ export default function UsuariosPage() {
           word-break: break-word;
         }
 
-        .card-footer {
+        .acoes {
           display: flex;
           gap: 10px;
           flex-wrap: wrap;
@@ -698,7 +680,6 @@ export default function UsuariosPage() {
           font-weight: 800;
           cursor: pointer;
           border: none;
-          transition: 0.2s ease;
         }
 
         .btn-visualizar {
@@ -733,15 +714,15 @@ export default function UsuariosPage() {
             flex-direction: column;
           }
 
-          .acoes-topo {
+          .topo-acoes {
             width: 100%;
           }
 
-          .acoes-topo .btn {
+          .topo-acoes .btn {
             width: 100%;
           }
 
-          .grid-cards {
+          .cards-grid {
             grid-template-columns: 1fr;
           }
 
@@ -749,7 +730,7 @@ export default function UsuariosPage() {
             grid-template-columns: 1fr;
           }
 
-          .card-footer {
+          .acoes {
             flex-direction: column;
           }
 
@@ -757,7 +738,7 @@ export default function UsuariosPage() {
             width: 100%;
           }
 
-          .topo-info h1 {
+          .topo-esquerda h1 {
             font-size: 28px;
           }
         }
