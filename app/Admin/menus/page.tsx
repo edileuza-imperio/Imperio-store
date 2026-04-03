@@ -221,6 +221,14 @@ export default function MenusPage() {
     return statusMap.get(statusId) || `Status ${statusId}`;
   }
 
+  function getPermissoesDoItem(menu: Menu, itemId: number) {
+    return (menu.permissoes || []).filter((permissao) => permissao.item_id === itemId);
+  }
+
+  function getPermissoesDoMenuInteiro(menu: Menu) {
+    return (menu.permissoes || []).filter((permissao) => permissao.item_id === null);
+  }
+
   return (
     <main style={styles.page}>
       <div style={styles.container}>
@@ -358,6 +366,7 @@ export default function MenusPage() {
                 <div style={styles.grid}>
                   {menus.map((menu) => {
                     const aberto = menuAberto === menu.id_menu;
+                    const permissoesMenuInteiro = getPermissoesDoMenuInteiro(menu);
 
                     return (
                       <article key={menu.id_menu} style={styles.card}>
@@ -450,6 +459,33 @@ export default function MenusPage() {
                               ))}
                             </div>
 
+                            {permissoesMenuInteiro.length > 0 && (
+                              <div style={styles.menuPermissionBox}>
+                                <p style={styles.menuPermissionTitle}>
+                                  Permissões do menu inteiro
+                                </p>
+
+                                <div style={styles.itemPermissionBadgesWrap}>
+                                  {permissoesMenuInteiro.map((permissao) => (
+                                    <div
+                                      key={permissao.id_permissao}
+                                      style={styles.permissionMiniCard}
+                                    >
+                                      <span style={styles.permissionMiniId}>
+                                        #{permissao.id_permissao}
+                                      </span>
+                                      <span style={styles.permissionMiniNivel}>
+                                        {getNomeNivel(permissao.nivel_id)}
+                                      </span>
+                                      <span style={styles.permissionMiniStatus}>
+                                        {getNomeStatus(permissao.status_id)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
                             {(menu.permissoes?.length || 0) === 0 && (
                               <p style={styles.emptyText}>
                                 Esse menu não possui permissões cadastradas.
@@ -510,28 +546,77 @@ export default function MenusPage() {
 
                             {menu.itens && menu.itens.length > 0 ? (
                               <ul style={styles.list}>
-                                {menu.itens.map((item) => (
-                                  <li key={item.id_item} style={styles.listItem}>
-                                    <div style={styles.itemTop}>
-                                      <strong>{item.nome}</strong>
-                                      <span style={styles.itemBadge}>
-                                        #{item.id_item}
-                                      </span>
-                                    </div>
+                                {menu.itens.map((item) => {
+                                  const permissoesDoItem = getPermissoesDoItem(menu, item.id_item);
 
-                                    <p style={styles.itemText}>
-                                      <strong>Rota:</strong> {item.rota || "Sem rota"}
-                                    </p>
+                                  return (
+                                    <li key={item.id_item} style={styles.listItem}>
+                                      <div style={styles.itemHeader}>
+                                        <strong style={styles.itemName}>
+                                          {item.nome}
+                                        </strong>
 
-                                    <p style={styles.itemText}>
-                                      <strong>Ícone:</strong> {item.icone || "Sem ícone"}
-                                    </p>
+                                        <div style={styles.itemBadges}>
+                                          <span style={styles.itemIdBadge}>
+                                            ID {item.id_item}
+                                          </span>
+                                          <span style={styles.itemPositionBadge}>
+                                            Posição {item.posicao ?? 0}
+                                          </span>
+                                        </div>
+                                      </div>
 
-                                    <p style={styles.itemText}>
-                                      <strong>Posição:</strong> {item.posicao ?? 0}
-                                    </p>
-                                  </li>
-                                ))}
+                                      <div style={styles.itemMetaRow}>
+                                        <span style={styles.itemRouteBadge}>
+                                          {item.rota || "Sem rota"}
+                                        </span>
+
+                                        <span style={styles.itemIconBadge}>
+                                          {item.icone || "Sem ícone"}
+                                        </span>
+                                      </div>
+
+                                      <div style={styles.itemPermissionsArea}>
+                                        <div style={styles.itemPermissionsHeader}>
+                                          <span style={styles.itemPermissionsTitle}>
+                                            Permissões do item
+                                          </span>
+
+                                          <span style={styles.itemPermissionsCount}>
+                                            {permissoesDoItem.length}
+                                          </span>
+                                        </div>
+
+                                        {permissoesDoItem.length > 0 ? (
+                                          <div style={styles.itemPermissionBadgesWrap}>
+                                            {permissoesDoItem.map((permissao) => (
+                                              <div
+                                                key={permissao.id_permissao}
+                                                style={styles.permissionMiniCard}
+                                              >
+                                                <span style={styles.permissionMiniId}>
+                                                  #{permissao.id_permissao}
+                                                </span>
+
+                                                <span style={styles.permissionMiniNivel}>
+                                                  {getNomeNivel(permissao.nivel_id)}
+                                                </span>
+
+                                                <span style={styles.permissionMiniStatus}>
+                                                  {getNomeStatus(permissao.status_id)}
+                                                </span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <p style={styles.noItemPermissionText}>
+                                            Esse item não possui permissões cadastradas.
+                                          </p>
+                                        )}
+                                      </div>
+                                    </li>
+                                  );
+                                })}
                               </ul>
                             ) : (
                               <p style={styles.emptyText}>Esse menu não possui itens.</p>
@@ -684,7 +769,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))",
+    gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
     gap: "16px",
   },
   card: {
@@ -819,6 +904,17 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "6px 10px",
     borderRadius: "999px",
   },
+  menuPermissionBox: {
+    marginTop: "14px",
+    paddingTop: "12px",
+    borderTop: "1px dashed #d8b4fe",
+  },
+  menuPermissionTitle: {
+    margin: "0 0 10px 0",
+    fontSize: "13px",
+    fontWeight: 700,
+    color: "#581c87",
+  },
   permissionListBox: {
     marginTop: "14px",
     padding: "12px",
@@ -891,33 +987,139 @@ const styles: Record<string, React.CSSProperties> = {
     padding: 0,
     margin: 0,
     display: "grid",
-    gap: "10px",
+    gap: "12px",
   },
   listItem: {
     background: "#ffffff",
     border: "1px solid #e2e8f0",
-    borderRadius: "12px",
-    padding: "12px",
+    borderRadius: "14px",
+    padding: "14px",
   },
-  itemTop: {
+  itemHeader: {
     display: "flex",
     justifyContent: "space-between",
-    gap: "8px",
-    alignItems: "center",
-    marginBottom: "8px",
+    alignItems: "flex-start",
+    gap: "10px",
+    flexWrap: "wrap",
+    marginBottom: "10px",
   },
-  itemBadge: {
+  itemName: {
+    color: "#0f172a",
+    fontSize: "15px",
+    fontWeight: 700,
+  },
+  itemBadges: {
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+  },
+  itemIdBadge: {
     fontSize: "12px",
     fontWeight: 700,
     color: "#1d4ed8",
-    background: "#eff6ff",
+    background: "#dbeafe",
+    padding: "4px 10px",
+    borderRadius: "999px",
+  },
+  itemPositionBadge: {
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#7c2d12",
+    background: "#ffedd5",
+    padding: "4px 10px",
+    borderRadius: "999px",
+  },
+  itemMetaRow: {
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+    marginBottom: "12px",
+  },
+  itemRouteBadge: {
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#065f46",
+    background: "#d1fae5",
+    padding: "6px 10px",
+    borderRadius: "999px",
+  },
+  itemIconBadge: {
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#5b21b6",
+    background: "#ede9fe",
+    padding: "6px 10px",
+    borderRadius: "999px",
+  },
+  itemPermissionsArea: {
+    marginTop: "10px",
+    paddingTop: "12px",
+    borderTop: "1px dashed #e2e8f0",
+  },
+  itemPermissionsHeader: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "8px",
+    flexWrap: "wrap",
+    marginBottom: "10px",
+  },
+  itemPermissionsTitle: {
+    fontSize: "13px",
+    fontWeight: 700,
+    color: "#334155",
+  },
+  itemPermissionsCount: {
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#7c3aed",
+    background: "#f3e8ff",
     padding: "4px 8px",
     borderRadius: "999px",
   },
-  itemText: {
-    margin: "4px 0",
-    color: "#334155",
-    fontSize: "14px",
+  itemPermissionBadgesWrap: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "8px",
+  },
+  permissionMiniCard: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    flexWrap: "wrap",
+    background: "#f8fafc",
+    border: "1px solid #e2e8f0",
+    padding: "8px 10px",
+    borderRadius: "12px",
+  },
+  permissionMiniId: {
+    fontSize: "11px",
+    fontWeight: 700,
+    color: "#7c3aed",
+    background: "#ede9fe",
+    padding: "4px 8px",
+    borderRadius: "999px",
+  },
+  permissionMiniNivel: {
+    fontSize: "11px",
+    fontWeight: 700,
+    color: "#1d4ed8",
+    background: "#dbeafe",
+    padding: "4px 8px",
+    borderRadius: "999px",
+  },
+  permissionMiniStatus: {
+    fontSize: "11px",
+    fontWeight: 700,
+    color: "#065f46",
+    background: "#d1fae5",
+    padding: "4px 8px",
+    borderRadius: "999px",
+  },
+  noItemPermissionText: {
+    margin: 0,
+    color: "#64748b",
+    fontSize: "13px",
   },
   emptyBox: {
     background: "#ffffff",
