@@ -47,6 +47,7 @@ export default function MenusPage() {
   const [menus, setMenus] = useState<Menu[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+  const [menuAberto, setMenuAberto] = useState<number | null>(null);
 
   function normalizarLista<T>(dados: any): T[] {
     if (Array.isArray(dados)) return dados;
@@ -118,6 +119,10 @@ export default function MenusPage() {
     window.location.href = `/Admin/menus/adicionar-permissao?menu_id=${menuId}`;
   }
 
+  function alternarVisualizacaoPermissoes(menuId: number) {
+    setMenuAberto((atual) => (atual === menuId ? null : menuId));
+  }
+
   function getNiveisUnicos(menu: Menu) {
     const niveis = (menu.permissoes || []).map((p) => p.nivel_id);
     return [...new Set(niveis)];
@@ -126,6 +131,12 @@ export default function MenusPage() {
   function getStatusUnicos(menu: Menu) {
     const status = (menu.permissoes || []).map((p) => p.status_id);
     return [...new Set(status)];
+  }
+
+  function getNomeItem(menu: Menu, itemId: number | null) {
+    if (!itemId) return "Menu inteiro";
+    const item = (menu.itens || []).find((i) => i.id_item === itemId);
+    return item ? item.nome : `Item ${itemId}`;
   }
 
   return (
@@ -234,6 +245,14 @@ export default function MenusPage() {
                               >
                                 + Permissão
                               </button>
+
+                              <button
+                                style={styles.viewButton}
+                                onClick={() => alternarVisualizacaoPermissoes(menu.id_menu)}
+                                title="Visualizar permissões"
+                              >
+                                <span style={styles.eyeIcon}>👁</span>
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -255,126 +274,189 @@ export default function MenusPage() {
 
               {menus.length > 0 ? (
                 <div style={styles.grid}>
-                  {menus.map((menu) => (
-                    <article key={menu.id_menu} style={styles.card}>
-                      <div style={styles.cardHeader}>
-                        <div>
-                          <h3 style={styles.cardTitle}>{menu.nome}</h3>
-                          <p style={styles.cardSub}>Menu administrativo</p>
-                        </div>
-                        <span style={styles.badge}>ID {menu.id_menu}</span>
-                      </div>
+                  {menus.map((menu) => {
+                    const aberto = menuAberto === menu.id_menu;
 
-                      <div style={styles.cardBody}>
-                        <div style={styles.infoRow}>
-                          <span style={styles.infoLabel}>Site Config</span>
-                          <span style={styles.infoValue}>{menu.site_config_id}</span>
+                    return (
+                      <article key={menu.id_menu} style={styles.card}>
+                        <div style={styles.cardHeader}>
+                          <div>
+                            <h3 style={styles.cardTitle}>{menu.nome}</h3>
+                            <p style={styles.cardSub}>Menu administrativo</p>
+                          </div>
+                          <span style={styles.badge}>ID {menu.id_menu}</span>
                         </div>
 
-                        <div style={styles.infoRow}>
-                          <span style={styles.infoLabel}>Rota</span>
-                          <span style={styles.infoValue}>
-                            {menu.rota || "Sem rota"}
-                          </span>
-                        </div>
-
-                        <div style={styles.infoRow}>
-                          <span style={styles.infoLabel}>Ícone</span>
-                          <span style={styles.infoValue}>
-                            {menu.icone || "Sem ícone"}
-                          </span>
-                        </div>
-
-                        <div style={styles.infoRow}>
-                          <span style={styles.infoLabel}>Placeholder</span>
-                          <span style={styles.infoValue}>
-                            {menu.pesquisa_placeholder || "Sem placeholder"}
-                          </span>
-                        </div>
-
-                        <div style={styles.actionRow}>
-                          <button
-                            style={styles.itemButton}
-                            onClick={() => irParaAdicionarItem(menu.id_menu)}
-                          >
-                            Adicionar Item
-                          </button>
-
-                          <button
-                            style={styles.permissionButton}
-                            onClick={() => irParaAdicionarPermissao(menu.id_menu)}
-                          >
-                            Adicionar Permissão
-                          </button>
-                        </div>
-
-                        <div style={styles.permissionsBox}>
-                          <h4 style={styles.itemsTitle}>
-                            Permissões ({menu.permissoes?.length || 0})
-                          </h4>
-
-                          <div style={styles.badgesWrap}>
-                            <span style={styles.permissionCountBadge}>
-                              {menu.permissoes?.length || 0} permissões
-                            </span>
-
-                            {getNiveisUnicos(menu).map((nivelId) => (
-                              <span key={`nivel-${menu.id_menu}-${nivelId}`} style={styles.levelBadge}>
-                                Nível {nivelId}
-                              </span>
-                            ))}
-
-                            {getStatusUnicos(menu).map((statusId) => (
-                              <span key={`status-${menu.id_menu}-${statusId}`} style={styles.statusBadge}>
-                                Status {statusId}
-                              </span>
-                            ))}
+                        <div style={styles.cardBody}>
+                          <div style={styles.infoRow}>
+                            <span style={styles.infoLabel}>Site Config</span>
+                            <span style={styles.infoValue}>{menu.site_config_id}</span>
                           </div>
 
-                          {(menu.permissoes?.length || 0) === 0 && (
-                            <p style={styles.emptyText}>
-                              Esse menu não possui permissões cadastradas.
-                            </p>
-                          )}
-                        </div>
+                          <div style={styles.infoRow}>
+                            <span style={styles.infoLabel}>Rota</span>
+                            <span style={styles.infoValue}>
+                              {menu.rota || "Sem rota"}
+                            </span>
+                          </div>
 
-                        <div style={styles.itemsBox}>
-                          <h4 style={styles.itemsTitle}>
-                            Itens do menu ({menu.itens?.length || 0})
-                          </h4>
+                          <div style={styles.infoRow}>
+                            <span style={styles.infoLabel}>Ícone</span>
+                            <span style={styles.infoValue}>
+                              {menu.icone || "Sem ícone"}
+                            </span>
+                          </div>
 
-                          {menu.itens && menu.itens.length > 0 ? (
-                            <ul style={styles.list}>
-                              {menu.itens.map((item) => (
-                                <li key={item.id_item} style={styles.listItem}>
-                                  <div style={styles.itemTop}>
-                                    <strong>{item.nome}</strong>
-                                    <span style={styles.itemBadge}>
-                                      #{item.id_item}
-                                    </span>
-                                  </div>
+                          <div style={styles.infoRow}>
+                            <span style={styles.infoLabel}>Placeholder</span>
+                            <span style={styles.infoValue}>
+                              {menu.pesquisa_placeholder || "Sem placeholder"}
+                            </span>
+                          </div>
 
-                                  <p style={styles.itemText}>
-                                    <strong>Rota:</strong> {item.rota || "Sem rota"}
-                                  </p>
+                          <div style={styles.actionRow}>
+                            <button
+                              style={styles.itemButton}
+                              onClick={() => irParaAdicionarItem(menu.id_menu)}
+                            >
+                              Adicionar Item
+                            </button>
 
-                                  <p style={styles.itemText}>
-                                    <strong>Ícone:</strong> {item.icone || "Sem ícone"}
-                                  </p>
+                            <button
+                              style={styles.permissionButton}
+                              onClick={() => irParaAdicionarPermissao(menu.id_menu)}
+                            >
+                              Adicionar Permissão
+                            </button>
 
-                                  <p style={styles.itemText}>
-                                    <strong>Posição:</strong> {item.posicao ?? 0}
-                                  </p>
-                                </li>
+                            <button
+                              style={styles.viewButton}
+                              onClick={() => alternarVisualizacaoPermissoes(menu.id_menu)}
+                              title="Visualizar permissões"
+                            >
+                              <span style={styles.eyeIcon}>👁</span>
+                              {aberto ? " Ocultar" : " Ver permissões"}
+                            </button>
+                          </div>
+
+                          <div style={styles.permissionsBox}>
+                            <h4 style={styles.itemsTitle}>
+                              Permissões ({menu.permissoes?.length || 0})
+                            </h4>
+
+                            <div style={styles.badgesWrap}>
+                              <span style={styles.permissionCountBadge}>
+                                {menu.permissoes?.length || 0} permissões
+                              </span>
+
+                              {getNiveisUnicos(menu).map((nivelId) => (
+                                <span
+                                  key={`nivel-${menu.id_menu}-${nivelId}`}
+                                  style={styles.levelBadge}
+                                >
+                                  Nível {nivelId}
+                                </span>
                               ))}
-                            </ul>
-                          ) : (
-                            <p style={styles.emptyText}>Esse menu não possui itens.</p>
-                          )}
+
+                              {getStatusUnicos(menu).map((statusId) => (
+                                <span
+                                  key={`status-${menu.id_menu}-${statusId}`}
+                                  style={styles.statusBadge}
+                                >
+                                  Status {statusId}
+                                </span>
+                              ))}
+                            </div>
+
+                            {(menu.permissoes?.length || 0) === 0 && (
+                              <p style={styles.emptyText}>
+                                Esse menu não possui permissões cadastradas.
+                              </p>
+                            )}
+
+                            {aberto && (menu.permissoes?.length || 0) > 0 && (
+                              <div style={styles.permissionListBox}>
+                                <h5 style={styles.permissionListTitle}>
+                                  Permissões detalhadas
+                                </h5>
+
+                                <ul style={styles.permissionList}>
+                                  {(menu.permissoes || []).map((permissao) => (
+                                    <li
+                                      key={permissao.id_permissao}
+                                      style={styles.permissionListItem}
+                                    >
+                                      <div style={styles.permissionTop}>
+                                        <span style={styles.permissionIdBadge}>
+                                          #{permissao.id_permissao}
+                                        </span>
+                                        <span style={styles.permissionItemBadge}>
+                                          {getNomeItem(menu, permissao.item_id)}
+                                        </span>
+                                      </div>
+
+                                      <p style={styles.permissionText}>
+                                        <strong>Menu:</strong> {permissao.menu_id}
+                                      </p>
+                                      <p style={styles.permissionText}>
+                                        <strong>Item:</strong>{" "}
+                                        {getNomeItem(menu, permissao.item_id)}
+                                      </p>
+                                      <p style={styles.permissionText}>
+                                        <strong>Nível:</strong> {permissao.nivel_id}
+                                      </p>
+                                      <p style={styles.permissionText}>
+                                        <strong>Status:</strong> {permissao.status_id}
+                                      </p>
+                                      <p style={styles.permissionText}>
+                                        <strong>Criado:</strong>{" "}
+                                        {permissao.criado || "Não informado"}
+                                      </p>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+
+                          <div style={styles.itemsBox}>
+                            <h4 style={styles.itemsTitle}>
+                              Itens do menu ({menu.itens?.length || 0})
+                            </h4>
+
+                            {menu.itens && menu.itens.length > 0 ? (
+                              <ul style={styles.list}>
+                                {menu.itens.map((item) => (
+                                  <li key={item.id_item} style={styles.listItem}>
+                                    <div style={styles.itemTop}>
+                                      <strong>{item.nome}</strong>
+                                      <span style={styles.itemBadge}>
+                                        #{item.id_item}
+                                      </span>
+                                    </div>
+
+                                    <p style={styles.itemText}>
+                                      <strong>Rota:</strong> {item.rota || "Sem rota"}
+                                    </p>
+
+                                    <p style={styles.itemText}>
+                                      <strong>Ícone:</strong> {item.icone || "Sem ícone"}
+                                    </p>
+
+                                    <p style={styles.itemText}>
+                                      <strong>Posição:</strong> {item.posicao ?? 0}
+                                    </p>
+                                  </li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p style={styles.emptyText}>Esse menu não possui itens.</p>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </article>
-                  ))}
+                      </article>
+                    );
+                  })}
                 </div>
               ) : (
                 <div style={styles.emptyBox}>
@@ -603,6 +685,19 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 700,
     fontSize: "13px",
   },
+  viewButton: {
+    border: "none",
+    borderRadius: "12px",
+    padding: "10px 14px",
+    background: "#0f172a",
+    color: "#fff",
+    cursor: "pointer",
+    fontWeight: 700,
+    fontSize: "13px",
+  },
+  eyeIcon: {
+    marginRight: "4px",
+  },
   permissionsBox: {
     marginTop: "16px",
     padding: "14px",
@@ -639,6 +734,61 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#d1fae5",
     padding: "6px 10px",
     borderRadius: "999px",
+  },
+  permissionListBox: {
+    marginTop: "14px",
+    padding: "12px",
+    background: "#ffffff",
+    border: "1px solid #e9d5ff",
+    borderRadius: "12px",
+  },
+  permissionListTitle: {
+    margin: "0 0 12px 0",
+    fontSize: "14px",
+    color: "#581c87",
+    fontWeight: 800,
+  },
+  permissionList: {
+    listStyle: "none",
+    margin: 0,
+    padding: 0,
+    display: "grid",
+    gap: "10px",
+  },
+  permissionListItem: {
+    background: "#faf5ff",
+    border: "1px solid #e9d5ff",
+    borderRadius: "12px",
+    padding: "12px",
+  },
+  permissionTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: "8px",
+    alignItems: "center",
+    marginBottom: "8px",
+    flexWrap: "wrap",
+  },
+  permissionIdBadge: {
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#7c3aed",
+    background: "#ede9fe",
+    padding: "4px 8px",
+    borderRadius: "999px",
+  },
+  permissionItemBadge: {
+    fontSize: "12px",
+    fontWeight: 700,
+    color: "#1f2937",
+    background: "#f3f4f6",
+    padding: "4px 8px",
+    borderRadius: "999px",
+  },
+  permissionText: {
+    margin: "4px 0",
+    color: "#334155",
+    fontSize: "14px",
   },
   itemsBox: {
     marginTop: "16px",
