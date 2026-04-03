@@ -9,7 +9,6 @@ type Usuario = {
   id?: number;
   nome?: string;
   email?: string;
-  senha?: string;
   pin?: string | null;
   nivel_id?: number | string;
   status_id?: number | string;
@@ -67,6 +66,28 @@ function getStatusFromResponse(payload: any): StatusItem[] {
   return [];
 }
 
+function formatarData(data?: string) {
+  if (!data) return "-";
+
+  const d = new Date(data.replace(" ", "T"));
+  if (Number.isNaN(d.getTime())) return data;
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(d);
+}
+
+function mascararCpf(cpf?: string | null) {
+  if (!cpf) return "-";
+  return cpf;
+}
+
+function mascararTelefone(telefone?: string | null) {
+  if (!telefone) return "-";
+  return telefone;
+}
+
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [niveis, setNiveis] = useState<Nivel[]>([]);
@@ -75,6 +96,7 @@ export default function UsuariosPage() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
   const [excluindoId, setExcluindoId] = useState<number | null>(null);
+  const [copiadoId, setCopiadoId] = useState<number | null>(null);
 
   const normalizarUsuarioId = useCallback((usuario: Usuario) => {
     return Number(usuario.id_usuario ?? usuario.id ?? 0);
@@ -99,34 +121,22 @@ export default function UsuariosPage() {
   );
 
   const obterNomeNivel = useCallback(
-    (nivelId?: number | string) => {
-      const nivel = buscarNivelPorId(nivelId);
-      return nivel?.nome || "-";
-    },
+    (nivelId?: number | string) => buscarNivelPorId(nivelId)?.nome || "-",
     [buscarNivelPorId]
   );
 
   const obterCodigoNivel = useCallback(
-    (nivelId?: number | string) => {
-      const nivel = buscarNivelPorId(nivelId);
-      return nivel?.codigo || "";
-    },
+    (nivelId?: number | string) => buscarNivelPorId(nivelId)?.codigo || "",
     [buscarNivelPorId]
   );
 
   const obterNomeStatus = useCallback(
-    (statusId?: number | string) => {
-      const status = buscarStatusPorId(statusId);
-      return status?.nome || "-";
-    },
+    (statusId?: number | string) => buscarStatusPorId(statusId)?.nome || "-",
     [buscarStatusPorId]
   );
 
   const obterCodigoStatus = useCallback(
-    (statusId?: number | string) => {
-      const status = buscarStatusPorId(statusId);
-      return status?.codigo || "";
-    },
+    (statusId?: number | string) => buscarStatusPorId(statusId)?.codigo || "",
     [buscarStatusPorId]
   );
 
@@ -138,9 +148,8 @@ export default function UsuariosPage() {
 
       return (
         nivelId === 1 ||
-        nomeNivel === "sistema" ||
-        codigoNivel === "sistema" ||
-        codigoNivel === "sistema".toUpperCase().toLowerCase()
+        nomeNivel.includes("sistema") ||
+        codigoNivel.includes("sistema")
       );
     },
     [obterCodigoNivel, obterNomeNivel]
@@ -157,13 +166,9 @@ export default function UsuariosPage() {
         api.get("/painel/status"),
       ]);
 
-      const listaUsuarios = getUsuariosFromResponse(resUsuarios.data);
-      const listaNiveis = getNiveisFromResponse(resNiveis.data);
-      const listaStatus = getStatusFromResponse(resStatus.data);
-
-      setUsuarios(listaUsuarios);
-      setNiveis(listaNiveis);
-      setStatusList(listaStatus);
+      setUsuarios(getUsuariosFromResponse(resUsuarios.data));
+      setNiveis(getNiveisFromResponse(resNiveis.data));
+      setStatusList(getStatusFromResponse(resStatus.data));
     } catch (error: any) {
       console.error("Erro ao carregar usuários:", error);
 
@@ -172,7 +177,7 @@ export default function UsuariosPage() {
       } else if (error?.response?.status === 403) {
         setErro("Você não tem permissão para acessar esta página.");
       } else {
-        setErro("Não foi possível carregar os dados dos usuários.");
+        setErro("Não foi possível carregar os usuários.");
       }
 
       setUsuarios([]);
@@ -200,8 +205,8 @@ export default function UsuariosPage() {
       const cpf = String(usuario.cpf ?? "").toLowerCase();
       const pin = String(usuario.pin ?? "").toLowerCase();
       const nomeNivel = obterNomeNivel(usuario.nivel_id).toLowerCase();
-      const codigoNivel = obterCodigoNivel(usuario.nivel_id).toLowerCase();
       const nomeStatus = obterNomeStatus(usuario.status_id).toLowerCase();
+      const codigoNivel = obterCodigoNivel(usuario.nivel_id).toLowerCase();
       const codigoStatus = obterCodigoStatus(usuario.status_id).toLowerCase();
 
       return (
@@ -212,8 +217,8 @@ export default function UsuariosPage() {
         cpf.includes(termo) ||
         pin.includes(termo) ||
         nomeNivel.includes(termo) ||
-        codigoNivel.includes(termo) ||
         nomeStatus.includes(termo) ||
+        codigoNivel.includes(termo) ||
         codigoStatus.includes(termo)
       );
     });
@@ -222,10 +227,39 @@ export default function UsuariosPage() {
     usuarios,
     normalizarUsuarioId,
     obterNomeNivel,
-    obterCodigoNivel,
     obterNomeStatus,
+    obterCodigoNivel,
     obterCodigoStatus,
   ]);
+
+  const totalProtegidos = useMemo(
+    () => usuarios.filter((usuario) => ehProtegido(usuario)).length,
+    [usuarios, ehProtegido]
+  );
+
+  const totalAtivos = useMemo(
+    () =>
+      usuarios.filter(
+        (usuario) =>
+          obterCodigoStatus(usuario.status_id).toUpperCase() === "ATIVO"
+      ).length,
+    [usuarios, obterCodigoStatus]
+  );
+
+  const copiarPin = useCallback(async (pin: string | null | undefined, id: number) => {
+    if (!pin) return;
+
+    try {
+      await navigator.clipboard.writeText(pin);
+      setCopiadoId(id);
+
+      setTimeout(() => {
+        setCopiadoId(null);
+      }, 1800);
+    } catch (error) {
+      console.error("Erro ao copiar PIN:", error);
+    }
+  }, []);
 
   const excluirUsuario = useCallback(
     async (id: number) => {
@@ -254,61 +288,103 @@ export default function UsuariosPage() {
     [normalizarUsuarioId]
   );
 
+  const getStatusClass = useCallback(
+    (statusId?: number | string) => {
+      const codigo = obterCodigoStatus(statusId).toUpperCase();
+
+      if (codigo === "ATIVO") return "badge-status badge-status-ativo";
+      if (codigo === "INATIVO") return "badge-status badge-status-inativo";
+      if (codigo === "BLOQUEADO") return "badge-status badge-status-bloqueado";
+
+      return "badge-status badge-status-padrao";
+    },
+    [obterCodigoStatus]
+  );
+
   return (
     <div className="usuarios-page">
       <div className="usuarios-container">
-        <div className="topo">
-          <div className="topo-esquerda">
-            <span className="topo-badge">Painel Administrativo</span>
-            <h1>Usuários</h1>
-            <p>Gerencie usuários com um layout moderno em cards.</p>
+        <section className="hero">
+          <div className="hero-conteudo">
+            <div className="hero-tag">Administração</div>
+            <h1>Gestão de usuários</h1>
+            <p>
+              Visualize, pesquise e gerencie os usuários do sistema em um painel
+              moderno, limpo e responsivo.
+            </p>
           </div>
 
-          <div className="topo-acoes">
-            <button className="btn btn-secundario" onClick={carregarDados}>
-              Atualizar
+          <div className="hero-acoes">
+            <button className="btn btn-light" onClick={carregarDados}>
+              Atualizar lista
             </button>
 
-            <Link href="/Admin/usuarios/novo" className="btn btn-primario">
+            <Link href="/Admin/usuarios/novo" className="btn btn-dark">
               Novo usuário
             </Link>
           </div>
-        </div>
+        </section>
 
-        <div className="resumo-grid">
-          <div className="resumo-card">
-            <span>Total de usuários</span>
+        <section className="stats-grid">
+          <div className="stat-card">
+            <span>Total</span>
             <strong>{usuarios.length}</strong>
+            <small>Usuários cadastrados</small>
           </div>
 
-          <div className="resumo-card">
+          <div className="stat-card">
+            <span>Ativos</span>
+            <strong>{totalAtivos}</strong>
+            <small>Status ativo no sistema</small>
+          </div>
+
+          <div className="stat-card">
+            <span>Protegidos</span>
+            <strong>{totalProtegidos}</strong>
+            <small>Nível de sistema</small>
+          </div>
+
+          <div className="stat-card">
             <span>Resultados</span>
             <strong>{usuariosFiltrados.length}</strong>
+            <small>Após filtro da busca</small>
           </div>
+        </section>
 
-          <div className="resumo-card">
-            <span>Protegidos</span>
-            <strong>{usuarios.filter((u) => ehProtegido(u)).length}</strong>
+        <section className="toolbar">
+          <div className="search-box">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="search-icon"
+              aria-hidden="true"
+            >
+              <path
+                d="M21 21L16.65 16.65M11 18C7.13401 18 4 14.866 4 11C4 7.13401 7.13401 4 11 4C14.866 4 18 7.13401 18 11C18 14.866 14.866 18 11 18Z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+
+            <input
+              type="text"
+              placeholder="Buscar por nome, email, PIN, CPF, nível, status..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+            />
           </div>
-        </div>
-
-        <div className="filtro-box">
-          <input
-            type="text"
-            placeholder="Buscar por nome, email, PIN, nível, status, telefone ou CPF..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
-        </div>
+        </section>
 
         {carregando ? (
-          <div className="estado">Carregando usuários...</div>
+          <div className="estado-box">Carregando usuários...</div>
         ) : erro ? (
-          <div className="estado erro">{erro}</div>
+          <div className="estado-box estado-erro">{erro}</div>
         ) : usuariosFiltrados.length === 0 ? (
-          <div className="estado">Nenhum usuário encontrado.</div>
+          <div className="estado-box">Nenhum usuário encontrado.</div>
         ) : (
-          <div className="cards-grid">
+          <section className="cards-grid">
             {usuariosFiltrados.map((usuario) => {
               const id = normalizarUsuarioId(usuario);
               const nomeNivel = obterNomeNivel(usuario.nivel_id);
@@ -316,80 +392,104 @@ export default function UsuariosPage() {
               const protegido = ehProtegido(usuario);
 
               return (
-                <div className="usuario-card" key={id}>
-                  <div className="card-topo">
+                <article className="user-card" key={id}>
+                  <div className="card-glow" />
+
+                  <div className="card-top">
                     <div className="avatar">
                       {(usuario.nome?.charAt(0) || "U").toUpperCase()}
                     </div>
 
-                    <div className="usuario-info">
-                      <div className="titulo-linha">
+                    <div className="user-main">
+                      <div className="title-row">
                         <h2>{usuario.nome || "Sem nome"}</h2>
+
                         {protegido && (
-                          <span className="badge-protegido">Protegido</span>
+                          <span className="badge-protected">Protegido</span>
                         )}
                       </div>
 
-                      <p>{usuario.email || "-"}</p>
+                      <p className="email">{usuario.email || "-"}</p>
                     </div>
                   </div>
 
-                  <div className="badges-linha">
-                    <span className="badge-item">ID #{id}</span>
-                    <span className="badge-item badge-nivel">{nomeNivel}</span>
-                    <span className="badge-item badge-status">{nomeStatus}</span>
+                  <div className="badge-row">
+                    <span className="badge-soft">ID #{id}</span>
+                    <span className="badge-soft badge-level">{nomeNivel}</span>
+                    <span className={getStatusClass(usuario.status_id)}>
+                      {nomeStatus}
+                    </span>
                   </div>
 
-                  <div className="dados-grid">
-                    <div className="dado">
+                  <div className="info-grid">
+                    <div className="info-card destaque">
                       <span>PIN</span>
-                      <strong>{usuario.pin || "-"}</strong>
+
+                      <div className="pin-row">
+                        <strong>{usuario.pin || "-"}</strong>
+
+                        <button
+                          type="button"
+                          className="copy-btn"
+                          onClick={() => copiarPin(usuario.pin, id)}
+                          disabled={!usuario.pin}
+                        >
+                          {copiadoId === id ? "Copiado" : "Copiar"}
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="dado">
+                    <div className="info-card">
                       <span>Telefone</span>
-                      <strong>{usuario.telefone || "-"}</strong>
+                      <strong>{mascararTelefone(usuario.telefone)}</strong>
                     </div>
 
-                    <div className="dado">
+                    <div className="info-card">
                       <span>CPF</span>
-                      <strong>{usuario.cpf || "-"}</strong>
+                      <strong>{mascararCpf(usuario.cpf)}</strong>
                     </div>
 
-                    <div className="dado">
-                      <span>Status</span>
-                      <strong>{nomeStatus}</strong>
+                    <div className="info-card">
+                      <span>Criado em</span>
+                      <strong>{formatarData(usuario.criado)}</strong>
                     </div>
                   </div>
 
-                  <div className="acoes">
+                  <div className="footer-line" />
+
+                  <div className="card-actions">
                     <Link
                       href={`/Admin/usuarios/${id}`}
-                      className="btn-acao btn-visualizar"
+                      className="action-btn action-btn-view"
                     >
                       Visualizar
                     </Link>
 
                     <Link
                       href={`/Admin/usuarios/${id}/editar`}
-                      className="btn-acao btn-editar"
+                      className="action-btn action-btn-edit"
                     >
                       Editar
                     </Link>
 
                     <button
                       type="button"
-                      className="btn-acao btn-excluir"
+                      className="action-btn action-btn-delete"
                       onClick={() => excluirUsuario(id)}
                       disabled={excluindoId === id || protegido}
+                      title={
+                        protegido
+                          ? "Usuário protegido não pode ser excluído."
+                          : ""
+                      }
                     >
                       {excluindoId === id ? "Excluindo..." : "Excluir"}
                     </button>
                   </div>
-                </div>
+                </article>
               );
             })}
-          </div>
+          </section>
         )}
       </div>
 
@@ -397,312 +497,492 @@ export default function UsuariosPage() {
         .usuarios-page {
           min-height: 100vh;
           padding: 24px;
-          background: #f6f7fb;
+          background:
+            radial-gradient(circle at top left, rgba(59, 130, 246, 0.08), transparent 28%),
+            radial-gradient(circle at bottom right, rgba(17, 24, 39, 0.08), transparent 28%),
+            linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
         }
 
         .usuarios-container {
-          max-width: 1440px;
+          max-width: 1460px;
           margin: 0 auto;
         }
 
-        .topo {
+        .hero {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          gap: 16px;
+          gap: 20px;
           flex-wrap: wrap;
-          margin-bottom: 24px;
+          background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+          border: 1px solid rgba(226, 232, 240, 0.95);
+          border-radius: 30px;
+          padding: 28px;
+          box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+          margin-bottom: 20px;
         }
 
-        .topo-badge {
+        .hero-conteudo {
+          flex: 1;
+          min-width: 280px;
+        }
+
+        .hero-tag {
           display: inline-flex;
-          padding: 7px 12px;
+          align-items: center;
+          padding: 8px 12px;
           border-radius: 999px;
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          color: #374151;
+          background: #eef2ff;
+          color: #3730a3;
           font-size: 12px;
-          font-weight: 700;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          text-transform: uppercase;
           margin-bottom: 12px;
         }
 
-        .topo-esquerda h1 {
-          margin: 0 0 8px;
-          font-size: 34px;
-          color: #111827;
-          font-weight: 800;
+        .hero h1 {
+          margin: 0 0 10px;
+          font-size: 38px;
+          line-height: 1.05;
+          color: #0f172a;
+          font-weight: 900;
         }
 
-        .topo-esquerda p {
+        .hero p {
           margin: 0;
-          color: #6b7280;
+          max-width: 760px;
+          color: #475569;
           font-size: 15px;
+          line-height: 1.7;
         }
 
-        .topo-acoes {
+        .hero-acoes {
           display: flex;
           gap: 12px;
           flex-wrap: wrap;
         }
 
         .btn {
-          border: none;
-          border-radius: 14px;
+          min-height: 48px;
           padding: 12px 18px;
-          font-weight: 700;
-          text-decoration: none;
+          border-radius: 16px;
+          font-size: 14px;
+          font-weight: 800;
+          border: none;
           cursor: pointer;
+          text-decoration: none;
           display: inline-flex;
           align-items: center;
           justify-content: center;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
         }
 
-        .btn-primario {
-          background: linear-gradient(135deg, #111827, #1f2937);
-          color: #fff;
+        .btn:hover {
+          transform: translateY(-2px);
         }
 
-        .btn-secundario {
-          background: #fff;
-          color: #111827;
-          border: 1px solid #d1d5db;
+        .btn-dark {
+          background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+          color: #ffffff;
+          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
         }
 
-        .resumo-grid {
+        .btn-light {
+          background: #ffffff;
+          color: #0f172a;
+          border: 1px solid #dbe3ee;
+          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+        }
+
+        .stats-grid {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
           gap: 16px;
           margin-bottom: 20px;
         }
 
-        .resumo-card {
-          background: #fff;
-          border: 1px solid #e5e7eb;
-          border-radius: 22px;
+        .stat-card {
+          background: linear-gradient(180deg, #ffffff 0%, #fcfdff 100%);
+          border: 1px solid #e2e8f0;
+          border-radius: 24px;
           padding: 20px;
-          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
+          box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
         }
 
-        .resumo-card span {
+        .stat-card span {
           display: block;
-          color: #6b7280;
-          font-size: 14px;
+          color: #64748b;
+          font-size: 13px;
+          font-weight: 700;
           margin-bottom: 8px;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
         }
 
-        .resumo-card strong {
-          font-size: 28px;
-          color: #111827;
+        .stat-card strong {
+          display: block;
+          font-size: 30px;
+          color: #0f172a;
+          line-height: 1;
+          margin-bottom: 6px;
         }
 
-        .filtro-box {
-          margin-bottom: 22px;
+        .stat-card small {
+          color: #94a3b8;
+          font-size: 13px;
         }
 
-        .filtro-box input {
+        .toolbar {
+          margin-bottom: 20px;
+        }
+
+        .search-box {
+          position: relative;
+          display: flex;
+          align-items: center;
+          background: #ffffff;
+          border: 1px solid #dbe3ee;
+          border-radius: 22px;
+          padding: 0 16px 0 48px;
+          min-height: 58px;
+          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+        }
+
+        .search-icon {
+          position: absolute;
+          left: 16px;
+          width: 20px;
+          height: 20px;
+          color: #64748b;
+        }
+
+        .search-box input {
           width: 100%;
-          padding: 15px 18px;
-          background: #fff;
-          border: 1px solid #d8dee8;
-          border-radius: 18px;
-          font-size: 14px;
-          color: #111827;
+          border: none;
           outline: none;
+          background: transparent;
+          color: #0f172a;
+          font-size: 14px;
+          font-weight: 500;
         }
 
-        .estado {
-          background: #fff;
-          border-radius: 20px;
+        .search-box input::placeholder {
+          color: #94a3b8;
+        }
+
+        .estado-box {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
+          border-radius: 24px;
           padding: 24px;
           text-align: center;
-          border: 1px solid #e5e7eb;
+          color: #334155;
           font-weight: 700;
-          color: #374151;
+          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
         }
 
-        .estado.erro {
-          color: #b91c1c;
-          background: #fef2f2;
-          border-color: #fecaca;
+        .estado-erro {
+          background: #fff1f2;
+          border-color: #fecdd3;
+          color: #be123c;
         }
 
         .cards-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
           gap: 18px;
         }
 
-        .usuario-card {
-          background: linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
-          border: 1px solid #e5e7eb;
-          border-radius: 24px;
-          padding: 20px;
-          box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
+        .user-card {
+          position: relative;
+          overflow: hidden;
+          background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+          border: 1px solid #e2e8f0;
+          border-radius: 28px;
+          padding: 22px;
+          box-shadow: 0 16px 36px rgba(15, 23, 42, 0.06);
+          transition: transform 0.22s ease, box-shadow 0.22s ease;
         }
 
-        .card-topo {
+        .user-card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 20px 42px rgba(15, 23, 42, 0.1);
+        }
+
+        .card-glow {
+          position: absolute;
+          top: -40px;
+          right: -20px;
+          width: 120px;
+          height: 120px;
+          background: radial-gradient(circle, rgba(59, 130, 246, 0.12), transparent 70%);
+          pointer-events: none;
+        }
+
+        .card-top {
           display: flex;
           gap: 14px;
           align-items: center;
-          margin-bottom: 14px;
+          margin-bottom: 16px;
+          position: relative;
+          z-index: 1;
         }
 
         .avatar {
-          width: 56px;
-          height: 56px;
-          border-radius: 18px;
+          width: 62px;
+          height: 62px;
+          border-radius: 20px;
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 20px;
-          font-weight: 800;
-          color: #111827;
-          background: linear-gradient(135deg, #e5e7eb, #f9fafb);
-          border: 1px solid #d1d5db;
+          font-size: 22px;
+          font-weight: 900;
+          color: #0f172a;
+          background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 100%);
+          border: 1px solid #bfdbfe;
           flex-shrink: 0;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
         }
 
-        .usuario-info {
+        .user-main {
           min-width: 0;
           flex: 1;
         }
 
-        .titulo-linha {
+        .title-row {
           display: flex;
-          gap: 10px;
           align-items: center;
+          gap: 8px;
           flex-wrap: wrap;
           margin-bottom: 4px;
         }
 
-        .titulo-linha h2 {
+        .title-row h2 {
           margin: 0;
-          font-size: 20px;
-          color: #111827;
-          font-weight: 800;
+          color: #0f172a;
+          font-size: 21px;
+          line-height: 1.2;
+          font-weight: 900;
         }
 
-        .usuario-info p {
+        .email {
           margin: 0;
-          color: #6b7280;
+          color: #64748b;
           font-size: 14px;
+          line-height: 1.5;
           word-break: break-word;
         }
 
-        .badge-protegido {
+        .badge-protected {
           display: inline-flex;
           align-items: center;
           padding: 6px 10px;
           border-radius: 999px;
-          background: #111827;
-          color: #fff;
-          font-size: 12px;
+          background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
+          color: #ffffff;
+          font-size: 11px;
           font-weight: 800;
+          letter-spacing: 0.03em;
+          text-transform: uppercase;
         }
 
-        .badges-linha {
+        .badge-row {
           display: flex;
           gap: 8px;
           flex-wrap: wrap;
           margin-bottom: 16px;
+          position: relative;
+          z-index: 1;
         }
 
-        .badge-item {
+        .badge-soft,
+        .badge-status {
           display: inline-flex;
           align-items: center;
-          padding: 7px 10px;
+          min-height: 32px;
+          padding: 6px 10px;
           border-radius: 999px;
-          background: #f3f4f6;
-          color: #374151;
-          border: 1px solid #e5e7eb;
           font-size: 12px;
-          font-weight: 700;
+          font-weight: 800;
+          border: 1px solid transparent;
         }
 
-        .badge-nivel {
+        .badge-soft {
+          background: #f8fafc;
+          color: #334155;
+          border-color: #e2e8f0;
+        }
+
+        .badge-level {
           background: #eef2ff;
           color: #3730a3;
           border-color: #c7d2fe;
         }
 
-        .badge-status {
+        .badge-status-ativo {
           background: #ecfdf5;
-          color: #065f46;
+          color: #047857;
           border-color: #a7f3d0;
         }
 
-        .dados-grid {
+        .badge-status-inativo {
+          background: #fff7ed;
+          color: #c2410c;
+          border-color: #fdba74;
+        }
+
+        .badge-status-bloqueado {
+          background: #fef2f2;
+          color: #b91c1c;
+          border-color: #fecaca;
+        }
+
+        .badge-status-padrao {
+          background: #f1f5f9;
+          color: #334155;
+          border-color: #cbd5e1;
+        }
+
+        .info-grid {
           display: grid;
           grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 12px;
           margin-bottom: 18px;
+          position: relative;
+          z-index: 1;
         }
 
-        .dado {
-          background: #f9fafb;
-          border: 1px solid #eef2f7;
-          border-radius: 18px;
+        .info-card {
+          background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+          border: 1px solid #e2e8f0;
+          border-radius: 20px;
           padding: 14px;
         }
 
-        .dado span {
-          display: block;
-          font-size: 12px;
-          color: #6b7280;
-          margin-bottom: 6px;
-          text-transform: uppercase;
-          letter-spacing: 0.04em;
-          font-weight: 700;
+        .info-card.destaque {
+          background: linear-gradient(180deg, #eff6ff 0%, #ffffff 100%);
+          border-color: #bfdbfe;
         }
 
-        .dado strong {
+        .info-card span {
           display: block;
-          color: #111827;
+          color: #64748b;
+          font-size: 11px;
+          font-weight: 800;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          margin-bottom: 8px;
+        }
+
+        .info-card strong {
+          color: #0f172a;
           font-size: 15px;
-          line-height: 1.4;
+          line-height: 1.45;
           word-break: break-word;
         }
 
-        .acoes {
+        .pin-row {
+          display: flex;
+          gap: 8px;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .pin-row strong {
+          font-size: 16px;
+          font-weight: 900;
+        }
+
+        .copy-btn {
+          border: none;
+          background: #0f172a;
+          color: #ffffff;
+          border-radius: 12px;
+          min-height: 34px;
+          padding: 6px 10px;
+          font-size: 12px;
+          font-weight: 800;
+          cursor: pointer;
+          transition: opacity 0.2s ease, transform 0.2s ease;
+          white-space: nowrap;
+        }
+
+        .copy-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+        }
+
+        .copy-btn:disabled {
+          opacity: 0.55;
+          cursor: not-allowed;
+        }
+
+        .footer-line {
+          height: 1px;
+          background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+          margin-bottom: 16px;
+        }
+
+        .card-actions {
           display: flex;
           gap: 10px;
           flex-wrap: wrap;
+          position: relative;
+          z-index: 1;
         }
 
-        .btn-acao {
+        .action-btn {
           flex: 1;
           min-width: 100px;
-          text-align: center;
-          border-radius: 14px;
-          padding: 12px 14px;
+          min-height: 46px;
+          padding: 10px 14px;
+          border-radius: 16px;
           text-decoration: none;
           font-size: 13px;
-          font-weight: 800;
+          font-weight: 900;
           cursor: pointer;
           border: none;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
         }
 
-        .btn-visualizar {
-          background: #f3f4f6;
-          color: #111827;
-          border: 1px solid #e5e7eb;
+        .action-btn:hover:not(:disabled) {
+          transform: translateY(-2px);
         }
 
-        .btn-editar {
-          background: #ecfdf5;
-          color: #065f46;
-          border: 1px solid #a7f3d0;
+        .action-btn-view {
+          background: #f8fafc;
+          color: #0f172a;
+          border: 1px solid #dbe3ee;
         }
 
-        .btn-excluir {
-          background: #fef2f2;
-          color: #b91c1c;
-          border: 1px solid #fecaca;
+        .action-btn-edit {
+          background: linear-gradient(135deg, #dcfce7 0%, #ecfdf5 100%);
+          color: #166534;
+          border: 1px solid #86efac;
         }
 
-        .btn-acao:disabled {
-          opacity: 0.65;
+        .action-btn-delete {
+          background: linear-gradient(135deg, #ffe4e6 0%, #fff1f2 100%);
+          color: #be123c;
+          border: 1px solid #fda4af;
+        }
+
+        .action-btn:disabled {
+          opacity: 0.55;
           cursor: not-allowed;
+        }
+
+        @media (max-width: 900px) {
+          .hero {
+            padding: 22px;
+          }
+
+          .hero h1 {
+            font-size: 32px;
+          }
         }
 
         @media (max-width: 768px) {
@@ -710,15 +990,15 @@ export default function UsuariosPage() {
             padding: 16px;
           }
 
-          .topo {
+          .hero {
             flex-direction: column;
           }
 
-          .topo-acoes {
+          .hero-acoes {
             width: 100%;
           }
 
-          .topo-acoes .btn {
+          .hero-acoes .btn {
             width: 100%;
           }
 
@@ -726,19 +1006,19 @@ export default function UsuariosPage() {
             grid-template-columns: 1fr;
           }
 
-          .dados-grid {
+          .info-grid {
             grid-template-columns: 1fr;
           }
 
-          .acoes {
+          .card-actions {
             flex-direction: column;
           }
 
-          .btn-acao {
+          .action-btn {
             width: 100%;
           }
 
-          .topo-esquerda h1 {
+          .hero h1 {
             font-size: 28px;
           }
         }
