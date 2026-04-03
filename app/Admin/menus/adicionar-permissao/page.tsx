@@ -12,14 +12,28 @@ type Permissao = {
   criado?: string | null;
 };
 
-type Nivel = {
-  id_nivel: number;
+type MenuItem = {
+  id_item: number;
+  menu_id: number;
   nome: string;
+  rota: string | null;
+  icone: string | null;
+  posicao?: number;
+};
+
+type Nivel = {
+  id_nivel?: number;
+  id?: number;
+  nivel_id?: number;
+  nome?: string;
+  titulo?: string;
 };
 
 type Status = {
-  id_status: number;
-  nome: string;
+  id_status?: number;
+  id?: number;
+  nome?: string;
+  titulo?: string;
 };
 
 export default function AdicionarPermissaoPage() {
@@ -30,6 +44,7 @@ export default function AdicionarPermissaoPage() {
   const [statusId, setStatusId] = useState("");
 
   const [permissoes, setPermissoes] = useState<Permissao[]>([]);
+  const [itensMenu, setItensMenu] = useState<MenuItem[]>([]);
   const [niveis, setNiveis] = useState<Nivel[]>([]);
   const [statusList, setStatusList] = useState<Status[]>([]);
 
@@ -50,44 +65,36 @@ export default function AdicionarPermissaoPage() {
     }
   }, []);
 
+  function normalizarLista<T>(dados: any): T[] {
+    if (Array.isArray(dados)) return dados;
+    if (dados && Array.isArray(dados.dados)) return dados.dados;
+    return [];
+  }
+
   async function carregarPermissoes(id: number) {
     try {
       const response = await api.get(`/painel/menu/${id}/permissoes`);
-      const dados = response?.data?.dados;
-
-      if (Array.isArray(dados)) {
-        setPermissoes(dados);
-        return;
-      }
-
-      if (dados && Array.isArray(dados.dados)) {
-        setPermissoes(dados.dados);
-        return;
-      }
-
-      setPermissoes([]);
+      setPermissoes(normalizarLista<Permissao>(response?.data?.dados));
     } catch (error) {
       console.error("Erro ao carregar permissões:", error);
       setPermissoes([]);
     }
   }
 
+  async function carregarItensMenu(id: number) {
+    try {
+      const response = await api.get(`/painel/menu/${id}/itens`);
+      setItensMenu(normalizarLista<MenuItem>(response?.data?.dados));
+    } catch (error) {
+      console.error("Erro ao carregar itens do menu:", error);
+      setItensMenu([]);
+    }
+  }
+
   async function carregarNiveis() {
     try {
       const response = await api.get("/painel/niveis");
-      const dados = response?.data?.dados;
-
-      if (Array.isArray(dados)) {
-        setNiveis(dados);
-        return;
-      }
-
-      if (dados && Array.isArray(dados.dados)) {
-        setNiveis(dados.dados);
-        return;
-      }
-
-      setNiveis([]);
+      setNiveis(normalizarLista<Nivel>(response?.data?.dados));
     } catch (error) {
       console.error("Erro ao carregar níveis:", error);
       setNiveis([]);
@@ -97,19 +104,7 @@ export default function AdicionarPermissaoPage() {
   async function carregarStatus() {
     try {
       const response = await api.get("/painel/status");
-      const dados = response?.data?.dados;
-
-      if (Array.isArray(dados)) {
-        setStatusList(dados);
-        return;
-      }
-
-      if (dados && Array.isArray(dados.dados)) {
-        setStatusList(dados.dados);
-        return;
-      }
-
-      setStatusList([]);
+      setStatusList(normalizarLista<Status>(response?.data?.dados));
     } catch (error) {
       console.error("Erro ao carregar status:", error);
       setStatusList([]);
@@ -125,7 +120,10 @@ export default function AdicionarPermissaoPage() {
         await Promise.all([carregarNiveis(), carregarStatus()]);
 
         if (menuId) {
-          await carregarPermissoes(menuId);
+          await Promise.all([
+            carregarItensMenu(menuId),
+            carregarPermissoes(menuId),
+          ]);
         }
       } catch (error) {
         console.error(error);
@@ -190,6 +188,28 @@ export default function AdicionarPermissaoPage() {
     window.location.href = "/Admin/menus";
   }
 
+  function getNivelId(nivel: Nivel) {
+    return nivel.id_nivel ?? nivel.id ?? nivel.nivel_id ?? 0;
+  }
+
+  function getNivelNome(nivel: Nivel) {
+    return nivel.nome ?? nivel.titulo ?? `Nível ${getNivelId(nivel)}`;
+  }
+
+  function getStatusId(status: Status) {
+    return status.id_status ?? status.id ?? 0;
+  }
+
+  function getStatusNome(status: Status) {
+    return status.nome ?? status.titulo ?? `Status ${getStatusId(status)}`;
+  }
+
+  function getNomeItemPorId(id: number | null) {
+    if (!id) return "Menu inteiro";
+    const item = itensMenu.find((i) => i.id_item === id);
+    return item ? item.nome : `Item ${id}`;
+  }
+
   if (loading) {
     return (
       <main style={styles.page}>
@@ -236,14 +256,19 @@ export default function AdicionarPermissaoPage() {
           <form onSubmit={handleSubmit} style={styles.form}>
             <div style={styles.grid}>
               <div style={styles.field}>
-                <label style={styles.label}>Item do menu (opcional)</label>
-                <input
+                <label style={styles.label}>Item do menu</label>
+                <select
                   style={styles.input}
-                  type="number"
                   value={itemId}
                   onChange={(e) => setItemId(e.target.value)}
-                  placeholder="Ex.: 1"
-                />
+                >
+                  <option value="">Menu inteiro</option>
+                  {itensMenu.map((item) => (
+                    <option key={item.id_item} value={item.id_item}>
+                      {item.nome} {item.rota ? `- ${item.rota}` : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div style={styles.field}>
@@ -253,13 +278,10 @@ export default function AdicionarPermissaoPage() {
                   value={nivelId}
                   onChange={(e) => setNivelId(e.target.value)}
                 >
-                  <option value="">Selecione</option>
-                  {niveis.map((nivel: any) => (
-                    <option
-                      key={nivel.id_nivel ?? nivel.id ?? nivel.nivel_id}
-                      value={nivel.id_nivel ?? nivel.id ?? nivel.nivel_id}
-                    >
-                      {nivel.nome ?? nivel.titulo ?? `Nível ${nivel.id_nivel}`}
+                  <option value="">Selecione um nível</option>
+                  {niveis.map((nivel) => (
+                    <option key={getNivelId(nivel)} value={getNivelId(nivel)}>
+                      {getNivelNome(nivel)}
                     </option>
                   ))}
                 </select>
@@ -272,13 +294,13 @@ export default function AdicionarPermissaoPage() {
                   value={statusId}
                   onChange={(e) => setStatusId(e.target.value)}
                 >
-                  <option value="">Selecione</option>
-                  {statusList.map((status: any) => (
+                  <option value="">Selecione um status</option>
+                  {statusList.map((status) => (
                     <option
-                      key={status.id_status ?? status.id}
-                      value={status.id_status ?? status.id}
+                      key={getStatusId(status)}
+                      value={getStatusId(status)}
                     >
-                      {status.nome ?? status.titulo ?? `Status ${status.id_status}`}
+                      {getStatusNome(status)}
                     </option>
                   ))}
                 </select>
@@ -334,7 +356,7 @@ export default function AdicionarPermissaoPage() {
                       <td style={styles.td}>{permissao.id_permissao}</td>
                       <td style={styles.td}>{permissao.menu_id}</td>
                       <td style={styles.td}>
-                        {permissao.item_id ?? "Sem item"}
+                        {getNomeItemPorId(permissao.item_id)}
                       </td>
                       <td style={styles.td}>{permissao.nivel_id}</td>
                       <td style={styles.td}>{permissao.status_id}</td>
