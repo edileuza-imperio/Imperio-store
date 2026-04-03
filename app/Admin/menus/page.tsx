@@ -37,7 +37,6 @@ export default function MenusPage() {
   const [menus, setMenus] = useState<Menu[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const [respostaBruta, setRespostaBruta] = useState<ApiResponse | null>(null);
 
   useEffect(() => {
     async function carregarMenus() {
@@ -47,8 +46,6 @@ export default function MenusPage() {
 
         const response = await api.get<ApiResponse>("/painel/menus");
         const payload = response.data;
-
-        setRespostaBruta(payload);
 
         let listaMenus: Menu[] = [];
 
@@ -83,7 +80,7 @@ export default function MenusPage() {
           <div>
             <h1 style={styles.title}>Listar Menus</h1>
             <p style={styles.subtitle}>
-              Visualização dos menus cadastrados em tabela e cards.
+              Visualização dos menus cadastrados com seus itens.
             </p>
           </div>
 
@@ -119,22 +116,15 @@ export default function MenusPage() {
           <>
             <section style={styles.statsRow}>
               <div style={styles.statCard}>
-                <span style={styles.statLabel}>Status</span>
-                <strong style={styles.statValue}>
-                  {respostaBruta?.status ?? "-"}
-                </strong>
-              </div>
-
-              <div style={styles.statCard}>
-                <span style={styles.statLabel}>Mensagem</span>
-                <strong style={styles.statValue}>
-                  {respostaBruta?.mensagem ?? "-"}
-                </strong>
-              </div>
-
-              <div style={styles.statCard}>
                 <span style={styles.statLabel}>Total de menus</span>
                 <strong style={styles.statValue}>{menus.length}</strong>
+              </div>
+
+              <div style={styles.statCard}>
+                <span style={styles.statLabel}>Total de itens</span>
+                <strong style={styles.statValue}>
+                  {menus.reduce((total, menu) => total + (menu.itens?.length || 0), 0)}
+                </strong>
               </div>
             </section>
 
@@ -180,7 +170,7 @@ export default function MenusPage() {
             </section>
 
             <section style={styles.cardsSection}>
-              <div style={styles.sectionHeader}>
+              <div style={styles.sectionHeaderTransparent}>
                 <h2 style={styles.sectionTitle}>Cards dos Menus</h2>
               </div>
 
@@ -199,9 +189,7 @@ export default function MenusPage() {
                       <div style={styles.cardBody}>
                         <div style={styles.infoRow}>
                           <span style={styles.infoLabel}>Site Config</span>
-                          <span style={styles.infoValue}>
-                            {menu.site_config_id}
-                          </span>
+                          <span style={styles.infoValue}>{menu.site_config_id}</span>
                         </div>
 
                         <div style={styles.infoRow}>
@@ -240,21 +228,23 @@ export default function MenusPage() {
                                       #{item.id_item}
                                     </span>
                                   </div>
+
                                   <p style={styles.itemText}>
-                                    <strong>Rota:</strong>{" "}
-                                    {item.rota || "Sem rota"}
+                                    <strong>Rota:</strong> {item.rota || "Sem rota"}
                                   </p>
+
                                   <p style={styles.itemText}>
-                                    <strong>Ícone:</strong>{" "}
-                                    {item.icone || "Sem ícone"}
+                                    <strong>Ícone:</strong> {item.icone || "Sem ícone"}
+                                  </p>
+
+                                  <p style={styles.itemText}>
+                                    <strong>Posição:</strong> {item.posicao ?? 0}
                                   </p>
                                 </li>
                               ))}
                             </ul>
                           ) : (
-                            <p style={styles.emptyText}>
-                              Esse menu não possui itens.
-                            </p>
+                            <p style={styles.emptyText}>Esse menu não possui itens.</p>
                           )}
                         </div>
                       </div>
@@ -266,13 +256,6 @@ export default function MenusPage() {
                   <p style={styles.emptyText}>Nenhum menu encontrado.</p>
                 </div>
               )}
-            </section>
-
-            <section style={styles.jsonBox}>
-              <h2 style={styles.jsonTitle}>Resposta bruta da API</h2>
-              <pre style={styles.pre}>
-                {JSON.stringify(respostaBruta, null, 2)}
-              </pre>
             </section>
           </>
         )}
@@ -369,6 +352,9 @@ const styles: Record<string, React.CSSProperties> = {
     padding: "18px 20px",
     borderBottom: "1px solid #e2e8f0",
     background: "#fff",
+  },
+  sectionHeaderTransparent: {
+    marginBottom: "16px",
   },
   sectionTitle: {
     margin: 0,
@@ -514,24 +500,5 @@ const styles: Record<string, React.CSSProperties> = {
   emptyText: {
     margin: 0,
     color: "#64748b",
-  },
-  jsonBox: {
-    marginTop: "24px",
-    background: "#0f172a",
-    borderRadius: "18px",
-    padding: "18px",
-    overflow: "auto",
-  },
-  jsonTitle: {
-    color: "#f8fafc",
-    fontSize: "18px",
-    marginBottom: "12px",
-  },
-  pre: {
-    color: "#cbd5e1",
-    fontSize: "13px",
-    whiteSpace: "pre-wrap",
-    wordBreak: "break-word",
-    margin: 0,
   },
 };
