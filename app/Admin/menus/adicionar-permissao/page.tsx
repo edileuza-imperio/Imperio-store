@@ -1,7 +1,7 @@
 "use client";
 
 import api from "@/Api/conectar";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type Permissao = {
   id_permissao: number;
@@ -29,7 +29,7 @@ type Nivel = {
   titulo?: string;
 };
 
-type Status = {
+type StatusItem = {
   id_status?: number;
   id?: number;
   nome?: string;
@@ -46,7 +46,7 @@ export default function AdicionarPermissaoPage() {
   const [permissoes, setPermissoes] = useState<Permissao[]>([]);
   const [itensMenu, setItensMenu] = useState<MenuItem[]>([]);
   const [niveis, setNiveis] = useState<Nivel[]>([]);
-  const [statusList, setStatusList] = useState<Status[]>([]);
+  const [statusList, setStatusList] = useState<StatusItem[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
@@ -104,7 +104,7 @@ export default function AdicionarPermissaoPage() {
   async function carregarStatus() {
     try {
       const response = await api.get("/painel/status");
-      setStatusList(normalizarLista<Status>(response?.data?.dados));
+      setStatusList(normalizarLista<StatusItem>(response?.data?.dados));
     } catch (error) {
       console.error("Erro ao carregar status:", error);
       setStatusList([]);
@@ -126,7 +126,7 @@ export default function AdicionarPermissaoPage() {
           ]);
         }
       } catch (error) {
-        console.error(error);
+        console.error("Erro ao carregar dados:", error);
       } finally {
         setLoading(false);
       }
@@ -134,6 +134,69 @@ export default function AdicionarPermissaoPage() {
 
     carregarTudo();
   }, [menuId]);
+
+  const niveisMap = useMemo(() => {
+    const mapa = new Map<number, string>();
+
+    niveis.forEach((nivel) => {
+      const id = Number(nivel.id_nivel ?? nivel.id ?? nivel.nivel_id ?? 0);
+      const nome = nivel.nome ?? nivel.titulo ?? `Nível ${id}`;
+
+      if (id > 0) {
+        mapa.set(id, nome);
+      }
+    });
+
+    return mapa;
+  }, [niveis]);
+
+  const statusMap = useMemo(() => {
+    const mapa = new Map<number, string>();
+
+    statusList.forEach((status) => {
+      const id = Number(status.id_status ?? status.id ?? 0);
+      const nome = status.nome ?? status.titulo ?? `Status ${id}`;
+
+      if (id > 0) {
+        mapa.set(id, nome);
+      }
+    });
+
+    return mapa;
+  }, [statusList]);
+
+  function getNivelId(nivel: Nivel) {
+    return Number(nivel.id_nivel ?? nivel.id ?? nivel.nivel_id ?? 0);
+  }
+
+  function getNivelNome(nivel: Nivel) {
+    const id = getNivelId(nivel);
+    return nivel.nome ?? nivel.titulo ?? `Nível ${id}`;
+  }
+
+  function getStatusId(status: StatusItem) {
+    return Number(status.id_status ?? status.id ?? 0);
+  }
+
+  function getStatusNome(status: StatusItem) {
+    const id = getStatusId(status);
+    return status.nome ?? status.titulo ?? `Status ${id}`;
+  }
+
+  function getNomeItemPorId(id: number | null) {
+    if (!id) return "Menu inteiro";
+
+    const item = itensMenu.find((i) => i.id_item === id);
+    return item ? item.nome : `Item ${id}`;
+  }
+
+  function getNomeNivelPorId(id: number) {
+    return niveisMap.get(id) || `Nível ${id}`;
+  }
+
+  function getNomeStatusPorId(id: number) {
+    return statusMap.get(id) || `Status ${id}`;
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -172,6 +235,7 @@ export default function AdicionarPermissaoPage() {
       setStatusId("");
 
       await carregarPermissoes(menuId);
+      await carregarItensMenu(menuId);
     } catch (error: any) {
       console.error("Erro ao cadastrar permissão:", error);
 
@@ -186,28 +250,6 @@ export default function AdicionarPermissaoPage() {
 
   function voltar() {
     window.location.href = "/Admin/menus";
-  }
-
-  function getNivelId(nivel: Nivel) {
-    return nivel.id_nivel ?? nivel.id ?? nivel.nivel_id ?? 0;
-  }
-
-  function getNivelNome(nivel: Nivel) {
-    return nivel.nome ?? nivel.titulo ?? `Nível ${getNivelId(nivel)}`;
-  }
-
-  function getStatusId(status: Status) {
-    return status.id_status ?? status.id ?? 0;
-  }
-
-  function getStatusNome(status: Status) {
-    return status.nome ?? status.titulo ?? `Status ${getStatusId(status)}`;
-  }
-
-  function getNomeItemPorId(id: number | null) {
-    if (!id) return "Menu inteiro";
-    const item = itensMenu.find((i) => i.id_item === id);
-    return item ? item.nome : `Item ${id}`;
   }
 
   if (loading) {
@@ -358,8 +400,12 @@ export default function AdicionarPermissaoPage() {
                       <td style={styles.td}>
                         {getNomeItemPorId(permissao.item_id)}
                       </td>
-                      <td style={styles.td}>{permissao.nivel_id}</td>
-                      <td style={styles.td}>{permissao.status_id}</td>
+                      <td style={styles.td}>
+                        {getNomeNivelPorId(permissao.nivel_id)}
+                      </td>
+                      <td style={styles.td}>
+                        {getNomeStatusPorId(permissao.status_id)}
+                      </td>
                       <td style={styles.td}>
                         {permissao.criado || "Não informado"}
                       </td>
