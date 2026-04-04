@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import api from "@/services/api";
+import api from "@/Api/conectar";
+
 
 type ConfigPagamento = {
   id_config_pagamento: number;
