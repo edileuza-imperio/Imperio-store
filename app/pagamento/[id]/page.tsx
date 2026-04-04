@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import api from "@/Api/conectar";
 import Navbar from "@/components/site/menu/navbar";
 import Footer from "@/components/site/Rodape/Footer";
@@ -17,9 +17,7 @@ import {
   FiZap,
   FiCopy,
   FiExternalLink,
-  FiHash,
   FiCalendar,
-  FiDollarSign,
 } from "react-icons/fi";
 
 type Pedido = {
@@ -150,20 +148,17 @@ function extrairUrlPagamento(data: any): string | null {
 function extrairPix(data: any) {
   const base = data?.dados ?? data ?? {};
   const pix = base?.pix ?? {};
-  const pagamento = base?.pagamento ?? {};
 
   return {
     qrCode: pix?.qr_code ?? null,
     qrCodeBase64: pix?.qr_code_base64 ?? null,
     ticketUrl: pix?.ticket_url ?? null,
-    paymentId: pagamento?.id ?? null,
-    paymentStatus: pagamento?.status ?? null,
-    paymentStatusDetail: pagamento?.status_detail ?? null,
   };
 }
 
 export default function PagamentoPage() {
   const params = useParams();
+  const router = useRouter();
   const id = String(params?.id ?? "");
 
   const [loading, setLoading] = React.useState(true);
@@ -176,9 +171,6 @@ export default function PagamentoPage() {
   const [qrCode, setQrCode] = React.useState<string | null>(null);
   const [qrCodeBase64, setQrCodeBase64] = React.useState<string | null>(null);
   const [ticketUrl, setTicketUrl] = React.useState<string | null>(null);
-  const [pixPaymentId, setPixPaymentId] = React.useState<string | number | null>(null);
-  const [pixStatus, setPixStatus] = React.useState<string | null>(null);
-  const [pixStatusDetail, setPixStatusDetail] = React.useState<string | null>(null);
 
   async function carregarPedido() {
     try {
@@ -222,9 +214,6 @@ export default function PagamentoPage() {
     setQrCode(null);
     setQrCodeBase64(null);
     setTicketUrl(null);
-    setPixPaymentId(null);
-    setPixStatus(null);
-    setPixStatusDetail(null);
   }
 
   async function gerarPix() {
@@ -253,9 +242,6 @@ export default function PagamentoPage() {
       setQrCode(pix.qrCode);
       setQrCodeBase64(pix.qrCodeBase64);
       setTicketUrl(pix.ticketUrl);
-      setPixPaymentId(pix.paymentId);
-      setPixStatus(pix.paymentStatus);
-      setPixStatusDetail(pix.paymentStatusDetail);
 
       if (!pix.qrCodeBase64 && !pix.qrCode) {
         toast.warning("O QR Code PIX não foi retornado pela API.");
@@ -328,6 +314,11 @@ export default function PagamentoPage() {
     } catch {
       toast.error("Não foi possível copiar o código PIX.");
     }
+  }
+
+  function handleFinalizarPedido() {
+    toast.success("Pedido finalizado!");
+    router.push("/pagamento/sucesso");
   }
 
   const subtotal = num(pedido?.valor_produtos);
@@ -652,34 +643,6 @@ export default function PagamentoPage() {
           font-weight: 800;
         }
 
-        .pix-info-grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 12px;
-          margin-bottom: 14px;
-        }
-
-        .pix-info-item {
-          background: #fff;
-          border: 1px solid #eddcd2;
-          border-radius: 16px;
-          padding: 14px;
-        }
-
-        .pix-info-item span {
-          display: block;
-          font-size: 12px;
-          color: #8b6b5d;
-          margin-bottom: 6px;
-          font-weight: 700;
-        }
-
-        .pix-info-item strong {
-          color: #3f2d26;
-          font-size: 15px;
-          word-break: break-word;
-        }
-
         .pix-copy-area {
           margin-top: 12px;
         }
@@ -769,8 +732,7 @@ export default function PagamentoPage() {
             font-size: 26px;
           }
 
-          .metodos-grid,
-          .pix-info-grid {
+          .metodos-grid {
             grid-template-columns: 1fr;
           }
 
@@ -920,31 +882,6 @@ export default function PagamentoPage() {
                         </div>
                       </div>
 
-                      <div className="pix-info-grid">
-                        <div className="pix-info-item">
-                          <span>
-                            <FiHash style={{ marginRight: 6 }} />
-                            Payment ID
-                          </span>
-                          <strong>{pixPaymentId || "--"}</strong>
-                        </div>
-
-                        <div className="pix-info-item">
-                          <span>
-                            <FiDollarSign style={{ marginRight: 6 }} />
-                            Status
-                          </span>
-                          <strong>{pixStatus || "--"}</strong>
-                        </div>
-                      </div>
-
-                      {pixStatusDetail && (
-                        <div className="pix-info-item" style={{ marginBottom: 14 }}>
-                          <span>Detalhe do status</span>
-                          <strong>{pixStatusDetail}</strong>
-                        </div>
-                      )}
-
                       <div className="pix-copy-area">
                         <label>Código PIX copia e cola</label>
                         <textarea readOnly value={qrCode || ""} />
@@ -966,12 +903,26 @@ export default function PagamentoPage() {
                             target="_blank"
                             rel="noreferrer"
                             className="btn btn-outline-brand"
-                            style={{ textDecoration: "none", display: "inline-flex", alignItems: "center", padding: "0 18px" }}
+                            style={{
+                              textDecoration: "none",
+                              display: "inline-flex",
+                              alignItems: "center",
+                              padding: "0 18px"
+                            }}
                           >
                             <FiExternalLink style={{ marginRight: 8 }} />
                             Abrir página do pagamento
                           </a>
                         )}
+
+                        <button
+                          type="button"
+                          className="btn btn-brand"
+                          onClick={handleFinalizarPedido}
+                        >
+                          <FiCheckCircle style={{ marginRight: 8 }} />
+                          Finalizar pedido
+                        </button>
                       </div>
                     </div>
                   )}
