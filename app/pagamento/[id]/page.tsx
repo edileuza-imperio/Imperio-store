@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import api from "@/Api/conectar";
 import Navbar from "@/components/site/menu/navbar";
 import Footer from "@/components/site/Rodape/Footer";
@@ -15,6 +15,7 @@ import {
   FiRefreshCw,
   FiArrowRight,
   FiPackage,
+  FiZap,
 } from "react-icons/fi";
 
 type Pedido = {
@@ -144,7 +145,6 @@ function extrairUrlPagamento(data: any): string | null {
 
 export default function PagamentoPage() {
   const params = useParams();
-  const router = useRouter();
   const id = String(params?.id ?? "");
 
   const [loading, setLoading] = React.useState(true);
@@ -152,6 +152,7 @@ export default function PagamentoPage() {
   const [erro, setErro] = React.useState<string | null>(null);
   const [pedido, setPedido] = React.useState<Pedido | null>(null);
   const [paymentUrl, setPaymentUrl] = React.useState<string | null>(null);
+  const [metodoPagamento, setMetodoPagamento] = React.useState<"pix" | "cartao" | null>(null);
 
   async function carregarPedido() {
     try {
@@ -164,6 +165,12 @@ export default function PagamentoPage() {
 
       setPedido(pedidoExtraido);
       setPaymentUrl(url);
+
+      if (pedidoExtraido?.metodo_pagamento) {
+        const metodo = String(pedidoExtraido.metodo_pagamento).toLowerCase();
+        if (metodo.includes("pix")) setMetodoPagamento("pix");
+        if (metodo.includes("cart")) setMetodoPagamento("cartao");
+      }
 
       if (!pedidoExtraido) {
         setErro("Pedido não encontrado.");
@@ -186,15 +193,23 @@ export default function PagamentoPage() {
   }, [id]);
 
   async function handleIrParaPagamento() {
+    if (!metodoPagamento) {
+      toast.warning("Selecione um método de pagamento.");
+      return;
+    }
+
     try {
+      setCarregandoPagamento(true);
+
       if (paymentUrl) {
         window.location.href = paymentUrl;
         return;
       }
 
-      setCarregandoPagamento(true);
+      const response = await api.post(`/pedido/${id}/pagamento`, {
+        metodo: metodoPagamento,
+      });
 
-      const response = await api.post(`/pedido/${id}/pagamento`, {});
       const url = extrairUrlPagamento(response.data);
 
       if (url) {
@@ -202,7 +217,7 @@ export default function PagamentoPage() {
         return;
       }
 
-      toast.warning("A URL de pagamento não foi retornada pela API.");
+      toast.warning("A API não retornou a URL de pagamento.");
     } catch (error: any) {
       toast.error(
         error?.response?.data?.mensagem ||
@@ -431,6 +446,64 @@ export default function PagamentoPage() {
           flex-shrink: 0;
         }
 
+        .metodos {
+          margin-top: 8px;
+          margin-bottom: 16px;
+        }
+
+        .metodos h3 {
+          font-size: 16px;
+          font-weight: 900;
+          margin-bottom: 12px;
+          color: #5c2e2e;
+        }
+
+        .metodos-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+
+        .metodo {
+          border: 2px solid #f1d6cf;
+          background: #fff;
+          border-radius: 18px;
+          padding: 16px;
+          text-align: left;
+          cursor: pointer;
+          transition: 0.2s ease;
+          font-weight: 800;
+          color: #4b372f;
+        }
+
+        .metodo:hover {
+          border-color: #b55f53;
+          transform: translateY(-1px);
+          box-shadow: 0 12px 24px rgba(185, 101, 88, 0.08);
+        }
+
+        .metodo.ativo {
+          border-color: #b55f53;
+          background: #fff3ef;
+          box-shadow: 0 0 0 3px rgba(181, 95, 83, 0.14);
+        }
+
+        .metodo-topo {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          margin-bottom: 6px;
+          font-size: 15px;
+          font-weight: 900;
+        }
+
+        .metodo span {
+          display: block;
+          font-size: 12px;
+          color: #8a6a60;
+          margin-top: 4px;
+        }
+
         .btn-brand {
           background: linear-gradient(135deg, #b55f53 0%, #8f433a 100%);
           color: white;
@@ -482,6 +555,10 @@ export default function PagamentoPage() {
           .hero h1 {
             font-size: 26px;
           }
+
+          .metodos-grid {
+            grid-template-columns: 1fr;
+          }
         }
       `}</style>
 
@@ -494,7 +571,7 @@ export default function PagamentoPage() {
               </div>
               <div>
                 <h1>Pagamento do pedido</h1>
-                <p>Confirme as informações e siga para o pagamento.</p>
+                <p>Selecione o método de pagamento e continue com segurança.</p>
               </div>
             </div>
 
@@ -550,8 +627,8 @@ export default function PagamentoPage() {
                     </div>
 
                     <div className="meta-card">
-                      <span>Método</span>
-                      <strong>{pedido.metodo_pagamento || "Não informado"}</strong>
+                      <span>Método atual</span>
+                      <strong>{pedido.metodo_pagamento || "Ainda não selecionado"}</strong>
                     </div>
 
                     <div className="meta-card">
@@ -586,12 +663,42 @@ export default function PagamentoPage() {
                 <div className="surface box">
                   <h2 className="section-title">
                     <FiCreditCard size={20} />
-                    <span>Resumo do pagamento</span>
+                    <span>Pagamento</span>
                   </h2>
 
                   <div className="highlight">
                     <FiPackage size={18} />
-                    <span>Seu pedido já foi criado. Agora falta concluir o pagamento.</span>
+                    <span>Selecione como deseja pagar para continuar.</span>
+                  </div>
+
+                  <div className="metodos">
+                    <h3>Escolha o método de pagamento</h3>
+
+                    <div className="metodos-grid">
+                      <button
+                        type="button"
+                        className={`metodo ${metodoPagamento === "pix" ? "ativo" : ""}`}
+                        onClick={() => setMetodoPagamento("pix")}
+                      >
+                        <div className="metodo-topo">
+                          <FiZap size={18} />
+                          <span style={{ margin: 0, fontSize: 15, color: "inherit" }}>PIX</span>
+                        </div>
+                        <span>Aprovação geralmente mais rápida</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        className={`metodo ${metodoPagamento === "cartao" ? "ativo" : ""}`}
+                        onClick={() => setMetodoPagamento("cartao")}
+                      >
+                        <div className="metodo-topo">
+                          <FiCreditCard size={18} />
+                          <span style={{ margin: 0, fontSize: 15, color: "inherit" }}>Cartão</span>
+                        </div>
+                        <span>Crédito ou débito, conforme a integração</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="summary-line">
@@ -618,16 +725,13 @@ export default function PagamentoPage() {
                     type="button"
                     className="btn btn-brand w-100 mt-4"
                     onClick={handleIrParaPagamento}
-                    disabled={carregandoPagamento}
+                    disabled={!metodoPagamento || carregandoPagamento}
                   >
-                    {carregandoPagamento
+                    {!metodoPagamento
+                      ? "Selecione um método"
+                      : carregandoPagamento
                       ? "Iniciando pagamento..."
-                      : (
-                        <>
-                          Ir para pagamento
-                          <FiArrowRight style={{ marginLeft: 8 }} />
-                        </>
-                      )}
+                      : `Pagar com ${metodoPagamento === "pix" ? "PIX" : "Cartão"}`}
                   </button>
 
                   <button
