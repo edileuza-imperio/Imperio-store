@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import {
   Eye,
   MousePointerClick,
@@ -10,9 +10,11 @@ import {
   RefreshCw,
   Plus,
   Search,
+  Save,
+  X,
+  UploadCloud,
 } from "lucide-react";
 import api from "@/Api/conectar";
-
 
 type Banner = {
   id_banner?: number;
@@ -27,6 +29,15 @@ type Banner = {
   cliques?: number;
   criado?: string;
   atualizado?: string;
+};
+
+type EditForm = {
+  titulo: string;
+  descricao: string;
+  link: string;
+  statusid: string;
+  visualizacoes: string;
+  cliques: string;
 };
 
 function getBannerId(banner: Banner): number {
@@ -62,11 +73,28 @@ function getStatusTexto(status?: number): string {
   return "Sem status";
 }
 
+function criarFormDoBanner(banner: Banner): EditForm {
+  return {
+    titulo: banner.titulo || "",
+    descricao: banner.descricao || "",
+    link: banner.link || "",
+    statusid: String(banner.statusid ?? banner.status_id ?? 1),
+    visualizacoes: String(banner.visualizacoes ?? 0),
+    cliques: String(banner.cliques ?? 0),
+  };
+}
+
 export default function BannersPage() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
   const [busca, setBusca] = useState("");
+
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState<EditForm | null>(null);
+  const [imagemArquivo, setImagemArquivo] = useState<File | null>(null);
+  const [previewImagem, setPreviewImagem] = useState("");
+  const [salvandoId, setSalvandoId] = useState<number | null>(null);
 
   const carregarBanners = async () => {
     try {
@@ -96,9 +124,99 @@ export default function BannersPage() {
     try {
       await api.delete(`/painel/banner/${id}`);
       setBanners((prev) => prev.filter((banner) => getBannerId(banner) !== id));
+
+      if (editandoId === id) {
+        cancelarEdicao();
+      }
     } catch (error: any) {
       console.error("Erro ao excluir banner:", error);
       alert(error?.response?.data?.mensagem || "Erro ao excluir banner.");
+    }
+  };
+
+  const iniciarEdicao = (banner: Banner) => {
+    const id = getBannerId(banner);
+    setEditandoId(id);
+    setEditForm(criarFormDoBanner(banner));
+    setImagemArquivo(null);
+    setPreviewImagem(getImagemUrl(banner.imagem));
+  };
+
+  const cancelarEdicao = () => {
+    setEditandoId(null);
+    setEditForm(null);
+    setImagemArquivo(null);
+    setPreviewImagem("");
+  };
+
+  const handleEditChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    const { name, value } = e.target;
+
+    setEditForm((prev) =>
+      prev
+        ? {
+            ...prev,
+            [name]: value,
+          }
+        : prev
+    );
+  };
+
+  const handleImagemChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const arquivo = e.target.files?.[0] || null;
+    setImagemArquivo(arquivo);
+
+    if (!arquivo) {
+      return;
+    }
+
+    const url = URL.createObjectURL(arquivo);
+    setPreviewImagem(url);
+  };
+
+  const salvarEdicao = async (id: number) => {
+    if (!editForm) return;
+
+    if (!editForm.titulo.trim()) {
+      alert("O título é obrigatório.");
+      return;
+    }
+
+    if (!editForm.descricao.trim()) {
+      alert("A descrição é obrigatória.");
+      return;
+    }
+
+    try {
+      setSalvandoId(id);
+
+      const formData = new FormData();
+      formData.append("titulo", editForm.titulo.trim());
+      formData.append("descricao", editForm.descricao.trim());
+      formData.append("link", editForm.link.trim());
+      formData.append("statusid", editForm.statusid);
+      formData.append("visualizacoes", editForm.visualizacoes || "0");
+      formData.append("cliques", editForm.cliques || "0");
+
+      if (imagemArquivo) {
+        formData.append("imagem", imagemArquivo);
+      }
+
+      await api.post(`/painel/banner/${id}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      await carregarBanners();
+      cancelarEdicao();
+    } catch (error: any) {
+      console.error("Erro ao atualizar banner:", error);
+      alert(error?.response?.data?.mensagem || "Erro ao atualizar banner.");
+    } finally {
+      setSalvandoId(null);
     }
   };
 
@@ -129,16 +247,20 @@ export default function BannersPage() {
         <div>
           <span className="subtitulo">Painel administrativo</span>
           <h1>Banners</h1>
-          <p>Gerencie seus banners em cards.</p>
+          <p>Gerencie seus banners em cards com edição inline.</p>
         </div>
 
         <div className="acoes-topo">
-          <button onClick={carregarBanners} className="btn-secundario" type="button">
+          <button
+            onClick={carregarBanners}
+            className="btn-secundario"
+            type="button"
+          >
             <RefreshCw size={18} />
             Atualizar
           </button>
 
-          <a href="/admin/banners/cadastrar" className="btn-primario">
+          <a href="/Admin/banners/cadastrar" className="btn-primario">
             <Plus size={18} />
             Novo banner
           </a>
@@ -187,11 +309,38 @@ export default function BannersPage() {
             const id = getBannerId(banner);
             const imagemUrl = getImagemUrl(banner.imagem);
             const status = banner.statusid ?? banner.status_id;
+            const estaEditando = editandoId === id;
 
             return (
               <div key={id} className="card">
                 <div className="imagem-box">
-                  {imagemUrl ? (
+                  {estaEditando ? (
+                    <>
+                      {previewImagem ? (
+                        <img
+                          src={previewImagem}
+                          alt={editForm?.titulo || "Banner"}
+                          className="imagem"
+                        />
+                      ) : (
+                        <div className="sem-imagem">
+                          <ImageIcon size={36} />
+                          <span>Sem imagem</span>
+                        </div>
+                      )}
+
+                      <label className="trocar-imagem">
+                        <UploadCloud size={16} />
+                        Trocar imagem
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImagemChange}
+                          hidden
+                        />
+                      </label>
+                    </>
+                  ) : imagemUrl ? (
                     <img
                       src={imagemUrl}
                       alt={banner.titulo || "Banner"}
@@ -204,60 +353,186 @@ export default function BannersPage() {
                     </div>
                   )}
 
-                  <span className="status">{getStatusTexto(status)}</span>
+                  <span className="status">
+                    {estaEditando
+                      ? getStatusTexto(Number(editForm?.statusid || 1))
+                      : getStatusTexto(status)}
+                  </span>
                 </div>
 
                 <div className="conteudo">
-                  <div className="cabecalho-card">
-                    <h2>{banner.titulo || "Sem título"}</h2>
-                    <span className="id">#{id}</span>
-                  </div>
+                  {estaEditando && editForm ? (
+                    <>
+                      <div className="cabecalho-card">
+                        <h2>Editando banner</h2>
+                        <span className="id">#{id}</span>
+                      </div>
 
-                  <p className="descricao">{banner.descricao || "Sem descrição."}</p>
+                      <div className="form-grid">
+                        <div className="grupo">
+                          <label>Título</label>
+                          <input
+                            name="titulo"
+                            type="text"
+                            value={editForm.titulo}
+                            onChange={handleEditChange}
+                          />
+                        </div>
 
-                  <div className="metricas">
-                    <div className="metrica">
-                      <Eye size={16} />
-                      <span>{banner.visualizacoes ?? 0} visualizações</span>
-                    </div>
+                        <div className="grupo">
+                          <label>Descrição</label>
+                          <textarea
+                            name="descricao"
+                            rows={4}
+                            value={editForm.descricao}
+                            onChange={handleEditChange}
+                          />
+                        </div>
 
-                    <div className="metrica">
-                      <MousePointerClick size={16} />
-                      <span>{banner.cliques ?? 0} cliques</span>
-                    </div>
-                  </div>
+                        <div className="grupo">
+                          <label>Link</label>
+                          <input
+                            name="link"
+                            type="text"
+                            value={editForm.link}
+                            onChange={handleEditChange}
+                          />
+                        </div>
 
-                  {banner.link && (
-                    <a
-                      href={banner.link}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="link-banner"
-                    >
-                      Abrir link do banner
-                    </a>
+                        <div className="linha-3">
+                          <div className="grupo">
+                            <label>Status</label>
+                            <select
+                              name="statusid"
+                              value={editForm.statusid}
+                              onChange={handleEditChange}
+                            >
+                              <option value="1">Ativo</option>
+                              <option value="2">Inativo</option>
+                              <option value="3">Bloqueado</option>
+                            </select>
+                          </div>
+
+                          <div className="grupo">
+                            <label>Visualizações</label>
+                            <input
+                              name="visualizacoes"
+                              type="number"
+                              min="0"
+                              value={editForm.visualizacoes}
+                              onChange={handleEditChange}
+                            />
+                          </div>
+
+                          <div className="grupo">
+                            <label>Cliques</label>
+                            <input
+                              name="cliques"
+                              type="number"
+                              min="0"
+                              value={editForm.cliques}
+                              onChange={handleEditChange}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="datas">
+                        <span>
+                          <strong>Criado:</strong> {formatarData(banner.criado)}
+                        </span>
+                        <span>
+                          <strong>Atualizado:</strong>{" "}
+                          {formatarData(banner.atualizado)}
+                        </span>
+                      </div>
+
+                      <div className="acoes-card">
+                        <button
+                          type="button"
+                          className="btn-salvar"
+                          onClick={() => salvarEdicao(id)}
+                          disabled={salvandoId === id}
+                        >
+                          <Save size={16} />
+                          {salvandoId === id ? "Salvando..." : "Salvar"}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn-cancelar"
+                          onClick={cancelarEdicao}
+                        >
+                          <X size={16} />
+                          Cancelar
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="cabecalho-card">
+                        <h2>{banner.titulo || "Sem título"}</h2>
+                        <span className="id">#{id}</span>
+                      </div>
+
+                      <p className="descricao">
+                        {banner.descricao || "Sem descrição."}
+                      </p>
+
+                      <div className="metricas">
+                        <div className="metrica">
+                          <Eye size={16} />
+                          <span>{banner.visualizacoes ?? 0} visualizações</span>
+                        </div>
+
+                        <div className="metrica">
+                          <MousePointerClick size={16} />
+                          <span>{banner.cliques ?? 0} cliques</span>
+                        </div>
+                      </div>
+
+                      {banner.link && (
+                        <a
+                          href={banner.link}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="link-banner"
+                        >
+                          Abrir link do banner
+                        </a>
+                      )}
+
+                      <div className="datas">
+                        <span>
+                          <strong>Criado:</strong> {formatarData(banner.criado)}
+                        </span>
+                        <span>
+                          <strong>Atualizado:</strong>{" "}
+                          {formatarData(banner.atualizado)}
+                        </span>
+                      </div>
+
+                      <div className="acoes-card">
+                        <button
+                          type="button"
+                          onClick={() => iniciarEdicao(banner)}
+                          className="btn-editar"
+                        >
+                          <Pencil size={16} />
+                          Editar
+                        </button>
+
+                        <button
+                          onClick={() => excluirBanner(id)}
+                          className="btn-excluir"
+                          type="button"
+                        >
+                          <Trash2 size={16} />
+                          Excluir
+                        </button>
+                      </div>
+                    </>
                   )}
-
-                  <div className="datas">
-                    <span><strong>Criado:</strong> {formatarData(banner.criado)}</span>
-                    <span><strong>Atualizado:</strong> {formatarData(banner.atualizado)}</span>
-                  </div>
-
-                  <div className="acoes-card">
-                    <a href={`/admin/banners/${id}`} className="btn-editar">
-                      <Pencil size={16} />
-                      Editar
-                    </a>
-
-                    <button
-                      onClick={() => excluirBanner(id)}
-                      className="btn-excluir"
-                      type="button"
-                    >
-                      <Trash2 size={16} />
-                      Excluir
-                    </button>
-                  </div>
                 </div>
               </div>
             );
@@ -394,7 +669,7 @@ export default function BannersPage() {
 
         .grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
           gap: 20px;
         }
 
@@ -429,6 +704,22 @@ export default function BannersPage() {
           justify-content: center;
           gap: 8px;
           color: #64748b;
+        }
+
+        .trocar-imagem {
+          position: absolute;
+          left: 12px;
+          bottom: 12px;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 12px;
+          border-radius: 10px;
+          background: rgba(15, 23, 42, 0.82);
+          color: #fff;
+          font-size: 12px;
+          font-weight: 700;
+          cursor: pointer;
         }
 
         .status {
@@ -503,6 +794,7 @@ export default function BannersPage() {
           text-decoration: none;
           font-weight: 700;
           color: #2563eb;
+          word-break: break-word;
         }
 
         .datas {
@@ -520,7 +812,9 @@ export default function BannersPage() {
         }
 
         .btn-editar,
-        .btn-excluir {
+        .btn-excluir,
+        .btn-salvar,
+        .btn-cancelar {
           flex: 1;
           min-width: 130px;
           display: inline-flex;
@@ -532,6 +826,7 @@ export default function BannersPage() {
           font-weight: 700;
           text-decoration: none;
           cursor: pointer;
+          border: none;
         }
 
         .btn-editar {
@@ -544,6 +839,59 @@ export default function BannersPage() {
           background: #fff1f2;
           color: #be123c;
           border: 1px solid #fecdd3;
+        }
+
+        .btn-salvar {
+          background: #ecfdf5;
+          color: #166534;
+          border: 1px solid #bbf7d0;
+        }
+
+        .btn-cancelar {
+          background: #fff7ed;
+          color: #c2410c;
+          border: 1px solid #fed7aa;
+        }
+
+        .form-grid {
+          display: grid;
+          gap: 14px;
+          margin-bottom: 14px;
+        }
+
+        .grupo {
+          display: grid;
+          gap: 8px;
+        }
+
+        .grupo label {
+          font-size: 13px;
+          font-weight: 700;
+          color: #334155;
+        }
+
+        .grupo input,
+        .grupo textarea,
+        .grupo select {
+          width: 100%;
+          border: 1px solid #dbe2ea;
+          border-radius: 12px;
+          padding: 12px 14px;
+          font-size: 14px;
+          color: #0f172a;
+          background: #fff;
+          outline: none;
+        }
+
+        .grupo textarea {
+          resize: vertical;
+          min-height: 100px;
+        }
+
+        .linha-3 {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 12px;
         }
 
         @media (max-width: 768px) {
@@ -559,7 +907,8 @@ export default function BannersPage() {
             grid-template-columns: 1fr;
           }
 
-          .metricas {
+          .metricas,
+          .linha-3 {
             grid-template-columns: 1fr;
           }
 
