@@ -18,6 +18,8 @@ import {
   FiCopy,
   FiExternalLink,
   FiCalendar,
+  FiChevronRight,
+  FiShield,
 } from "react-icons/fi";
 
 type Pedido = {
@@ -334,33 +336,99 @@ export default function PagamentoPage() {
       <style jsx global>{`
         body {
           background:
-            radial-gradient(circle at top left, rgba(181, 95, 83, 0.09), transparent 22%),
-            linear-gradient(180deg, #fffaf7 0%, #fff3ea 56%, #ffede6 100%);
+            radial-gradient(circle at top left, rgba(181, 95, 83, 0.08), transparent 24%),
+            linear-gradient(180deg, #fffaf7 0%, #fff5ef 55%, #ffefe8 100%);
         }
 
         .pagamento-page {
-          padding: 42px 0 72px;
+          padding: 30px 0 72px;
+        }
+
+        .container-pagamento {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 0 18px;
         }
 
         .surface {
-          background: rgba(255, 255, 255, 0.96);
-          border-radius: 28px;
-          border: 1px solid rgba(226, 214, 207, 0.9);
-          box-shadow: 0 22px 48px rgba(115, 82, 62, 0.08);
-          backdrop-filter: blur(8px);
+          background: rgba(255, 255, 255, 0.97);
+          border-radius: 24px;
+          border: 1px solid rgba(229, 213, 203, 0.95);
+          box-shadow: 0 18px 40px rgba(115, 82, 62, 0.08);
+        }
+
+        .topbar-checkout {
+          margin-bottom: 18px;
+          padding: 16px 20px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+
+        .steps {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
+        .step {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 14px;
+          border-radius: 999px;
+          background: #fffaf7;
+          border: 1px solid #ecd8ce;
+          color: #7a5b4e;
+          font-size: 13px;
+          font-weight: 800;
+        }
+
+        .step.active {
+          background: linear-gradient(135deg, #b55f53 0%, #8f433a 100%);
+          border-color: transparent;
+          color: #fff;
+          box-shadow: 0 12px 24px rgba(143, 67, 58, 0.16);
+        }
+
+        .step.done {
+          background: #eefaf2;
+          border-color: #cfe8d9;
+          color: #1f7a49;
+        }
+
+        .step-arrow {
+          color: #b18a7d;
+          display: inline-flex;
+          align-items: center;
+        }
+
+        .checkout-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 14px;
+          border-radius: 999px;
+          background: #fffaf7;
+          border: 1px solid #ecd8ce;
+          color: #7a5b4e;
+          font-size: 13px;
+          font-weight: 800;
         }
 
         .hero {
-          padding: 28px;
+          padding: 24px 28px;
           margin-bottom: 22px;
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 20px;
           flex-wrap: wrap;
-          background: linear-gradient(135deg, rgba(181, 95, 83, 0.96), rgba(143, 67, 58, 0.96));
+          background: linear-gradient(135deg, rgba(181, 95, 83, 0.98), rgba(143, 67, 58, 0.98));
           color: #fff;
-          box-shadow: 0 22px 40px rgba(143, 67, 58, 0.18);
         }
 
         .hero-left {
@@ -370,24 +438,24 @@ export default function PagamentoPage() {
         }
 
         .hero-icon {
-          width: 60px;
-          height: 60px;
-          border-radius: 20px;
+          width: 56px;
+          height: 56px;
+          border-radius: 18px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          background: rgba(255, 255, 255, 0.14);
+          background: rgba(255, 255, 255, 0.15);
         }
 
         .hero h1 {
           margin: 0;
-          font-size: 30px;
+          font-size: 28px;
           font-weight: 900;
           letter-spacing: -0.02em;
         }
 
         .hero p {
-          margin: 4px 0 0;
+          margin: 6px 0 0;
           color: rgba(255, 255, 255, 0.92);
           font-size: 14px;
         }
@@ -396,17 +464,29 @@ export default function PagamentoPage() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          min-height: 44px;
+          min-height: 42px;
           padding: 0 16px;
           border-radius: 999px;
           background: rgba(255, 255, 255, 0.14);
-          border: 1px solid rgba(255, 255, 255, 0.18);
+          border: 1px solid rgba(255, 255, 255, 0.2);
           color: #fff;
           font-weight: 800;
         }
 
+        .layout-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1.18fr) minmax(400px, 0.82fr);
+          gap: 22px;
+          align-items: start;
+        }
+
         .box {
-          padding: 26px;
+          padding: 24px;
+        }
+
+        .sticky-col {
+          position: sticky;
+          top: 18px;
         }
 
         .section-title {
@@ -414,7 +494,7 @@ export default function PagamentoPage() {
           align-items: center;
           gap: 10px;
           margin-bottom: 18px;
-          font-size: 22px;
+          font-size: 21px;
           color: #3f2d26;
           font-weight: 900;
           letter-spacing: -0.02em;
@@ -432,6 +512,7 @@ export default function PagamentoPage() {
           border-radius: 999px;
           font-size: 13px;
           font-weight: 800;
+          margin-bottom: 18px;
         }
 
         .status-box.pendente {
@@ -461,64 +542,39 @@ export default function PagamentoPage() {
 
         .meta-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 14px;
         }
 
         .meta-card {
           background: #fffaf7;
           border: 1px solid #f0e4dc;
-          border-radius: 20px;
+          border-radius: 18px;
           padding: 16px;
+          min-height: 98px;
         }
 
         .meta-card span {
           display: block;
           font-size: 12px;
           color: #8b6b5d;
-          margin-bottom: 6px;
+          margin-bottom: 8px;
           font-weight: 700;
         }
 
         .meta-card strong {
           color: #3f2d26;
-          font-size: 16px;
-          word-break: break-word;
-        }
-
-        .summary-line {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
           font-size: 15px;
-          color: #6c564c;
-          margin-bottom: 14px;
+          word-break: break-word;
+          line-height: 1.4;
         }
 
-        .summary-line strong {
-          color: #3f2d26;
-        }
-
-        .summary-total {
-          margin-top: 18px;
-          padding-top: 18px;
-          border-top: 1px solid #ead9cf;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .summary-total span {
-          font-size: 16px;
-          color: #5f4a42;
-          font-weight: 800;
-        }
-
-        .summary-total strong {
-          font-size: 28px;
-          color: #a84f45;
-          font-weight: 900;
-          letter-spacing: -0.02em;
+        .card-luxo {
+          background:
+            radial-gradient(circle at top right, rgba(181, 95, 83, 0.08), transparent 36%),
+            linear-gradient(180deg, #fffdfc 0%, #fff8f4 100%);
+          border: 1px solid #edd9cf;
+          box-shadow: 0 18px 36px rgba(143, 67, 58, 0.08);
         }
 
         .highlight {
@@ -527,11 +583,12 @@ export default function PagamentoPage() {
           gap: 10px;
           padding: 14px 16px;
           margin-bottom: 18px;
-          border-radius: 18px;
+          border-radius: 16px;
           background: linear-gradient(135deg, #fff4ee, #fffaf7);
           border: 1px solid #f0ddd2;
           color: #6c564c;
           font-weight: 700;
+          font-size: 14px;
         }
 
         .highlight svg {
@@ -539,13 +596,8 @@ export default function PagamentoPage() {
           flex-shrink: 0;
         }
 
-        .metodos {
-          margin-top: 8px;
-          margin-bottom: 16px;
-        }
-
         .metodos h3 {
-          font-size: 16px;
+          font-size: 15px;
           font-weight: 900;
           margin-bottom: 12px;
           color: #5c2e2e;
@@ -560,25 +612,26 @@ export default function PagamentoPage() {
         .metodo {
           border: 2px solid #f1d6cf;
           background: #fff;
-          border-radius: 18px;
-          padding: 16px;
+          border-radius: 16px;
+          padding: 15px;
           text-align: left;
           cursor: pointer;
           transition: 0.2s ease;
           font-weight: 800;
           color: #4b372f;
+          min-height: 96px;
         }
 
         .metodo:hover {
           border-color: #b55f53;
           transform: translateY(-1px);
-          box-shadow: 0 12px 24px rgba(185, 101, 88, 0.08);
+          box-shadow: 0 10px 22px rgba(185, 101, 88, 0.08);
         }
 
         .metodo.ativo {
           border-color: #b55f53;
           background: #fff3ef;
-          box-shadow: 0 0 0 3px rgba(181, 95, 83, 0.14);
+          box-shadow: 0 0 0 3px rgba(181, 95, 83, 0.12);
         }
 
         .metodo-topo {
@@ -595,40 +648,54 @@ export default function PagamentoPage() {
           font-size: 12px;
           color: #8a6a60;
           margin-top: 4px;
+          line-height: 1.45;
         }
 
         .pix-box {
           margin-top: 18px;
-          padding: 18px;
+          padding: 20px;
           border-radius: 22px;
-          background: linear-gradient(180deg, #fffaf7 0%, #fff 100%);
-          border: 1px solid #f0ddd2;
+          background:
+            radial-gradient(circle at top, rgba(181, 95, 83, 0.07), transparent 38%),
+            linear-gradient(180deg, #fffaf7 0%, #fff 100%);
+          border: 1px solid #efdccf;
+          box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
 
         .pix-box h4 {
-          margin: 0 0 16px;
-          font-size: 18px;
+          margin: 0 0 14px;
+          font-size: 19px;
           color: #4b372f;
           font-weight: 900;
+          text-align: center;
+        }
+
+        .pix-subtitulo {
+          text-align: center;
+          color: #8b6b5d;
+          font-size: 13px;
+          margin-bottom: 18px;
         }
 
         .pix-qr-wrap {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 14px;
+          gap: 12px;
           margin-bottom: 18px;
         }
 
         .pix-qr {
-          width: 260px;
-          height: 260px;
+          width: 280px;
+          height: 280px;
           object-fit: contain;
           background: #fff;
-          padding: 12px;
-          border-radius: 22px;
+          padding: 14px;
+          border-radius: 24px;
           border: 1px solid #ead9cf;
-          box-shadow: 0 12px 26px rgba(115, 82, 62, 0.08);
+          box-shadow:
+            0 18px 34px rgba(115, 82, 62, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8);
         }
 
         .pix-status {
@@ -639,7 +706,7 @@ export default function PagamentoPage() {
           border-radius: 999px;
           background: #fff2e8;
           color: #c26528;
-          font-size: 13px;
+          font-size: 12px;
           font-weight: 800;
         }
 
@@ -659,46 +726,109 @@ export default function PagamentoPage() {
           width: 100%;
           min-height: 112px;
           resize: vertical;
-          border-radius: 16px;
+          border-radius: 14px;
           border: 1px solid #e2d2c9;
           padding: 14px;
-          font-size: 13px;
+          font-size: 12px;
+          line-height: 1.55;
           color: #3f2d26;
           background: #fff;
           outline: none;
         }
 
         .pix-acoes {
-          display: flex;
+          display: grid;
+          grid-template-columns: 1fr;
           gap: 10px;
-          flex-wrap: wrap;
           margin-top: 14px;
+        }
+
+        .summary-card {
+          margin-top: 20px;
+          padding-top: 18px;
+          border-top: 1px solid #ead9cf;
+        }
+
+        .summary-line {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          font-size: 14px;
+          color: #6c564c;
+          margin-bottom: 12px;
+        }
+
+        .summary-line strong {
+          color: #3f2d26;
+        }
+
+        .summary-total {
+          margin-top: 16px;
+          padding-top: 16px;
+          border-top: 1px solid #ead9cf;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .summary-total span {
+          font-size: 15px;
+          color: #5f4a42;
+          font-weight: 800;
+        }
+
+        .summary-total strong {
+          font-size: 30px;
+          color: #a84f45;
+          font-weight: 900;
+          letter-spacing: -0.02em;
+        }
+
+        .security-row {
+          margin-top: 16px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 14px;
+          border-radius: 14px;
+          background: #fffaf7;
+          border: 1px solid #eedccf;
+          color: #6b564c;
+          font-size: 13px;
+          font-weight: 700;
+        }
+
+        .security-row svg {
+          color: #b55f53;
+          flex-shrink: 0;
         }
 
         .btn-brand {
           background: linear-gradient(135deg, #b55f53 0%, #8f433a 100%);
           color: white;
           border: none;
-          border-radius: 18px;
-          min-height: 54px;
+          border-radius: 16px;
+          min-height: 52px;
           font-weight: 900;
-          box-shadow: 0 16px 28px rgba(143, 67, 58, 0.2);
+          box-shadow: 0 14px 24px rgba(143, 67, 58, 0.18);
           transition: transform 0.2s ease, box-shadow 0.2s ease;
+          width: 100%;
         }
 
         .btn-brand:hover {
           color: white;
           transform: translateY(-1px);
-          box-shadow: 0 20px 32px rgba(143, 67, 58, 0.28);
+          box-shadow: 0 18px 30px rgba(143, 67, 58, 0.26);
         }
 
         .btn-outline-brand {
           border: 1px solid #caa998;
           color: #8b5a49;
           background: #fff;
-          border-radius: 18px;
+          border-radius: 16px;
           min-height: 50px;
           font-weight: 900;
+          width: 100%;
         }
 
         .btn-outline-brand:hover {
@@ -715,36 +845,91 @@ export default function PagamentoPage() {
           text-align: center;
         }
 
+        @media (max-width: 1100px) {
+          .layout-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .sticky-col {
+            position: static;
+          }
+        }
+
         @media (max-width: 768px) {
           .pagamento-page {
-            padding: 24px 0 54px;
+            padding: 22px 0 54px;
+          }
+
+          .container-pagamento {
+            padding: 0 14px;
+          }
+
+          .topbar-checkout {
+            padding: 14px;
           }
 
           .hero {
-            padding: 22px 20px;
-          }
-
-          .box {
-            padding: 20px;
+            padding: 22px 18px;
           }
 
           .hero h1 {
-            font-size: 26px;
+            font-size: 24px;
           }
 
+          .box {
+            padding: 18px;
+          }
+
+          .meta-grid,
           .metodos-grid {
             grid-template-columns: 1fr;
           }
 
           .pix-qr {
-            width: 220px;
-            height: 220px;
+            width: 228px;
+            height: 228px;
+          }
+
+          .summary-total strong {
+            font-size: 24px;
           }
         }
       `}</style>
 
       <main className="pagamento-page">
-        <div className="container">
+        <div className="container-pagamento">
+          <div className="surface topbar-checkout">
+            <div className="steps">
+              <div className="step done">
+                <FiShoppingBag size={16} />
+                Pedido
+              </div>
+
+              <div className="step-arrow">
+                <FiChevronRight size={16} />
+              </div>
+
+              <div className="step active">
+                <FiCreditCard size={16} />
+                Pagamento
+              </div>
+
+              <div className="step-arrow">
+                <FiChevronRight size={16} />
+              </div>
+
+              <div className="step">
+                <FiCheckCircle size={16} />
+                Conclusão
+              </div>
+            </div>
+
+            <div className="checkout-badge">
+              <FiShield size={16} />
+              Ambiente seguro
+            </div>
+          </div>
+
           <div className="surface hero">
             <div className="hero-left">
               <div className="hero-icon">
@@ -752,7 +937,7 @@ export default function PagamentoPage() {
               </div>
               <div>
                 <h1>Pagamento do pedido</h1>
-                <p>Selecione o método de pagamento e conclua sua compra com segurança.</p>
+                <p>Escolha o método desejado e finalize sua compra com segurança.</p>
               </div>
             </div>
 
@@ -768,20 +953,15 @@ export default function PagamentoPage() {
               <div className="state-box">Carregando informações do pedido...</div>
             </div>
           ) : (
-            <div className="row g-4">
-              <div className="col-lg-7">
+            <div className="layout-grid">
+              <div>
                 <div className="surface box">
                   <h2 className="section-title">
                     <FiShoppingBag size={20} />
-                    <span>Informações do pedido</span>
+                    <span>Resumo do pedido</span>
                   </h2>
 
-                  <div
-                    className={`status-box ${getStatusClass(
-                      pedido.status_pagamento
-                    )}`}
-                    style={{ marginBottom: 18 }}
-                  >
+                  <div className={`status-box ${getStatusClass(pedido.status_pagamento)}`}>
                     {getStatusIcon(pedido.status_pagamento)}
                     {getStatusPagamentoTexto(pedido.status_pagamento)}
                   </div>
@@ -816,8 +996,8 @@ export default function PagamentoPage() {
                 </div>
               </div>
 
-              <div className="col-lg-5">
-                <div className="surface box">
+              <div className="sticky-col">
+                <div className="surface box card-luxo">
                   <h2 className="section-title">
                     <FiCreditCard size={20} />
                     <span>Pagamento</span>
@@ -825,11 +1005,11 @@ export default function PagamentoPage() {
 
                   <div className="highlight">
                     <FiPackage size={18} />
-                    <span>Escolha o método para continuar.</span>
+                    <span>Selecione como deseja concluir seu pedido.</span>
                   </div>
 
                   <div className="metodos">
-                    <h3>Selecione o método</h3>
+                    <h3>Escolha o método</h3>
 
                     <div className="metodos-grid">
                       <button
@@ -843,7 +1023,7 @@ export default function PagamentoPage() {
                             PIX
                           </span>
                         </div>
-                        <span>Gera QR Code para escanear e código copia e cola</span>
+                        <span>QR Code instantâneo e código copia e cola</span>
                       </button>
 
                       <button
@@ -860,7 +1040,7 @@ export default function PagamentoPage() {
                             Cartão
                           </span>
                         </div>
-                        <span>Segue o fluxo online da sua integração</span>
+                        <span>Continue pelo fluxo online do pagamento</span>
                       </button>
                     </div>
                   </div>
@@ -868,6 +1048,9 @@ export default function PagamentoPage() {
                   {metodoPagamento === "pix" && qrCodeBase64 && (
                     <div className="pix-box">
                       <h4>Escaneie o QR Code PIX</h4>
+                      <div className="pix-subtitulo">
+                        Use o app do seu banco ou copie o código abaixo.
+                      </div>
 
                       <div className="pix-qr-wrap">
                         <img
@@ -878,7 +1061,7 @@ export default function PagamentoPage() {
 
                         <div className="pix-status">
                           <FiCheckCircle size={16} />
-                          QR Code gerado com sucesso
+                          QR Code disponível para pagamento
                         </div>
                       </div>
 
@@ -907,6 +1090,7 @@ export default function PagamentoPage() {
                               textDecoration: "none",
                               display: "inline-flex",
                               alignItems: "center",
+                              justifyContent: "center",
                               padding: "0 18px"
                             }}
                           >
@@ -927,29 +1111,37 @@ export default function PagamentoPage() {
                     </div>
                   )}
 
-                  <div className="summary-line" style={{ marginTop: 18 }}>
-                    <span>Produtos</span>
-                    <strong>{formatBRL(subtotal)}</strong>
+                  <div className="summary-card">
+                    <div className="summary-line">
+                      <span>Produtos</span>
+                      <strong>{formatBRL(subtotal)}</strong>
+                    </div>
+
+                    <div className="summary-line">
+                      <span>Desconto</span>
+                      <strong>{desconto > 0 ? `- ${formatBRL(desconto)}` : formatBRL(0)}</strong>
+                    </div>
+
+                    <div className="summary-line">
+                      <span>Frete</span>
+                      <strong>{frete > 0 ? formatBRL(frete) : "Grátis"}</strong>
+                    </div>
+
+                    <div className="summary-total">
+                      <span>Total</span>
+                      <strong>{formatBRL(total)}</strong>
+                    </div>
                   </div>
 
-                  <div className="summary-line">
-                    <span>Desconto</span>
-                    <strong>{desconto > 0 ? `- ${formatBRL(desconto)}` : formatBRL(0)}</strong>
-                  </div>
-
-                  <div className="summary-line">
-                    <span>Frete</span>
-                    <strong>{frete > 0 ? formatBRL(frete) : "Grátis"}</strong>
-                  </div>
-
-                  <div className="summary-total">
-                    <span>Total</span>
-                    <strong>{formatBRL(total)}</strong>
+                  <div className="security-row">
+                    <FiShield size={16} />
+                    Seus dados de pagamento são tratados em ambiente protegido.
                   </div>
 
                   <button
                     type="button"
-                    className="btn btn-brand w-100 mt-4"
+                    className="btn btn-brand"
+                    style={{ marginTop: 18 }}
                     onClick={handleIrParaPagamento}
                     disabled={!metodoPagamento || carregandoPagamento}
                   >
@@ -966,7 +1158,8 @@ export default function PagamentoPage() {
 
                   <button
                     type="button"
-                    className="btn btn-outline-brand w-100 mt-2"
+                    className="btn btn-outline-brand"
+                    style={{ marginTop: 10 }}
                     onClick={carregarPedido}
                   >
                     <FiRefreshCw style={{ marginRight: 8 }} />
