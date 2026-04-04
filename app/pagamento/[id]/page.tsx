@@ -13,9 +13,12 @@ import {
   FiClock,
   FiXCircle,
   FiRefreshCw,
-  FiArrowRight,
   FiPackage,
   FiZap,
+  FiCopy,
+  FiMapPin,
+  FiUser,
+  FiHash,
 } from "react-icons/fi";
 
 type Pedido = {
@@ -40,6 +43,17 @@ type Pedido = {
   sandbox_init_point?: string | null;
   url_pagamento?: string | null;
   payment_url?: string | null;
+};
+
+type ConfigPix = {
+  id_config_pagamento?: number;
+  pix_ativo?: number;
+  pix_tipo_chave?: string | null;
+  pix_chave?: string | null;
+  pix_nome_recebedor?: string | null;
+  pix_cidade?: string | null;
+  pix_mensagem?: string | null;
+  site_config_id?: number | null;
 };
 
 function num(v: any): number {
@@ -143,6 +157,17 @@ function extrairUrlPagamento(data: any): string | null {
   );
 }
 
+function extrairConfigPix(data: any): ConfigPix | null {
+  const base = data?.dados ?? data;
+
+  if (!base) return null;
+  if (base?.config) return base.config;
+  if (base?.pix_chave) return base;
+  if (base?.dados?.pix_chave) return base.dados;
+
+  return null;
+}
+
 export default function PagamentoPage() {
   const params = useParams();
   const id = String(params?.id ?? "");
@@ -153,6 +178,9 @@ export default function PagamentoPage() {
   const [pedido, setPedido] = React.useState<Pedido | null>(null);
   const [paymentUrl, setPaymentUrl] = React.useState<string | null>(null);
   const [metodoPagamento, setMetodoPagamento] = React.useState<"pix" | "cartao" | null>(null);
+
+  const [configPix, setConfigPix] = React.useState<ConfigPix | null>(null);
+  const [carregandoPix, setCarregandoPix] = React.useState(false);
 
   async function carregarPedido() {
     try {
@@ -186,15 +214,62 @@ export default function PagamentoPage() {
     }
   }
 
+  async function carregarConfigPix() {
+    try {
+      setCarregandoPix(true);
+
+      const siteConfigId = 1; // depois você pode puxar isso dinâmico
+      const response = await api.get(`/config-pagamento/site/${siteConfigId}`);
+      const config = extrairConfigPix(response.data);
+
+      if (!config || !config.pix_chave) {
+        toast.warning("Nenhuma configuração PIX encontrada.");
+        setConfigPix(null);
+        return;
+      }
+
+      if (Number(config.pix_ativo) !== 1) {
+        toast.warning("O PIX está cadastrado, mas está inativo.");
+      }
+
+      setConfigPix(config);
+    } catch (error: any) {
+      console.error(error);
+      setConfigPix(null);
+      toast.error(
+        error?.response?.data?.dados?.mensagem ||
+          "Não foi possível carregar a configuração PIX."
+      );
+    } finally {
+      setCarregandoPix(false);
+    }
+  }
+
   React.useEffect(() => {
     if (id) {
       carregarPedido();
     }
   }, [id]);
 
+  React.useEffect(() => {
+    if (metodoPagamento === "pix" && !configPix) {
+      carregarConfigPix();
+    }
+  }, [metodoPagamento]);
+
   async function handleIrParaPagamento() {
     if (!metodoPagamento) {
       toast.warning("Selecione um método de pagamento.");
+      return;
+    }
+
+    if (metodoPagamento === "pix") {
+      if (!configPix?.pix_chave) {
+        await carregarConfigPix();
+        return;
+      }
+
+      toast.success("Dados PIX carregados com sucesso.");
       return;
     }
 
@@ -225,6 +300,17 @@ export default function PagamentoPage() {
       );
     } finally {
       setCarregandoPagamento(false);
+    }
+  }
+
+  async function copiarPix() {
+    if (!configPix?.pix_chave) return;
+
+    try {
+      await navigator.clipboard.writeText(configPix.pix_chave);
+      toast.success("Chave PIX copiada!");
+    } catch {
+      toast.error("Não foi possível copiar a chave PIX.");
     }
   }
 
@@ -504,6 +590,55 @@ export default function PagamentoPage() {
           margin-top: 4px;
         }
 
+        .pix-box {
+          margin-top: 16px;
+          padding: 18px;
+          border-radius: 20px;
+          background: #fffaf7;
+          border: 1px solid #f0ddd2;
+        }
+
+        .pix-box h4 {
+          margin: 0 0 14px;
+          font-size: 16px;
+          color: #4b372f;
+          font-weight: 900;
+        }
+
+        .pix-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+
+        .pix-item {
+          padding: 14px;
+          border-radius: 16px;
+          background: #fff;
+          border: 1px solid #eddcd2;
+        }
+
+        .pix-item span {
+          display: block;
+          font-size: 12px;
+          color: #8b6b5d;
+          margin-bottom: 6px;
+          font-weight: 700;
+        }
+
+        .pix-item strong {
+          color: #3f2d26;
+          font-size: 15px;
+          word-break: break-word;
+        }
+
+        .pix-copy {
+          margin-top: 14px;
+          display: flex;
+          gap: 10px;
+          flex-wrap: wrap;
+        }
+
         .btn-brand {
           background: linear-gradient(135deg, #b55f53 0%, #8f433a 100%);
           color: white;
@@ -612,28 +747,8 @@ export default function PagamentoPage() {
                     </div>
 
                     <div className="meta-card">
-                      <span>Status ID</span>
-                      <strong>{pedido.status_id ?? "-"}</strong>
-                    </div>
-
-                    <div className="meta-card">
-                      <span>Payment ID</span>
-                      <strong>{pedido.payment_id || "Não informado"}</strong>
-                    </div>
-
-                    <div className="meta-card">
-                      <span>Preference ID</span>
-                      <strong>{pedido.preference_id || "Não informado"}</strong>
-                    </div>
-
-                    <div className="meta-card">
                       <span>Método atual</span>
                       <strong>{pedido.metodo_pagamento || "Ainda não selecionado"}</strong>
-                    </div>
-
-                    <div className="meta-card">
-                      <span>Data de aprovação</span>
-                      <strong>{formatarData(pedido.data_aprovacao)}</strong>
                     </div>
 
                     <div className="meta-card">
@@ -644,16 +759,6 @@ export default function PagamentoPage() {
                     <div className="meta-card">
                       <span>Atualizado em</span>
                       <strong>{formatarData(pedido.atualizado_em)}</strong>
-                    </div>
-
-                    <div className="meta-card">
-                      <span>Referência externa</span>
-                      <strong>{pedido.external_reference || "Não informada"}</strong>
-                    </div>
-
-                    <div className="meta-card">
-                      <span>Detalhe do status</span>
-                      <strong>{pedido.status_detail || "Não informado"}</strong>
                     </div>
                   </div>
                 </div>
@@ -684,7 +789,7 @@ export default function PagamentoPage() {
                           <FiZap size={18} />
                           <span style={{ margin: 0, fontSize: 15, color: "inherit" }}>PIX</span>
                         </div>
-                        <span>Aprovação geralmente mais rápida</span>
+                        <span>Puxa a chave cadastrada no banco</span>
                       </button>
 
                       <button
@@ -696,12 +801,68 @@ export default function PagamentoPage() {
                           <FiCreditCard size={18} />
                           <span style={{ margin: 0, fontSize: 15, color: "inherit" }}>Cartão</span>
                         </div>
-                        <span>Crédito ou débito, conforme a integração</span>
+                        <span>Segue fluxo online do pagamento</span>
                       </button>
                     </div>
                   </div>
 
-                  <div className="summary-line">
+                  {metodoPagamento === "pix" && (
+                    <div className="pix-box">
+                      <h4>Dados PIX</h4>
+
+                      {carregandoPix ? (
+                        <div className="state-box">Carregando dados PIX...</div>
+                      ) : configPix?.pix_chave ? (
+                        <>
+                          <div className="pix-grid">
+                            <div className="pix-item">
+                              <span><FiHash style={{ marginRight: 6 }} /> Tipo da chave</span>
+                              <strong>{configPix.pix_tipo_chave || "--"}</strong>
+                            </div>
+
+                            <div className="pix-item">
+                              <span><FiZap style={{ marginRight: 6 }} /> Chave PIX</span>
+                              <strong>{configPix.pix_chave}</strong>
+                            </div>
+
+                            <div className="pix-item">
+                              <span><FiUser style={{ marginRight: 6 }} /> Recebedor</span>
+                              <strong>{configPix.pix_nome_recebedor || "--"}</strong>
+                            </div>
+
+                            <div className="pix-item">
+                              <span><FiMapPin style={{ marginRight: 6 }} /> Cidade</span>
+                              <strong>{configPix.pix_cidade || "--"}</strong>
+                            </div>
+
+                            {configPix.pix_mensagem && (
+                              <div className="pix-item">
+                                <span>Mensagem</span>
+                                <strong>{configPix.pix_mensagem}</strong>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="pix-copy">
+                            <button
+                              type="button"
+                              className="btn btn-brand"
+                              onClick={copiarPix}
+                            >
+                              <FiCopy style={{ marginRight: 8 }} />
+                              Copiar chave PIX
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="state-box">
+                          Nenhuma chave PIX configurada para este site.
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="summary-line" style={{ marginTop: 18 }}>
                     <span>Produtos</span>
                     <strong>{formatBRL(subtotal)}</strong>
                   </div>
@@ -725,13 +886,18 @@ export default function PagamentoPage() {
                     type="button"
                     className="btn btn-brand w-100 mt-4"
                     onClick={handleIrParaPagamento}
-                    disabled={!metodoPagamento || carregandoPagamento}
+                    disabled={
+                      (metodoPagamento === "cartao" && carregandoPagamento) ||
+                      !metodoPagamento
+                    }
                   >
                     {!metodoPagamento
                       ? "Selecione um método"
+                      : metodoPagamento === "pix"
+                      ? "Mostrar PIX"
                       : carregandoPagamento
                       ? "Iniciando pagamento..."
-                      : `Pagar com ${metodoPagamento === "pix" ? "PIX" : "Cartão"}`}
+                      : "Pagar com Cartão"}
                   </button>
 
                   <button
