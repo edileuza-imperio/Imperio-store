@@ -4,10 +4,7 @@ import React from "react";
 import Navbar from "@/components/site/menu/navbar";
 import Footer from "@/components/site/Rodape/Footer";
 import api from "@/Api/conectar";
-
-
 import { ToastContainer, toast } from "react-toastify";
-
 import { formatBRL } from "@/components/Bibioteca/functions";
 import {
   FiShoppingCart,
@@ -17,6 +14,9 @@ import {
   FiShield,
   FiTruck,
   FiCreditCard,
+  FiRefreshCw,
+  FiArrowRight,
+  FiPackage,
 } from "react-icons/fi";
 
 type CarrinhoItem = {
@@ -37,7 +37,6 @@ function num(v: any): number {
   if (!raw) return 0;
 
   const cleaned = raw.replace(/[^\d,.-]/g, "");
-
   let normalized = cleaned;
 
   if (cleaned.includes(",") && cleaned.includes(".")) {
@@ -205,12 +204,20 @@ export default function CarrinhoPage() {
     }
   }
 
+  function irParaPagamento() {
+    window.location.href = "/pagamento";
+  }
+
   if (loading) {
     return (
       <>
         <Navbar />
-        <div className="container py-5 text-center">
-          <div className="spinner-border text-warning" />
+        <ToastContainer position="top-right" autoClose={2500} theme="dark" />
+        <div className="cart-loading-page">
+          <div className="cart-loading-box">
+            <div className="spinner-border text-warning" />
+            <p>Carregando seu carrinho...</p>
+          </div>
         </div>
         <Footer />
       </>
@@ -224,28 +231,58 @@ export default function CarrinhoPage() {
 
       <style jsx global>{`
         body {
-          background: linear-gradient(180deg, #fffaf6 0%, #fff3ea 100%);
+          background:
+            radial-gradient(circle at top left, rgba(181, 95, 83, 0.08), transparent 24%),
+            linear-gradient(180deg, #fffaf6 0%, #fff4ec 52%, #ffefe5 100%);
+        }
+
+        .cart-loading-page {
+          min-height: 60vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 40px 16px;
+        }
+
+        .cart-loading-box {
+          text-align: center;
+          background: #fff;
+          border: 1px solid #f1e4dc;
+          border-radius: 24px;
+          padding: 36px 32px;
+          box-shadow: 0 18px 40px rgba(0, 0, 0, 0.05);
+        }
+
+        .cart-loading-box p {
+          margin: 14px 0 0;
+          color: #7e665b;
+          font-weight: 600;
         }
 
         .cart-page {
-          padding: 40px 0 64px;
+          padding: 36px 0 70px;
+        }
+
+        .cart-container {
+          max-width: 1260px;
+          margin: 0 auto;
+          padding: 0 18px;
         }
 
         .cart-surface {
-          background: rgba(255, 255, 255, 0.95);
+          background: rgba(255, 255, 255, 0.97);
           border-radius: 24px;
-          border: 1px solid rgba(226, 214, 207, 0.9);
-          box-shadow: 0 18px 45px rgba(115, 82, 62, 0.08);
-          backdrop-filter: blur(6px);
+          border: 1px solid #f0e4dc;
+          box-shadow: 0 18px 40px rgba(115, 82, 62, 0.07);
         }
 
         .cart-hero {
           padding: 24px 26px;
-          margin-bottom: 20px;
+          margin-bottom: 22px;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 20px;
+          gap: 18px;
           flex-wrap: wrap;
         }
 
@@ -256,8 +293,8 @@ export default function CarrinhoPage() {
         }
 
         .cart-hero-icon {
-          width: 54px;
-          height: 54px;
+          width: 56px;
+          height: 56px;
           border-radius: 18px;
           display: inline-flex;
           align-items: center;
@@ -271,7 +308,8 @@ export default function CarrinhoPage() {
           margin: 0;
           font-size: 28px;
           color: #3f2d26;
-          font-weight: 800;
+          font-weight: 900;
+          letter-spacing: -0.02em;
         }
 
         .cart-hero p {
@@ -284,34 +322,60 @@ export default function CarrinhoPage() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          min-height: 42px;
+          min-height: 44px;
           padding: 0 16px;
           border-radius: 999px;
-          background: #fff3ea;
+          background: #fff4ec;
           border: 1px solid #efd8cb;
           color: #8e5f4e;
-          font-weight: 700;
+          font-weight: 800;
+          font-size: 14px;
+        }
+
+        .cart-grid {
+          display: grid;
+          grid-template-columns: minmax(0, 1.2fr) minmax(340px, 0.8fr);
+          gap: 22px;
+          align-items: start;
         }
 
         .cart-main-box {
           padding: 22px;
         }
 
+        .cart-section-title {
+          margin: 0 0 18px;
+          font-size: 22px;
+          font-weight: 900;
+          color: #3f2d26;
+          letter-spacing: -0.02em;
+        }
+
+        .items-list {
+          display: grid;
+          gap: 16px;
+        }
+
         .itemCard {
           background: linear-gradient(180deg, #ffffff 0%, #fffaf7 100%);
-          border: 1px solid #f0e4dc;
+          border: 1px solid #f2e6df;
           border-radius: 22px;
-          padding: 16px;
+          padding: 18px;
           display: grid;
-          grid-template-columns: 110px 1fr auto;
+          grid-template-columns: 120px minmax(0, 1fr) auto;
           gap: 18px;
           align-items: center;
-          box-shadow: 0 10px 24px rgba(85, 60, 46, 0.05);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .itemCard:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 14px 28px rgba(85, 60, 46, 0.06);
         }
 
         .productImageWrap {
-          width: 110px;
-          height: 110px;
+          width: 120px;
+          height: 120px;
           border-radius: 18px;
           overflow: hidden;
           background: #f8eee8;
@@ -319,6 +383,7 @@ export default function CarrinhoPage() {
           display: flex;
           align-items: center;
           justify-content: center;
+          flex-shrink: 0;
         }
 
         .productImg {
@@ -332,10 +397,24 @@ export default function CarrinhoPage() {
           min-width: 0;
         }
 
+        .productTag {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 10px;
+          padding: 6px 10px;
+          border-radius: 999px;
+          background: #fff3ea;
+          border: 1px solid #efd8cb;
+          color: #8d5b4c;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
         .productTitle {
-          margin: 0 0 6px;
+          margin: 0 0 8px;
           font-size: 18px;
-          line-height: 1.3;
+          line-height: 1.35;
           color: #3f2d26;
           font-weight: 800;
         }
@@ -343,7 +422,7 @@ export default function CarrinhoPage() {
         .productMeta {
           color: #8a7064;
           font-size: 13px;
-          margin-bottom: 10px;
+          margin-bottom: 12px;
         }
 
         .priceRow {
@@ -361,14 +440,19 @@ export default function CarrinhoPage() {
 
         .priceNow {
           color: #a84f45;
-          font-size: 20px;
-          font-weight: 800;
+          font-size: 22px;
+          font-weight: 900;
+          letter-spacing: -0.02em;
         }
 
         .subtotalText {
-          margin-top: 8px;
+          margin-top: 10px;
           color: #70574d;
           font-size: 14px;
+        }
+
+        .subtotalText strong {
+          color: #3f2d26;
         }
 
         .itemActions {
@@ -376,6 +460,7 @@ export default function CarrinhoPage() {
           flex-direction: column;
           align-items: flex-end;
           gap: 12px;
+          min-width: 170px;
         }
 
         .qtdBox {
@@ -384,13 +469,13 @@ export default function CarrinhoPage() {
           gap: 10px;
           padding: 8px 10px;
           border-radius: 16px;
-          background: #fff8f3;
+          background: #f8f3f0;
           border: 1px solid #efddd2;
         }
 
         .qtdBtn {
-          width: 36px;
-          height: 36px;
+          width: 38px;
+          height: 38px;
           border-radius: 12px;
           border: 1px solid #e4cfc3;
           background: #fff;
@@ -399,6 +484,7 @@ export default function CarrinhoPage() {
           justify-content: center;
           color: #8b5b49;
           transition: 0.2s ease;
+          cursor: pointer;
         }
 
         .qtdBtn:hover {
@@ -411,10 +497,11 @@ export default function CarrinhoPage() {
         }
 
         .qtdValue {
-          min-width: 24px;
+          min-width: 28px;
           text-align: center;
-          font-weight: 800;
+          font-weight: 900;
           color: #49342c;
+          font-size: 15px;
         }
 
         .removeBtn {
@@ -423,17 +510,24 @@ export default function CarrinhoPage() {
           display: inline-flex;
           align-items: center;
           gap: 8px;
+          padding: 10px 14px;
         }
 
         .summaryCard {
           padding: 24px;
         }
 
+        .summarySticky {
+          position: sticky;
+          top: 90px;
+        }
+
         .summaryTitle {
           margin: 0 0 18px;
           font-size: 22px;
           color: #3f2d26;
-          font-weight: 800;
+          font-weight: 900;
+          letter-spacing: -0.02em;
         }
 
         .summaryLine {
@@ -461,18 +555,25 @@ export default function CarrinhoPage() {
         .summaryTotal span {
           font-size: 16px;
           color: #5f4a42;
-          font-weight: 700;
+          font-weight: 800;
         }
 
         .summaryTotal strong {
-          font-size: 26px;
+          font-size: 30px;
           color: #a84f45;
           font-weight: 900;
+          letter-spacing: -0.02em;
         }
 
-        .summarySticky {
-          position: sticky;
-          top: 90px;
+        .summaryHint {
+          margin-top: 14px;
+          padding: 14px;
+          border-radius: 16px;
+          background: #fff8f3;
+          border: 1px solid #efddd2;
+          color: #7b6459;
+          font-size: 13px;
+          line-height: 1.5;
         }
 
         .btn-brand {
@@ -480,14 +581,16 @@ export default function CarrinhoPage() {
           color: white;
           border: none;
           border-radius: 16px;
-          min-height: 50px;
-          font-weight: 800;
+          min-height: 52px;
+          font-weight: 900;
           box-shadow: 0 14px 28px rgba(143, 67, 58, 0.2);
+          transition: 0.2s ease;
         }
 
         .btn-brand:hover {
           color: white;
-          opacity: 0.96;
+          transform: translateY(-1px);
+          box-shadow: 0 18px 30px rgba(143, 67, 58, 0.24);
         }
 
         .btn-outline-brand {
@@ -497,6 +600,11 @@ export default function CarrinhoPage() {
           border-radius: 16px;
           min-height: 48px;
           font-weight: 800;
+        }
+
+        .btn-outline-brand:hover {
+          background: #fff7f3;
+          color: #8b5a49;
         }
 
         .benefitsGrid {
@@ -511,7 +619,7 @@ export default function CarrinhoPage() {
           gap: 12px;
           padding: 14px;
           border-radius: 16px;
-          background: #fffaf7;
+          background: #faf6f3;
           border: 1px solid #f0e4dc;
         }
 
@@ -525,16 +633,18 @@ export default function CarrinhoPage() {
           display: block;
           color: #4b372f;
           font-size: 14px;
+          font-weight: 800;
         }
 
         .benefitItem p {
-          margin: 2px 0 0;
+          margin: 4px 0 0;
           color: #7d6358;
           font-size: 12px;
+          line-height: 1.5;
         }
 
         .emptyBox {
-          padding: 28px;
+          padding: 36px 24px;
           border-radius: 20px;
           background: #fffaf7;
           border: 1px dashed #e7cfc1;
@@ -542,13 +652,50 @@ export default function CarrinhoPage() {
           text-align: center;
         }
 
+        .emptyBox h3 {
+          margin: 0 0 8px;
+          color: #4a362e;
+          font-size: 20px;
+          font-weight: 900;
+        }
+
+        .emptyBox p {
+          margin: 0;
+          font-size: 14px;
+        }
+
         @media (max-width: 992px) {
+          .cart-grid {
+            grid-template-columns: 1fr;
+          }
+
           .summarySticky {
             position: static;
           }
         }
 
         @media (max-width: 768px) {
+          .cart-page {
+            padding: 24px 0 54px;
+          }
+
+          .cart-container {
+            padding: 0 14px;
+          }
+
+          .cart-hero {
+            padding: 20px 18px;
+          }
+
+          .cart-hero h1 {
+            font-size: 24px;
+          }
+
+          .cart-main-box,
+          .summaryCard {
+            padding: 18px;
+          }
+
           .itemCard {
             grid-template-columns: 1fr;
           }
@@ -560,16 +707,21 @@ export default function CarrinhoPage() {
 
           .itemActions {
             align-items: stretch;
+            min-width: auto;
           }
 
           .qtdBox {
             justify-content: center;
           }
+
+          .summaryTotal strong {
+            font-size: 24px;
+          }
         }
       `}</style>
 
       <main className="cart-page">
-        <div className="container">
+        <div className="cart-container">
           <div className="cart-surface cart-hero">
             <div className="cart-hero-left">
               <div className="cart-hero-icon">
@@ -589,19 +741,18 @@ export default function CarrinhoPage() {
           {erro ? (
             <div className="alert alert-warning">{erro}</div>
           ) : (
-            <div className="row g-4">
-              <div className="col-lg-8">
+            <div className="cart-grid">
+              <div>
                 <div className="cart-surface cart-main-box">
-                  <h4 className="mb-4 fw-bold" style={{ color: "#3f2d26" }}>
-                    Produtos no carrinho
-                  </h4>
+                  <h2 className="cart-section-title">Produtos no carrinho</h2>
 
                   {itens.length === 0 ? (
                     <div className="emptyBox">
-                      Seu carrinho está vazio.
+                      <h3>Seu carrinho está vazio</h3>
+                      <p>Adicione produtos para continuar sua compra.</p>
                     </div>
                   ) : (
-                    <div className="d-grid gap-3">
+                    <div className="items-list">
                       {itens.map((item) => {
                         const precoAtual = precoFinalItem(item);
                         const precoAntigo =
@@ -623,10 +774,15 @@ export default function CarrinhoPage() {
                             </div>
 
                             <div className="productContent">
+                              <div className="productTag">
+                                <FiPackage size={13} />
+                                Produto no carrinho
+                              </div>
+
                               <h3 className="productTitle">{item.nome_produto}</h3>
 
                               <div className="productMeta">
-                                Produto no carrinho
+                                Revise quantidade e valor antes de finalizar.
                               </div>
 
                               <div className="priceRow">
@@ -672,7 +828,7 @@ export default function CarrinhoPage() {
                               </div>
 
                               <button
-                                className="btn btn-outline-danger btn-sm removeBtn"
+                                className="btn btn-outline-danger removeBtn"
                                 onClick={() => removerItem(item.id_item)}
                                 disabled={carregandoItem}
                               >
@@ -688,9 +844,9 @@ export default function CarrinhoPage() {
                 </div>
               </div>
 
-              <div className="col-lg-4">
-                <div className="cart-surface summaryCard summarySticky">
-                  <h5 className="summaryTitle">Resumo do pedido</h5>
+              <div className="summarySticky">
+                <div className="cart-surface summaryCard">
+                  <h3 className="summaryTitle">Resumo do pedido</h3>
 
                   <div className="summaryLine">
                     <span>Quantidade de itens</span>
@@ -712,11 +868,16 @@ export default function CarrinhoPage() {
                     <strong>{formatBRL(subtotal)}</strong>
                   </div>
 
+                  <div className="summaryHint">
+                    O valor do frete será definido na próxima etapa da compra.
+                  </div>
+
                   <button
                     className="btn btn-brand w-100 mt-4"
-                    onClick={() => (window.location.href = "/checkout")}
+                    onClick={irParaPagamento}
                     disabled={itens.length === 0}
                   >
+                    <FiArrowRight style={{ marginRight: 8 }} />
                     Continuar compra
                   </button>
 
@@ -724,6 +885,7 @@ export default function CarrinhoPage() {
                     className="btn btn-outline-brand w-100 mt-2"
                     onClick={carregarCarrinho}
                   >
+                    <FiRefreshCw style={{ marginRight: 8 }} />
                     Atualizar carrinho
                   </button>
 
