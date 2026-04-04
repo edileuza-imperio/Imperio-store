@@ -666,6 +666,7 @@ export default function AdminBannersPage() {
 
           .botao-card {
             width: 100%;
+            color: white;
           }
         }
       `}</style>
