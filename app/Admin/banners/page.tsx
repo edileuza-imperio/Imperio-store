@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Eye, MousePointerClick, Pencil, Trash2, Image as ImageIcon, RefreshCw, Plus, Search } from "lucide-react";
+import {
+  Eye,
+  MousePointerClick,
+  Pencil,
+  Trash2,
+  Image as ImageIcon,
+  RefreshCw,
+  Plus,
+  Search,
+} from "lucide-react";
 import api from "@/Api/conectar";
 
 
@@ -65,7 +74,10 @@ export default function BannersPage() {
       setErro("");
 
       const response = await api.get("/painel/banners");
-      const lista = Array.isArray(response.data?.dados) ? response.data.dados : [];
+
+      const lista = Array.isArray(response.data?.dados?.dados)
+        ? response.data.dados.dados
+        : [];
 
       setBanners(lista);
     } catch (error: any) {
