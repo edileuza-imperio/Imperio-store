@@ -7,87 +7,43 @@ import {
   Package,
   ShoppingBag,
   CreditCard,
-  User,
   CalendarDays,
-  MapPin,
+  Receipt,
 } from "lucide-react";
 import api from "@/Api/conectar";
 
 type Pedido = {
   id_pedido?: number;
-  id?: number;
-  codigo?: string;
-  numero?: string;
-  cliente_nome?: string;
-  cliente?: string;
-  nome_cliente?: string;
+  carrinho_id?: number;
+  usuario_id?: number;
   status_id?: number;
-  status?: string;
-  total?: number | string;
+  valor_produtos?: number | string;
+  valor_desconto?: number | string;
+  valor_frete?: number | string;
   valor_total?: number | string;
-  subtotal?: number | string;
+  preference_id?: string | null;
+  payment_id?: string | null;
+  external_reference?: string | null;
+  metodo_pagamento?: string | null;
+  status_pagamento?: string | null;
+  status_detail?: string | null;
+  data_aprovacao?: string | null;
   criado_em?: string;
-  criado?: string;
   atualizado_em?: string;
-  atualizado?: string;
-  endereco?: string;
-  pagamento?: string;
-  forma_pagamento?: string;
 };
 
 function getPedidoId(pedido: Pedido): number {
-  return Number(pedido.id_pedido ?? pedido.id ?? 0);
+  return Number(pedido.id_pedido ?? 0);
 }
 
 function getCodigoPedido(pedido: Pedido): string {
-  return String(pedido.codigo ?? pedido.numero ?? `PED-${getPedidoId(pedido)}`);
+  return `PED-${String(getPedidoId(pedido)).padStart(5, "0")}`;
 }
 
-function getNomeCliente(pedido: Pedido): string {
-  return String(
-    pedido.cliente_nome ??
-      pedido.nome_cliente ??
-      pedido.cliente ??
-      "Cliente não informado"
-  );
-}
-
-function getValorPedido(pedido: Pedido): number {
-  const valor = pedido.total ?? pedido.valor_total ?? pedido.subtotal ?? 0;
+function toNumber(valor?: number | string | null): number {
+  if (valor === null || valor === undefined) return 0;
   const numero = typeof valor === "string" ? Number(valor) : valor;
   return Number.isFinite(numero) ? Number(numero) : 0;
-}
-
-function getStatusPedido(pedido: Pedido): string {
-  if (pedido.status) return String(pedido.status);
-
-  switch (pedido.status_id) {
-    case 1:
-      return "Pendente";
-    case 2:
-      return "Pago";
-    case 3:
-      return "Em separação";
-    case 4:
-      return "Enviado";
-    case 5:
-      return "Entregue";
-    case 6:
-      return "Cancelado";
-    default:
-      return "Sem status";
-  }
-}
-
-function getStatusClass(status: string): string {
-  const valor = status.toLowerCase();
-
-  if (valor.includes("pago")) return "pago";
-  if (valor.includes("entregue")) return "entregue";
-  if (valor.includes("enviado")) return "enviado";
-  if (valor.includes("cancelado")) return "cancelado";
-  if (valor.includes("separação") || valor.includes("separacao")) return "separacao";
-  return "pendente";
 }
 
 function formatarMoeda(valor: number): string {
@@ -97,7 +53,7 @@ function formatarMoeda(valor: number): string {
   });
 }
 
-function formatarData(data?: string): string {
+function formatarData(data?: string | null): string {
   if (!data) return "-";
 
   const normalizada = data.replace(" ", "T");
@@ -108,18 +64,29 @@ function formatarData(data?: string): string {
   return dt.toLocaleString("pt-BR");
 }
 
-function extrairListaPedidos(response: any): Pedido[] {
-  const possibilidades = [
-    response?.data?.dados?.dados,
-    response?.data?.dados,
-    response?.data,
-  ];
+function getStatusPagamentoTexto(status?: string | null): string {
+  if (!status) return "Pendente";
 
-  for (const item of possibilidades) {
-    if (Array.isArray(item)) return item;
-  }
+  const valor = status.toLowerCase();
 
-  return [];
+  if (valor === "approved" || valor === "aprovado") return "Aprovado";
+  if (valor === "pending" || valor === "pendente") return "Pendente";
+  if (valor === "rejected" || valor === "recusado") return "Recusado";
+  if (valor === "cancelled" || valor === "cancelado") return "Cancelado";
+  if (valor === "in_process") return "Em análise";
+
+  return status;
+}
+
+function getStatusClass(status?: string | null): string {
+  const valor = (status || "").toLowerCase();
+
+  if (valor === "approved" || valor === "aprovado") return "aprovado";
+  if (valor === "rejected" || valor === "recusado") return "recusado";
+  if (valor === "cancelled" || valor === "cancelado") return "cancelado";
+  if (valor === "in_process") return "analise";
+
+  return "pendente";
 }
 
 export default function PedidosPage() {
@@ -134,13 +101,17 @@ export default function PedidosPage() {
       setErro("");
 
       const response = await api.get("/pedidos");
-      const lista = extrairListaPedidos(response);
+
+      const lista = Array.isArray(response.data?.dados?.pedidos)
+        ? response.data.dados.pedidos
+        : [];
 
       setPedidos(lista);
     } catch (error: any) {
       console.error("Erro ao carregar pedidos:", error);
       setErro(
-        error?.response?.data?.mensagem || "Não foi possível carregar os pedidos."
+        error?.response?.data?.mensagem ||
+          "Não foi possível carregar os pedidos."
       );
       setPedidos([]);
     } finally {
@@ -159,30 +130,36 @@ export default function PedidosPage() {
 
     return pedidos.filter((pedido) => {
       const codigo = getCodigoPedido(pedido).toLowerCase();
-      const cliente = getNomeCliente(pedido).toLowerCase();
-      const status = getStatusPedido(pedido).toLowerCase();
+      const statusPagamento = getStatusPagamentoTexto(
+        pedido.status_pagamento
+      ).toLowerCase();
+      const metodo = String(pedido.metodo_pagamento || "").toLowerCase();
+      const externalReference = String(
+        pedido.external_reference || ""
+      ).toLowerCase();
 
       return (
         codigo.includes(termo) ||
-        cliente.includes(termo) ||
-        status.includes(termo)
+        statusPagamento.includes(termo) ||
+        metodo.includes(termo) ||
+        externalReference.includes(termo)
       );
     });
   }, [pedidos, busca]);
 
   const totalPedidos = pedidosFiltrados.length;
-  const totalVendas = pedidosFiltrados.reduce(
-    (acc, pedido) => acc + getValorPedido(pedido),
-    0
-  );
+
+  const totalVendas = pedidosFiltrados.reduce((acc, pedido) => {
+    return acc + toNumber(pedido.valor_total);
+  }, 0);
 
   return (
     <div className="pagina-pedidos">
       <div className="topo">
         <div>
-          <span className="subtitulo">Área de pedidos</span>
+          <span className="subtitulo">Pedidos da loja</span>
           <h1>Pedidos</h1>
-          <p>Acompanhe os pedidos cadastrados na loja.</p>
+          <p>Acompanhe pagamentos, valores e status dos pedidos.</p>
         </div>
 
         <button
@@ -211,7 +188,7 @@ export default function PedidosPage() {
             <CreditCard size={20} />
           </div>
           <div>
-            <span>Total em vendas</span>
+            <span>Total vendido</span>
             <strong>{formatarMoeda(totalVendas)}</strong>
           </div>
         </div>
@@ -222,7 +199,7 @@ export default function PedidosPage() {
           <Search size={18} />
           <input
             type="text"
-            placeholder="Buscar por pedido, cliente ou status..."
+            placeholder="Buscar por código, pagamento ou referência..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
@@ -254,52 +231,100 @@ export default function PedidosPage() {
           {pedidosFiltrados.map((pedido) => {
             const id = getPedidoId(pedido);
             const codigo = getCodigoPedido(pedido);
-            const cliente = getNomeCliente(pedido);
-            const valor = getValorPedido(pedido);
-            const status = getStatusPedido(pedido);
+            const valorProdutos = toNumber(pedido.valor_produtos);
+            const valorDesconto = toNumber(pedido.valor_desconto);
+            const valorFrete = toNumber(pedido.valor_frete);
+            const valorTotal = toNumber(pedido.valor_total);
+            const statusPagamento = getStatusPagamentoTexto(
+              pedido.status_pagamento
+            );
 
             return (
-              <div key={id || codigo} className="card-pedido">
+              <div key={id} className="card-pedido">
                 <div className="card-topo">
                   <div>
                     <span className="pedido-label">Pedido</span>
                     <h2>{codigo}</h2>
                   </div>
 
-                  <span className={`status ${getStatusClass(status)}`}>
-                    {status}
+                  <span
+                    className={`status ${getStatusClass(
+                      pedido.status_pagamento
+                    )}`}
+                  >
+                    {statusPagamento}
                   </span>
                 </div>
 
                 <div className="info-lista">
                   <div className="info-item">
-                    <User size={16} />
-                    <span>{cliente}</span>
+                    <Receipt size={16} />
+                    <span>Status ID: {pedido.status_id ?? "-"}</span>
                   </div>
 
                   <div className="info-item">
                     <CreditCard size={16} />
-                    <span>{pedido.forma_pagamento ?? pedido.pagamento ?? "Pagamento não informado"}</span>
+                    <span>
+                      {pedido.metodo_pagamento || "Método não informado"}
+                    </span>
                   </div>
 
                   <div className="info-item">
                     <CalendarDays size={16} />
-                    <span>{formatarData(pedido.criado_em ?? pedido.criado)}</span>
+                    <span>{formatarData(pedido.criado_em)}</span>
                   </div>
 
                   <div className="info-item">
-                    <MapPin size={16} />
-                    <span>{pedido.endereco || "Endereço não informado"}</span>
+                    <CalendarDays size={16} />
+                    <span>
+                      Aprovação: {formatarData(pedido.data_aprovacao)}
+                    </span>
                   </div>
                 </div>
 
-                <div className="rodape-card">
-                  <div className="valor-box">
-                    <span>Total</span>
-                    <strong>{formatarMoeda(valor)}</strong>
+                <div className="valores">
+                  <div className="valor-item">
+                    <span>Produtos</span>
+                    <strong>{formatarMoeda(valorProdutos)}</strong>
                   </div>
 
-                  <a href={`/Pedidos/${id || codigo}`} className="btn-detalhes">
+                  <div className="valor-item">
+                    <span>Desconto</span>
+                    <strong>{formatarMoeda(valorDesconto)}</strong>
+                  </div>
+
+                  <div className="valor-item">
+                    <span>Frete</span>
+                    <strong>{formatarMoeda(valorFrete)}</strong>
+                  </div>
+
+                  <div className="valor-item destaque">
+                    <span>Total</span>
+                    <strong>{formatarMoeda(valorTotal)}</strong>
+                  </div>
+                </div>
+
+                <div className="meta-box">
+                  <span>
+                    <strong>Payment ID:</strong>{" "}
+                    {pedido.payment_id || "Não informado"}
+                  </span>
+                  <span>
+                    <strong>Preference ID:</strong>{" "}
+                    {pedido.preference_id || "Não informado"}
+                  </span>
+                  <span>
+                    <strong>Referência:</strong>{" "}
+                    {pedido.external_reference || "Não informada"}
+                  </span>
+                  <span>
+                    <strong>Detalhe:</strong>{" "}
+                    {pedido.status_detail || "Não informado"}
+                  </span>
+                </div>
+
+                <div className="rodape-card">
+                  <a href={`/Pedidos/${id}`} className="btn-detalhes">
                     Ver detalhes
                   </a>
                 </div>
@@ -447,7 +472,7 @@ export default function PedidosPage() {
 
         .grid-pedidos {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+          grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
           gap: 20px;
         }
 
@@ -497,29 +522,24 @@ export default function PedidosPage() {
           color: #c2410c;
         }
 
-        .status.pago {
+        .status.aprovado {
           background: #ecfdf5;
           color: #166534;
         }
 
-        .status.separacao {
-          background: #eff6ff;
-          color: #1d4ed8;
-        }
-
-        .status.enviado {
-          background: #eef2ff;
-          color: #4338ca;
-        }
-
-        .status.entregue {
-          background: #dcfce7;
-          color: #166534;
+        .status.recusado {
+          background: #fff1f2;
+          color: #be123c;
         }
 
         .status.cancelado {
-          background: #fff1f2;
-          color: #be123c;
+          background: #f1f5f9;
+          color: #475569;
+        }
+
+        .status.analise {
+          background: #eff6ff;
+          color: #1d4ed8;
         }
 
         .info-lista {
@@ -537,25 +557,51 @@ export default function PedidosPage() {
           line-height: 1.5;
         }
 
-        .rodape-card {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
+        .valores {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
           gap: 12px;
-          flex-wrap: wrap;
-          margin-top: 8px;
+          margin-bottom: 16px;
         }
 
-        .valor-box span {
+        .valor-item {
+          border: 1px solid #e2e8f0;
+          background: #f8fafc;
+          border-radius: 14px;
+          padding: 12px;
+        }
+
+        .valor-item span {
           display: block;
           font-size: 13px;
           color: #64748b;
           margin-bottom: 4px;
         }
 
-        .valor-box strong {
-          font-size: 22px;
+        .valor-item strong {
           color: #0f172a;
+          font-size: 18px;
+        }
+
+        .valor-item.destaque {
+          background: #eff6ff;
+          border-color: #bfdbfe;
+        }
+
+        .meta-box {
+          display: grid;
+          gap: 8px;
+          margin-bottom: 16px;
+          color: #475569;
+          font-size: 13px;
+          word-break: break-word;
+        }
+
+        .rodape-card {
+          display: flex;
+          justify-content: flex-end;
+          align-items: center;
+          margin-top: 8px;
         }
 
         .btn-detalhes {
@@ -583,13 +629,16 @@ export default function PedidosPage() {
             grid-template-columns: 1fr;
           }
 
-          .rodape-card {
-            flex-direction: column;
-            align-items: stretch;
+          .valores {
+            grid-template-columns: 1fr;
           }
 
           .btn-detalhes {
             width: 100%;
+          }
+
+          .rodape-card {
+            justify-content: stretch;
           }
         }
       `}</style>
