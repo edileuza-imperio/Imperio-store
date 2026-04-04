@@ -4,10 +4,10 @@ import React from "react";
 import Navbar from "@/components/site/menu/navbar";
 import Footer from "@/components/site/Rodape/Footer";
 import api from "@/Api/conectar";
-import "bootstrap/dist/css/bootstrap.min.css";
+
 
 import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+
 import { formatBRL } from "@/components/Bibioteca/functions";
 import {
   FiShoppingCart,
