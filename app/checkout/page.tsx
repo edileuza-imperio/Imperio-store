@@ -4,10 +4,9 @@ import React from "react";
 import Navbar from "@/components/site/menu/navbar";
 import Footer from "@/components/site/Rodape/Footer";
 import api from "@/Api/conectar";
-import "bootstrap/dist/css/bootstrap.min.css";
+import { useRouter } from "next/navigation";
 
 import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import { formatBRL } from "@/components/Bibioteca/functions";
 import {
   FiMapPin,
@@ -16,6 +15,9 @@ import {
   FiShoppingBag,
   FiHome,
   FiCheckCircle,
+  FiArrowRight,
+  FiCreditCard,
+  FiPackage,
 } from "react-icons/fi";
 
 type CarrinhoItem = {
@@ -145,7 +147,6 @@ function imagemUrl(path?: string) {
   const clean = String(path).replace(/^\/+/, "");
 
   if (!clean) return "/placeholder.png";
-
   if (clean.startsWith("upload/")) return `${base}/${clean}`;
 
   return `${base}/upload/${clean}`;
@@ -170,6 +171,8 @@ function enderecoToForm(endereco?: Partial<EnderecoUsuario> | null): CheckoutFor
 }
 
 export default function CheckoutPage() {
+  const router = useRouter();
+
   const [loading, setLoading] = React.useState(true);
   const [enviando, setEnviando] = React.useState(false);
   const [erro, setErro] = React.useState<string | null>(null);
@@ -232,9 +235,6 @@ export default function CheckoutPage() {
       let listaNormalizada: CarrinhoItem[] = [];
 
       const resp = await api.get("/carrinho");
-
-      console.log("[checkout] resposta /carrinho:", resp.data);
-
       const base = pickCarrinhoBase(resp.data);
       const listaBruta = pickItensDoCarrinho(resp.data);
 
@@ -261,9 +261,6 @@ export default function CheckoutPage() {
         listaNormalizada = normalizarItens(listaBruta);
       } else {
         const respItens = await api.get("/carrinho/itens");
-
-        console.log("[checkout] resposta /carrinho/itens:", respItens.data);
-
         const listaBrutaItens = pickItensDoCarrinho(respItens.data);
         listaNormalizada = normalizarItens(listaBrutaItens);
       }
@@ -271,10 +268,6 @@ export default function CheckoutPage() {
       setCarrinho(carrinhoResumo);
       setItens(listaNormalizada);
     } catch (e: any) {
-      console.log("[checkout] erro ao carregar carrinho:", e);
-      console.log("[checkout] erro response:", e?.response);
-      console.log("[checkout] erro response data:", e?.response?.data);
-
       setErro(e?.response?.data?.mensagem || "Erro ao carregar checkout.");
       setCarrinho(null);
       setItens([]);
@@ -286,13 +279,8 @@ export default function CheckoutPage() {
       setCarregandoEnderecos(true);
 
       const response = await api.get("/usuario/endereco");
-
-      console.log("[endereco] resposta GET /usuario/endereco:", response.data);
-
       const lista = response?.data?.dados ?? response?.data ?? [];
       const enderecosLista = Array.isArray(lista) ? lista : [];
-
-      console.log("[endereco] lista normalizada:", enderecosLista);
 
       setEnderecos(enderecosLista);
 
@@ -302,7 +290,6 @@ export default function CheckoutPage() {
           enderecosLista[0];
 
         if (principal) {
-          console.log("[endereco] principal selecionado automaticamente:", principal);
           setEnderecoSelecionadoId(Number(principal.id_endereco));
           setForm(enderecoToForm(principal));
         }
@@ -318,11 +305,7 @@ export default function CheckoutPage() {
           estado: "",
         });
       }
-    } catch (error: any) {
-      console.log("[endereco] erro ao carregar endereços:", error);
-      console.log("[endereco] erro response:", error?.response);
-      console.log("[endereco] erro response data:", error?.response?.data);
-
+    } catch {
       setEnderecos([]);
       setEnderecoSelecionadoId(null);
     } finally {
@@ -355,8 +338,6 @@ export default function CheckoutPage() {
   ) {
     const { name, value } = e.target;
 
-    console.log("[endereco] alterando campo:", name, value);
-
     setForm((prev) => ({
       ...prev,
       [name]: value,
@@ -364,7 +345,6 @@ export default function CheckoutPage() {
   }
 
   function selecionarEndereco(endereco: EnderecoUsuario) {
-    console.log("[endereco] card clicado:", endereco);
     setEnderecoSelecionadoId(Number(endereco.id_endereco));
     setForm(enderecoToForm(endereco));
   }
@@ -378,7 +358,6 @@ export default function CheckoutPage() {
       !form.cidade ||
       !form.estado
     ) {
-      console.log("[endereco] formulário inválido:", form);
       toast.warning("Preencha os dados do endereço antes de salvar.");
       return;
     }
@@ -395,23 +374,11 @@ export default function CheckoutPage() {
         principal: 1,
       };
 
-      console.log("[endereco] payload enviado:", payload);
-
       const response = await api.post("/usuario/endereco", payload);
 
-      console.log("[endereco] resposta POST /usuario/endereco:", response.data);
-
       toast.success(response?.data?.mensagem || "Endereço salvo com sucesso.");
-
       await carregarEnderecos();
     } catch (error: any) {
-      console.log("[endereco] erro ao salvar endereço:", error);
-      console.log("[endereco] error.message:", error?.message);
-      console.log("[endereco] error.response:", error?.response);
-      console.log("[endereco] error.response.status:", error?.response?.status);
-      console.log("[endereco] error.response.data:", error?.response?.data);
-      console.log("[endereco] error.config:", error?.config);
-
       toast.error(
         error?.response?.data?.mensagem || "Não foi possível salvar o endereço."
       );
@@ -490,25 +457,19 @@ export default function CheckoutPage() {
         })),
       };
 
-      console.log("[checkout] payload /pedido/checkout:", payload);
-
       const response = await api.post("/pedido/checkout", payload);
-
-      console.log("[checkout] resposta /pedido/checkout:", response.data);
-
       const dados = response?.data?.dados ?? response?.data ?? {};
 
       toast.success(dados?.mensagem || "Pedido cadastrado com sucesso.");
 
-      const pedidoId = dados?.pedido?.id_pedido ?? dados?.pedido_id ?? null;
-
-      if (pedidoId) {
-        window.location.href = `/pagamento/${pedidoId}`;
-        return;
-      }
+      const pedidoId =
+        dados?.pedido?.id_pedido ??
+        dados?.id_pedido ??
+        dados?.pedido_id ??
+        null;
 
       if (dados?.redirect) {
-        window.location.href = dados.redirect;
+        router.push(dados.redirect);
         return;
       }
 
@@ -517,12 +478,13 @@ export default function CheckoutPage() {
         return;
       }
 
-      window.location.href = "/pagamento";
-    } catch (error: any) {
-      console.log("[checkout] erro ao finalizar pedido:", error);
-      console.log("[checkout] erro response:", error?.response);
-      console.log("[checkout] erro response data:", error?.response?.data);
+      if (pedidoId) {
+        router.push(`/pagamento/${pedidoId}`);
+        return;
+      }
 
+      router.push("/pagamento");
+    } catch (error: any) {
       toast.error(
         error?.response?.data?.dados?.erro ||
           error?.response?.data?.erro ||
@@ -538,10 +500,42 @@ export default function CheckoutPage() {
     return (
       <>
         <Navbar />
-        <div className="container py-5 text-center">
-          <div className="spinner-border text-warning" />
+        <div className="checkout-loading">
+          <div className="checkout-loading-card">
+            <div className="spinner-border text-light" />
+            <p>Carregando checkout...</p>
+          </div>
         </div>
         <Footer />
+
+        <style jsx global>{`
+          body {
+            background: linear-gradient(180deg, #fffaf7 0%, #fff1ec 100%);
+          }
+
+          .checkout-loading {
+            min-height: 60vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 16px;
+          }
+
+          .checkout-loading-card {
+            min-width: 260px;
+            text-align: center;
+            padding: 28px 24px;
+            border-radius: 24px;
+            background: linear-gradient(135deg, #b55f53 0%, #8f433a 100%);
+            color: white;
+            box-shadow: 0 22px 40px rgba(143, 67, 58, 0.24);
+          }
+
+          .checkout-loading-card p {
+            margin: 14px 0 0;
+            font-weight: 700;
+          }
+        `}</style>
       </>
     );
   }
@@ -553,59 +547,64 @@ export default function CheckoutPage() {
 
       <style jsx global>{`
         body {
-          background: linear-gradient(180deg, #fffaf6 0%, #fff3ea 100%);
+          background:
+            radial-gradient(circle at top left, rgba(181, 95, 83, 0.09), transparent 22%),
+            linear-gradient(180deg, #fffaf7 0%, #fff3ea 56%, #ffede6 100%);
         }
 
         .checkout-page {
-          padding: 40px 0 64px;
+          padding: 44px 0 72px;
         }
 
         .checkout-surface {
           background: rgba(255, 255, 255, 0.96);
-          border-radius: 24px;
+          border-radius: 28px;
           border: 1px solid rgba(226, 214, 207, 0.9);
-          box-shadow: 0 18px 45px rgba(115, 82, 62, 0.08);
-          backdrop-filter: blur(6px);
+          box-shadow: 0 22px 48px rgba(115, 82, 62, 0.08);
+          backdrop-filter: blur(8px);
         }
 
         .checkout-hero {
-          padding: 24px 26px;
-          margin-bottom: 20px;
+          padding: 26px 28px;
+          margin-bottom: 22px;
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 20px;
           flex-wrap: wrap;
+          background: linear-gradient(135deg, rgba(181, 95, 83, 0.96), rgba(143, 67, 58, 0.96));
+          color: #fff;
+          box-shadow: 0 22px 40px rgba(143, 67, 58, 0.18);
         }
 
         .checkout-hero-left {
           display: flex;
           align-items: center;
-          gap: 14px;
+          gap: 16px;
         }
 
         .checkout-hero-icon {
-          width: 54px;
-          height: 54px;
-          border-radius: 18px;
+          width: 58px;
+          height: 58px;
+          border-radius: 20px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(135deg, #d18b72 0%, #b96558 100%);
+          background: rgba(255, 255, 255, 0.14);
           color: #fff;
-          box-shadow: 0 12px 24px rgba(185, 101, 88, 0.22);
+          box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
         }
 
         .checkout-hero h1 {
           margin: 0;
-          font-size: 28px;
-          color: #3f2d26;
-          font-weight: 800;
+          font-size: 30px;
+          font-weight: 900;
+          letter-spacing: -0.02em;
         }
 
         .checkout-hero p {
           margin: 4px 0 0;
-          color: #7d6358;
+          color: rgba(255, 255, 255, 0.92);
           font-size: 14px;
         }
 
@@ -613,17 +612,17 @@ export default function CheckoutPage() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          min-height: 42px;
+          min-height: 44px;
           padding: 0 16px;
           border-radius: 999px;
-          background: #fff3ea;
-          border: 1px solid #efd8cb;
-          color: #8e5f4e;
-          font-weight: 700;
+          background: rgba(255, 255, 255, 0.14);
+          border: 1px solid rgba(255, 255, 255, 0.18);
+          color: #fff;
+          font-weight: 800;
         }
 
         .checkout-card {
-          padding: 24px;
+          padding: 26px;
         }
 
         .section-title {
@@ -633,7 +632,8 @@ export default function CheckoutPage() {
           margin-bottom: 18px;
           font-size: 22px;
           color: #3f2d26;
-          font-weight: 800;
+          font-weight: 900;
+          letter-spacing: -0.02em;
         }
 
         .section-title svg {
@@ -643,15 +643,15 @@ export default function CheckoutPage() {
         .field-label {
           font-size: 14px;
           color: #6c564c;
-          font-weight: 700;
+          font-weight: 800;
           margin-bottom: 8px;
           display: block;
         }
 
         .field-input {
           width: 100%;
-          min-height: 48px;
-          border-radius: 14px;
+          min-height: 50px;
+          border-radius: 16px;
           border: 1px solid #e7d6cc;
           background: #fff;
           padding: 0 14px;
@@ -667,10 +667,10 @@ export default function CheckoutPage() {
 
         .produto-mini {
           display: grid;
-          grid-template-columns: 72px 1fr auto;
-          gap: 12px;
+          grid-template-columns: 76px 1fr auto;
+          gap: 14px;
           align-items: center;
-          padding: 12px 0;
+          padding: 14px 0;
           border-bottom: 1px solid #f1e4dc;
         }
 
@@ -679,9 +679,9 @@ export default function CheckoutPage() {
         }
 
         .produto-mini-img {
-          width: 72px;
-          height: 72px;
-          border-radius: 16px;
+          width: 76px;
+          height: 76px;
+          border-radius: 18px;
           overflow: hidden;
           background: #f8eee8;
           border: 1px solid #f1dfd5;
@@ -698,7 +698,7 @@ export default function CheckoutPage() {
           margin: 0 0 4px;
           font-size: 15px;
           color: #3f2d26;
-          font-weight: 800;
+          font-weight: 900;
         }
 
         .produto-mini-meta {
@@ -711,7 +711,7 @@ export default function CheckoutPage() {
           text-align: right;
           color: #a84f45;
           font-size: 15px;
-          font-weight: 800;
+          font-weight: 900;
         }
 
         .summaryLine {
@@ -739,48 +739,51 @@ export default function CheckoutPage() {
         .summaryTotal span {
           font-size: 16px;
           color: #5f4a42;
-          font-weight: 700;
+          font-weight: 800;
         }
 
         .summaryTotal strong {
-          font-size: 26px;
+          font-size: 28px;
           color: #a84f45;
           font-weight: 900;
+          letter-spacing: -0.02em;
         }
 
         .summarySticky {
           position: sticky;
-          top: 90px;
+          top: 92px;
         }
 
         .btn-brand {
           background: linear-gradient(135deg, #b55f53 0%, #8f433a 100%);
           color: white;
           border: none;
-          border-radius: 16px;
-          min-height: 52px;
-          font-weight: 800;
-          box-shadow: 0 14px 28px rgba(143, 67, 58, 0.2);
+          border-radius: 18px;
+          min-height: 54px;
+          font-weight: 900;
+          box-shadow: 0 16px 28px rgba(143, 67, 58, 0.2);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .btn-brand:hover {
           color: white;
-          opacity: 0.96;
+          transform: translateY(-1px);
+          box-shadow: 0 20px 32px rgba(143, 67, 58, 0.28);
         }
 
         .btn-outline-brand {
           border: 1px solid #caa998;
           color: #8b5a49;
           background: #fff;
-          border-radius: 16px;
-          min-height: 48px;
-          font-weight: 800;
+          border-radius: 18px;
+          min-height: 50px;
+          font-weight: 900;
         }
 
         .benefitsGrid {
           margin-top: 18px;
           display: grid;
-          gap: 10px;
+          gap: 12px;
         }
 
         .benefitItem {
@@ -788,7 +791,7 @@ export default function CheckoutPage() {
           align-items: flex-start;
           gap: 12px;
           padding: 14px;
-          border-radius: 16px;
+          border-radius: 18px;
           background: #fffaf7;
           border: 1px solid #f0e4dc;
         }
@@ -812,8 +815,8 @@ export default function CheckoutPage() {
         }
 
         .emptyBox {
-          padding: 28px;
-          border-radius: 20px;
+          padding: 30px;
+          border-radius: 22px;
           background: #fffaf7;
           border: 1px dashed #e7cfc1;
           color: #7e665b;
@@ -827,8 +830,8 @@ export default function CheckoutPage() {
           color: #8b6b5d;
           background: #fff8f3;
           border: 1px solid #f0ddd2;
-          border-radius: 14px;
-          padding: 10px 12px;
+          border-radius: 16px;
+          padding: 12px 14px;
         }
 
         .addressCardsGrid {
@@ -843,7 +846,7 @@ export default function CheckoutPage() {
           text-align: left;
           border: 1px solid #ecd8ce;
           background: #fff;
-          border-radius: 18px;
+          border-radius: 20px;
           padding: 16px;
           transition: 0.2s ease;
           cursor: pointer;
@@ -874,7 +877,7 @@ export default function CheckoutPage() {
           align-items: center;
           gap: 8px;
           font-size: 15px;
-          font-weight: 800;
+          font-weight: 900;
           color: #4b372f;
         }
 
@@ -883,7 +886,7 @@ export default function CheckoutPage() {
           align-items: center;
           gap: 6px;
           font-size: 12px;
-          font-weight: 800;
+          font-weight: 900;
           color: #8f433a;
           background: #fff1ec;
           border: 1px solid #f0d1c7;
@@ -894,8 +897,26 @@ export default function CheckoutPage() {
         .addressCardText {
           font-size: 13px;
           color: #6c564c;
-          line-height: 1.5;
+          line-height: 1.55;
           margin: 0;
+        }
+
+        .resume-highlight {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 14px 16px;
+          margin-bottom: 18px;
+          border-radius: 18px;
+          background: linear-gradient(135deg, #fff4ee, #fffaf7);
+          border: 1px solid #f0ddd2;
+          color: #6c564c;
+          font-weight: 700;
+        }
+
+        .resume-highlight svg {
+          color: #b55f53;
+          flex-shrink: 0;
         }
 
         @media (max-width: 992px) {
@@ -905,6 +926,18 @@ export default function CheckoutPage() {
         }
 
         @media (max-width: 768px) {
+          .checkout-page {
+            padding: 24px 0 54px;
+          }
+
+          .checkout-hero {
+            padding: 22px 20px;
+          }
+
+          .checkout-card {
+            padding: 20px;
+          }
+
           .produto-mini {
             grid-template-columns: 1fr;
           }
@@ -928,8 +961,8 @@ export default function CheckoutPage() {
                 <FiShoppingBag size={26} />
               </div>
               <div>
-                <h1>Checkout</h1>
-                <p>Selecione um endereço salvo ou cadastre um novo.</p>
+                <h1>Finalizar compra</h1>
+                <p>Confirme seu endereço e siga para o pagamento.</p>
               </div>
             </div>
 
@@ -1114,6 +1147,11 @@ export default function CheckoutPage() {
                       <span>Resumo do pedido</span>
                     </h5>
 
+                    <div className="resume-highlight">
+                      <FiCreditCard size={18} />
+                      <span>Ao continuar, você será enviado para o pagamento.</span>
+                    </div>
+
                     <div className="d-grid gap-2 mb-3">
                       {itens.map((item) => {
                         const preco = precoFinalItem(item);
@@ -1177,7 +1215,14 @@ export default function CheckoutPage() {
                       className="btn btn-brand w-100 mt-4"
                       disabled={enviando || itens.length === 0}
                     >
-                      {enviando ? "Salvando pedido..." : "Continuar para pagamento"}
+                      {enviando ? (
+                        "Enviando para pagamento..."
+                      ) : (
+                        <>
+                          Continuar para pagamento
+                          <FiArrowRight style={{ marginLeft: 8 }} />
+                        </>
+                      )}
                     </button>
 
                     <button
@@ -1202,6 +1247,14 @@ export default function CheckoutPage() {
                         <div>
                           <strong>Compra protegida</strong>
                           <p>Seus dados e pedido com mais segurança.</p>
+                        </div>
+                      </div>
+
+                      <div className="benefitItem">
+                        <FiPackage size={18} />
+                        <div>
+                          <strong>Pedido organizado</strong>
+                          <p>Seu pedido é salvo antes do redirecionamento ao pagamento.</p>
                         </div>
                       </div>
                     </div>
