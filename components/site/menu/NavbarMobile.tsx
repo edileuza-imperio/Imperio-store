@@ -9,6 +9,7 @@ import api from "@/Api/conectar";
 import { rotas } from "@/components/Bibioteca/config/rotas";
 import { IconHelper } from "@/components/Bibioteca/icons/IconHelper";
 import { Menu, MenuItem } from "@/components/Bibioteca/Bibiotecas";
+import CarrinhoQuantidade from "@/components/Carrinho/CarrinhoQuantidade";
 
 interface Categoria {
   id_categoria?: number | string;
@@ -248,11 +249,16 @@ export default function NavbarMobile({
               className="mobile-btn mobile-btn-badge"
               title={getMenuNome(carrinhoMenu) || "Carrinho"}
             >
-              {IconHelper.render({
-                nome: carrinhoMenu?.icone || "carrito",
-                size: 20,
-              })}
-              <span className="mobile-badge">0</span>
+              <span className="mobile-cartIcon">
+                {IconHelper.render({
+                  nome: carrinhoMenu?.icone || "carrito",
+                  size: 20,
+                })}
+              </span>
+
+              <span className="mobile-badge">
+                <CarrinhoQuantidade />
+              </span>
             </Link>
 
             {!usuarioLoading && !logado && (
