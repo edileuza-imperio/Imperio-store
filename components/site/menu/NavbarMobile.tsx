@@ -75,6 +75,16 @@ export default function NavbarMobile({
     return nome.includes("painel administrativo");
   };
 
+  const isCartIcon = (icone?: string | null) => {
+    const name = String(icone || "").toLowerCase();
+    return (
+      name.includes("bi-cart") ||
+      name.includes("cart") ||
+      name.includes("carrito") ||
+      name.includes("carrinho")
+    );
+  };
+
   const searchMenu = menus?.find((m) => !!m.pesquisa_placeholder);
 
   const accountMenu = menus?.find(
@@ -249,16 +259,14 @@ export default function NavbarMobile({
               className="mobile-btn mobile-btn-badge"
               title={getMenuNome(carrinhoMenu) || "Carrinho"}
             >
-              <span className="mobile-cartIcon">
-                {IconHelper.render({
+              {isCartIcon(carrinhoMenu?.icone) ? (
+                <CarrinhoQuantidade size={20} />
+              ) : (
+                IconHelper.render({
                   nome: carrinhoMenu?.icone || "carrito",
                   size: 20,
-                })}
-              </span>
-
-              <span className="mobile-badge">
-                <CarrinhoQuantidade />
-              </span>
+                })
+              )}
             </Link>
 
             {!usuarioLoading && !logado && (
