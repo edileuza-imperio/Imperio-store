@@ -38,7 +38,7 @@ export default function Navbar() {
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
-  const [sidebarWidth, setSidebarWidth] = useState(320);
+  const [sidebarWidth, setSidebarWidth] = useState(340);
   const [scrolled, setScrolled] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -51,6 +51,10 @@ export default function Navbar() {
     if (catLoading || catErro) return [];
     return Array.isArray(categorias) ? (categorias as Categoria[]) : [];
   }, [catLoading, catErro, categorias]);
+
+  const categoriasValidas = useMemo(() => {
+    return safeCategorias.filter((cat) => !!cat?.nome);
+  }, [safeCategorias]);
 
   const getMenuNome = (menu?: Partial<Menu>) =>
     String(menu?.nome || menu?.titulo || "").trim();
@@ -217,14 +221,15 @@ export default function Navbar() {
 
   useEffect(() => {
     const getSidebarWidth = () => {
-      if (typeof window === "undefined") return 320;
+      if (typeof window === "undefined") return 340;
 
       const w = window.innerWidth;
 
-      if (w <= 360) return Math.min(300, Math.floor(w * 0.92));
-      if (w <= 480) return Math.min(340, Math.floor(w * 0.9));
+      if (w <= 360) return Math.min(300, Math.floor(w * 0.94));
+      if (w <= 480) return Math.min(340, Math.floor(w * 0.92));
+      if (w <= 768) return Math.min(380, Math.floor(w * 0.86));
 
-      return 360;
+      return 380;
     };
 
     const sync = () => setSidebarWidth(getSidebarWidth());
@@ -290,9 +295,11 @@ export default function Navbar() {
                   <span className="navbar-account__avatar">
                     {usuario?.nome?.charAt(0)?.toUpperCase() || "U"}
                   </span>
+
                   <span className="navbar-account__name">
                     {usuario?.nome?.split(" ")[0] || "Usuário"}
                   </span>
+
                   <span className={userDropdownOpen ? "rotate" : ""}>
                     {IconHelper.render({ nome: "down", size: 16 })}
                   </span>
@@ -328,7 +335,7 @@ export default function Navbar() {
           </div>
         </div>
 
-        <div className="navbar-desktop__bottom">
+        <div className="navbar-desktop__middle">
           <nav className="navbar-links">
             {menusPrincipais.map((menu) => {
               const rota = getMenuRota(menu);
@@ -346,11 +353,12 @@ export default function Navbar() {
           </nav>
         </div>
 
-        {safeCategorias.length > 0 && (
-          <div className="navbar-categorias">
-            {safeCategorias
-              .filter((cat) => !!cat?.nome)
-              .map((cat) => {
+        {categoriasValidas.length > 0 && (
+          <div className="navbar-categorias-wrap">
+            <div className="navbar-categorias-label">Categorias</div>
+
+            <div className="navbar-categorias">
+              {categoriasValidas.map((cat) => {
                 const slug = String(cat.slug || "").trim();
                 const href = slug ? `/categoria/${slug}` : "#";
 
@@ -366,10 +374,12 @@ export default function Navbar() {
                         size: 16,
                       })}
                     </span>
+
                     <span>{cat.nome}</span>
                   </Link>
                 );
               })}
+            </div>
           </div>
         )}
       </header>
@@ -444,7 +454,7 @@ export default function Navbar() {
 
                   <span>{usuario?.nome?.split(" ")[0] || "Usuário"}</span>
 
-                  <span className="mobile-dropdownChevron">
+                  <span className={`mobile-dropdownChevron ${userDropdownOpen ? "open" : ""}`}>
                     {IconHelper.render({
                       nome: "down",
                       size: 16,
@@ -485,6 +495,31 @@ export default function Navbar() {
         <div className="mobile-searchWrap">
           <SearchBar placeholder={searchPlaceholder} className="w-100" />
         </div>
+
+        {categoriasValidas.length > 0 && (
+          <div className="mobile-categorias-scroll">
+            {categoriasValidas.map((cat) => {
+              const slug = String(cat.slug || "").trim();
+              const href = slug ? `/categoria/${slug}` : "#";
+
+              return (
+                <Link
+                  key={String(cat.id_categoria || slug || cat.nome)}
+                  href={href}
+                  className="mobile-categoria-chip"
+                >
+                  <span className="mobile-categoria-chip__icon">
+                    {IconHelper.render({
+                      nome: cat.icone,
+                      size: 14,
+                    })}
+                  </span>
+                  <span>{cat.nome}</span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </header>
 
       {sidebarOpen && (
@@ -501,11 +536,16 @@ export default function Navbar() {
           transform: sidebarOpen
             ? "translateX(0)"
             : `translateX(-${sidebarWidth}px)`,
-          transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+          transition: "transform 0.32s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
         <div className="mobile-sidebarHeader">
-          <h2 className="mobile-sidebarTitle">Categorias</h2>
+          <div>
+            <h2 className="mobile-sidebarTitle">Explorar categorias</h2>
+            <p className="mobile-sidebarSubTitle">
+              Navegue por todas as categorias da loja
+            </p>
+          </div>
 
           <button
             type="button"
@@ -518,36 +558,34 @@ export default function Navbar() {
         </div>
 
         <div className="mobile-sidebarContent">
-          {safeCategorias.length > 0 ? (
-            <nav>
-              {safeCategorias
-                .filter((cat) => !!cat?.nome)
-                .map((cat) => {
-                  const slug = String(cat.slug || "").trim();
-                  const href = slug ? `/categoria/${slug}` : "#";
+          {categoriasValidas.length > 0 ? (
+            <nav className="mobile-categoria-lista">
+              {categoriasValidas.map((cat) => {
+                const slug = String(cat.slug || "").trim();
+                const href = slug ? `/categoria/${slug}` : "#";
 
-                  return (
-                    <Link
-                      key={String(cat.id_categoria || slug || cat.nome)}
-                      href={href}
-                      onClick={closeAll}
-                      className="mobile-categoryItem"
-                    >
-                      <span className="mobile-categoryItemIcon">
-                        {IconHelper.render({
-                          nome: cat.icone,
-                          size: 18,
-                        })}
-                      </span>
+                return (
+                  <Link
+                    key={String(cat.id_categoria || slug || cat.nome)}
+                    href={href}
+                    onClick={closeAll}
+                    className="mobile-categoryItem"
+                  >
+                    <span className="mobile-categoryItemIcon">
+                      {IconHelper.render({
+                        nome: cat.icone,
+                        size: 18,
+                      })}
+                    </span>
 
-                      <span>{cat.nome}</span>
+                    <span className="mobile-categoryItemText">{cat.nome}</span>
 
-                      <span className="mobile-categoryArrow">
-                        {IconHelper.render({ nome: "right", size: 16 })}
-                      </span>
-                    </Link>
-                  );
-                })}
+                    <span className="mobile-categoryArrow">
+                      {IconHelper.render({ nome: "right", size: 16 })}
+                    </span>
+                  </Link>
+                );
+              })}
             </nav>
           ) : (
             <div className="mobile-empty">Nenhuma categoria disponível</div>
@@ -555,9 +593,6 @@ export default function Navbar() {
         </div>
       </aside>
 
-      <style jsx>{`
-        
-      `}</style>
     </>
   );
 }
