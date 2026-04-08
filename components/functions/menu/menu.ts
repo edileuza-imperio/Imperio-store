@@ -41,7 +41,17 @@ type MenuItemApi = {
 };
 
 type MenuApiResponse = {
+  status?: number;
+  mensagem?: string;
   dados?: {
+    status?: number;
+    mensagem?: string;
+    dados?: {
+      sidebar?: MenuItemApi[] | Record<string, MenuItemApi>;
+      menu?: MenuItemApi[] | Record<string, MenuItemApi>;
+      menus?: MenuItemApi[] | Record<string, MenuItemApi>;
+      itens?: MenuItemApi[] | Record<string, MenuItemApi>;
+    };
     sidebar?: MenuItemApi[] | Record<string, MenuItemApi>;
     menu?: MenuItemApi[] | Record<string, MenuItemApi>;
     menus?: MenuItemApi[] | Record<string, MenuItemApi>;
@@ -57,7 +67,6 @@ type MenuApiResponse = {
   menu?: MenuItemApi[] | Record<string, MenuItemApi>;
   menus?: MenuItemApi[] | Record<string, MenuItemApi>;
   itens?: MenuItemApi[] | Record<string, MenuItemApi>;
-  mensagem?: string;
 };
 
 function limparTexto(valor?: string | null): string | undefined {
@@ -132,13 +141,9 @@ function obterLabel(item?: {
 function transformarEmArray<T>(valor?: T[] | Record<string, T>): T[] {
   if (!valor) return [];
 
-  if (Array.isArray(valor)) {
-    return valor;
-  }
+  if (Array.isArray(valor)) return valor;
 
-  if (typeof valor === "object") {
-    return Object.values(valor);
-  }
+  if (typeof valor === "object") return Object.values(valor);
 
   return [];
 }
@@ -225,6 +230,10 @@ function extrairSidebar(
   if (!data) return [];
 
   const sidebarExtraido =
+    data.dados?.dados?.sidebar ||
+    data.dados?.dados?.menu ||
+    data.dados?.dados?.menus ||
+    data.dados?.dados?.itens ||
     data.dados?.sidebar ||
     data.data?.sidebar ||
     data.dados?.menu ||
@@ -240,6 +249,8 @@ function extrairSidebar(
     [];
 
   console.log("[menu.ts] resposta completa da API:", data);
+  console.log("[menu.ts] data.dados:", data?.dados);
+  console.log("[menu.ts] data.dados?.dados:", data?.dados?.dados);
   console.log("[menu.ts] sidebar extraído:", sidebarExtraido);
 
   return sidebarExtraido;
