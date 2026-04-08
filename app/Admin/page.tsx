@@ -2,9 +2,31 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import useUsuario from "@/hooks/Auth/useUsuario";
-import { buscarCardsPainel, DashboardCard, renderIcon } from "@/components/functions/adminsidebar/sidebar";
 
+import useUsuario from "@/hooks/Auth/useUsuario";
+import { PainelApi } from "@/services/api/api";
+
+type CardAcao = {
+  tipo: string;
+  icone: string;
+  url: string;
+};
+
+type DashboardCard = {
+  titulo: string;
+  valor: number;
+  icone?: string;
+  acoes?: CardAcao[];
+};
+
+type DashboardCardsResponse = {
+  dados?: {
+    dados?: {
+      cards?: DashboardCard[];
+    };
+  };
+  mensagem?: string;
+};
 
 export default function AdminPage() {
   const router = useRouter();
@@ -20,8 +42,10 @@ export default function AdminPage() {
         setLoading(true);
         setErro(null);
 
-        const cardsData = await buscarCardsPainel();
-        setCards(cardsData);
+        const response = await PainelApi.get<DashboardCardsResponse>("/dados/cards");
+        const data = response.data;
+
+        setCards(data?.dados?.dados?.cards || []);
       } catch (error: any) {
         console.error("Erro ao carregar cards:", error?.response?.data || error);
 
@@ -38,6 +62,25 @@ export default function AdminPage() {
 
     carregarCards();
   }, []);
+
+  function renderIcon(icon?: string) {
+    switch (icon) {
+      case "settings":
+        return "⚙";
+      case "plus":
+        return "+";
+      case "eye":
+        return "👁";
+      case "box":
+        return "📦";
+      case "tag":
+        return "🏷";
+      case "users":
+        return "👥";
+      default:
+        return "■";
+    }
+  }
 
   return (
     <div className="dashboard">

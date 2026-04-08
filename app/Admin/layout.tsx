@@ -2,8 +2,9 @@
 
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import api from "@/Api/conectar";
 import useUsuario from "@/hooks/Auth/useUsuario";
+import { PainelApi } from "@/services/api/api";
+
 import {
   FiMenu,
   FiX,
@@ -12,18 +13,7 @@ import {
   FiShield,
   FiChevronDown,
 } from "react-icons/fi";
-
-type SidebarChild = {
-  url: string;
-  label: string;
-};
-
-type SidebarItem = {
-  url?: string;
-  label: string;
-  icon?: string;
-  children?: SidebarChild[];
-};
+import { SidebarItem, buscarMenuPainel } from "@/components/functions/menu/menu";
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -51,61 +41,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         setMenuLoading(true);
         setMenuErro(null);
 
-        const response = await api.get("/painel/dados");
-
-        const sidebar =
-          response?.data?.dados?.sidebar ||
-          response?.data?.dados?.dados?.sidebar ||
-          [];
-
-        const menuNormalizado: SidebarItem[] = Array.isArray(sidebar)
-          ? sidebar.map((item: any) => ({
-              url:
-                typeof item?.url === "string" && item.url.trim()
-                  ? item.url.trim()
-                  : undefined,
-              label:
-                typeof item?.label === "string" && item.label.trim()
-                  ? item.label.trim()
-                  : typeof item?.nome === "string" && item.nome.trim()
-                  ? item.nome.trim()
-                  : "Sem nome",
-              icon:
-                typeof item?.icon === "string" && item.icon.trim()
-                  ? item.icon.trim()
-                  : typeof item?.icone === "string" && item.icone.trim()
-                  ? item.icone.trim()
-                  : undefined,
-              children: Array.isArray(item?.children)
-                ? item.children
-                    .map((child: any) => ({
-                      url:
-                        typeof child?.url === "string" && child.url.trim()
-                          ? child.url.trim()
-                          : typeof child?.rota === "string" && child.rota.trim()
-                          ? child.rota.trim()
-                          : "",
-                      label:
-                        typeof child?.label === "string" && child.label.trim()
-                          ? child.label.trim()
-                          : typeof child?.nome === "string" && child.nome.trim()
-                          ? child.nome.trim()
-                          : "Sem nome",
-                    }))
-                    .filter(
-                      (child: SidebarChild) =>
-                        child.url.length > 0 &&
-                        child.url !== "#" &&
-                        child.url.toLowerCase() !== "null" &&
-                        child.url.toLowerCase() !== "undefined"
-                    )
-                : [],
-            }))
-          : [];
-
+        const menuNormalizado = await buscarMenuPainel();
         setMenu(menuNormalizado);
 
         const openState: Record<string, boolean> = {};
+
         menuNormalizado.forEach((item) => {
           if (item.children?.length) {
             openState[item.label] = item.children.some(
@@ -113,6 +53,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             );
           }
         });
+
         setOpenMenus(openState);
       } catch (error: any) {
         console.error("Erro ao carregar menu:", error?.response?.data || error);
@@ -129,12 +70,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     }
 
     carregarMenu();
-  }, [loading, logado, router, pathname]);
+  }, [loading, logado, pathname, router]);
 
   async function handleLogout() {
     try {
       setSaindo(true);
-      await api.post("/painel/logout", {});
+      await PainelApi.post("/logout", {});
     } catch (error: any) {
       console.error("Erro ao sair:", error?.response?.data || error);
     } finally {
@@ -149,20 +90,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   function handleNavigate(url?: string) {
-    if (typeof url !== "string") return;
+    if (!url) return;
 
-    const destino = url.trim();
-
-    if (
-      !destino ||
-      destino === "#" ||
-      destino === "null" ||
-      destino === "undefined"
-    ) {
-      return;
-    }
-
-    router.push(destino);
+    router.push(url);
     setMobileMenuOpen(false);
   }
 
@@ -182,10 +112,19 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }, [usuario?.nome]);
 
   const nivelNome = useMemo(() => {
+    const usuarioTipado = usuario as
+      | {
+          nivel_nome?: string;
+          nivel?: { nome?: string };
+          nivelName?: string;
+          nivel_id?: number;
+        }
+      | undefined;
+
     const nomeDireto =
-      (usuario as any)?.nivel_nome ||
-      (usuario as any)?.nivel?.nome ||
-      (usuario as any)?.nivelName;
+      usuarioTipado?.nivel_nome ||
+      usuarioTipado?.nivel?.nome ||
+      usuarioTipado?.nivelName;
 
     if (nomeDireto) return nomeDireto;
 
@@ -260,7 +199,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               <div className="menu-state">Nenhum item de menu disponível.</div>
             ) : (
               menu.map((item, index) => {
-                const temChildren = Array.isArray(item.children) && item.children.length > 0;
+                const temChildren =
+                  Array.isArray(item.children) && item.children.length > 0;
+
                 const ativoPai = !!item.url && pathname === item.url;
                 const submenuAberto = !!openMenus[item.label];
                 const childAtivo = temChildren
@@ -271,11 +212,15 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   return (
                     <div
                       key={`${item.label}-${index}`}
-                      className={`nav-group ${submenuAberto ? "open" : ""} ${childAtivo ? "group-active" : ""}`}
+                      className={`nav-group ${submenuAberto ? "open" : ""} ${
+                        childAtivo ? "group-active" : ""
+                      }`}
                     >
                       <button
                         type="button"
-                        className={`nav-item nav-parent ${childAtivo ? "active" : ""}`}
+                        className={`nav-item nav-parent ${
+                          childAtivo ? "active" : ""
+                        }`}
                         onClick={() => toggleMenu(item.label)}
                       >
                         <div className="nav-item-left">
@@ -298,7 +243,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                             <button
                               key={`${child.url}-${childIndex}`}
                               type="button"
-                              className={`submenu-item ${ativoFilho ? "active" : ""}`}
+                              className={`submenu-item ${
+                                ativoFilho ? "active" : ""
+                              }`}
                               onClick={() => handleNavigate(child.url)}
                             >
                               <span className="submenu-bullet" />
