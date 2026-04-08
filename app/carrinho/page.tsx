@@ -205,7 +205,7 @@ export default function CarrinhoPage() {
   }
 
   function irParaPagamento() {
-    window.location.href = "/pagamento";
+    window.location.href = "/carrinho/pagamento";
   }
 
   if (loading) {
