@@ -35,28 +35,28 @@ type MenuItemApi = {
   titulo?: string;
   icon?: string;
   icone?: string;
-  children?: MenuChildApi[];
-  filhos?: MenuChildApi[];
-  itens?: MenuChildApi[];
+  children?: MenuChildApi[] | Record<string, MenuChildApi>;
+  filhos?: MenuChildApi[] | Record<string, MenuChildApi>;
+  itens?: MenuChildApi[] | Record<string, MenuChildApi>;
 };
 
 type MenuApiResponse = {
   dados?: {
-    sidebar?: MenuItemApi[];
-    menu?: MenuItemApi[];
-    menus?: MenuItemApi[];
-    itens?: MenuItemApi[];
+    sidebar?: MenuItemApi[] | Record<string, MenuItemApi>;
+    menu?: MenuItemApi[] | Record<string, MenuItemApi>;
+    menus?: MenuItemApi[] | Record<string, MenuItemApi>;
+    itens?: MenuItemApi[] | Record<string, MenuItemApi>;
   };
   data?: {
-    sidebar?: MenuItemApi[];
-    menu?: MenuItemApi[];
-    menus?: MenuItemApi[];
-    itens?: MenuItemApi[];
+    sidebar?: MenuItemApi[] | Record<string, MenuItemApi>;
+    menu?: MenuItemApi[] | Record<string, MenuItemApi>;
+    menus?: MenuItemApi[] | Record<string, MenuItemApi>;
+    itens?: MenuItemApi[] | Record<string, MenuItemApi>;
   };
-  sidebar?: MenuItemApi[];
-  menu?: MenuItemApi[];
-  menus?: MenuItemApi[];
-  itens?: MenuItemApi[];
+  sidebar?: MenuItemApi[] | Record<string, MenuItemApi>;
+  menu?: MenuItemApi[] | Record<string, MenuItemApi>;
+  menus?: MenuItemApi[] | Record<string, MenuItemApi>;
+  itens?: MenuItemApi[] | Record<string, MenuItemApi>;
   mensagem?: string;
 };
 
@@ -129,14 +129,39 @@ function obterLabel(item?: {
   );
 }
 
-function normalizarChildren(children?: MenuChildApi[]): SidebarChild[] {
-  if (!Array.isArray(children)) return [];
+function transformarEmArray<T>(valor?: T[] | Record<string, T>): T[] {
+  if (!valor) return [];
+
+  if (Array.isArray(valor)) {
+    return valor;
+  }
+
+  if (typeof valor === "object") {
+    return Object.values(valor);
+  }
+
+  return [];
+}
+
+function normalizarChildren(
+  children?: MenuChildApi[] | Record<string, MenuChildApi>
+): SidebarChild[] {
+  const lista = transformarEmArray(children);
+
+  console.log("[menu.ts] children bruto:", children);
+  console.log("[menu.ts] children em array:", lista);
+
+  if (!Array.isArray(lista) || lista.length === 0) return [];
 
   const itens: SidebarChild[] = [];
 
-  for (const child of children) {
+  for (const child of lista) {
     const url = obterUrl(child);
     const label = obterLabel(child);
+
+    console.log("[menu.ts] child analisado:", child);
+    console.log("[menu.ts] child url:", url);
+    console.log("[menu.ts] child label:", label);
 
     if (!url) continue;
 
@@ -146,23 +171,38 @@ function normalizarChildren(children?: MenuChildApi[]): SidebarChild[] {
     });
   }
 
+  console.log("[menu.ts] children normalizado:", itens);
+
   return itens;
 }
 
-export function normalizarMenu(sidebar?: MenuItemApi[]): SidebarItem[] {
-  if (!Array.isArray(sidebar)) return [];
+export function normalizarMenu(
+  sidebar?: MenuItemApi[] | Record<string, MenuItemApi>
+): SidebarItem[] {
+  const lista = transformarEmArray(sidebar);
+
+  console.log("[menu.ts] sidebar bruto:", sidebar);
+  console.log("[menu.ts] sidebar em array:", lista);
+
+  if (!Array.isArray(lista) || lista.length === 0) return [];
 
   const itens: SidebarItem[] = [];
 
-  for (const item of sidebar) {
-    const childrenBrutos = item.children || item.filhos || item.itens || [];
+  for (const item of lista) {
+    const childrenBrutos = item.children || item.filhos || item.itens;
     const children = normalizarChildren(childrenBrutos);
     const url = obterUrl(item);
     const label = obterLabel(item);
     const icon = limparTexto(item.icon) || limparTexto(item.icone);
 
-    // mantém grupos com filhos mesmo sem url
+    console.log("[menu.ts] item analisado:", item);
+    console.log("[menu.ts] item url:", url);
+    console.log("[menu.ts] item label:", label);
+    console.log("[menu.ts] item icon:", icon);
+    console.log("[menu.ts] item children:", children);
+
     if (!url && children.length === 0) {
+      console.log("[menu.ts] item ignorado por não ter url e nem children:", item);
       continue;
     }
 
@@ -174,13 +214,17 @@ export function normalizarMenu(sidebar?: MenuItemApi[]): SidebarItem[] {
     });
   }
 
+  console.log("[menu.ts] menu normalizado final:", itens);
+
   return itens;
 }
 
-function extrairSidebar(data?: MenuApiResponse): MenuItemApi[] {
+function extrairSidebar(
+  data?: MenuApiResponse
+): MenuItemApi[] | Record<string, MenuItemApi> | undefined {
   if (!data) return [];
 
-  return (
+  const sidebarExtraido =
     data.dados?.sidebar ||
     data.data?.sidebar ||
     data.dados?.menu ||
@@ -193,19 +237,38 @@ function extrairSidebar(data?: MenuApiResponse): MenuItemApi[] {
     data.dados?.itens ||
     data.data?.itens ||
     data.itens ||
-    []
-  );
+    [];
+
+  console.log("[menu.ts] resposta completa da API:", data);
+  console.log("[menu.ts] sidebar extraído:", sidebarExtraido);
+
+  return sidebarExtraido;
 }
 
 export async function buscarMenuPainel(
   config?: AxiosRequestConfig
 ): Promise<SidebarItem[]> {
-  const response: AxiosResponse<MenuApiResponse> = await PainelApi.get(
-    "/dados",
-    config
-  );
+  try {
+    const response: AxiosResponse<MenuApiResponse> = await PainelApi.get(
+      "/dados",
+      config
+    );
 
-  const sidebar = extrairSidebar(response.data);
+    console.log("[menu.ts] response status:", response.status);
+    console.log("[menu.ts] response completa:", response);
+    console.log("[menu.ts] response.data:", response.data);
 
-  return normalizarMenu(sidebar);
+    const sidebarBruto = extrairSidebar(response.data);
+    const menuNormalizado = normalizarMenu(sidebarBruto);
+
+    console.log("[menu.ts] sidebar bruto final:", sidebarBruto);
+    console.log("[menu.ts] menu normalizado retornado:", menuNormalizado);
+
+    return menuNormalizado;
+  } catch (error: any) {
+    console.error("[menu.ts] erro ao buscar menu:", error);
+    console.error("[menu.ts] error.response:", error?.response);
+    console.error("[menu.ts] error.response.data:", error?.response?.data);
+    throw error;
+  }
 }
