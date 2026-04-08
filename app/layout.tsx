@@ -7,8 +7,7 @@ import './../public/produto/produto.css';
 
 import './../public/admin/admin.css';
 import './../public/produto/page.css';
-import './../public/carrinho/carrinho.css';
-import './../public/carrinho/checkout.css';
+
 import './../public/categoria/categoria.css';
 import './../public/categoria/cateid.css';
 import './../public/destaque/destaque.css';
