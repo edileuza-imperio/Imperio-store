@@ -2,21 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import api from "@/Api/conectar";
 import useUsuario from "@/hooks/Auth/useUsuario";
+import { buscarCardsPainel, DashboardCard, renderIcon } from "@/components/functions/adminsidebar/sidebar";
 
-type CardAcao = {
-  tipo: string;
-  icone: string;
-  url: string;
-};
-
-type DashboardCard = {
-  titulo: string;
-  valor: number;
-  icone?: string;
-  acoes?: CardAcao[];
-};
 
 export default function AdminPage() {
   const router = useRouter();
@@ -32,13 +20,8 @@ export default function AdminPage() {
         setLoading(true);
         setErro(null);
 
-        const response = await api.get("/painel/dados/cards", {
-          withCredentials: true,
-        });
-
-        const data = response.data;
-
-        setCards(data?.dados?.dados?.cards || []);
+        const cardsData = await buscarCardsPainel();
+        setCards(cardsData);
       } catch (error: any) {
         console.error("Erro ao carregar cards:", error?.response?.data || error);
 
@@ -56,29 +39,8 @@ export default function AdminPage() {
     carregarCards();
   }, []);
 
-  function renderIcon(icon?: string) {
-    switch (icon) {
-      case "settings":
-        return "⚙";
-      case "plus":
-        return "+";
-      case "eye":
-        return "👁";
-      case "box":
-        return "📦";
-      case "tag":
-        return "🏷";
-      case "users":
-        return "👥";
-      default:
-        return "■";
-    }
-  }
-
   return (
     <div className="dashboard">
-      
-
       {loading && <p className="state-text">Carregando cards...</p>}
 
       {erro && <p className="error-text">{erro}</p>}
@@ -101,7 +63,9 @@ export default function AdminPage() {
                   <button
                     key={`${acao.tipo}-${idx}`}
                     type="button"
-                    className={acao.tipo === "cadastrar" ? "btn-primary" : "btn-secondary"}
+                    className={
+                      acao.tipo === "cadastrar" ? "btn-primary" : "btn-secondary"
+                    }
                     onClick={() => router.push(acao.url)}
                   >
                     <span>{renderIcon(acao.icone)}</span>
@@ -115,10 +79,6 @@ export default function AdminPage() {
           </div>
         ))}
       </div>
-
-      <style jsx>{`
-        
-      `}</style>
     </div>
   );
 }
