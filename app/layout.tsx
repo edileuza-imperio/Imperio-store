@@ -31,6 +31,8 @@ import './../public/admin/produtos/listar.css';
 import { getSiteConfig } from "@/services/siteConfig";
 import './../public/carrinho/lateral.css';
 
+import './../public/usuario/editar.css';
+
 
 
 export async function generateMetadata(): Promise<Metadata> {
