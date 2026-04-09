@@ -10,6 +10,8 @@ import { rotas } from "@/components/Bibioteca/config/rotas";
 import { IconHelper } from "@/components/Bibioteca/icons/IconHelper";
 import { Menu, MenuItem } from "@/components/Bibioteca/Bibiotecas";
 import CarrinhoQuantidade from "@/components/Carrinho/CarrinhoQuantidade";
+import CarrinhoLateralDesktop from "../carrinho/CarrinhoLateralDesktop";
+
 
 interface Categoria {
   id_categoria?: number | string;
@@ -46,6 +48,7 @@ export default function NavbarMobile({
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(320);
   const [scrolled, setScrolled] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -253,11 +256,15 @@ export default function NavbarMobile({
           </Link>
 
           <div className="mobile-actions" ref={dropdownRef}>
-            <Link
-              href={carrinhoHref}
-              onClick={closeAll}
+            <button
+              type="button"
+              onClick={() => {
+                closeAll();
+                setCartOpen(true);
+              }}
               className="mobile-btn mobile-btn-badge"
               title={getMenuNome(carrinhoMenu) || "Carrinho"}
+              aria-label={getMenuNome(carrinhoMenu) || "Abrir carrinho"}
             >
               {isCartIcon(carrinhoMenu?.icone) ? (
                 <CarrinhoQuantidade size={20} />
@@ -267,7 +274,7 @@ export default function NavbarMobile({
                   size: 20,
                 })
               )}
-            </Link>
+            </button>
 
             {!usuarioLoading && !logado && (
               <Link
@@ -426,6 +433,11 @@ export default function NavbarMobile({
           )}
         </div>
       </aside>
+
+      <CarrinhoLateralDesktop
+        open={cartOpen}
+        onClose={() => setCartOpen(false)}
+      />
     </>
   );
 }
