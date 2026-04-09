@@ -1,28 +1,8 @@
 "use client";
 
-import { use, useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import axios from "axios";
-
-type PageProps = {
-  params: Promise<{
-    id: string;
-  }>;
-};
-
-type Usuario = {
-  id_usuario?: number;
-  id?: number;
-  nome?: string;
-  email?: string;
-  pin?: string | null;
-  nivel_id?: number | string;
-  status_id?: number | string;
-  telefone?: string | null;
-  cpf?: string | null;
-  criado?: string;
-  atualizado?: string;
-};
 
 type Nivel = {
   id_nivel?: number;
@@ -42,6 +22,8 @@ type StatusItem = {
 type FormDataType = {
   nome: string;
   email: string;
+  senha: string;
+  confirmarSenha: string;
   pin: string;
   telefone: string;
   cpf: string;
@@ -57,13 +39,6 @@ const api = axios.create({
   },
 });
 
-function getObjetoFromResponse<T>(payload: any): T | null {
-  if (!payload) return null;
-  if (payload?.dados && !Array.isArray(payload.dados)) return payload.dados as T;
-  if (payload?.data && !Array.isArray(payload.data)) return payload.data as T;
-  return payload as T;
-}
-
 function getNiveisFromResponse(payload: any): Nivel[] {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.dados)) return payload.dados;
@@ -78,10 +53,7 @@ function getStatusFromResponse(payload: any): StatusItem[] {
   return [];
 }
 
-export default function EditarUsuarioPage({ params }: PageProps) {
-  const { id } = use(params);
-
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
+export default function CadastrarUsuarioPage() {
   const [niveis, setNiveis] = useState<Nivel[]>([]);
   const [statusList, setStatusList] = useState<StatusItem[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -92,6 +64,8 @@ export default function EditarUsuarioPage({ params }: PageProps) {
   const [form, setForm] = useState<FormDataType>({
     nome: "",
     email: "",
+    senha: "",
+    confirmarSenha: "",
     pin: "",
     telefone: "",
     cpf: "",
@@ -99,82 +73,39 @@ export default function EditarUsuarioPage({ params }: PageProps) {
     status_id: "",
   });
 
-  const buscarNivelPorId = useCallback(
-    (nivelId?: number | string) => {
-      const nivelNumero = Number(nivelId ?? 0);
-      return niveis.find((nivel) => Number(nivel.id_nivel ?? 0) === nivelNumero) ?? null;
-    },
-    [niveis]
-  );
-
-  const nomeNivelAtual = useMemo(() => {
-    if (!usuario) return "-";
-    return buscarNivelPorId(usuario.nivel_id)?.nome || "-";
-  }, [usuario, buscarNivelPorId]);
-
-  const protegido = useMemo(() => {
-    if (!usuario) return false;
-
-    const nivelId = Number(usuario.nivel_id ?? 0);
-    const nivelNome = nomeNivelAtual.toLowerCase();
-    const nivelCodigo = (buscarNivelPorId(usuario.nivel_id)?.codigo || "").toLowerCase();
-
-    return (
-      nivelId === 1 ||
-      nivelNome.includes("sistema") ||
-      nivelCodigo.includes("sistema")
-    );
-  }, [usuario, nomeNivelAtual, buscarNivelPorId]);
-
   const carregarDados = useCallback(async () => {
     try {
       setCarregando(true);
       setErro("");
       setSucesso("");
 
-      const [resUsuario, resNiveis, resStatus] = await Promise.all([
-        api.get(`/painel/usuario/${id}`),
+      const [resNiveis, resStatus] = await Promise.all([
         api.get("/painel/niveis"),
         api.get("/painel/status"),
       ]);
 
-      const usuarioData = getObjetoFromResponse<Usuario>(resUsuario.data);
       const niveisData = getNiveisFromResponse(resNiveis.data);
       const statusData = getStatusFromResponse(resStatus.data);
 
-      setUsuario(usuarioData);
       setNiveis(niveisData);
       setStatusList(statusData);
-
-      setForm({
-        nome: usuarioData?.nome || "",
-        email: usuarioData?.email || "",
-        pin: usuarioData?.pin || "",
-        telefone: usuarioData?.telefone || "",
-        cpf: usuarioData?.cpf || "",
-        nivel_id: String(usuarioData?.nivel_id ?? ""),
-        status_id: String(usuarioData?.status_id ?? ""),
-      });
     } catch (error: any) {
-      console.error("Erro ao carregar usuário:", error);
+      console.error("Erro ao carregar dados:", error);
 
-      if (error?.response?.status === 404) {
-        setErro("Usuário não encontrado.");
-      } else if (error?.response?.status === 401) {
+      if (error?.response?.status === 401) {
         setErro("Sessão inválida. Faça login novamente.");
       } else if (error?.response?.status === 403) {
-        setErro("Você não tem permissão para editar este usuário.");
+        setErro("Você não tem permissão para cadastrar usuários.");
       } else {
-        setErro("Não foi possível carregar os dados do usuário.");
+        setErro("Não foi possível carregar níveis e status.");
       }
 
-      setUsuario(null);
       setNiveis([]);
       setStatusList([]);
     } finally {
       setCarregando(false);
     }
-  }, [id]);
+  }, []);
 
   useEffect(() => {
     carregarDados();
@@ -195,6 +126,20 @@ export default function EditarUsuarioPage({ params }: PageProps) {
     atualizarCampo("pin", pin);
   }, [atualizarCampo]);
 
+  const limparFormulario = useCallback(() => {
+    setForm({
+      nome: "",
+      email: "",
+      senha: "",
+      confirmarSenha: "",
+      pin: "",
+      telefone: "",
+      cpf: "",
+      nivel_id: "",
+      status_id: "",
+    });
+  }, []);
+
   const salvar = useCallback(
     async (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -214,6 +159,21 @@ export default function EditarUsuarioPage({ params }: PageProps) {
           return;
         }
 
+        if (!form.senha.trim()) {
+          setErro("A senha é obrigatória.");
+          return;
+        }
+
+        if (form.senha.length < 6) {
+          setErro("A senha deve ter pelo menos 6 caracteres.");
+          return;
+        }
+
+        if (form.senha !== form.confirmarSenha) {
+          setErro("A confirmação de senha não confere.");
+          return;
+        }
+
         if (!form.nivel_id) {
           setErro("Selecione um nível.");
           return;
@@ -224,9 +184,10 @@ export default function EditarUsuarioPage({ params }: PageProps) {
           return;
         }
 
-        await api.put(`/painel/usuario/${id}`, {
+        await api.post("/painel/usuario", {
           nome: form.nome.trim(),
           email: form.email.trim(),
+          senha: form.senha,
           pin: form.pin.trim() || null,
           telefone: form.telefone.trim() || null,
           cpf: form.cpf.trim() || null,
@@ -234,19 +195,19 @@ export default function EditarUsuarioPage({ params }: PageProps) {
           status_id: Number(form.status_id),
         });
 
-        setSucesso("Usuário atualizado com sucesso.");
-        await carregarDados();
+        setSucesso("Usuário cadastrado com sucesso.");
+        limparFormulario();
       } catch (error: any) {
-        console.error("Erro ao salvar usuário:", error);
+        console.error("Erro ao cadastrar usuário:", error);
         setErro(
           error?.response?.data?.mensagem ||
-            "Não foi possível atualizar o usuário."
+            "Não foi possível cadastrar o usuário."
         );
       } finally {
         setSalvando(false);
       }
     },
-    [form, id, carregarDados]
+    [form, limparFormulario]
   );
 
   return (
@@ -254,37 +215,35 @@ export default function EditarUsuarioPage({ params }: PageProps) {
       <div className="editar-usuario-container">
         <section className="hero">
           <div className="hero-top">
-            <Link href={`/Admin/usuarios/${id}`} className="voltar-link">
-              ← Voltar para detalhes
+            <Link href="/Admin/usuarios" className="voltar-link">
+              ← Voltar para usuários
             </Link>
 
-            <span className="hero-tag">Editar usuário</span>
+            <span className="hero-tag">Novo usuário</span>
           </div>
 
-          <h1>Editar usuário</h1>
-          <p>Atualize os dados do usuário com segurança e organização.</p>
+          <h1>Cadastrar usuário</h1>
+          <p>Preencha os dados abaixo para criar um novo usuário no sistema.</p>
         </section>
 
         {carregando ? (
-          <div className="estado-box">Carregando dados do usuário...</div>
-        ) : erro && !usuario ? (
+          <div className="estado-box">Carregando níveis e status...</div>
+        ) : erro && niveis.length === 0 && statusList.length === 0 ? (
           <div className="estado-box estado-erro">{erro}</div>
-        ) : !usuario ? (
-          <div className="estado-box">Usuário não encontrado.</div>
         ) : (
           <form className="form-card" onSubmit={salvar}>
             <div className="perfil-topo">
               <div className="avatar">
-                {(usuario.nome?.charAt(0) || "U").toUpperCase()}
+                {(form.nome?.charAt(0) || "U").toUpperCase()}
               </div>
 
               <div className="perfil-info">
                 <div className="titulo-linha">
-                  <h2>{usuario.nome || "Sem nome"}</h2>
-                  {protegido && <span className="badge-protected">Protegido</span>}
+                  <h2>{form.nome || "Novo usuário"}</h2>
+                  <span className="badge-protected">Cadastro</span>
                 </div>
 
-                <p>{usuario.email || "-"}</p>
+                <p>{form.email || "email@exemplo.com"}</p>
               </div>
             </div>
 
@@ -311,6 +270,30 @@ export default function EditarUsuarioPage({ params }: PageProps) {
                   value={form.email}
                   onChange={(e) => atualizarCampo("email", e.target.value)}
                   placeholder="Digite o email"
+                />
+              </div>
+
+              <div className="campo">
+                <label htmlFor="senha">Senha</label>
+                <input
+                  id="senha"
+                  type="password"
+                  value={form.senha}
+                  onChange={(e) => atualizarCampo("senha", e.target.value)}
+                  placeholder="Digite a senha"
+                />
+              </div>
+
+              <div className="campo">
+                <label htmlFor="confirmarSenha">Confirmar senha</label>
+                <input
+                  id="confirmarSenha"
+                  type="password"
+                  value={form.confirmarSenha}
+                  onChange={(e) =>
+                    atualizarCampo("confirmarSenha", e.target.value)
+                  }
+                  placeholder="Confirme a senha"
                 />
               </div>
 
@@ -398,12 +381,12 @@ export default function EditarUsuarioPage({ params }: PageProps) {
             </div>
 
             <div className="acoes-form">
-              <Link href={`/Admin/usuarios/${id}`} className="btn btn-light">
+              <Link href="/Admin/usuarios" className="btn btn-light">
                 Cancelar
               </Link>
 
               <button type="submit" className="btn btn-dark" disabled={salvando}>
-                {salvando ? "Salvando..." : "Salvar alterações"}
+                {salvando ? "Cadastrando..." : "Cadastrar usuário"}
               </button>
             </div>
           </form>
