@@ -8,20 +8,12 @@ import SearchBar from "../Pesquisa/SearchBar";
 import api from "@/Api/conectar";
 import { rotas } from "@/components/Bibioteca/config/rotas";
 
-import {
-  FiBox,
-  FiUser,
-  FiUserCheck,
-  FiClipboard,
-  FiActivity,
-  FiLogOut,
-  FiChevronDown,
-  FiShoppingCart,
-} from "react-icons/fi";
+import { FiUser, FiChevronDown } from "react-icons/fi";
 import { Menu, MenuItem } from "@/components/Bibioteca/Bibiotecas";
 import useUsuario from "@/hooks/Auth/useUsuario";
 import CarrinhoQuantidade from "@/components/Carrinho/CarrinhoQuantidade";
 import CarrinhoLateralDesktop from "../carrinho/CarrinhoLateralDesktop";
+import { IconHelper } from "@/components/Bibioteca/icons/IconHelper";
 
 
 export interface Categoria {
@@ -48,12 +40,7 @@ export default function NavbarDesktop({
 }: Props) {
   const router = useRouter();
 
-  const {
-    usuario,
-    loading: usuarioLoading,
-    logado,
-    isAdmin,
-  } = useUsuario();
+  const { usuario, loading: usuarioLoading, logado, isAdmin } = useUsuario();
 
   const [openUserDropdown, setOpenUserDropdown] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<number | null>(null);
@@ -193,7 +180,6 @@ export default function NavbarDesktop({
       if (isPainelAdministrativo(item)) {
         return isAdmin;
       }
-
       return true;
     });
 
@@ -202,30 +188,13 @@ export default function NavbarDesktop({
     );
   }, [accountMenu, isAdmin]);
 
-  const renderIcon = (bi?: string | null) => {
-    const name = (bi || "").toLowerCase();
-
-    if (name.includes("bi-box-arrow-right")) return <FiLogOut size={18} />;
-    if (name.includes("bi-speedometer")) return <FiActivity size={18} />;
-    if (name.includes("bi-card-checklist")) return <FiClipboard size={18} />;
-    if (name.includes("bi-person-circle")) return <FiUserCheck size={18} />;
-    if (name.includes("bi-cart") || name.includes("carrito")) {
-      return <FiShoppingCart size={18} />;
-    }
-    if (name.includes("bi-person") || name.includes("login")) {
-      return <FiUser size={18} />;
-    }
-    if (name.includes("bi-box")) return <FiBox size={18} />;
-
-    return <FiBox size={18} />;
-  };
-
+  // ✅ NOVO (usando IconHelper)
   const renderMenuIcon = (icone?: string | null) => {
     if (isCartIcon(icone)) {
       return <CarrinhoQuantidade size={18} />;
     }
 
-    return renderIcon(icone);
+    return IconHelper.render({ nome: icone, size: 18 });
   };
 
   const handleAccountItem = async (item: MenuItem) => {
@@ -319,8 +288,12 @@ export default function NavbarDesktop({
                         className="ui-pill ui-pill--primary ui-userBtn"
                         onClick={() => handleProtectedDropdown(menuId)}
                       >
-                        <span className="ui-pillIcon">{renderMenuIcon(m.icone)}</span>
-                        <span className="ui-pillText">{getMenuNome(m)}</span>
+                        <span className="ui-pillIcon">
+                          {renderMenuIcon(m.icone)}
+                        </span>
+                        <span className="ui-pillText">
+                          {getMenuNome(m)}
+                        </span>
                         <FiChevronDown
                           size={16}
                           className={`ui-chevIcon ${isOpen ? "open" : ""}`}
@@ -359,8 +332,12 @@ export default function NavbarDesktop({
                       onClick={abrirCarrinho}
                     >
                       <span className="ui-pill ui-pill--primary">
-                        <span className="ui-pillIcon">{renderMenuIcon(m.icone)}</span>
-                        <span className="ui-pillText">{getMenuNome(m)}</span>
+                        <span className="ui-pillIcon">
+                          {renderMenuIcon(m.icone)}
+                        </span>
+                        <span className="ui-pillText">
+                          {getMenuNome(m)}
+                        </span>
                       </span>
                     </button>
                   );
@@ -379,8 +356,12 @@ export default function NavbarDesktop({
                       onClick={irParaLogin}
                     >
                       <span className="ui-pill ui-pill--primary">
-                        <span className="ui-pillIcon">{renderMenuIcon(m.icone)}</span>
-                        <span className="ui-pillText">{getMenuNome(m)}</span>
+                        <span className="ui-pillIcon">
+                          {renderMenuIcon(m.icone)}
+                        </span>
+                        <span className="ui-pillText">
+                          {getMenuNome(m)}
+                        </span>
                       </span>
                     </button>
                   );
@@ -389,8 +370,12 @@ export default function NavbarDesktop({
                 return (
                   <Link key={menuId} href={rota} className="ui-link">
                     <span className="ui-pill ui-pill--primary">
-                      <span className="ui-pillIcon">{renderMenuIcon(m.icone)}</span>
-                      <span className="ui-pillText">{getMenuNome(m)}</span>
+                      <span className="ui-pillIcon">
+                        {renderMenuIcon(m.icone)}
+                      </span>
+                      <span className="ui-pillText">
+                        {getMenuNome(m)}
+                      </span>
                     </span>
                   </Link>
                 );
@@ -402,14 +387,7 @@ export default function NavbarDesktop({
                 <button
                   type="button"
                   className="ui-pill ui-pill--secondary ui-userBtn"
-                  onClick={() => {
-                    if (!logado) {
-                      irParaLogin();
-                      return;
-                    }
-                    setOpenUserDropdown((v) => !v);
-                  }}
-                  aria-expanded={openUserDropdown}
+                  onClick={() => setOpenUserDropdown((v) => !v)}
                 >
                   <span className="ui-pillIcon">
                     <FiUser size={18} />
@@ -421,7 +399,9 @@ export default function NavbarDesktop({
 
                   <FiChevronDown
                     size={16}
-                    className={`ui-chevIcon ${openUserDropdown ? "open" : ""}`}
+                    className={`ui-chevIcon ${
+                      openUserDropdown ? "open" : ""
+                    }`}
                   />
                 </button>
 
@@ -434,8 +414,9 @@ export default function NavbarDesktop({
                       return (
                         <button
                           key={String(it.id || it.id_item || it.id_menu)}
-                          type="button"
-                          className={`ui-item ${isSair ? "ui-item--danger" : ""}`}
+                          className={`ui-item ${
+                            isSair ? "ui-item--danger" : ""
+                          }`}
                           onClick={() => handleAccountItem(it)}
                         >
                           <span className="ui-itemIcon">

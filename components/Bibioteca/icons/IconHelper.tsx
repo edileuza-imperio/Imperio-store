@@ -1,5 +1,3 @@
-"use client";
-
 import {
   FiBox,
   FiChevronDown,
@@ -17,74 +15,60 @@ type IconProps = {
   className?: string;
 };
 
+type IconMapType = {
+  keys: string[];
+  component: any;
+};
+
 export class IconHelper {
   static normalizar(nome?: string | null) {
     return String(nome || "").trim().toLowerCase();
   }
 
+  // 🔥 Mapa de ícones
+  static iconMap: IconMapType[] = [
+    {
+      keys: ["carrito", "carrinho", "cart", "bi-cart", "shopping-cart"],
+      component: FiShoppingCart,
+    },
+    {
+      keys: ["user", "usuario", "login", "bi-person"],
+      component: FiUser,
+    },
+    {
+      keys: ["logout", "sair", "bi-box-arrow-right"],
+      component: FiLogOut,
+    },
+    {
+      keys: ["menu", "hamburger"],
+      component: FiMenu,
+    },
+    {
+      keys: ["close", "fechar", "x", "times"],
+      component: FiX,
+    },
+    {
+      keys: ["down", "baixo", "chevron-down"],
+      component: FiChevronDown,
+    },
+    {
+      keys: ["right", "direita", "chevron-right"],
+      component: FiChevronRight,
+    },
+  ];
+
   static render({ nome, size = 18, className = "" }: IconProps) {
     const icon = this.normalizar(nome);
 
-    if (
-      icon === "carrito" ||
-      icon === "carrinho" ||
-      icon === "cart" ||
-      icon.includes("bi-cart") ||
-      icon.includes("shopping-cart")
-    ) {
-      return <FiShoppingCart size={size} className={className} />;
-    }
+    if (!icon) return null;
 
-    if (
-      icon === "user" ||
-      icon === "usuario" ||
-      icon === "login" ||
-      icon.includes("bi-person")
-    ) {
-      return <FiUser size={size} className={className} />;
-    }
+    // 🔎 procura no mapa
+    const found = this.iconMap.find((item) =>
+      item.keys.some((key) => icon.includes(key))
+    );
 
-    if (
-      icon === "logout" ||
-      icon === "sair" ||
-      icon.includes("bi-box-arrow-right")
-    ) {
-      return <FiLogOut size={size} className={className} />;
-    }
+    const IconComponent = found?.component || FiBox;
 
-    if (icon === "menu" || icon.includes("hamburger")) {
-      return <FiMenu size={size} className={className} />;
-    }
-
-    if (
-      icon === "close" ||
-      icon === "fechar" ||
-      icon === "x" ||
-      icon === "times"
-    ) {
-      return <FiX size={size} className={className} />;
-    }
-
-    if (
-      icon === "down" ||
-      icon === "baixo" ||
-      icon.includes("chevron-down")
-    ) {
-      return <FiChevronDown size={size} className={className} />;
-    }
-
-    if (
-      icon === "right" ||
-      icon === "direita" ||
-      icon.includes("chevron-right")
-    ) {
-      return <FiChevronRight size={size} className={className} />;
-    }
-
-    if (!icon) {
-      return null;
-    }
-
-    return <FiBox size={size} className={className} />;
+    return <IconComponent size={size} className={className} />;
   }
 }
