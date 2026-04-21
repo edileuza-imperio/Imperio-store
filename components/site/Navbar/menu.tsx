@@ -4,7 +4,7 @@ import { useMenu } from "@/hooks/menu/useMenu";
 
 
 
-export const Navbar = () => {
+export const Menu = () => {
   const { menus, tituloNavbar, subtituloNavbar } = useMenu();
 
   const goTo = (rota?: string | null) => {
