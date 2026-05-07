@@ -495,7 +495,7 @@ export default function CarrinhoPage() {
                     </div>
 
                     <Link
-                      href="/carrinho/checkout"
+                      href="/Carrinho/checkout"
                       className="checkout-btn"
                     >
                       Finalizar compra
