@@ -19,20 +19,14 @@ export default function Home() {
   const { usuario, loading: loadingUser, logado } = useUsuario();
   const { loading, error, refetch } = useApi();
 
-  useEffect(() => {
-
-    if (!loadingUser && !logado) {
-      router.push("/login");
-    }
-
-  }, [loadingUser, logado, router]);
+  
 
   
 
   return (
     <>
       
-      {!loading && !error && <HomeContent />}
+      {!error && <HomeContent />}
     </>
   );
 }
