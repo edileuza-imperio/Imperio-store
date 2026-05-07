@@ -24,28 +24,50 @@ import Footer from "@/components/site/Rodape/Footer";
 
 type CarrinhoItem = {
   id?: number | string;
-  id_carrinho_item?: number | string;
+
+  id_carrinho_item?:
+    | number
+    | string;
+
   id_item?: number | string;
+
   item_id?: number | string;
 
-  produto_id?: number | string;
+  produto_id?:
+    | number
+    | string;
 
   nome?: string;
+
   titulo?: string;
+
   produto_nome?: string;
+
+  produto?: {
+    nome?: string;
+    titulo?: string;
+    imagem?: string;
+    foto?: string;
+  };
 
   slug?: string;
 
   imagem?: string;
+
   miniatura?: string;
+
   foto?: string;
 
   quantidade?: number | string;
 
   preco?: number | string;
-  preco_unitario?: number | string;
+
+  preco_unitario?:
+    | number
+    | string;
 
   subtotal?: number | string;
+
   total?: number | string;
 };
 
@@ -117,23 +139,27 @@ function extrairLista<T = unknown>(
 
 /*
 |--------------------------------------------------------------------------
-| IMPORTANTE
-|--------------------------------------------------------------------------
-| Aqui pegamos SOMENTE o ID do item do carrinho
-| e NÃO o produto_id
+| ID ITEM CARRINHO
 |--------------------------------------------------------------------------
 */
+
 function getItemId(
   item: CarrinhoItem
 ) {
   return (
-    item.id ??
     item.id_carrinho_item ??
+    item.id ??
     item.id_item ??
     item.item_id ??
     ""
   );
 }
+
+/*
+|--------------------------------------------------------------------------
+| NOME PRODUTO
+|--------------------------------------------------------------------------
+*/
 
 function getItemNome(
   item: CarrinhoItem
@@ -142,9 +168,17 @@ function getItemNome(
     item.nome ||
     item.titulo ||
     item.produto_nome ||
-    "Produto"
+    item.produto?.nome ||
+    item.produto?.titulo ||
+    "Produto sem nome"
   );
 }
+
+/*
+|--------------------------------------------------------------------------
+| IMAGEM PRODUTO
+|--------------------------------------------------------------------------
+*/
 
 function getItemImagem(
   item: CarrinhoItem
@@ -153,6 +187,8 @@ function getItemImagem(
     item.miniatura ||
     item.imagem ||
     item.foto ||
+    item.produto?.imagem ||
+    item.produto?.foto ||
     "/images/sem-imagem.png"
   );
 }
@@ -188,6 +224,11 @@ export default function CarrinhoPage() {
               withCredentials: true,
             }
           );
+
+        console.log(
+          "CARRINHO:",
+          response.data
+        );
 
         const itensData =
           extrairLista<CarrinhoItem>(
@@ -242,7 +283,7 @@ export default function CarrinhoPage() {
 
         /*
         |--------------------------------------------------------------------------
-        | RECARREGA DO BACKEND
+        | RECARREGA BACKEND
         |--------------------------------------------------------------------------
         */
 
@@ -352,20 +393,20 @@ export default function CarrinhoPage() {
 
                 <p>
                   Adicione produtos
-                  para continuar sua
-                  compra.
+                  para visualizar o
+                  resumo da compra.
                 </p>
 
                 <Link
                   href="/"
                   className="shop-btn"
                 >
-                  Ver produtos
+                  Continuar comprando
                 </Link>
               </div>
             )}
 
-          {/* CART */}
+          {/* CARRINHO */}
 
           {!loading &&
             itens.length > 0 && (
@@ -495,7 +536,7 @@ export default function CarrinhoPage() {
                     </div>
 
                     <Link
-                      href="/Carrinho/checkout"
+                      href="/carrinho/checkout"
                       className="checkout-btn"
                     >
                       Finalizar compra
