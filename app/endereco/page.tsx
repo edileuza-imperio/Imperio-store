@@ -1,7 +1,9 @@
 "use client";
 
 import api from "@/Api/conectar";
-import { useEffect, useState } from "react";
+import Navbar from "@/components/site/menu/navbar";
+import Footer from "@/components/site/Rodape/Footer";
+import { useState, useEffect } from "react";
 
 
 interface Endereco {
@@ -134,259 +136,404 @@ export default function EnderecoPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-10">
-      <h1 className="text-3xl font-bold mb-8">
-        Meus Endereços
-      </h1>
+    <>
+      <Navbar />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-        {/* FORM */}
-        <div className="bg-white border rounded-2xl p-6 shadow-sm">
-          <h2 className="text-xl font-semibold mb-6">
-            Cadastrar Endereço
-          </h2>
+      <main style={styles.main}>
+        <div style={styles.container}>
+          <h1 style={styles.title}>Meus Endereços</h1>
 
-          <form
-            onSubmit={cadastrarEndereco}
-            className="space-y-4"
-          >
-            <div>
-              <label className="block mb-1 text-sm font-medium">
-                CEP
-              </label>
+          <div style={styles.grid}>
+            {/* FORM */}
+            <div style={styles.card}>
+              <h2 style={styles.subtitle}>
+                Cadastrar Endereço
+              </h2>
 
-              <input
-                type="text"
-                value={form.cep}
-                onChange={(e) => {
-                  setForm({
-                    ...form,
-                    cep: e.target.value,
-                  });
-
-                  buscarCep(e.target.value);
-                }}
-                className="w-full border rounded-xl px-4 py-3"
-                placeholder="00000-000"
-              />
-            </div>
-
-            <div>
-              <label className="block mb-1 text-sm font-medium">
-                Endereço
-              </label>
-
-              <input
-                type="text"
-                value={form.endereco}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    endereco: e.target.value,
-                  })
-                }
-                className="w-full border rounded-xl px-4 py-3"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block mb-1 text-sm font-medium">
-                  Número
-                </label>
-
-                <input
-                  type="text"
-                  value={form.numero}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      numero: e.target.value,
-                    })
-                  }
-                  className="w-full border rounded-xl px-4 py-3"
-                />
-              </div>
-
-              <div>
-                <label className="block mb-1 text-sm font-medium">
-                  Complemento
-                </label>
-
-                <input
-                  type="text"
-                  value={form.complemento}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      complemento: e.target.value,
-                    })
-                  }
-                  className="w-full border rounded-xl px-4 py-3"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block mb-1 text-sm font-medium">
-                Bairro
-              </label>
-
-              <input
-                type="text"
-                value={form.bairro}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    bairro: e.target.value,
-                  })
-                }
-                className="w-full border rounded-xl px-4 py-3"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block mb-1 text-sm font-medium">
-                  Cidade
-                </label>
-
-                <input
-                  type="text"
-                  value={form.cidade}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      cidade: e.target.value,
-                    })
-                  }
-                  className="w-full border rounded-xl px-4 py-3"
-                />
-              </div>
-
-              <div>
-                <label className="block mb-1 text-sm font-medium">
-                  Estado
-                </label>
-
-                <input
-                  type="text"
-                  value={form.estado}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      estado: e.target.value,
-                    })
-                  }
-                  className="w-full border rounded-xl px-4 py-3"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={form.principal === 1}
-                onChange={(e) =>
-                  setForm({
-                    ...form,
-                    principal: e.target.checked ? 1 : 0,
-                  })
-                }
-              />
-
-              <span>Definir como principal</span>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-black text-white rounded-xl py-3 font-semibold hover:opacity-90 transition"
-            >
-              {loading
-                ? "Salvando..."
-                : "Cadastrar Endereço"}
-            </button>
-          </form>
-        </div>
-
-        {/* LISTA */}
-        <div>
-          <h2 className="text-xl font-semibold mb-6">
-            Endereços Cadastrados
-          </h2>
-
-          <div className="space-y-4">
-            {enderecos.length === 0 && (
-              <div className="border rounded-2xl p-6 text-gray-500">
-                Nenhum endereço cadastrado.
-              </div>
-            )}
-
-            {enderecos.map((endereco) => (
-              <div
-                key={endereco.id}
-                className="border rounded-2xl p-5 bg-white shadow-sm"
+              <form
+                onSubmit={cadastrarEndereco}
+                style={styles.form}
               >
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold text-lg">
-                    {endereco.endereco},{" "}
-                    {endereco.numero}
-                  </h3>
+                <div>
+                  <label style={styles.label}>CEP</label>
 
-                  {endereco.principal === 1 && (
-                    <span className="bg-black text-white text-xs px-3 py-1 rounded-full">
-                      Principal
-                    </span>
-                  )}
+                  <input
+                    type="text"
+                    value={form.cep}
+                    onChange={(e) => {
+                      setForm({
+                        ...form,
+                        cep: e.target.value,
+                      });
+
+                      buscarCep(e.target.value);
+                    }}
+                    placeholder="00000-000"
+                    style={styles.input}
+                  />
                 </div>
 
-                <p className="text-gray-600">
-                  {endereco.bairro}
-                </p>
+                <div>
+                  <label style={styles.label}>
+                    Endereço
+                  </label>
 
-                <p className="text-gray-600">
-                  {endereco.cidade} -{" "}
-                  {endereco.estado}
-                </p>
+                  <input
+                    type="text"
+                    value={form.endereco}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        endereco: e.target.value,
+                      })
+                    }
+                    style={styles.input}
+                  />
+                </div>
 
-                <p className="text-gray-600 mb-4">
-                  CEP: {endereco.cep}
-                </p>
+                <div style={styles.row}>
+                  <div style={{ flex: 1 }}>
+                    <label style={styles.label}>
+                      Número
+                    </label>
 
-                {endereco.complemento && (
-                  <p className="text-gray-600 mb-4">
-                    Complemento:{" "}
-                    {endereco.complemento}
-                  </p>
+                    <input
+                      type="text"
+                      value={form.numero}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          numero: e.target.value,
+                        })
+                      }
+                      style={styles.input}
+                    />
+                  </div>
+
+                  <div style={{ flex: 1 }}>
+                    <label style={styles.label}>
+                      Complemento
+                    </label>
+
+                    <input
+                      type="text"
+                      value={form.complemento}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          complemento: e.target.value,
+                        })
+                      }
+                      style={styles.input}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label style={styles.label}>
+                    Bairro
+                  </label>
+
+                  <input
+                    type="text"
+                    value={form.bairro}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        bairro: e.target.value,
+                      })
+                    }
+                    style={styles.input}
+                  />
+                </div>
+
+                <div style={styles.row}>
+                  <div style={{ flex: 1 }}>
+                    <label style={styles.label}>
+                      Cidade
+                    </label>
+
+                    <input
+                      type="text"
+                      value={form.cidade}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          cidade: e.target.value,
+                        })
+                      }
+                      style={styles.input}
+                    />
+                  </div>
+
+                  <div style={{ flex: 1 }}>
+                    <label style={styles.label}>
+                      Estado
+                    </label>
+
+                    <input
+                      type="text"
+                      value={form.estado}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          estado: e.target.value,
+                        })
+                      }
+                      style={styles.input}
+                    />
+                  </div>
+                </div>
+
+                <div style={styles.checkbox}>
+                  <input
+                    type="checkbox"
+                    checked={form.principal === 1}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        principal: e.target.checked ? 1 : 0,
+                      })
+                    }
+                  />
+
+                  <span>Definir como principal</span>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={styles.button}
+                >
+                  {loading
+                    ? "Salvando..."
+                    : "Cadastrar Endereço"}
+                </button>
+              </form>
+            </div>
+
+            {/* LISTA */}
+            <div>
+              <h2 style={styles.subtitle}>
+                Endereços Cadastrados
+              </h2>
+
+              <div style={styles.lista}>
+                {enderecos.length === 0 && (
+                  <div style={styles.empty}>
+                    Nenhum endereço cadastrado.
+                  </div>
                 )}
 
-                <div className="flex gap-3">
-                  {endereco.principal !== 1 && (
-                    <button
-                      onClick={() =>
-                        definirPrincipal(endereco.id)
-                      }
-                      className="px-4 py-2 rounded-xl border"
-                    >
-                      Tornar Principal
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() =>
-                      excluirEndereco(endereco.id)
-                    }
-                    className="px-4 py-2 rounded-xl bg-red-500 text-white"
+                {enderecos.map((endereco) => (
+                  <div
+                    key={endereco.id}
+                    style={styles.item}
                   >
-                    Excluir
-                  </button>
-                </div>
+                    <div style={styles.itemTop}>
+                      <h3 style={styles.itemTitle}>
+                        {endereco.endereco},{" "}
+                        {endereco.numero}
+                      </h3>
+
+                      {endereco.principal === 1 && (
+                        <span style={styles.badge}>
+                          Principal
+                        </span>
+                      )}
+                    </div>
+
+                    <p>{endereco.bairro}</p>
+
+                    <p>
+                      {endereco.cidade} -{" "}
+                      {endereco.estado}
+                    </p>
+
+                    <p>CEP: {endereco.cep}</p>
+
+                    {endereco.complemento && (
+                      <p>
+                        Complemento:{" "}
+                        {endereco.complemento}
+                      </p>
+                    )}
+
+                    <div style={styles.actions}>
+                      {endereco.principal !== 1 && (
+                        <button
+                          onClick={() =>
+                            definirPrincipal(
+                              endereco.id
+                            )
+                          }
+                          style={styles.secondaryButton}
+                        >
+                          Tornar Principal
+                        </button>
+                      )}
+
+                      <button
+                        onClick={() =>
+                          excluirEndereco(endereco.id)
+                        }
+                        style={styles.deleteButton}
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </main>
+
+      <Footer />
+    </>
   );
 }
+
+const styles: any = {
+  main: {
+    minHeight: "100vh",
+    background: "#f5f5f5",
+    padding: "40px 20px",
+  },
+
+  container: {
+    maxWidth: "1200px",
+    margin: "0 auto",
+  },
+
+  title: {
+    fontSize: "36px",
+    fontWeight: "700",
+    marginBottom: "40px",
+  },
+
+  subtitle: {
+    fontSize: "24px",
+    fontWeight: "600",
+    marginBottom: "20px",
+  },
+
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "40px",
+  },
+
+  card: {
+    background: "#fff",
+    borderRadius: "16px",
+    padding: "30px",
+    boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
+  },
+
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "16px",
+  },
+
+  label: {
+    display: "block",
+    marginBottom: "6px",
+    fontWeight: "500",
+  },
+
+  input: {
+    width: "100%",
+    padding: "14px",
+    borderRadius: "10px",
+    border: "1px solid #ddd",
+    fontSize: "14px",
+    outline: "none",
+  },
+
+  row: {
+    display: "flex",
+    gap: "16px",
+  },
+
+  checkbox: {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+  },
+
+  button: {
+    background: "#000",
+    color: "#fff",
+    border: "none",
+    padding: "14px",
+    borderRadius: "10px",
+    cursor: "pointer",
+    fontWeight: "600",
+    fontSize: "15px",
+  },
+
+  lista: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "20px",
+  },
+
+  empty: {
+    background: "#fff",
+    padding: "20px",
+    borderRadius: "16px",
+  },
+
+  item: {
+    background: "#fff",
+    borderRadius: "16px",
+    padding: "24px",
+    boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
+  },
+
+  itemTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "16px",
+  },
+
+  itemTitle: {
+    fontSize: "20px",
+    fontWeight: "600",
+  },
+
+  badge: {
+    background: "#000",
+    color: "#fff",
+    padding: "6px 12px",
+    borderRadius: "20px",
+    fontSize: "12px",
+  },
+
+  actions: {
+    display: "flex",
+    gap: "10px",
+    marginTop: "20px",
+  },
+
+  secondaryButton: {
+    border: "1px solid #000",
+    background: "#fff",
+    padding: "10px 16px",
+    borderRadius: "10px",
+    cursor: "pointer",
+  },
+
+  deleteButton: {
+    border: "none",
+    background: "#ff3b30",
+    color: "#fff",
+    padding: "10px 16px",
+    borderRadius: "10px",
+    cursor: "pointer",
+  },
+};
