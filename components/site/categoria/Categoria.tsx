@@ -172,8 +172,8 @@ export default function CategoriasDestaque() {
                 const slug = String(c?.slug || "").trim();
 
                 const href = slug
-                  ? `/sites/viecategoria/${encodeURIComponent(slug)}`
-                  : "/sites/viecategoria";
+                  ? `/categorias/${encodeURIComponent(slug)}`
+                  : "/categorias";
 
                 return (
                   <Link
