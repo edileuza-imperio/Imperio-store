@@ -15,6 +15,8 @@ import {
   useState,
 } from "react";
 
+import { useRouter } from "next/navigation";
+
 import { InicioApi } from "@/services/api/api";
 
 type Endereco = {
@@ -45,6 +47,8 @@ function getEnderecoId(
 }
 
 export default function CheckoutPage() {
+  const router = useRouter();
+
   const [loading, setLoading] =
     useState(true);
 
@@ -76,12 +80,6 @@ export default function CheckoutPage() {
               withCredentials: true,
             }
           );
-
-        /*
-        |--------------------------------------------------------------------------
-        | TYPESCRIPT FIX
-        |--------------------------------------------------------------------------
-        */
 
         const responseData: any =
           response?.data;
@@ -143,6 +141,32 @@ export default function CheckoutPage() {
     carregar();
   }, []);
 
+  /*
+  |--------------------------------------------------------------------------
+  | IR PARA ENTREGA
+  |--------------------------------------------------------------------------
+  */
+
+  function continuarEntrega() {
+    if (!enderecoSelecionado) {
+      alert(
+        "Selecione um endereço."
+      );
+      return;
+    }
+
+    localStorage.setItem(
+      "checkout_endereco_id",
+      String(
+        enderecoSelecionado
+      )
+    );
+
+    router.push(
+      "/Carrinho/entrega"
+    );
+  }
+
   return (
     <main className="checkout-page">
       <div className="checkout-container">
@@ -160,6 +184,7 @@ export default function CheckoutPage() {
         {/* ETAPAS */}
 
         <div className="checkout-steps">
+          {/* ENDEREÇO */}
           <div className="step active">
             <div className="step-icon">
               <FiMapPin />
@@ -177,6 +202,7 @@ export default function CheckoutPage() {
             </div>
           </div>
 
+          {/* ENTREGA */}
           <div className="step">
             <div className="step-icon">
               <FiTruck />
@@ -193,6 +219,7 @@ export default function CheckoutPage() {
             </div>
           </div>
 
+          {/* PAGAMENTO */}
           <div className="step">
             <div className="step-icon">
               <FiCreditCard />
@@ -358,7 +385,12 @@ export default function CheckoutPage() {
                   </div>
 
                   <div className="checkout-actions">
-                    <button className="continue-btn">
+                    <button
+                      className="continue-btn"
+                      onClick={
+                        continuarEntrega
+                      }
+                    >
                       Continuar para
                       entrega
                     </button>
@@ -369,7 +401,6 @@ export default function CheckoutPage() {
           </div>
         )}
       </div>
-
     </main>
   );
 }
