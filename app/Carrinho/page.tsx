@@ -24,8 +24,10 @@ import Footer from "@/components/site/Rodape/Footer";
 
 type CarrinhoItem = {
   id?: number | string;
+  id_carrinho_item?: number | string;
   id_item?: number | string;
   item_id?: number | string;
+
   produto_id?: number | string;
 
   nome?: string;
@@ -71,7 +73,9 @@ function normalizarNumero(
   return 0;
 }
 
-function formatarMoeda(valor: unknown) {
+function formatarMoeda(
+  valor: unknown
+) {
   return new Intl.NumberFormat(
     "pt-BR",
     {
@@ -111,12 +115,22 @@ function extrairLista<T = unknown>(
   return [];
 }
 
-function getItemId(item: CarrinhoItem) {
+/*
+|--------------------------------------------------------------------------
+| IMPORTANTE
+|--------------------------------------------------------------------------
+| Aqui pegamos SOMENTE o ID do item do carrinho
+| e NÃO o produto_id
+|--------------------------------------------------------------------------
+*/
+function getItemId(
+  item: CarrinhoItem
+) {
   return (
     item.id ??
+    item.id_carrinho_item ??
     item.id_item ??
     item.item_id ??
-    item.produto_id ??
     ""
   );
 }
@@ -147,9 +161,20 @@ export default function CarrinhoPage() {
   const [loading, setLoading] =
     useState(false);
 
+  const [removingId, setRemovingId] =
+    useState<
+      number | string | null
+    >(null);
+
   const [itens, setItens] = useState<
     CarrinhoItem[]
   >([]);
+
+  /*
+  |--------------------------------------------------------------------------
+  | CARREGAR CARRINHO
+  |--------------------------------------------------------------------------
+  */
 
   const carregarCarrinho =
     useCallback(async () => {
@@ -180,9 +205,19 @@ export default function CarrinhoPage() {
       }
     }, []);
 
+  /*
+  |--------------------------------------------------------------------------
+  | REMOVER ITEM
+  |--------------------------------------------------------------------------
+  */
+
   const removerItem = useCallback(
-    async (itemId: number | string) => {
+    async (
+      itemId: number | string
+    ) => {
       try {
+        setRemovingId(itemId);
+
         await InicioApi.delete(
           `/carrinho/item/${itemId}`,
           {
@@ -190,26 +225,55 @@ export default function CarrinhoPage() {
           }
         );
 
+        /*
+        |--------------------------------------------------------------------------
+        | REMOVE DO STATE
+        |--------------------------------------------------------------------------
+        */
+
         setItens((prev) =>
           prev.filter(
             (item) =>
-              String(getItemId(item)) !==
-              String(itemId)
+              String(
+                getItemId(item)
+              ) !== String(itemId)
           )
         );
+
+        /*
+        |--------------------------------------------------------------------------
+        | RECARREGA DO BACKEND
+        |--------------------------------------------------------------------------
+        */
+
+        await carregarCarrinho();
       } catch (error) {
         console.error(
           "Erro ao remover item:",
           error
         );
+      } finally {
+        setRemovingId(null);
       }
     },
-    []
+    [carregarCarrinho]
   );
+
+  /*
+  |--------------------------------------------------------------------------
+  | INIT
+  |--------------------------------------------------------------------------
+  */
 
   useEffect(() => {
     carregarCarrinho();
   }, [carregarCarrinho]);
+
+  /*
+  |--------------------------------------------------------------------------
+  | TOTAL
+  |--------------------------------------------------------------------------
+  */
 
   const total = useMemo(() => {
     return itens.reduce((acc, item) => {
@@ -217,6 +281,7 @@ export default function CarrinhoPage() {
         normalizarNumero(
           item.subtotal ??
             item.total ??
+            item.preco ??
             0
         );
 
@@ -231,6 +296,7 @@ export default function CarrinhoPage() {
       <main className="cart-page">
         <div className="cart-container">
           {/* HEADER */}
+
           <div className="cart-header">
             <div className="cart-titleWrap">
               <div className="cart-icon">
@@ -258,17 +324,20 @@ export default function CarrinhoPage() {
           </div>
 
           {/* LOADING */}
+
           {loading && (
             <div className="cart-loading">
               <div className="loader" />
 
               <p>
-                Carregando carrinho...
+                Carregando
+                carrinho...
               </p>
             </div>
           )}
 
           {/* EMPTY */}
+
           {!loading &&
             itens.length === 0 && (
               <div className="empty-cart">
@@ -297,72 +366,95 @@ export default function CarrinhoPage() {
             )}
 
           {/* CART */}
+
           {!loading &&
             itens.length > 0 && (
               <div className="cart-grid">
                 {/* LISTA */}
+
                 <div className="cart-items">
-                  {itens.map((item) => (
-                    <div
-                      key={String(
-                        getItemId(item)
-                      )}
-                      className="cart-item"
-                    >
-                      <div className="cart-imageWrap">
-                        <Image
-                          src={getItemImagem(
-                            item
-                          )}
-                          alt={getItemNome(
-                            item
-                          )}
-                          width={120}
-                          height={120}
-                          className="cart-image"
-                        />
-                      </div>
+                  {itens.map((item) => {
+                    const itemId =
+                      getItemId(item);
 
-                      <div className="cart-content">
-                        <h3 className="cart-itemTitle">
-                          {getItemNome(
-                            item
-                          )}
-                        </h3>
+                    return (
+                      <div
+                        key={String(
+                          itemId
+                        )}
+                        className="cart-item"
+                      >
+                        {/* IMAGEM */}
 
-                        <div className="cart-meta">
-                          <span>
-                            Quantidade:{" "}
-                            {
-                              item.quantidade
-                            }
-                          </span>
+                        <div className="cart-imageWrap">
+                          <Image
+                            src={getItemImagem(
+                              item
+                            )}
+                            alt={getItemNome(
+                              item
+                            )}
+                            width={120}
+                            height={120}
+                            className="cart-image"
+                          />
                         </div>
 
-                        <strong className="cart-price">
-                          {formatarMoeda(
-                            item.subtotal ??
-                              item.total ??
-                              item.preco
-                          )}
-                        </strong>
-                      </div>
+                        {/* CONTEUDO */}
 
-                      <button
-                        className="remove-btn"
-                        onClick={() =>
-                          removerItem(
-                            getItemId(item)
-                          )
-                        }
-                      >
-                        <FiTrash2 />
-                      </button>
-                    </div>
-                  ))}
+                        <div className="cart-content">
+                          <h3 className="cart-itemTitle">
+                            {getItemNome(
+                              item
+                            )}
+                          </h3>
+
+                          <div className="cart-meta">
+                            <span>
+                              Quantidade:{" "}
+                              {
+                                item.quantidade
+                              }
+                            </span>
+                          </div>
+
+                          <strong className="cart-price">
+                            {formatarMoeda(
+                              item.subtotal ??
+                                item.total ??
+                                item.preco
+                            )}
+                          </strong>
+                        </div>
+
+                        {/* REMOVER */}
+
+                        <button
+                          className="remove-btn"
+                          onClick={() =>
+                            removerItem(
+                              itemId
+                            )
+                          }
+                          disabled={
+                            removingId ===
+                            itemId
+                          }
+                        >
+                          {removingId ===
+                          itemId ? (
+                            "..."
+                          ) : (
+                            <FiTrash2 />
+                          )}
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* RESUMO */}
+
                 <div className="cart-summary">
                   <div className="summary-card">
                     <h3>
@@ -370,7 +462,9 @@ export default function CarrinhoPage() {
                     </h3>
 
                     <div className="summary-row">
-                      <span>Subtotal</span>
+                      <span>
+                        Subtotal
+                      </span>
 
                       <strong>
                         {formatarMoeda(
@@ -380,7 +474,9 @@ export default function CarrinhoPage() {
                     </div>
 
                     <div className="summary-row">
-                      <span>Entrega</span>
+                      <span>
+                        Entrega
+                      </span>
 
                       <strong>
                         Calculado no
