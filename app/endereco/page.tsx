@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
 import Navbar from "@/components/site/menu/navbar";
 import Footer from "@/components/site/Rodape/Footer";
-
+import "./endereco.css";
 
 interface Endereco {
   id: number;
