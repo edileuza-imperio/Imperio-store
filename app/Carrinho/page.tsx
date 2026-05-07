@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import './carrinho.css';
+import "./carrinho.css";
 
 import {
   FiShoppingCart,
@@ -171,11 +171,41 @@ export default function CarrinhoPage() {
 
         setItens(itensData);
       } catch (error) {
-        console.error(error);
+        console.error(
+          "Erro ao carregar carrinho:",
+          error
+        );
       } finally {
         setLoading(false);
       }
     }, []);
+
+  const removerItem = useCallback(
+    async (itemId: number | string) => {
+      try {
+        await InicioApi.delete(
+          `/carrinho/item/${itemId}`,
+          {
+            withCredentials: true,
+          }
+        );
+
+        setItens((prev) =>
+          prev.filter(
+            (item) =>
+              String(getItemId(item)) !==
+              String(itemId)
+          )
+        );
+      } catch (error) {
+        console.error(
+          "Erro ao remover item:",
+          error
+        );
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     carregarCarrinho();
@@ -311,12 +341,21 @@ export default function CarrinhoPage() {
 
                         <strong className="cart-price">
                           {formatarMoeda(
-                            item.subtotal
+                            item.subtotal ??
+                              item.total ??
+                              item.preco
                           )}
                         </strong>
                       </div>
 
-                      <button className="remove-btn">
+                      <button
+                        className="remove-btn"
+                        onClick={() =>
+                          removerItem(
+                            getItemId(item)
+                          )
+                        }
+                      >
                         <FiTrash2 />
                       </button>
                     </div>
@@ -360,7 +399,7 @@ export default function CarrinhoPage() {
                     </div>
 
                     <Link
-                      href="/checkout"
+                      href="/carrinho/checkout"
                       className="checkout-btn"
                     >
                       Finalizar compra
@@ -375,10 +414,6 @@ export default function CarrinhoPage() {
       </main>
 
       <Footer />
-
-      <style jsx>{`
-        
-      `}</style>
     </>
   );
 }
