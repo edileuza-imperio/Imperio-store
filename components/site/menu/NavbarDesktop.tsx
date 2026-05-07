@@ -3,18 +3,24 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useEffect, useRef, useState } from "react";
+
 import SearchBar from "../Pesquisa/SearchBar";
 
 import api from "@/Api/conectar";
 import { rotas } from "@/components/Bibioteca/config/rotas";
 
 import { FiUser, FiChevronDown } from "react-icons/fi";
-import { Menu, MenuItem } from "@/components/Bibioteca/Bibiotecas";
-import useUsuario from "@/hooks/Auth/useUsuario";
-import CarrinhoQuantidade from "@/components/Carrinho/CarrinhoQuantidade";
-import CarrinhoLateralDesktop from "../carrinho/CarrinhoLateralDesktop";
-import { IconHelper } from "@/components/Bibioteca/icons/IconHelper";
 
+import {
+  Menu,
+  MenuItem,
+} from "@/components/Bibioteca/Bibiotecas";
+
+import useUsuario from "@/hooks/Auth/useUsuario";
+
+import CarrinhoQuantidade from "@/components/Carrinho/CarrinhoQuantidade";
+
+import { IconHelper } from "@/components/Bibioteca/icons/IconHelper";
 
 export interface Categoria {
   id_categoria?: number;
@@ -40,12 +46,20 @@ export default function NavbarDesktop({
 }: Props) {
   const router = useRouter();
 
-  const { usuario, loading: usuarioLoading, logado, isAdmin } = useUsuario();
+  const {
+    usuario,
+    loading: usuarioLoading,
+    logado,
+    isAdmin,
+  } = useUsuario();
 
-  const [openUserDropdown, setOpenUserDropdown] = useState(false);
-  const [openMenuId, setOpenMenuId] = useState<number | null>(null);
+  const [openUserDropdown, setOpenUserDropdown] =
+    useState(false);
+
+  const [openMenuId, setOpenMenuId] =
+    useState<number | null>(null);
+
   const [scrolled, setScrolled] = useState(false);
-  const [openCartDrawer, setOpenCartDrawer] = useState(false);
 
   const headerRef = useRef<HTMLElement | null>(null);
 
@@ -55,14 +69,22 @@ export default function NavbarDesktop({
     };
 
     window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+
+    return () => {
+      window.removeEventListener(
+        "scroll",
+        handleScroll
+      );
+    };
   }, []);
 
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       if (!headerRef.current) return;
 
-      if (!headerRef.current.contains(e.target as Node)) {
+      if (
+        !headerRef.current.contains(e.target as Node)
+      ) {
         setOpenUserDropdown(false);
         setOpenMenuId(null);
       }
@@ -75,23 +97,36 @@ export default function NavbarDesktop({
       }
     };
 
-    document.addEventListener("mousedown", onDown);
+    document.addEventListener(
+      "mousedown",
+      onDown
+    );
+
     document.addEventListener("keydown", onKey);
 
     return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
+      document.removeEventListener(
+        "mousedown",
+        onDown
+      );
+
+      document.removeEventListener(
+        "keydown",
+        onKey
+      );
     };
   }, []);
 
   const irParaLogin = () => {
     setOpenUserDropdown(false);
     setOpenMenuId(null);
-    setOpenCartDrawer(false);
+
     router.push(rotas.paginas.login);
   };
 
-  const handleProtectedDropdown = (menuId: number) => {
+  const handleProtectedDropdown = (
+    menuId: number
+  ) => {
     if (usuarioLoading) return;
 
     if (!logado) {
@@ -99,47 +134,97 @@ export default function NavbarDesktop({
       return;
     }
 
-    setOpenMenuId((prev) => (prev === menuId ? null : menuId));
+    setOpenMenuId((prev) =>
+      prev === menuId ? null : menuId
+    );
   };
 
-  const titleParts = (tituloNavbar || "Universo Império").split(" ");
+  const titleParts = (
+    tituloNavbar || "Universo Império"
+  ).split(" ");
+
   const first = titleParts[0] || "Universo";
-  const rest = titleParts.slice(1).join(" ") || "Império";
 
-  const getMenuNome = (menu?: Partial<Menu>) =>
-    String(menu?.nome || menu?.titulo || "").trim();
+  const rest =
+    titleParts.slice(1).join(" ") || "Império";
 
-  const getMenuId = (menu?: Partial<Menu>) =>
-    Number(menu?.id_menu || menu?.id || 0);
+  const getMenuNome = (
+    menu?: Partial<Menu>
+  ) =>
+    String(
+      menu?.nome || menu?.titulo || ""
+    ).trim();
 
-  const getItemNome = (item?: Partial<MenuItem>) =>
-    String(item?.nome || item?.titulo || "").trim();
+  const getMenuId = (
+    menu?: Partial<Menu>
+  ) =>
+    Number(
+      menu?.id_menu || menu?.id || 0
+    );
 
-  const getItemId = (item?: Partial<MenuItem>) =>
-    Number(item?.id_item || item?.id || 0);
+  const getItemNome = (
+    item?: Partial<MenuItem>
+  ) =>
+    String(
+      item?.nome || item?.titulo || ""
+    ).trim();
 
-  const getMenuRota = (menu?: Partial<Menu>) => {
-    const rota = String(menu?.rota || "").trim();
-    if (!rota || rota === "0") return "#";
+  const getItemId = (
+    item?: Partial<MenuItem>
+  ) =>
+    Number(
+      item?.id_item || item?.id || 0
+    );
+
+  const getMenuRota = (
+    menu?: Partial<Menu>
+  ) => {
+    const rota = String(
+      menu?.rota || ""
+    ).trim();
+
+    if (!rota || rota === "0") {
+      return "#";
+    }
+
     return rota;
   };
 
-  const getItemRota = (item?: Partial<MenuItem>) => {
-    const rota = String(item?.rota || "").trim();
-    if (!rota || rota === "0") return "#";
+  const getItemRota = (
+    item?: Partial<MenuItem>
+  ) => {
+    const rota = String(
+      item?.rota || ""
+    ).trim();
+
+    if (!rota || rota === "0") {
+      return "#";
+    }
+
     return rota;
   };
 
-  const isPainelAdministrativo = (item?: Partial<MenuItem>) => {
-    const nome = String(item?.nome || item?.titulo || "")
+  const isPainelAdministrativo = (
+    item?: Partial<MenuItem>
+  ) => {
+    const nome = String(
+      item?.nome || item?.titulo || ""
+    )
       .trim()
       .toLowerCase();
 
-    return nome.includes("painel administrativo");
+    return nome.includes(
+      "painel administrativo"
+    );
   };
 
-  const isCartIcon = (icone?: string | null) => {
-    const name = String(icone || "").toLowerCase();
+  const isCartIcon = (
+    icone?: string | null
+  ) => {
+    const name = String(
+      icone || ""
+    ).toLowerCase();
+
     return (
       name.includes("bi-cart") ||
       name.includes("cart") ||
@@ -148,8 +233,12 @@ export default function NavbarDesktop({
     );
   };
 
-  const isCarrinhoMenu = (menu?: Partial<Menu>) => {
-    const nome = getMenuNome(menu).toLowerCase();
+  const isCarrinhoMenu = (
+    menu?: Partial<Menu>
+  ) => {
+    const nome =
+      getMenuNome(menu).toLowerCase();
+
     return (
       nome.includes("carrinho") ||
       nome.includes("carrito") ||
@@ -157,75 +246,115 @@ export default function NavbarDesktop({
     );
   };
 
-  const searchMenu = menus.find((m) => m.pesquisa_placeholder);
+  const searchMenu = menus.find(
+    (m) => m.pesquisa_placeholder
+  );
 
   const accountMenu = menus.find(
-    (m) => getMenuNome(m).toLowerCase() === "login"
+    (m) =>
+      getMenuNome(m).toLowerCase() ===
+      "login"
   );
 
   const mainMenus = menus.filter((m) => {
-    if (m.pesquisa_placeholder) return false;
+    if (m.pesquisa_placeholder) {
+      return false;
+    }
 
-    const nome = getMenuNome(m).toLowerCase();
+    const nome =
+      getMenuNome(m).toLowerCase();
 
-    if (nome === "login" && logado) return false;
+    if (nome === "login" && logado) {
+      return false;
+    }
 
     return true;
   });
 
   const accountItems = useMemo(() => {
-    const itens = accountMenu?.itens || [];
+    const itens =
+      accountMenu?.itens || [];
 
-    const itensFiltrados = itens.filter((item) => {
-      if (isPainelAdministrativo(item)) {
-        return isAdmin;
+    const itensFiltrados = itens.filter(
+      (item) => {
+        if (
+          isPainelAdministrativo(item)
+        ) {
+          return isAdmin;
+        }
+
+        return true;
       }
-      return true;
-    });
+    );
 
     return [...itensFiltrados].sort(
-      (a, b) => (a.posicao ?? 0) - (b.posicao ?? 0)
+      (a, b) =>
+        (a.posicao ?? 0) -
+        (b.posicao ?? 0)
     );
   }, [accountMenu, isAdmin]);
 
-  // ✅ NOVO (usando IconHelper)
-  const renderMenuIcon = (icone?: string | null) => {
+  const renderMenuIcon = (
+    icone?: string | null
+  ) => {
     if (isCartIcon(icone)) {
-      return <CarrinhoQuantidade size={18} />;
+      return (
+        <CarrinhoQuantidade size={18} />
+      );
     }
 
-    return IconHelper.render({ nome: icone, size: 18 });
+    return IconHelper.render({
+      nome: icone,
+      size: 18,
+    });
   };
 
-  const handleAccountItem = async (item: MenuItem) => {
+  const handleAccountItem = async (
+    item: MenuItem
+  ) => {
     setOpenUserDropdown(false);
     setOpenMenuId(null);
-    setOpenCartDrawer(false);
 
     if (!logado) {
       irParaLogin();
       return;
     }
 
-    if (isPainelAdministrativo(item) && !isAdmin) {
+    if (
+      isPainelAdministrativo(item) &&
+      !isAdmin
+    ) {
       return;
     }
 
-    const titulo = String(item.titulo || item.nome || "").toLowerCase();
+    const titulo = String(
+      item.titulo || item.nome || ""
+    ).toLowerCase();
 
     if (titulo.includes("sair")) {
       try {
-        await api.post(rotas.auth.logout, {}, { withCredentials: true });
+        await api.post(
+          rotas.auth.logout,
+          {},
+          {
+            withCredentials: true,
+          }
+        );
       } catch (e) {
         console.error(e);
       } finally {
-        router.replace(rotas.paginas.login);
+        router.replace(
+          rotas.paginas.login
+        );
+
         router.refresh();
       }
+
       return;
     }
 
     const rota = getItemRota(item);
+
     if (rota !== "#") {
       router.push(rota);
     }
@@ -234,210 +363,319 @@ export default function NavbarDesktop({
   const abrirCarrinho = () => {
     setOpenUserDropdown(false);
     setOpenMenuId(null);
-    setOpenCartDrawer(true);
+
+    router.push("/Carrinho");
   };
 
   return (
-    <>
-      <header
-        ref={headerRef as any}
-        className={`ui-navbar ${scrolled ? "ui-navbar--scrolled" : ""}`}
-      >
-        <div className="ui-navbar-container">
-          <div className="ui-brand">
-            <div className="ui-title">
-              <span className="ui-titleFirst">{first}</span>
-              <span className="ui-titleAccent">{rest}</span>
-              <span className="ui-dot" />
-            </div>
+    <header
+      ref={headerRef as any}
+      className={`ui-navbar ${
+        scrolled
+          ? "ui-navbar--scrolled"
+          : ""
+      }`}
+    >
+      <div className="ui-navbar-container">
+        <div className="ui-brand">
+          <div className="ui-title">
+            <span className="ui-titleFirst">
+              {first}
+            </span>
 
-            <div className="ui-subtitle">
-              {subtituloNavbar || "Decorações & Eventos"}
-            </div>
+            <span className="ui-titleAccent">
+              {rest}
+            </span>
+
+            <span className="ui-dot" />
           </div>
 
-          {(searchMenu || searchPlaceholder) && (
-            <div className="ui-searchWrap">
-              <SearchBar
-                placeholder={
-                  searchPlaceholder ||
-                  searchMenu?.pesquisa_placeholder ||
-                  "Buscar produtos..."
-                }
-                className="w-100"
-              />
-            </div>
-          )}
+          <div className="ui-subtitle">
+            {subtituloNavbar ||
+              "Decorações & Eventos"}
+          </div>
+        </div>
 
-          <nav className="ui-actions">
-            <div className="ui-mainMenus">
-              {mainMenus.map((m) => {
-                const menuId = getMenuId(m);
-                const itens = [...(m.itens || [])].sort(
-                  (a, b) => (a.posicao ?? 0) - (b.posicao ?? 0)
-                );
-                const hasItens = itens.length > 0;
-                const isOpen = openMenuId === menuId;
-                const isCartMenu = isCarrinhoMenu(m);
+        {(searchMenu ||
+          searchPlaceholder) && (
+          <div className="ui-searchWrap">
+            <SearchBar
+              placeholder={
+                searchPlaceholder ||
+                searchMenu?.pesquisa_placeholder ||
+                "Buscar produtos..."
+              }
+              className="w-100"
+            />
+          </div>
+        )}
 
-                if (hasItens) {
-                  return (
-                    <div key={menuId} className="ui-dropdown">
-                      <button
-                        type="button"
-                        className="ui-pill ui-pill--primary ui-userBtn"
-                        onClick={() => handleProtectedDropdown(menuId)}
-                      >
-                        <span className="ui-pillIcon">
-                          {renderMenuIcon(m.icone)}
-                        </span>
-                        <span className="ui-pillText">
-                          {getMenuNome(m)}
-                        </span>
-                        <FiChevronDown
-                          size={16}
-                          className={`ui-chevIcon ${isOpen ? "open" : ""}`}
-                        />
-                      </button>
+        <nav className="ui-actions">
+          <div className="ui-mainMenus">
+            {mainMenus.map((m) => {
+              const menuId =
+                getMenuId(m);
 
-                      {logado && isOpen && (
-                        <div className="ui-menu">
-                          {itens.map((it) => (
-                            <button
-                              key={getItemId(it)}
-                              type="button"
-                              className="ui-item"
-                              onClick={() => handleAccountItem(it)}
-                            >
-                              <span className="ui-itemIcon">
-                                {renderMenuIcon(it.icone)}
-                              </span>
-                              <span className="ui-itemText">
-                                {getItemNome(it)}
-                              </span>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
+              const itens = [
+                ...(m.itens || []),
+              ].sort(
+                (a, b) =>
+                  (a.posicao ?? 0) -
+                  (b.posicao ?? 0)
+              );
 
-                if (isCartMenu) {
-                  return (
-                    <button
-                      key={menuId}
-                      type="button"
-                      className="ui-link ui-linkButton"
-                      onClick={abrirCarrinho}
-                    >
-                      <span className="ui-pill ui-pill--primary">
-                        <span className="ui-pillIcon">
-                          {renderMenuIcon(m.icone)}
-                        </span>
-                        <span className="ui-pillText">
-                          {getMenuNome(m)}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                }
+              const hasItens =
+                itens.length > 0;
 
-                const rota = getMenuRota(m);
-                const nomeMenu = getMenuNome(m).toLowerCase();
-                const isLoginMenu = nomeMenu === "login";
+              const isOpen =
+                openMenuId === menuId;
 
-                if (isLoginMenu && !logado) {
-                  return (
-                    <button
-                      key={menuId}
-                      type="button"
-                      className="ui-link ui-linkButton"
-                      onClick={irParaLogin}
-                    >
-                      <span className="ui-pill ui-pill--primary">
-                        <span className="ui-pillIcon">
-                          {renderMenuIcon(m.icone)}
-                        </span>
-                        <span className="ui-pillText">
-                          {getMenuNome(m)}
-                        </span>
-                      </span>
-                    </button>
-                  );
-                }
+              const isCartMenu =
+                isCarrinhoMenu(m);
 
+              if (hasItens) {
                 return (
-                  <Link key={menuId} href={rota} className="ui-link">
+                  <div
+                    key={menuId}
+                    className="ui-dropdown"
+                  >
+                    <button
+                      type="button"
+                      className="ui-pill ui-pill--primary ui-userBtn"
+                      onClick={() =>
+                        handleProtectedDropdown(
+                          menuId
+                        )
+                      }
+                    >
+                      <span className="ui-pillIcon">
+                        {renderMenuIcon(
+                          m.icone
+                        )}
+                      </span>
+
+                      <span className="ui-pillText">
+                        {getMenuNome(m)}
+                      </span>
+
+                      <FiChevronDown
+                        size={16}
+                        className={`ui-chevIcon ${
+                          isOpen
+                            ? "open"
+                            : ""
+                        }`}
+                      />
+                    </button>
+
+                    {logado && isOpen && (
+                      <div className="ui-menu">
+                        {itens.map((it) => (
+                          <button
+                            key={getItemId(
+                              it
+                            )}
+                            type="button"
+                            className="ui-item"
+                            onClick={() =>
+                              handleAccountItem(
+                                it
+                              )
+                            }
+                          >
+                            <span className="ui-itemIcon">
+                              {renderMenuIcon(
+                                it.icone
+                              )}
+                            </span>
+
+                            <span className="ui-itemText">
+                              {getItemNome(
+                                it
+                              )}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+
+              if (isCartMenu) {
+                return (
+                  <button
+                    key={menuId}
+                    type="button"
+                    className="ui-link ui-linkButton"
+                    onClick={
+                      abrirCarrinho
+                    }
+                  >
                     <span className="ui-pill ui-pill--primary">
                       <span className="ui-pillIcon">
-                        {renderMenuIcon(m.icone)}
+                        {renderMenuIcon(
+                          m.icone
+                        )}
                       </span>
+
                       <span className="ui-pillText">
                         {getMenuNome(m)}
                       </span>
                     </span>
-                  </Link>
+                  </button>
                 );
-              })}
-            </div>
+              }
 
-            {!usuarioLoading && logado && accountItems.length > 0 && (
+              const rota =
+                getMenuRota(m);
+
+              const nomeMenu =
+                getMenuNome(
+                  m
+                ).toLowerCase();
+
+              const isLoginMenu =
+                nomeMenu === "login";
+
+              if (
+                isLoginMenu &&
+                !logado
+              ) {
+                return (
+                  <button
+                    key={menuId}
+                    type="button"
+                    className="ui-link ui-linkButton"
+                    onClick={
+                      irParaLogin
+                    }
+                  >
+                    <span className="ui-pill ui-pill--primary">
+                      <span className="ui-pillIcon">
+                        {renderMenuIcon(
+                          m.icone
+                        )}
+                      </span>
+
+                      <span className="ui-pillText">
+                        {getMenuNome(m)}
+                      </span>
+                    </span>
+                  </button>
+                );
+              }
+
+              return (
+                <Link
+                  key={menuId}
+                  href={rota}
+                  className="ui-link"
+                >
+                  <span className="ui-pill ui-pill--primary">
+                    <span className="ui-pillIcon">
+                      {renderMenuIcon(
+                        m.icone
+                      )}
+                    </span>
+
+                    <span className="ui-pillText">
+                      {getMenuNome(m)}
+                    </span>
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+
+          {!usuarioLoading &&
+            logado &&
+            accountItems.length > 0 && (
               <div className="ui-dropdown">
                 <button
                   type="button"
                   className="ui-pill ui-pill--secondary ui-userBtn"
-                  onClick={() => setOpenUserDropdown((v) => !v)}
+                  onClick={() =>
+                    setOpenUserDropdown(
+                      (v) => !v
+                    )
+                  }
                 >
                   <span className="ui-pillIcon">
                     <FiUser size={18} />
                   </span>
 
                   <span className="ui-pillText ui-strong">
-                    {usuario?.nome?.split(" ")[0] || "Usuario"}
+                    {usuario?.nome?.split(
+                      " "
+                    )[0] || "Usuario"}
                   </span>
 
                   <FiChevronDown
                     size={16}
                     className={`ui-chevIcon ${
-                      openUserDropdown ? "open" : ""
+                      openUserDropdown
+                        ? "open"
+                        : ""
                     }`}
                   />
                 </button>
 
                 {openUserDropdown && (
                   <div className="ui-menu">
-                    {accountItems.map((it) => {
-                      const texto = String(it.titulo || it.nome || "");
-                      const isSair = texto.toLowerCase().includes("sair");
+                    {accountItems.map(
+                      (it) => {
+                        const texto =
+                          String(
+                            it.titulo ||
+                              it.nome ||
+                              ""
+                          );
 
-                      return (
-                        <button
-                          key={String(it.id || it.id_item || it.id_menu)}
-                          className={`ui-item ${
-                            isSair ? "ui-item--danger" : ""
-                          }`}
-                          onClick={() => handleAccountItem(it)}
-                        >
-                          <span className="ui-itemIcon">
-                            {renderMenuIcon(it.icone)}
-                          </span>
-                          <span className="ui-itemText">{texto}</span>
-                        </button>
-                      );
-                    })}
+                        const isSair =
+                          texto
+                            .toLowerCase()
+                            .includes(
+                              "sair"
+                            );
+
+                        return (
+                          <button
+                            key={String(
+                              it.id ||
+                                it.id_item ||
+                                it.id_menu
+                            )}
+                            className={`ui-item ${
+                              isSair
+                                ? "ui-item--danger"
+                                : ""
+                            }`}
+                            onClick={() =>
+                              handleAccountItem(
+                                it
+                              )
+                            }
+                          >
+                            <span className="ui-itemIcon">
+                              {renderMenuIcon(
+                                it.icone
+                              )}
+                            </span>
+
+                            <span className="ui-itemText">
+                              {texto}
+                            </span>
+                          </button>
+                        );
+                      }
+                    )}
                   </div>
                 )}
               </div>
             )}
-          </nav>
-        </div>
-      </header>
-
-      <CarrinhoLateralDesktop
-        open={openCartDrawer}
-        onClose={() => setOpenCartDrawer(false)}
-      />
-    </>
+        </nav>
+      </div>
+    </header>
   );
 }
