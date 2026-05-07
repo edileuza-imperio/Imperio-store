@@ -1,9 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
 import Navbar from "@/components/site/menu/navbar";
 import Footer from "@/components/site/Rodape/Footer";
-import { useState, useEffect } from "react";
 
 
 interface Endereco {
@@ -39,9 +39,18 @@ export default function EnderecoPage() {
 
       const response = await api.get("/usuario/endereco");
 
-      setEnderecos(response.data || []);
+      console.log("ENDEREÇOS:", response.data);
+
+      if (Array.isArray(response.data)) {
+        setEnderecos(response.data);
+      } else if (Array.isArray(response.data?.dados)) {
+        setEnderecos(response.data.dados);
+      } else {
+        setEnderecos([]);
+      }
     } catch (error) {
-      console.error("Erro ao carregar endereços", error);
+      console.error("Erro ao carregar endereços:", error);
+      setEnderecos([]);
     } finally {
       setLoading(false);
     }
@@ -73,7 +82,7 @@ export default function EnderecoPage() {
         estado: data.uf || "",
       }));
     } catch (error) {
-      console.error("Erro ao buscar CEP", error);
+      console.error("Erro ao buscar CEP:", error);
     }
   }
 
@@ -87,6 +96,8 @@ export default function EnderecoPage() {
 
       await api.post("/usuario/endereco", form);
 
+      alert("Endereço cadastrado com sucesso!");
+
       setForm({
         cep: "",
         endereco: "",
@@ -99,10 +110,8 @@ export default function EnderecoPage() {
       });
 
       await carregarEnderecos();
-
-      alert("Endereço cadastrado com sucesso!");
     } catch (error) {
-      console.error("Erro ao cadastrar endereço", error);
+      console.error("Erro ao cadastrar endereço:", error);
       alert("Erro ao cadastrar endereço");
     } finally {
       setLoading(false);
@@ -121,7 +130,7 @@ export default function EnderecoPage() {
 
       await carregarEnderecos();
     } catch (error) {
-      console.error("Erro ao excluir endereço", error);
+      console.error("Erro ao excluir endereço:", error);
     }
   }
 
@@ -131,7 +140,10 @@ export default function EnderecoPage() {
 
       await carregarEnderecos();
     } catch (error) {
-      console.error("Erro ao definir endereço principal", error);
+      console.error(
+        "Erro ao definir endereço principal:",
+        error
+      );
     }
   }
 
@@ -139,26 +151,24 @@ export default function EnderecoPage() {
     <>
       <Navbar />
 
-      <main style={styles.main}>
-        <div style={styles.container}>
-          <h1 style={styles.title}>Meus Endereços</h1>
+      <main className="endereco-page">
+        <div className="container-endereco">
+          <h1 className="titulo-page">
+            Meus Endereços
+          </h1>
 
-          <div style={styles.grid}>
+          <div className="grid-endereco">
             {/* FORM */}
-            <div style={styles.card}>
-              <h2 style={styles.subtitle}>
-                Cadastrar Endereço
-              </h2>
+            <div className="card-endereco">
+              <h2>Cadastrar Endereço</h2>
 
-              <form
-                onSubmit={cadastrarEndereco}
-                style={styles.form}
-              >
-                <div>
-                  <label style={styles.label}>CEP</label>
+              <form onSubmit={cadastrarEndereco}>
+                <div className="form-group">
+                  <label>CEP</label>
 
                   <input
                     type="text"
+                    placeholder="00000-000"
                     value={form.cep}
                     onChange={(e) => {
                       setForm({
@@ -168,15 +178,11 @@ export default function EnderecoPage() {
 
                       buscarCep(e.target.value);
                     }}
-                    placeholder="00000-000"
-                    style={styles.input}
                   />
                 </div>
 
-                <div>
-                  <label style={styles.label}>
-                    Endereço
-                  </label>
+                <div className="form-group">
+                  <label>Endereço</label>
 
                   <input
                     type="text"
@@ -187,15 +193,12 @@ export default function EnderecoPage() {
                         endereco: e.target.value,
                       })
                     }
-                    style={styles.input}
                   />
                 </div>
 
-                <div style={styles.row}>
-                  <div style={{ flex: 1 }}>
-                    <label style={styles.label}>
-                      Número
-                    </label>
+                <div className="duplo">
+                  <div className="form-group">
+                    <label>Número</label>
 
                     <input
                       type="text"
@@ -206,14 +209,11 @@ export default function EnderecoPage() {
                           numero: e.target.value,
                         })
                       }
-                      style={styles.input}
                     />
                   </div>
 
-                  <div style={{ flex: 1 }}>
-                    <label style={styles.label}>
-                      Complemento
-                    </label>
+                  <div className="form-group">
+                    <label>Complemento</label>
 
                     <input
                       type="text"
@@ -224,15 +224,12 @@ export default function EnderecoPage() {
                           complemento: e.target.value,
                         })
                       }
-                      style={styles.input}
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label style={styles.label}>
-                    Bairro
-                  </label>
+                <div className="form-group">
+                  <label>Bairro</label>
 
                   <input
                     type="text"
@@ -243,15 +240,12 @@ export default function EnderecoPage() {
                         bairro: e.target.value,
                       })
                     }
-                    style={styles.input}
                   />
                 </div>
 
-                <div style={styles.row}>
-                  <div style={{ flex: 1 }}>
-                    <label style={styles.label}>
-                      Cidade
-                    </label>
+                <div className="duplo">
+                  <div className="form-group">
+                    <label>Cidade</label>
 
                     <input
                       type="text"
@@ -262,14 +256,11 @@ export default function EnderecoPage() {
                           cidade: e.target.value,
                         })
                       }
-                      style={styles.input}
                     />
                   </div>
 
-                  <div style={{ flex: 1 }}>
-                    <label style={styles.label}>
-                      Estado
-                    </label>
+                  <div className="form-group">
+                    <label>Estado</label>
 
                     <input
                       type="text"
@@ -280,19 +271,20 @@ export default function EnderecoPage() {
                           estado: e.target.value,
                         })
                       }
-                      style={styles.input}
                     />
                   </div>
                 </div>
 
-                <div style={styles.checkbox}>
+                <div className="checkbox-group">
                   <input
                     type="checkbox"
                     checked={form.principal === 1}
                     onChange={(e) =>
                       setForm({
                         ...form,
-                        principal: e.target.checked ? 1 : 0,
+                        principal: e.target.checked
+                          ? 1
+                          : 0,
                       })
                     }
                   />
@@ -303,7 +295,7 @@ export default function EnderecoPage() {
                 <button
                   type="submit"
                   disabled={loading}
-                  style={styles.button}
+                  className="btn-salvar"
                 >
                   {loading
                     ? "Salvando..."
@@ -313,31 +305,36 @@ export default function EnderecoPage() {
             </div>
 
             {/* LISTA */}
-            <div>
-              <h2 style={styles.subtitle}>
-                Endereços Cadastrados
-              </h2>
+            <div className="lista-endereco">
+              <h2>Endereços Cadastrados</h2>
 
-              <div style={styles.lista}>
-                {enderecos.length === 0 && (
-                  <div style={styles.empty}>
+              {loading && (
+                <div className="card-vazio">
+                  Carregando...
+                </div>
+              )}
+
+              {!loading &&
+                enderecos.length === 0 && (
+                  <div className="card-vazio">
                     Nenhum endereço cadastrado.
                   </div>
                 )}
 
-                {enderecos.map((endereco) => (
+              {Array.isArray(enderecos) &&
+                enderecos.map((endereco) => (
                   <div
+                    className="item-endereco"
                     key={endereco.id}
-                    style={styles.item}
                   >
-                    <div style={styles.itemTop}>
-                      <h3 style={styles.itemTitle}>
+                    <div className="topo-item">
+                      <h3>
                         {endereco.endereco},{" "}
                         {endereco.numero}
                       </h3>
 
                       {endereco.principal === 1 && (
-                        <span style={styles.badge}>
+                        <span className="badge-principal">
                           Principal
                         </span>
                       )}
@@ -359,32 +356,31 @@ export default function EnderecoPage() {
                       </p>
                     )}
 
-                    <div style={styles.actions}>
+                    <div className="acoes">
                       {endereco.principal !== 1 && (
                         <button
+                          className="btn-principal"
                           onClick={() =>
                             definirPrincipal(
                               endereco.id
                             )
                           }
-                          style={styles.secondaryButton}
                         >
                           Tornar Principal
                         </button>
                       )}
 
                       <button
+                        className="btn-excluir"
                         onClick={() =>
                           excluirEndereco(endereco.id)
                         }
-                        style={styles.deleteButton}
                       >
                         Excluir
                       </button>
                     </div>
                   </div>
                 ))}
-              </div>
             </div>
           </div>
         </div>
@@ -394,146 +390,3 @@ export default function EnderecoPage() {
     </>
   );
 }
-
-const styles: any = {
-  main: {
-    minHeight: "100vh",
-    background: "#f5f5f5",
-    padding: "40px 20px",
-  },
-
-  container: {
-    maxWidth: "1200px",
-    margin: "0 auto",
-  },
-
-  title: {
-    fontSize: "36px",
-    fontWeight: "700",
-    marginBottom: "40px",
-  },
-
-  subtitle: {
-    fontSize: "24px",
-    fontWeight: "600",
-    marginBottom: "20px",
-  },
-
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "40px",
-  },
-
-  card: {
-    background: "#fff",
-    borderRadius: "16px",
-    padding: "30px",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
-  },
-
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "16px",
-  },
-
-  label: {
-    display: "block",
-    marginBottom: "6px",
-    fontWeight: "500",
-  },
-
-  input: {
-    width: "100%",
-    padding: "14px",
-    borderRadius: "10px",
-    border: "1px solid #ddd",
-    fontSize: "14px",
-    outline: "none",
-  },
-
-  row: {
-    display: "flex",
-    gap: "16px",
-  },
-
-  checkbox: {
-    display: "flex",
-    alignItems: "center",
-    gap: "10px",
-  },
-
-  button: {
-    background: "#000",
-    color: "#fff",
-    border: "none",
-    padding: "14px",
-    borderRadius: "10px",
-    cursor: "pointer",
-    fontWeight: "600",
-    fontSize: "15px",
-  },
-
-  lista: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "20px",
-  },
-
-  empty: {
-    background: "#fff",
-    padding: "20px",
-    borderRadius: "16px",
-  },
-
-  item: {
-    background: "#fff",
-    borderRadius: "16px",
-    padding: "24px",
-    boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
-  },
-
-  itemTop: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: "16px",
-  },
-
-  itemTitle: {
-    fontSize: "20px",
-    fontWeight: "600",
-  },
-
-  badge: {
-    background: "#000",
-    color: "#fff",
-    padding: "6px 12px",
-    borderRadius: "20px",
-    fontSize: "12px",
-  },
-
-  actions: {
-    display: "flex",
-    gap: "10px",
-    marginTop: "20px",
-  },
-
-  secondaryButton: {
-    border: "1px solid #000",
-    background: "#fff",
-    padding: "10px 16px",
-    borderRadius: "10px",
-    cursor: "pointer",
-  },
-
-  deleteButton: {
-    border: "none",
-    background: "#ff3b30",
-    color: "#fff",
-    padding: "10px 16px",
-    borderRadius: "10px",
-    cursor: "pointer",
-  },
-};
