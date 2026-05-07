@@ -24,28 +24,50 @@ import Footer from "@/components/site/Rodape/Footer";
 
 type CarrinhoItem = {
   id?: number | string;
-  id_carrinho_item?: number | string;
+
+  id_carrinho_item?:
+    | number
+    | string;
+
   id_item?: number | string;
+
   item_id?: number | string;
 
-  produto_id?: number | string;
+  produto_id?:
+    | number
+    | string;
 
   nome?: string;
+
   titulo?: string;
+
   produto_nome?: string;
+
+  produto?: {
+    nome?: string;
+    titulo?: string;
+    imagem?: string;
+    foto?: string;
+  };
 
   slug?: string;
 
   imagem?: string;
+
   miniatura?: string;
+
   foto?: string;
 
   quantidade?: number | string;
 
   preco?: number | string;
-  preco_unitario?: number | string;
+
+  preco_unitario?:
+    | number
+    | string;
 
   subtotal?: number | string;
+
   total?: number | string;
 };
 
@@ -115,17 +137,29 @@ function extrairLista<T = unknown>(
   return [];
 }
 
+/*
+|--------------------------------------------------------------------------
+| ID ITEM CARRINHO
+|--------------------------------------------------------------------------
+*/
+
 function getItemId(
   item: CarrinhoItem
 ) {
   return (
-    item.id ??
     item.id_carrinho_item ??
+    item.id ??
     item.id_item ??
     item.item_id ??
     ""
   );
 }
+
+/*
+|--------------------------------------------------------------------------
+| NOME PRODUTO
+|--------------------------------------------------------------------------
+*/
 
 function getItemNome(
   item: CarrinhoItem
@@ -134,9 +168,17 @@ function getItemNome(
     item.nome ||
     item.titulo ||
     item.produto_nome ||
+    item.produto?.nome ||
+    item.produto?.titulo ||
     "Produto sem nome"
   );
 }
+
+/*
+|--------------------------------------------------------------------------
+| IMAGEM PRODUTO
+|--------------------------------------------------------------------------
+*/
 
 function getItemImagem(
   item: CarrinhoItem
@@ -145,6 +187,8 @@ function getItemImagem(
     item.miniatura ||
     item.imagem ||
     item.foto ||
+    item.produto?.imagem ||
+    item.produto?.foto ||
     "/images/sem-imagem.png"
   );
 }
@@ -181,12 +225,14 @@ export default function CarrinhoPage() {
             }
           );
 
-        const payload =
-          response?.data as any;
+        console.log(
+          "CARRINHO:",
+          response.data
+        );
 
         const itensData =
           extrairLista<CarrinhoItem>(
-            payload
+            response?.data
           );
 
         setItens(itensData);
@@ -195,8 +241,6 @@ export default function CarrinhoPage() {
           "Erro ao carregar carrinho:",
           error
         );
-
-        setItens([]);
       } finally {
         setLoading(false);
       }
@@ -224,7 +268,7 @@ export default function CarrinhoPage() {
 
         /*
         |--------------------------------------------------------------------------
-        | REMOVE LOCALMENTE
+        | REMOVE DO STATE
         |--------------------------------------------------------------------------
         */
 
@@ -239,7 +283,7 @@ export default function CarrinhoPage() {
 
         /*
         |--------------------------------------------------------------------------
-        | RECARREGA
+        | RECARREGA BACKEND
         |--------------------------------------------------------------------------
         */
 
@@ -273,20 +317,17 @@ export default function CarrinhoPage() {
   */
 
   const total = useMemo(() => {
-    return itens.reduce(
-      (acc, item) => {
-        const subtotal =
-          normalizarNumero(
-            item.subtotal ??
-              item.total ??
-              item.preco ??
-              0
-          );
+    return itens.reduce((acc, item) => {
+      const subtotal =
+        normalizarNumero(
+          item.subtotal ??
+            item.total ??
+            item.preco ??
+            0
+        );
 
-        return acc + subtotal;
-      },
-      0
-    );
+      return acc + subtotal;
+    }, 0);
   }, [itens]);
 
   return (
@@ -305,7 +346,7 @@ export default function CarrinhoPage() {
 
               <div>
                 <h1 className="cart-title">
-                  Seu carrinho
+                  Seu Carrinho
                 </h1>
 
                 <p className="cart-subtitle">
@@ -400,7 +441,7 @@ export default function CarrinhoPage() {
                           />
                         </div>
 
-                        {/* CONTEÚDO */}
+                        {/* CONTEUDO */}
 
                         <div className="cart-content">
                           <h3 className="cart-itemTitle">
@@ -495,7 +536,7 @@ export default function CarrinhoPage() {
                     </div>
 
                     <Link
-                      href="/Carrinho/checkout"
+                      href="/carrinho/checkout"
                       className="checkout-btn"
                     >
                       Finalizar compra

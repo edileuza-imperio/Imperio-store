@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+
 import {
   FiCheckCircle,
   FiMapPin,
@@ -20,13 +21,16 @@ type Endereco = {
   id_endereco?: number;
 
   cep?: string;
+
   rua?: string;
+  endereco?: string;
+
   numero?: string;
   bairro?: string;
   cidade?: string;
   estado?: string;
 
-  principal?: boolean;
+  principal?: boolean | number;
 };
 
 function getEnderecoId(
@@ -72,37 +76,64 @@ export default function CheckoutPage() {
             }
           );
 
-        const lista =
-          response?.data?.dados ||
-          response?.data?.data ||
-          response?.data ||
-          [];
+        /*
+        |--------------------------------------------------------------------------
+        | TYPESCRIPT FIX
+        |--------------------------------------------------------------------------
+        */
+
+        const responseData: any =
+          response?.data;
+
+        const lista: Endereco[] =
+          Array.isArray(
+            responseData
+          )
+            ? responseData
+            : Array.isArray(
+                responseData?.dados
+              )
+            ? responseData.dados
+            : Array.isArray(
+                responseData?.data
+              )
+            ? responseData.data
+            : [];
 
         setEnderecos(lista);
 
         /*
         |--------------------------------------------------------------------------
-        | Seleciona principal automaticamente
+        | SELECIONA PRINCIPAL
         |--------------------------------------------------------------------------
         */
 
         const principal =
           lista.find(
-            (item: Endereco) =>
-              item.principal
+            (item) =>
+              item.principal ===
+                true ||
+              item.principal === 1
           );
 
         if (principal) {
           setEnderecoSelecionado(
             getEnderecoId(principal)
           );
-        } else if (lista.length > 0) {
+        } else if (
+          lista.length > 0
+        ) {
           setEnderecoSelecionado(
-            getEnderecoId(lista[0])
+            getEnderecoId(
+              lista[0]
+            )
           );
         }
       } catch (error) {
-        console.error(error);
+        console.error(
+          "Erro ao carregar endereços:",
+          error
+        );
       } finally {
         setLoading(false);
       }
@@ -120,8 +151,8 @@ export default function CheckoutPage() {
           <h1>Checkout</h1>
 
           <p>
-            Finalize sua compra em
-            poucos passos.
+            Finalize sua compra
+            em poucos passos.
           </p>
         </div>
 
@@ -133,7 +164,16 @@ export default function CheckoutPage() {
               <FiMapPin />
             </div>
 
-            <span>Endereço</span>
+            <div>
+              <strong>
+                1. Endereço
+              </strong>
+
+              <p>
+                Escolha onde
+                receber
+              </p>
+            </div>
           </div>
 
           <div className="step">
@@ -141,7 +181,15 @@ export default function CheckoutPage() {
               <FiTruck />
             </div>
 
-            <span>Entrega</span>
+            <div>
+              <strong>
+                2. Entrega
+              </strong>
+
+              <p>
+                Método de envio
+              </p>
+            </div>
           </div>
 
           <div className="step">
@@ -149,7 +197,15 @@ export default function CheckoutPage() {
               <FiCreditCard />
             </div>
 
-            <span>Pagamento</span>
+            <div>
+              <strong>
+                3. Pagamento
+              </strong>
+
+              <p>
+                Finalizar pedido
+              </p>
+            </div>
           </div>
         </div>
 
@@ -157,25 +213,42 @@ export default function CheckoutPage() {
 
         {loading && (
           <div className="checkout-loading">
-            Carregando endereços...
+            Carregando
+            endereços...
           </div>
         )}
 
-        {/* ENDEREÇOS */}
+        {/* CONTEÚDO */}
 
         {!loading && (
           <div className="checkout-content">
             <div className="checkout-card">
-              <h2>
-                Selecione o endereço
-              </h2>
+              <div className="card-header">
+                <h2>
+                  Selecione o
+                  endereço de
+                  entrega
+                </h2>
+
+                {enderecos.length >
+                  0 && (
+                  <Link
+                    href="/endereco"
+                    className="new-address-btn"
+                  >
+                    Novo endereço
+                  </Link>
+                )}
+              </div>
 
               {/* SEM ENDEREÇO */}
 
               {enderecos.length ===
                 0 && (
                 <div className="empty-address">
-                  <FiMapPin size={50} />
+                  <div className="empty-icon">
+                    <FiMapPin />
+                  </div>
 
                   <h3>
                     Nenhum endereço
@@ -185,107 +258,111 @@ export default function CheckoutPage() {
                   <p>
                     Você precisa
                     cadastrar um
-                    endereço antes de
-                    finalizar a
-                    compra.
+                    endereço antes
+                    de continuar o
+                    checkout.
                   </p>
 
                   <Link
                     href="/endereco"
                     className="address-btn"
                   >
-                    Cadastrar endereço
+                    Cadastrar
+                    endereço
                   </Link>
                 </div>
               )}
 
               {/* COM ENDEREÇOS */}
 
-              {enderecos.length > 0 && (
-                <div className="address-list">
-                  {enderecos.map(
-                    (endereco) => {
-                      const id =
-                        getEnderecoId(
-                          endereco
-                        );
+              {enderecos.length >
+                0 && (
+                <>
+                  <div className="address-list">
+                    {enderecos.map(
+                      (
+                        endereco
+                      ) => {
+                        const id =
+                          getEnderecoId(
+                            endereco
+                          );
 
-                      const ativo =
-                        String(
-                          enderecoSelecionado
-                        ) ===
-                        String(id);
+                        const ativo =
+                          String(
+                            enderecoSelecionado
+                          ) ===
+                          String(id);
 
-                      return (
-                        <button
-                          key={String(
-                            id
-                          )}
-                          className={`address-card ${
-                            ativo
-                              ? "active"
-                              : ""
-                          }`}
-                          onClick={() =>
-                            setEnderecoSelecionado(
+                        return (
+                          <button
+                            key={String(
                               id
-                            )
-                          }
-                        >
-                          <div>
-                            <strong>
-                              {
-                                endereco.rua
-                              }
-                              ,{" "}
-                              {
-                                endereco.numero
-                              }
-                            </strong>
+                            )}
+                            type="button"
+                            className={`address-card ${
+                              ativo
+                                ? "active"
+                                : ""
+                            }`}
+                            onClick={() =>
+                              setEnderecoSelecionado(
+                                id
+                              )
+                            }
+                          >
+                            <div className="address-content">
+                              <strong>
+                                {endereco.rua ||
+                                  endereco.endereco}
+                                ,{" "}
+                                {
+                                  endereco.numero
+                                }
+                              </strong>
 
-                            <p>
-                              {
-                                endereco.bairro
-                              }
-                            </p>
+                              <p>
+                                {
+                                  endereco.bairro
+                                }
+                              </p>
 
-                            <p>
-                              {
-                                endereco.cidade
-                              }{" "}
-                              -{" "}
-                              {
-                                endereco.estado
-                              }
-                            </p>
+                              <p>
+                                {
+                                  endereco.cidade
+                                }{" "}
+                                -{" "}
+                                {
+                                  endereco.estado
+                                }
+                              </p>
 
-                            <small>
-                              CEP:{" "}
-                              {
-                                endereco.cep
-                              }
-                            </small>
-                          </div>
+                              <small>
+                                CEP:{" "}
+                                {
+                                  endereco.cep
+                                }
+                              </small>
+                            </div>
 
-                          {ativo && (
-                            <FiCheckCircle />
-                          )}
-                        </button>
-                      );
-                    }
-                  )}
-                </div>
-              )}
+                            {ativo && (
+                              <div className="check-icon">
+                                <FiCheckCircle />
+                              </div>
+                            )}
+                          </button>
+                        );
+                      }
+                    )}
+                  </div>
 
-              {/* BOTÃO */}
-
-              {enderecos.length > 0 && (
-                <div className="checkout-actions">
-                  <button className="continue-btn">
-                    Continuar para
-                    entrega
-                  </button>
-                </div>
+                  <div className="checkout-actions">
+                    <button className="continue-btn">
+                      Continuar para
+                      entrega
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>
@@ -309,28 +386,34 @@ export default function CheckoutPage() {
         }
 
         .checkout-header h1 {
-          font-size: 36px;
+          font-size: 38px;
+          font-weight: 700;
+          color: #111;
           margin-bottom: 10px;
         }
 
         .checkout-header p {
           color: #666;
+          font-size: 15px;
         }
 
         .checkout-steps {
-          display: flex;
-          gap: 20px;
+          display: grid;
+          grid-template-columns: repeat(
+            3,
+            1fr
+          );
+          gap: 18px;
           margin-bottom: 30px;
         }
 
         .step {
-          flex: 1;
           background: white;
-          border-radius: 14px;
-          padding: 18px;
+          border-radius: 18px;
+          padding: 20px;
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 14px;
           border: 2px solid #e5e5e5;
         }
 
@@ -338,25 +421,60 @@ export default function CheckoutPage() {
           border-color: #111;
         }
 
+        .step strong {
+          display: block;
+          font-size: 15px;
+          color: #111;
+        }
+
+        .step p {
+          margin: 4px 0 0;
+          font-size: 13px;
+          color: #777;
+        }
+
         .step-icon {
-          width: 42px;
-          height: 42px;
+          width: 50px;
+          height: 50px;
           border-radius: 999px;
           background: #111;
           color: white;
           display: flex;
           align-items: center;
           justify-content: center;
+          font-size: 20px;
+          flex-shrink: 0;
         }
 
         .checkout-card {
           background: white;
-          border-radius: 20px;
+          border-radius: 24px;
           padding: 30px;
+          box-shadow: 0 10px 30px
+            rgba(0, 0, 0, 0.05);
         }
 
-        .checkout-card h2 {
+        .card-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 15px;
           margin-bottom: 25px;
+        }
+
+        .card-header h2 {
+          font-size: 24px;
+          color: #111;
+        }
+
+        .new-address-btn {
+          background: #111;
+          color: white;
+          text-decoration: none;
+          padding: 12px 18px;
+          border-radius: 12px;
+          font-size: 14px;
+          font-weight: 600;
         }
 
         .address-list {
@@ -367,19 +485,22 @@ export default function CheckoutPage() {
         .address-card {
           width: 100%;
           border: 2px solid #e5e5e5;
-          border-radius: 16px;
-          padding: 20px;
+          border-radius: 18px;
+          padding: 22px;
           background: white;
           display: flex;
           align-items: center;
           justify-content: space-between;
           cursor: pointer;
-          transition: 0.2s;
+          transition: all 0.2s ease;
           text-align: left;
         }
 
         .address-card:hover {
           border-color: #999;
+          transform: translateY(
+            -2px
+          );
         }
 
         .address-card.active {
@@ -387,18 +508,28 @@ export default function CheckoutPage() {
           background: #fafafa;
         }
 
-        .address-card strong {
+        .address-content strong {
           display: block;
-          margin-bottom: 6px;
+          margin-bottom: 8px;
+          font-size: 16px;
+          color: #111;
         }
 
-        .address-card p {
-          margin: 0;
+        .address-content p {
+          margin: 0 0 5px;
           color: #666;
+          font-size: 14px;
         }
 
-        .address-card small {
+        .address-content small {
           color: #999;
+          font-size: 13px;
+        }
+
+        .check-icon {
+          font-size: 28px;
+          color: #111;
+          flex-shrink: 0;
         }
 
         .checkout-actions {
@@ -408,33 +539,51 @@ export default function CheckoutPage() {
         }
 
         .continue-btn {
+          border: none;
           background: #111;
           color: white;
-          border: none;
-          padding: 16px 26px;
-          border-radius: 12px;
+          padding: 16px 28px;
+          border-radius: 14px;
           cursor: pointer;
           font-size: 15px;
-          font-weight: 600;
+          font-weight: 700;
+          transition: 0.2s;
         }
 
         .continue-btn:hover {
-          opacity: 0.9;
+          opacity: 0.92;
         }
 
         .empty-address {
           text-align: center;
-          padding: 60px 20px;
+          padding: 70px 20px;
+        }
+
+        .empty-icon {
+          width: 90px;
+          height: 90px;
+          border-radius: 999px;
+          background: #f1f1f1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 25px;
+          font-size: 38px;
+          color: #111;
         }
 
         .empty-address h3 {
-          margin-top: 20px;
-          margin-bottom: 10px;
+          font-size: 26px;
+          margin-bottom: 12px;
+          color: #111;
         }
 
         .empty-address p {
           color: #666;
-          margin-bottom: 25px;
+          margin-bottom: 28px;
+          max-width: 420px;
+          margin-inline: auto;
+          line-height: 1.6;
         }
 
         .address-btn {
@@ -444,25 +593,55 @@ export default function CheckoutPage() {
           background: #111;
           color: white;
           text-decoration: none;
-          padding: 14px 22px;
-          border-radius: 12px;
-          font-weight: 600;
+          padding: 15px 24px;
+          border-radius: 14px;
+          font-weight: 700;
         }
 
         .checkout-loading {
           background: white;
           border-radius: 20px;
-          padding: 40px;
+          padding: 50px;
           text-align: center;
+          font-size: 16px;
+        }
+
+        @media (max-width: 900px) {
+          .checkout-steps {
+            grid-template-columns: 1fr;
+          }
         }
 
         @media (max-width: 768px) {
-          .checkout-steps {
-            flex-direction: column;
+          .checkout-page {
+            padding: 20px 14px;
+          }
+
+          .checkout-card {
+            padding: 22px;
           }
 
           .checkout-header h1 {
-            font-size: 28px;
+            font-size: 30px;
+          }
+
+          .card-header {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .checkout-actions {
+            justify-content: stretch;
+          }
+
+          .continue-btn {
+            width: 100%;
+          }
+
+          .address-card {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 18px;
           }
         }
       `}</style>
