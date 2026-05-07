@@ -27,30 +27,34 @@ type Usuario = {
   sobrenome?: string;
   email?: string;
   cpf?: string;
-};
-
-type UsuarioResponse = {
-  usuario: Usuario;
+  telefone?: string;
 };
 
 type PixResponse = {
-  pix: {
-    qr_code: string;
-    qr_code_base64: string;
-    ticket_url?: string;
-  };
+  qr_code?: string;
+  qr_code_base64?: string;
+  ticket_url?: string;
 };
 
-/* =========================
-   COMPONENTE
-========================= */
+type ApiResponse = {
+  usuario?: Usuario;
+
+  pix?: PixResponse;
+
+  dados?: {
+    usuario?: Usuario;
+    pix?: PixResponse;
+  };
+
+  [key: string]: any;
+};
 
 export default function PagamentoPage() {
   const [metodo, setMetodo] = useState<"pix" | "cartao">("pix");
   const [loading, setLoading] = useState(false);
 
   const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [pixData, setPixData] = useState<PixResponse["pix"] | null>(null);
+  const [pixData, setPixData] = useState<PixResponse | null>(null);
 
   const [cartao, setCartao] = useState({
     nome: "",
@@ -60,32 +64,44 @@ export default function PagamentoPage() {
   });
 
   /* =========================
-     CARREGAR USUÁRIO
+     USUÁRIO LOGADO
   ========================= */
 
   useEffect(() => {
     async function carregarUsuario() {
       try {
-        console.log("🔄 Buscando usuário logado...");
-
-        const response = await InicioApi.get<UsuarioResponse>("/me", {
+        const response = await InicioApi.get<ApiResponse>("/me", {
           withCredentials: true,
         });
 
-        console.log("📦 RESPOSTA /me:", response.data);
+        console.log("📦 /me RAW:", response.data);
 
-        const dados = response.data.usuario;
+        const dados =
+          response.data?.usuario ||
+          response.data?.dados?.usuario ||
+          response.data;
 
         console.log("👤 USUÁRIO EXTRAÍDO:", dados);
 
-        setUsuario(dados);
+        if (!dados || typeof dados !== "object") return;
+
+        const usuarioFormatado: Usuario = {
+          id_usuario: dados.id_usuario,
+          nome: dados.nome,
+          sobrenome: dados.sobrenome,
+          email: dados.email,
+          cpf: dados.cpf,
+          telefone: dados.telefone,
+        };
+
+        setUsuario(usuarioFormatado);
 
         setCartao((prev) => ({
           ...prev,
-          nome: `${dados?.nome || ""} ${dados?.sobrenome || ""}`,
+          nome: `${usuarioFormatado.nome || ""} ${usuarioFormatado.sobrenome || ""}`,
         }));
       } catch (error) {
-        console.error("❌ Erro ao carregar usuário:", error);
+        console.error("❌ ERRO AO CARREGAR USUÁRIO:", error);
       }
     }
 
@@ -93,71 +109,45 @@ export default function PagamentoPage() {
   }, []);
 
   /* =========================
-     PAGAMENTO PIX
+     PIX
   ========================= */
 
   async function pagarPix() {
     try {
       setLoading(true);
 
-      console.log("🚀 INICIANDO PIX");
-
-      console.log("👤 USUÁRIO ATUAL:", usuario);
-
-      if (!usuario) {
-        console.warn("⚠ Usuário ainda não carregado");
-        alert("Usuário ainda não carregado");
-        return;
-      }
-
-      const email = usuario.email?.trim() || "";
-      const cpf = usuario.cpf?.replace(/\D/g, "") || "";
-
-      console.log("📧 EMAIL ENVIADO:", email);
-      console.log("🪪 CPF ENVIADO:", cpf);
-
-      if (!email) {
-        alert("Email inválido");
-        return;
-      }
-
-      if (!cpf) {
-        alert("CPF inválido");
-        return;
-      }
-
-      const valorPedido = 199.9;
-
       const payload = {
-        valor: valorPedido,
+        valor: 199.9,
         descricao: "Pedido Universo Império",
-        nome: usuario.nome || "Cliente",
-        sobrenome: usuario.sobrenome || "Checkout",
-        email,
-        cpf,
+
+        nome: usuario?.nome || "Cliente",
+        sobrenome: usuario?.sobrenome || "Checkout",
+        email: usuario?.email || "",
+        cpf: usuario?.cpf || "",
       };
 
-      console.log("📤 PAYLOAD PIX:", payload);
+      console.log("📤 PIX PAYLOAD:", payload);
 
-      const response = await InicioApi.post(
+      const response = await InicioApi.post<ApiResponse>(
         "/mercado/pagamento/pix",
         payload,
         { withCredentials: true }
       );
 
-      console.log("📥 RESPOSTA PIX COMPLETA:", response.data);
+      console.log("📥 PIX RESPONSE:", response.data);
 
-      setPixData(response.data.pix);
+      const pix =
+        response.data?.pix ||
+        response.data?.dados?.pix ||
+        null;
+
+      console.log("💰 PIX FINAL:", pix);
+
+      setPixData(pix);
     } catch (error: any) {
-      console.error(
-        "❌ ERRO AO GERAR PIX:",
-        error?.response?.data || error
-      );
+      console.error("❌ ERRO PIX:", error?.response?.data || error);
 
-      alert(
-        error?.response?.data?.erro ||
-          "Erro ao gerar pagamento PIX"
-      );
+      alert(error?.response?.data?.erro || "Erro ao gerar PIX");
     } finally {
       setLoading(false);
     }
@@ -171,11 +161,9 @@ export default function PagamentoPage() {
     try {
       setLoading(true);
 
-      console.log("💳 PAGAMENTO CARTÃO:", cartao);
-
       await InicioApi.post(
         "/mercado/pagamento/cartao",
-        { ...cartao },
+        cartao,
         { withCredentials: true }
       );
 
@@ -183,10 +171,7 @@ export default function PagamentoPage() {
     } catch (error: any) {
       console.error("❌ ERRO CARTÃO:", error?.response?.data || error);
 
-      alert(
-        error?.response?.data?.erro ||
-          "Erro ao processar pagamento"
-      );
+      alert("Erro ao processar pagamento");
     } finally {
       setLoading(false);
     }
@@ -198,8 +183,6 @@ export default function PagamentoPage() {
 
   async function copiarPix() {
     if (!pixData?.qr_code) return;
-
-    console.log("📋 COPIANDO PIX:", pixData.qr_code);
 
     await navigator.clipboard.writeText(pixData.qr_code);
 
@@ -229,7 +212,7 @@ export default function PagamentoPage() {
               <FiCheckCircle />
               <div>
                 <strong>1. Endereço</strong>
-                <p>Endereço confirmado</p>
+                <p>Confirmado</p>
               </div>
             </div>
 
@@ -237,7 +220,7 @@ export default function PagamentoPage() {
               <FiTruck />
               <div>
                 <strong>2. Entrega</strong>
-                <p>Frete selecionado</p>
+                <p>Selecionada</p>
               </div>
             </div>
 
@@ -252,17 +235,11 @@ export default function PagamentoPage() {
 
           {/* MÉTODOS */}
           <div className="pagamento-metodos">
-            <button
-              className={`metodo-card ${metodo === "pix" ? "active" : ""}`}
-              onClick={() => setMetodo("pix")}
-            >
+            <button onClick={() => setMetodo("pix")}>
               PIX
             </button>
 
-            <button
-              className={`metodo-card ${metodo === "cartao" ? "active" : ""}`}
-              onClick={() => setMetodo("cartao")}
-            >
+            <button onClick={() => setMetodo("cartao")}>
               Cartão
             </button>
           </div>
@@ -270,28 +247,17 @@ export default function PagamentoPage() {
           {/* PIX */}
           {metodo === "pix" && (
             <div className="pagamento-card">
-              <h2>Pagamento via PIX</h2>
+              <h2>PIX</h2>
 
               {!pixData && (
-                <button
-                  className="btn-finalizar"
-                  onClick={pagarPix}
-                  disabled={loading}
-                >
+                <button onClick={pagarPix} disabled={loading}>
                   {loading ? "Gerando PIX..." : "Gerar PIX"}
                 </button>
               )}
 
               {pixData && (
-                <div className="pix-box">
-                  {pixData.qr_code_base64 && (
-                    <img
-                      src={`data:image/png;base64,${pixData.qr_code_base64}`}
-                      className="pix-image"
-                    />
-                  )}
-
-                  <textarea readOnly value={pixData.qr_code} />
+                <div>
+                  <textarea readOnly value={pixData.qr_code || ""} />
 
                   <button onClick={copiarPix}>
                     <FiCopy /> Copiar PIX
@@ -306,53 +272,16 @@ export default function PagamentoPage() {
             <div className="pagamento-card">
               <h2>Cartão de Crédito</h2>
 
-              <input
-                placeholder="Nome"
-                value={cartao.nome}
-                onChange={(e) =>
-                  setCartao({ ...cartao, nome: e.target.value })
-                }
-              />
-
-              <input
-                placeholder="Número"
-                value={cartao.numero}
-                onChange={(e) =>
-                  setCartao({ ...cartao, numero: e.target.value })
-                }
-              />
-
-              <input
-                placeholder="Validade"
-                value={cartao.validade}
-                onChange={(e) =>
-                  setCartao({ ...cartao, validade: e.target.value })
-                }
-              />
-
-              <input
-                placeholder="CVV"
-                value={cartao.cvv}
-                onChange={(e) =>
-                  setCartao({ ...cartao, cvv: e.target.value })
-                }
-              />
-
-              <button
-                className="btn-finalizar"
-                onClick={pagarCartao}
-                disabled={loading}
-              >
-                {loading ? "Processando..." : "Finalizar pagamento"}
+              <button onClick={pagarCartao} disabled={loading}>
+                Finalizar pagamento
               </button>
             </div>
           )}
 
-          <div className="voltar-box">
-            <Link href="/Carrinho/entrega">
-              Voltar
-            </Link>
-          </div>
+          <Link href="/Carrinho/entrega">
+            Voltar
+          </Link>
+
         </div>
       </main>
 
