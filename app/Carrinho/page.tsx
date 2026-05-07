@@ -316,7 +316,7 @@ export default function CarrinhoPage() {
                     href="/checkout"
                     className="btn btn-dark w-100 d-flex align-items-center justify-content-center gap-2"
                   >
-                    Finalizar Compra
+                    Finalizar Compradsds
 
                     <FiArrowRight />
                   </Link>
