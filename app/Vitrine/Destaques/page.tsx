@@ -3,7 +3,16 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import api from "@/Api/conectar";
-import { FiShoppingCart, FiEye, FiArrowRight } from "react-icons/fi";
+
+import {
+  FiShoppingCart,
+  FiEye,
+  FiArrowRight,
+} from "react-icons/fi";
+
+import { toast } from "react-toastify";
+
+
 import {
   EntidadeGenerica,
   ItemResolvido,
@@ -25,6 +34,7 @@ function resolverImagem(src?: string | null) {
   if (!src) return "";
 
   const valor = String(src).trim();
+
   if (!valor) return "";
 
   if (
@@ -67,10 +77,15 @@ function obterMelhorImagem(
 }
 
 function formatarPreco(valor?: number | string | null) {
-  if (valor === null || valor === undefined || valor === "") return null;
+  if (valor === null || valor === undefined || valor === "") {
+    return null;
+  }
 
   const numero = Number(valor);
-  if (Number.isNaN(numero)) return null;
+
+  if (Number.isNaN(numero)) {
+    return null;
+  }
 
   return numero.toLocaleString("pt-BR", {
     style: "currency",
@@ -100,6 +115,7 @@ function calcularEconomia(
   }
 
   const percentual = Math.round(((original - final) / original) * 100);
+
   return `${percentual}% OFF`;
 }
 
@@ -108,10 +124,13 @@ function descobrirTipoItem(
   tipoVitrine?: string
 ): ItemResolvido["tipo_item"] {
   if (item.produto_id) return "produto";
+
   if (item.campanha_id) return "campanha";
+
   if (item.categoria_id) return "categoria";
 
   const tipo = String(tipoVitrine || "").toLowerCase();
+
   if (tipo === "banner") return "banner";
 
   return "custom";
@@ -129,16 +148,25 @@ export default function Destaques({
   onAdicionarCarrinho,
 }: Props) {
   const [loading, setLoading] = useState<boolean>(true);
+
   const [erro, setErro] = useState<string>("");
-  const [vitrine, setVitrine] = useState<Vitrine | null>(vitrineProp || null);
+
+  const [vitrine, setVitrine] = useState<Vitrine | null>(
+    vitrineProp || null
+  );
+
   const [itens, setItens] = useState<ItemResolvido[]>([]);
-  const [adicionandoId, setAdicionandoId] = useState<string | null>(null);
-  const [mensagemCarrinho, setMensagemCarrinho] = useState<string>("");
+
+  const [adicionandoId, setAdicionandoId] = useState<string | null>(
+    null
+  );
 
   const vitrineComItens = useMemo(() => {
     if (!vitrineProp) return null;
 
-    const lista = Array.isArray(vitrineProp.itens) ? vitrineProp.itens : [];
+    const lista = Array.isArray(vitrineProp.itens)
+      ? vitrineProp.itens
+      : [];
 
     return {
       ...vitrineProp,
@@ -159,21 +187,29 @@ export default function Destaques({
         if (vitrineComItens?.id_vitrine) {
           vitrineAtual = vitrineComItens;
         } else if (slug) {
-          const vitrineResponse = await api.get(`/vitrine/slug/${slug}`);
-          const vitrineData = normalizarDados<Vitrine>(vitrineResponse?.data);
+          const vitrineResponse = await api.get(
+            `/vitrine/slug/${slug}`
+          );
+
+          const vitrineData =
+            normalizarDados<Vitrine>(vitrineResponse?.data);
 
           if (!vitrineData || !vitrineData.id_vitrine) {
             if (!ativo) return;
+
             setErro("Vitrine não encontrada.");
             setVitrine(null);
             setItens([]);
+
             return;
           }
 
           const itensResponse = await api.get(
             `/vitrine/${vitrineData.id_vitrine}/itens`
           );
-          let itensData = normalizarLista<VitrineItem>(itensResponse?.data);
+
+          let itensData =
+            normalizarLista<VitrineItem>(itensResponse?.data);
 
           if (limite) {
             itensData = itensData.slice(0, limite);
@@ -185,9 +221,11 @@ export default function Destaques({
           };
         } else {
           if (!ativo) return;
+
           setErro("Nenhuma vitrine informada.");
           setVitrine(null);
           setItens([]);
+
           return;
         }
 
@@ -199,81 +237,233 @@ export default function Destaques({
           ? vitrineAtual.itens
           : [];
 
-        const itensResolvidos: ItemResolvido[] = await Promise.all(
-          listaItens.map(async (item) => {
-            const tipoItem = descobrirTipoItem(item, vitrineAtual?.tipo);
+        const itensResolvidos: ItemResolvido[] =
+          await Promise.all(
+            listaItens.map(async (item) => {
+              const tipoItem = descobrirTipoItem(
+                item,
+                vitrineAtual?.tipo
+              );
 
-            try {
-              if (tipoItem === "produto" && item.produto_id) {
-                const res = await api.get(`/produto/${item.produto_id}`);
-                const produto = normalizarDados<EntidadeGenerica>(res?.data) || {};
+              try {
+                if (tipoItem === "produto" && item.produto_id) {
+                  const res = await api.get(
+                    `/produto/${item.produto_id}`
+                  );
 
-                const precoPromocional =
-                  produto.preco_promocional !== null &&
-                  produto.preco_promocional !== undefined &&
-                  produto.preco_promocional !== ""
-                    ? produto.preco_promocional
+                  const produto =
+                    normalizarDados<EntidadeGenerica>(
+                      res?.data
+                    ) || {};
+
+                  const precoPromocional =
+                    produto.preco_promocional !== null &&
+                    produto.preco_promocional !== undefined &&
+                    produto.preco_promocional !== ""
+                      ? produto.preco_promocional
+                      : null;
+
+                  const precoFinal =
+                    precoPromocional || produto.preco || null;
+
+                  const precoOriginal = precoPromocional
+                    ? produto.preco || null
                     : null;
 
-                const precoFinal = precoPromocional || produto.preco || null;
-                const precoOriginal = precoPromocional ? produto.preco || null : null;
+                  return {
+                    ...item,
+                    entidade: produto,
+                    tipo_item: "produto",
+
+                    titulo_final:
+                      item.titulo_personalizado ||
+                      produto.nome ||
+                      produto.titulo ||
+                      `Produto #${item.produto_id}`,
+
+                    subtitulo_final:
+                      item.subtitulo_personalizado ||
+                      produto.subtitulo ||
+                      produto.descricao_curta ||
+                      "",
+
+                    descricao_final:
+                      produto.descricao_curta ||
+                      produto.descricao ||
+                      item.subtitulo_personalizado ||
+                      "",
+
+                    imagem_final: obterMelhorImagem(
+                      item,
+                      produto
+                    ),
+
+                    link_final: produto.slug
+                      ? `/produto/${produto.slug}`
+                      : `/produto/${item.produto_id}`,
+
+                    preco_final: precoFinal,
+
+                    preco_original: precoOriginal,
+
+                    marca_final: produto.marca || "",
+
+                    sku_final: produto.sku || "",
+
+                    economia_final: calcularEconomia(
+                      precoOriginal,
+                      precoFinal
+                    ),
+                  };
+                }
+
+                if (tipoItem === "campanha" && item.campanha_id) {
+                  const res = await api.get(
+                    `/campanha/${item.campanha_id}`
+                  );
+
+                  const campanha =
+                    normalizarDados<EntidadeGenerica>(
+                      res?.data
+                    ) || {};
+
+                  return {
+                    ...item,
+                    entidade: campanha,
+                    tipo_item: "campanha",
+
+                    titulo_final:
+                      item.titulo_personalizado ||
+                      campanha.nome ||
+                      campanha.titulo ||
+                      `Campanha #${item.campanha_id}`,
+
+                    subtitulo_final:
+                      item.subtitulo_personalizado ||
+                      campanha.subtitulo ||
+                      campanha.descricao ||
+                      "",
+
+                    descricao_final:
+                      campanha.descricao_curta ||
+                      campanha.descricao ||
+                      "",
+
+                    imagem_final: obterMelhorImagem(
+                      item,
+                      campanha
+                    ),
+
+                    link_final: campanha.slug
+                      ? `/campanha/${campanha.slug}`
+                      : `/campanha/${item.campanha_id}`,
+
+                    preco_final: null,
+                    preco_original: null,
+                    marca_final: "",
+                    sku_final: "",
+                    economia_final: null,
+                  };
+                }
+
+                if (tipoItem === "categoria" && item.categoria_id) {
+                  const res = await api.get(
+                    `/categoria/${item.categoria_id}`
+                  );
+
+                  const categoria =
+                    normalizarDados<EntidadeGenerica>(
+                      res?.data
+                    ) || {};
+
+                  return {
+                    ...item,
+                    entidade: categoria,
+                    tipo_item: "categoria",
+
+                    titulo_final:
+                      item.titulo_personalizado ||
+                      categoria.nome ||
+                      categoria.titulo ||
+                      `Categoria #${item.categoria_id}`,
+
+                    subtitulo_final:
+                      item.subtitulo_personalizado ||
+                      categoria.subtitulo ||
+                      categoria.descricao_curta ||
+                      "",
+
+                    descricao_final:
+                      categoria.descricao_curta ||
+                      categoria.descricao ||
+                      "",
+
+                    imagem_final: obterMelhorImagem(
+                      item,
+                      categoria
+                    ),
+
+                    link_final: categoria.slug
+                      ? `/categoria/${categoria.slug}`
+                      : `/categoria/${item.categoria_id}`,
+
+                    preco_final: null,
+                    preco_original: null,
+                    marca_final: "",
+                    sku_final: "",
+                    economia_final: null,
+                  };
+                }
 
                 return {
                   ...item,
-                  entidade: produto,
-                  tipo_item: "produto",
+                  entidade: null,
+                  tipo_item: tipoItem,
+
                   titulo_final:
                     item.titulo_personalizado ||
-                    produto.nome ||
-                    produto.titulo ||
-                    `Produto #${item.produto_id}`,
+                    "Item da vitrine",
+
                   subtitulo_final:
-                    item.subtitulo_personalizado ||
-                    produto.subtitulo ||
-                    produto.descricao_curta ||
-                    "",
+                    item.subtitulo_personalizado || "",
+
                   descricao_final:
-                    produto.descricao_curta ||
-                    produto.descricao ||
-                    item.subtitulo_personalizado ||
-                    "",
-                  imagem_final: obterMelhorImagem(item, produto),
-                  link_final: produto.slug
-                    ? `/produto/${produto.slug}`
-                    : `/produto/${item.produto_id}`,
-                  preco_final: precoFinal,
-                  preco_original: precoOriginal,
-                  marca_final: produto.marca || "",
-                  sku_final: produto.sku || "",
-                  economia_final: calcularEconomia(precoOriginal, precoFinal),
+                    item.subtitulo_personalizado || "",
+
+                  imagem_final: resolverImagem(
+                    item.imagem_personalizada || ""
+                  ),
+
+                  link_final: "#",
+
+                  preco_final: null,
+                  preco_original: null,
+                  marca_final: "",
+                  sku_final: "",
+                  economia_final: null,
                 };
-              }
-
-              if (tipoItem === "campanha" && item.campanha_id) {
-                const res = await api.get(`/campanha/${item.campanha_id}`);
-                const campanha =
-                  normalizarDados<EntidadeGenerica>(res?.data) || {};
-
+              } catch {
                 return {
                   ...item,
-                  entidade: campanha,
-                  tipo_item: "campanha",
+                  entidade: null,
+                  tipo_item: tipoItem,
+
                   titulo_final:
                     item.titulo_personalizado ||
-                    campanha.nome ||
-                    campanha.titulo ||
-                    `Campanha #${item.campanha_id}`,
+                    "Item da vitrine",
+
                   subtitulo_final:
-                    item.subtitulo_personalizado ||
-                    campanha.subtitulo ||
-                    campanha.descricao ||
-                    "",
+                    item.subtitulo_personalizado || "",
+
                   descricao_final:
-                    campanha.descricao_curta || campanha.descricao || "",
-                  imagem_final: obterMelhorImagem(item, campanha),
-                  link_final: campanha.slug
-                    ? `/campanha/${campanha.slug}`
-                    : `/campanha/${item.campanha_id}`,
+                    item.subtitulo_personalizado || "",
+
+                  imagem_final: resolverImagem(
+                    item.imagem_personalizada || ""
+                  ),
+
+                  link_final: "#",
+
                   preco_final: null,
                   preco_original: null,
                   marca_final: "",
@@ -281,85 +471,25 @@ export default function Destaques({
                   economia_final: null,
                 };
               }
-
-              if (tipoItem === "categoria" && item.categoria_id) {
-                const res = await api.get(`/categoria/${item.categoria_id}`);
-                const categoria =
-                  normalizarDados<EntidadeGenerica>(res?.data) || {};
-
-                return {
-                  ...item,
-                  entidade: categoria,
-                  tipo_item: "categoria",
-                  titulo_final:
-                    item.titulo_personalizado ||
-                    categoria.nome ||
-                    categoria.titulo ||
-                    `Categoria #${item.categoria_id}`,
-                  subtitulo_final:
-                    item.subtitulo_personalizado ||
-                    categoria.subtitulo ||
-                    categoria.descricao_curta ||
-                    "",
-                  descricao_final:
-                    categoria.descricao_curta || categoria.descricao || "",
-                  imagem_final: obterMelhorImagem(item, categoria),
-                  link_final: categoria.slug
-                    ? `/categoria/${categoria.slug}`
-                    : `/categoria/${item.categoria_id}`,
-                  preco_final: null,
-                  preco_original: null,
-                  marca_final: "",
-                  sku_final: "",
-                  economia_final: null,
-                };
-              }
-
-              return {
-                ...item,
-                entidade: null,
-                tipo_item: tipoItem,
-                titulo_final: item.titulo_personalizado || "Item da vitrine",
-                subtitulo_final: item.subtitulo_personalizado || "",
-                descricao_final: item.subtitulo_personalizado || "",
-                imagem_final: resolverImagem(item.imagem_personalizada || ""),
-                link_final: "#",
-                preco_final: null,
-                preco_original: null,
-                marca_final: "",
-                sku_final: "",
-                economia_final: null,
-              };
-            } catch {
-              return {
-                ...item,
-                entidade: null,
-                tipo_item: tipoItem,
-                titulo_final: item.titulo_personalizado || "Item da vitrine",
-                subtitulo_final: item.subtitulo_personalizado || "",
-                descricao_final: item.subtitulo_personalizado || "",
-                imagem_final: resolverImagem(item.imagem_personalizada || ""),
-                link_final: "#",
-                preco_final: null,
-                preco_original: null,
-                marca_final: "",
-                sku_final: "",
-                economia_final: null,
-              };
-            }
-          })
-        );
+            })
+          );
 
         if (!ativo) return;
+
         setItens(itensResolvidos);
       } catch (error) {
         console.error("Erro ao carregar vitrine:", error);
+
         if (!ativo) return;
+
         setErro("Não foi possível carregar a vitrine.");
+
         setVitrine(null);
         setItens([]);
       } finally {
-        if (ativo) setLoading(false);
+        if (ativo) {
+          setLoading(false);
+        }
       }
     }
 
@@ -370,7 +500,9 @@ export default function Destaques({
     };
   }, [slug, limite, vitrineComItens]);
 
-  async function adicionarNoCarrinhoBanco(item: ItemResolvido) {
+  async function adicionarNoCarrinhoBanco(
+    item: ItemResolvido
+  ) {
     if (item.tipo_item !== "produto" || !item.produto_id) {
       return;
     }
@@ -394,9 +526,14 @@ export default function Destaques({
       {
         produto_id: Number(item.produto_id),
         quantidade: 1,
-        preco: Number.isNaN(precoBase) ? 0 : precoBase,
+
+        preco: Number.isNaN(precoBase)
+          ? 0
+          : precoBase,
+
         preco_promocional:
-          precoPromocional !== null && !Number.isNaN(precoPromocional)
+          precoPromocional !== null &&
+          !Number.isNaN(precoPromocional)
             ? precoPromocional
             : null,
       },
@@ -406,32 +543,43 @@ export default function Destaques({
     );
   }
 
-  async function handleAdicionarCarrinho(item: ItemResolvido) {
+  async function handleAdicionarCarrinho(
+    item: ItemResolvido
+  ) {
     if (onAdicionarCarrinho) {
       onAdicionarCarrinho(item);
       return;
     }
 
-    if (item.tipo_item !== "produto" || !item.produto_id) {
+    if (
+      item.tipo_item !== "produto" ||
+      !item.produto_id
+    ) {
       return;
     }
 
     try {
-      setMensagemCarrinho("");
-      setAdicionandoId(String(item.id_vitrine_item));
+      setAdicionandoId(
+        String(item.id_vitrine_item)
+      );
 
       await adicionarNoCarrinhoBanco(item);
 
-      setMensagemCarrinho("Produto adicionado ao carrinho com sucesso.");
+      toast.success(
+        "Produto adicionado ao carrinho com sucesso."
+      );
     } catch (error: any) {
-      console.error("Erro ao adicionar no carrinho:", error);
+      console.error(
+        "Erro ao adicionar no carrinho:",
+        error
+      );
 
       const mensagemErro =
         error?.response?.data?.dados?.erro ||
         error?.response?.data?.mensagem ||
         "Não foi possível adicionar o produto ao carrinho.";
 
-      setMensagemCarrinho(mensagemErro);
+      toast.error(mensagemErro);
     } finally {
       setAdicionandoId(null);
     }
@@ -439,7 +587,9 @@ export default function Destaques({
 
   if (loading) {
     return (
-      <section className={`destaques-section ${className}`}>
+      <section
+        className={`destaques-section ${className}`}
+      >
         Carregando...
       </section>
     );
@@ -451,66 +601,76 @@ export default function Destaques({
 
   const linkVerMais =
     verMaisHref ||
-    (vitrine.slug ? `/Vitrine/${vitrine.slug}` : slug ? `/Vitrine/${slug}` : "#");
+    (vitrine.slug
+      ? `/Vitrine/${vitrine.slug}`
+      : slug
+      ? `/Vitrine/${slug}`
+      : "#");
 
   return (
-    <section className={`destaques-section ${className}`}>
+    <section
+      className={`destaques-section ${className}`}
+    >
       <div className="destaques-container">
         <div className="destaques-header destaques-header-row">
           <div className="destaques-header-texto">
-            <span className="destaques-badge">{vitrine?.tipo || "Vitrine"}</span>
+            <span className="destaques-badge">
+              {vitrine?.tipo || "Vitrine"}
+            </span>
 
             <h2 className="destaques-title">
-              {tituloPersonalizado || vitrine?.titulo || vitrine?.nome}
+              {tituloPersonalizado ||
+                vitrine?.titulo ||
+                vitrine?.nome}
             </h2>
 
-            {(subtituloPersonalizado || vitrine?.subtitulo) && (
+            {(subtituloPersonalizado ||
+              vitrine?.subtitulo) && (
               <p className="destaques-description">
-                {subtituloPersonalizado || vitrine?.subtitulo}
+                {subtituloPersonalizado ||
+                  vitrine?.subtitulo}
               </p>
             )}
           </div>
 
-          <Link href={linkVerMais} className="btn-ver-mais">
+          <Link
+            href={linkVerMais}
+            className="btn-ver-mais"
+          >
             <span>{verMaisTexto}</span>
+
             <FiArrowRight className="btn-icon" />
           </Link>
         </div>
 
-        {mensagemCarrinho && (
-          <div
-            style={{
-              marginBottom: "16px",
-              padding: "12px 14px",
-              borderRadius: "12px",
-              background: "#fff7f1",
-              border: "1px solid #f0d2bf",
-              color: "#8a4b2f",
-              fontSize: "14px",
-              fontWeight: 600,
-            }}
-          >
-            {mensagemCarrinho}
-          </div>
-        )}
-
         <div className="destaques-carousel">
           {itens.map((item) => {
-            const precoFormatado = formatarPreco(item.preco_final);
-            const precoOriginalFormatado = formatarPreco(item.preco_original);
+            const precoFormatado =
+              formatarPreco(item.preco_final);
+
+            const precoOriginalFormatado =
+              formatarPreco(item.preco_original);
 
             const slugVisualizacao =
               item.entidade?.slug ||
-              (item.produto_id ? String(item.produto_id) : null) ||
-              (item.campanha_id ? String(item.campanha_id) : null) ||
-              (item.categoria_id ? String(item.categoria_id) : null);
+              (item.produto_id
+                ? String(item.produto_id)
+                : null) ||
+              (item.campanha_id
+                ? String(item.campanha_id)
+                : null) ||
+              (item.categoria_id
+                ? String(item.categoria_id)
+                : null);
 
-            const linkVisualizarCard = slugVisualizacao
-              ? `/Vitrine/visualizar/${slugVisualizacao}`
-              : "#";
+            const linkVisualizarCard =
+              slugVisualizacao
+                ? `/Vitrine/visualizar/${slugVisualizacao}`
+                : "#";
 
             const estaAdicionando =
-              adicionandoId === String(item.id_vitrine_item);
+              adicionandoId ===
+              String(item.id_vitrine_item);
 
             return (
               <article
@@ -518,7 +678,10 @@ export default function Destaques({
                 className="destaque-card destaque-slide"
               >
                 <div className="destaque-imagem-wrap">
-                  <Link href={item.link_final || "#"} className="imagem-link">
+                  <Link
+                    href={item.link_final || "#"}
+                    className="imagem-link"
+                  >
                     {item.imagem_final ? (
                       <img
                         src={item.imagem_final}
@@ -534,19 +697,29 @@ export default function Destaques({
                 </div>
 
                 <div className="destaque-conteudo">
-                  <Link href={item.link_final || "#"} className="titulo-link">
-                    <h3 className="destaque-titulo">{item.titulo_final}</h3>
+                  <Link
+                    href={item.link_final || "#"}
+                    className="titulo-link"
+                  >
+                    <h3 className="destaque-titulo">
+                      {item.titulo_final}
+                    </h3>
                   </Link>
 
                   {item.subtitulo_final && (
-                    <p className="destaque-subtitulo">{item.subtitulo_final}</p>
+                    <p className="destaque-subtitulo">
+                      {item.subtitulo_final}
+                    </p>
                   )}
 
                   {item.descricao_final && (
-                    <p className="destaque-descricao">{item.descricao_final}</p>
+                    <p className="destaque-descricao">
+                      {item.descricao_final}
+                    </p>
                   )}
 
-                  {(precoFormatado || precoOriginalFormatado) && (
+                  {(precoFormatado ||
+                    precoOriginalFormatado) && (
                     <div className="destaque-precos">
                       {precoOriginalFormatado && (
                         <span className="preco-original">
@@ -563,27 +736,43 @@ export default function Destaques({
                   )}
 
                   <div className="destaque-acoes">
-                    {item.tipo_item === "produto" ? (
+                    {item.tipo_item ===
+                    "produto" ? (
                       <button
                         type="button"
                         className="btn-carrinho"
-                        onClick={() => handleAdicionarCarrinho(item)}
+                        onClick={() =>
+                          handleAdicionarCarrinho(
+                            item
+                          )
+                        }
                         disabled={estaAdicionando}
                       >
                         <FiShoppingCart className="btn-icon" />
+
                         <span>
-                          {estaAdicionando ? "Adicionando..." : "Carrinho"}
+                          {estaAdicionando
+                            ? "Adicionando..."
+                            : "Carrinho"}
                         </span>
                       </button>
                     ) : (
-                      <Link href={item.link_final || "#"} className="btn-carrinho">
+                      <Link
+                        href={item.link_final || "#"}
+                        className="btn-carrinho"
+                      >
                         <FiArrowRight className="btn-icon" />
+
                         <span>Acessar</span>
                       </Link>
                     )}
 
-                    <Link href={linkVisualizarCard} className="btn-visualizar">
+                    <Link
+                      href={linkVisualizarCard}
+                      className="btn-visualizar"
+                    >
                       <FiEye className="btn-icon" />
+
                       <span>Visualizar</span>
                     </Link>
                   </div>
