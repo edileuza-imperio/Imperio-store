@@ -66,11 +66,17 @@ export default function PagamentoPage() {
   useEffect(() => {
     async function carregarUsuario() {
       try {
+        console.log("🔄 Buscando usuário logado...");
+
         const response = await InicioApi.get<UsuarioResponse>("/me", {
           withCredentials: true,
         });
 
+        console.log("📦 RESPOSTA /me:", response.data);
+
         const dados = response.data.usuario;
+
+        console.log("👤 USUÁRIO EXTRAÍDO:", dados);
 
         setUsuario(dados);
 
@@ -79,7 +85,7 @@ export default function PagamentoPage() {
           nome: `${dados?.nome || ""} ${dados?.sobrenome || ""}`,
         }));
       } catch (error) {
-        console.error("Erro ao carregar usuário:", error);
+        console.error("❌ Erro ao carregar usuário:", error);
       }
     }
 
@@ -94,24 +100,59 @@ export default function PagamentoPage() {
     try {
       setLoading(true);
 
+      console.log("🚀 INICIANDO PIX");
+
+      console.log("👤 USUÁRIO ATUAL:", usuario);
+
+      if (!usuario) {
+        console.warn("⚠ Usuário ainda não carregado");
+        alert("Usuário ainda não carregado");
+        return;
+      }
+
+      const email = usuario.email?.trim() || "";
+      const cpf = usuario.cpf?.replace(/\D/g, "") || "";
+
+      console.log("📧 EMAIL ENVIADO:", email);
+      console.log("🪪 CPF ENVIADO:", cpf);
+
+      if (!email) {
+        alert("Email inválido");
+        return;
+      }
+
+      if (!cpf) {
+        alert("CPF inválido");
+        return;
+      }
+
       const valorPedido = 199.9;
 
-      const response = await InicioApi.post<PixResponse>(
+      const payload = {
+        valor: valorPedido,
+        descricao: "Pedido Universo Império",
+        nome: usuario.nome || "Cliente",
+        sobrenome: usuario.sobrenome || "Checkout",
+        email,
+        cpf,
+      };
+
+      console.log("📤 PAYLOAD PIX:", payload);
+
+      const response = await InicioApi.post(
         "/mercado/pagamento/pix",
-        {
-          valor: valorPedido,
-          descricao: "Pedido Universo Império",
-          nome: usuario?.nome || "Cliente",
-          sobrenome: usuario?.sobrenome || "Checkout",
-          email: usuario?.email || "",
-          cpf: usuario?.cpf || "",
-        },
+        payload,
         { withCredentials: true }
       );
 
+      console.log("📥 RESPOSTA PIX COMPLETA:", response.data);
+
       setPixData(response.data.pix);
     } catch (error: any) {
-      console.error("Erro ao gerar PIX:", error?.response?.data || error);
+      console.error(
+        "❌ ERRO AO GERAR PIX:",
+        error?.response?.data || error
+      );
 
       alert(
         error?.response?.data?.erro ||
@@ -130,6 +171,8 @@ export default function PagamentoPage() {
     try {
       setLoading(true);
 
+      console.log("💳 PAGAMENTO CARTÃO:", cartao);
+
       await InicioApi.post(
         "/mercado/pagamento/cartao",
         { ...cartao },
@@ -138,7 +181,7 @@ export default function PagamentoPage() {
 
       alert("Pagamento realizado com sucesso!");
     } catch (error: any) {
-      console.error("Erro cartão:", error?.response?.data || error);
+      console.error("❌ ERRO CARTÃO:", error?.response?.data || error);
 
       alert(
         error?.response?.data?.erro ||
@@ -155,6 +198,8 @@ export default function PagamentoPage() {
 
   async function copiarPix() {
     if (!pixData?.qr_code) return;
+
+    console.log("📋 COPIANDO PIX:", pixData.qr_code);
 
     await navigator.clipboard.writeText(pixData.qr_code);
 
