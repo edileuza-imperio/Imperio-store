@@ -39,8 +39,6 @@ export default function EnderecoPage() {
 
       const response = await api.get("/usuario/endereco");
 
-      console.log("ENDEREÇOS:", response.data);
-
       if (Array.isArray(response.data)) {
         setEnderecos(response.data);
       } else if (Array.isArray(response.data?.dados)) {
@@ -49,7 +47,7 @@ export default function EnderecoPage() {
         setEnderecos([]);
       }
     } catch (error) {
-      console.error("Erro ao carregar endereços:", error);
+      console.error(error);
       setEnderecos([]);
     } finally {
       setLoading(false);
@@ -82,7 +80,7 @@ export default function EnderecoPage() {
         estado: data.uf || "",
       }));
     } catch (error) {
-      console.error("Erro ao buscar CEP:", error);
+      console.error(error);
     }
   }
 
@@ -111,7 +109,7 @@ export default function EnderecoPage() {
 
       await carregarEnderecos();
     } catch (error) {
-      console.error("Erro ao cadastrar endereço:", error);
+      console.error(error);
       alert("Erro ao cadastrar endereço");
     } finally {
       setLoading(false);
@@ -130,7 +128,7 @@ export default function EnderecoPage() {
 
       await carregarEnderecos();
     } catch (error) {
-      console.error("Erro ao excluir endereço:", error);
+      console.error(error);
     }
   }
 
@@ -140,10 +138,7 @@ export default function EnderecoPage() {
 
       await carregarEnderecos();
     } catch (error) {
-      console.error(
-        "Erro ao definir endereço principal:",
-        error
-      );
+      console.error(error);
     }
   }
 
@@ -153,14 +148,31 @@ export default function EnderecoPage() {
 
       <main className="endereco-page">
         <div className="container-endereco">
-          <h1 className="titulo-page">
-            Meus Endereços
-          </h1>
+          <div className="header-endereco">
+            <div>
+              <span className="mini-title">
+                Minha Conta
+              </span>
+
+              <h1>Meus Endereços</h1>
+
+              <p>
+                Gerencie seus endereços de entrega para
+                finalizar suas compras com mais rapidez.
+              </p>
+            </div>
+          </div>
 
           <div className="grid-endereco">
             {/* FORM */}
             <div className="card-endereco">
-              <h2>Cadastrar Endereço</h2>
+              <div className="card-header">
+                <h2>Novo Endereço</h2>
+
+                <span>
+                  Preencha os dados abaixo
+                </span>
+              </div>
 
               <form onSubmit={cadastrarEndereco}>
                 <div className="form-group">
@@ -275,7 +287,7 @@ export default function EnderecoPage() {
                   </div>
                 </div>
 
-                <div className="checkbox-group">
+                <label className="checkbox-group">
                   <input
                     type="checkbox"
                     checked={form.principal === 1}
@@ -289,8 +301,10 @@ export default function EnderecoPage() {
                     }
                   />
 
-                  <span>Definir como principal</span>
-                </div>
+                  <span>
+                    Definir como endereço principal
+                  </span>
+                </label>
 
                 <button
                   type="submit"
@@ -299,25 +313,39 @@ export default function EnderecoPage() {
                 >
                   {loading
                     ? "Salvando..."
-                    : "Cadastrar Endereço"}
+                    : "Salvar Endereço"}
                 </button>
               </form>
             </div>
 
             {/* LISTA */}
             <div className="lista-endereco">
-              <h2>Endereços Cadastrados</h2>
+              <div className="card-header">
+                <h2>Endereços Salvos</h2>
+
+                <span>
+                  {enderecos.length} endereço(s)
+                  cadastrado(s)
+                </span>
+              </div>
 
               {loading && (
                 <div className="card-vazio">
-                  Carregando...
+                  Carregando endereços...
                 </div>
               )}
 
               {!loading &&
                 enderecos.length === 0 && (
                   <div className="card-vazio">
-                    Nenhum endereço cadastrado.
+                    <h3>
+                      Nenhum endereço encontrado
+                    </h3>
+
+                    <p>
+                      Cadastre um endereço para
+                      continuar suas compras.
+                    </p>
                   </div>
                 )}
 
@@ -328,10 +356,17 @@ export default function EnderecoPage() {
                     key={endereco.id}
                   >
                     <div className="topo-item">
-                      <h3>
-                        {endereco.endereco},{" "}
-                        {endereco.numero}
-                      </h3>
+                      <div>
+                        <h3>
+                          {endereco.endereco},{" "}
+                          {endereco.numero}
+                        </h3>
+
+                        <span className="cidade">
+                          {endereco.cidade} -{" "}
+                          {endereco.estado}
+                        </span>
+                      </div>
 
                       {endereco.principal === 1 && (
                         <span className="badge-principal">
@@ -340,21 +375,26 @@ export default function EnderecoPage() {
                       )}
                     </div>
 
-                    <p>{endereco.bairro}</p>
-
-                    <p>
-                      {endereco.cidade} -{" "}
-                      {endereco.estado}
-                    </p>
-
-                    <p>CEP: {endereco.cep}</p>
-
-                    {endereco.complemento && (
+                    <div className="info-endereco">
                       <p>
-                        Complemento:{" "}
-                        {endereco.complemento}
+                        <strong>Bairro:</strong>{" "}
+                        {endereco.bairro}
                       </p>
-                    )}
+
+                      <p>
+                        <strong>CEP:</strong>{" "}
+                        {endereco.cep}
+                      </p>
+
+                      {endereco.complemento && (
+                        <p>
+                          <strong>
+                            Complemento:
+                          </strong>{" "}
+                          {endereco.complemento}
+                        </p>
+                      )}
+                    </div>
 
                     <div className="acoes">
                       {endereco.principal !== 1 && (
