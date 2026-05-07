@@ -2,13 +2,12 @@
 
 import "./pagamento.css";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+
 import Link from "next/link";
 
-import Navbar from "@/components/site/menu/navbar";
-import Footer from "@/components/site/Rodape/Footer";
-
 import {
+  FiMapPin,
   FiTruck,
   FiCreditCard,
   FiCheckCircle,
@@ -17,145 +16,51 @@ import {
 
 import { InicioApi } from "@/services/api/api";
 
-/* =========================
-   TIPOS
-========================= */
-
-type Usuario = {
-  id_usuario?: number;
-  nome?: string;
-  sobrenome?: string;
-  email?: string;
-  cpf?: string;
-  telefone?: string;
-};
-
-type PixResponse = {
-  qr_code?: string;
-  qr_code_base64?: string;
-  ticket_url?: string;
-};
-
-type ApiResponse = {
-  usuario?: Usuario;
-
-  pix?: PixResponse;
-
-  dados?: {
-    usuario?: Usuario;
-    pix?: PixResponse;
-  };
-
-  [key: string]: any;
-};
-
 export default function PagamentoPage() {
-  const [metodo, setMetodo] = useState<"pix" | "cartao">("pix");
-  const [loading, setLoading] = useState(false);
+  const [metodo, setMetodo] =
+    useState<"pix" | "cartao">("pix");
 
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
-  const [pixData, setPixData] = useState<PixResponse | null>(null);
+  const [loading, setLoading] =
+    useState(false);
 
-  const [cartao, setCartao] = useState({
-    nome: "",
-    numero: "",
-    validade: "",
-    cvv: "",
-  });
+  const [pixData, setPixData] =
+    useState<any>(null);
 
-  /* =========================
-     USUÁRIO LOGADO
-  ========================= */
-
-  useEffect(() => {
-    async function carregarUsuario() {
-      try {
-        const response = await InicioApi.get<ApiResponse>("/me", {
-          withCredentials: true,
-        });
-
-        console.log("📦 /me RAW:", response.data);
-
-        const dados =
-          response.data?.usuario ||
-          response.data?.dados?.usuario ||
-          response.data;
-
-        console.log("👤 USUÁRIO EXTRAÍDO:", dados);
-
-        if (!dados || typeof dados !== "object") return;
-
-        const usuarioFormatado: Usuario = {
-          id_usuario: dados.id_usuario,
-          nome: dados.nome,
-          sobrenome: dados.sobrenome,
-          email: dados.email,
-          cpf: dados.cpf,
-          telefone: dados.telefone,
-        };
-
-        setUsuario(usuarioFormatado);
-
-        setCartao((prev) => ({
-          ...prev,
-          nome: `${usuarioFormatado.nome || ""} ${usuarioFormatado.sobrenome || ""}`,
-        }));
-      } catch (error) {
-        console.error("❌ ERRO AO CARREGAR USUÁRIO:", error);
-      }
-    }
-
-    carregarUsuario();
-  }, []);
-
-  /* =========================
-     PIX
-  ========================= */
+  const [cartao, setCartao] =
+    useState({
+      nome: "",
+      numero: "",
+      validade: "",
+      cvv: "",
+    });
 
   async function pagarPix() {
     try {
       setLoading(true);
 
-      const payload = {
-        valor: 199.9,
-        descricao: "Pedido Universo Império",
+      const response =
+        await InicioApi.post(
+          "/mercado/pagamento/pix",
+          {},
+          {
+            withCredentials: true,
+          }
+        );
 
-        nome: usuario?.nome || "Cliente",
-        sobrenome: usuario?.sobrenome || "Checkout",
-        email: usuario?.email || "",
-        cpf: usuario?.cpf || "",
-      };
-
-      console.log("📤 PIX PAYLOAD:", payload);
-
-      const response = await InicioApi.post<ApiResponse>(
-        "/mercado/pagamento/pix",
-        payload,
-        { withCredentials: true }
+      setPixData(response.data);
+    } catch (error) {
+      console.error(
+        "Erro ao gerar PIX:",
+        error
       );
 
-      console.log("📥 PIX RESPONSE:", response.data);
-
-      const pix =
-        response.data?.pix ||
-        response.data?.dados?.pix ||
-        null;
-
-      console.log("💰 PIX FINAL:", pix);
-
-      setPixData(pix);
-    } catch (error: any) {
-      console.error("❌ ERRO PIX:", error?.response?.data || error);
-
-      alert(error?.response?.data?.erro || "Erro ao gerar PIX");
+      alert(
+        "Erro ao gerar pagamento PIX"
+      );
     } finally {
       setLoading(false);
     }
   }
-
-  /* =========================
-     CARTÃO
-  ========================= */
 
   async function pagarCartao() {
     try {
@@ -163,104 +68,207 @@ export default function PagamentoPage() {
 
       await InicioApi.post(
         "/mercado/pagamento/cartao",
-        cartao,
-        { withCredentials: true }
+        {
+          ...cartao,
+        },
+        {
+          withCredentials: true,
+        }
       );
 
-      alert("Pagamento realizado com sucesso!");
-    } catch (error: any) {
-      console.error("❌ ERRO CARTÃO:", error?.response?.data || error);
+      alert(
+        "Pagamento realizado com sucesso!"
+      );
+    } catch (error) {
+      console.error(
+        "Erro ao pagar com cartão:",
+        error
+      );
 
-      alert("Erro ao processar pagamento");
+      alert(
+        "Erro ao processar pagamento"
+      );
     } finally {
       setLoading(false);
     }
   }
 
-  /* =========================
-     COPIAR PIX
-  ========================= */
-
   async function copiarPix() {
     if (!pixData?.qr_code) return;
 
-    await navigator.clipboard.writeText(pixData.qr_code);
+    await navigator.clipboard.writeText(
+      pixData.qr_code
+    );
 
     alert("PIX copiado!");
   }
 
-  /* =========================
-     UI
-  ========================= */
-
   return (
-    <>
-      <Navbar />
+    <main className="pagamento-page">
+      <div className="pagamento-container">
+        {/* HEADER */}
 
-      <main className="pagamento-page">
-        <div className="pagamento-container">
+        <div className="pagamento-header">
+          <h1>Pagamento</h1>
 
-          {/* HEADER */}
-          <div className="pagamento-header">
-            <h1>Pagamento</h1>
-            <p>Escolha como deseja pagar seu pedido.</p>
-          </div>
+          <p>
+            Escolha como deseja pagar
+            seu pedido.
+          </p>
+        </div>
 
-          {/* STEPS */}
-          <div className="checkout-steps">
-            <div className="step completed">
+        {/* STEPS */}
+
+        <div className="checkout-steps">
+          <div className="step completed">
+            <div className="step-icon">
               <FiCheckCircle />
-              <div>
-                <strong>1. Endereço</strong>
-                <p>Confirmado</p>
-              </div>
             </div>
 
-            <div className="step completed">
-              <FiTruck />
-              <div>
-                <strong>2. Entrega</strong>
-                <p>Selecionada</p>
-              </div>
-            </div>
+            <div>
+              <strong>
+                1. Endereço
+              </strong>
 
-            <div className="step active">
-              <FiCreditCard />
-              <div>
-                <strong>3. Pagamento</strong>
-                <p>Finalizar pedido</p>
-              </div>
+              <p>
+                Endereço confirmado
+              </p>
             </div>
           </div>
 
+          <div className="step completed">
+            <div className="step-icon">
+              <FiTruck />
+            </div>
+
+            <div>
+              <strong>
+                2. Entrega
+              </strong>
+
+              <p>
+                Frete selecionado
+              </p>
+            </div>
+          </div>
+
+          <div className="step active">
+            <div className="step-icon">
+              <FiCreditCard />
+            </div>
+
+            <div>
+              <strong>
+                3. Pagamento
+              </strong>
+
+              <p>
+                Finalizar pedido
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="pagamento-content">
           {/* MÉTODOS */}
+
           <div className="pagamento-metodos">
-            <button onClick={() => setMetodo("pix")}>
-              PIX
+            <button
+              className={`metodo-card ${
+                metodo === "pix"
+                  ? "active"
+                  : ""
+              }`}
+              onClick={() =>
+                setMetodo("pix")
+              }
+            >
+              <FiCreditCard />
+
+              <div>
+                <strong>PIX</strong>
+
+                <p>
+                  Aprovação instantânea
+                </p>
+              </div>
             </button>
 
-            <button onClick={() => setMetodo("cartao")}>
-              Cartão
+            <button
+              className={`metodo-card ${
+                metodo === "cartao"
+                  ? "active"
+                  : ""
+              }`}
+              onClick={() =>
+                setMetodo("cartao")
+              }
+            >
+              <FiCreditCard />
+
+              <div>
+                <strong>
+                  Cartão de Crédito
+                </strong>
+
+                <p>
+                  Parcelamento disponível
+                </p>
+              </div>
             </button>
           </div>
 
           {/* PIX */}
+
           {metodo === "pix" && (
             <div className="pagamento-card">
-              <h2>PIX</h2>
+              <h2>
+                Pagamento via PIX
+              </h2>
 
               {!pixData && (
-                <button onClick={pagarPix} disabled={loading}>
-                  {loading ? "Gerando PIX..." : "Gerar PIX"}
-                </button>
+                <>
+                  <p className="descricao">
+                    Gere um QR Code PIX
+                    para finalizar sua
+                    compra.
+                  </p>
+
+                  <button
+                    className="btn-finalizar"
+                    onClick={pagarPix}
+                    disabled={loading}
+                  >
+                    {loading
+                      ? "Gerando PIX..."
+                      : "Gerar PIX"}
+                  </button>
+                </>
               )}
 
               {pixData && (
-                <div>
-                  <textarea readOnly value={pixData.qr_code || ""} />
+                <div className="pix-box">
+                  {pixData.qr_code_base64 && (
+                    <img
+                      src={`data:image/png;base64,${pixData.qr_code_base64}`}
+                      alt="PIX"
+                      className="pix-image"
+                    />
+                  )}
 
-                  <button onClick={copiarPix}>
-                    <FiCopy /> Copiar PIX
+                  <textarea
+                    readOnly
+                    value={
+                      pixData.qr_code
+                    }
+                  />
+
+                  <button
+                    className="btn-copy"
+                    onClick={copiarPix}
+                  >
+                    <FiCopy />
+                    Copiar código PIX
                   </button>
                 </div>
               )}
@@ -268,24 +276,122 @@ export default function PagamentoPage() {
           )}
 
           {/* CARTÃO */}
+
           {metodo === "cartao" && (
             <div className="pagamento-card">
-              <h2>Cartão de Crédito</h2>
+              <h2>
+                Cartão de Crédito
+              </h2>
 
-              <button onClick={pagarCartao} disabled={loading}>
-                Finalizar pagamento
+              <div className="form-grid">
+                <div className="form-group">
+                  <label>
+                    Nome no cartão
+                  </label>
+
+                  <input
+                    type="text"
+                    value={cartao.nome}
+                    onChange={(e) =>
+                      setCartao({
+                        ...cartao,
+                        nome:
+                          e.target
+                            .value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>
+                    Número do cartão
+                  </label>
+
+                  <input
+                    type="text"
+                    placeholder="0000 0000 0000 0000"
+                    value={cartao.numero}
+                    onChange={(e) =>
+                      setCartao({
+                        ...cartao,
+                        numero:
+                          e.target
+                            .value,
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="duplo">
+                  <div className="form-group">
+                    <label>
+                      Validade
+                    </label>
+
+                    <input
+                      type="text"
+                      placeholder="12/30"
+                      value={
+                        cartao.validade
+                      }
+                      onChange={(e) =>
+                        setCartao({
+                          ...cartao,
+                          validade:
+                            e.target
+                              .value,
+                        })
+                      }
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label>CVV</label>
+
+                    <input
+                      type="text"
+                      placeholder="123"
+                      value={
+                        cartao.cvv
+                      }
+                      onChange={(e) =>
+                        setCartao({
+                          ...cartao,
+                          cvv:
+                            e.target
+                              .value,
+                        })
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button
+                className="btn-finalizar"
+                onClick={
+                  pagarCartao
+                }
+                disabled={loading}
+              >
+                {loading
+                  ? "Processando..."
+                  : "Finalizar pagamento"}
               </button>
             </div>
           )}
-
-          <Link href="/Carrinho/entrega">
-            Voltar
-          </Link>
-
         </div>
-      </main>
 
-      <Footer />
-    </>
+        <div className="voltar-box">
+          <Link
+            href="/Carrinho/entrega"
+            className="btn-voltar"
+          >
+            Voltar para entrega
+          </Link>
+        </div>
+      </div>
+    </main>
   );
 }
