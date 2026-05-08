@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
 
 import Navbar from "@/components/site/menu/navbar";
@@ -78,6 +78,18 @@ type ApiPixResponse = {
   };
 };
 
+type ApiVerificarPagamentoResponse = {
+  status?: string;
+  pagamento_id?: number | string;
+  pedido_id?: number | string;
+  mensagem?: string;
+  pedido?: Pedido;
+  dados?: {
+    status?: string;
+    pedido?: Pedido;
+  };
+};
+
 function normalizarNumero(valor: unknown): number {
   if (typeof valor === "number") {
     return Number.isFinite(valor) ? valor : 0;
@@ -130,7 +142,6 @@ function isPagamentoConfirmado(pedido: Pedido | null) {
 
 export default function PagamentoPage() {
   const params = useParams();
-  const router = useRouter();
   const pedidoId = params?.id as string;
 
   const [pedido, setPedido] = useState<Pedido | null>(null);
@@ -185,6 +196,72 @@ export default function PagamentoPage() {
     }
   }
 
+  async function verificarPagamentoNoServidor(silencioso = false) {
+    try {
+      setVerificandoPagamento(true);
+
+      const res = await InicioApi.post<ApiVerificarPagamentoResponse>(
+        "/mercado/pagamento/verificar",
+        {
+          id_pedido: pedidoId,
+        },
+        { withCredentials: true }
+      );
+
+      const data = res.data;
+      const statusRecebido = String(
+        data?.status ??
+          data?.dados?.status ??
+          data?.pedido?.status_pagamento ??
+          data?.pedido?.status ??
+          ""
+      )
+        .toLowerCase()
+        .trim();
+
+      const pedidoAtualizado =
+        data?.dados?.pedido ?? data?.pedido ?? null;
+
+      if (pedidoAtualizado) {
+        setPedido(pedidoAtualizado);
+      } else if (statusRecebido) {
+        setPedido((prev) =>
+          prev
+            ? {
+                ...prev,
+                status_pagamento: statusRecebido,
+              }
+            : prev
+        );
+      }
+
+      const confirmado =
+        statusRecebido.includes("approved") ||
+        statusRecebido.includes("pago") ||
+        statusRecebido.includes("paid") ||
+        statusRecebido.includes("aprov") ||
+        statusRecebido.includes("confirm");
+
+      if (confirmado) {
+        setPagamentoConfirmado(true);
+
+        if (!silencioso) {
+          alert("Pagamento identificado com sucesso!");
+        }
+      } else if (!silencioso) {
+        alert("Ainda não identificamos o pagamento. Tente novamente em alguns segundos.");
+      }
+    } catch (error) {
+      console.error("Erro ao verificar pagamento:", error);
+
+      if (!silencioso) {
+        alert("Não foi possível verificar o pagamento agora.");
+      }
+    } finally {
+      setVerificandoPagamento(false);
+    }
+  }
+
   useEffect(() => {
     if (pedidoId) carregarPedido();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -196,24 +273,11 @@ export default function PagamentoPage() {
     if (pagamentoConfirmado) return;
 
     const interval = setInterval(async () => {
-      try {
-        const res = await InicioApi.get(`/pedido/${pedidoId}`, {
-          withCredentials: true,
-        });
-
-        const pedidoData = getRespostaPedido(res.data as ApiPedidoResponse);
-
-        if (isPagamentoConfirmado(pedidoData)) {
-          setPedido(pedidoData);
-          setPagamentoConfirmado(true);
-          clearInterval(interval);
-        }
-      } catch (error) {
-        console.warn("Erro ao verificar pagamento automático:", error);
-      }
+      await verificarPagamentoNoServidor(true);
     }, 7000);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pedidoId, pixCode, pagamentoConfirmado]);
 
   async function gerarPix() {
@@ -294,35 +358,11 @@ export default function PagamentoPage() {
 
   async function copiarPix() {
     if (!pixCode) return;
+
     await navigator.clipboard.writeText(pixCode);
     setCopiado(true);
+
     setTimeout(() => setCopiado(false), 1800);
-  }
-
-  async function verificarPagamento() {
-    try {
-      setVerificandoPagamento(true);
-
-      const res = await InicioApi.get(`/pedido/${pedidoId}`, {
-        withCredentials: true,
-      });
-
-      const pedidoData = getRespostaPedido(res.data as ApiPedidoResponse);
-
-      setPedido(pedidoData);
-
-      if (isPagamentoConfirmado(pedidoData)) {
-        setPagamentoConfirmado(true);
-        alert("Pagamento identificado com sucesso!");
-      } else {
-        alert("Ainda não identificamos o pagamento. Tente novamente em alguns segundos.");
-      }
-    } catch (error) {
-      console.error("Erro ao verificar pagamento:", error);
-      alert("Não foi possível verificar o pagamento agora.");
-    } finally {
-      setVerificandoPagamento(false);
-    }
   }
 
   if (loading) {
@@ -593,7 +633,7 @@ export default function PagamentoPage() {
 
                           <button
                             className="verifyBtn"
-                            onClick={verificarPagamento}
+                            onClick={() => verificarPagamentoNoServidor(false)}
                             disabled={verificandoPagamento}
                           >
                             {verificandoPagamento ? "Verificando..." : "Já paguei"}
@@ -601,7 +641,7 @@ export default function PagamentoPage() {
                           </button>
 
                           <p className="hint">
-                            Esse botão apenas consulta o status. A confirmação real vem do backend.
+                            Esse botão consulta o pagamento no backend e atualiza o pedido.
                           </p>
                         </div>
                       ) : (
@@ -728,7 +768,7 @@ export default function PagamentoPage() {
                 <div>
                   <strong>Dica importante</strong>
                   <p>
-                    O botão “Já paguei” apenas consulta o pedido. Ele não confirma pagamento sozinho.
+                    O botão “Já paguei” consulta o backend e força a atualização do pedido.
                   </p>
                 </div>
               </div>
