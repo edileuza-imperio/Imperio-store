@@ -1,7 +1,5 @@
 "use client";
 
-
-
 import useCategoria from "@/hooks/categoria/useCategoria";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -29,13 +27,11 @@ export default function CategoriasDestaque() {
     return lista.slice(0, 12) as Categoria[];
   }, [categorias]);
 
-  const showArrows = top.length > 6;
-
   const updateArrows = () => {
     const el = railRef.current;
     if (!el) return;
 
-    const max = el.scrollWidth - el.clientWidth;
+    const max = Math.max(0, el.scrollWidth - el.clientWidth);
 
     setCanLeft(el.scrollLeft > 8);
     setCanRight(el.scrollLeft < max - 8);
@@ -48,7 +44,6 @@ export default function CategoriasDestaque() {
     if (!el) return;
 
     const onScroll = () => updateArrows();
-
     el.addEventListener("scroll", onScroll, { passive: true });
 
     const ro = new ResizeObserver(() => updateArrows());
@@ -60,19 +55,7 @@ export default function CategoriasDestaque() {
     };
   }, [top.length]);
 
-  const scrollByCards = (dir: "left" | "right") => {
-    const el = railRef.current;
-    if (!el) return;
-
-    const amount = Math.max(280, Math.floor(el.clientWidth * 0.72));
-
-    el.scrollBy({
-      left: dir === "left" ? -amount : amount,
-      behavior: "smooth",
-    });
-  };
-
-  const onMouseDown = (e: React.MouseEvent) => {
+  const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = railRef.current;
     if (!el) return;
 
@@ -91,7 +74,7 @@ export default function CategoriasDestaque() {
     el.classList.remove("dragging");
   };
 
-  const onMouseMove = (e: React.MouseEvent) => {
+  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const el = railRef.current;
     if (!el || !isDownRef.current) return;
 
@@ -99,6 +82,8 @@ export default function CategoriasDestaque() {
 
     const dx = e.pageX - startXRef.current;
     el.scrollLeft = startScrollLeftRef.current - dx;
+
+    updateArrows();
   };
 
   if (loading) return null;
@@ -119,43 +104,14 @@ export default function CategoriasDestaque() {
               <h2 className="h2">Categorias em destaque</h2>
 
               <p className="sub">
-                Escolha uma categoria para ver os produtos disponíveis.
+                Arraste para ver mais categorias e encontre rapidamente o que procura.
               </p>
-            </div>
-
-            <div className="rightSide">
-              <Link href="/categoria/viecategoria/" className="allBtn">
-                <span>Ver todas</span>
-                <span aria-hidden>→</span>
-              </Link>
             </div>
           </header>
 
           <div className="railWrap">
             <div className={`fade left ${canLeft ? "on" : ""}`} />
             <div className={`fade right ${canRight ? "on" : ""}`} />
-
-            {showArrows && (
-              <>
-                <button
-                  type="button"
-                  className={`arrow left ${canLeft ? "on" : ""}`}
-                  onClick={() => scrollByCards("left")}
-                  aria-label="Ver categorias anteriores"
-                >
-                  ‹
-                </button>
-
-                <button
-                  type="button"
-                  className={`arrow right ${canRight ? "on" : ""}`}
-                  onClick={() => scrollByCards("right")}
-                  aria-label="Ver próximas categorias"
-                >
-                  ›
-                </button>
-              </>
-            )}
 
             <div
               ref={railRef}
@@ -182,6 +138,7 @@ export default function CategoriasDestaque() {
                     className={`item ${slug ? "" : "disabled"}`}
                     draggable={false}
                     role="listitem"
+                    aria-label={`Ver produtos da categoria ${nome}`}
                   >
                     <span className="orb">
                       <span className="orbRing" />

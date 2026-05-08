@@ -10,8 +10,6 @@ import { rotas } from "@/components/Bibioteca/config/rotas";
 import { IconHelper } from "@/components/Bibioteca/icons/IconHelper";
 import { Menu, MenuItem } from "@/components/Bibioteca/Bibiotecas";
 import CarrinhoQuantidade from "@/components/Carrinho/CarrinhoQuantidade";
-import CarrinhoLateralDesktop from "../carrinho/CarrinhoLateralDesktop";
-
 
 interface Categoria {
   id_categoria?: number | string;
@@ -36,19 +34,12 @@ export default function NavbarMobile({
   subtituloNavbar,
 }: NavbarMobileProps) {
   const router = useRouter();
-
-  const {
-    usuario,
-    loading: usuarioLoading,
-    logado,
-    isAdmin,
-  } = useUsuario();
+  const { usuario, loading: usuarioLoading, logado, isAdmin } = useUsuario();
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(320);
   const [scrolled, setScrolled] = useState(false);
-  const [cartOpen, setCartOpen] = useState(false);
 
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
@@ -102,17 +93,12 @@ export default function NavbarMobile({
   const accountItems = useMemo(() => {
     const itens = accountMenu?.itens || [];
 
-    const itensFiltrados = itens.filter((item) => {
-      if (isPainelAdministrativo(item)) {
-        return isAdmin;
-      }
-
-      return true;
-    });
-
-    return [...itensFiltrados].sort(
-      (a, b) => (a.posicao ?? 0) - (b.posicao ?? 0)
-    );
+    return [...itens]
+      .filter((item) => {
+        if (isPainelAdministrativo(item)) return isAdmin;
+        return true;
+      })
+      .sort((a, b) => (a.posicao ?? 0) - (b.posicao ?? 0));
   }, [accountMenu, isAdmin]);
 
   const titleParts = (tituloNavbar || "Universo Império").split(" ");
@@ -128,7 +114,7 @@ export default function NavbarMobile({
     try {
       await api.post(rotas.auth.logout, {}, { withCredentials: true });
     } catch (error) {
-      console.warn("Logout falhou, seguindo fluxo local.", error);
+      console.warn("Logout falhou", error);
     } finally {
       closeAll();
       router.replace(rotas.paginas.login);
@@ -145,10 +131,6 @@ export default function NavbarMobile({
       return;
     }
 
-    if (isPainelAdministrativo(item) && !isAdmin) {
-      return;
-    }
-
     const titulo = String(item.titulo || item.nome || "").toLowerCase();
 
     if (titulo.includes("sair")) {
@@ -157,114 +139,71 @@ export default function NavbarMobile({
     }
 
     const rota = getItemRota(item);
-    if (rota !== "#") {
-      router.push(rota);
-    }
+    if (rota !== "#") router.push(rota);
   };
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
-
+    const handleScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", handleScroll);
-
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       if (!userDropdownOpen) return;
-
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(e.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setUserDropdownOpen(false);
-      }
-    };
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setUserDropdownOpen(false);
-        setSidebarOpen(false);
       }
     };
 
     document.addEventListener("mousedown", onDown);
-    document.addEventListener("keydown", onKey);
-
-    return () => {
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("keydown", onKey);
-    };
+    return () => document.removeEventListener("mousedown", onDown);
   }, [userDropdownOpen]);
 
   useEffect(() => {
-    const getSidebarWidth = () => {
-      if (typeof window === "undefined") return 320;
-
+    const sync = () => {
       const w = window.innerWidth;
-
-      if (w <= 360) return Math.min(300, Math.floor(w * 0.92));
-      if (w <= 480) return Math.min(340, Math.floor(w * 0.9));
-
-      return 360;
+      setSidebarWidth(w <= 360 ? 300 : w <= 480 ? 340 : 360);
     };
-
-    const sync = () => setSidebarWidth(getSidebarWidth());
 
     sync();
     window.addEventListener("resize", sync);
-
     return () => window.removeEventListener("resize", sync);
   }, []);
 
   const carrinhoHref =
     carrinhoMenu && getMenuRota(carrinhoMenu) !== "#"
       ? getMenuRota(carrinhoMenu)
-      : "/carrinho";
+      : "/Carrinho";
 
   return (
     <>
-      <header
-        className={`mobile-header ${
-          scrolled ? "mobile-header--scrolled" : ""
-        }`}
-      >
+      <header className={`mobile-header ${scrolled ? "mobile-header--scrolled" : ""}`}>
         <div className="mobile-topBar">
           <button
             type="button"
-            onClick={() => {
-              setSidebarOpen(true);
-              setUserDropdownOpen(false);
-            }}
-            aria-label="Abrir menu"
+            onClick={() => setSidebarOpen(true)}
             className="mobile-btn"
+            aria-label="Abrir categorias"
           >
             {IconHelper.render({ nome: "menu", size: 22 })}
           </button>
 
-          <Link href="/" onClick={closeAll} className="mobile-logo">
+          <Link href="/" className="mobile-logo" onClick={closeAll}>
             <div className="mobile-logoTitle">
               {first} <span className="mobile-logoAccent">{rest}</span>
             </div>
-
             <div className="mobile-logoSubtitle">
               {subtituloNavbar || "Decorações & Eventos"}
             </div>
           </Link>
 
           <div className="mobile-actions" ref={dropdownRef}>
-            <button
-              type="button"
-              onClick={() => {
-                closeAll();
-                setCartOpen(true);
-              }}
+            <Link
+              href={carrinhoHref}
               className="mobile-btn mobile-btn-badge"
-              title={getMenuNome(carrinhoMenu) || "Carrinho"}
-              aria-label={getMenuNome(carrinhoMenu) || "Abrir carrinho"}
+              title="Carrinho"
+              aria-label="Ir para o carrinho"
             >
               {isCartIcon(carrinhoMenu?.icone) ? (
                 <CarrinhoQuantidade size={20} />
@@ -274,69 +213,40 @@ export default function NavbarMobile({
                   size: 20,
                 })
               )}
-            </button>
+            </Link>
 
             {!usuarioLoading && !logado && (
-              <Link
-                href={rotas.paginas.login}
-                onClick={closeAll}
-                className="mobile-btn"
-                title={getMenuNome(accountMenu) || "Login"}
-              >
-                {IconHelper.render({
-                  nome: accountMenu?.icone || "user",
-                  size: 20,
-                })}
+              <Link href={rotas.paginas.login} className="mobile-btn" aria-label="Entrar">
+                {IconHelper.render({ nome: "user", size: 20 })}
               </Link>
             )}
 
             {!usuarioLoading && logado && (
               <div className="mobile-dropdown">
                 <button
-                  type="button"
                   className="mobile-dropdownBtn"
                   onClick={() => setUserDropdownOpen((v) => !v)}
+                  type="button"
                   aria-expanded={userDropdownOpen}
                 >
-                  {IconHelper.render({
-                    nome: accountMenu?.icone || "user",
-                    size: 16,
-                  })}
-
-                  <span>{usuario?.nome?.split(" ")[0] || "Usuário"}</span>
-
-                  <span className="mobile-dropdownChevron">
-                    {IconHelper.render({
-                      nome: "down",
-                      size: 16,
-                      className: userDropdownOpen ? "open" : "",
-                    })}
+                  {IconHelper.render({ nome: "user", size: 18 })}
+                  <span style={{ marginLeft: 8 }}>
+                    {usuario?.nome?.split(" ")[0] || "Usuário"}
                   </span>
                 </button>
 
                 {userDropdownOpen && (
                   <div className="mobile-dropdownMenu">
-                    {accountItems.map((it) => {
-                      const texto = getItemNome(it);
-                      const isSair = texto.toLowerCase().includes("sair");
-
-                      return (
-                        <button
-                          key={String(it.id || it.id_item || it.id_menu)}
-                          type="button"
-                          className={`mobile-dropdownItem ${
-                            isSair ? "mobile-dropdownItem--danger" : ""
-                          }`}
-                          onClick={() => handleAccountItem(it)}
-                        >
-                          {IconHelper.render({
-                            nome: it.icone || texto,
-                            size: 18,
-                          })}
-                          <span>{texto}</span>
-                        </button>
-                      );
-                    })}
+                    {accountItems.map((it) => (
+                      <button
+                        key={String(it.id)}
+                        className="mobile-dropdownItem"
+                        onClick={() => handleAccountItem(it)}
+                        type="button"
+                      >
+                        <span>{getItemNome(it)}</span>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
@@ -352,7 +262,6 @@ export default function NavbarMobile({
                 searchMenu?.pesquisa_placeholder ||
                 "Buscar produtos..."
               }
-              className="w-100"
             />
           </div>
         )}
@@ -372,72 +281,38 @@ export default function NavbarMobile({
           transform: sidebarOpen
             ? "translateX(0)"
             : `translateX(-${sidebarWidth}px)`,
-          transition: "transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         }}
       >
         <div className="mobile-sidebarHeader">
-          <h2 className="mobile-sidebarTitle">Categorias</h2>
-
+          <h2>Categorias</h2>
           <button
             type="button"
-            onClick={() => setSidebarOpen(false)}
             className="mobile-sidebarCloseBtn"
-            aria-label="Fechar menu"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Fechar categorias"
           >
-            {IconHelper.render({ nome: "close", size: 20 })}
+            ✕
           </button>
         </div>
 
         <div className="mobile-sidebarContent">
-          {categorias && categorias.length > 0 ? (
-            <nav>
-              {[...categorias]
-                .filter((cat) => !!cat?.nome)
-                .map((cat) => {
-                  const slug = String(cat.slug || "").trim();
-                  const href = slug ? `/categoria/${slug}` : "#";
-
-                  return (
-                    <Link
-                      key={String(cat.id_categoria || slug || cat.nome)}
-                      href={href}
-                      onClick={closeAll}
-                      className="mobile-categoryItem"
-                    >
-                      <span className="mobile-categoryItemIcon">
-                        {IconHelper.render({
-                          nome: cat.icone,
-                          size: 18,
-                        })}
-                      </span>
-
-                      <span>{cat.nome}</span>
-
-                      <span style={{ marginLeft: "auto" }}>
-                        {IconHelper.render({ nome: "right", size: 16 })}
-                      </span>
-                    </Link>
-                  );
-                })}
-            </nav>
-          ) : (
-            <div
-              style={{
-                padding: "20px 16px",
-                textAlign: "center",
-                color: "var(--color-textMuted)",
-              }}
+          {categorias?.map((cat) => (
+            <Link
+              key={cat.id_categoria}
+              href={cat.slug ? `/categoria/${cat.slug}` : "#"}
+              onClick={closeAll}
+              className="mobile-categoryItem"
             >
-              Nenhuma categoria disponível
-            </div>
-          )}
+              {cat.icone && (
+                <span className="mobile-categoryItemIcon">
+                  {IconHelper.render({ nome: cat.icone, size: 18 })}
+                </span>
+              )}
+              <span>{cat.nome}</span>
+            </Link>
+          ))}
         </div>
       </aside>
-
-      <CarrinhoLateralDesktop
-        open={cartOpen}
-        onClose={() => setCartOpen(false)}
-      />
     </>
   );
 }

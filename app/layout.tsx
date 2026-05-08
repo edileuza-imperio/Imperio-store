@@ -29,7 +29,7 @@ import './../public/Vitrine/slug.css';
 import './../public/usuario/usuario.css';
 import './../public/admin/produtos/listar.css';
 import { getSiteConfig } from "@/services/siteConfig";
-import './../public/carrinho/lateral.css';
+
 
 import './../public/usuario/editar.css';
 

@@ -9,7 +9,10 @@ import SearchBar from "../Pesquisa/SearchBar";
 import api from "@/Api/conectar";
 import { rotas } from "@/components/Bibioteca/config/rotas";
 
-import { FiUser, FiChevronDown } from "react-icons/fi";
+import {
+  FiUser,
+  FiChevronDown,
+} from "react-icons/fi";
 
 import {
   Menu,
@@ -59,16 +62,25 @@ export default function NavbarDesktop({
   const [openMenuId, setOpenMenuId] =
     useState<number | null>(null);
 
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled] =
+    useState(false);
 
-  const headerRef = useRef<HTMLElement | null>(null);
+  const headerRef =
+    useRef<HTMLElement | null>(null);
+
+  /* =========================================================
+     SCROLL
+  ========================================================= */
 
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener(
+      "scroll",
+      handleScroll
+    );
 
     return () => {
       window.removeEventListener(
@@ -78,19 +90,27 @@ export default function NavbarDesktop({
     };
   }, []);
 
+  /* =========================================================
+     CLICK OUTSIDE
+  ========================================================= */
+
   useEffect(() => {
     const onDown = (e: MouseEvent) => {
       if (!headerRef.current) return;
 
       if (
-        !headerRef.current.contains(e.target as Node)
+        !headerRef.current.contains(
+          e.target as Node
+        )
       ) {
         setOpenUserDropdown(false);
         setOpenMenuId(null);
       }
     };
 
-    const onKey = (e: KeyboardEvent) => {
+    const onKey = (
+      e: KeyboardEvent
+    ) => {
       if (e.key === "Escape") {
         setOpenUserDropdown(false);
         setOpenMenuId(null);
@@ -102,7 +122,10 @@ export default function NavbarDesktop({
       onDown
     );
 
-    document.addEventListener("keydown", onKey);
+    document.addEventListener(
+      "keydown",
+      onKey
+    );
 
     return () => {
       document.removeEventListener(
@@ -117,63 +140,56 @@ export default function NavbarDesktop({
     };
   }, []);
 
-  const irParaLogin = () => {
-    setOpenUserDropdown(false);
-    setOpenMenuId(null);
-
-    router.push(rotas.paginas.login);
-  };
-
-  const handleProtectedDropdown = (
-    menuId: number
-  ) => {
-    if (usuarioLoading) return;
-
-    if (!logado) {
-      irParaLogin();
-      return;
-    }
-
-    setOpenMenuId((prev) =>
-      prev === menuId ? null : menuId
-    );
-  };
+  /* =========================================================
+     HELPERS
+  ========================================================= */
 
   const titleParts = (
-    tituloNavbar || "Universo Império"
+    tituloNavbar ||
+    "Universo Império"
   ).split(" ");
 
-  const first = titleParts[0] || "Universo";
+  const first =
+    titleParts[0] || "Universo";
 
   const rest =
-    titleParts.slice(1).join(" ") || "Império";
+    titleParts.slice(1).join(" ") ||
+    "Império";
 
   const getMenuNome = (
     menu?: Partial<Menu>
   ) =>
     String(
-      menu?.nome || menu?.titulo || ""
+      menu?.nome ||
+        menu?.titulo ||
+        ""
     ).trim();
 
   const getMenuId = (
     menu?: Partial<Menu>
   ) =>
     Number(
-      menu?.id_menu || menu?.id || 0
+      menu?.id_menu ||
+        menu?.id ||
+        0
     );
 
   const getItemNome = (
     item?: Partial<MenuItem>
   ) =>
     String(
-      item?.nome || item?.titulo || ""
+      item?.nome ||
+        item?.titulo ||
+        ""
     ).trim();
 
   const getItemId = (
     item?: Partial<MenuItem>
   ) =>
     Number(
-      item?.id_item || item?.id || 0
+      item?.id_item ||
+        item?.id ||
+        0
     );
 
   const getMenuRota = (
@@ -208,7 +224,9 @@ export default function NavbarDesktop({
     item?: Partial<MenuItem>
   ) => {
     const nome = String(
-      item?.nome || item?.titulo || ""
+      item?.nome ||
+        item?.titulo ||
+        ""
     )
       .trim()
       .toLowerCase();
@@ -246,6 +264,10 @@ export default function NavbarDesktop({
     );
   };
 
+  /* =========================================================
+     MENUS
+  ========================================================= */
+
   const searchMenu = menus.find(
     (m) => m.pesquisa_placeholder
   );
@@ -256,57 +278,80 @@ export default function NavbarDesktop({
       "login"
   );
 
-  const mainMenus = menus.filter((m) => {
-    if (m.pesquisa_placeholder) {
-      return false;
+  const mainMenus = menus.filter(
+    (m) => {
+      if (m.pesquisa_placeholder) {
+        return false;
+      }
+
+      const nome =
+        getMenuNome(m).toLowerCase();
+
+      if (
+        nome === "login" &&
+        logado
+      ) {
+        return false;
+      }
+
+      return true;
     }
-
-    const nome =
-      getMenuNome(m).toLowerCase();
-
-    if (nome === "login" && logado) {
-      return false;
-    }
-
-    return true;
-  });
+  );
 
   const accountItems = useMemo(() => {
     const itens =
       accountMenu?.itens || [];
 
-    const itensFiltrados = itens.filter(
-      (item) => {
+    return [...itens]
+      .filter((item) => {
         if (
-          isPainelAdministrativo(item)
+          isPainelAdministrativo(
+            item
+          )
         ) {
           return isAdmin;
         }
 
         return true;
-      }
-    );
-
-    return [...itensFiltrados].sort(
-      (a, b) =>
-        (a.posicao ?? 0) -
-        (b.posicao ?? 0)
-    );
+      })
+      .sort(
+        (a, b) =>
+          (a.posicao ?? 0) -
+          (b.posicao ?? 0)
+      );
   }, [accountMenu, isAdmin]);
 
-  const renderMenuIcon = (
-    icone?: string | null
+  /* =========================================================
+     ACTIONS
+  ========================================================= */
+
+  const irParaLogin = () => {
+    setOpenUserDropdown(false);
+    setOpenMenuId(null);
+
+    router.push(rotas.paginas.login);
+  };
+
+  const abrirCarrinho = () => {
+    setOpenUserDropdown(false);
+    setOpenMenuId(null);
+
+    router.push("/Carrinho");
+  };
+
+  const handleProtectedDropdown = (
+    menuId: number
   ) => {
-    if (isCartIcon(icone)) {
-      return (
-        <CarrinhoQuantidade size={18} />
-      );
+    if (usuarioLoading) return;
+
+    if (!logado) {
+      irParaLogin();
+      return;
     }
 
-    return IconHelper.render({
-      nome: icone,
-      size: 18,
-    });
+    setOpenMenuId((prev) =>
+      prev === menuId ? null : menuId
+    );
   };
 
   const handleAccountItem = async (
@@ -320,15 +365,10 @@ export default function NavbarDesktop({
       return;
     }
 
-    if (
-      isPainelAdministrativo(item) &&
-      !isAdmin
-    ) {
-      return;
-    }
-
     const titulo = String(
-      item.titulo || item.nome || ""
+      item.titulo ||
+        item.nome ||
+        ""
     ).toLowerCase();
 
     if (titulo.includes("sair")) {
@@ -360,12 +400,28 @@ export default function NavbarDesktop({
     }
   };
 
-  const abrirCarrinho = () => {
-    setOpenUserDropdown(false);
-    setOpenMenuId(null);
+  /* =========================================================
+     ICONS
+  ========================================================= */
 
-    router.push("/Carrinho");
+  const renderMenuIcon = (
+    icone?: string | null
+  ) => {
+    if (isCartIcon(icone)) {
+      return (
+        <CarrinhoQuantidade size={18} />
+      );
+    }
+
+    return IconHelper.render({
+      nome: icone,
+      size: 18,
+    });
   };
+
+  /* =========================================================
+     JSX
+  ========================================================= */
 
   return (
     <header
@@ -377,7 +433,15 @@ export default function NavbarDesktop({
       }`}
     >
       <div className="ui-navbar-container">
-        <div className="ui-brand">
+
+        {/* ========================================= */}
+        {/* LOGO */}
+        {/* ========================================= */}
+
+        <Link
+          href="/"
+          className="ui-brand"
+        >
           <div className="ui-title">
             <span className="ui-titleFirst">
               {first}
@@ -394,7 +458,11 @@ export default function NavbarDesktop({
             {subtituloNavbar ||
               "Decorações & Eventos"}
           </div>
-        </div>
+        </Link>
+
+        {/* ========================================= */}
+        {/* SEARCH */}
+        {/* ========================================= */}
 
         {(searchMenu ||
           searchPlaceholder) && (
@@ -410,8 +478,13 @@ export default function NavbarDesktop({
           </div>
         )}
 
+        {/* ========================================= */}
+        {/* ACTIONS */}
+        {/* ========================================= */}
+
         <nav className="ui-actions">
           <div className="ui-mainMenus">
+
             {mainMenus.map((m) => {
               const menuId =
                 getMenuId(m);
@@ -432,6 +505,10 @@ export default function NavbarDesktop({
 
               const isCartMenu =
                 isCarrinhoMenu(m);
+
+              /* ========================================= */
+              /* DROPDOWN */
+              /* ========================================= */
 
               if (hasItens) {
                 return (
@@ -502,12 +579,16 @@ export default function NavbarDesktop({
                 );
               }
 
+              /* ========================================= */
+              /* CARRINHO */
+              /* ========================================= */
+
               if (isCartMenu) {
                 return (
                   <button
                     key={menuId}
                     type="button"
-                    className="ui-link ui-linkButton"
+                    className="ui-linkButton"
                     onClick={
                       abrirCarrinho
                     }
@@ -527,31 +608,29 @@ export default function NavbarDesktop({
                 );
               }
 
-              const rota =
-                getMenuRota(m);
+              /* ========================================= */
+              /* LOGIN */
+              /* ========================================= */
 
               const nomeMenu =
                 getMenuNome(
                   m
                 ).toLowerCase();
 
-              const isLoginMenu =
-                nomeMenu === "login";
-
               if (
-                isLoginMenu &&
+                nomeMenu === "login" &&
                 !logado
               ) {
                 return (
                   <button
                     key={menuId}
                     type="button"
-                    className="ui-link ui-linkButton"
+                    className="ui-linkButton"
                     onClick={
                       irParaLogin
                     }
                   >
-                    <span className="ui-pill ui-pill--primary">
+                    <span className="ui-pill ui-pill--secondary">
                       <span className="ui-pillIcon">
                         {renderMenuIcon(
                           m.icone
@@ -559,17 +638,21 @@ export default function NavbarDesktop({
                       </span>
 
                       <span className="ui-pillText">
-                        {getMenuNome(m)}
+                        Entrar
                       </span>
                     </span>
                   </button>
                 );
               }
 
+              /* ========================================= */
+              /* LINK NORMAL */
+              /* ========================================= */
+
               return (
                 <Link
                   key={menuId}
-                  href={rota}
+                  href={getMenuRota(m)}
                   className="ui-link"
                 >
                   <span className="ui-pill ui-pill--primary">
@@ -587,6 +670,10 @@ export default function NavbarDesktop({
               );
             })}
           </div>
+
+          {/* ========================================= */}
+          {/* USER */}
+          {/* ========================================= */}
 
           {!usuarioLoading &&
             logado &&
@@ -608,7 +695,7 @@ export default function NavbarDesktop({
                   <span className="ui-pillText ui-strong">
                     {usuario?.nome?.split(
                       " "
-                    )[0] || "Usuario"}
+                    )[0] || "Usuário"}
                   </span>
 
                   <FiChevronDown
@@ -643,8 +730,7 @@ export default function NavbarDesktop({
                           <button
                             key={String(
                               it.id ||
-                                it.id_item ||
-                                it.id_menu
+                                it.id_item
                             )}
                             className={`ui-item ${
                               isSair
