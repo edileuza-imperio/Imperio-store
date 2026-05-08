@@ -85,9 +85,14 @@ export default function NavbarMobile({
     (m) => getMenuNome(m).toLowerCase() === "login"
   );
 
+  // 🔥 FIX: carrinho agora é case insensitive e mais robusto
   const carrinhoMenu = menus?.find((m) => {
     const nome = getMenuNome(m).toLowerCase();
-    return nome.includes("Carrinho") || nome.includes("carrito");
+    return (
+      nome.includes("carrinho") ||
+      nome.includes("carrito") ||
+      nome.includes("cart")
+    );
   });
 
   const accountItems = useMemo(() => {
@@ -171,6 +176,7 @@ export default function NavbarMobile({
     return () => window.removeEventListener("resize", sync);
   }, []);
 
+  // 🔥 FIX: rota sempre com C maiúsculo
   const carrinhoHref =
     carrinhoMenu && getMenuRota(carrinhoMenu) !== "#"
       ? getMenuRota(carrinhoMenu)
@@ -199,17 +205,18 @@ export default function NavbarMobile({
           </Link>
 
           <div className="mobile-actions" ref={dropdownRef}>
+            {/* 🔥 FIX CARRINHO ICON */}
             <Link
               href={carrinhoHref}
               className="mobile-btn mobile-btn-badge"
               title="Carrinho"
               aria-label="Ir para o carrinho"
             >
-              {isCartIcon(carrinhoMenu?.icone) ? (
+              {carrinhoMenu && isCartIcon(carrinhoMenu.icone) ? (
                 <CarrinhoQuantidade size={20} />
               ) : (
                 IconHelper.render({
-                  nome: carrinhoMenu?.icone || "carrito",
+                  nome: carrinhoMenu?.icone || "cart",
                   size: 20,
                 })
               )}
