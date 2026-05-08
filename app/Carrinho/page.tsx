@@ -18,8 +18,6 @@ import "./carrinho.css";
 type CarrinhoItem = {
   id?: number | string;
   id_carrinho_item?: number | string;
-  id_item?: number | string;
-  item_id?: number | string;
   nome?: string;
   titulo?: string;
   produto_nome?: string;
@@ -28,14 +26,11 @@ type CarrinhoItem = {
   subtotal?: number | string;
   total?: number | string;
   imagem?: string;
-  miniatura?: string;
-  foto?: string;
-  produto?: {
-    nome?: string;
-    titulo?: string;
-    imagem?: string;
-    foto?: string;
-  };
+  produto?: { nome?: string; titulo?: string; imagem?: string };
+};
+
+type ApiResponse = {
+  itens?: CarrinhoItem[];
 };
 
 /*
@@ -46,12 +41,10 @@ type CarrinhoItem = {
 
 function normalizarNumero(valor: unknown): number {
   if (typeof valor === "number") return Number.isFinite(valor) ? valor : 0;
-
   if (typeof valor === "string") {
-    const numero = Number(valor.replace(/\./g, "").replace(",", "."));
-    return Number.isFinite(numero) ? numero : 0;
+    const n = Number(valor.replace(/\./g, "").replace(",", "."));
+    return Number.isFinite(n) ? n : 0;
   }
-
   return 0;
 }
 
@@ -62,46 +55,16 @@ function formatarMoeda(valor: unknown) {
   }).format(normalizarNumero(valor));
 }
 
-function getItemId(item: CarrinhoItem): string {
-  return String(
-    item.id_carrinho_item ??
-      item.id ??
-      item.id_item ??
-      item.item_id ??
-      ""
-  );
+function getItemId(item: CarrinhoItem) {
+  return String(item.id_carrinho_item ?? item.id ?? "");
 }
 
 function getItemNome(item: CarrinhoItem) {
-  return (
-    item.nome ||
-    item.titulo ||
-    item.produto_nome ||
-    item.produto?.nome ||
-    item.produto?.titulo ||
-    "Produto"
-  );
+  return item.nome || item.titulo || item.produto_nome || "Produto";
 }
 
 function getItemImagem(item: CarrinhoItem) {
-  return (
-    item.miniatura ||
-    item.imagem ||
-    item.foto ||
-    item.produto?.imagem ||
-    item.produto?.foto ||
-    "/images/sem-imagem.png"
-  );
-}
-
-function extrairLista<T = unknown>(payload: any): T[] {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.dados)) return payload.dados;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.itens)) return payload.itens;
-  if (Array.isArray(payload?.dados?.itens)) return payload.dados.itens;
-  if (Array.isArray(payload?.carrinho?.itens)) return payload.carrinho.itens;
-  return [];
+  return item.imagem || item.produto?.imagem || "/images/sem-imagem.png";
 }
 
 /*
@@ -114,22 +77,16 @@ export default function CarrinhoPage() {
   const [itens, setItens] = useState<CarrinhoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [removingId, setRemovingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const carregarCarrinho = useCallback(async () => {
     try {
-      setError(null);
       setLoading(true);
 
-      const response = await InicioApi.get("/carrinho/itens", {
+      const res = await InicioApi.get<ApiResponse>("/carrinho/itens", {
         withCredentials: true,
       });
 
-      const lista = extrairLista<CarrinhoItem>(response?.data);
-      setItens(lista);
-    } catch (err) {
-      console.error(err);
-      setError("Erro ao carregar carrinho");
+      setItens(res.data?.itens ?? []);
     } finally {
       setLoading(false);
     }
@@ -139,33 +96,23 @@ export default function CarrinhoPage() {
     carregarCarrinho();
   }, [carregarCarrinho]);
 
-  const removerItem = useCallback(async (itemId: string) => {
+  const removerItem = async (id: string) => {
+    setRemovingId(id);
+
+    setItens((prev) => prev.filter((i) => getItemId(i) !== id));
+
     try {
-      setRemovingId(itemId);
-
-      // optimistic update
-      setItens((prev) => prev.filter((i) => getItemId(i) !== itemId));
-
-      await InicioApi.delete(`/carrinho/item/${itemId}`, {
+      await InicioApi.delete(`/carrinho/item/${id}`, {
         withCredentials: true,
       });
-    } catch (err) {
-      console.error(err);
-      setError("Erro ao remover item");
-      carregarCarrinho(); // fallback sync
     } finally {
       setRemovingId(null);
     }
-  }, [carregarCarrinho]);
+  };
 
   const total = useMemo(() => {
     return itens.reduce((acc, item) => {
-      const valor =
-        normalizarNumero(item.subtotal) ||
-        normalizarNumero(item.total) ||
-        normalizarNumero(item.preco) * normalizarNumero(item.quantidade);
-
-      return acc + valor;
+      return acc + normalizarNumero(item.subtotal || item.preco);
     }, 0);
   }, [itens]);
 
@@ -178,60 +125,55 @@ export default function CarrinhoPage() {
 
           {/* HEADER */}
           <div className="cart-header">
-            <div className="cart-titleWrap">
+            <div className="cart-title">
               <FiShoppingCart size={28} />
-              <div>
-                <h1>Seu Carrinho</h1>
-                <p>{itens.length} item(ns)</p>
-              </div>
+              <h1>Seu Carrinho</h1>
             </div>
 
-            <Link href="/">Continuar comprando</Link>
+            <Link href="/" className="cart-link">
+              Continuar comprando
+            </Link>
           </div>
-
-          {/* ERROR */}
-          {error && <p style={{ color: "red" }}>{error}</p>}
-
-          {/* LOADING */}
-          {loading && <p>Carregando...</p>}
 
           {/* EMPTY */}
           {!loading && itens.length === 0 && (
-            <div className="empty-cart">
-              <FiShoppingCart size={60} />
-              <h2>Carrinho vazio</h2>
-              <Link href="/">Ir às compras</Link>
+            <div className="cart-empty">
+              <h2>Seu carrinho está vazio</h2>
             </div>
           )}
 
-          {/* LIST */}
+          {/* GRID */}
           {!loading && itens.length > 0 && (
             <div className="cart-grid">
 
+              {/* ITEMS */}
               <div className="cart-items">
                 {itens.map((item) => {
                   const id = getItemId(item);
 
                   return (
                     <div key={id} className="cart-item">
+
                       <Image
                         src={getItemImagem(item)}
-                        alt={getItemNome(item)}
-                        width={100}
-                        height={100}
+                        alt="produto"
+                        width={90}
+                        height={90}
+                        className="cart-image"
                       />
 
-                      <div>
+                      <div className="cart-info">
                         <h3>{getItemNome(item)}</h3>
                         <p>Qtd: {item.quantidade}</p>
                         <strong>{formatarMoeda(item.subtotal || item.preco)}</strong>
                       </div>
 
                       <button
+                        className="cart-remove"
                         onClick={() => removerItem(id)}
                         disabled={removingId === id}
                       >
-                        {removingId === id ? "..." : <FiTrash2 />}
+                        <FiTrash2 />
                       </button>
                     </div>
                   );
@@ -242,21 +184,23 @@ export default function CarrinhoPage() {
               <aside className="cart-summary">
                 <h3>Resumo</h3>
 
-                <div>
+                <div className="cart-total">
                   <span>Total</span>
                   <strong>{formatarMoeda(total)}</strong>
                 </div>
 
-                <Link href="/Carrinho/checkout">
-                  Finalizar <FiArrowRight />
+                <Link href="/Carrinho/checkout" className="cart-checkout">
+                  Finalizar compra <FiArrowRight />
                 </Link>
               </aside>
+
             </div>
           )}
         </div>
       </main>
 
       <Footer />
+
     </>
   );
 }
