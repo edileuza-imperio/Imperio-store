@@ -19,11 +19,11 @@ import {
   FiLock,
 } from "react-icons/fi";
 
-import "./checkout.css";
-
 /* =========================
    TIPOS
 ========================= */
+
+type AnyRecord = Record<string, any>;
 
 type Endereco = {
   id?: number;
@@ -180,18 +180,22 @@ export default function CheckoutPage() {
         setLoading(true);
 
         const [enderecoRes, carrinhoRes, itensRes] = await Promise.all([
-          InicioApi.get("/usuario/endereco", { withCredentials: true }),
-          InicioApi.get("/carrinho", { withCredentials: true }),
-          InicioApi.get("/carrinho/itens", { withCredentials: true }),
+          InicioApi.get<any>("/usuario/endereco", { withCredentials: true }),
+          InicioApi.get<any>("/carrinho", { withCredentials: true }),
+          InicioApi.get<any>("/carrinho/itens", { withCredentials: true }),
         ]);
 
-        const listaEnderecos: Endereco[] = extrairLista<Endereco>(enderecoRes.data);
-        const listaItens: ItemCarrinho[] = extrairLista<ItemCarrinho>(itensRes.data);
+        const enderecoPayload: AnyRecord = (enderecoRes as any)?.data ?? {};
+        const carrinhoPayload: AnyRecord = (carrinhoRes as any)?.data ?? {};
+        const itensPayload: AnyRecord = (itensRes as any)?.data ?? {};
+
+        const listaEnderecos: Endereco[] = extrairLista<Endereco>(enderecoPayload);
+        const listaItens: ItemCarrinho[] = extrairLista<ItemCarrinho>(itensPayload);
 
         const carrinhoData: Carrinho =
-          carrinhoRes.data?.dados ??
-          carrinhoRes.data?.data ??
-          carrinhoRes.data ??
+          carrinhoPayload?.dados ??
+          carrinhoPayload?.data ??
+          carrinhoPayload ??
           null;
 
         setEnderecos(listaEnderecos);
@@ -263,16 +267,18 @@ export default function CheckoutPage() {
         valor_total: valorTotal,
       };
 
-      const response = await InicioApi.post("/pedido/checkout", payload, {
+      const response = await InicioApi.post<any>("/pedido/checkout", payload, {
         withCredentials: true,
       });
 
+      const responseData: AnyRecord = (response as any)?.data ?? {};
+
       const pedidoData: Pedido =
-        response.data?.pedido ??
-        response.data?.dados?.pedido ??
-        response.data?.data?.pedido ??
-        response.data?.pedido ??
-        response.data;
+        responseData?.pedido ??
+        responseData?.dados?.pedido ??
+        responseData?.data?.pedido ??
+        responseData?.data ??
+        responseData;
 
       const pedidoId =
         pedidoData?.id_pedido ?? pedidoData?.pedido_id ?? pedidoData?.id;
@@ -310,6 +316,127 @@ export default function CheckoutPage() {
               </Link>
             </section>
           </div>
+
+          <style jsx global>{`
+            .checkout-page {
+              min-height: 100vh;
+              position: relative;
+              overflow: hidden;
+              padding: 120px 20px 60px;
+              background:
+                radial-gradient(circle at top left, rgba(192, 138, 122, 0.18), transparent 28%),
+                radial-gradient(circle at top right, rgba(255, 255, 255, 0.55), transparent 24%),
+                linear-gradient(180deg, #f7f1e6 0%, #f4eadf 100%);
+              color: #2b2b2b;
+            }
+
+            .checkout-page::before,
+            .checkout-page::after {
+              content: "";
+              position: absolute;
+              border-radius: 999px;
+              filter: blur(30px);
+              pointer-events: none;
+              opacity: 0.42;
+            }
+
+            .checkout-page::before {
+              width: 260px;
+              height: 260px;
+              background: rgba(192, 138, 122, 0.22);
+              top: 90px;
+              right: -70px;
+            }
+
+            .checkout-page::after {
+              width: 320px;
+              height: 320px;
+              background: rgba(255, 255, 255, 0.35);
+              bottom: -120px;
+              left: -90px;
+            }
+
+            .checkout-shell {
+              position: relative;
+              z-index: 1;
+              max-width: 1180px;
+              margin: 0 auto;
+            }
+
+            .glass {
+              background: rgba(255, 255, 255, 0.56);
+              border: 1px solid rgba(233, 222, 214, 0.82);
+              box-shadow:
+                0 18px 50px rgba(59, 40, 32, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+              backdrop-filter: blur(18px);
+              -webkit-backdrop-filter: blur(18px);
+            }
+
+            .empty-card {
+              max-width: 520px;
+              margin: 0 auto;
+              text-align: center;
+              border-radius: 28px;
+              padding: 34px 26px;
+            }
+
+            .empty-icon {
+              width: 70px;
+              height: 70px;
+              margin: 0 auto 16px;
+              border-radius: 22px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              color: #8c5a50;
+              background: rgba(192, 138, 122, 0.12);
+              border: 1px solid rgba(192, 138, 122, 0.18);
+            }
+
+            .empty-card h1 {
+              margin: 0;
+              font-size: 28px;
+              color: #8c5a50;
+            }
+
+            .empty-card p {
+              margin: 10px 0 0;
+              color: rgba(43, 43, 43, 0.72);
+            }
+
+            .btn-primary,
+            .btn-secondary {
+              height: 54px;
+              border-radius: 16px;
+              text-decoration: none;
+              border: none;
+              font-weight: 700;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              gap: 10px;
+              cursor: pointer;
+              transition: 0.22s ease;
+            }
+
+            .btn-primary {
+              background: linear-gradient(135deg, #c08a7a 0%, #a96d61 100%);
+              color: #fff;
+              box-shadow: 0 16px 28px rgba(160, 107, 95, 0.24);
+              padding: 0 22px;
+            }
+
+            .btn-primary:hover {
+              transform: translateY(-2px);
+            }
+
+            @media (max-width: 768px) {
+              .checkout-page {
+                padding: 104px 14px 36px;
+              }
+            }
+          `}</style>
         </main>
 
         <Footer />
@@ -334,9 +461,7 @@ export default function CheckoutPage() {
               <p>Revise endereço, resumo e siga para o pagamento.</p>
             </div>
 
-            <div className="hero-badge">
-              {itens.length} item(ns)
-            </div>
+            <div className="hero-badge">{itens.length} item(ns)</div>
           </header>
 
           <section className="steps">
@@ -366,9 +491,7 @@ export default function CheckoutPage() {
           </section>
 
           {loading && (
-            <div className="loading-card glass">
-              Carregando informações do checkout...
-            </div>
+            <div className="loading-card glass">Carregando informações do checkout...</div>
           )}
 
           {!loading && (
@@ -406,11 +529,10 @@ export default function CheckoutPage() {
 
                             <div className="address-info">
                               <strong>
-                                {endereco.rua || endereco.endereco || "Endereço sem nome"}, {endereco.numero || "S/N"}
+                                {endereco.rua || endereco.endereco || "Endereço sem nome"},{" "}
+                                {endereco.numero || "S/N"}
                               </strong>
-                              <span>
-                                {endereco.bairro || "Bairro não informado"}
-                              </span>
+                              <span>{endereco.bairro || "Bairro não informado"}</span>
                               <span>
                                 {endereco.cidade || "Cidade"} - {endereco.estado || "UF"}
                               </span>
@@ -472,9 +594,7 @@ export default function CheckoutPage() {
                             <span>Qtd: {qtd}</span>
                           </div>
 
-                          <div className="summary-price">
-                            {formatarMoeda(subtotal)}
-                          </div>
+                          <div className="summary-price">{formatarMoeda(subtotal)}</div>
                         </div>
                       );
                     })}
@@ -520,6 +640,544 @@ export default function CheckoutPage() {
             </div>
           )}
         </div>
+
+        <style jsx global>{`
+          .checkout-page {
+            min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+            padding: 120px 20px 60px;
+            background:
+              radial-gradient(circle at top left, rgba(192, 138, 122, 0.18), transparent 28%),
+              radial-gradient(circle at top right, rgba(255, 255, 255, 0.55), transparent 24%),
+              linear-gradient(180deg, #f7f1e6 0%, #f4eadf 100%);
+            color: #2b2b2b;
+          }
+
+          .checkout-page::before,
+          .checkout-page::after {
+            content: "";
+            position: absolute;
+            border-radius: 999px;
+            filter: blur(30px);
+            pointer-events: none;
+            opacity: 0.42;
+          }
+
+          .checkout-page::before {
+            width: 260px;
+            height: 260px;
+            background: rgba(192, 138, 122, 0.22);
+            top: 90px;
+            right: -70px;
+          }
+
+          .checkout-page::after {
+            width: 320px;
+            height: 320px;
+            background: rgba(255, 255, 255, 0.35);
+            bottom: -120px;
+            left: -90px;
+          }
+
+          .checkout-shell {
+            position: relative;
+            z-index: 1;
+            max-width: 1180px;
+            margin: 0 auto;
+          }
+
+          .glass {
+            background: rgba(255, 255, 255, 0.56);
+            border: 1px solid rgba(233, 222, 214, 0.82);
+            box-shadow:
+              0 18px 50px rgba(59, 40, 32, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+          }
+
+          .checkout-hero {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 24px 26px;
+            border-radius: 26px;
+            margin-bottom: 20px;
+          }
+
+          .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(192, 138, 122, 0.12);
+            color: #8c5a50;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 14px;
+          }
+
+          .checkout-hero h1 {
+            margin: 0;
+            font-size: clamp(28px, 4vw, 42px);
+            line-height: 1.05;
+            color: #8c5a50;
+            letter-spacing: -0.03em;
+          }
+
+          .checkout-hero p {
+            margin: 10px 0 0;
+            color: rgba(43, 43, 43, 0.72);
+            font-size: 15px;
+          }
+
+          .hero-badge {
+            flex-shrink: 0;
+            padding: 12px 16px;
+            border-radius: 999px;
+            background: rgba(247, 241, 230, 0.92);
+            border: 1px solid rgba(233, 222, 214, 0.95);
+            color: #8c5a50;
+            font-weight: 700;
+          }
+
+          .steps {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 14px;
+            margin-bottom: 22px;
+          }
+
+          .step {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 18px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.45);
+            border: 1px solid rgba(233, 222, 214, 0.85);
+            color: rgba(43, 43, 43, 0.74);
+          }
+
+          .step svg {
+            flex-shrink: 0;
+            width: 20px;
+            height: 20px;
+            color: #c08a7a;
+          }
+
+          .step strong {
+            display: block;
+            font-size: 14px;
+            color: #2b2b2b;
+          }
+
+          .step span {
+            display: block;
+            font-size: 12px;
+            margin-top: 2px;
+            color: rgba(43, 43, 43, 0.6);
+          }
+
+          .step.active {
+            background: rgba(192, 138, 122, 0.14);
+            border-color: rgba(192, 138, 122, 0.2);
+          }
+
+          .loading-card {
+            padding: 18px 20px;
+            border-radius: 22px;
+            text-align: center;
+          }
+
+          .checkout-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 360px;
+            gap: 26px;
+            align-items: start;
+          }
+
+          .checkout-main {
+            min-width: 0;
+          }
+
+          .checkout-aside {
+            position: sticky;
+            top: 110px;
+          }
+
+          .panel,
+          .summary-card {
+            border-radius: 26px;
+            padding: 22px;
+          }
+
+          .panel-header h2,
+          .summary-header h2 {
+            margin: 0;
+            font-size: 22px;
+            color: #8c5a50;
+            letter-spacing: -0.03em;
+          }
+
+          .panel-header p,
+          .summary-header p {
+            margin: 8px 0 0;
+            color: rgba(43, 43, 43, 0.65);
+            font-size: 14px;
+          }
+
+          .address-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: 18px;
+          }
+
+          .address-card {
+            width: 100%;
+            padding: 16px;
+            border-radius: 18px;
+            border: 1px solid rgba(233, 222, 214, 0.9);
+            background: rgba(255, 255, 255, 0.58);
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            text-align: left;
+            cursor: pointer;
+            transition: 0.22s ease;
+          }
+
+          .address-card:hover {
+            transform: translateY(-2px);
+            border-color: rgba(192, 138, 122, 0.65);
+          }
+
+          .address-card.active {
+            border: 2px solid #c08a7a;
+            background: rgba(192, 138, 122, 0.12);
+          }
+
+          .address-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 14px;
+            background: rgba(192, 138, 122, 0.12);
+            color: #8c5a50;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+          }
+
+          .address-info {
+            flex: 1;
+            min-width: 0;
+          }
+
+          .address-info strong {
+            display: block;
+            font-size: 14px;
+            color: #2b2b2b;
+            margin-bottom: 4px;
+          }
+
+          .address-info span {
+            display: block;
+            font-size: 13px;
+            color: rgba(43, 43, 43, 0.64);
+            line-height: 1.45;
+          }
+
+          .address-check {
+            margin-left: auto;
+            color: #c08a7a;
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+          }
+
+          .empty-inline {
+            margin-top: 18px;
+            padding: 18px;
+            border-radius: 18px;
+            background: rgba(247, 241, 230, 0.8);
+            border: 1px solid rgba(233, 222, 214, 0.9);
+            color: rgba(43, 43, 43, 0.72);
+          }
+
+          .inline-link {
+            display: inline-block;
+            margin-left: 6px;
+            color: #8c5a50;
+            font-weight: 700;
+            text-decoration: none;
+          }
+
+          .panel-actions {
+            margin-top: 22px;
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 12px;
+          }
+
+          .btn-primary,
+          .btn-secondary {
+            height: 54px;
+            border-radius: 16px;
+            text-decoration: none;
+            border: none;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: 0.22s ease;
+          }
+
+          .btn-primary {
+            background: linear-gradient(135deg, #c08a7a 0%, #a96d61 100%);
+            color: #fff;
+            box-shadow: 0 16px 28px rgba(160, 107, 95, 0.24);
+          }
+
+          .btn-primary:hover {
+            transform: translateY(-2px);
+          }
+
+          .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: progress;
+            transform: none;
+          }
+
+          .btn-secondary {
+            background: rgba(255, 255, 255, 0.7);
+            color: #8c5a50;
+            border: 1px solid rgba(192, 138, 122, 0.2);
+          }
+
+          .btn-secondary:hover {
+            transform: translateY(-2px);
+            border-color: rgba(192, 138, 122, 0.55);
+          }
+
+          .full {
+            width: 100%;
+            margin-top: 18px;
+          }
+
+          .summary-items {
+            margin-top: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-height: 260px;
+            overflow-y: auto;
+            padding-right: 4px;
+          }
+
+          .summary-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.5);
+            border: 1px solid rgba(192, 138, 122, 0.15);
+          }
+
+          .summary-imageWrap {
+            width: 52px;
+            height: 52px;
+            flex: 0 0 52px;
+            border-radius: 14px;
+            overflow: hidden;
+            background: linear-gradient(180deg, rgba(247, 241, 230, 0.95), rgba(233, 222, 214, 0.75));
+          }
+
+          .summary-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+
+          .summary-info {
+            flex: 1;
+            min-width: 0;
+          }
+
+          .summary-info strong {
+            display: block;
+            font-size: 13px;
+            color: #2b2b2b;
+            line-height: 1.35;
+          }
+
+          .summary-info span {
+            display: block;
+            font-size: 11px;
+            color: rgba(43, 43, 43, 0.62);
+            margin-top: 3px;
+          }
+
+          .summary-price {
+            font-weight: 700;
+            color: #8c5a50;
+            font-size: 13px;
+            white-space: nowrap;
+          }
+
+          .summary-box {
+            margin-top: 16px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(233, 222, 214, 0.9);
+          }
+
+          .summary-row,
+          .summary-total {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+          }
+
+          .summary-row {
+            margin-bottom: 12px;
+            color: rgba(43, 43, 43, 0.82);
+          }
+
+          .summary-row strong {
+            color: #2b2b2b;
+          }
+
+          .summary-total {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(233, 222, 214, 0.95);
+          }
+
+          .summary-total span {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2b2b2b;
+          }
+
+          .summary-total strong {
+            font-size: 22px;
+            color: #8c5a50;
+            letter-spacing: -0.03em;
+          }
+
+          .summary-note {
+            margin: 12px 0 0;
+            text-align: center;
+            font-size: 12px;
+            color: rgba(43, 43, 43, 0.58);
+          }
+
+          .empty-card {
+            max-width: 520px;
+            margin: 0 auto;
+            text-align: center;
+            border-radius: 28px;
+            padding: 34px 26px;
+          }
+
+          .empty-icon {
+            width: 70px;
+            height: 70px;
+            margin: 0 auto 16px;
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #8c5a50;
+            background: rgba(192, 138, 122, 0.12);
+            border: 1px solid rgba(192, 138, 122, 0.18);
+          }
+
+          .empty-card h1 {
+            margin: 0;
+            font-size: 28px;
+            color: #8c5a50;
+          }
+
+          .empty-card p {
+            margin: 10px 0 0;
+            color: rgba(43, 43, 43, 0.72);
+          }
+
+          @media (max-width: 1024px) {
+            .checkout-grid {
+              grid-template-columns: 1fr 320px;
+              gap: 20px;
+            }
+          }
+
+          @media (max-width: 900px) {
+            .checkout-grid {
+              grid-template-columns: 1fr;
+            }
+
+            .checkout-aside {
+              position: relative;
+              top: 0;
+              order: -1;
+            }
+
+            .steps {
+              grid-template-columns: 1fr;
+            }
+
+            .checkout-hero {
+              flex-direction: column;
+              align-items: flex-start;
+            }
+
+            .panel-actions {
+              grid-template-columns: 1fr;
+            }
+          }
+
+          @media (max-width: 768px) {
+            .checkout-page {
+              padding: 104px 14px 36px;
+            }
+
+            .checkout-hero {
+              padding: 18px;
+              border-radius: 22px;
+            }
+
+            .hero-badge {
+              align-self: flex-start;
+            }
+
+            .panel,
+            .summary-card {
+              padding: 18px;
+              border-radius: 22px;
+            }
+
+            .address-card {
+              padding: 14px;
+            }
+
+            .btn-primary,
+            .btn-secondary {
+              height: 52px;
+            }
+
+            .summary-items {
+              max-height: 220px;
+            }
+          }
+        `}</style>
       </main>
 
       <Footer />
