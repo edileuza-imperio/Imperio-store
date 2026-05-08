@@ -297,13 +297,15 @@ export default function CheckoutPage() {
     }
   }
 
-  if (!loading && itens.length === 0) {
-    return (
-      <>
-        <Navbar />
+  const isCarrinhoVazio = !loading && itens.length === 0;
 
-        <main className="checkout-page">
-          <div className="checkout-shell">
+  return (
+    <>
+      <Navbar />
+
+      <main className="checkout-page">
+        <div className="checkout-shell">
+          {isCarrinhoVazio ? (
             <section className="empty-card glass">
               <div className="empty-icon">
                 <FiShoppingBag size={30} />
@@ -315,329 +317,204 @@ export default function CheckoutPage() {
                 Explorar coleção
               </Link>
             </section>
-          </div>
-
-          <style jsx global>{`
-            .checkout-page {
-              min-height: 100vh;
-              position: relative;
-              overflow: hidden;
-              padding: 120px 20px 60px;
-              background:
-                radial-gradient(circle at top left, rgba(192, 138, 122, 0.18), transparent 28%),
-                radial-gradient(circle at top right, rgba(255, 255, 255, 0.55), transparent 24%),
-                linear-gradient(180deg, #f7f1e6 0%, #f4eadf 100%);
-              color: #2b2b2b;
-            }
-
-            .checkout-page::before,
-            .checkout-page::after {
-              content: "";
-              position: absolute;
-              border-radius: 999px;
-              filter: blur(30px);
-              pointer-events: none;
-              opacity: 0.42;
-            }
-
-            .checkout-page::before {
-              width: 260px;
-              height: 260px;
-              background: rgba(192, 138, 122, 0.22);
-              top: 90px;
-              right: -70px;
-            }
-
-            .checkout-page::after {
-              width: 320px;
-              height: 320px;
-              background: rgba(255, 255, 255, 0.35);
-              bottom: -120px;
-              left: -90px;
-            }
-
-            .checkout-shell {
-              position: relative;
-              z-index: 1;
-              max-width: 1180px;
-              margin: 0 auto;
-            }
-
-            .glass {
-              background: rgba(255, 255, 255, 0.56);
-              border: 1px solid rgba(233, 222, 214, 0.82);
-              box-shadow:
-                0 18px 50px rgba(59, 40, 32, 0.08),
-                inset 0 1px 0 rgba(255, 255, 255, 0.6);
-              backdrop-filter: blur(18px);
-              -webkit-backdrop-filter: blur(18px);
-            }
-
-            .empty-card {
-              max-width: 520px;
-              margin: 0 auto;
-              text-align: center;
-              border-radius: 28px;
-              padding: 34px 26px;
-            }
-
-            .empty-icon {
-              width: 70px;
-              height: 70px;
-              margin: 0 auto 16px;
-              border-radius: 22px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              color: #8c5a50;
-              background: rgba(192, 138, 122, 0.12);
-              border: 1px solid rgba(192, 138, 122, 0.18);
-            }
-
-            .empty-card h1 {
-              margin: 0;
-              font-size: 28px;
-              color: #8c5a50;
-            }
-
-            .empty-card p {
-              margin: 10px 0 0;
-              color: rgba(43, 43, 43, 0.72);
-            }
-
-            .btn-primary,
-            .btn-secondary {
-              height: 54px;
-              border-radius: 16px;
-              text-decoration: none;
-              border: none;
-              font-weight: 700;
-              display: inline-flex;
-              align-items: center;
-              justify-content: center;
-              gap: 10px;
-              cursor: pointer;
-              transition: 0.22s ease;
-            }
-
-            .btn-primary {
-              background: linear-gradient(135deg, #c08a7a 0%, #a96d61 100%);
-              color: #fff;
-              box-shadow: 0 16px 28px rgba(160, 107, 95, 0.24);
-              padding: 0 22px;
-            }
-
-            .btn-primary:hover {
-              transform: translateY(-2px);
-            }
-
-            @media (max-width: 768px) {
-              .checkout-page {
-                padding: 104px 14px 36px;
-              }
-            }
-          `}</style>
-        </main>
-
-        <Footer />
-      </>
-    );
-  }
-
-  return (
-    <>
-      <Navbar />
-
-      <main className="checkout-page">
-        <div className="checkout-shell">
-          <header className="checkout-hero glass">
-            <div>
-              <div className="eyebrow">
-                <FiLock />
-                <span>Checkout seguro</span>
-              </div>
-
-              <h1>Finalize sua compra</h1>
-              <p>Revise endereço, resumo e siga para o pagamento.</p>
-            </div>
-
-            <div className="hero-badge">{itens.length} item(ns)</div>
-          </header>
-
-          <section className="steps">
-            <div className="step active">
-              <FiMapPin />
-              <div>
-                <strong>1. Endereço</strong>
-                <span>Escolha onde receber</span>
-              </div>
-            </div>
-
-            <div className="step">
-              <FiTruck />
-              <div>
-                <strong>2. Entrega</strong>
-                <span>Envio e prazo</span>
-              </div>
-            </div>
-
-            <div className="step">
-              <FiCreditCard />
-              <div>
-                <strong>3. Pagamento</strong>
-                <span>Concluir pedido</span>
-              </div>
-            </div>
-          </section>
-
-          {loading && (
-            <div className="loading-card glass">Carregando informações do checkout...</div>
-          )}
-
-          {!loading && (
-            <div className="checkout-grid">
-              <section className="checkout-main">
-                <div className="panel glass">
-                  <div className="panel-header">
-                    <h2>Endereço de entrega</h2>
-                    <p>Selecione o local para receber seu pedido.</p>
+          ) : (
+            <>
+              <header className="checkout-hero glass">
+                <div>
+                  <div className="eyebrow">
+                    <FiLock />
+                    <span>Checkout seguro</span>
                   </div>
 
-                  {enderecos.length === 0 ? (
-                    <div className="empty-inline">
-                      Nenhum endereço cadastrado.
-                      <Link href="/Perfil/Enderecos" className="inline-link">
-                        Cadastrar endereço
-                      </Link>
-                    </div>
-                  ) : (
-                    <div className="address-list">
-                      {enderecos.map((endereco) => {
-                        const id = getEnderecoId(endereco);
-                        const ativo = enderecoSelecionado === id;
+                  <h1>Finalize sua compra</h1>
+                  <p>Revise endereço, resumo e siga para o pagamento.</p>
+                </div>
 
-                        return (
-                          <button
-                            key={id}
-                            type="button"
-                            className={`address-card ${ativo ? "active" : ""}`}
-                            onClick={() => setEnderecoSelecionado(id)}
-                          >
-                            <div className="address-icon">
-                              <FiMapPin />
-                            </div>
+                <div className="hero-badge">{itens.length} item(ns)</div>
+              </header>
 
-                            <div className="address-info">
-                              <strong>
-                                {endereco.rua || endereco.endereco || "Endereço sem nome"},{" "}
-                                {endereco.numero || "S/N"}
-                              </strong>
-                              <span>{endereco.bairro || "Bairro não informado"}</span>
-                              <span>
-                                {endereco.cidade || "Cidade"} - {endereco.estado || "UF"}
-                              </span>
-                            </div>
+              <section className="steps">
+                <div className="step active">
+                  <FiMapPin />
+                  <div>
+                    <strong>1. Endereço</strong>
+                    <span>Escolha onde receber</span>
+                  </div>
+                </div>
 
-                            {ativo && <FiCheckCircle className="address-check" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                <div className="step">
+                  <FiTruck />
+                  <div>
+                    <strong>2. Entrega</strong>
+                    <span>Envio e prazo</span>
+                  </div>
+                </div>
 
-                  <div className="panel-actions">
-                    <Link href="/Carrinho" className="btn-secondary">
-                      Voltar ao carrinho
-                    </Link>
-
-                    <button
-                      type="button"
-                      className="btn-primary"
-                      onClick={finalizarCheckout}
-                      disabled={processando || !enderecos.length}
-                    >
-                      {processando ? "Processando..." : "Ir para pagamento"}
-                      <FiArrowRight />
-                    </button>
+                <div className="step">
+                  <FiCreditCard />
+                  <div>
+                    <strong>3. Pagamento</strong>
+                    <span>Concluir pedido</span>
                   </div>
                 </div>
               </section>
 
-              <aside className="checkout-aside">
-                <div className="summary-card glass">
-                  <div className="summary-header">
-                    <h2>Resumo do pedido</h2>
-                    <p>{itens.length} produto(s) no carrinho</p>
-                  </div>
-
-                  <div className="summary-items">
-                    {itens.map((item) => {
-                      const nome = getItemNome(item);
-                      const imagem = getItemImagem(item);
-                      const qtd = getItemQuantidade(item);
-                      const subtotal = getItemSubtotal(item);
-
-                      return (
-                        <div className="summary-item" key={String(getItemId(item))}>
-                          <div className="summary-imageWrap">
-                            <Image
-                              src={imagem}
-                              alt={nome}
-                              width={52}
-                              height={52}
-                              className="summary-image"
-                            />
-                          </div>
-
-                          <div className="summary-info">
-                            <strong>{nome}</strong>
-                            <span>Qtd: {qtd}</span>
-                          </div>
-
-                          <div className="summary-price">{formatarMoeda(subtotal)}</div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="summary-box">
-                    <div className="summary-row">
-                      <span>Subtotal</span>
-                      <strong>{formatarMoeda(subtotalItens)}</strong>
-                    </div>
-
-                    <div className="summary-row">
-                      <span>Frete</span>
-                      <strong>{valorFrete > 0 ? formatarMoeda(valorFrete) : "Grátis"}</strong>
-                    </div>
-
-                    <div className="summary-row">
-                      <span>Desconto</span>
-                      <strong>- {formatarMoeda(valorDesconto)}</strong>
-                    </div>
-
-                    <div className="summary-total">
-                      <span>Total</span>
-                      <strong>{formatarMoeda(valorTotal)}</strong>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="btn-primary full"
-                    onClick={finalizarCheckout}
-                    disabled={processando || !enderecos.length}
-                  >
-                    {processando ? "Processando..." : "Ir para pagamento"}
-                    <FiArrowRight />
-                  </button>
-
-                  <p className="summary-note">
-                    Pagamento seguro, dados protegidos e experiência premium.
-                  </p>
+              {loading && (
+                <div className="loading-card glass">
+                  Carregando informações do checkout...
                 </div>
-              </aside>
-            </div>
+              )}
+
+              {!loading && (
+                <div className="checkout-grid">
+                  <section className="checkout-main">
+                    <div className="panel glass">
+                      <div className="panel-header">
+                        <h2>Endereço de entrega</h2>
+                        <p>Selecione o local para receber seu pedido.</p>
+                      </div>
+
+                      {enderecos.length === 0 ? (
+                        <div className="empty-inline">
+                          Nenhum endereço cadastrado.
+                          <Link href="/endereco" className="inline-link">
+                            Cadastrar endereço
+                          </Link>
+                        </div>
+                      ) : (
+                        <div className="address-list">
+                          {enderecos.map((endereco) => {
+                            const id = getEnderecoId(endereco);
+                            const ativo = enderecoSelecionado === id;
+
+                            return (
+                              <button
+                                key={id}
+                                type="button"
+                                className={`address-card ${ativo ? "active" : ""}`}
+                                onClick={() => setEnderecoSelecionado(id)}
+                              >
+                                <div className="address-icon">
+                                  <FiMapPin />
+                                </div>
+
+                                <div className="address-info">
+                                  <strong>
+                                    {endereco.rua || endereco.endereco || "Endereço sem nome"},{" "}
+                                    {endereco.numero || "S/N"}
+                                  </strong>
+                                  <span>{endereco.bairro || "Bairro não informado"}</span>
+                                  <span>
+                                    {endereco.cidade || "Cidade"} - {endereco.estado || "UF"}
+                                  </span>
+                                </div>
+
+                                {ativo && <FiCheckCircle className="address-check" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <div className="panel-actions">
+                        <Link href="/Carrinho" className="btn-secondary">
+                          Voltar ao carrinho
+                        </Link>
+
+                        <button
+                          type="button"
+                          className="btn-primary"
+                          onClick={finalizarCheckout}
+                          disabled={processando || !enderecos.length}
+                        >
+                          {processando ? "Processando..." : "Ir para pagamento"}
+                          <FiArrowRight />
+                        </button>
+                      </div>
+                    </div>
+                  </section>
+
+                  <aside className="checkout-aside">
+                    <div className="summary-card glass">
+                      <div className="summary-header">
+                        <h2>Resumo do pedido</h2>
+                        <p>{itens.length} produto(s) no carrinho</p>
+                      </div>
+
+                      <div className="summary-items">
+                        {itens.map((item) => {
+                          const nome = getItemNome(item);
+                          const imagem = getItemImagem(item);
+                          const qtd = getItemQuantidade(item);
+                          const subtotal = getItemSubtotal(item);
+
+                          return (
+                            <div className="summary-item" key={String(getItemId(item))}>
+                              <div className="summary-imageWrap">
+                                <Image
+                                  src={imagem}
+                                  alt={nome}
+                                  width={52}
+                                  height={52}
+                                  className="summary-image"
+                                />
+                              </div>
+
+                              <div className="summary-info">
+                                <strong>{nome}</strong>
+                                <span>Qtd: {qtd}</span>
+                              </div>
+
+                              <div className="summary-price">
+                                {formatarMoeda(subtotal)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      <div className="summary-box">
+                        <div className="summary-row">
+                          <span>Subtotal</span>
+                          <strong>{formatarMoeda(subtotalItens)}</strong>
+                        </div>
+
+                        <div className="summary-row">
+                          <span>Frete</span>
+                          <strong>
+                            {valorFrete > 0 ? formatarMoeda(valorFrete) : "Grátis"}
+                          </strong>
+                        </div>
+
+                        <div className="summary-row">
+                          <span>Desconto</span>
+                          <strong>- {formatarMoeda(valorDesconto)}</strong>
+                        </div>
+
+                        <div className="summary-total">
+                          <span>Total</span>
+                          <strong>{formatarMoeda(valorTotal)}</strong>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        className="btn-primary full"
+                        onClick={finalizarCheckout}
+                        disabled={processando || !enderecos.length}
+                      >
+                        {processando ? "Processando..." : "Ir para pagamento"}
+                        <FiArrowRight />
+                      </button>
+
+                      <p className="summary-note">
+                        Pagamento seguro, dados protegidos e experiência premium.
+                      </p>
+                    </div>
+                  </aside>
+                </div>
+              )}
+            </>
           )}
         </div>
 
@@ -943,6 +820,7 @@ export default function CheckoutPage() {
             background: linear-gradient(135deg, #c08a7a 0%, #a96d61 100%);
             color: #fff;
             box-shadow: 0 16px 28px rgba(160, 107, 95, 0.24);
+            padding: 0 22px;
           }
 
           .btn-primary:hover {
@@ -997,7 +875,11 @@ export default function CheckoutPage() {
             flex: 0 0 52px;
             border-radius: 14px;
             overflow: hidden;
-            background: linear-gradient(180deg, rgba(247, 241, 230, 0.95), rgba(233, 222, 214, 0.75));
+            background: linear-gradient(
+              180deg,
+              rgba(247, 241, 230, 0.95),
+              rgba(233, 222, 214, 0.75)
+            );
           }
 
           .summary-image {
