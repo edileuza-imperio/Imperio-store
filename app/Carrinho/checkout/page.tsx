@@ -19,21 +19,11 @@ import {
   FiLock,
 } from "react-icons/fi";
 
-import { toast } from "react-toastify";
-
 import "./checkout.css";
 
 /* =========================
    TIPOS
 ========================= */
-
-type ApiResponse<T> = {
-  dados?: T;
-  data?: T;
-  itens?: T;
-  carrinho?: any;
-  pedido?: any;
-} & Record<string, any>;
 
 type Endereco = {
   id?: number;
@@ -91,7 +81,9 @@ type Pedido = {
 ========================= */
 
 function normalizarNumero(valor: unknown): number {
-  if (typeof valor === "number") return Number.isFinite(valor) ? valor : 0;
+  if (typeof valor === "number") {
+    return Number.isFinite(valor) ? valor : 0;
+  }
 
   if (typeof valor === "string") {
     const limpo = valor.replace(/\./g, "").replace(",", ".");
@@ -109,11 +101,12 @@ function formatarMoeda(valor: unknown) {
   }).format(normalizarNumero(valor));
 }
 
-function extrairLista<T>(payload: any): T[] {
+function extrairLista<T = unknown>(payload: any): T[] {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.dados)) return payload.dados;
   if (Array.isArray(payload?.data)) return payload.data;
   if (Array.isArray(payload?.itens)) return payload.itens;
+  if (Array.isArray(payload?.dados?.itens)) return payload.dados.itens;
   if (Array.isArray(payload?.carrinho?.itens)) return payload.carrinho.itens;
   return [];
 }
@@ -127,14 +120,14 @@ function getItemId(item: ItemCarrinho) {
 }
 
 function getItemNome(item: ItemCarrinho) {
-  return (
+  const nome =
     item.produto?.nome ??
     item.produto?.titulo ??
     item.produto_nome ??
     item.nome ??
-    item.titulo ??
-    "Produto sem nome"
-  );
+    item.titulo;
+
+  return nome?.trim() ? nome : "Produto sem nome";
 }
 
 function getItemImagem(item: ItemCarrinho) {
@@ -153,14 +146,16 @@ function getItemQuantidade(item: ItemCarrinho) {
 }
 
 function getItemSubtotal(item: ItemCarrinho) {
-  return normalizarNumero(
+  const subtotal =
     item.subtotal ??
-      item.total ??
-      (item.preco_promocional_unitario != null
-        ? normalizarNumero(item.preco_promocional_unitario) *
-          getItemQuantidade(item)
-        : normalizarNumero(item.preco_unitario) * getItemQuantidade(item))
-  );
+    item.total ??
+    (item.preco_promocional_unitario != null
+      ? normalizarNumero(item.preco_promocional_unitario) * getItemQuantidade(item)
+      : item.preco_unitario != null
+      ? normalizarNumero(item.preco_unitario) * getItemQuantidade(item)
+      : 0);
+
+  return normalizarNumero(subtotal);
 }
 
 /* =========================
@@ -185,24 +180,18 @@ export default function CheckoutPage() {
         setLoading(true);
 
         const [enderecoRes, carrinhoRes, itensRes] = await Promise.all([
-          InicioApi.get<ApiResponse<Endereco[]>>("/usuario/endereco", {
-            withCredentials: true,
-          }),
-          InicioApi.get<ApiResponse<Carrinho>>("/carrinho", {
-            withCredentials: true,
-          }),
-          InicioApi.get<ApiResponse<ItemCarrinho[]>>("/carrinho/itens", {
-            withCredentials: true,
-          }),
+          InicioApi.get("/usuario/endereco", { withCredentials: true }),
+          InicioApi.get("/carrinho", { withCredentials: true }),
+          InicioApi.get("/carrinho/itens", { withCredentials: true }),
         ]);
 
-        const listaEnderecos = extrairLista<Endereco>(enderecoRes.data);
-        const listaItens = extrairLista<ItemCarrinho>(itensRes.data);
+        const listaEnderecos: Endereco[] = extrairLista<Endereco>(enderecoRes.data);
+        const listaItens: ItemCarrinho[] = extrairLista<ItemCarrinho>(itensRes.data);
 
-        const carrinhoData: Carrinho | null =
+        const carrinhoData: Carrinho =
           carrinhoRes.data?.dados ??
           carrinhoRes.data?.data ??
-          carrinhoRes.data?.carrinho ??
+          carrinhoRes.data ??
           null;
 
         setEnderecos(listaEnderecos);
@@ -218,9 +207,8 @@ export default function CheckoutPage() {
         } else if (listaEnderecos.length > 0) {
           setEnderecoSelecionado(getEnderecoId(listaEnderecos[0]));
         }
-      } catch (err) {
-        console.error(err);
-        toast.error("Erro ao carregar checkout");
+      } catch (error) {
+        console.error("Erro ao carregar checkout:", error);
       } finally {
         setLoading(false);
       }
@@ -235,14 +223,20 @@ export default function CheckoutPage() {
 
   const valorFrete = normalizarNumero(carrinho?.valor_frete ?? 0);
   const valorDesconto = normalizarNumero(carrinho?.valor_desconto ?? 0);
-
   const valorTotal =
     normalizarNumero(carrinho?.valor_total ?? 0) ||
     Math.max(0, subtotalItens - valorDesconto + valorFrete);
 
   async function finalizarCheckout() {
-    if (!enderecoSelecionado) return toast.warning("Selecione um endereço.");
-    if (!itens.length) return toast.warning("Carrinho vazio.");
+    if (!enderecoSelecionado) {
+      alert("Selecione um endereço.");
+      return;
+    }
+
+    if (!itens.length) {
+      alert("Carrinho vazio.");
+      return;
+    }
 
     try {
       setProcessando(true);
@@ -254,38 +248,74 @@ export default function CheckoutPage() {
           produto_id: item.produto_id,
           quantidade: getItemQuantidade(item),
           preco_unitario: normalizarNumero(item.preco_unitario),
+          preco_promocional_unitario:
+            item.preco_promocional_unitario != null
+              ? normalizarNumero(item.preco_promocional_unitario)
+              : null,
+          subtotal: getItemSubtotal(item),
         })),
-        endereco_entrega: { endereco_id: enderecoSelecionado },
+        endereco_entrega: {
+          endereco_id: enderecoSelecionado,
+        },
+        valor_produtos: normalizarNumero(carrinho?.valor_produtos ?? subtotalItens),
+        valor_desconto: valorDesconto,
+        valor_frete: valorFrete,
         valor_total: valorTotal,
       };
 
-      const response = await InicioApi.post<ApiResponse<Pedido>>(
-        "/pedido/checkout",
-        payload,
-        { withCredentials: true }
-      );
+      const response = await InicioApi.post("/pedido/checkout", payload, {
+        withCredentials: true,
+      });
 
-      const pedido =
+      const pedidoData: Pedido =
         response.data?.pedido ??
-        response.data?.dados ??
+        response.data?.dados?.pedido ??
+        response.data?.data?.pedido ??
+        response.data?.pedido ??
         response.data;
 
-      const id = pedido?.id_pedido ?? pedido?.pedido_id ?? pedido?.id;
+      const pedidoId =
+        pedidoData?.id_pedido ?? pedidoData?.pedido_id ?? pedidoData?.id;
 
-      if (!id) return toast.error("Erro ao gerar pedido");
+      if (!pedidoId) {
+        alert("Pedido criado, mas não foi possível identificar o ID.");
+        return;
+      }
 
-      router.push(`/Carrinho/pagamento/${id}`);
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro no checkout");
+      router.push(`/Carrinho/pagamento/${pedidoId}`);
+    } catch (error) {
+      console.error("Erro ao finalizar checkout:", error);
+      alert("Erro ao finalizar pedido.");
     } finally {
       setProcessando(false);
     }
   }
 
-  /* =========================
-     UI
-  ========================= */
+  if (!loading && itens.length === 0) {
+    return (
+      <>
+        <Navbar />
+
+        <main className="checkout-page">
+          <div className="checkout-shell">
+            <section className="empty-card glass">
+              <div className="empty-icon">
+                <FiShoppingBag size={30} />
+              </div>
+              <h1>Seu carrinho está vazio</h1>
+              <p>Adicione produtos antes de continuar para o checkout.</p>
+
+              <Link href="/" className="btn-primary">
+                Explorar coleção
+              </Link>
+            </section>
+          </div>
+        </main>
+
+        <Footer />
+      </>
+    );
+  }
 
   return (
     <>
@@ -293,50 +323,202 @@ export default function CheckoutPage() {
 
       <main className="checkout-page">
         <div className="checkout-shell">
+          <header className="checkout-hero glass">
+            <div>
+              <div className="eyebrow">
+                <FiLock />
+                <span>Checkout seguro</span>
+              </div>
 
-          <header className="checkout-hero">
-            <h1>Checkout</h1>
-            <p>Finalize sua compra com segurança</p>
+              <h1>Finalize sua compra</h1>
+              <p>Revise endereço, resumo e siga para o pagamento.</p>
+            </div>
+
+            <div className="hero-badge">
+              {itens.length} item(ns)
+            </div>
           </header>
 
-          {!loading && (
-            <div className="checkout-grid">
+          <section className="steps">
+            <div className="step active">
+              <FiMapPin />
+              <div>
+                <strong>1. Endereço</strong>
+                <span>Escolha onde receber</span>
+              </div>
+            </div>
 
-              {/* ENDEREÇOS */}
-              <section>
-                <h2>Endereço</h2>
+            <div className="step">
+              <FiTruck />
+              <div>
+                <strong>2. Entrega</strong>
+                <span>Envio e prazo</span>
+              </div>
+            </div>
 
-                {enderecos.map((e) => (
-                  <button
-                    key={getEnderecoId(e)}
-                    onClick={() => setEnderecoSelecionado(getEnderecoId(e))}
-                    className={enderecoSelecionado === getEnderecoId(e) ? "active" : ""}
-                  >
-                    {e.rua} - {e.cidade}
-                  </button>
-                ))}
-              </section>
+            <div className="step">
+              <FiCreditCard />
+              <div>
+                <strong>3. Pagamento</strong>
+                <span>Concluir pedido</span>
+              </div>
+            </div>
+          </section>
 
-              {/* RESUMO */}
-              <aside>
-                <h2>Resumo</h2>
-
-                {itens.map((i) => (
-                  <div key={getItemId(i)}>
-                    {getItemNome(i)} - {formatarMoeda(getItemSubtotal(i))}
-                  </div>
-                ))}
-
-                <strong>Total: {formatarMoeda(valorTotal)}</strong>
-
-                <button onClick={finalizarCheckout} disabled={processando}>
-                  {processando ? "Processando..." : "Pagar agora"}
-                </button>
-              </aside>
-
+          {loading && (
+            <div className="loading-card glass">
+              Carregando informações do checkout...
             </div>
           )}
 
+          {!loading && (
+            <div className="checkout-grid">
+              <section className="checkout-main">
+                <div className="panel glass">
+                  <div className="panel-header">
+                    <h2>Endereço de entrega</h2>
+                    <p>Selecione o local para receber seu pedido.</p>
+                  </div>
+
+                  {enderecos.length === 0 ? (
+                    <div className="empty-inline">
+                      Nenhum endereço cadastrado.
+                      <Link href="/Perfil/Enderecos" className="inline-link">
+                        Cadastrar endereço
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="address-list">
+                      {enderecos.map((endereco) => {
+                        const id = getEnderecoId(endereco);
+                        const ativo = enderecoSelecionado === id;
+
+                        return (
+                          <button
+                            key={id}
+                            type="button"
+                            className={`address-card ${ativo ? "active" : ""}`}
+                            onClick={() => setEnderecoSelecionado(id)}
+                          >
+                            <div className="address-icon">
+                              <FiMapPin />
+                            </div>
+
+                            <div className="address-info">
+                              <strong>
+                                {endereco.rua || endereco.endereco || "Endereço sem nome"}, {endereco.numero || "S/N"}
+                              </strong>
+                              <span>
+                                {endereco.bairro || "Bairro não informado"}
+                              </span>
+                              <span>
+                                {endereco.cidade || "Cidade"} - {endereco.estado || "UF"}
+                              </span>
+                            </div>
+
+                            {ativo && <FiCheckCircle className="address-check" />}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div className="panel-actions">
+                    <Link href="/Carrinho" className="btn-secondary">
+                      Voltar ao carrinho
+                    </Link>
+
+                    <button
+                      type="button"
+                      className="btn-primary"
+                      onClick={finalizarCheckout}
+                      disabled={processando || !enderecos.length}
+                    >
+                      {processando ? "Processando..." : "Ir para pagamento"}
+                      <FiArrowRight />
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              <aside className="checkout-aside">
+                <div className="summary-card glass">
+                  <div className="summary-header">
+                    <h2>Resumo do pedido</h2>
+                    <p>{itens.length} produto(s) no carrinho</p>
+                  </div>
+
+                  <div className="summary-items">
+                    {itens.map((item) => {
+                      const nome = getItemNome(item);
+                      const imagem = getItemImagem(item);
+                      const qtd = getItemQuantidade(item);
+                      const subtotal = getItemSubtotal(item);
+
+                      return (
+                        <div className="summary-item" key={String(getItemId(item))}>
+                          <div className="summary-imageWrap">
+                            <Image
+                              src={imagem}
+                              alt={nome}
+                              width={52}
+                              height={52}
+                              className="summary-image"
+                            />
+                          </div>
+
+                          <div className="summary-info">
+                            <strong>{nome}</strong>
+                            <span>Qtd: {qtd}</span>
+                          </div>
+
+                          <div className="summary-price">
+                            {formatarMoeda(subtotal)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="summary-box">
+                    <div className="summary-row">
+                      <span>Subtotal</span>
+                      <strong>{formatarMoeda(subtotalItens)}</strong>
+                    </div>
+
+                    <div className="summary-row">
+                      <span>Frete</span>
+                      <strong>{valorFrete > 0 ? formatarMoeda(valorFrete) : "Grátis"}</strong>
+                    </div>
+
+                    <div className="summary-row">
+                      <span>Desconto</span>
+                      <strong>- {formatarMoeda(valorDesconto)}</strong>
+                    </div>
+
+                    <div className="summary-total">
+                      <span>Total</span>
+                      <strong>{formatarMoeda(valorTotal)}</strong>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="btn-primary full"
+                    onClick={finalizarCheckout}
+                    disabled={processando || !enderecos.length}
+                  >
+                    {processando ? "Processando..." : "Ir para pagamento"}
+                    <FiArrowRight />
+                  </button>
+
+                  <p className="summary-note">
+                    Pagamento seguro, dados protegidos e experiência premium.
+                  </p>
+                </div>
+              </aside>
+            </div>
+          )}
         </div>
       </main>
 

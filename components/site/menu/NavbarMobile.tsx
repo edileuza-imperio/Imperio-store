@@ -87,7 +87,7 @@ export default function NavbarMobile({
 
   const carrinhoMenu = menus?.find((m) => {
     const nome = getMenuNome(m).toLowerCase();
-    return nome.includes("carrinho") || nome.includes("carrito");
+    return nome.includes("Carrinho") || nome.includes("carrito");
   });
 
   const accountItems = useMemo(() => {
