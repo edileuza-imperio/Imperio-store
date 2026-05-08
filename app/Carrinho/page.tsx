@@ -67,12 +67,6 @@ function getItemImagem(item: CarrinhoItem) {
   return item.imagem || item.produto?.imagem || "/images/sem-imagem.png";
 }
 
-/*
-|--------------------------------------------------------------------------
-| PAGE
-|--------------------------------------------------------------------------
-*/
-
 export default function CarrinhoPage() {
   const [itens, setItens] = useState<CarrinhoItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -81,11 +75,9 @@ export default function CarrinhoPage() {
   const carregarCarrinho = useCallback(async () => {
     try {
       setLoading(true);
-
       const res = await InicioApi.get<ApiResponse>("/carrinho/itens", {
         withCredentials: true,
       });
-
       setItens(res.data?.itens ?? []);
     } finally {
       setLoading(false);
@@ -98,7 +90,6 @@ export default function CarrinhoPage() {
 
   const removerItem = async (id: string) => {
     setRemovingId(id);
-
     setItens((prev) => prev.filter((i) => getItemId(i) !== id));
 
     try {
@@ -123,7 +114,6 @@ export default function CarrinhoPage() {
       <main className="cart-page">
         <div className="cart-container">
 
-          {/* HEADER */}
           <div className="cart-header">
             <div className="cart-title">
               <FiShoppingCart size={28} />
@@ -135,18 +125,15 @@ export default function CarrinhoPage() {
             </Link>
           </div>
 
-          {/* EMPTY */}
           {!loading && itens.length === 0 && (
             <div className="cart-empty">
               <h2>Seu carrinho está vazio</h2>
             </div>
           )}
 
-          {/* GRID */}
           {!loading && itens.length > 0 && (
             <div className="cart-grid">
 
-              {/* ITEMS */}
               <div className="cart-items">
                 {itens.map((item) => {
                   const id = getItemId(item);
@@ -180,7 +167,6 @@ export default function CarrinhoPage() {
                 })}
               </div>
 
-              {/* SUMMARY */}
               <aside className="cart-summary">
                 <h3>Resumo</h3>
 
@@ -200,7 +186,6 @@ export default function CarrinhoPage() {
       </main>
 
       <Footer />
-
     </>
   );
 }
