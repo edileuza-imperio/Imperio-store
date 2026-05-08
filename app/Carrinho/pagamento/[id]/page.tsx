@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
 
 import Navbar from "@/components/site/menu/navbar";
@@ -23,8 +23,6 @@ import {
   FiAlertCircle,
 } from "react-icons/fi";
 
-import styles from "./pagamento.module.css";
-
 type Pedido = {
   id_pedido?: number;
   carrinho_id?: number;
@@ -37,6 +35,8 @@ type Pedido = {
   status_pagamento?: string;
   payment_id?: string | null;
   external_reference?: string | null;
+  status?: string;
+  payment_status?: string;
 };
 
 type Usuario = {
@@ -111,8 +111,26 @@ function getQrCodePix(data: ApiPixResponse): string {
   return data?.dados?.pix?.qr_code ?? data?.pix?.qr_code ?? "";
 }
 
+function isPagamentoConfirmado(pedido: Pedido | null) {
+  const status = String(
+    pedido?.status_pagamento ?? pedido?.status ?? pedido?.payment_status ?? ""
+  )
+    .toLowerCase()
+    .trim();
+
+  return (
+    status.includes("pago") ||
+    status.includes("paid") ||
+    status.includes("aprov") ||
+    status.includes("approved") ||
+    status.includes("confirm") ||
+    status.includes("finaliz")
+  );
+}
+
 export default function PagamentoPage() {
   const params = useParams();
+  const router = useRouter();
   const pedidoId = params?.id as string;
 
   const [pedido, setPedido] = useState<Pedido | null>(null);
@@ -121,9 +139,11 @@ export default function PagamentoPage() {
   const [loading, setLoading] = useState(true);
   const [loadingPix, setLoadingPix] = useState(false);
   const [loadingCartao, setLoadingCartao] = useState(false);
+  const [verificandoPagamento, setVerificandoPagamento] = useState(false);
 
   const [pixCode, setPixCode] = useState("");
   const [copiado, setCopiado] = useState(false);
+  const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
 
   const [metodo, setMetodo] = useState<"pix" | "cartao">("pix");
 
@@ -140,33 +160,61 @@ export default function PagamentoPage() {
     return normalizarNumero(pedido?.valor_total ?? 0);
   }, [pedido]);
 
-  useEffect(() => {
-    async function carregar() {
-      try {
-        setLoading(true);
+  async function carregarPedido() {
+    try {
+      setLoading(true);
 
-        const [pedidoRes, meRes] = await Promise.all([
-          InicioApi.get(`/pedido/${pedidoId}`, { withCredentials: true }),
-          InicioApi.get("/me", { withCredentials: true }),
-        ]);
+      const [pedidoRes, meRes] = await Promise.all([
+        InicioApi.get(`/pedido/${pedidoId}`, { withCredentials: true }),
+        InicioApi.get("/me", { withCredentials: true }),
+      ]);
 
-        const pedidoData = getRespostaPedido(pedidoRes.data as ApiPedidoResponse);
-        const usuarioData = getRespostaUsuario(meRes.data as ApiPedidoResponse);
+      const pedidoData = getRespostaPedido(pedidoRes.data as ApiPedidoResponse);
+      const usuarioData = getRespostaUsuario(meRes.data as ApiPedidoResponse);
 
-        console.log("📥 PEDIDO:", pedidoData);
-        console.log("👤 USUÁRIO:", usuarioData);
+      setPedido(pedidoData);
+      setUsuario(usuarioData);
 
-        setPedido(pedidoData);
-        setUsuario(usuarioData);
-      } catch (error) {
-        console.error("Erro ao carregar pagamento:", error);
-      } finally {
-        setLoading(false);
+      if (isPagamentoConfirmado(pedidoData)) {
+        setPagamentoConfirmado(true);
       }
+    } catch (error) {
+      console.error("Erro ao carregar pagamento:", error);
+    } finally {
+      setLoading(false);
     }
+  }
 
-    if (pedidoId) carregar();
+  useEffect(() => {
+    if (pedidoId) carregarPedido();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pedidoId]);
+
+  useEffect(() => {
+    if (!pedidoId) return;
+    if (!pixCode) return;
+    if (pagamentoConfirmado) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await InicioApi.get(`/pedido/${pedidoId}`, {
+          withCredentials: true,
+        });
+
+        const pedidoData = getRespostaPedido(res.data as ApiPedidoResponse);
+
+        if (isPagamentoConfirmado(pedidoData)) {
+          setPedido(pedidoData);
+          setPagamentoConfirmado(true);
+          clearInterval(interval);
+        }
+      } catch (error) {
+        console.warn("Erro ao verificar pagamento automático:", error);
+      }
+    }, 7000);
+
+    return () => clearInterval(interval);
+  }, [pedidoId, pixCode, pagamentoConfirmado]);
 
   async function gerarPix() {
     try {
@@ -188,15 +236,11 @@ export default function PagamentoPage() {
         cpf: (usuario.cpf ?? "").replace(/\D/g, ""),
       };
 
-      console.log("📤 PIX PAYLOAD FINAL:", payload);
-
       const res = await InicioApi.post<ApiPixResponse>(
         "/mercado/pagamento/pix",
         payload,
         { withCredentials: true }
       );
-
-      console.log("✅ PIX RESPONSE:", res.data);
 
       const qr = getQrCodePix(res.data);
 
@@ -206,8 +250,9 @@ export default function PagamentoPage() {
       }
 
       setPixCode(qr);
+      setMetodo("pix");
     } catch (error: any) {
-      console.error("❌ ERRO PIX:", error?.response?.data);
+      console.error("ERRO PIX:", error?.response?.data);
       alert(error?.response?.data?.dados?.erro || "Erro ao gerar PIX");
     } finally {
       setLoadingPix(false);
@@ -232,8 +277,6 @@ export default function PagamentoPage() {
         parcelas: Number(cartao.parcelas || 1),
       };
 
-      console.log("📤 CARTÃO PAYLOAD:", payload);
-
       const res = await InicioApi.post("/mercado/pagamento/cartao", payload, {
         withCredentials: true,
       });
@@ -256,17 +299,81 @@ export default function PagamentoPage() {
     setTimeout(() => setCopiado(false), 1800);
   }
 
+  async function verificarPagamento() {
+    try {
+      setVerificandoPagamento(true);
+
+      const res = await InicioApi.get(`/pedido/${pedidoId}`, {
+        withCredentials: true,
+      });
+
+      const pedidoData = getRespostaPedido(res.data as ApiPedidoResponse);
+
+      setPedido(pedidoData);
+
+      if (isPagamentoConfirmado(pedidoData)) {
+        setPagamentoConfirmado(true);
+        alert("Pagamento identificado com sucesso!");
+      } else {
+        alert("Ainda não identificamos o pagamento. Tente novamente em alguns segundos.");
+      }
+    } catch (error) {
+      console.error("Erro ao verificar pagamento:", error);
+      alert("Não foi possível verificar o pagamento agora.");
+    } finally {
+      setVerificandoPagamento(false);
+    }
+  }
+
   if (loading) {
     return (
       <>
         <Navbar />
-        <main className={styles.page}>
-          <div className={styles.shell}>
-            <div className={`${styles.card} ${styles.centerCard}`}>
+        <main className="page">
+          <div className="shell">
+            <div className="card centerCard">
               <FiClock size={28} />
               <p>Carregando pagamento...</p>
             </div>
           </div>
+
+          <style jsx global>{`
+            .page {
+              min-height: 100vh;
+              padding: 120px 20px 60px;
+              background:
+                radial-gradient(circle at top left, rgba(192, 138, 122, 0.18), transparent 28%),
+                radial-gradient(circle at top right, rgba(255, 255, 255, 0.55), transparent 24%),
+                linear-gradient(180deg, #f7f1e6 0%, #f4eadf 100%);
+            }
+
+            .shell {
+              max-width: 1180px;
+              margin: 0 auto;
+            }
+
+            .card {
+              background: rgba(255, 255, 255, 0.56);
+              border: 1px solid rgba(233, 222, 214, 0.82);
+              box-shadow:
+                0 18px 50px rgba(59, 40, 32, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+              backdrop-filter: blur(18px);
+              -webkit-backdrop-filter: blur(18px);
+            }
+
+            .centerCard {
+              max-width: 560px;
+              margin: 0 auto;
+              text-align: center;
+              border-radius: 28px;
+              padding: 34px 26px;
+              display: grid;
+              gap: 10px;
+              justify-items: center;
+              color: #8c5a50;
+            }
+          `}</style>
         </main>
         <Footer />
       </>
@@ -277,16 +384,72 @@ export default function PagamentoPage() {
     return (
       <>
         <Navbar />
-        <main className={styles.page}>
-          <div className={styles.shell}>
-            <div className={`${styles.card} ${styles.centerCard}`}>
+        <main className="page">
+          <div className="shell">
+            <div className="card centerCard">
               <h1>Pedido não encontrado</h1>
               <p>Não conseguimos localizar o pedido para pagamento.</p>
-              <Link href="/Carrinho" className={styles.secondaryBtn}>
+              <Link href="/Carrinho" className="secondaryBtn">
                 <FiArrowLeft /> Voltar ao carrinho
               </Link>
             </div>
           </div>
+
+          <style jsx global>{`
+            .page {
+              min-height: 100vh;
+              padding: 120px 20px 60px;
+              background:
+                radial-gradient(circle at top left, rgba(192, 138, 122, 0.18), transparent 28%),
+                radial-gradient(circle at top right, rgba(255, 255, 255, 0.55), transparent 24%),
+                linear-gradient(180deg, #f7f1e6 0%, #f4eadf 100%);
+            }
+
+            .shell {
+              max-width: 1180px;
+              margin: 0 auto;
+            }
+
+            .card {
+              background: rgba(255, 255, 255, 0.56);
+              border: 1px solid rgba(233, 222, 214, 0.82);
+              box-shadow:
+                0 18px 50px rgba(59, 40, 32, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.6);
+              backdrop-filter: blur(18px);
+              -webkit-backdrop-filter: blur(18px);
+            }
+
+            .centerCard {
+              max-width: 560px;
+              margin: 0 auto;
+              text-align: center;
+              border-radius: 28px;
+              padding: 34px 26px;
+              display: grid;
+              gap: 10px;
+              justify-items: center;
+              color: #8c5a50;
+            }
+
+            .secondaryBtn {
+              min-height: 54px;
+              border-radius: 16px;
+              text-decoration: none;
+              border: none;
+              font-weight: 700;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              gap: 10px;
+              cursor: pointer;
+              transition: 0.22s ease;
+              background: rgba(255, 255, 255, 0.7);
+              color: #8c5a50;
+              border: 1px solid rgba(192, 138, 122, 0.2);
+              padding: 0 18px;
+            }
+          `}</style>
         </main>
         <Footer />
       </>
@@ -297,11 +460,11 @@ export default function PagamentoPage() {
     <>
       <Navbar />
 
-      <main className={styles.page}>
-        <div className={styles.shell}>
-          <header className={`${styles.hero} ${styles.card}`}>
+      <main className="page">
+        <div className="shell">
+          <header className="hero card">
             <div>
-              <div className={styles.eyebrow}>
+              <div className="eyebrow">
                 <FiLock />
                 <span>Pagamento seguro</span>
               </div>
@@ -310,19 +473,19 @@ export default function PagamentoPage() {
               <p>Escolha PIX ou cartão e conclua sua compra com segurança.</p>
             </div>
 
-            <div className={styles.badge}>Pedido #{pedido.id_pedido}</div>
+            <div className="badge">Pedido #{pedido.id_pedido}</div>
           </header>
 
-          <div className={styles.grid}>
-            <section className={styles.mainCol}>
-              <div className={`${styles.card} ${styles.payCard}`}>
-                <div className={styles.cardHeader}>
+          <div className="grid">
+            <section className="mainCol">
+              <div className="card payCard">
+                <div className="cardHeader">
                   <h2>Resumo do pagamento</h2>
                   <p>Confirme os dados antes de pagar.</p>
                 </div>
 
-                <div className={styles.buyerBox}>
-                  <div className={styles.avatar}>
+                <div className="buyerBox">
+                  <div className="avatar">
                     <Image
                       src="/images/sem-imagem.png"
                       alt="Usuário"
@@ -331,41 +494,46 @@ export default function PagamentoPage() {
                     />
                   </div>
 
-                  <div className={styles.buyerInfo}>
+                  <div className="buyerInfo">
                     <strong>{usuario?.nome || "Usuário"}</strong>
                     <span>{usuario?.email || "-"}</span>
                     <span>CPF: {(usuario?.cpf || "-").toString()}</span>
                   </div>
                 </div>
 
-                <div className={styles.summaryMini}>
-                  <div className={styles.row}>
+                <div className="summaryMini">
+                  <div className="row">
                     <span>Produtos</span>
                     <strong>{formatarMoeda(pedido.valor_produtos)}</strong>
                   </div>
 
-                  <div className={styles.row}>
+                  <div className="row">
                     <span>Frete</span>
                     <strong>{formatarMoeda(pedido.valor_frete ?? 0)}</strong>
                   </div>
 
-                  <div className={styles.row}>
+                  <div className="row">
                     <span>Desconto</span>
                     <strong>- {formatarMoeda(pedido.valor_desconto ?? 0)}</strong>
                   </div>
 
-                  <div className={styles.totalRow}>
+                  <div className="totalRow">
                     <span>Total</span>
                     <strong>{formatarMoeda(pedido.valor_total)}</strong>
                   </div>
                 </div>
 
-                <div className={styles.methods}>
+                {pagamentoConfirmado && (
+                  <div className="successBanner">
+                    <FiCheckCircle />
+                    <span>Pagamento confirmado.</span>
+                  </div>
+                )}
+
+                <div className="methods">
                   <button
                     type="button"
-                    className={`${styles.methodBtn} ${
-                      metodo === "pix" ? styles.active : ""
-                    }`}
+                    className={`methodBtn ${metodo === "pix" ? "active" : ""}`}
                     onClick={() => setMetodo("pix")}
                   >
                     <FiSmartphone />
@@ -374,9 +542,7 @@ export default function PagamentoPage() {
 
                   <button
                     type="button"
-                    className={`${styles.methodBtn} ${
-                      metodo === "cartao" ? styles.active : ""
-                    }`}
+                    className={`methodBtn ${metodo === "cartao" ? "active" : ""}`}
                     onClick={() => setMetodo("cartao")}
                   >
                     <FiCreditCard />
@@ -384,17 +550,17 @@ export default function PagamentoPage() {
                   </button>
                 </div>
 
-                <div className={styles.panel}>
+                <div className="panel">
                   {metodo === "pix" ? (
-                    <div className={styles.methodBox}>
-                      <div className={styles.actions}>
-                        <Link href="/Carrinho" className={styles.secondaryBtn}>
+                    <div className="methodBox">
+                      <div className="actions">
+                        <Link href="/Carrinho" className="secondaryBtn">
                           <FiArrowLeft />
                           Voltar ao carrinho
                         </Link>
 
                         <button
-                          className={styles.primaryBtn}
+                          className="primaryBtn"
                           onClick={gerarPix}
                           disabled={loadingPix}
                         >
@@ -403,39 +569,52 @@ export default function PagamentoPage() {
                         </button>
                       </div>
 
-                      <div className={styles.note}>
+                      <div className="note">
                         <FiShield />
                         <span>Seu pagamento por PIX é processado com segurança.</span>
                       </div>
 
                       {pixCode ? (
-                        <div className={styles.pixResult}>
-                          <div className={styles.qrBox}>
+                        <div className="pixResult">
+                          <div className="qrBox">
                             <QRCodeCanvas value={pixCode} size={220} />
                           </div>
 
                           <textarea
-                            className={styles.pixTextarea}
+                            className="pixTextarea"
                             value={pixCode}
                             readOnly
                           />
 
-                          <button className={styles.copyBtn} onClick={copiarPix}>
+                          <button className="copyBtn" onClick={copiarPix}>
                             <FiCopy />
                             {copiado ? "Copiado" : "Copiar código PIX"}
                           </button>
+
+                          <button
+                            className="verifyBtn"
+                            onClick={verificarPagamento}
+                            disabled={verificandoPagamento}
+                          >
+                            {verificandoPagamento ? "Verificando..." : "Já paguei"}
+                            <FiCheckCircle />
+                          </button>
+
+                          <p className="hint">
+                            Esse botão apenas consulta o status. A confirmação real vem do backend.
+                          </p>
                         </div>
                       ) : (
-                        <div className={styles.placeholder}>
+                        <div className="placeholder">
                           <FiCheckCircle size={30} />
                           <p>O QR Code vai aparecer aqui após gerar o PIX.</p>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className={styles.methodBox}>
-                      <div className={styles.formGrid}>
-                        <label className={styles.field}>
+                    <div className="methodBox">
+                      <div className="formGrid">
+                        <label className="field">
                           <span>Número do cartão</span>
                           <input
                             value={cartao.numero}
@@ -446,7 +625,7 @@ export default function PagamentoPage() {
                           />
                         </label>
 
-                        <label className={styles.field}>
+                        <label className="field">
                           <span>Nome no cartão</span>
                           <input
                             value={cartao.nome}
@@ -458,8 +637,8 @@ export default function PagamentoPage() {
                         </label>
                       </div>
 
-                      <div className={`${styles.formGrid} ${styles.formGrid3}`}>
-                        <label className={styles.field}>
+                      <div className="formGrid formGrid3">
+                        <label className="field">
                           <span>Mês</span>
                           <input
                             value={cartao.mes}
@@ -470,7 +649,7 @@ export default function PagamentoPage() {
                           />
                         </label>
 
-                        <label className={styles.field}>
+                        <label className="field">
                           <span>Ano</span>
                           <input
                             value={cartao.ano}
@@ -481,7 +660,7 @@ export default function PagamentoPage() {
                           />
                         </label>
 
-                        <label className={styles.field}>
+                        <label className="field">
                           <span>CVV</span>
                           <input
                             value={cartao.cvv}
@@ -493,8 +672,8 @@ export default function PagamentoPage() {
                         </label>
                       </div>
 
-                      <div className={styles.formGrid}>
-                        <label className={styles.field}>
+                      <div className="formGrid">
+                        <label className="field">
                           <span>Parcelas</span>
                           <select
                             value={cartao.parcelas}
@@ -508,7 +687,7 @@ export default function PagamentoPage() {
                           </select>
                         </label>
 
-                        <div className={`${styles.field} ${styles.staticField}`}>
+                        <div className="field staticField">
                           <span>Total</span>
                           <strong>{formatarMoeda(pedido.valor_total)}</strong>
                         </div>
@@ -516,7 +695,7 @@ export default function PagamentoPage() {
 
                       <button
                         type="button"
-                        className={`${styles.primaryBtn} ${styles.full}`}
+                        className="primaryBtn full"
                         onClick={pagarCartao}
                         disabled={loadingCartao}
                       >
@@ -524,7 +703,7 @@ export default function PagamentoPage() {
                         <FiCreditCard />
                       </button>
 
-                      <p className={styles.warning}>
+                      <p className="warning">
                         O cartão em produção precisa de token gerado no front pelo Mercado Pago.
                       </p>
                     </div>
@@ -533,29 +712,561 @@ export default function PagamentoPage() {
               </div>
             </section>
 
-            <aside className={styles.sideCol}>
-              <div className={`${styles.card} ${styles.noticeCard}`}>
+            <aside className="sideCol">
+              <div className="card noticeCard">
                 <FiClock />
                 <div>
                   <strong>Aguardando pagamento</strong>
                   <p>
-                    Depois de pagar, o status do pedido pode ser atualizado pelo webhook.
+                    Depois de pagar, o status do pedido pode ser atualizado automaticamente.
                   </p>
                 </div>
               </div>
 
-              <div className={`${styles.card} ${styles.noticeCard}`}>
+              <div className="card noticeCard">
                 <FiAlertCircle />
                 <div>
                   <strong>Dica importante</strong>
                   <p>
-                    O cartão em produção precisa de tokenização via Mercado Pago Brick.
+                    O botão “Já paguei” apenas consulta o pedido. Ele não confirma pagamento sozinho.
                   </p>
                 </div>
               </div>
             </aside>
           </div>
         </div>
+
+        <style jsx global>{`
+          .page {
+            min-height: 100vh;
+            padding: 120px 20px 60px;
+            background:
+              radial-gradient(circle at top left, rgba(192, 138, 122, 0.18), transparent 28%),
+              radial-gradient(circle at top right, rgba(255, 255, 255, 0.55), transparent 24%),
+              linear-gradient(180deg, #f7f1e6 0%, #f4eadf 100%);
+          }
+
+          .shell {
+            max-width: 1180px;
+            margin: 0 auto;
+          }
+
+          .card {
+            background: rgba(255, 255, 255, 0.56);
+            border: 1px solid rgba(233, 222, 214, 0.82);
+            box-shadow:
+              0 18px 50px rgba(59, 40, 32, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+          }
+
+          .hero {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            padding: 24px 26px;
+            border-radius: 26px;
+            margin-bottom: 20px;
+          }
+
+          .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            background: rgba(192, 138, 122, 0.12);
+            color: #8c5a50;
+            font-size: 13px;
+            font-weight: 600;
+            margin-bottom: 14px;
+          }
+
+          .hero h1 {
+            margin: 0;
+            font-size: clamp(28px, 4vw, 42px);
+            line-height: 1.05;
+            color: #8c5a50;
+            letter-spacing: -0.03em;
+          }
+
+          .hero p {
+            margin: 10px 0 0;
+            color: rgba(43, 43, 43, 0.72);
+            font-size: 15px;
+          }
+
+          .badge {
+            flex-shrink: 0;
+            padding: 12px 16px;
+            border-radius: 999px;
+            background: rgba(247, 241, 230, 0.92);
+            border: 1px solid rgba(233, 222, 214, 0.95);
+            color: #8c5a50;
+            font-weight: 700;
+          }
+
+          .grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 340px;
+            gap: 26px;
+            align-items: start;
+          }
+
+          .mainCol,
+          .sideCol {
+            min-width: 0;
+          }
+
+          .payCard,
+          .noticeCard {
+            border-radius: 26px;
+            padding: 22px;
+          }
+
+          .cardHeader h2 {
+            margin: 0;
+            font-size: 22px;
+            color: #8c5a50;
+            letter-spacing: -0.03em;
+          }
+
+          .cardHeader p {
+            margin: 8px 0 0;
+            color: rgba(43, 43, 43, 0.65);
+            font-size: 14px;
+          }
+
+          .buyerBox {
+            display: flex;
+            gap: 14px;
+            align-items: center;
+            margin-top: 18px;
+            padding: 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.55);
+            border: 1px solid rgba(233, 222, 214, 0.9);
+          }
+
+          .avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            overflow: hidden;
+            flex-shrink: 0;
+          }
+
+          .buyerInfo {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+          }
+
+          .buyerInfo strong {
+            font-size: 15px;
+            color: #2b2b2b;
+          }
+
+          .buyerInfo span {
+            font-size: 13px;
+            color: rgba(43, 43, 43, 0.65);
+          }
+
+          .summaryMini {
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(233, 222, 214, 0.95);
+          }
+
+          .row,
+          .totalRow {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 14px;
+          }
+
+          .row {
+            margin-bottom: 12px;
+            color: rgba(43, 43, 43, 0.82);
+          }
+
+          .totalRow {
+            margin-top: 14px;
+            padding-top: 14px;
+            border-top: 1px solid rgba(233, 222, 214, 0.95);
+          }
+
+          .totalRow span {
+            font-size: 16px;
+            font-weight: 700;
+          }
+
+          .totalRow strong {
+            font-size: 22px;
+            color: #8c5a50;
+          }
+
+          .successBanner {
+            margin-top: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            background: rgba(46, 204, 113, 0.12);
+            border: 1px solid rgba(46, 204, 113, 0.2);
+            color: #1f7a43;
+            font-weight: 700;
+          }
+
+          .methods {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-top: 22px;
+          }
+
+          .methodBtn {
+            border: 1px solid rgba(192, 138, 122, 0.22);
+            background: rgba(255, 255, 255, 0.72);
+            color: #8c5a50;
+            border-radius: 18px;
+            min-height: 58px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-weight: 700;
+            transition: 0.22s ease;
+          }
+
+          .methodBtn:hover {
+            transform: translateY(-2px);
+            border-color: rgba(192, 138, 122, 0.5);
+          }
+
+          .active {
+            background: linear-gradient(135deg, #c08a7a 0%, #a96d61 100%);
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 14px 24px rgba(160, 107, 95, 0.22);
+          }
+
+          .panel {
+            margin-top: 18px;
+          }
+
+          .methodBox {
+            display: grid;
+            gap: 16px;
+          }
+
+          .actions {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 12px;
+          }
+
+          .primaryBtn,
+          .secondaryBtn,
+          .copyBtn,
+          .verifyBtn {
+            min-height: 54px;
+            border-radius: 16px;
+            border: none;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: 0.22s ease;
+            text-decoration: none;
+          }
+
+          .primaryBtn {
+            background: linear-gradient(135deg, #c08a7a 0%, #a96d61 100%);
+            color: #fff;
+            box-shadow: 0 16px 28px rgba(160, 107, 95, 0.24);
+            padding: 0 18px;
+          }
+
+          .primaryBtn:hover {
+            transform: translateY(-2px);
+          }
+
+          .primaryBtn:disabled {
+            opacity: 0.7;
+            cursor: progress;
+            transform: none;
+          }
+
+          .secondaryBtn {
+            background: rgba(255, 255, 255, 0.7);
+            color: #8c5a50;
+            border: 1px solid rgba(192, 138, 122, 0.2);
+            padding: 0 18px;
+          }
+
+          .secondaryBtn:hover {
+            transform: translateY(-2px);
+            border-color: rgba(192, 138, 122, 0.55);
+          }
+
+          .note,
+          .warning,
+          .noticeCard {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+            color: rgba(43, 43, 43, 0.76);
+          }
+
+          .note {
+            margin: 0;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(192, 138, 122, 0.1);
+            font-size: 13px;
+            line-height: 1.45;
+          }
+
+          .noticeCard {
+            margin-top: 16px;
+            padding: 22px;
+          }
+
+          .noticeCard svg {
+            color: #c08a7a;
+            flex-shrink: 0;
+            margin-top: 2px;
+          }
+
+          .noticeCard strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #2b2b2b;
+          }
+
+          .noticeCard p {
+            margin: 0;
+            font-size: 13px;
+            line-height: 1.5;
+          }
+
+          .placeholder {
+            min-height: 270px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            border-radius: 22px;
+            border: 1px dashed rgba(192, 138, 122, 0.35);
+            background: rgba(255, 255, 255, 0.45);
+            color: rgba(43, 43, 43, 0.65);
+            padding: 24px;
+          }
+
+          .pixResult {
+            display: grid;
+            gap: 12px;
+            justify-items: center;
+          }
+
+          .qrBox {
+            display: flex;
+            justify-content: center;
+            padding: 18px;
+            border-radius: 22px;
+            background: white;
+          }
+
+          .pixTextarea {
+            width: 100%;
+            min-height: 100px;
+            margin-top: 0;
+            border-radius: 16px;
+            border: 1px solid rgba(233, 222, 214, 0.95);
+            padding: 14px;
+            resize: none;
+            outline: none;
+            background: rgba(255, 255, 255, 0.72);
+            color: #2b2b2b;
+            font-size: 13px;
+            line-height: 1.5;
+          }
+
+          .copyBtn {
+            width: 100%;
+            background: #111827;
+            color: #fff;
+            padding: 0 18px;
+          }
+
+          .copyBtn:hover {
+            transform: translateY(-2px);
+          }
+
+          .verifyBtn {
+            width: 100%;
+            background: linear-gradient(135deg, #2f855a 0%, #256d48 100%);
+            color: #fff;
+            box-shadow: 0 16px 28px rgba(37, 109, 72, 0.18);
+            padding: 0 18px;
+          }
+
+          .verifyBtn:hover {
+            transform: translateY(-2px);
+          }
+
+          .verifyBtn:disabled {
+            opacity: 0.7;
+            cursor: progress;
+            transform: none;
+          }
+
+          .hint {
+            margin: 0;
+            font-size: 12px;
+            color: rgba(43, 43, 43, 0.62);
+            text-align: center;
+            line-height: 1.45;
+          }
+
+          .formGrid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+          }
+
+          .formGrid3 {
+            grid-template-columns: 1fr 1fr 1fr;
+          }
+
+          .field {
+            display: grid;
+            gap: 8px;
+          }
+
+          .field span {
+            font-size: 13px;
+            color: rgba(43, 43, 43, 0.72);
+            font-weight: 600;
+          }
+
+          .field input,
+          .field select {
+            width: 100%;
+            min-height: 50px;
+            padding: 0 14px;
+            border-radius: 14px;
+            border: 1px solid rgba(233, 222, 214, 0.98);
+            background: rgba(255, 255, 255, 0.78);
+            color: #2b2b2b;
+            outline: none;
+            transition: 0.2s;
+          }
+
+          .field input:focus,
+          .field select:focus {
+            border-color: rgba(192, 138, 122, 0.7);
+            box-shadow: 0 0 0 4px rgba(192, 138, 122, 0.12);
+          }
+
+          .staticField {
+            min-height: 50px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 2px;
+          }
+
+          .staticField strong {
+            font-size: 18px;
+            color: #8c5a50;
+          }
+
+          .full {
+            width: 100%;
+          }
+
+          .warning {
+            margin: 0;
+            padding: 12px 14px;
+            border-radius: 14px;
+            background: rgba(17, 24, 39, 0.06);
+            font-size: 13px;
+            line-height: 1.45;
+          }
+
+          .centerCard {
+            max-width: 560px;
+            margin: 0 auto;
+            text-align: center;
+            border-radius: 28px;
+            padding: 34px 26px;
+            display: grid;
+            gap: 10px;
+            justify-items: center;
+            color: #8c5a50;
+          }
+
+          .sideCol {
+            position: sticky;
+            top: 110px;
+          }
+
+          @media (max-width: 900px) {
+            .grid {
+              grid-template-columns: 1fr;
+            }
+
+            .sideCol {
+              position: relative;
+              top: 0;
+            }
+
+            .hero {
+              flex-direction: column;
+              align-items: flex-start;
+            }
+
+            .actions {
+              grid-template-columns: 1fr;
+            }
+          }
+
+          @media (max-width: 768px) {
+            .page {
+              padding: 104px 14px 36px;
+            }
+
+            .hero,
+            .payCard,
+            .noticeCard {
+              padding: 18px;
+              border-radius: 22px;
+            }
+
+            .methods {
+              grid-template-columns: 1fr;
+            }
+
+            .formGrid,
+            .formGrid3 {
+              grid-template-columns: 1fr;
+            }
+
+            .qrBox {
+              padding: 14px;
+            }
+          }
+        `}</style>
       </main>
 
       <Footer />
