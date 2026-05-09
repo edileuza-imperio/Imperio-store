@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import api from "@/Api/conectar";
+
 import {
   FiPlus,
   FiRefreshCw,
@@ -16,6 +17,9 @@ import {
   FiFolder,
   FiChevronLeft,
   FiChevronRight,
+  FiSearch,
+  FiX,
+  FiSave,
 } from "react-icons/fi";
 
 type Categoria = {
@@ -37,9 +41,29 @@ export default function CategoriasPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
+
   const [busca, setBusca] = useState("");
+
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [itensPorPagina, setItensPorPagina] = useState(5);
+
+  const [modalEditar, setModalEditar] = useState(false);
+  const [modalExcluir, setModalExcluir] = useState(false);
+
+  const [categoriaSelecionada, setCategoriaSelecionada] =
+    useState<Categoria | null>(null);
+
+  const [salvando, setSalvando] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
+
+  const [form, setForm] = useState({
+    nome: "",
+    slug: "",
+    descricao: "",
+    ordem: 0,
+    status_id: 1,
+    site_config_id: 1,
+  });
 
   async function carregarCategorias() {
     try {
@@ -47,6 +71,7 @@ export default function CategoriasPage() {
       setErro(null);
 
       const response = await api.get("/painel/categorias");
+
       const data = response?.data;
 
       const lista = Array.isArray(data)
@@ -59,9 +84,8 @@ export default function CategoriasPage() {
 
       setCategorias(lista);
     } catch (error: any) {
-      console.error("Erro ao carregar categorias:", error?.response?.data || error);
+      console.error(error);
 
-      setCategorias([]);
       setErro(
         error?.response?.data?.mensagem ||
           error?.message ||
@@ -81,14 +105,14 @@ export default function CategoriasPage() {
   }, [busca, itensPorPagina]);
 
   const categoriasFiltradas = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
+    const termo = busca.toLowerCase().trim();
 
     if (!termo) return categorias;
 
     return categorias.filter((categoria) => {
-      const nome = (categoria?.nome || "").toLowerCase();
-      const slug = (categoria?.slug || "").toLowerCase();
-      const descricao = (categoria?.descricao || "").toLowerCase();
+      const nome = categoria.nome?.toLowerCase() || "";
+      const slug = categoria.slug?.toLowerCase() || "";
+      const descricao = categoria.descricao?.toLowerCase() || "";
 
       return (
         nome.includes(termo) ||
@@ -103,8 +127,7 @@ export default function CategoriasPage() {
     Math.ceil(categoriasFiltradas.length / itensPorPagina)
   );
 
-  const paginaSegura = Math.min(paginaAtual, totalPaginas);
-  const inicio = (paginaSegura - 1) * itensPorPagina;
+  const inicio = (paginaAtual - 1) * itensPorPagina;
   const fim = inicio + itensPorPagina;
 
   const categoriasPaginadas = categoriasFiltradas.slice(inicio, fim);
@@ -123,72 +146,141 @@ export default function CategoriasPage() {
     }
 
     return {
-      label: `Status ${statusId ?? "-"}`,
+      label: "Inativo",
       className: "inativo",
       icon: <FiAlertCircle size={14} />,
     };
   }
 
-  function irParaPaginaAnterior() {
-    setPaginaAtual((prev) => Math.max(prev - 1, 1));
+  function abrirEditar(categoria: Categoria) {
+    setCategoriaSelecionada(categoria);
+
+    setForm({
+      nome: categoria.nome || "",
+      slug: categoria.slug || "",
+      descricao: categoria.descricao || "",
+      ordem: categoria.ordem || 0,
+      status_id: categoria.status_id || 1,
+      site_config_id: categoria.site_config_id || 1,
+    });
+
+    setModalEditar(true);
   }
 
-  function irParaProximaPagina() {
-    setPaginaAtual((prev) => Math.min(prev + 1, totalPaginas));
+  async function salvarEdicao() {
+    if (!categoriaSelecionada) return;
+
+    try {
+      setSalvando(true);
+
+      const id = getId(categoriaSelecionada);
+
+      await api.put(`/painel/categoria/${id}`, form);
+
+      setModalEditar(false);
+
+      await carregarCategorias();
+    } catch (error: any) {
+      alert(
+        error?.response?.data?.mensagem ||
+          "Erro ao atualizar categoria."
+      );
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  function abrirExcluir(categoria: Categoria) {
+    setCategoriaSelecionada(categoria);
+    setModalExcluir(true);
+  }
+
+  async function excluirCategoria() {
+    if (!categoriaSelecionada) return;
+
+    try {
+      setExcluindo(true);
+
+      const id = getId(categoriaSelecionada);
+
+      await api.delete(`/painel/categoria/${id}`);
+
+      setModalExcluir(false);
+
+      await carregarCategorias();
+    } catch (error: any) {
+      alert(
+        error?.response?.data?.mensagem ||
+          "Erro ao excluir categoria."
+      );
+    } finally {
+      setExcluindo(false);
+    }
   }
 
   return (
     <div className="categorias-page">
-      <div className="page-header">
-        <div className="header-left">
-          <div className="header-icon">
-            <FiFolder size={24} />
+      {/* HEADER */}
+
+      <div className="topbar">
+        <div className="topbar-left">
+          <div className="icon-wrap">
+            <FiFolder size={28} />
           </div>
 
           <div>
-            <span className="page-kicker">Painel administrativo</span>
+            <span className="kicker">Painel administrativo</span>
+
             <h1>Categorias</h1>
-            <p>Visualize, pesquise e gerencie as categorias cadastradas.</p>
+
+            <p>
+              Gerencie categorias, visualize dados e organize o conteúdo.
+            </p>
           </div>
         </div>
 
-        <div className="header-actions">
+        <div className="topbar-actions">
           <button
-            type="button"
             className="btn btn-light"
             onClick={carregarCategorias}
-            disabled={loading}
           >
-            <FiRefreshCw size={16} />
-            <span>{loading ? "Carregando..." : "Atualizar"}</span>
+            <FiRefreshCw />
+            Atualizar
           </button>
 
-          <Link href="/Admin/categorias/cadastrar" className="btn btn-primary">
-            <FiPlus size={16} />
-            <span>Nova categoria</span>
+          <Link
+            href="/Admin/categorias/cadastrar"
+            className="btn btn-primary"
+          >
+            <FiPlus />
+            Nova categoria
           </Link>
         </div>
       </div>
 
+      {/* TOOLBAR */}
+
       <div className="toolbar">
-        <div className="toolbar-left">
-          <div className="search-box">
-            <input
-              type="text"
-              placeholder="Buscar por nome, slug ou descrição..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-            />
-          </div>
+        <div className="search-box">
+          <FiSearch />
+
+          <input
+            type="text"
+            placeholder="Buscar categoria..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
         </div>
 
         <div className="toolbar-right">
-          <div className="select-box">
-            <label htmlFor="itensPorPagina">Por página</label>
+          <div className="select-wrap">
+            <span>Por página</span>
+
             <select
-              id="itensPorPagina"
               value={itensPorPagina}
-              onChange={(e) => setItensPorPagina(Number(e.target.value))}
+              onChange={(e) =>
+                setItensPorPagina(Number(e.target.value))
+              }
             >
               <option value={5}>5</option>
               <option value={10}>10</option>
@@ -197,47 +289,34 @@ export default function CategoriasPage() {
             </select>
           </div>
 
-          <div className="toolbar-info">
+          <div className="counter">
             <strong>{categoriasFiltradas.length}</strong>
-            <span>
-              {categoriasFiltradas.length === 1
-                ? "categoria encontrada"
-                : "categorias encontradas"}
-            </span>
+            categorias
           </div>
         </div>
       </div>
 
+      {/* STATES */}
+
       {erro ? (
-        <div className="state-box error">
-          <FiAlertCircle size={18} />
-          <div>
-            <strong>Erro ao carregar categorias</strong>
-            <p>{erro}</p>
-          </div>
+        <div className="state error">
+          <FiAlertCircle />
+          <span>{erro}</span>
         </div>
       ) : loading ? (
-        <div className="state-box loading">
-          <FiRefreshCw size={18} className="spin" />
-          <div>
-            <strong>Carregando categorias</strong>
-            <p>Aguarde enquanto buscamos os dados.</p>
-          </div>
+        <div className="state loading">
+          <FiRefreshCw className="spin" />
+          <span>Carregando categorias...</span>
         </div>
       ) : categoriasFiltradas.length === 0 ? (
-        <div className="state-box empty">
-          <FiFolder size={18} />
-          <div>
-            <strong>Nenhuma categoria encontrada</strong>
-            <p>
-              {busca
-                ? "Tente pesquisar com outro termo."
-                : "Ainda não existem categorias cadastradas."}
-            </p>
-          </div>
+        <div className="state empty">
+          <FiFolder />
+          <span>Nenhuma categoria encontrada.</span>
         </div>
       ) : (
         <>
+          {/* TABELA */}
+
           <div className="table-card">
             <div className="table-wrap">
               <table>
@@ -257,67 +336,71 @@ export default function CategoriasPage() {
                 <tbody>
                   {categoriasPaginadas.map((categoria) => {
                     const id = getId(categoria);
-                    const status = getStatusInfo(categoria.status_id);
+
+                    const status = getStatusInfo(
+                      categoria.status_id
+                    );
 
                     return (
                       <tr key={id}>
                         <td>
-                          <div className="cell-inline">
-                            <FiHash size={14} />
-                            <span>{id}</span>
+                          <div className="cell">
+                            <FiHash />
+                            {id}
                           </div>
                         </td>
 
                         <td>
-                          <div className="cell-strong">
-                            <FiTag size={14} />
-                            <span>{categoria.nome || "-"}</span>
+                          <div className="cell strong">
+                            <FiTag />
+                            {categoria.nome}
                           </div>
                         </td>
 
                         <td>
-                          <code>{categoria.slug || "-"}</code>
+                          <code>{categoria.slug}</code>
                         </td>
 
-                        <td className="descricao-cell">
-                          {categoria.descricao?.trim() || "Sem descrição"}
+                        <td className="descricao">
+                          {categoria.descricao || "Sem descrição"}
                         </td>
 
                         <td>
-                          <div className="cell-inline">
-                            <FiLayers size={14} />
-                            <span>{categoria.site_config_id ?? "-"}</span>
+                          <div className="cell">
+                            <FiLayers />
+                            {categoria.site_config_id}
                           </div>
                         </td>
 
-                        <td>{categoria.ordem ?? "-"}</td>
+                        <td>{categoria.ordem}</td>
 
                         <td>
-                          <span className={`status-badge ${status.className}`}>
+                          <span
+                            className={`status ${status.className}`}
+                          >
                             {status.icon}
                             {status.label}
                           </span>
                         </td>
 
                         <td>
-                          <div className="actions">
-                            <Link
-                              href={`/Admin/categorias/${id}/editar`}
+                          <div className="acoes">
+                            <button
                               className="icon-btn edit"
-                              title="Editar categoria"
+                              onClick={() =>
+                                abrirEditar(categoria)
+                              }
                             >
-                              <FiEdit size={16} />
-                            </Link>
+                              <FiEdit />
+                            </button>
 
                             <button
-                              type="button"
                               className="icon-btn delete"
-                              title="Excluir categoria"
-                              onClick={() => {
-                                alert(`Depois eu posso te montar a exclusão da categoria ID ${id}.`);
-                              }}
+                              onClick={() =>
+                                abrirExcluir(categoria)
+                              }
                             >
-                              <FiTrash2 size={16} />
+                              <FiTrash2 />
                             </button>
                           </div>
                         </td>
@@ -329,162 +412,343 @@ export default function CategoriasPage() {
             </div>
           </div>
 
-          <div className="pagination-card">
-            <div className="pagination-info">
-              <span>
-                Mostrando <strong>{categoriasPaginadas.length}</strong> de{" "}
-                <strong>{categoriasFiltradas.length}</strong> categorias
-              </span>
+          {/* PAGINAÇÃO */}
+
+          <div className="pagination">
+            <button
+              className="page-btn"
+              disabled={paginaAtual === 1}
+              onClick={() =>
+                setPaginaAtual((prev) => prev - 1)
+              }
+            >
+              <FiChevronLeft />
+              Anterior
+            </button>
+
+            <div className="page-info">
+              Página <strong>{paginaAtual}</strong> de{" "}
+              <strong>{totalPaginas}</strong>
             </div>
 
-            <div className="pagination-controls">
-              <button
-                type="button"
-                className="page-btn"
-                onClick={irParaPaginaAnterior}
-                disabled={paginaSegura === 1}
-              >
-                <FiChevronLeft size={16} />
-                <span>Anterior</span>
-              </button>
-
-              <div className="page-indicator">
-                Página <strong>{paginaSegura}</strong> de{" "}
-                <strong>{totalPaginas}</strong>
-              </div>
-
-              <button
-                type="button"
-                className="page-btn"
-                onClick={irParaProximaPagina}
-                disabled={paginaSegura === totalPaginas}
-              >
-                <span>Próxima</span>
-                <FiChevronRight size={16} />
-              </button>
-            </div>
+            <button
+              className="page-btn"
+              disabled={paginaAtual === totalPaginas}
+              onClick={() =>
+                setPaginaAtual((prev) => prev + 1)
+              }
+            >
+              Próxima
+              <FiChevronRight />
+            </button>
           </div>
         </>
       )}
 
+      {/* MODAL EDITAR */}
+
+      {modalEditar && (
+        <div className="modal-overlay">
+          <div className="modal">
+            <div className="modal-header">
+              <h2>Editar categoria</h2>
+
+              <button
+                className="close-btn"
+                onClick={() => setModalEditar(false)}
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Nome</label>
+
+                <input
+                  value={form.nome}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      nome: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Slug</label>
+
+                <input
+                  value={form.slug}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      slug: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Descrição</label>
+
+                <textarea
+                  rows={4}
+                  value={form.descricao}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      descricao: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              <div className="grid">
+                <div className="form-group">
+                  <label>Ordem</label>
+
+                  <input
+                    type="number"
+                    value={form.ordem}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        ordem: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Status</label>
+
+                  <select
+                    value={form.status_id}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        status_id: Number(e.target.value),
+                      })
+                    }
+                  >
+                    <option value={1}>Ativo</option>
+                    <option value={2}>Inativo</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn btn-light"
+                onClick={() => setModalEditar(false)}
+              >
+                Cancelar
+              </button>
+
+              <button
+                className="btn btn-primary"
+                onClick={salvarEdicao}
+              >
+                <FiSave />
+                {salvando ? "Salvando..." : "Salvar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EXCLUIR */}
+
+      {modalExcluir && (
+        <div className="modal-overlay">
+          <div className="modal modal-danger">
+            <div className="modal-header">
+              <h2>Excluir categoria</h2>
+
+              <button
+                className="close-btn"
+                onClick={() => setModalExcluir(false)}
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div className="modal-body">
+              <p>
+                Deseja realmente excluir a categoria:
+              </p>
+
+              <strong>
+                {categoriaSelecionada?.nome}
+              </strong>
+
+              <p className="danger-text">
+                Essa ação não poderá ser desfeita.
+              </p>
+            </div>
+
+            <div className="modal-footer">
+              <button
+                className="btn btn-light"
+                onClick={() => setModalExcluir(false)}
+              >
+                Cancelar
+              </button>
+
+              <button
+                className="btn btn-danger"
+                onClick={excluirCategoria}
+              >
+                <FiTrash2 />
+                {excluindo ? "Excluindo..." : "Excluir"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CSS */}
+
       <style jsx>{`
+        * {
+          box-sizing: border-box;
+        }
+
         .categorias-page {
           display: flex;
           flex-direction: column;
-          gap: 18px;
+          gap: 22px;
+          padding: 10px;
         }
 
-        .page-header {
+        .topbar {
           display: flex;
-          align-items: center;
           justify-content: space-between;
-          gap: 16px;
+          align-items: center;
+          gap: 20px;
           flex-wrap: wrap;
         }
 
-        .header-left {
+        .topbar-left {
           display: flex;
           align-items: center;
-          gap: 14px;
-          min-width: 0;
+          gap: 16px;
         }
 
-        .header-icon {
-          width: 56px;
-          height: 56px;
-          border-radius: 18px;
+        .icon-wrap {
+          width: 64px;
+          height: 64px;
+          border-radius: 22px;
+          background: linear-gradient(
+            135deg,
+            #ff9966,
+            #ff5e62
+          );
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(135deg, #d18b72 0%, #b55f53 100%);
-          color: #fff;
-          box-shadow: 0 16px 28px rgba(181, 95, 83, 0.18);
-          flex-shrink: 0;
+          color: white;
+          box-shadow: 0 20px 40px rgba(255, 94, 98, 0.3);
         }
 
-        .page-kicker {
-          display: inline-block;
+        .kicker {
           font-size: 11px;
           font-weight: 900;
-          text-transform: uppercase;
           letter-spacing: 0.08em;
-          color: #b55f53;
-          margin-bottom: 6px;
+          text-transform: uppercase;
+          color: #ff5e62;
         }
 
-        .page-header h1 {
+        h1 {
+          margin: 4px 0;
+          font-size: 34px;
+          color: #1f2937;
+        }
+
+        p {
           margin: 0;
-          font-size: 30px;
-          line-height: 1.1;
-          color: #352720;
-          font-weight: 900;
+          color: #6b7280;
         }
 
-        .page-header p {
-          margin: 6px 0 0;
-          color: #7d6358;
-          font-size: 14px;
-        }
-
-        .header-actions {
+        .topbar-actions {
           display: flex;
-          align-items: center;
-          gap: 10px;
+          gap: 12px;
           flex-wrap: wrap;
         }
 
         .btn {
-          min-height: 46px;
-          padding: 0 16px;
+          height: 48px;
+          border: none;
+          padding: 0 18px;
           border-radius: 14px;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          font-weight: 800;
-          text-decoration: none;
-          border: none;
+          gap: 10px;
+          font-weight: 700;
           cursor: pointer;
-          transition: 0.22s ease;
+          transition: 0.25s;
+          text-decoration: none;
         }
 
         .btn:hover {
-          transform: translateY(-1px);
-        }
-
-        .btn:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-        }
-
-        .btn-light {
-          background: #fff;
-          color: #4a352e;
-          border: 1px solid #ead7cb;
-          box-shadow: 0 10px 22px rgba(83, 59, 51, 0.05);
+          transform: translateY(-2px);
         }
 
         .btn-primary {
-          background: linear-gradient(135deg, #d18b72 0%, #b55f53 100%);
-          color: #fff;
-          box-shadow: 0 14px 24px rgba(181, 95, 83, 0.2);
+          background: linear-gradient(
+            135deg,
+            #ff9966,
+            #ff5e62
+          );
+          color: white;
+        }
+
+        .btn-light {
+          background: white;
+          border: 1px solid #e5e7eb;
+          color: #111827;
+        }
+
+        .btn-danger {
+          background: #ef4444;
+          color: white;
         }
 
         .toolbar {
           display: flex;
-          align-items: center;
           justify-content: space-between;
-          gap: 12px;
+          gap: 16px;
           flex-wrap: wrap;
-          background: rgba(255, 255, 255, 0.82);
-          border: 1px solid rgba(232, 214, 204, 0.92);
-          border-radius: 20px;
-          padding: 14px;
+          background: white;
+          border-radius: 24px;
+          padding: 18px;
+          border: 1px solid #f3f4f6;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
         }
 
-        .toolbar-left {
+        .search-box {
           flex: 1;
           min-width: 260px;
+          height: 52px;
+          border-radius: 16px;
+          background: #f9fafb;
+          border: 1px solid #e5e7eb;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 0 16px;
+        }
+
+        .search-box input {
+          flex: 1;
+          border: none;
+          outline: none;
+          background: transparent;
+          font-size: 15px;
         }
 
         .toolbar-right {
@@ -494,290 +758,209 @@ export default function CategoriasPage() {
           flex-wrap: wrap;
         }
 
-        .search-box {
-          width: 100%;
-        }
-
-        .search-box input {
-          width: 100%;
-          height: 48px;
-          border-radius: 14px;
-          border: 1px solid #ead7cb;
-          background: #fff;
-          padding: 0 14px;
-          outline: none;
-          color: #352720;
-          font-size: 14px;
-        }
-
-        .search-box input:focus {
-          border-color: #d18b72;
-          box-shadow: 0 0 0 4px rgba(209, 139, 114, 0.12);
-        }
-
-        .select-box {
+        .select-wrap {
           display: flex;
           align-items: center;
-          gap: 8px;
-          background: #fff;
-          border: 1px solid #ead7cb;
+          gap: 10px;
+          background: #f9fafb;
+          padding: 0 14px;
           border-radius: 14px;
-          padding: 8px 12px;
+          border: 1px solid #e5e7eb;
+          height: 50px;
         }
 
-        .select-box label {
-          font-size: 13px;
-          font-weight: 700;
-          color: #6f554b;
-          white-space: nowrap;
-        }
-
-        .select-box select {
+        .select-wrap select {
           border: none;
           background: transparent;
           outline: none;
-          color: #352720;
-          font-size: 14px;
           font-weight: 700;
-          cursor: pointer;
         }
 
-        .toolbar-info {
+        .counter {
+          height: 50px;
+          padding: 0 18px;
+          border-radius: 14px;
+          background: linear-gradient(
+            135deg,
+            rgba(255, 153, 102, 0.15),
+            rgba(255, 94, 98, 0.15)
+          );
           display: flex;
           align-items: center;
           gap: 8px;
-          color: #6f554b;
-          font-size: 14px;
-          white-space: nowrap;
-        }
-
-        .toolbar-info strong {
-          color: #352720;
-          font-size: 18px;
-        }
-
-        .state-box {
-          display: flex;
-          align-items: flex-start;
-          gap: 12px;
-          padding: 18px;
-          border-radius: 22px;
-          border: 1px solid rgba(232, 214, 204, 0.92);
-          background: rgba(255, 255, 255, 0.82);
-        }
-
-        .state-box strong {
-          display: block;
-          color: #352720;
-          font-size: 15px;
-        }
-
-        .state-box p {
-          margin: 6px 0 0;
-          color: #7d6358;
-          font-size: 13px;
-        }
-
-        .state-box.error {
-          border-color: rgba(239, 68, 68, 0.18);
-          background: rgba(254, 242, 242, 0.95);
-          color: #b91c1c;
+          font-weight: 700;
         }
 
         .table-card {
-          border-radius: 24px;
-          background: rgba(255, 255, 255, 0.86);
-          border: 1px solid rgba(232, 214, 204, 0.92);
-          box-shadow: 0 18px 35px rgba(83, 59, 51, 0.06);
+          background: white;
+          border-radius: 28px;
           overflow: hidden;
+          border: 1px solid #f3f4f6;
+          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
         }
 
         .table-wrap {
-          width: 100%;
           overflow-x: auto;
         }
 
         table {
           width: 100%;
+          min-width: 1100px;
           border-collapse: collapse;
-          min-width: 980px;
         }
 
-        thead th {
+        thead {
+          background: #f9fafb;
+        }
+
+        th {
+          padding: 18px;
           text-align: left;
           font-size: 12px;
           text-transform: uppercase;
-          letter-spacing: 0.07em;
-          color: #8a6e63;
-          background: #fff7f2;
-          padding: 16px 18px;
-          border-bottom: 1px solid #f0dfd6;
+          color: #6b7280;
         }
 
-        tbody td {
-          padding: 16px 18px;
-          border-bottom: 1px solid #f6ebe4;
-          color: #4b3831;
+        td {
+          padding: 18px;
+          border-top: 1px solid #f3f4f6;
           font-size: 14px;
-          vertical-align: middle;
+          color: #374151;
         }
 
-        tbody tr:hover {
-          background: rgba(255, 250, 246, 0.8);
+        tr:hover {
+          background: #fafafa;
         }
 
-        .cell-inline,
-        .cell-strong {
+        .cell {
           display: inline-flex;
           align-items: center;
           gap: 8px;
         }
 
-        .cell-strong {
+        .strong {
           font-weight: 800;
-          color: #352720;
+          color: #111827;
         }
 
-        .descricao-cell {
-          max-width: 280px;
-          white-space: normal;
+        .descricao {
+          max-width: 320px;
         }
 
         code {
-          background: #fff3ea;
-          color: #8b4d3e;
+          background: #fff3ed;
+          color: #ff5e62;
           padding: 6px 10px;
           border-radius: 10px;
           font-size: 12px;
           font-weight: 700;
         }
 
-        .status-badge {
+        .status {
           display: inline-flex;
           align-items: center;
           gap: 6px;
-          min-height: 32px;
-          padding: 0 10px;
+          height: 34px;
+          padding: 0 12px;
           border-radius: 999px;
           font-size: 12px;
           font-weight: 800;
-          border: 1px solid transparent;
         }
 
-        .status-badge.ativo {
+        .ativo {
           background: rgba(34, 197, 94, 0.12);
-          color: #166534;
-          border-color: rgba(34, 197, 94, 0.18);
+          color: #15803d;
         }
 
-        .status-badge.inativo {
-          background: rgba(239, 68, 68, 0.1);
-          color: #b91c1c;
-          border-color: rgba(239, 68, 68, 0.14);
+        .inativo {
+          background: rgba(239, 68, 68, 0.12);
+          color: #dc2626;
         }
 
-        .actions {
+        .acoes {
           display: flex;
-          align-items: center;
           gap: 8px;
         }
 
         .icon-btn {
-          width: 38px;
-          height: 38px;
-          border-radius: 12px;
-          display: inline-flex;
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          border: none;
+          cursor: pointer;
+          display: flex;
           align-items: center;
           justify-content: center;
-          border: none;
-          text-decoration: none;
-          cursor: pointer;
-          transition: 0.22s ease;
+          transition: 0.2s;
         }
 
         .icon-btn:hover {
-          transform: translateY(-1px);
+          transform: scale(1.06);
         }
 
         .icon-btn.edit {
           background: rgba(59, 130, 246, 0.12);
-          color: #1d4ed8;
+          color: #2563eb;
         }
 
         .icon-btn.delete {
           background: rgba(239, 68, 68, 0.12);
-          color: #b91c1c;
+          color: #dc2626;
         }
 
-        .pagination-card {
+        .pagination {
           display: flex;
-          align-items: center;
           justify-content: space-between;
-          gap: 12px;
-          flex-wrap: wrap;
-          border-radius: 20px;
-          background: rgba(255, 255, 255, 0.82);
-          border: 1px solid rgba(232, 214, 204, 0.92);
-          padding: 14px 16px;
-        }
-
-        .pagination-info {
-          color: #6f554b;
-          font-size: 14px;
-        }
-
-        .pagination-info strong {
-          color: #352720;
-        }
-
-        .pagination-controls {
-          display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 16px;
           flex-wrap: wrap;
+          background: white;
+          border-radius: 24px;
+          padding: 16px 18px;
+          border: 1px solid #f3f4f6;
         }
 
         .page-btn {
-          min-height: 42px;
-          padding: 0 14px;
-          border-radius: 12px;
-          border: 1px solid #ead7cb;
-          background: #fff;
-          color: #4a352e;
-          display: inline-flex;
+          height: 46px;
+          padding: 0 16px;
+          border-radius: 14px;
+          border: 1px solid #e5e7eb;
+          background: white;
+          display: flex;
           align-items: center;
-          justify-content: center;
           gap: 8px;
-          font-weight: 800;
+          font-weight: 700;
           cursor: pointer;
-          transition: 0.22s ease;
         }
 
-        .page-btn:hover:not(:disabled) {
-          transform: translateY(-1px);
+        .page-info {
+          font-weight: 600;
+          color: #6b7280;
         }
 
-        .page-btn:disabled {
-          opacity: 0.55;
-          cursor: not-allowed;
-        }
-
-        .page-indicator {
-          min-height: 42px;
-          padding: 0 14px;
-          border-radius: 12px;
-          display: inline-flex;
+        .state {
+          height: 72px;
+          border-radius: 22px;
+          display: flex;
           align-items: center;
-          justify-content: center;
-          background: #fff7f2;
-          border: 1px solid #f0dfd6;
-          color: #6f554b;
-          font-size: 14px;
+          gap: 12px;
+          padding: 0 20px;
+          font-weight: 700;
         }
 
-        .page-indicator strong {
-          color: #352720;
-          margin: 0 4px;
+        .loading {
+          background: #eff6ff;
+          color: #2563eb;
+        }
+
+        .error {
+          background: #fef2f2;
+          color: #dc2626;
+        }
+
+        .empty {
+          background: #f9fafb;
+          color: #6b7280;
         }
 
         .spin {
@@ -790,12 +973,137 @@ export default function CategoriasPage() {
           }
         }
 
-        @media (max-width: 860px) {
-          .page-header {
+        /* MODAL */
+
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.6);
+          backdrop-filter: blur(6px);
+          z-index: 999;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        }
+
+        .modal {
+          width: 100%;
+          max-width: 620px;
+          background: white;
+          border-radius: 30px;
+          overflow: hidden;
+          animation: modalIn 0.25s ease;
+        }
+
+        @keyframes modalIn {
+          from {
+            opacity: 0;
+            transform: translateY(20px) scale(0.98);
+          }
+
+          to {
+            opacity: 1;
+            transform: translateY(0px) scale(1);
+          }
+        }
+
+        .modal-header {
+          padding: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          border-bottom: 1px solid #f3f4f6;
+        }
+
+        .modal-header h2 {
+          margin: 0;
+          font-size: 24px;
+        }
+
+        .close-btn {
+          width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          border: none;
+          background: #f3f4f6;
+          cursor: pointer;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .modal-body {
+          padding: 24px;
+          display: flex;
+          flex-direction: column;
+          gap: 18px;
+        }
+
+        .form-group {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+
+        .form-group label {
+          font-size: 14px;
+          font-weight: 700;
+          color: #374151;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+          width: 100%;
+          border: 1px solid #e5e7eb;
+          border-radius: 16px;
+          padding: 14px;
+          outline: none;
+          font-size: 14px;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+          border-color: #ff5e62;
+          box-shadow: 0 0 0 4px rgba(255, 94, 98, 0.1);
+        }
+
+        .grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+        }
+
+        .modal-footer {
+          padding: 24px;
+          border-top: 1px solid #f3f4f6;
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+        }
+
+        .modal-danger {
+          max-width: 500px;
+        }
+
+        .danger-text {
+          margin-top: 12px;
+          color: #dc2626;
+          font-weight: 700;
+        }
+
+        @media (max-width: 768px) {
+          .grid {
+            grid-template-columns: 1fr;
+          }
+
+          .topbar {
             align-items: flex-start;
           }
 
-          .header-actions {
+          .topbar-actions {
             width: 100%;
           }
 
@@ -803,47 +1111,13 @@ export default function CategoriasPage() {
             flex: 1;
           }
 
-          .toolbar {
-            align-items: stretch;
-          }
-
-          .toolbar-left,
-          .toolbar-right {
-            width: 100%;
-          }
-
-          .toolbar-right {
-            justify-content: space-between;
-          }
-
-          .pagination-card {
-            align-items: stretch;
-          }
-
-          .pagination-controls {
-            width: 100%;
-            justify-content: space-between;
-          }
-        }
-
-        @media (max-width: 620px) {
-          .toolbar-right {
+          .pagination {
             flex-direction: column;
-            align-items: stretch;
           }
 
-          .select-box {
-            justify-content: space-between;
-          }
-
-          .pagination-controls {
-            flex-direction: column;
-            align-items: stretch;
-          }
-
-          .page-btn,
-          .page-indicator {
+          .page-btn {
             width: 100%;
+            justify-content: center;
           }
         }
       `}</style>
