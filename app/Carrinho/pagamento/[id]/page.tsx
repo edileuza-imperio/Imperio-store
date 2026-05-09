@@ -7,7 +7,6 @@ import { useParams, useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
 import { toast, ToastContainer } from "react-toastify";
 
-
 import Navbar from "@/components/site/menu/navbar";
 import Footer from "@/components/site/Rodape/Footer";
 import { InicioApi } from "@/services/api/api";
@@ -131,10 +130,7 @@ function normalizarStatusPagamento(
   pedido: Pedido | null
 ): "approved" | "pending" | "rejected" {
   const status = String(
-    pedido?.status_pagamento ??
-      pedido?.status ??
-      pedido?.payment_status ??
-      ""
+    pedido?.status_pagamento ?? pedido?.status ?? pedido?.payment_status ?? ""
   )
     .toLowerCase()
     .trim();
@@ -171,16 +167,13 @@ export default function PagamentoPage() {
 
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [usuario, setUsuario] = useState<Usuario | null>(null);
-
   const [loading, setLoading] = useState(true);
   const [loadingPix, setLoadingPix] = useState(false);
   const [loadingCartao, setLoadingCartao] = useState(false);
   const [verificandoPagamento, setVerificandoPagamento] = useState(false);
-
   const [pixCode, setPixCode] = useState("");
   const [copiado, setCopiado] = useState(false);
   const [mensagemStatus, setMensagemStatus] = useState<string>("");
-
   const [metodo, setMetodo] = useState<"pix" | "cartao">("pix");
 
   const [cartao, setCartao] = useState({
@@ -192,34 +185,28 @@ export default function PagamentoPage() {
     parcelas: "1",
   });
 
-  const valorTotal = useMemo(() => {
-    return normalizarNumero(pedido?.valor_total ?? 0);
-  }, [pedido]);
-
-  const statusPagamento = useMemo(() => {
-    return normalizarStatusPagamento(pedido);
-  }, [pedido]);
-
+  const valorTotal = useMemo(() => normalizarNumero(pedido?.valor_total ?? 0), [pedido]);
+  const statusPagamento = useMemo(() => normalizarStatusPagamento(pedido), [pedido]);
   const pagamentoConfirmado = statusPagamento === "approved";
 
   const statusLabel =
     statusPagamento === "approved"
       ? "Pagamento aprovado"
       : statusPagamento === "rejected"
-      ? "Pagamento recusado"
-      : "Aguardando pagamento";
+        ? "Pagamento recusado"
+        : "Aguardando pagamento";
 
   const statusClass =
     statusPagamento === "approved"
       ? "ok"
       : statusPagamento === "rejected"
-      ? "error"
-      : "pending";
+        ? "error"
+        : "pending";
 
-  async function redirecionarParaPedidos() {
+  function redirecionarParaPedidos() {
     setTimeout(() => {
       router.push("/Pedidos");
-    }, 1800);
+    }, 1600);
   }
 
   async function carregarPedido() {
@@ -248,9 +235,7 @@ export default function PagamentoPage() {
       if (status === "approved") {
         setMensagemStatus("Pagamento aprovado com sucesso.");
         toast.success("Pagamento aprovado com sucesso!");
-        setTimeout(() => {
-          router.push("/Pedidos");
-        }, 1800);
+        redirecionarParaPedidos();
       } else if (status === "rejected") {
         setMensagemStatus("Pagamento recusado.");
       } else {
@@ -273,14 +258,11 @@ export default function PagamentoPage() {
 
       const res = await InicioApi.post<ApiVerificarPagamentoResponse>(
         "/mercado/pagamento/verificar",
-        {
-          id_pedido: Number(pedidoId),
-        },
+        { id_pedido: Number(pedidoId) },
         { withCredentials: true }
       );
 
       const data = res.data;
-
       const pedidoAtualizado = data?.dados?.pedido ?? data?.pedido ?? null;
 
       const statusRecebido = normalizarStatusPagamento(
@@ -288,6 +270,7 @@ export default function PagamentoPage() {
           (data?.status
             ? ({
                 status_pagamento: data.status,
+                status: data.status,
               } as Pedido)
             : null)
       );
@@ -317,7 +300,6 @@ export default function PagamentoPage() {
               }
             : prev
         );
-
         toast.success("Pagamento aprovado com sucesso!");
         redirecionarParaPedidos();
         return;
@@ -325,23 +307,16 @@ export default function PagamentoPage() {
 
       if (statusRecebido === "rejected") {
         setMensagemStatus("Pagamento recusado ou cancelado.");
-        if (!silencioso) {
-          toast.error("Pagamento recusado ou cancelado.");
-        }
+        if (!silencioso) toast.error("Pagamento recusado ou cancelado.");
         return;
       }
 
       setMensagemStatus("Pagamento ainda não confirmado.");
-      if (!silencioso) {
-        toast.info("Ainda não identificamos o pagamento.");
-      }
+      if (!silencioso) toast.info("Ainda não identificamos o pagamento.");
     } catch (error) {
       console.error("Erro ao verificar pagamento:", error);
       setMensagemStatus("Não foi possível verificar o pagamento agora.");
-
-      if (!silencioso) {
-        toast.error("Não foi possível verificar o pagamento agora.");
-      }
+      if (!silencioso) toast.error("Não foi possível verificar o pagamento agora.");
     } finally {
       setVerificandoPagamento(false);
     }
@@ -354,7 +329,7 @@ export default function PagamentoPage() {
       setMensagemStatus("");
 
       if (!pedido || !usuario) {
-        alert("Pedido ou usuário não carregado.");
+        toast.error("Pedido ou usuário não carregado.");
         return;
       }
 
@@ -377,7 +352,7 @@ export default function PagamentoPage() {
       const qr = getQrCodePix(res.data);
 
       if (!qr) {
-        alert("Não foi possível gerar o código PIX.");
+        toast.error("Não foi possível gerar o código PIX.");
         return;
       }
 
@@ -386,7 +361,7 @@ export default function PagamentoPage() {
       setMensagemStatus("PIX gerado. Agora é só pagar e aguardar a confirmação.");
     } catch (error: any) {
       console.error("ERRO PIX:", error?.response?.data);
-      alert(error?.response?.data?.dados?.erro || "Erro ao gerar PIX");
+      toast.error(error?.response?.data?.dados?.erro || "Erro ao gerar PIX");
     } finally {
       setLoadingPix(false);
     }
@@ -398,7 +373,7 @@ export default function PagamentoPage() {
       setMensagemStatus("");
 
       if (!pedido || !usuario) {
-        alert("Pedido ou usuário não carregado.");
+        toast.error("Pedido ou usuário não carregado.");
         return;
       }
 
@@ -417,10 +392,10 @@ export default function PagamentoPage() {
 
       console.log("✅ CARTÃO RESPONSE:", res.data);
       setMensagemStatus("Pagamento com cartão enviado. Aguarde a confirmação.");
-      alert("Pagamento com cartão enviado.");
+      toast.success("Pagamento com cartão enviado.");
     } catch (error: any) {
       console.error("❌ ERRO CARTÃO:", error?.response?.data);
-      alert(error?.response?.data?.dados?.erro || "Erro ao processar cartão");
+      toast.error(error?.response?.data?.dados?.erro || "Erro ao processar cartão");
     } finally {
       setLoadingCartao(false);
     }
@@ -431,8 +406,9 @@ export default function PagamentoPage() {
 
     await navigator.clipboard.writeText(pixCode);
     setCopiado(true);
+    toast.success("Código PIX copiado!");
 
-    setTimeout(() => setCopiado(false), 1800);
+    setTimeout(() => setCopiado(false), 1600);
   }
 
   useEffect(() => {
@@ -441,12 +417,10 @@ export default function PagamentoPage() {
   }, [pedidoId]);
 
   useEffect(() => {
-    if (!pedidoId) return;
-    if (!pixCode) return;
-    if (pagamentoConfirmado) return;
+    if (!pedidoId || !pixCode || pagamentoConfirmado) return;
 
-    const interval = setInterval(async () => {
-      await verificarPagamentoNoServidor(true);
+    const interval = setInterval(() => {
+      void verificarPagamentoNoServidor(true);
     }, 7000);
 
     return () => clearInterval(interval);
@@ -459,47 +433,49 @@ export default function PagamentoPage() {
         <Navbar />
         <main className="page">
           <div className="shell">
-            <div className="card centerCard">
-              <FiClock size={28} />
-              <p>Carregando pagamento...</p>
-            </div>
+            <section className="loadingCard">
+              <FiClock size={30} />
+              <h2>Carregando pagamento</h2>
+              <p>Estamos buscando os dados do seu pedido.</p>
+            </section>
           </div>
 
           <style jsx global>{`
             .page {
               min-height: 100vh;
-              padding: 120px 20px 60px;
-              background:
-                radial-gradient(circle at top left, rgba(192, 138, 122, 0.18), transparent 24%),
-                radial-gradient(circle at top right, rgba(255, 255, 255, 0.55), transparent 22%),
-                linear-gradient(180deg, #f7f1e6 0%, #f4eadf 100%);
+              padding: 112px 20px 56px;
+              background: #f5f6f8;
             }
 
             .shell {
-              max-width: 1280px;
+              max-width: 1220px;
               margin: 0 auto;
             }
 
-            .card {
-              background: rgba(255, 255, 255, 0.6);
-              border: 1px solid rgba(233, 222, 214, 0.82);
-              box-shadow:
-                0 18px 50px rgba(59, 40, 32, 0.08),
-                inset 0 1px 0 rgba(255, 255, 255, 0.6);
-              backdrop-filter: blur(18px);
-              -webkit-backdrop-filter: blur(18px);
-            }
-
-            .centerCard {
-              max-width: 560px;
+            .loadingCard {
+              max-width: 520px;
               margin: 0 auto;
-              text-align: center;
-              border-radius: 28px;
-              padding: 34px 26px;
+              border-radius: 24px;
+              background: #fff;
+              border: 1px solid #eceff3;
+              box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+              padding: 34px 24px;
               display: grid;
-              gap: 10px;
               justify-items: center;
-              color: #8c5a50;
+              gap: 10px;
+              text-align: center;
+              color: #334155;
+            }
+
+            .loadingCard h2 {
+              margin: 0;
+              font-size: 22px;
+              color: #111827;
+            }
+
+            .loadingCard p {
+              margin: 0;
+              color: #64748b;
             }
           `}</style>
         </main>
@@ -514,68 +490,72 @@ export default function PagamentoPage() {
         <Navbar />
         <main className="page">
           <div className="shell">
-            <div className="card centerCard">
+            <section className="emptyCard">
               <h1>Pedido não encontrado</h1>
               <p>Não conseguimos localizar o pedido para pagamento.</p>
               <Link href="/Carrinho" className="secondaryBtn">
                 <FiArrowLeft /> Voltar ao carrinho
               </Link>
-            </div>
+            </section>
           </div>
 
           <style jsx global>{`
             .page {
               min-height: 100vh;
-              padding: 120px 20px 60px;
-              background:
-                radial-gradient(circle at top left, rgba(192, 138, 122, 0.18), transparent 24%),
-                radial-gradient(circle at top right, rgba(255, 255, 255, 0.55), transparent 22%),
-                linear-gradient(180deg, #f7f1e6 0%, #f4eadf 100%);
+              padding: 112px 20px 56px;
+              background: #f5f6f8;
             }
 
             .shell {
-              max-width: 1280px;
+              max-width: 1220px;
               margin: 0 auto;
             }
 
-            .card {
-              background: rgba(255, 255, 255, 0.6);
-              border: 1px solid rgba(233, 222, 214, 0.82);
-              box-shadow:
-                0 18px 50px rgba(59, 40, 32, 0.08),
-                inset 0 1px 0 rgba(255, 255, 255, 0.6);
-              backdrop-filter: blur(18px);
-              -webkit-backdrop-filter: blur(18px);
-            }
-
-            .centerCard {
+            .emptyCard {
               max-width: 560px;
               margin: 0 auto;
-              text-align: center;
-              border-radius: 28px;
-              padding: 34px 26px;
+              border-radius: 24px;
+              background: #fff;
+              border: 1px solid #eceff3;
+              box-shadow: 0 12px 28px rgba(15, 23, 42, 0.05);
+              padding: 34px 24px;
               display: grid;
-              gap: 10px;
               justify-items: center;
-              color: #8c5a50;
+              gap: 10px;
+              text-align: center;
+              color: #334155;
+            }
+
+            .emptyCard h1 {
+              margin: 0;
+              font-size: 22px;
+              color: #111827;
+            }
+
+            .emptyCard p {
+              margin: 0;
+              color: #64748b;
             }
 
             .secondaryBtn {
-              min-height: 54px;
-              border-radius: 16px;
-              text-decoration: none;
-              border: none;
-              font-weight: 700;
+              height: 52px;
+              padding: 0 18px;
+              border-radius: 14px;
+              border: 1px solid #d9dee7;
+              background: #fff;
+              color: #111827;
               display: inline-flex;
               align-items: center;
               justify-content: center;
               gap: 10px;
-              cursor: pointer;
-              transition: 0.22s ease;
-              background: rgba(255, 255, 255, 0.7);
-              color: #8c5a50;
-              border: 1px solid rgba(192, 138, 122, 0.2);
-              padding: 0 18px;
+              font-weight: 600;
+              text-decoration: none;
+              transition: 0.18s ease;
+            }
+
+            .secondaryBtn:hover {
+              transform: translateY(-1px);
+              border-color: #c7ced9;
             }
           `}</style>
         </main>
@@ -590,35 +570,29 @@ export default function PagamentoPage() {
 
       <main className="page">
         <div className="shell">
-          <header className="hero card">
-            <div className="heroLeft">
+          <section className="topCard">
+            <div>
               <div className="eyebrow">
                 <FiLock />
                 <span>Pagamento seguro</span>
               </div>
-
-              <h1>Finalize seu pedido</h1>
-              <p>Escolha PIX ou cartão e conclua sua compra com segurança.</p>
+              <h1>Finalizar pagamento</h1>
+              <p>Escolha PIX ou cartão e conclua sua compra com uma interface limpa e responsiva.</p>
             </div>
 
-            <div className={`statusChip ${statusClass}`}>
-              {statusLabel}
-            </div>
-          </header>
+            <div className={`statusBadge ${statusClass}`}>{statusLabel}</div>
+          </section>
 
-          {mensagemStatus && (
-            <div className={`statusMessage card ${statusClass}`}>
-              {mensagemStatus}
-            </div>
-          )}
+          {mensagemStatus && <div className={`messageBar ${statusClass}`}>{mensagemStatus}</div>}
 
-          <div className="checkoutLayout">
-            <section className="mainCol">
-              <div className="card payCard">
-                <div className="payHeader">
+          <div className="layout">
+            <section className="contentCol">
+              <section className="card mainCard">
+                <div className="mainHeader">
                   <div>
-                    <h2>Checkout</h2>
-                    <p>Layout horizontal para leitura rápida e visual mais limpo.</p>
+                    <span className="sectionLabel">Checkout</span>
+                    <h2>Pagamento do pedido</h2>
+                    <p>Fluxo direto, visual mais limpo e foco total na conversão.</p>
                   </div>
 
                   {pagamentoConfirmado && (
@@ -629,8 +603,8 @@ export default function PagamentoPage() {
                   )}
                 </div>
 
-                <div className="infoRow">
-                  <div className="infoCard clientCard">
+                <div className="infoGrid">
+                  <article className="infoCard">
                     <div className="infoTitle">
                       <FiUser />
                       <span>Cliente</span>
@@ -649,45 +623,43 @@ export default function PagamentoPage() {
                       <div className="buyerInfo">
                         <strong>{usuario?.nome || "Usuário"}</strong>
                         <span>{usuario?.email || "-"}</span>
-                        <span>CPF: {(usuario?.cpf || "-").toString()}</span>
+                        <span>CPF: {usuario?.cpf || "-"}</span>
                       </div>
                     </div>
-                  </div>
+                  </article>
 
-                  <div className="infoCard totalCard">
+                  <article className="infoCard">
                     <div className="infoTitle">
                       <FiPackage />
                       <span>Resumo financeiro</span>
                     </div>
 
-                    <div className="miniRows">
-                      <div className="miniRow">
+                    <div className="summaryRows">
+                      <div className="summaryRow">
                         <span>Produtos</span>
                         <strong>{formatarMoeda(pedido.valor_produtos)}</strong>
                       </div>
-
-                      <div className="miniRow">
+                      <div className="summaryRow">
                         <span>Frete</span>
                         <strong>{formatarMoeda(pedido.valor_frete ?? 0)}</strong>
                       </div>
-
-                      <div className="miniRow">
+                      <div className="summaryRow">
                         <span>Desconto</span>
                         <strong>- {formatarMoeda(pedido.valor_desconto ?? 0)}</strong>
                       </div>
                     </div>
 
-                    <div className="grandTotal">
+                    <div className="totalLine">
                       <span>Total</span>
                       <strong>{formatarMoeda(pedido.valor_total)}</strong>
                     </div>
-                  </div>
+                  </article>
                 </div>
 
-                <div className="methodsWrap">
+                <div className="paymentTabs">
                   <button
                     type="button"
-                    className={`methodBtn ${metodo === "pix" ? "active" : ""}`}
+                    className={`tabBtn ${metodo === "pix" ? "active" : ""}`}
                     onClick={() => setMetodo("pix")}
                   >
                     <FiSmartphone />
@@ -696,7 +668,7 @@ export default function PagamentoPage() {
 
                   <button
                     type="button"
-                    className={`methodBtn ${metodo === "cartao" ? "active" : ""}`}
+                    className={`tabBtn ${metodo === "cartao" ? "active" : ""}`}
                     onClick={() => setMetodo("cartao")}
                   >
                     <FiCreditCard />
@@ -706,45 +678,40 @@ export default function PagamentoPage() {
 
                 <div className="panel">
                   {metodo === "pix" ? (
-                    <div className="methodBox pixMethod">
-                      <div className="actions">
+                    <div className="methodBlock">
+                      <div className="actionRow">
                         <Link href="/Carrinho" className="secondaryBtn">
-                          <FiArrowLeft />
-                          Voltar ao carrinho
+                          <FiArrowLeft /> Voltar ao carrinho
                         </Link>
 
-                        <button
-                          className="primaryBtn"
-                          onClick={gerarPix}
-                          disabled={loadingPix}
-                        >
+                        <button className="primaryBtn" onClick={gerarPix} disabled={loadingPix}>
                           {loadingPix ? "Gerando PIX..." : "Gerar PIX"}
                           <FiRefreshCw />
                         </button>
                       </div>
 
-                      <div className="note">
+                      <div className="hintBox">
                         <FiShield />
-                        <span>Seu pagamento por PIX é processado com segurança.</span>
+                        <span>PIX processado com segurança. Após pagar, use o botão de verificação.</span>
                       </div>
 
                       {pixCode ? (
-                        <div className="pixResult">
+                        <div className="pixGrid">
                           <div className="qrCard">
-                            <div className="qrTitle">
+                            <div className="blockTitle">
                               <FiSmartphone />
                               <strong>Escaneie o QR Code</strong>
                             </div>
 
-                            <div className="qrBox">
+                            <div className="qrWrap">
                               <QRCodeCanvas value={pixCode} size={220} />
                             </div>
                           </div>
 
                           <div className="pixCodeCard">
-                            <div className="codeHeader">
+                            <div className="blockTitle">
                               <FiCopy />
-                              <span>Código PIX copia e cola</span>
+                              <strong>Código PIX copia e cola</strong>
                             </div>
 
                             <textarea className="pixTextarea" value={pixCode} readOnly />
@@ -765,7 +732,7 @@ export default function PagamentoPage() {
                               </button>
                             </div>
 
-                            <p className="hint">
+                            <p className="smallText">
                               Esse botão consulta o backend e atualiza o pedido com o status real.
                             </p>
                           </div>
@@ -773,12 +740,12 @@ export default function PagamentoPage() {
                       ) : (
                         <div className="placeholder">
                           <FiCheckCircle size={30} />
-                          <p>O QR Code vai aparecer aqui após gerar o PIX.</p>
+                          <p>O QR Code aparecerá aqui depois que você gerar o PIX.</p>
                         </div>
                       )}
                     </div>
                   ) : (
-                    <div className="methodBox">
+                    <div className="methodBlock">
                       <div className="formGrid">
                         <label className="field">
                           <span>Número do cartão</span>
@@ -788,6 +755,8 @@ export default function PagamentoPage() {
                               setCartao((prev) => ({ ...prev, numero: e.target.value }))
                             }
                             placeholder="0000 0000 0000 0000"
+                            inputMode="numeric"
+                            autoComplete="cc-number"
                           />
                         </label>
 
@@ -799,6 +768,7 @@ export default function PagamentoPage() {
                               setCartao((prev) => ({ ...prev, nome: e.target.value }))
                             }
                             placeholder="Como aparece no cartão"
+                            autoComplete="cc-name"
                           />
                         </label>
                       </div>
@@ -812,6 +782,8 @@ export default function PagamentoPage() {
                               setCartao((prev) => ({ ...prev, mes: e.target.value }))
                             }
                             placeholder="MM"
+                            inputMode="numeric"
+                            autoComplete="cc-exp-month"
                           />
                         </label>
 
@@ -823,6 +795,8 @@ export default function PagamentoPage() {
                               setCartao((prev) => ({ ...prev, ano: e.target.value }))
                             }
                             placeholder="AA"
+                            inputMode="numeric"
+                            autoComplete="cc-exp-year"
                           />
                         </label>
 
@@ -834,6 +808,8 @@ export default function PagamentoPage() {
                               setCartao((prev) => ({ ...prev, cvv: e.target.value }))
                             }
                             placeholder="123"
+                            inputMode="numeric"
+                            autoComplete="cc-csc"
                           />
                         </label>
                       </div>
@@ -869,52 +845,50 @@ export default function PagamentoPage() {
                         <FiCreditCard />
                       </button>
 
-                      <p className="warning">
-                        O cartão em produção precisa de token gerado no front pelo Mercado Pago.
+                      <p className="warningText">
+                        Em produção, o cartão precisa do token gerado no front pelo Mercado Pago.
                       </p>
                     </div>
                   )}
                 </div>
-              </div>
+              </section>
             </section>
 
             <aside className="sideCol">
-              <div className="card sidebarCard">
-                <div className="sidebarHeader">
+              <section className="card sideCard">
+                <div className="sideHeader">
                   <FiClock />
                   <div>
                     <strong>Resumo do pedido</strong>
-                    <p>Informações rápidas, sem quebrar o layout horizontal.</p>
+                    <p>Informações rápidas e organizadas.</p>
                   </div>
                 </div>
 
-                <div className="summaryMiniSide">
-                  <div className="miniRow">
+                <div className="sideSummary">
+                  <div className="summaryRow">
                     <span>Pedido</span>
                     <strong>#{pedido.id_pedido}</strong>
                   </div>
-
-                  <div className="miniRow">
+                  <div className="summaryRow">
                     <span>Total</span>
                     <strong>{formatarMoeda(pedido.valor_total)}</strong>
                   </div>
-
-                  <div className="miniRow">
+                  <div className="summaryRow">
                     <span>Status</span>
                     <strong>{statusLabel}</strong>
                   </div>
                 </div>
-              </div>
+              </section>
 
-              <div className="card sidebarCard warningCard">
+              <section className="card sideCard alertCard">
                 <FiAlertCircle />
                 <div>
                   <strong>Dica importante</strong>
                   <p>
-                    O botão “Já paguei” só consulta o backend. Ele não confirma sozinho.
+                    O botão “Já paguei” apenas consulta o backend. A confirmação real depende da resposta do servidor.
                   </p>
                 </div>
-              </div>
+              </section>
             </aside>
           </div>
         </div>
@@ -924,138 +898,142 @@ export default function PagamentoPage() {
         <style jsx global>{`
           .page {
             min-height: 100vh;
-            padding: 120px 20px 60px;
-            background:
-              radial-gradient(circle at top left, rgba(192, 138, 122, 0.18), transparent 24%),
-              radial-gradient(circle at top right, rgba(255, 255, 255, 0.55), transparent 22%),
-              linear-gradient(180deg, #f7f1e6 0%, #f4eadf 100%);
+            padding: 112px 20px 56px;
+            background: #f5f6f8;
           }
 
           .shell {
-            max-width: 1280px;
+            max-width: 1220px;
             margin: 0 auto;
           }
 
           .card {
-            background: rgba(255, 255, 255, 0.6);
-            border: 1px solid rgba(233, 222, 214, 0.82);
-            box-shadow:
-              0 18px 50px rgba(59, 40, 32, 0.08),
-              inset 0 1px 0 rgba(255, 255, 255, 0.6);
-            backdrop-filter: blur(18px);
-            -webkit-backdrop-filter: blur(18px);
+            background: #fff;
+            border: 1px solid #e9edf3;
+            border-radius: 24px;
+            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
           }
 
-          .hero {
+          .topCard {
+            border-radius: 24px;
+            padding: 24px;
+            margin-bottom: 16px;
+            background: #fff;
+            border: 1px solid #e9edf3;
+            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.05);
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: space-between;
             gap: 20px;
-            padding: 24px 26px;
-            border-radius: 26px;
-            margin-bottom: 14px;
           }
 
           .eyebrow {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            padding: 8px 14px;
+            padding: 8px 12px;
             border-radius: 999px;
-            background: rgba(192, 138, 122, 0.12);
-            color: #8c5a50;
+            background: #f3f4f6;
+            color: #374151;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 700;
             margin-bottom: 14px;
           }
 
-          .hero h1 {
+          .topCard h1 {
             margin: 0;
-            font-size: clamp(28px, 4vw, 44px);
+            font-size: clamp(28px, 4vw, 42px);
             line-height: 1.05;
-            color: #8c5a50;
+            color: #111827;
             letter-spacing: -0.03em;
           }
 
-          .hero p {
+          .topCard p {
             margin: 10px 0 0;
-            color: rgba(43, 43, 43, 0.72);
+            color: #667085;
             font-size: 15px;
+            max-width: 680px;
           }
 
-          .statusChip,
-          .statusMessage {
-            white-space: nowrap;
+          .statusBadge,
+          .messageBar {
             padding: 12px 16px;
             border-radius: 999px;
             font-weight: 700;
             font-size: 13px;
             border: 1px solid transparent;
+            white-space: nowrap;
           }
 
-          .statusMessage {
-            margin-bottom: 18px;
+          .messageBar {
+            margin-bottom: 16px;
             white-space: normal;
-            border-radius: 18px;
+            border-radius: 16px;
             font-weight: 600;
           }
 
-          .statusChip.pending,
-          .statusMessage.pending {
-            background: rgba(255, 235, 205, 0.72);
-            color: #8c5a50;
-            border-color: rgba(192, 138, 122, 0.18);
+          .pending {
+            background: #fff7ed;
+            color: #9a3412;
+            border-color: #fed7aa;
           }
 
-          .statusChip.ok,
-          .statusMessage.ok {
-            background: rgba(46, 204, 113, 0.12);
-            color: #1f7a43;
-            border-color: rgba(46, 204, 113, 0.2);
+          .ok {
+            background: #ecfdf3;
+            color: #027a48;
+            border-color: #abefc6;
           }
 
-          .statusChip.error,
-          .statusMessage.error {
-            background: rgba(231, 76, 60, 0.12);
-            color: #c0392b;
-            border-color: rgba(231, 76, 60, 0.2);
+          .error {
+            background: #fef2f2;
+            color: #b42318;
+            border-color: #fecaca;
           }
 
-          .checkoutLayout {
+          .layout {
             display: grid;
             grid-template-columns: minmax(0, 1fr) 320px;
             gap: 22px;
             align-items: start;
           }
 
-          .mainCol,
+          .contentCol,
           .sideCol {
             min-width: 0;
           }
 
-          .payCard,
-          .sidebarCard {
-            border-radius: 26px;
+          .mainCard,
+          .sideCard {
             padding: 22px;
           }
 
-          .payHeader {
+          .mainHeader {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             gap: 16px;
           }
 
-          .payHeader h2 {
-            margin: 0;
-            font-size: 24px;
-            color: #8c5a50;
-            letter-spacing: -0.03em;
+          .sectionLabel {
+            display: inline-block;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #6b7280;
+            margin-bottom: 6px;
           }
 
-          .payHeader p {
+          .mainHeader h2 {
+            margin: 0;
+            font-size: 24px;
+            letter-spacing: -0.03em;
+            color: #111827;
+          }
+
+          .mainHeader p {
             margin: 8px 0 0;
-            color: rgba(43, 43, 43, 0.65);
+            color: #667085;
             font-size: 14px;
           }
 
@@ -1065,14 +1043,15 @@ export default function PagamentoPage() {
             gap: 8px;
             padding: 10px 14px;
             border-radius: 999px;
-            background: rgba(46, 204, 113, 0.12);
-            border: 1px solid rgba(46, 204, 113, 0.18);
-            color: #1f7a43;
+            background: #ecfdf3;
+            border: 1px solid #abefc6;
+            color: #027a48;
             font-weight: 700;
             font-size: 13px;
+            flex-shrink: 0;
           }
 
-          .infoRow {
+          .infoGrid {
             margin-top: 18px;
             display: grid;
             grid-template-columns: 1.05fr 0.95fr;
@@ -1082,23 +1061,17 @@ export default function PagamentoPage() {
           .infoCard {
             border-radius: 20px;
             padding: 16px;
-            background: rgba(255, 255, 255, 0.56);
-            border: 1px solid rgba(233, 222, 214, 0.9);
-          }
-
-          .totalCard {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
+            background: #fafbfc;
+            border: 1px solid #eef2f7;
           }
 
           .infoTitle {
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            color: #8c5a50;
+            color: #4b5563;
             font-size: 13px;
-            font-weight: 700;
+            font-weight: 800;
             margin-bottom: 14px;
           }
 
@@ -1115,6 +1088,7 @@ export default function PagamentoPage() {
             overflow: hidden;
             flex-shrink: 0;
             background: #fff;
+            border: 1px solid #eef2f7;
           }
 
           .buyerInfo {
@@ -1125,103 +1099,102 @@ export default function PagamentoPage() {
 
           .buyerInfo strong {
             font-size: 15px;
-            color: #2b2b2b;
+            color: #111827;
           }
 
           .buyerInfo span {
             font-size: 13px;
-            color: rgba(43, 43, 43, 0.65);
+            color: #667085;
           }
 
-          .miniRows,
-          .summaryMiniSide {
+          .summaryRows,
+          .sideSummary {
             display: grid;
             gap: 12px;
           }
 
-          .miniRow {
+          .summaryRow {
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 14px;
-            color: rgba(43, 43, 43, 0.82);
+            color: #475467;
             font-size: 14px;
           }
 
-          .miniRow strong {
-            color: #2b2b2b;
+          .summaryRow strong {
+            color: #111827;
+            font-weight: 700;
           }
 
-          .grandTotal {
+          .totalLine {
             margin-top: 14px;
             padding-top: 14px;
-            border-top: 1px solid rgba(233, 222, 214, 0.95);
+            border-top: 1px solid #eef2f7;
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 14px;
           }
 
-          .grandTotal span {
+          .totalLine span {
             font-size: 16px;
-            font-weight: 700;
+            font-weight: 800;
+            color: #111827;
           }
 
-          .grandTotal strong {
+          .totalLine strong {
             font-size: 24px;
-            color: #8c5a50;
+            color: #111827;
+            letter-spacing: -0.03em;
           }
 
-          .methodsWrap {
+          .paymentTabs {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
             margin-top: 18px;
           }
 
-          .methodBtn {
-            border: 1px solid rgba(192, 138, 122, 0.22);
-            background: rgba(255, 255, 255, 0.72);
-            color: #8c5a50;
-            border-radius: 18px;
-            min-height: 58px;
+          .tabBtn {
+            border: 1px solid #d9dee7;
+            background: #fff;
+            color: #111827;
+            border-radius: 16px;
+            min-height: 56px;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
             font-weight: 700;
-            transition: 0.22s ease;
+            transition: 0.18s ease;
           }
 
-          .methodBtn:hover {
-            transform: translateY(-2px);
-            border-color: rgba(192, 138, 122, 0.5);
+          .tabBtn:hover {
+            transform: translateY(-1px);
+            border-color: #c7ced9;
           }
 
           .active {
-            background: linear-gradient(135deg, #c08a7a 0%, #a96d61 100%);
+            background: #111827;
             color: #fff;
-            border-color: transparent;
-            box-shadow: 0 14px 24px rgba(160, 107, 95, 0.22);
+            border-color: #111827;
+            box-shadow: 0 10px 20px rgba(17, 24, 39, 0.12);
           }
 
           .panel {
             margin-top: 18px;
           }
 
-          .methodBox {
+          .methodBlock {
             display: grid;
             gap: 16px;
           }
 
-          .pixMethod {
-            gap: 16px;
-          }
-
-          .actions {
+          .actionRow {
             display: grid;
-            grid-template-columns: 1fr 1.2fr;
+            grid-template-columns: 1fr 1fr;
             gap: 12px;
           }
 
@@ -1229,8 +1202,8 @@ export default function PagamentoPage() {
           .secondaryBtn,
           .copyBtn,
           .verifyBtn {
-            min-height: 54px;
-            border-radius: 16px;
+            min-height: 52px;
+            border-radius: 14px;
             border: none;
             font-weight: 700;
             display: inline-flex;
@@ -1238,112 +1211,59 @@ export default function PagamentoPage() {
             justify-content: center;
             gap: 10px;
             cursor: pointer;
-            transition: 0.22s ease;
+            transition: 0.18s ease;
             text-decoration: none;
-          }
-
-          .primaryBtn {
-            background: linear-gradient(135deg, #c08a7a 0%, #a96d61 100%);
-            color: #fff;
-            box-shadow: 0 16px 28px rgba(160, 107, 95, 0.24);
             padding: 0 18px;
           }
 
-          .primaryBtn:hover {
-            transform: translateY(-2px);
+          .primaryBtn {
+            background: #111827;
+            color: #fff;
           }
 
-          .primaryBtn:disabled {
-            opacity: 0.7;
+          .primaryBtn:hover {
+            transform: translateY(-1px);
+            opacity: 0.95;
+          }
+
+          .primaryBtn:disabled,
+          .verifyBtn:disabled {
+            opacity: 0.72;
             cursor: progress;
             transform: none;
           }
 
           .secondaryBtn {
-            background: rgba(255, 255, 255, 0.7);
-            color: #8c5a50;
-            border: 1px solid rgba(192, 138, 122, 0.2);
-            padding: 0 18px;
+            background: #fff;
+            color: #111827;
+            border: 1px solid #d9dee7;
           }
 
           .secondaryBtn:hover {
-            transform: translateY(-2px);
-            border-color: rgba(192, 138, 122, 0.55);
+            transform: translateY(-1px);
+            border-color: #c7ced9;
           }
 
-          .note,
-          .warning {
+          .hintBox,
+          .warningText {
             display: flex;
-            gap: 14px;
+            gap: 12px;
             align-items: flex-start;
-            color: rgba(43, 43, 43, 0.76);
+            color: #475467;
           }
 
-          .note {
-            margin: 0;
+          .hintBox {
             padding: 12px 14px;
             border-radius: 14px;
-            background: rgba(192, 138, 122, 0.1);
+            background: #f8fafc;
+            border: 1px solid #eef2f7;
             font-size: 13px;
             line-height: 1.45;
           }
 
-          .sidebarCard {
+          .pixGrid {
             display: grid;
-            gap: 18px;
-          }
-
-          .sidebarHeader {
-            display: flex;
-            gap: 12px;
-            align-items: flex-start;
-          }
-
-          .sidebarHeader svg,
-          .warningCard svg {
-            color: #c08a7a;
-            flex-shrink: 0;
-            margin-top: 2px;
-          }
-
-          .sidebarHeader strong,
-          .warningCard strong {
-            display: block;
-            margin-bottom: 4px;
-            color: #2b2b2b;
-          }
-
-          .sidebarHeader p,
-          .warningCard p {
-            margin: 0;
-            font-size: 13px;
-            line-height: 1.5;
-            color: rgba(43, 43, 43, 0.72);
-          }
-
-          .warningCard {
-            display: flex;
-            gap: 14px;
-            align-items: flex-start;
-          }
-
-          .placeholder {
-            min-height: 240px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            text-align: center;
-            border-radius: 22px;
-            border: 1px dashed rgba(192, 138, 122, 0.35);
-            background: rgba(255, 255, 255, 0.45);
-            color: rgba(43, 43, 43, 0.65);
-            padding: 24px;
-          }
-
-          .pixResult {
-            display: grid;
-            grid-template-columns: 280px 1fr;
+            grid-template-columns: 280px minmax(0, 1fr);
             gap: 14px;
             align-items: stretch;
           }
@@ -1351,43 +1271,48 @@ export default function PagamentoPage() {
           .qrCard,
           .pixCodeCard {
             border-radius: 22px;
-            border: 1px solid rgba(233, 222, 214, 0.95);
-            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid #eef2f7;
+            background: #fafbfc;
             padding: 16px;
           }
 
-          .qrTitle,
-          .codeHeader {
+          .blockTitle {
             display: flex;
             align-items: center;
             gap: 8px;
-            color: #8c5a50;
+            color: #111827;
             font-size: 13px;
-            font-weight: 700;
+            font-weight: 800;
             margin-bottom: 14px;
           }
 
-          .qrBox {
+          .qrWrap {
             display: flex;
             justify-content: center;
             align-items: center;
-            padding: 10px;
+            padding: 12px;
             border-radius: 18px;
             background: #fff;
+            border: 1px solid #eef2f7;
           }
 
           .pixTextarea {
             width: 100%;
             min-height: 140px;
-            border-radius: 16px;
-            border: 1px solid rgba(233, 222, 214, 0.95);
+            border-radius: 14px;
+            border: 1px solid #d9dee7;
             padding: 14px;
             resize: none;
             outline: none;
-            background: rgba(255, 255, 255, 0.86);
-            color: #2b2b2b;
+            background: #fff;
+            color: #111827;
             font-size: 13px;
             line-height: 1.5;
+          }
+
+          .pixTextarea:focus {
+            border-color: #111827;
+            box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08);
           }
 
           .pixButtons {
@@ -1401,35 +1326,18 @@ export default function PagamentoPage() {
             width: 100%;
             background: #111827;
             color: #fff;
-            padding: 0 18px;
-          }
-
-          .copyBtn:hover {
-            transform: translateY(-2px);
           }
 
           .verifyBtn {
             width: 100%;
-            background: linear-gradient(135deg, #2f855a 0%, #256d48 100%);
+            background: #027a48;
             color: #fff;
-            box-shadow: 0 16px 28px rgba(37, 109, 72, 0.18);
-            padding: 0 18px;
           }
 
-          .verifyBtn:hover {
-            transform: translateY(-2px);
-          }
-
-          .verifyBtn:disabled {
-            opacity: 0.7;
-            cursor: progress;
-            transform: none;
-          }
-
-          .hint {
+          .smallText {
             margin: 10px 0 0;
             font-size: 12px;
-            color: rgba(43, 43, 43, 0.62);
+            color: #667085;
             text-align: center;
             line-height: 1.45;
           }
@@ -1451,7 +1359,7 @@ export default function PagamentoPage() {
 
           .field span {
             font-size: 13px;
-            color: rgba(43, 43, 43, 0.72);
+            color: #475467;
             font-weight: 600;
           }
 
@@ -1461,17 +1369,17 @@ export default function PagamentoPage() {
             min-height: 50px;
             padding: 0 14px;
             border-radius: 14px;
-            border: 1px solid rgba(233, 222, 214, 0.98);
-            background: rgba(255, 255, 255, 0.82);
-            color: #2b2b2b;
+            border: 1px solid #d9dee7;
+            background: #fff;
+            color: #111827;
             outline: none;
-            transition: 0.2s;
+            transition: 0.18s ease;
           }
 
           .field input:focus,
           .field select:focus {
-            border-color: rgba(192, 138, 122, 0.7);
-            box-shadow: 0 0 0 4px rgba(192, 138, 122, 0.12);
+            border-color: #111827;
+            box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08);
           }
 
           .staticField {
@@ -1484,20 +1392,22 @@ export default function PagamentoPage() {
 
           .staticField strong {
             font-size: 18px;
-            color: #8c5a50;
+            color: #111827;
           }
 
           .full {
             width: 100%;
           }
 
-          .warning {
+          .warningText {
             margin: 0;
             padding: 12px 14px;
             border-radius: 14px;
-            background: rgba(17, 24, 39, 0.06);
+            background: #fff7ed;
+            border: 1px solid #fed7aa;
             font-size: 13px;
             line-height: 1.45;
+            color: #9a3412;
           }
 
           .sideCol {
@@ -1507,8 +1417,56 @@ export default function PagamentoPage() {
             gap: 14px;
           }
 
+          .sideHeader {
+            display: flex;
+            gap: 12px;
+            align-items: flex-start;
+          }
+
+          .sideHeader svg,
+          .alertCard svg {
+            color: #6b7280;
+            flex-shrink: 0;
+            margin-top: 2px;
+          }
+
+          .sideHeader strong,
+          .alertCard strong {
+            display: block;
+            margin-bottom: 4px;
+            color: #111827;
+          }
+
+          .sideHeader p,
+          .alertCard p {
+            margin: 0;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #667085;
+          }
+
+          .alertCard {
+            display: flex;
+            gap: 14px;
+            align-items: flex-start;
+          }
+
+          .placeholder {
+            min-height: 240px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            border-radius: 22px;
+            border: 1px dashed #d9dee7;
+            background: #fff;
+            color: #667085;
+            padding: 24px;
+          }
+
           @media (max-width: 1100px) {
-            .checkoutLayout {
+            .layout {
               grid-template-columns: 1fr;
             }
 
@@ -1519,36 +1477,35 @@ export default function PagamentoPage() {
           }
 
           @media (max-width: 900px) {
-            .infoRow,
-            .pixResult,
-            .formGrid {
+            .topCard {
+              flex-direction: column;
+            }
+
+            .infoGrid,
+            .pixGrid,
+            .formGrid,
+            .actionRow {
               grid-template-columns: 1fr;
             }
 
-            .actions,
             .pixButtons {
               grid-template-columns: 1fr;
-            }
-
-            .hero {
-              flex-direction: column;
-              align-items: flex-start;
             }
           }
 
           @media (max-width: 768px) {
             .page {
-              padding: 104px 14px 36px;
+              padding: 100px 14px 36px;
             }
 
-            .hero,
-            .payCard,
-            .sidebarCard {
+            .topCard,
+            .mainCard,
+            .sideCard {
               padding: 18px;
-              border-radius: 22px;
+              border-radius: 20px;
             }
 
-            .methodsWrap {
+            .paymentTabs {
               grid-template-columns: 1fr;
             }
 
@@ -1556,8 +1513,12 @@ export default function PagamentoPage() {
               grid-template-columns: 1fr;
             }
 
-            .qrBox {
+            .qrWrap {
               padding: 14px;
+            }
+
+            .totalLine strong {
+              font-size: 20px;
             }
           }
         `}</style>
