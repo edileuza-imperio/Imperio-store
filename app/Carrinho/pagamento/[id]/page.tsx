@@ -23,7 +23,6 @@ import {
   FiAlertCircle,
   FiUser,
   FiPackage,
-  FiTag,
 } from "react-icons/fi";
 
 type Pedido = {
@@ -126,26 +125,43 @@ function getQrCodePix(data: ApiPixResponse): string {
   return data?.dados?.pix?.qr_code ?? data?.pix?.qr_code ?? "";
 }
 
-function isPagamentoConfirmado(pedido: Pedido | null) {
+function normalizarStatusPagamento(pedido: Pedido | null): "approved" | "pending" | "rejected" {
   const status = String(
-    pedido?.status_pagamento ?? pedido?.status ?? pedido?.payment_status ?? ""
+    pedido?.status_pagamento ??
+      pedido?.status ??
+      pedido?.payment_status ??
+      ""
   )
     .toLowerCase()
     .trim();
 
-  return (
-    status.includes("pago") ||
-    status.includes("paid") ||
-    status.includes("aprov") ||
+  if (
     status.includes("approved") ||
-    status.includes("confirm") ||
-    status.includes("finaliz")
-  );
+    status.includes("aprovado") ||
+    status.includes("paid") ||
+    status.includes("pago") ||
+    status.includes("confirmed") ||
+    status.includes("accredited")
+  ) {
+    return "approved";
+  }
+
+  if (
+    status.includes("rejected") ||
+    status.includes("cancel") ||
+    status.includes("refused") ||
+    status.includes("refund")
+  ) {
+    return "rejected";
+  }
+
+  return "pending";
 }
 
 export default function PagamentoPage() {
   const params = useParams();
-  const pedidoId = params?.id as string;
+  const rawPedidoId = params?.id;
+  const pedidoId = Array.isArray(rawPedidoId) ? rawPedidoId[0] : rawPedidoId;
 
   const [pedido, setPedido] = useState<Pedido | null>(null);
   const [usuario, setUsuario] = useState<Usuario | null>(null);
@@ -157,9 +173,8 @@ export default function PagamentoPage() {
 
   const [pixCode, setPixCode] = useState("");
   const [copiado, setCopiado] = useState(false);
-  const [pagamentoConfirmado, setPagamentoConfirmado] = useState(false);
-
   const [metodo, setMetodo] = useState<"pix" | "cartao">("pix");
+  const [mensagemStatus, setMensagemStatus] = useState<string>("");
 
   const [cartao, setCartao] = useState({
     numero: "",
@@ -174,9 +189,35 @@ export default function PagamentoPage() {
     return normalizarNumero(pedido?.valor_total ?? 0);
   }, [pedido]);
 
+  const statusPagamento = useMemo(() => {
+    return normalizarStatusPagamento(pedido);
+  }, [pedido]);
+
+  const pagamentoConfirmado = statusPagamento === "approved";
+
+  const statusLabel =
+    statusPagamento === "approved"
+      ? "Pagamento aprovado"
+      : statusPagamento === "rejected"
+      ? "Pagamento recusado"
+      : "Aguardando pagamento";
+
+  const statusClass =
+    statusPagamento === "approved"
+      ? "ok"
+      : statusPagamento === "rejected"
+      ? "error"
+      : "pending";
+
   async function carregarPedido() {
     try {
       setLoading(true);
+
+      if (!pedidoId) {
+        setPedido(null);
+        setUsuario(null);
+        return;
+      }
 
       const [pedidoRes, meRes] = await Promise.all([
         InicioApi.get(`/pedido/${pedidoId}`, { withCredentials: true }),
@@ -189,11 +230,17 @@ export default function PagamentoPage() {
       setPedido(pedidoData);
       setUsuario(usuarioData);
 
-      if (isPagamentoConfirmado(pedidoData)) {
-        setPagamentoConfirmado(true);
-      }
+      const status = normalizarStatusPagamento(pedidoData);
+      setMensagemStatus(
+        status === "approved"
+          ? "Pagamento aprovado."
+          : status === "rejected"
+          ? "Pagamento recusado."
+          : "Aguardando confirmação do pagamento."
+      );
     } catch (error) {
       console.error("Erro ao carregar pagamento:", error);
+      setMensagemStatus("Não foi possível carregar os dados do pedido.");
     } finally {
       setLoading(false);
     }
@@ -201,61 +248,65 @@ export default function PagamentoPage() {
 
   async function verificarPagamentoNoServidor(silencioso = false) {
     try {
+      if (!pedidoId) return;
+
       setVerificandoPagamento(true);
 
       const res = await InicioApi.post<ApiVerificarPagamentoResponse>(
         "/mercado/pagamento/verificar",
         {
-          id_pedido: pedidoId,
+          id_pedido: Number(pedidoId),
         },
         { withCredentials: true }
       );
 
       const data = res.data;
 
-      const statusRecebido = String(
-        data?.status ??
-          data?.dados?.status ??
-          data?.pedido?.status_pagamento ??
-          data?.pedido?.status ??
-          ""
-      )
-        .toLowerCase()
-        .trim();
+      const pedidoAtualizado =
+        data?.dados?.pedido ?? data?.pedido ?? null;
 
-      const pedidoAtualizado = data?.dados?.pedido ?? data?.pedido ?? null;
+      const statusRecebido = normalizarStatusPagamento(
+        pedidoAtualizado ??
+          (data?.status
+            ? ({
+                status_pagamento: data.status,
+              } as Pedido)
+            : null)
+      );
 
       if (pedidoAtualizado) {
         setPedido(pedidoAtualizado);
-      } else if (statusRecebido) {
+      } else if (data?.status) {
         setPedido((prev) =>
           prev
             ? {
                 ...prev,
-                status_pagamento: statusRecebido,
+                status_pagamento: data.status,
+                status: data.status,
               }
             : prev
         );
       }
 
-      const confirmado =
-        statusRecebido.includes("approved") ||
-        statusRecebido.includes("pago") ||
-        statusRecebido.includes("paid") ||
-        statusRecebido.includes("aprov") ||
-        statusRecebido.includes("confirm");
-
-      if (confirmado) {
-        setPagamentoConfirmado(true);
-
+      if (statusRecebido === "approved") {
+        setMensagemStatus("Pagamento aprovado com sucesso.");
         if (!silencioso) {
-          alert("Pagamento identificado com sucesso!");
+          alert("Pagamento aprovado com sucesso!");
         }
-      } else if (!silencioso) {
-        alert("Ainda não identificamos o pagamento. Tente novamente em alguns segundos.");
+      } else if (statusRecebido === "rejected") {
+        setMensagemStatus("Pagamento recusado ou cancelado.");
+        if (!silencioso) {
+          alert("Pagamento recusado ou cancelado.");
+        }
+      } else {
+        setMensagemStatus("Pagamento ainda não confirmado.");
+        if (!silencioso) {
+          alert("Ainda não identificamos o pagamento. Tente novamente em alguns segundos.");
+        }
       }
     } catch (error) {
       console.error("Erro ao verificar pagamento:", error);
+      setMensagemStatus("Não foi possível verificar o pagamento agora.");
 
       if (!silencioso) {
         alert("Não foi possível verificar o pagamento agora.");
@@ -265,28 +316,11 @@ export default function PagamentoPage() {
     }
   }
 
-  useEffect(() => {
-    if (pedidoId) carregarPedido();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pedidoId]);
-
-  useEffect(() => {
-    if (!pedidoId) return;
-    if (!pixCode) return;
-    if (pagamentoConfirmado) return;
-
-    const interval = setInterval(async () => {
-      await verificarPagamentoNoServidor(true);
-    }, 7000);
-
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pedidoId, pixCode, pagamentoConfirmado]);
-
   async function gerarPix() {
     try {
       setLoadingPix(true);
       setCopiado(false);
+      setMensagemStatus("");
 
       if (!pedido || !usuario) {
         alert("Pedido ou usuário não carregado.");
@@ -318,6 +352,7 @@ export default function PagamentoPage() {
 
       setPixCode(qr);
       setMetodo("pix");
+      setMensagemStatus("PIX gerado. Agora é só pagar e aguardar a confirmação.");
     } catch (error: any) {
       console.error("ERRO PIX:", error?.response?.data);
       alert(error?.response?.data?.dados?.erro || "Erro ao gerar PIX");
@@ -329,6 +364,7 @@ export default function PagamentoPage() {
   async function pagarCartao() {
     try {
       setLoadingCartao(true);
+      setMensagemStatus("");
 
       if (!pedido || !usuario) {
         alert("Pedido ou usuário não carregado.");
@@ -349,7 +385,7 @@ export default function PagamentoPage() {
       });
 
       console.log("✅ CARTÃO RESPONSE:", res.data);
-
+      setMensagemStatus("Pagamento com cartão enviado. Aguarde a confirmação.");
       alert("Pagamento com cartão enviado.");
     } catch (error: any) {
       console.error("❌ ERRO CARTÃO:", error?.response?.data);
@@ -367,6 +403,24 @@ export default function PagamentoPage() {
 
     setTimeout(() => setCopiado(false), 1800);
   }
+
+  useEffect(() => {
+    if (pedidoId) carregarPedido();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pedidoId]);
+
+  useEffect(() => {
+    if (!pedidoId) return;
+    if (!pixCode) return;
+    if (pagamentoConfirmado) return;
+
+    const interval = setInterval(async () => {
+      await verificarPagamentoNoServidor(true);
+    }, 7000);
+
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pedidoId, pixCode, pagamentoConfirmado]);
 
   if (loading) {
     return (
@@ -516,10 +570,16 @@ export default function PagamentoPage() {
               <p>Escolha PIX ou cartão e conclua sua compra com segurança.</p>
             </div>
 
-            <div className={`statusChip ${pagamentoConfirmado ? "ok" : "pending"}`}>
-              {pagamentoConfirmado ? "Pagamento confirmado" : "Aguardando pagamento"}
+            <div className={`statusChip ${statusClass}`}>
+              {statusLabel}
             </div>
           </header>
+
+          {mensagemStatus && (
+            <div className={`statusMessage card ${statusClass}`}>
+              {mensagemStatus}
+            </div>
+          )}
 
           <div className="checkoutLayout">
             <section className="mainCol">
@@ -810,7 +870,7 @@ export default function PagamentoPage() {
 
                   <div className="miniRow">
                     <span>Status</span>
-                    <strong>{pagamentoConfirmado ? "Pago" : "Pendente"}</strong>
+                    <strong>{statusLabel}</strong>
                   </div>
                 </div>
               </div>
@@ -860,7 +920,7 @@ export default function PagamentoPage() {
             gap: 20px;
             padding: 24px 26px;
             border-radius: 26px;
-            margin-bottom: 20px;
+            margin-bottom: 14px;
           }
 
           .eyebrow {
@@ -890,7 +950,8 @@ export default function PagamentoPage() {
             font-size: 15px;
           }
 
-          .statusChip {
+          .statusChip,
+          .statusMessage {
             white-space: nowrap;
             padding: 12px 16px;
             border-radius: 999px;
@@ -899,16 +960,32 @@ export default function PagamentoPage() {
             border: 1px solid transparent;
           }
 
-          .statusChip.pending {
+          .statusMessage {
+            margin-bottom: 18px;
+            white-space: normal;
+            border-radius: 18px;
+            font-weight: 600;
+          }
+
+          .statusChip.pending,
+          .statusMessage.pending {
             background: rgba(255, 235, 205, 0.72);
             color: #8c5a50;
             border-color: rgba(192, 138, 122, 0.18);
           }
 
-          .statusChip.ok {
+          .statusChip.ok,
+          .statusMessage.ok {
             background: rgba(46, 204, 113, 0.12);
             color: #1f7a43;
             border-color: rgba(46, 204, 113, 0.2);
+          }
+
+          .statusChip.error,
+          .statusMessage.error {
+            background: rgba(231, 76, 60, 0.12);
+            color: #c0392b;
+            border-color: rgba(231, 76, 60, 0.2);
           }
 
           .checkoutLayout {
@@ -1209,46 +1286,6 @@ export default function PagamentoPage() {
             font-size: 13px;
             line-height: 1.5;
             color: rgba(43, 43, 43, 0.72);
-          }
-
-          .step {
-            display: flex;
-            gap: 12px;
-            align-items: flex-start;
-            opacity: 0.75;
-          }
-
-          .step span {
-            width: 12px;
-            height: 12px;
-            margin-top: 5px;
-            border-radius: 999px;
-            background: rgba(192, 138, 122, 0.24);
-            box-shadow: 0 0 0 6px rgba(192, 138, 122, 0.08);
-            flex-shrink: 0;
-          }
-
-          .step.done {
-            opacity: 1;
-          }
-
-          .step.done span {
-            background: #2f855a;
-            box-shadow: 0 0 0 6px rgba(47, 133, 90, 0.1);
-          }
-
-          .step strong {
-            display: block;
-            color: #2b2b2b;
-            font-size: 14px;
-            margin-bottom: 4px;
-          }
-
-          .step p {
-            margin: 0;
-            font-size: 13px;
-            line-height: 1.45;
-            color: rgba(43, 43, 43, 0.68);
           }
 
           .warningCard {
