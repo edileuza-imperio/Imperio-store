@@ -20,6 +20,11 @@ import {
   FiRefreshCw,
   FiCreditCard,
   FiSmartphone,
+  FiUser,
+  FiPackage,
+  FiTruck,
+  FiTag,
+  FiShield,
 } from "react-icons/fi";
 
 type Pedido = {
@@ -46,7 +51,6 @@ type ApiPedidoResponse = {
   };
 
   pedido?: Pedido;
-
   usuario?: Usuario;
 };
 
@@ -105,9 +109,6 @@ export default function PagamentoPage() {
 
   const [loading, setLoading] =
     useState(true);
-
-  const [metodo, setMetodo] =
-    useState<"pix" | "cartao">("pix");
 
   const [pixCode, setPixCode] =
     useState("");
@@ -240,7 +241,9 @@ export default function PagamentoPage() {
 
       setPixCode(qr);
 
-      toast.success("PIX gerado");
+      toast.success(
+        "PIX gerado com sucesso"
+      );
     } catch (err) {
       console.error(err);
 
@@ -385,7 +388,7 @@ export default function PagamentoPage() {
 
         <main className="loadingPage">
           <div className="loadingCard">
-            <FiClock size={38} />
+            <FiClock size={40} />
 
             <h2>
               Carregando pagamento
@@ -407,50 +410,58 @@ export default function PagamentoPage() {
       <Navbar />
 
       <main className="checkout">
-        <div className="checkoutBox">
-          <div className="hero">
-            <div className="heroTag">
-              <FiLock />
-              Pagamento seguro
+        <div className="bgBlur blur1" />
+        <div className="bgBlur blur2" />
+
+        <div className="topHero">
+          <div className="heroTag">
+            <FiShield />
+            Ambiente seguro
+          </div>
+
+          <h1>
+            Finalizar pagamento
+          </h1>
+
+          <p>
+            Experiência premium,
+            rápida e elegante para
+            concluir seu pedido.
+          </p>
+        </div>
+
+        <div
+          className={`statusBadge ${
+            statusPagamento ===
+            "approved"
+              ? "ok"
+              : "pending"
+          }`}
+        >
+          {statusPagamento ===
+          "approved"
+            ? "Pagamento aprovado"
+            : "Aguardando pagamento"}
+        </div>
+
+        <div className="layout">
+          <aside className="glass leftSide">
+            <div className="cardTitle">
+              <FiUser />
+              Cliente
             </div>
 
-            <h1>
-              Finalizar pagamento
-            </h1>
-
-            <p>
-              Complete seu pedido
-              com segurança e
-              rapidez.
-            </p>
-          </div>
-
-          <div
-            className={`status ${
-              statusPagamento ===
-              "approved"
-                ? "ok"
-                : "pending"
-            }`}
-          >
-            {statusPagamento ===
-            "approved"
-              ? "Pagamento aprovado"
-              : "Aguardando pagamento"}
-          </div>
-
-          <div className="resume">
-            <div className="resumeUser">
+            <div className="userBox">
               <div className="avatar">
                 <Image
                   src="/images/sem-imagem.png"
                   alt="Usuário"
-                  width={60}
-                  height={60}
+                  width={70}
+                  height={70}
                 />
               </div>
 
-              <div>
+              <div className="userData">
                 <strong>
                   {usuario?.nome}
                 </strong>
@@ -461,9 +472,12 @@ export default function PagamentoPage() {
               </div>
             </div>
 
-            <div className="resumeRows">
-              <div>
-                <span>Pedido</span>
+            <div className="infoList">
+              <div className="infoItem">
+                <div className="infoLeft">
+                  <FiPackage />
+                  <span>Pedido</span>
+                </div>
 
                 <strong>
                   #
@@ -473,20 +487,11 @@ export default function PagamentoPage() {
                 </strong>
               </div>
 
-              <div>
-                <span>
-                  Produtos
-                </span>
-
-                <strong>
-                  {formatarMoeda(
-                    pedido?.valor_produtos
-                  )}
-                </strong>
-              </div>
-
-              <div>
-                <span>Frete</span>
+              <div className="infoItem">
+                <div className="infoLeft">
+                  <FiTruck />
+                  <span>Frete</span>
+                </div>
 
                 <strong>
                   {formatarMoeda(
@@ -495,10 +500,13 @@ export default function PagamentoPage() {
                 </strong>
               </div>
 
-              <div>
-                <span>
-                  Desconto
-                </span>
+              <div className="infoItem">
+                <div className="infoLeft">
+                  <FiTag />
+                  <span>
+                    Desconto
+                  </span>
+                </div>
 
                 <strong>
                   -
@@ -510,7 +518,7 @@ export default function PagamentoPage() {
               </div>
             </div>
 
-            <div className="total">
+            <div className="totalBox">
               <span>Total</span>
 
               <strong>
@@ -519,267 +527,276 @@ export default function PagamentoPage() {
                 )}
               </strong>
             </div>
-          </div>
 
-          <div className="tabs">
-            <button
-              className={
-                metodo === "pix"
-                  ? "active"
-                  : ""
-              }
-              onClick={() =>
-                setMetodo("pix")
-              }
+            <Link
+              href="/Carrinho"
+              className="backBtn"
             >
-              <FiSmartphone />
-              PIX
-            </button>
+              <FiArrowLeft />
+              Voltar ao carrinho
+            </Link>
+          </aside>
 
-            <button
-              className={
-                metodo ===
-                "cartao"
-                  ? "active"
-                  : ""
-              }
-              onClick={() =>
-                setMetodo(
-                  "cartao"
-                )
-              }
-            >
-              <FiCreditCard />
-              Cartão
-            </button>
-          </div>
+          <section className="glass centerSide">
+            <div className="pixHeader">
+              <div className="pixIcon">
+                <FiSmartphone />
+              </div>
 
-          {metodo === "pix" ? (
-            <div className="pixArea">
-              {!pixCode ? (
-                <button
-                  className="generateBtn"
-                  onClick={
-                    gerarPix
-                  }
-                  disabled={
-                    loadingPix
-                  }
-                >
-                  {loadingPix
-                    ? "Gerando..."
-                    : "Gerar PIX"}
+              <div>
+                <h2>PIX</h2>
 
-                  <FiRefreshCw />
-                </button>
-              ) : (
-                <>
+                <p>
+                  Escaneie o QR Code
+                  ou copie o código.
+                </p>
+              </div>
+            </div>
+
+            {!pixCode ? (
+              <button
+                className="primaryBtn"
+                onClick={gerarPix}
+                disabled={
+                  loadingPix
+                }
+              >
+                {loadingPix
+                  ? "Gerando..."
+                  : "Gerar PIX"}
+
+                <FiRefreshCw />
+              </button>
+            ) : (
+              <>
+                <div className="qrWrapper">
                   <div className="qrCard">
                     <QRCodeCanvas
                       value={pixCode}
-                      size={240}
+                      size={250}
                     />
                   </div>
+                </div>
 
-                  <textarea
-                    value={
-                      pixCode
+                <textarea
+                  value={pixCode}
+                  readOnly
+                />
+
+                <div className="pixActions">
+                  <button
+                    className="softBtn"
+                    onClick={
+                      copiarPix
                     }
-                    readOnly
-                  />
+                  >
+                    <FiCopy />
 
-                  <div className="pixActions">
-                    <button
-                      onClick={
-                        copiarPix
-                      }
-                    >
-                      <FiCopy />
+                    {copiado
+                      ? "Copiado"
+                      : "Copiar"}
+                  </button>
 
-                      {copiado
-                        ? "Copiado"
-                        : "Copiar código"}
-                    </button>
+                  <button
+                    className="successBtn"
+                    onClick={
+                      verificarPagamento
+                    }
+                  >
+                    <FiCheckCircle />
+                    Já paguei
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
 
-                    <button
-                      className="successBtn"
-                      onClick={
-                        verificarPagamento
-                      }
-                    >
-                      <FiCheckCircle />
-                      Já paguei
-                    </button>
-                  </div>
-                </>
-              )}
+          <aside className="glass rightSide">
+            <div className="cardTitle">
+              <FiCreditCard />
+              Cartão
             </div>
-          ) : (
-            <div className="cardArea">
-              <div className="field">
-                <span>
-                  Número do cartão
-                </span>
 
-                <input
-                  placeholder="0000 0000 0000 0000"
-                  value={
-                    cartao.numero
-                  }
-                  onChange={(
-                    e
-                  ) =>
-                    setCartao(
-                      (
-                        prev
-                      ) => ({
-                        ...prev,
-                        numero:
-                          e
-                            .target
-                            .value,
-                      })
-                    )
-                  }
-                />
-              </div>
+            <div className="field">
+              <span>
+                Número do cartão
+              </span>
 
-              <div className="field">
-                <span>
-                  Nome no cartão
-                </span>
-
-                <input
-                  placeholder="Nome completo"
-                  value={
-                    cartao.nome
-                  }
-                  onChange={(
-                    e
-                  ) =>
-                    setCartao(
-                      (
-                        prev
-                      ) => ({
-                        ...prev,
-                        nome:
-                          e
-                            .target
-                            .value,
-                      })
-                    )
-                  }
-                />
-              </div>
-
-              <div className="triple">
-                <div className="field">
-                  <span>
-                    Mês
-                  </span>
-
-                  <input
-                    placeholder="MM"
-                    value={
-                      cartao.mes
-                    }
-                    onChange={(
-                      e
-                    ) =>
-                      setCartao(
-                        (
-                          prev
-                        ) => ({
-                          ...prev,
-                          mes: e
-                            .target
-                            .value,
-                        })
-                      )
-                    }
-                  />
-                </div>
-
-                <div className="field">
-                  <span>
-                    Ano
-                  </span>
-
-                  <input
-                    placeholder="AA"
-                    value={
-                      cartao.ano
-                    }
-                    onChange={(
-                      e
-                    ) =>
-                      setCartao(
-                        (
-                          prev
-                        ) => ({
-                          ...prev,
-                          ano: e
-                            .target
-                            .value,
-                        })
-                      )
-                    }
-                  />
-                </div>
-
-                <div className="field">
-                  <span>
-                    CVV
-                  </span>
-
-                  <input
-                    placeholder="123"
-                    value={
-                      cartao.cvv
-                    }
-                    onChange={(
-                      e
-                    ) =>
-                      setCartao(
-                        (
-                          prev
-                        ) => ({
-                          ...prev,
-                          cvv: e
-                            .target
-                            .value,
-                        })
-                      )
-                    }
-                  />
-                </div>
-              </div>
-
-              <button
-                className="generateBtn"
-                onClick={
-                  pagarCartao
+              <input
+                placeholder="0000 0000 0000 0000"
+                value={
+                  cartao.numero
                 }
-                disabled={
-                  loadingCartao
+                onChange={(e) =>
+                  setCartao(
+                    (
+                      prev
+                    ) => ({
+                      ...prev,
+                      numero:
+                        e
+                          .target
+                          .value,
+                    })
+                  )
+                }
+              />
+            </div>
+
+            <div className="field">
+              <span>
+                Nome no cartão
+              </span>
+
+              <input
+                placeholder="Nome completo"
+                value={
+                  cartao.nome
+                }
+                onChange={(e) =>
+                  setCartao(
+                    (
+                      prev
+                    ) => ({
+                      ...prev,
+                      nome:
+                        e
+                          .target
+                          .value,
+                    })
+                  )
+                }
+              />
+            </div>
+
+            <div className="triple">
+              <div className="field">
+                <span>Mês</span>
+
+                <input
+                  placeholder="MM"
+                  value={
+                    cartao.mes
+                  }
+                  onChange={(e) =>
+                    setCartao(
+                      (
+                        prev
+                      ) => ({
+                        ...prev,
+                        mes: e
+                          .target
+                          .value,
+                      })
+                    )
+                  }
+                />
+              </div>
+
+              <div className="field">
+                <span>Ano</span>
+
+                <input
+                  placeholder="AA"
+                  value={
+                    cartao.ano
+                  }
+                  onChange={(e) =>
+                    setCartao(
+                      (
+                        prev
+                      ) => ({
+                        ...prev,
+                        ano: e
+                          .target
+                          .value,
+                      })
+                    )
+                  }
+                />
+              </div>
+
+              <div className="field">
+                <span>CVV</span>
+
+                <input
+                  placeholder="123"
+                  value={
+                    cartao.cvv
+                  }
+                  onChange={(e) =>
+                    setCartao(
+                      (
+                        prev
+                      ) => ({
+                        ...prev,
+                        cvv: e
+                          .target
+                          .value,
+                      })
+                    )
+                  }
+                />
+              </div>
+            </div>
+
+            <div className="field">
+              <span>
+                Parcelas
+              </span>
+
+              <select
+                value={
+                  cartao.parcelas
+                }
+                onChange={(e) =>
+                  setCartao(
+                    (
+                      prev
+                    ) => ({
+                      ...prev,
+                      parcelas:
+                        e
+                          .target
+                          .value,
+                    })
+                  )
                 }
               >
-                {loadingCartao
-                  ? "Processando..."
-                  : "Pagar agora"}
+                <option value="1">
+                  1x sem juros
+                </option>
 
-                <FiCreditCard />
-              </button>
+                <option value="2">
+                  2x
+                </option>
+
+                <option value="3">
+                  3x
+                </option>
+
+                <option value="4">
+                  4x
+                </option>
+              </select>
             </div>
-          )}
 
-          <Link
-            href="/Carrinho"
-            className="backBtn"
-          >
-            <FiArrowLeft />
-            Voltar ao carrinho
-          </Link>
+            <button
+              className="primaryBtn"
+              onClick={
+                pagarCartao
+              }
+              disabled={
+                loadingCartao
+              }
+            >
+              {loadingCartao
+                ? "Processando..."
+                : "Pagar agora"}
+
+              <FiCreditCard />
+            </button>
+          </aside>
         </div>
 
         <ToastContainer
@@ -793,219 +810,503 @@ export default function PagamentoPage() {
           }
 
           body {
-            background: #f5f7fb;
+            margin: 0;
+            background:
+              linear-gradient(
+                135deg,
+                #f7e6e4 0%,
+                #f5efee 50%,
+                #f7e7e8 100%
+              );
+            font-family:
+              Inter,
+              sans-serif;
           }
 
           .checkout {
+            position: relative;
             min-height: 100vh;
-            padding: 120px 16px 70px;
+            padding:
+              120px 24px
+              80px;
+            overflow: hidden;
           }
 
-          .checkoutBox {
-            width: 100%;
-            max-width: 760px;
-            margin: 0 auto;
-            background: #fff;
-            border-radius: 34px;
-            padding: 34px;
-            border: 1px solid #ececec;
-            box-shadow:
-              0 10px 50px
-              rgba(0, 0, 0, 0.05);
+          .bgBlur {
+            position: absolute;
+            border-radius: 999px;
+            filter: blur(120px);
+            opacity: 0.4;
           }
 
-          .hero {
+          .blur1 {
+            width: 400px;
+            height: 400px;
+            background: #d98695;
+            top: -120px;
+            left: -120px;
+          }
+
+          .blur2 {
+            width: 400px;
+            height: 400px;
+            background: #f0b8c1;
+            bottom: -120px;
+            right: -120px;
+          }
+
+          .topHero {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 40px;
+            position: relative;
+            z-index: 2;
           }
 
           .heroTag {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 10px 16px;
+            gap: 10px;
+            padding:
+              12px 18px;
             border-radius: 999px;
-            background: #f3f4f6;
+            background:
+              rgba(
+                255,
+                255,
+                255,
+                0.55
+              );
+            backdrop-filter:
+              blur(12px);
+            color: #8b4b56;
             font-size: 13px;
             font-weight: 700;
-            margin-bottom: 20px;
+            margin-bottom: 24px;
+            border: 1px solid
+              rgba(
+                255,
+                255,
+                255,
+                0.4
+              );
           }
 
-          .hero h1 {
+          .topHero h1 {
             margin: 0;
-            font-size: 52px;
+            font-size: 64px;
             line-height: 1;
-            letter-spacing: -3px;
-            color: #111827;
+            letter-spacing: -4px;
+            color: #4f2630;
           }
 
-          .hero p {
-            margin-top: 14px;
-            color: #6b7280;
-            font-size: 16px;
+          .topHero p {
+            margin:
+              18px auto 0;
+            max-width: 720px;
+            color: #7b5960;
+            font-size: 17px;
           }
 
-          .status {
+          .statusBadge {
             width: fit-content;
-            margin: 0 auto 30px;
-            padding: 12px 20px;
+            margin:
+              0 auto 40px;
+            padding:
+              14px 22px;
             border-radius: 999px;
             font-weight: 700;
+            backdrop-filter:
+              blur(12px);
           }
 
           .pending {
-            background: #fff7ed;
-            color: #c2410c;
+            background:
+              rgba(
+                255,
+                240,
+                240,
+                0.75
+              );
+            color: #a14f5a;
           }
 
           .ok {
-            background: #ecfdf3;
+            background:
+              rgba(
+                236,
+                253,
+                243,
+                0.85
+              );
             color: #027a48;
           }
 
-          .resume {
-            border: 1px solid #ececec;
-            border-radius: 28px;
-            padding: 24px;
-            margin-bottom: 28px;
-            background: #fafafa;
+          .layout {
+            position: relative;
+            z-index: 2;
+            max-width: 1500px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns:
+              1fr
+              1.15fr
+              1fr;
+            gap: 24px;
+            align-items: start;
           }
 
-          .resumeUser {
+          .glass {
+            background:
+              rgba(
+                255,
+                255,
+                255,
+                0.58
+              );
+            backdrop-filter:
+              blur(24px);
+            border: 1px solid
+              rgba(
+                255,
+                255,
+                255,
+                0.45
+              );
+            border-radius: 36px;
+            padding: 30px;
+            box-shadow:
+              0 25px 80px
+              rgba(
+                108,
+                42,
+                55,
+                0.12
+              );
+          }
+
+          .cardTitle {
             display: flex;
             align-items: center;
-            gap: 14px;
-            margin-bottom: 22px;
+            gap: 12px;
+            color: #6c2a37;
+            font-weight: 800;
+            font-size: 17px;
+            margin-bottom: 24px;
+          }
+
+          .userBox {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 18px;
+            border-radius: 24px;
+            background:
+              rgba(
+                255,
+                255,
+                255,
+                0.55
+              );
+            margin-bottom: 24px;
           }
 
           .avatar {
-            width: 60px;
-            height: 60px;
+            width: 70px;
+            height: 70px;
             overflow: hidden;
-            border-radius: 18px;
+            border-radius: 22px;
           }
 
-          .resumeRows {
+          .userData {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+          }
+
+          .userData strong {
+            color: #442128;
+            font-size: 18px;
+          }
+
+          .userData span {
+            color: #7d666b;
+            font-size: 14px;
+          }
+
+          .infoList {
             display: grid;
             gap: 14px;
           }
 
-          .resumeRows div,
-          .total {
+          .infoItem {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding:
+              16px 18px;
+            border-radius: 22px;
+            background:
+              rgba(
+                255,
+                255,
+                255,
+                0.55
+              );
+          }
+
+          .infoLeft {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #6b4850;
+          }
+
+          .infoItem strong {
+            color: #4f2630;
+          }
+
+          .totalBox {
+            margin-top: 26px;
+            padding-top: 24px;
+            border-top: 1px solid
+              rgba(
+                108,
+                42,
+                55,
+                0.1
+              );
             display: flex;
             justify-content: space-between;
             align-items: center;
           }
 
-          .total {
-            margin-top: 24px;
-            padding-top: 22px;
-            border-top: 1px solid #e5e7eb;
+          .totalBox span {
+            color: #6f5b5f;
+            font-weight: 600;
           }
 
-          .total strong {
-            font-size: 34px;
-          }
-
-          .tabs {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 26px;
-          }
-
-          .tabs button {
-            height: 58px;
-            border-radius: 18px;
-            border: 1px solid #e5e7eb;
-            background: #fff;
-            cursor: pointer;
-            font-weight: 700;
-          }
-
-          .tabs button.active {
-            background: #111827;
-            color: #fff;
-          }
-
-          .pixArea,
-          .cardArea {
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-          }
-
-          .generateBtn,
-          .pixActions button {
-            height: 58px;
-            border: none;
-            border-radius: 18px;
-            background: #111827;
-            color: #fff;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-          }
-
-          .successBtn {
-            background: #027a48 !important;
-          }
-
-          .qrCard {
-            display: flex;
-            justify-content: center;
-            padding: 32px;
-            border-radius: 28px;
-            border: 1px solid #ececec;
-            background: #fafafa;
-          }
-
-          textarea {
-            width: 100%;
-            min-height: 140px;
-            border-radius: 20px;
-            border: 1px solid #e5e7eb;
-            padding: 18px;
-            resize: none;
-          }
-
-          .pixActions {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-          }
-
-          .field {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-          }
-
-          .field input {
-            height: 56px;
-            border-radius: 18px;
-            border: 1px solid #e5e7eb;
-            padding: 0 16px;
-          }
-
-          .triple {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 12px;
+          .totalBox strong {
+            color: #8d4a52;
+            font-size: 36px;
+            letter-spacing: -2px;
           }
 
           .backBtn {
-            margin-top: 30px;
+            margin-top: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
             text-decoration: none;
-            color: #6b7280;
-            font-weight: 600;
+            height: 58px;
+            border-radius: 20px;
+            background:
+              rgba(
+                255,
+                255,
+                255,
+                0.7
+              );
+            color: #7c4450;
+            font-weight: 700;
+          }
+
+          .centerSide {
+            text-align: center;
+          }
+
+          .pixHeader {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 24px;
+          }
+
+          .pixIcon {
+            width: 78px;
+            height: 78px;
+            border-radius: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            margin-bottom: 16px;
+            color: #8b4b56;
+            background:
+              linear-gradient(
+                135deg,
+                #fff,
+                #ffe7eb
+              );
+            box-shadow:
+              inset 0 0 0
+              1px
+              rgba(
+                255,
+                255,
+                255,
+                0.8
+              );
+          }
+
+          .pixHeader h2 {
+            margin: 0;
+            font-size: 34px;
+            color: #4f2630;
+          }
+
+          .pixHeader p {
+            margin-top: 8px;
+            color: #7b5960;
+          }
+
+          .qrWrapper {
+            display: flex;
+            justify-content: center;
+          }
+
+          .qrCard {
+            width: fit-content;
+            padding: 28px;
+            border-radius: 34px;
+            background: #fff;
+            box-shadow:
+              0 20px 50px
+              rgba(
+                109,
+                44,
+                55,
+                0.1
+              );
+          }
+
+          textarea {
+            width: 100%;
+            min-height: 140px;
+            margin-top: 22px;
+            border-radius: 24px;
+            border: none;
+            padding: 18px;
+            resize: none;
+            background:
+              rgba(
+                255,
+                255,
+                255,
+                0.75
+              );
+            color: #573138;
+            outline: none;
+          }
+
+          .pixActions {
+            display: grid;
+            grid-template-columns:
+              1fr 1fr;
+            gap: 14px;
+            margin-top: 18px;
+          }
+
+          .field {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 18px;
+          }
+
+          .field span {
+            font-size: 14px;
+            font-weight: 700;
+            color: #6f4450;
+          }
+
+          .field input,
+          .field select {
+            height: 58px;
+            border-radius: 20px;
+            border: none;
+            padding:
+              0 18px;
+            background:
+              rgba(
+                255,
+                255,
+                255,
+                0.75
+              );
+            outline: none;
+            color: #4b232a;
+            font-size: 15px;
+          }
+
+          .triple {
+            display: grid;
+            grid-template-columns:
+              1fr 1fr 1fr;
+            gap: 12px;
+          }
+
+          .primaryBtn,
+          .softBtn,
+          .successBtn {
+            height: 60px;
+            border: none;
+            border-radius: 22px;
+            cursor: pointer;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition:
+              0.2s ease;
+          }
+
+          .primaryBtn:hover,
+          .softBtn:hover,
+          .successBtn:hover,
+          .backBtn:hover {
+            transform:
+              translateY(-2px);
+          }
+
+          .primaryBtn {
+            background:
+              linear-gradient(
+                135deg,
+                #8d4a52,
+                #c77785
+              );
+            color: white;
+            box-shadow:
+              0 16px 40px
+              rgba(
+                141,
+                74,
+                82,
+                0.35
+              );
+          }
+
+          .softBtn {
+            background:
+              rgba(
+                255,
+                255,
+                255,
+                0.7
+              );
+            color: #7f4a54;
+          }
+
+          .successBtn {
+            background:
+              linear-gradient(
+                135deg,
+                #0d7a50,
+                #17a56c
+              );
+            color: white;
           }
 
           .loadingPage {
@@ -1013,31 +1314,56 @@ export default function PagamentoPage() {
             display: flex;
             align-items: center;
             justify-content: center;
+            padding:
+              120px 20px;
           }
 
           .loadingCard {
-            background: #fff;
-            padding: 40px;
-            border-radius: 28px;
+            width: 100%;
+            max-width: 420px;
+            padding: 42px;
+            border-radius: 34px;
             text-align: center;
+            background:
+              rgba(
+                255,
+                255,
+                255,
+                0.65
+              );
+            backdrop-filter:
+              blur(20px);
+            color: #6b3944;
+          }
+
+          @media (max-width: 1200px) {
+            .layout {
+              grid-template-columns: 1fr;
+            }
           }
 
           @media (max-width: 768px) {
-            .checkoutBox {
-              padding: 24px;
+            .checkout {
+              padding:
+                100px 16px
+                60px;
             }
 
-            .hero h1 {
-              font-size: 38px;
+            .topHero h1 {
+              font-size: 42px;
+              letter-spacing: -2px;
             }
 
-            .tabs,
+            .glass {
+              padding: 22px;
+            }
+
             .pixActions,
             .triple {
               grid-template-columns: 1fr;
             }
 
-            .total strong {
+            .totalBox strong {
               font-size: 28px;
             }
           }
