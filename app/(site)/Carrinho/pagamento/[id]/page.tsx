@@ -1,65 +1,194 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { QRCodeCanvas } from "qrcode.react";
+import { toast, ToastContainer } from "react-toastify";
+
+import Navbar from "@/components/site/menu/navbar";
+import Footer from "@/components/site/Rodape/Footer";
+import { InicioApi } from "@/services/api/api";
 
 import {
+  FiCopy,
   FiCheckCircle,
   FiClock,
-  FiAlertCircle,
-  FiCopy,
   FiArrowLeft,
+  FiRefreshCw,
+  FiCreditCard,
+  FiSmartphone,
+  FiUser,
   FiPackage,
+  FiTruck,
+  FiTag,
+  FiShield,
 } from "react-icons/fi";
 
-import { QRCodeCanvas } from "qrcode.react";
-import { toast } from "react-toastify";
-
-import api from "@/Api/conectar";
-
-interface Pedido {
-  id: number;
-  codigo?: string;
-  total?: number;
-  status_pagamento?: string;
-  pix_qrcode?: string;
-  pix_copia_cola?: string;
-  created_at?: string;
-}
+import {
+  ApiPedidoResponse,
+  ApiPixResponse,
+  ApiVerificarPagamentoResponse,
+  formatarMoeda,
+  normalizarNumero,
+  Pedido,
+  Usuario,
+} from "@/components/Bibioteca/carrinho";
 
 export default function PagamentoPage() {
   const params = useParams();
   const router = useRouter();
+  const redirectedRef = useRef(false);
+
+  const pedidoId = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
   const [pedido, setPedido] = useState<Pedido | null>(null);
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [pixCode, setPixCode] = useState("");
   const [copiado, setCopiado] = useState(false);
+  const [loadingPix, setLoadingPix] = useState(false);
+
+  const statusPagamento = useMemo(() => {
+    const status = String(
+      pedido?.status_pagamento ?? pedido?.status ?? ""
+    ).toLowerCase();
+
+    if (
+      status.includes("approved") ||
+      status.includes("aprovado") ||
+      status.includes("paid")
+    ) {
+      return "approved";
+    }
+
+    return "pending";
+  }, [pedido]);
+
+  async function carregarPedido() {
+    try {
+      setLoading(true);
+
+      const [pedidoRes, meRes] = await Promise.all([
+        InicioApi.get<ApiPedidoResponse>(`/pedido/${pedidoId}`, {
+          withCredentials: true,
+        }),
+        InicioApi.get<ApiPedidoResponse>("/me", {
+          withCredentials: true,
+        }),
+      ]);
+
+      setPedido(
+        pedidoRes.data?.dados?.pedido ??
+          pedidoRes.data?.pedido ??
+          null
+      );
+
+      setUsuario(
+        meRes.data?.dados?.usuario ??
+          meRes.data?.usuario ??
+          null
+      );
+    } catch (err) {
+      console.error("Erro carregar pedido:", err);
+      toast.error("Erro ao carregar pedido");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    if (!params?.id) return;
+    if (pedidoId) carregarPedido();
+  }, [pedidoId]);
 
-    buscarPedido();
-
-    const intervalo = setInterval(() => {
-      buscarPedido(true);
-    }, 5000);
-
-    return () => clearInterval(intervalo);
-  }, [params?.id]);
-
-  async function buscarPedido(silencioso = false) {
+  async function gerarPix() {
     try {
-      if (!silencioso) {
-        setLoading(true);
+      console.group("🟣 GERAR PIX DEBUG");
+
+      if (!pedido || !usuario) {
+        toast.warning("Dados ainda carregando");
+        return;
       }
 
-      const res = await api.get(`/pedido/${params.id}`);
+      const payload = {
+        id_pedido: Number(pedido.id_pedido),
+        usuario_id: Number(usuario.id_usuario),
+        valor: Number(pedido.valor_total ?? 0),
+        email: usuario.email,
+        nome: usuario.nome,
+        cpf: (usuario.cpf ?? "").replace(/\D/g, ""),
+      };
+
+      console.log("📦 Payload PIX:");
+      console.table(payload);
+
+      if (!payload.id_pedido || !payload.usuario_id) {
+        toast.error("Pedido inválido");
+        return;
+      }
+
+      setLoadingPix(true);
+
+      const res = await InicioApi.post<ApiPixResponse>(
+        "/mercado/pagamento/pix",
+        payload,
+        { withCredentials: true }
+      );
+
+      console.log("🟢 RESPOSTA PIX:", res.data);
+
+      const qr =
+        res.data?.dados?.pix?.qr_code ??
+        res.data?.pix?.qr_code ??
+        "";
+
+      if (!qr) {
+        console.error("PIX vazio:", res.data);
+        toast.error("PIX inválido");
+        return;
+      }
+
+      setPixCode(qr);
+      toast.success("PIX gerado com sucesso");
+
+      console.groupEnd();
+    } catch (err: any) {
+      console.group("🔴 ERRO PIX");
+      console.error(err);
+      console.log("STATUS:", err?.response?.status);
+      console.log("DATA:", err?.response?.data);
+      console.groupEnd();
+
+      toast.error(
+        err?.response?.data?.message || "Erro ao gerar PIX"
+      );
+    } finally {
+      setLoadingPix(false);
+    }
+  }
+
+  async function copiarPix() {
+    if (!pixCode) return;
+
+    await navigator.clipboard.writeText(pixCode);
+    setCopiado(true);
+    toast.success("Copiado");
+
+    setTimeout(() => setCopiado(false), 1500);
+  }
+
+  async function verificarPagamento() {
+    try {
+      const res =
+        await InicioApi.post<ApiVerificarPagamentoResponse>(
+          "/mercado/pagamento/verificar",
+          { id_pedido: Number(pedidoId) },
+          { withCredentials: true }
+        );
 
       const pedidoAtual =
-        res.data?.dados?.pedido ??
-        res.data?.pedido ??
-        null;
+        res.data?.dados?.pedido ?? res.data?.pedido;
 
       setPedido(pedidoAtual);
 
@@ -67,385 +196,71 @@ export default function PagamentoPage() {
         pedidoAtual?.status_pagamento ?? ""
       ).toLowerCase();
 
-      if (
-        status === "approved" ||
-        status === "aprovado" ||
-        status === "pago"
-      ) {
-        toast.success("Pagamento aprovado!");
-
-        setTimeout(() => {
-          router.push("/Carrinho/sucesso");
-        }, 1500);
+      if (status.includes("approved") || status.includes("aprovado")) {
+        toast.success("Pago!");
+        router.push("/Pedidos");
+      } else {
+        toast.info("Ainda pendente");
       }
-    } catch (error) {
-      console.error(error);
-
-      if (!silencioso) {
-        toast.error("Erro ao carregar pedido");
-      }
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao verificar pagamento");
     }
-  }
-
-  async function copiarPix() {
-    if (!pedido?.pix_copia_cola) return;
-
-    try {
-      await navigator.clipboard.writeText(
-        pedido.pix_copia_cola
-      );
-
-      setCopiado(true);
-
-      toast.success("Código PIX copiado!");
-
-      setTimeout(() => {
-        setCopiado(false);
-      }, 2000);
-    } catch (error) {
-      toast.error("Erro ao copiar código");
-    }
-  }
-
-  function renderStatus() {
-    const status = String(
-      pedido?.status_pagamento ?? ""
-    ).toLowerCase();
-
-    if (
-      status === "approved" ||
-      status === "aprovado" ||
-      status === "pago"
-    ) {
-      return (
-        <div className="status aprovado">
-          <FiCheckCircle />
-          <span>Pagamento aprovado</span>
-        </div>
-      );
-    }
-
-    if (
-      status === "pending" ||
-      status === "pendente"
-    ) {
-      return (
-        <div className="status pendente">
-          <FiClock />
-          <span>Aguardando pagamento</span>
-        </div>
-      );
-    }
-
-    return (
-      <div className="status erro">
-        <FiAlertCircle />
-        <span>Pagamento pendente</span>
-      </div>
-    );
   }
 
   if (loading) {
     return (
-      <div className="pagamento-loading">
-        <div className="spinner"></div>
-        <p>Carregando pagamento...</p>
-      </div>
+      <>
+        <Navbar />
+        <main className="loadingPage">
+          <div className="loadingCard">
+            <FiClock size={40} />
+            <h2>Carregando...</h2>
+          </div>
+        </main>
+        <Footer />
+      </>
     );
   }
 
   return (
-    <main className="pagamento-page">
-      <div className="pagamento-container">
-        <Link href="/" className="voltar">
-          <FiArrowLeft />
-          Voltar para loja
-        </Link>
+    <>
+      <Navbar />
 
-        <div className="pagamento-card">
-          <div className="topo">
-            <div className="icone">
-              <FiPackage />
-            </div>
+      <main className="checkout">
+        <ToastContainer />
 
-            <div>
-              <h1>Pagamento PIX</h1>
+        <div className="layout">
+          <aside>
+            <h2>PIX</h2>
 
-              <p>
-                Finalize seu pedido realizando o pagamento
-              </p>
-            </div>
-          </div>
+            {!pixCode ? (
+              <button onClick={gerarPix} disabled={loadingPix}>
+                {loadingPix ? "Gerando..." : "Gerar PIX"}
+                <FiRefreshCw />
+              </button>
+            ) : (
+              <>
+                <QRCodeCanvas value={pixCode} size={220} />
 
-          {renderStatus()}
+                <textarea value={pixCode} readOnly />
 
-          <div className="pedido-info">
-            <div className="item">
-              <span>Pedido</span>
-              <strong>
-                #{pedido?.codigo || pedido?.id}
-              </strong>
-            </div>
+                <button onClick={copiarPix}>
+                  <FiCopy />
+                  {copiado ? "Copiado" : "Copiar"}
+                </button>
 
-            <div className="item">
-              <span>Total</span>
-              <strong>
-                R${" "}
-                {Number(pedido?.total || 0).toFixed(2)}
-              </strong>
-            </div>
-          </div>
-
-          {pedido?.pix_qrcode && (
-            <div className="qr-area">
-              <QRCodeCanvas
-                value={pedido.pix_qrcode}
-                size={240}
-              />
-            </div>
-          )}
-
-          <div className="pix-box">
-            <label>PIX Copia e Cola</label>
-
-            <textarea
-              readOnly
-              value={pedido?.pix_copia_cola || ""}
-            />
-
-            <button onClick={copiarPix}>
-              <FiCopy />
-
-              {copiado
-                ? "Código copiado"
-                : "Copiar código PIX"}
-            </button>
-          </div>
-
-          <div className="aviso">
-            <FiClock />
-
-            <p>
-              O pagamento pode levar alguns segundos para
-              ser confirmado automaticamente.
-            </p>
-          </div>
+                <button onClick={verificarPagamento}>
+                  <FiCheckCircle />
+                  Já paguei
+                </button>
+              </>
+            )}
+          </aside>
         </div>
-      </div>
+      </main>
 
-      <style jsx>{`
-        .pagamento-page {
-          min-height: 100vh;
-          background: #f4f6f9;
-          padding: 40px 20px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-        }
-
-        .pagamento-container {
-          width: 100%;
-          max-width: 620px;
-        }
-
-        .voltar {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 20px;
-          color: #444;
-          text-decoration: none;
-          font-weight: 600;
-        }
-
-        .pagamento-card {
-          background: white;
-          border-radius: 24px;
-          padding: 32px;
-          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
-        }
-
-        .topo {
-          display: flex;
-          align-items: center;
-          gap: 18px;
-          margin-bottom: 25px;
-        }
-
-        .icone {
-          width: 70px;
-          height: 70px;
-          border-radius: 20px;
-          background: #f1f5f9;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 32px;
-          color: #111;
-        }
-
-        .topo h1 {
-          margin: 0;
-          font-size: 28px;
-          font-weight: 700;
-        }
-
-        .topo p {
-          margin-top: 4px;
-          color: #666;
-        }
-
-        .status {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 14px 18px;
-          border-radius: 14px;
-          font-weight: 600;
-          margin-bottom: 25px;
-        }
-
-        .status.aprovado {
-          background: #dcfce7;
-          color: #166534;
-        }
-
-        .status.pendente {
-          background: #fef3c7;
-          color: #92400e;
-        }
-
-        .status.erro {
-          background: #fee2e2;
-          color: #991b1b;
-        }
-
-        .pedido-info {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-          margin-bottom: 30px;
-        }
-
-        .item {
-          background: #f8fafc;
-          padding: 18px;
-          border-radius: 16px;
-        }
-
-        .item span {
-          display: block;
-          color: #666;
-          margin-bottom: 8px;
-        }
-
-        .item strong {
-          font-size: 20px;
-        }
-
-        .qr-area {
-          display: flex;
-          justify-content: center;
-          margin-bottom: 30px;
-        }
-
-        .pix-box {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .pix-box label {
-          font-weight: 700;
-        }
-
-        .pix-box textarea {
-          width: 100%;
-          min-height: 120px;
-          border-radius: 14px;
-          border: 1px solid #ddd;
-          padding: 16px;
-          resize: none;
-          outline: none;
-          font-size: 14px;
-        }
-
-        .pix-box button {
-          height: 52px;
-          border: none;
-          border-radius: 14px;
-          background: black;
-          color: white;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 10px;
-          cursor: pointer;
-          transition: 0.3s;
-        }
-
-        .pix-box button:hover {
-          opacity: 0.9;
-        }
-
-        .aviso {
-          margin-top: 25px;
-          display: flex;
-          gap: 12px;
-          align-items: flex-start;
-          padding: 16px;
-          border-radius: 14px;
-          background: #eff6ff;
-          color: #1d4ed8;
-        }
-
-        .pagamento-loading {
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-          gap: 20px;
-          background: #f4f6f9;
-        }
-
-        .spinner {
-          width: 50px;
-          height: 50px;
-          border: 4px solid #ddd;
-          border-top: 4px solid #000;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-          100% {
-            transform: rotate(360deg);
-          }
-        }
-
-        @media (max-width: 640px) {
-          .pagamento-card {
-            padding: 22px;
-          }
-
-          .pedido-info {
-            grid-template-columns: 1fr;
-          }
-
-          .topo {
-            flex-direction: column;
-            text-align: center;
-          }
-
-          .topo h1 {
-            font-size: 24px;
-          }
-        }
-      `}</style>
-    </main>
+      <Footer />
+    </>
   );
 }
