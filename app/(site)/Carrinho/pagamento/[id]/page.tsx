@@ -32,7 +32,7 @@ import {
   Usuario,
 } from "@/components/Bibioteca/carrinho";
 
-import styles from "./Pagamento.module.css";
+import styles from "./pagamento.module.css";
 
 type StatusPagamento = {
   label: string;
