@@ -212,6 +212,7 @@ export default function PagamentoPage() {
       );
 
       const data = res.data;
+
       const statusRecebido = String(
         data?.status ??
           data?.dados?.status ??
@@ -390,7 +391,7 @@ export default function PagamentoPage() {
             }
 
             .shell {
-              max-width: 1240px;
+              max-width: 1280px;
               margin: 0 auto;
             }
 
@@ -448,7 +449,7 @@ export default function PagamentoPage() {
             }
 
             .shell {
-              max-width: 1240px;
+              max-width: 1280px;
               margin: 0 auto;
             }
 
@@ -515,20 +516,18 @@ export default function PagamentoPage() {
               <p>Escolha PIX ou cartão e conclua sua compra com segurança.</p>
             </div>
 
-            <div className="heroRight">
-              <div className={`statusChip ${pagamentoConfirmado ? "ok" : "pending"}`}>
-                {pagamentoConfirmado ? "Pagamento confirmado" : "Aguardando pagamento"}
-              </div>
+            <div className={`statusChip ${pagamentoConfirmado ? "ok" : "pending"}`}>
+              {pagamentoConfirmado ? "Pagamento confirmado" : "Aguardando pagamento"}
             </div>
           </header>
 
-          <div className="grid">
+          <div className="checkoutLayout">
             <section className="mainCol">
               <div className="card payCard">
                 <div className="payHeader">
                   <div>
-                    <h2>Pagamento do pedido</h2>
-                    <p>Resumo horizontal, rápido de ler e sem visual em coluna.</p>
+                    <h2>Checkout</h2>
+                    <p>Layout horizontal para leitura rápida e visual mais limpo.</p>
                   </div>
 
                   {pagamentoConfirmado && (
@@ -539,8 +538,8 @@ export default function PagamentoPage() {
                   )}
                 </div>
 
-                <div className="topGrid">
-                  <div className="infoCard">
+                <div className="infoRow">
+                  <div className="infoCard clientCard">
                     <div className="infoTitle">
                       <FiUser />
                       <span>Cliente</span>
@@ -793,34 +792,25 @@ export default function PagamentoPage() {
                 <div className="sidebarHeader">
                   <FiClock />
                   <div>
-                    <strong>Acompanhamento</strong>
-                    <p>Fluxo de pagamento com leitura rápida.</p>
+                    <strong>Resumo do pedido</strong>
+                    <p>Informações rápidas, sem quebrar o layout horizontal.</p>
                   </div>
                 </div>
 
-                <div className="timeline">
-                  <div className={`step ${pixCode ? "done" : ""}`}>
-                    <span />
-                    <div>
-                      <strong>Gerar pagamento</strong>
-                      <p>Crie o PIX ou envie o cartão.</p>
-                    </div>
+                <div className="summaryMiniSide">
+                  <div className="miniRow">
+                    <span>Pedido</span>
+                    <strong>#{pedido.id_pedido}</strong>
                   </div>
 
-                  <div className={`step ${pixCode || pagamentoConfirmado ? "done" : ""}`}>
-                    <span />
-                    <div>
-                      <strong>Verificar no servidor</strong>
-                      <p>Consulta o status real do pedido.</p>
-                    </div>
+                  <div className="miniRow">
+                    <span>Total</span>
+                    <strong>{formatarMoeda(pedido.valor_total)}</strong>
                   </div>
 
-                  <div className={`step ${pagamentoConfirmado ? "done" : ""}`}>
-                    <span />
-                    <div>
-                      <strong>Pagamento confirmado</strong>
-                      <p>Pedido liberado após aprovação.</p>
-                    </div>
+                  <div className="miniRow">
+                    <span>Status</span>
+                    <strong>{pagamentoConfirmado ? "Pago" : "Pendente"}</strong>
                   </div>
                 </div>
               </div>
@@ -830,7 +820,7 @@ export default function PagamentoPage() {
                 <div>
                   <strong>Dica importante</strong>
                   <p>
-                    O botão “Já paguei” só consulta o backend. Ele não aprova sozinho.
+                    O botão “Já paguei” só consulta o backend. Ele não confirma sozinho.
                   </p>
                 </div>
               </div>
@@ -849,7 +839,7 @@ export default function PagamentoPage() {
           }
 
           .shell {
-            max-width: 1240px;
+            max-width: 1280px;
             margin: 0 auto;
           }
 
@@ -871,10 +861,6 @@ export default function PagamentoPage() {
             padding: 24px 26px;
             border-radius: 26px;
             margin-bottom: 20px;
-          }
-
-          .heroLeft {
-            min-width: 0;
           }
 
           .eyebrow {
@@ -925,7 +911,7 @@ export default function PagamentoPage() {
             border-color: rgba(46, 204, 113, 0.2);
           }
 
-          .grid {
+          .checkoutLayout {
             display: grid;
             grid-template-columns: minmax(0, 1fr) 320px;
             gap: 22px;
@@ -976,7 +962,7 @@ export default function PagamentoPage() {
             font-size: 13px;
           }
 
-          .topGrid {
+          .infoRow {
             margin-top: 18px;
             display: grid;
             grid-template-columns: 1.05fr 0.95fr;
@@ -1037,7 +1023,8 @@ export default function PagamentoPage() {
             color: rgba(43, 43, 43, 0.65);
           }
 
-          .miniRows {
+          .miniRows,
+          .summaryMiniSide {
             display: grid;
             gap: 12px;
           }
@@ -1115,6 +1102,10 @@ export default function PagamentoPage() {
 
           .methodBox {
             display: grid;
+            gap: 16px;
+          }
+
+          .pixMethod {
             gap: 16px;
           }
 
@@ -1218,11 +1209,6 @@ export default function PagamentoPage() {
             font-size: 13px;
             line-height: 1.5;
             color: rgba(43, 43, 43, 0.72);
-          }
-
-          .timeline {
-            display: grid;
-            gap: 14px;
           }
 
           .step {
@@ -1447,10 +1433,12 @@ export default function PagamentoPage() {
           .sideCol {
             position: sticky;
             top: 110px;
+            display: grid;
+            gap: 14px;
           }
 
           @media (max-width: 1100px) {
-            .grid {
+            .checkoutLayout {
               grid-template-columns: 1fr;
             }
 
@@ -1461,7 +1449,7 @@ export default function PagamentoPage() {
           }
 
           @media (max-width: 900px) {
-            .topGrid,
+            .infoRow,
             .pixResult,
             .formGrid {
               grid-template-columns: 1fr;
