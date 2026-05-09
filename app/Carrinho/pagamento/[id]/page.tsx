@@ -23,7 +23,6 @@ import {
   FiAlertCircle,
   FiUser,
   FiPackage,
-  FiTruck,
   FiTag,
 } from "react-icons/fi";
 
@@ -514,24 +513,6 @@ export default function PagamentoPage() {
 
               <h1>Finalize seu pedido</h1>
               <p>Escolha PIX ou cartão e conclua sua compra com segurança.</p>
-
-              <div className="heroStats">
-                <div className="heroStat">
-                  <FiPackage />
-                  <div>
-                    <span>Pedido</span>
-                    <strong>#{pedido.id_pedido}</strong>
-                  </div>
-                </div>
-
-                <div className="heroStat">
-                  <FiTag />
-                  <div>
-                    <span>Total</span>
-                    <strong>{formatarMoeda(pedido.valor_total)}</strong>
-                  </div>
-                </div>
-              </div>
             </div>
 
             <div className="heroRight">
@@ -546,8 +527,8 @@ export default function PagamentoPage() {
               <div className="card payCard">
                 <div className="payHeader">
                   <div>
-                    <h2>Resumo e pagamento</h2>
-                    <p>Confira os dados e escolha a forma de pagamento.</p>
+                    <h2>Pagamento do pedido</h2>
+                    <p>Resumo horizontal, rápido de ler e sem visual em coluna.</p>
                   </div>
 
                   {pagamentoConfirmado && (
@@ -813,7 +794,7 @@ export default function PagamentoPage() {
                   <FiClock />
                   <div>
                     <strong>Acompanhamento</strong>
-                    <p>Veja o status do pedido sem precisar recarregar a página.</p>
+                    <p>Fluxo de pagamento com leitura rápida.</p>
                   </div>
                 </div>
 
@@ -830,7 +811,7 @@ export default function PagamentoPage() {
                     <span />
                     <div>
                       <strong>Verificar no servidor</strong>
-                      <p>O sistema consulta o status real do pedido.</p>
+                      <p>Consulta o status real do pedido.</p>
                     </div>
                   </div>
 
@@ -849,8 +830,7 @@ export default function PagamentoPage() {
                 <div>
                   <strong>Dica importante</strong>
                   <p>
-                    O botão “Já paguei” não confirma sozinho. Ele apenas consulta o backend e atualiza
-                    o pedido com o status do Mercado Pago.
+                    O botão “Já paguei” só consulta o backend. Ele não aprova sozinho.
                   </p>
                 </div>
               </div>
@@ -924,41 +904,6 @@ export default function PagamentoPage() {
             font-size: 15px;
           }
 
-          .heroStats {
-            display: flex;
-            gap: 12px;
-            margin-top: 16px;
-            flex-wrap: wrap;
-          }
-
-          .heroStat {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 12px 14px;
-            border-radius: 18px;
-            background: rgba(255, 255, 255, 0.7);
-            border: 1px solid rgba(233, 222, 214, 0.95);
-          }
-
-          .heroStat svg {
-            color: #c08a7a;
-            flex-shrink: 0;
-          }
-
-          .heroStat span {
-            display: block;
-            font-size: 12px;
-            color: rgba(43, 43, 43, 0.64);
-          }
-
-          .heroStat strong {
-            display: block;
-            color: #8c5a50;
-            font-size: 14px;
-            margin-top: 2px;
-          }
-
           .statusChip {
             white-space: nowrap;
             padding: 12px 16px;
@@ -982,8 +927,8 @@ export default function PagamentoPage() {
 
           .grid {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) 340px;
-            gap: 26px;
+            grid-template-columns: minmax(0, 1fr) 320px;
+            gap: 22px;
             align-items: start;
           }
 
@@ -1034,7 +979,7 @@ export default function PagamentoPage() {
           .topGrid {
             margin-top: 18px;
             display: grid;
-            grid-template-columns: 1.1fr 1fr;
+            grid-template-columns: 1.05fr 0.95fr;
             gap: 14px;
           }
 
@@ -1170,10 +1115,6 @@ export default function PagamentoPage() {
 
           .methodBox {
             display: grid;
-            gap: 16px;
-          }
-
-          .pixMethod {
             gap: 16px;
           }
 
@@ -1331,7 +1272,7 @@ export default function PagamentoPage() {
           }
 
           .placeholder {
-            min-height: 270px;
+            min-height: 240px;
             display: flex;
             align-items: center;
             justify-content: center;
