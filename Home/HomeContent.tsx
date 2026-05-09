@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
 
-import Destaques from "@/app/Vitrine/Destaques/page";
+import Destaques from "@/app/(site)/Vitrine/Destaques/page";
 import Banner from "@/components/site/Banner/Banner";
 import CategoriasDestaque from "@/components/site/categoria/Categoria";
 

@@ -7,45 +7,14 @@ import "bootstrap-icons/font/bootstrap-icons.css";
 
 import "react-toastify/dist/ReactToastify.css";
 
-import "./../public/produto/produto.css";
-
-import "./../public/admin/admin.css";
-import "./../public/produto/page.css";
-
-import "./../public/categoria/cateid.css";
-import "./../public/destaque/destaque.css";
-
-import "./../public/navbar/navbar.css";
-import "./../public/navbar/mobile.css";
-import "./../public/navbar/Banner.css";
-
-import "./../public/footer/footer.css";
-
-import "./../public/produto/destaque.css";
-
-import "./../public/admin/painel.css";
-import "./../public/admin/cards.css";
-
-import "./../public/admin/produtos/pdt.css";
-import "./../public/admin/produtos/adicionar.css";
-import "./../public/admin/produtos/listar.css";
-
-import "./../public/Login/Login.css";
-
-import "./../public/Vitrine/Destaque.css";
-import "./../public/Vitrine/slug.css";
-
-import "./../public/usuario/usuario.css";
-import "./../public/usuario/editar.css";
+// seus imports css...
 
 import { ToastContainer } from "react-toastify";
-
-import Navbar from "@/components/site/menu/navbar";
-import Footer from "@/components/site/Rodape/Footer";
 
 import { getSiteConfig } from "@/services/siteConfig";
 
 export async function generateMetadata(): Promise<Metadata> {
+
   const site = await getSiteConfig();
 
   return {
@@ -59,15 +28,14 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+
   return (
     <html lang="pt-br">
+
       <body className="antialiased">
 
-        <Navbar />
-
+        
         {children}
-
-        <Footer />
 
         <ToastContainer
           position="top-right"
@@ -79,7 +47,9 @@ export default function RootLayout({
           draggable
           theme="light"
         />
+
       </body>
+
     </html>
   );
 }

@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
-import Navbar from "@/components/site/menu/navbar";
-import Footer from "@/components/site/Rodape/Footer";
+
 import "./endereco.css";
 
 interface Endereco {
@@ -144,7 +143,7 @@ export default function EnderecoPage() {
 
   return (
     <>
-      <Navbar />
+      
 
       <main className="endereco-page">
         <div className="container-endereco">
@@ -426,7 +425,7 @@ export default function EnderecoPage() {
         </div>
       </main>
 
-      <Footer />
+      
     </>
   );
 }

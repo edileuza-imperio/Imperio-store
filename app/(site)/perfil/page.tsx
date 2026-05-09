@@ -1,7 +1,7 @@
 'use client';
 
-import Navbar from "@/components/site/menu/navbar";
-import FooterPrincipal from "@/components/site/Rodape/Footer";
+
+
 import useAutenticado from "@/hooks/Usuario/useAutenticado";
 import { useRouter } from "next/navigation";
 import {
@@ -24,8 +24,7 @@ export default function PerfilPage() {
   if (loading) {
     return (
       <>
-        <Navbar />
-        <FooterPrincipal />
+       
       </>
     );
   }
@@ -47,7 +46,7 @@ export default function PerfilPage() {
 
   return (
     <>
-      <Navbar />
+      
 
       <style jsx>{`
         :global(:root) {
@@ -567,7 +566,7 @@ export default function PerfilPage() {
         </div>
       </main>
 
-      <FooterPrincipal />
+      
     </>
   );
 }

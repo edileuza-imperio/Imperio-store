@@ -21,8 +21,7 @@ import {
 } from "react-icons/fi";
 
 import { toast } from "react-toastify";
-import Navbar from "@/components/site/menu/navbar";
-import Footer from "@/components/site/Rodape/Footer";
+
 
 interface Produto {
   id_produto?: number;
@@ -176,9 +175,9 @@ export default function ViewProdutoSlugPage() {
   if (loading) {
     return (
       <>
-        <Navbar />
+        
         <div className={styles.loading}>Carregando produto...</div>
-        <Footer />
+        
       </>
     );
   }
@@ -186,9 +185,9 @@ export default function ViewProdutoSlugPage() {
   if (!produto) {
     return (
       <>
-        <Navbar />
+        
         <div className={styles.loading}>Produto não encontrado.</div>
-        <Footer />
+        
       </>
     );
   }
@@ -198,7 +197,7 @@ export default function ViewProdutoSlugPage() {
 
   return (
     <>
-      <Navbar />
+      
 
       <section className={styles.page}>
         <div className={styles.backgroundGlow}></div>
@@ -333,7 +332,7 @@ export default function ViewProdutoSlugPage() {
         </div>
       </section>
 
-      <Footer />
+      
     </>
   );
 }
