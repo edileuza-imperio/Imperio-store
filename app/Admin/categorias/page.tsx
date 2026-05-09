@@ -15,8 +15,8 @@ import {
   FiHash,
   FiCheckCircle,
   FiAlertCircle,
-  FiX,
   FiSave,
+  FiX,
 } from "react-icons/fi";
 
 type Categoria = {
@@ -25,8 +25,6 @@ type Categoria = {
   nome?: string;
   slug?: string;
   descricao?: string | null;
-  imagem?: string | null;
-  icone?: string | null;
   ordem?: number;
   status_id?: number;
   site_config_id?: number;
@@ -39,14 +37,9 @@ export default function CategoriasPage() {
 
   const [busca, setBusca] = useState("");
 
-  const [modalEditar, setModalEditar] = useState(false);
-  const [modalExcluir, setModalExcluir] = useState(false);
-
-  const [categoriaSelecionada, setCategoriaSelecionada] =
-    useState<Categoria | null>(null);
-
-  const [salvando, setSalvando] = useState(false);
-  const [excluindo, setExcluindo] = useState(false);
+  const [editandoId, setEditandoId] = useState<number | null>(
+    null
+  );
 
   const [form, setForm] = useState({
     nome: "",
@@ -108,8 +101,8 @@ export default function CategoriasPage() {
     return categoria.id_categoria ?? categoria.id ?? 0;
   }
 
-  function abrirEditar(categoria: Categoria) {
-    setCategoriaSelecionada(categoria);
+  function iniciarEdicao(categoria: Categoria) {
+    setEditandoId(getId(categoria));
 
     setForm({
       nome: categoria.nome || "",
@@ -118,63 +111,39 @@ export default function CategoriasPage() {
       ordem: categoria.ordem || 0,
       status_id: categoria.status_id || 1,
     });
-
-    setModalEditar(true);
   }
 
-  async function salvarEdicao() {
-    if (!categoriaSelecionada) return;
-
+  async function salvarEdicao(id: number) {
     try {
-      setSalvando(true);
+      await api.put(`/painel/categoria/${id}`, form);
 
-      await api.put(
-        `/painel/categoria/${getId(
-          categoriaSelecionada
-        )}`,
-        form
-      );
+      setEditandoId(null);
 
-      await carregarCategorias();
-
-      setModalEditar(false);
+      carregarCategorias();
     } catch (error: any) {
       alert(
         error?.response?.data?.mensagem ||
           "Erro ao atualizar categoria"
       );
-    } finally {
-      setSalvando(false);
     }
   }
 
-  function abrirExcluir(categoria: Categoria) {
-    setCategoriaSelecionada(categoria);
-    setModalExcluir(true);
-  }
+  async function excluirCategoria(id: number) {
+    const confirmar = confirm(
+      "Deseja realmente excluir esta categoria?"
+    );
 
-  async function excluirCategoria() {
-    if (!categoriaSelecionada) return;
+    if (!confirmar) return;
 
     try {
-      setExcluindo(true);
+      await api.delete(`/painel/categoria/${id}`);
 
-      await api.delete(
-        `/painel/categoria/${getId(
-          categoriaSelecionada
-        )}`
-      );
-
-      await carregarCategorias();
-
-      setModalExcluir(false);
+      carregarCategorias();
     } catch (error: any) {
       alert(
         error?.response?.data?.mensagem ||
           "Erro ao excluir categoria"
       );
-    } finally {
-      setExcluindo(false);
     }
   }
 
@@ -185,7 +154,7 @@ export default function CategoriasPage() {
       <div className="hero">
         <div className="hero-left">
           <div className="hero-icon">
-            <FiGrid size={30} />
+            <FiGrid size={26} />
           </div>
 
           <div>
@@ -196,8 +165,7 @@ export default function CategoriasPage() {
             <h1>Categorias</h1>
 
             <p>
-              Organize, edite e controle todas as categorias
-              do sistema.
+              Gerencie categorias modernas do sistema.
             </p>
           </div>
         </div>
@@ -221,23 +189,20 @@ export default function CategoriasPage() {
         </div>
       </div>
 
-      {/* BUSCA */}
+      {/* SEARCH */}
 
-      <div className="search-wrapper">
-        <div className="search-box">
-          <FiSearch />
+      <div className="search-box">
+        <FiSearch />
 
-          <input
-            type="text"
-            placeholder="Pesquisar categoria..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
-        </div>
+        <input
+          type="text"
+          placeholder="Buscar categoria..."
+          value={busca}
+          onChange={(e) => setBusca(e.target.value)}
+        />
 
-        <div className="results-count">
-          <strong>{categoriasFiltradas.length}</strong>
-          <span>Categorias</span>
+        <div className="count">
+          {categoriasFiltradas.length}
         </div>
       </div>
 
@@ -255,28 +220,27 @@ export default function CategoriasPage() {
         </div>
       ) : categoriasFiltradas.length === 0 ? (
         <div className="empty">
-          <FiFolder size={48} />
+          <FiFolder size={50} />
 
           <h2>Nenhuma categoria encontrada</h2>
-
-          <p>
-            Tente outro termo ou crie uma nova categoria.
-          </p>
         </div>
       ) : (
-        <div className="grid-categorias">
+        <div className="cards">
           {categoriasFiltradas.map((categoria) => {
+            const id = getId(categoria);
+
             const ativo = categoria.status_id === 1;
 
+            const editando = editandoId === id;
+
             return (
-              <div
-                key={getId(categoria)}
-                className="card"
-              >
-                <div className="card-top">
-                  <div className="badge-id">
+              <div className="card" key={id}>
+                {/* TOP */}
+
+                <div className="top">
+                  <div className="id">
                     <FiHash />
-                    {getId(categoria)}
+                    {id}
                   </div>
 
                   <div
@@ -298,246 +262,158 @@ export default function CategoriasPage() {
                   </div>
                 </div>
 
-                <div className="card-content">
-                  <div className="icon-card">
-                    <FiFolder />
+                {/* EDITANDO */}
+
+                {editando ? (
+                  <div className="edit-area">
+                    <input
+                      value={form.nome}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          nome: e.target.value,
+                        })
+                      }
+                      placeholder="Nome"
+                    />
+
+                    <input
+                      value={form.slug}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          slug: e.target.value,
+                        })
+                      }
+                      placeholder="Slug"
+                    />
+
+                    <textarea
+                      rows={4}
+                      value={form.descricao}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          descricao: e.target.value,
+                        })
+                      }
+                      placeholder="Descrição"
+                    />
+
+                    <div className="grid-form">
+                      <input
+                        type="number"
+                        value={form.ordem}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            ordem: Number(
+                              e.target.value
+                            ),
+                          })
+                        }
+                        placeholder="Ordem"
+                      />
+
+                      <select
+                        value={form.status_id}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            status_id: Number(
+                              e.target.value
+                            ),
+                          })
+                        }
+                      >
+                        <option value={1}>
+                          Ativo
+                        </option>
+
+                        <option value={2}>
+                          Inativo
+                        </option>
+                      </select>
+                    </div>
+
+                    <div className="actions">
+                      <button
+                        className="btn save"
+                        onClick={() =>
+                          salvarEdicao(id)
+                        }
+                      >
+                        <FiSave />
+                        Salvar
+                      </button>
+
+                      <button
+                        className="btn cancel"
+                        onClick={() =>
+                          setEditandoId(null)
+                        }
+                      >
+                        <FiX />
+                        Cancelar
+                      </button>
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    {/* CONTENT */}
 
-                  <h3>{categoria.nome}</h3>
+                    <div className="content">
+                      <div className="icon-card">
+                        <FiFolder />
+                      </div>
 
-                  <span className="slug">
-                    /{categoria.slug}
-                  </span>
+                      <h3>{categoria.nome}</h3>
 
-                  <p>
-                    {categoria.descricao ||
-                      "Categoria sem descrição cadastrada."}
-                  </p>
-                </div>
+                      <span className="slug">
+                        /{categoria.slug}
+                      </span>
 
-                <div className="meta">
-                  <div>
-                    <small>Ordem</small>
-                    <strong>
-                      #{categoria.ordem || 0}
-                    </strong>
-                  </div>
+                      <p>
+                        {categoria.descricao ||
+                          "Sem descrição cadastrada"}
+                      </p>
+                    </div>
 
-                  <div>
-                    <small>Site</small>
-                    <strong>
-                      {categoria.site_config_id || 1}
-                    </strong>
-                  </div>
-                </div>
+                    {/* FOOTER */}
 
-                <div className="card-actions">
-                  <button
-                    className="action edit"
-                    onClick={() =>
-                      abrirEditar(categoria)
-                    }
-                  >
-                    <FiEdit2 />
-                    Editar
-                  </button>
+                    <div className="footer">
+                      <div className="meta">
+                        <small>Ordem</small>
+                        <strong>
+                          #{categoria.ordem || 0}
+                        </strong>
+                      </div>
 
-                  <button
-                    className="action delete"
-                    onClick={() =>
-                      abrirExcluir(categoria)
-                    }
-                  >
-                    <FiTrash2 />
-                    Excluir
-                  </button>
-                </div>
+                      <div className="buttons">
+                        <button
+                          className="icon-btn edit"
+                          onClick={() =>
+                            iniciarEdicao(categoria)
+                          }
+                        >
+                          <FiEdit2 />
+                        </button>
+
+                        <button
+                          className="icon-btn delete"
+                          onClick={() =>
+                            excluirCategoria(id)
+                          }
+                        >
+                          <FiTrash2 />
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
             );
           })}
-        </div>
-      )}
-
-      {/* MODAL EDITAR */}
-
-      {modalEditar && (
-        <div className="overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h2>Editar categoria</h2>
-
-              <button
-                className="close"
-                onClick={() =>
-                  setModalEditar(false)
-                }
-              >
-                <FiX />
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <div className="field">
-                <label>Nome</label>
-
-                <input
-                  value={form.nome}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      nome: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="field">
-                <label>Slug</label>
-
-                <input
-                  value={form.slug}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      slug: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="field">
-                <label>Descrição</label>
-
-                <textarea
-                  rows={4}
-                  value={form.descricao}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      descricao: e.target.value,
-                    })
-                  }
-                />
-              </div>
-
-              <div className="grid-form">
-                <div className="field">
-                  <label>Ordem</label>
-
-                  <input
-                    type="number"
-                    value={form.ordem}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        ordem: Number(
-                          e.target.value
-                        ),
-                      })
-                    }
-                  />
-                </div>
-
-                <div className="field">
-                  <label>Status</label>
-
-                  <select
-                    value={form.status_id}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        status_id: Number(
-                          e.target.value
-                        ),
-                      })
-                    }
-                  >
-                    <option value={1}>Ativo</option>
-                    <option value={2}>Inativo</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            <div className="modal-footer">
-              <button
-                className="btn glass"
-                onClick={() =>
-                  setModalEditar(false)
-                }
-              >
-                Cancelar
-              </button>
-
-              <button
-                className="btn primary"
-                onClick={salvarEdicao}
-              >
-                <FiSave />
-
-                {salvando
-                  ? "Salvando..."
-                  : "Salvar alterações"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL EXCLUIR */}
-
-      {modalExcluir && (
-        <div className="overlay">
-          <div className="modal danger">
-            <div className="modal-header">
-              <h2>Excluir categoria</h2>
-
-              <button
-                className="close"
-                onClick={() =>
-                  setModalExcluir(false)
-                }
-              >
-                <FiX />
-              </button>
-            </div>
-
-            <div className="modal-body">
-              <p>
-                Deseja realmente excluir:
-              </p>
-
-              <strong>
-                {categoriaSelecionada?.nome}
-              </strong>
-
-              <span className="danger-text">
-                Essa ação é irreversível.
-              </span>
-            </div>
-
-            <div className="modal-footer">
-              <button
-                className="btn glass"
-                onClick={() =>
-                  setModalExcluir(false)
-                }
-              >
-                Cancelar
-              </button>
-
-              <button
-                className="btn danger-btn"
-                onClick={excluirCategoria}
-              >
-                <FiTrash2 />
-
-                {excluindo
-                  ? "Excluindo..."
-                  : "Excluir"}
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
@@ -553,54 +429,34 @@ export default function CategoriasPage() {
           padding: 12px;
         }
 
-        body {
-          background: #f5f7fb;
-        }
-
         /* HERO */
 
         .hero {
-          width: 100%;
-          border-radius: 34px;
-          padding: 34px;
+          border-radius: 30px;
+          padding: 30px;
           background: linear-gradient(
             135deg,
-            #111827,
-            #1f2937,
-            #374151
+            #0f172a,
+            #1e293b
           );
           color: white;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          gap: 24px;
           flex-wrap: wrap;
-          overflow: hidden;
-          position: relative;
-        }
-
-        .hero::before {
-          content: "";
-          position: absolute;
-          width: 400px;
-          height: 400px;
-          background: rgba(255, 255, 255, 0.04);
-          border-radius: 50%;
-          right: -100px;
-          top: -100px;
+          gap: 20px;
         }
 
         .hero-left {
           display: flex;
           align-items: center;
           gap: 18px;
-          z-index: 2;
         }
 
         .hero-icon {
-          width: 80px;
-          height: 80px;
-          border-radius: 28px;
+          width: 78px;
+          height: 78px;
+          border-radius: 24px;
           background: linear-gradient(
             135deg,
             #8b5cf6,
@@ -609,184 +465,132 @@ export default function CategoriasPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          box-shadow: 0 20px 40px rgba(99, 102, 241, 0.4);
         }
 
         .mini-title {
           font-size: 11px;
-          letter-spacing: 0.18em;
-          font-weight: 800;
+          letter-spacing: 0.16em;
           opacity: 0.7;
+          font-weight: 800;
         }
 
         h1 {
           margin: 8px 0;
-          font-size: 42px;
-          font-weight: 900;
+          font-size: 40px;
         }
 
         .hero p {
           color: rgba(255, 255, 255, 0.7);
-          max-width: 520px;
         }
 
         .hero-actions {
           display: flex;
           gap: 12px;
-          z-index: 2;
           flex-wrap: wrap;
         }
 
         /* BUTTONS */
 
         .btn {
-          height: 52px;
-          border-radius: 18px;
+          height: 48px;
+          padding: 0 20px;
+          border-radius: 16px;
           border: none;
-          padding: 0 22px;
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 8px;
           cursor: pointer;
-          transition: 0.25s;
           font-weight: 700;
+          transition: 0.25s;
           text-decoration: none;
-          font-size: 14px;
         }
 
         .btn:hover {
           transform: translateY(-2px);
         }
 
-        .btn.primary {
+        .primary {
           background: linear-gradient(
             135deg,
             #8b5cf6,
             #6366f1
           );
           color: white;
-          box-shadow: 0 14px 30px rgba(99, 102, 241, 0.35);
         }
 
-        .btn.glass {
+        .glass {
           background: rgba(255, 255, 255, 0.08);
           color: white;
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .danger-btn {
-          background: #ef4444;
-          color: white;
+          border: 1px solid
+            rgba(255, 255, 255, 0.1);
         }
 
         /* SEARCH */
 
-        .search-wrapper {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 20px;
-          flex-wrap: wrap;
-        }
-
         .search-box {
-          flex: 1;
-          min-width: 280px;
-          height: 62px;
+          height: 64px;
           background: white;
-          border-radius: 22px;
+          border-radius: 24px;
           padding: 0 20px;
           display: flex;
           align-items: center;
           gap: 14px;
           border: 1px solid #e5e7eb;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
         }
 
         .search-box input {
           flex: 1;
           border: none;
           outline: none;
-          font-size: 15px;
           background: transparent;
+          font-size: 15px;
         }
 
-        .results-count {
-          min-width: 140px;
-          height: 62px;
-          border-radius: 22px;
-          background: white;
-          border: 1px solid #e5e7eb;
+        .count {
+          min-width: 42px;
+          height: 42px;
+          border-radius: 14px;
+          background: #eef2ff;
+          color: #4f46e5;
           display: flex;
-          flex-direction: column;
-          justify-content: center;
           align-items: center;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
+          justify-content: center;
+          font-weight: 800;
         }
 
-        .results-count strong {
-          font-size: 22px;
-          color: #111827;
-        }
+        /* CARDS */
 
-        .results-count span {
-          color: #6b7280;
-          font-size: 13px;
-        }
-
-        /* GRID */
-
-        .grid-categorias {
-          display: grid;
-          grid-template-columns: repeat(
-            auto-fit,
-            minmax(320px, 1fr)
-          );
-          gap: 22px;
+        .cards {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 20px;
+          align-items: flex-start;
         }
 
         .card {
+          width: calc(33.333% - 14px);
+          min-width: 320px;
           background: white;
-          border-radius: 30px;
+          border-radius: 28px;
           padding: 22px;
           border: 1px solid #eceff4;
-          box-shadow: 0 14px 40px rgba(0, 0, 0, 0.05);
-          transition: 0.3s;
-          position: relative;
-          overflow: hidden;
+          transition: 0.25s;
         }
 
         .card:hover {
-          transform: translateY(-6px);
-          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+          transform: translateY(-4px);
+          box-shadow: 0 20px 40px
+            rgba(0, 0, 0, 0.06);
         }
 
-        .card::before {
-          content: "";
-          position: absolute;
-          width: 180px;
-          height: 180px;
-          background: linear-gradient(
-            135deg,
-            rgba(139, 92, 246, 0.08),
-            rgba(99, 102, 241, 0.05)
-          );
-          border-radius: 50%;
-          top: -60px;
-          right: -60px;
-        }
-
-        .card-top {
+        .top {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 24px;
-          position: relative;
-          z-index: 2;
+          margin-bottom: 20px;
         }
 
-        .badge-id {
+        .id {
           height: 38px;
           padding: 0 14px;
           border-radius: 999px;
@@ -819,14 +623,11 @@ export default function CategoriasPage() {
           color: #ef4444;
         }
 
-        .card-content {
-          position: relative;
-          z-index: 2;
-        }
+        /* CONTENT */
 
         .icon-card {
-          width: 68px;
-          height: 68px;
+          width: 70px;
+          height: 70px;
           border-radius: 22px;
           background: linear-gradient(
             135deg,
@@ -841,7 +642,7 @@ export default function CategoriasPage() {
           font-size: 24px;
         }
 
-        .card h3 {
+        h3 {
           margin: 0;
           font-size: 24px;
           color: #111827;
@@ -849,33 +650,34 @@ export default function CategoriasPage() {
 
         .slug {
           display: inline-block;
-          margin-top: 8px;
-          color: #6366f1;
-          font-weight: 700;
-          font-size: 13px;
-          background: #eef2ff;
+          margin-top: 10px;
           padding: 6px 12px;
           border-radius: 999px;
+          background: #eef2ff;
+          color: #4f46e5;
+          font-size: 12px;
+          font-weight: 700;
         }
 
-        .card p {
+        .content p {
           margin-top: 18px;
           color: #6b7280;
           line-height: 1.7;
-          font-size: 14px;
           min-height: 70px;
         }
 
-        .meta {
-          display: flex;
-          justify-content: space-between;
-          gap: 12px;
-          margin-top: 20px;
+        /* FOOTER */
+
+        .footer {
+          margin-top: 24px;
           padding-top: 20px;
           border-top: 1px solid #f3f4f6;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
         }
 
-        .meta div {
+        .meta {
           display: flex;
           flex-direction: column;
           gap: 6px;
@@ -883,53 +685,103 @@ export default function CategoriasPage() {
 
         .meta small {
           color: #9ca3af;
-          font-size: 12px;
         }
 
         .meta strong {
           color: #111827;
-          font-size: 15px;
         }
 
-        .card-actions {
+        .buttons {
           display: flex;
-          gap: 12px;
-          margin-top: 24px;
+          gap: 10px;
         }
 
-        .action {
-          flex: 1;
-          height: 48px;
+        .icon-btn {
+          width: 46px;
+          height: 46px;
           border-radius: 16px;
           border: none;
           display: flex;
           align-items: center;
           justify-content: center;
-          gap: 8px;
-          font-weight: 700;
           cursor: pointer;
-          transition: 0.25s;
+          transition: 0.2s;
         }
 
-        .action:hover {
-          transform: translateY(-2px);
+        .icon-btn:hover {
+          transform: scale(1.05);
         }
 
-        .action.edit {
+        .icon-btn.edit {
           background: #eef2ff;
           color: #4f46e5;
         }
 
-        .action.delete {
+        .icon-btn.delete {
           background: #fef2f2;
           color: #ef4444;
+        }
+
+        /* EDIT */
+
+        .edit-area {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+
+        .edit-area input,
+        .edit-area textarea,
+        .edit-area select {
+          width: 100%;
+          border: 1px solid #e5e7eb;
+          border-radius: 16px;
+          padding: 14px;
+          outline: none;
+          font-size: 14px;
+        }
+
+        .edit-area input:focus,
+        .edit-area textarea:focus,
+        .edit-area select:focus {
+          border-color: #6366f1;
+          box-shadow: 0 0 0 4px
+            rgba(99, 102, 241, 0.1);
+        }
+
+        .grid-form {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+
+        .actions {
+          display: flex;
+          gap: 12px;
+          margin-top: 6px;
+        }
+
+        .save {
+          background: linear-gradient(
+            135deg,
+            #8b5cf6,
+            #6366f1
+          );
+          color: white;
+          flex: 1;
+        }
+
+        .cancel {
+          background: #f3f4f6;
+          color: #111827;
+          flex: 1;
         }
 
         /* STATES */
 
         .state {
           height: 72px;
-          border-radius: 24px;
+          border-radius: 22px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -949,19 +801,15 @@ export default function CategoriasPage() {
 
         .empty {
           background: white;
-          border-radius: 30px;
+          border-radius: 28px;
           padding: 80px 30px;
           text-align: center;
           border: 1px solid #eceff4;
         }
 
         .empty h2 {
-          margin-top: 20px;
+          margin-top: 18px;
           color: #111827;
-        }
-
-        .empty p {
-          color: #6b7280;
         }
 
         .spin {
@@ -974,135 +822,26 @@ export default function CategoriasPage() {
           }
         }
 
-        /* MODAL */
-
-        .overlay {
-          position: fixed;
-          inset: 0;
-          background: rgba(15, 23, 42, 0.6);
-          backdrop-filter: blur(6px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 999;
-          padding: 20px;
-        }
-
-        .modal {
-          width: 100%;
-          max-width: 650px;
-          background: white;
-          border-radius: 34px;
-          overflow: hidden;
-          animation: modal 0.25s ease;
-        }
-
-        @keyframes modal {
-          from {
-            opacity: 0;
-            transform: translateY(20px)
-              scale(0.98);
-          }
-
-          to {
-            opacity: 1;
-            transform: translateY(0px)
-              scale(1);
-          }
-        }
-
-        .modal-header {
-          padding: 28px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          border-bottom: 1px solid #f3f4f6;
-        }
-
-        .modal-header h2 {
-          margin: 0;
-          font-size: 28px;
-        }
-
-        .close {
-          width: 46px;
-          height: 46px;
-          border-radius: 16px;
-          border: none;
-          background: #f3f4f6;
-          cursor: pointer;
-        }
-
-        .modal-body {
-          padding: 28px;
-          display: flex;
-          flex-direction: column;
-          gap: 18px;
-        }
-
-        .field {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .field label {
-          font-weight: 700;
-          color: #374151;
-        }
-
-        .field input,
-        .field textarea,
-        .field select {
-          width: 100%;
-          border: 1px solid #e5e7eb;
-          border-radius: 18px;
-          padding: 16px;
-          outline: none;
-          font-size: 14px;
-        }
-
-        .field input:focus,
-        .field textarea:focus,
-        .field select:focus {
-          border-color: #6366f1;
-          box-shadow: 0 0 0 4px
-            rgba(99, 102, 241, 0.1);
-        }
-
-        .grid-form {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 16px;
-        }
-
-        .modal-footer {
-          padding: 28px;
-          border-top: 1px solid #f3f4f6;
-          display: flex;
-          justify-content: flex-end;
-          gap: 12px;
-        }
-
-        .danger {
-          max-width: 500px;
-        }
-
-        .danger-text {
-          margin-top: 14px;
-          color: #ef4444;
-          font-weight: 700;
-        }
-
         /* RESPONSIVO */
 
+        @media (max-width: 1200px) {
+          .card {
+            width: calc(50% - 10px);
+          }
+        }
+
         @media (max-width: 768px) {
+          .card {
+            width: 100%;
+            min-width: 100%;
+          }
+
           .hero {
-            padding: 26px;
+            padding: 24px;
           }
 
           h1 {
-            font-size: 32px;
+            font-size: 30px;
           }
 
           .hero-actions {
@@ -1118,7 +857,7 @@ export default function CategoriasPage() {
             grid-template-columns: 1fr;
           }
 
-          .card-actions {
+          .actions {
             flex-direction: column;
           }
         }
