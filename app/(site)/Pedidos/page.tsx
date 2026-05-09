@@ -14,8 +14,7 @@ import {
   BadgeDollarSign,
 } from "lucide-react";
 import api from "@/Api/conectar";
-import Navbar from "@/components/site/menu/navbar";
-import Footer from "@/components/site/Rodape/Footer";
+
 
 type Pedido = {
   id_pedido?: number;
@@ -166,7 +165,7 @@ export default function PedidosPage() {
 
   return (
     <div className="layout">
-      <Navbar />
+     
 
       <main className="pagina-pedidos">
         <section className="hero">
@@ -377,7 +376,7 @@ export default function PedidosPage() {
         )}
       </main>
 
-      <Footer />
+     
 
       <style jsx>{`
         .layout {
