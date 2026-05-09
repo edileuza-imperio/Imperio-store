@@ -7,17 +7,14 @@ import api from "@/Api/conectar";
 import {
   FiPlus,
   FiRefreshCw,
-  FiEdit,
+  FiEdit2,
   FiTrash2,
-  FiTag,
+  FiSearch,
+  FiGrid,
+  FiFolder,
   FiHash,
-  FiLayers,
   FiCheckCircle,
   FiAlertCircle,
-  FiFolder,
-  FiChevronLeft,
-  FiChevronRight,
-  FiSearch,
   FiX,
   FiSave,
 } from "react-icons/fi";
@@ -25,27 +22,22 @@ import {
 type Categoria = {
   id_categoria?: number;
   id?: number;
-  site_config_id?: number;
   nome?: string;
   slug?: string;
   descricao?: string | null;
-  icone?: string | null;
   imagem?: string | null;
+  icone?: string | null;
   ordem?: number;
   status_id?: number;
-  criado?: string;
-  atualizado?: string;
+  site_config_id?: number;
 };
 
 export default function CategoriasPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
+  const [erro, setErro] = useState("");
 
   const [busca, setBusca] = useState("");
-
-  const [paginaAtual, setPaginaAtual] = useState(1);
-  const [itensPorPagina, setItensPorPagina] = useState(5);
 
   const [modalEditar, setModalEditar] = useState(false);
   const [modalExcluir, setModalExcluir] = useState(false);
@@ -62,13 +54,11 @@ export default function CategoriasPage() {
     descricao: "",
     ordem: 0,
     status_id: 1,
-    site_config_id: 1,
   });
 
   async function carregarCategorias() {
     try {
       setLoading(true);
-      setErro(null);
 
       const response = await api.get("/painel/categorias");
 
@@ -78,8 +68,6 @@ export default function CategoriasPage() {
         ? data
         : Array.isArray(data?.dados)
         ? data.dados
-        : Array.isArray(data?.categorias)
-        ? data.categorias
         : [];
 
       setCategorias(lista);
@@ -88,8 +76,7 @@ export default function CategoriasPage() {
 
       setErro(
         error?.response?.data?.mensagem ||
-          error?.message ||
-          "Erro ao carregar categorias."
+          "Erro ao carregar categorias"
       );
     } finally {
       setLoading(false);
@@ -100,19 +87,14 @@ export default function CategoriasPage() {
     carregarCategorias();
   }, []);
 
-  useEffect(() => {
-    setPaginaAtual(1);
-  }, [busca, itensPorPagina]);
-
   const categoriasFiltradas = useMemo(() => {
-    const termo = busca.toLowerCase().trim();
-
-    if (!termo) return categorias;
+    const termo = busca.toLowerCase();
 
     return categorias.filter((categoria) => {
       const nome = categoria.nome?.toLowerCase() || "";
       const slug = categoria.slug?.toLowerCase() || "";
-      const descricao = categoria.descricao?.toLowerCase() || "";
+      const descricao =
+        categoria.descricao?.toLowerCase() || "";
 
       return (
         nome.includes(termo) ||
@@ -122,34 +104,8 @@ export default function CategoriasPage() {
     });
   }, [categorias, busca]);
 
-  const totalPaginas = Math.max(
-    1,
-    Math.ceil(categoriasFiltradas.length / itensPorPagina)
-  );
-
-  const inicio = (paginaAtual - 1) * itensPorPagina;
-  const fim = inicio + itensPorPagina;
-
-  const categoriasPaginadas = categoriasFiltradas.slice(inicio, fim);
-
   function getId(categoria: Categoria) {
     return categoria.id_categoria ?? categoria.id ?? 0;
-  }
-
-  function getStatusInfo(statusId?: number) {
-    if (statusId === 1) {
-      return {
-        label: "Ativo",
-        className: "ativo",
-        icon: <FiCheckCircle size={14} />,
-      };
-    }
-
-    return {
-      label: "Inativo",
-      className: "inativo",
-      icon: <FiAlertCircle size={14} />,
-    };
   }
 
   function abrirEditar(categoria: Categoria) {
@@ -161,7 +117,6 @@ export default function CategoriasPage() {
       descricao: categoria.descricao || "",
       ordem: categoria.ordem || 0,
       status_id: categoria.status_id || 1,
-      site_config_id: categoria.site_config_id || 1,
     });
 
     setModalEditar(true);
@@ -173,17 +128,20 @@ export default function CategoriasPage() {
     try {
       setSalvando(true);
 
-      const id = getId(categoriaSelecionada);
-
-      await api.put(`/painel/categoria/${id}`, form);
-
-      setModalEditar(false);
+      await api.put(
+        `/painel/categoria/${getId(
+          categoriaSelecionada
+        )}`,
+        form
+      );
 
       await carregarCategorias();
+
+      setModalEditar(false);
     } catch (error: any) {
       alert(
         error?.response?.data?.mensagem ||
-          "Erro ao atualizar categoria."
+          "Erro ao atualizar categoria"
       );
     } finally {
       setSalvando(false);
@@ -201,17 +159,19 @@ export default function CategoriasPage() {
     try {
       setExcluindo(true);
 
-      const id = getId(categoriaSelecionada);
-
-      await api.delete(`/painel/categoria/${id}`);
-
-      setModalExcluir(false);
+      await api.delete(
+        `/painel/categoria/${getId(
+          categoriaSelecionada
+        )}`
+      );
 
       await carregarCategorias();
+
+      setModalExcluir(false);
     } catch (error: any) {
       alert(
         error?.response?.data?.mensagem ||
-          "Erro ao excluir categoria."
+          "Erro ao excluir categoria"
       );
     } finally {
       setExcluindo(false);
@@ -219,29 +179,32 @@ export default function CategoriasPage() {
   }
 
   return (
-    <div className="categorias-page">
-      {/* HEADER */}
+    <div className="page">
+      {/* HERO */}
 
-      <div className="topbar">
-        <div className="topbar-left">
-          <div className="icon-wrap">
-            <FiFolder size={28} />
+      <div className="hero">
+        <div className="hero-left">
+          <div className="hero-icon">
+            <FiGrid size={30} />
           </div>
 
           <div>
-            <span className="kicker">Painel administrativo</span>
+            <span className="mini-title">
+              PAINEL ADMINISTRATIVO
+            </span>
 
             <h1>Categorias</h1>
 
             <p>
-              Gerencie categorias, visualize dados e organize o conteúdo.
+              Organize, edite e controle todas as categorias
+              do sistema.
             </p>
           </div>
         </div>
 
-        <div className="topbar-actions">
+        <div className="hero-actions">
           <button
-            className="btn btn-light"
+            className="btn glass"
             onClick={carregarCategorias}
           >
             <FiRefreshCw />
@@ -250,7 +213,7 @@ export default function CategoriasPage() {
 
           <Link
             href="/Admin/categorias/cadastrar"
-            className="btn btn-primary"
+            className="btn primary"
           >
             <FiPlus />
             Nova categoria
@@ -258,211 +221,163 @@ export default function CategoriasPage() {
         </div>
       </div>
 
-      {/* TOOLBAR */}
+      {/* BUSCA */}
 
-      <div className="toolbar">
+      <div className="search-wrapper">
         <div className="search-box">
           <FiSearch />
 
           <input
             type="text"
-            placeholder="Buscar categoria..."
+            placeholder="Pesquisar categoria..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
         </div>
 
-        <div className="toolbar-right">
-          <div className="select-wrap">
-            <span>Por página</span>
-
-            <select
-              value={itensPorPagina}
-              onChange={(e) =>
-                setItensPorPagina(Number(e.target.value))
-              }
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={15}>15</option>
-              <option value={20}>20</option>
-            </select>
-          </div>
-
-          <div className="counter">
-            <strong>{categoriasFiltradas.length}</strong>
-            categorias
-          </div>
+        <div className="results-count">
+          <strong>{categoriasFiltradas.length}</strong>
+          <span>Categorias</span>
         </div>
       </div>
 
-      {/* STATES */}
+      {/* ESTADOS */}
 
-      {erro ? (
-        <div className="state error">
-          <FiAlertCircle />
-          <span>{erro}</span>
-        </div>
-      ) : loading ? (
+      {loading ? (
         <div className="state loading">
           <FiRefreshCw className="spin" />
-          <span>Carregando categorias...</span>
+          Carregando categorias...
+        </div>
+      ) : erro ? (
+        <div className="state error">
+          <FiAlertCircle />
+          {erro}
         </div>
       ) : categoriasFiltradas.length === 0 ? (
-        <div className="state empty">
-          <FiFolder />
-          <span>Nenhuma categoria encontrada.</span>
+        <div className="empty">
+          <FiFolder size={48} />
+
+          <h2>Nenhuma categoria encontrada</h2>
+
+          <p>
+            Tente outro termo ou crie uma nova categoria.
+          </p>
         </div>
       ) : (
-        <>
-          {/* TABELA */}
+        <div className="grid-categorias">
+          {categoriasFiltradas.map((categoria) => {
+            const ativo = categoria.status_id === 1;
 
-          <div className="table-card">
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Nome</th>
-                    <th>Slug</th>
-                    <th>Descrição</th>
-                    <th>Site</th>
-                    <th>Ordem</th>
-                    <th>Status</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
+            return (
+              <div
+                key={getId(categoria)}
+                className="card"
+              >
+                <div className="card-top">
+                  <div className="badge-id">
+                    <FiHash />
+                    {getId(categoria)}
+                  </div>
 
-                <tbody>
-                  {categoriasPaginadas.map((categoria) => {
-                    const id = getId(categoria);
+                  <div
+                    className={`status ${
+                      ativo ? "ativo" : "inativo"
+                    }`}
+                  >
+                    {ativo ? (
+                      <>
+                        <FiCheckCircle />
+                        Ativo
+                      </>
+                    ) : (
+                      <>
+                        <FiAlertCircle />
+                        Inativo
+                      </>
+                    )}
+                  </div>
+                </div>
 
-                    const status = getStatusInfo(
-                      categoria.status_id
-                    );
+                <div className="card-content">
+                  <div className="icon-card">
+                    <FiFolder />
+                  </div>
 
-                    return (
-                      <tr key={id}>
-                        <td>
-                          <div className="cell">
-                            <FiHash />
-                            {id}
-                          </div>
-                        </td>
+                  <h3>{categoria.nome}</h3>
 
-                        <td>
-                          <div className="cell strong">
-                            <FiTag />
-                            {categoria.nome}
-                          </div>
-                        </td>
+                  <span className="slug">
+                    /{categoria.slug}
+                  </span>
 
-                        <td>
-                          <code>{categoria.slug}</code>
-                        </td>
+                  <p>
+                    {categoria.descricao ||
+                      "Categoria sem descrição cadastrada."}
+                  </p>
+                </div>
 
-                        <td className="descricao">
-                          {categoria.descricao || "Sem descrição"}
-                        </td>
+                <div className="meta">
+                  <div>
+                    <small>Ordem</small>
+                    <strong>
+                      #{categoria.ordem || 0}
+                    </strong>
+                  </div>
 
-                        <td>
-                          <div className="cell">
-                            <FiLayers />
-                            {categoria.site_config_id}
-                          </div>
-                        </td>
+                  <div>
+                    <small>Site</small>
+                    <strong>
+                      {categoria.site_config_id || 1}
+                    </strong>
+                  </div>
+                </div>
 
-                        <td>{categoria.ordem}</td>
+                <div className="card-actions">
+                  <button
+                    className="action edit"
+                    onClick={() =>
+                      abrirEditar(categoria)
+                    }
+                  >
+                    <FiEdit2 />
+                    Editar
+                  </button>
 
-                        <td>
-                          <span
-                            className={`status ${status.className}`}
-                          >
-                            {status.icon}
-                            {status.label}
-                          </span>
-                        </td>
-
-                        <td>
-                          <div className="acoes">
-                            <button
-                              className="icon-btn edit"
-                              onClick={() =>
-                                abrirEditar(categoria)
-                              }
-                            >
-                              <FiEdit />
-                            </button>
-
-                            <button
-                              className="icon-btn delete"
-                              onClick={() =>
-                                abrirExcluir(categoria)
-                              }
-                            >
-                              <FiTrash2 />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* PAGINAÇÃO */}
-
-          <div className="pagination">
-            <button
-              className="page-btn"
-              disabled={paginaAtual === 1}
-              onClick={() =>
-                setPaginaAtual((prev) => prev - 1)
-              }
-            >
-              <FiChevronLeft />
-              Anterior
-            </button>
-
-            <div className="page-info">
-              Página <strong>{paginaAtual}</strong> de{" "}
-              <strong>{totalPaginas}</strong>
-            </div>
-
-            <button
-              className="page-btn"
-              disabled={paginaAtual === totalPaginas}
-              onClick={() =>
-                setPaginaAtual((prev) => prev + 1)
-              }
-            >
-              Próxima
-              <FiChevronRight />
-            </button>
-          </div>
-        </>
+                  <button
+                    className="action delete"
+                    onClick={() =>
+                      abrirExcluir(categoria)
+                    }
+                  >
+                    <FiTrash2 />
+                    Excluir
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {/* MODAL EDITAR */}
 
       {modalEditar && (
-        <div className="modal-overlay">
+        <div className="overlay">
           <div className="modal">
             <div className="modal-header">
               <h2>Editar categoria</h2>
 
               <button
-                className="close-btn"
-                onClick={() => setModalEditar(false)}
+                className="close"
+                onClick={() =>
+                  setModalEditar(false)
+                }
               >
                 <FiX />
               </button>
             </div>
 
             <div className="modal-body">
-              <div className="form-group">
+              <div className="field">
                 <label>Nome</label>
 
                 <input
@@ -476,7 +391,7 @@ export default function CategoriasPage() {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="field">
                 <label>Slug</label>
 
                 <input
@@ -490,7 +405,7 @@ export default function CategoriasPage() {
                 />
               </div>
 
-              <div className="form-group">
+              <div className="field">
                 <label>Descrição</label>
 
                 <textarea
@@ -505,8 +420,8 @@ export default function CategoriasPage() {
                 />
               </div>
 
-              <div className="grid">
-                <div className="form-group">
+              <div className="grid-form">
+                <div className="field">
                   <label>Ordem</label>
 
                   <input
@@ -515,13 +430,15 @@ export default function CategoriasPage() {
                     onChange={(e) =>
                       setForm({
                         ...form,
-                        ordem: Number(e.target.value),
+                        ordem: Number(
+                          e.target.value
+                        ),
                       })
                     }
                   />
                 </div>
 
-                <div className="form-group">
+                <div className="field">
                   <label>Status</label>
 
                   <select
@@ -529,7 +446,9 @@ export default function CategoriasPage() {
                     onChange={(e) =>
                       setForm({
                         ...form,
-                        status_id: Number(e.target.value),
+                        status_id: Number(
+                          e.target.value
+                        ),
                       })
                     }
                   >
@@ -542,18 +461,23 @@ export default function CategoriasPage() {
 
             <div className="modal-footer">
               <button
-                className="btn btn-light"
-                onClick={() => setModalEditar(false)}
+                className="btn glass"
+                onClick={() =>
+                  setModalEditar(false)
+                }
               >
                 Cancelar
               </button>
 
               <button
-                className="btn btn-primary"
+                className="btn primary"
                 onClick={salvarEdicao}
               >
                 <FiSave />
-                {salvando ? "Salvando..." : "Salvar"}
+
+                {salvando
+                  ? "Salvando..."
+                  : "Salvar alterações"}
               </button>
             </div>
           </div>
@@ -563,14 +487,16 @@ export default function CategoriasPage() {
       {/* MODAL EXCLUIR */}
 
       {modalExcluir && (
-        <div className="modal-overlay">
-          <div className="modal modal-danger">
+        <div className="overlay">
+          <div className="modal danger">
             <div className="modal-header">
               <h2>Excluir categoria</h2>
 
               <button
-                className="close-btn"
-                onClick={() => setModalExcluir(false)}
+                className="close"
+                onClick={() =>
+                  setModalExcluir(false)
+                }
               >
                 <FiX />
               </button>
@@ -578,388 +504,463 @@ export default function CategoriasPage() {
 
             <div className="modal-body">
               <p>
-                Deseja realmente excluir a categoria:
+                Deseja realmente excluir:
               </p>
 
               <strong>
                 {categoriaSelecionada?.nome}
               </strong>
 
-              <p className="danger-text">
-                Essa ação não poderá ser desfeita.
-              </p>
+              <span className="danger-text">
+                Essa ação é irreversível.
+              </span>
             </div>
 
             <div className="modal-footer">
               <button
-                className="btn btn-light"
-                onClick={() => setModalExcluir(false)}
+                className="btn glass"
+                onClick={() =>
+                  setModalExcluir(false)
+                }
               >
                 Cancelar
               </button>
 
               <button
-                className="btn btn-danger"
+                className="btn danger-btn"
                 onClick={excluirCategoria}
               >
                 <FiTrash2 />
-                {excluindo ? "Excluindo..." : "Excluir"}
+
+                {excluindo
+                  ? "Excluindo..."
+                  : "Excluir"}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* CSS */}
-
       <style jsx>{`
         * {
           box-sizing: border-box;
         }
 
-        .categorias-page {
+        .page {
           display: flex;
           flex-direction: column;
-          gap: 22px;
-          padding: 10px;
+          gap: 24px;
+          padding: 12px;
         }
 
-        .topbar {
+        body {
+          background: #f5f7fb;
+        }
+
+        /* HERO */
+
+        .hero {
+          width: 100%;
+          border-radius: 34px;
+          padding: 34px;
+          background: linear-gradient(
+            135deg,
+            #111827,
+            #1f2937,
+            #374151
+          );
+          color: white;
           display: flex;
           justify-content: space-between;
           align-items: center;
-          gap: 20px;
+          gap: 24px;
           flex-wrap: wrap;
+          overflow: hidden;
+          position: relative;
         }
 
-        .topbar-left {
+        .hero::before {
+          content: "";
+          position: absolute;
+          width: 400px;
+          height: 400px;
+          background: rgba(255, 255, 255, 0.04);
+          border-radius: 50%;
+          right: -100px;
+          top: -100px;
+        }
+
+        .hero-left {
           display: flex;
           align-items: center;
-          gap: 16px;
+          gap: 18px;
+          z-index: 2;
         }
 
-        .icon-wrap {
-          width: 64px;
-          height: 64px;
-          border-radius: 22px;
+        .hero-icon {
+          width: 80px;
+          height: 80px;
+          border-radius: 28px;
           background: linear-gradient(
             135deg,
-            #ff9966,
-            #ff5e62
+            #8b5cf6,
+            #6366f1
           );
           display: flex;
           align-items: center;
           justify-content: center;
-          color: white;
-          box-shadow: 0 20px 40px rgba(255, 94, 98, 0.3);
+          box-shadow: 0 20px 40px rgba(99, 102, 241, 0.4);
         }
 
-        .kicker {
+        .mini-title {
           font-size: 11px;
-          font-weight: 900;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          color: #ff5e62;
+          letter-spacing: 0.18em;
+          font-weight: 800;
+          opacity: 0.7;
         }
 
         h1 {
-          margin: 4px 0;
-          font-size: 34px;
-          color: #1f2937;
+          margin: 8px 0;
+          font-size: 42px;
+          font-weight: 900;
         }
 
-        p {
-          margin: 0;
-          color: #6b7280;
+        .hero p {
+          color: rgba(255, 255, 255, 0.7);
+          max-width: 520px;
         }
 
-        .topbar-actions {
+        .hero-actions {
           display: flex;
           gap: 12px;
+          z-index: 2;
           flex-wrap: wrap;
         }
 
+        /* BUTTONS */
+
         .btn {
-          height: 48px;
+          height: 52px;
+          border-radius: 18px;
           border: none;
-          padding: 0 18px;
-          border-radius: 14px;
-          display: inline-flex;
+          padding: 0 22px;
+          display: flex;
           align-items: center;
-          justify-content: center;
           gap: 10px;
-          font-weight: 700;
           cursor: pointer;
           transition: 0.25s;
+          font-weight: 700;
           text-decoration: none;
+          font-size: 14px;
         }
 
         .btn:hover {
           transform: translateY(-2px);
         }
 
-        .btn-primary {
+        .btn.primary {
           background: linear-gradient(
             135deg,
-            #ff9966,
-            #ff5e62
+            #8b5cf6,
+            #6366f1
           );
           color: white;
+          box-shadow: 0 14px 30px rgba(99, 102, 241, 0.35);
         }
 
-        .btn-light {
-          background: white;
-          border: 1px solid #e5e7eb;
-          color: #111827;
+        .btn.glass {
+          background: rgba(255, 255, 255, 0.08);
+          color: white;
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
-        .btn-danger {
+        .danger-btn {
           background: #ef4444;
           color: white;
         }
 
-        .toolbar {
+        /* SEARCH */
+
+        .search-wrapper {
           display: flex;
+          align-items: center;
           justify-content: space-between;
-          gap: 16px;
+          gap: 20px;
           flex-wrap: wrap;
-          background: white;
-          border-radius: 24px;
-          padding: 18px;
-          border: 1px solid #f3f4f6;
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
         }
 
         .search-box {
           flex: 1;
-          min-width: 260px;
-          height: 52px;
-          border-radius: 16px;
-          background: #f9fafb;
-          border: 1px solid #e5e7eb;
+          min-width: 280px;
+          height: 62px;
+          background: white;
+          border-radius: 22px;
+          padding: 0 20px;
           display: flex;
           align-items: center;
-          gap: 12px;
-          padding: 0 16px;
+          gap: 14px;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
         }
 
         .search-box input {
           flex: 1;
           border: none;
           outline: none;
-          background: transparent;
           font-size: 15px;
-        }
-
-        .toolbar-right {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          flex-wrap: wrap;
-        }
-
-        .select-wrap {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          background: #f9fafb;
-          padding: 0 14px;
-          border-radius: 14px;
-          border: 1px solid #e5e7eb;
-          height: 50px;
-        }
-
-        .select-wrap select {
-          border: none;
           background: transparent;
-          outline: none;
-          font-weight: 700;
         }
 
-        .counter {
-          height: 50px;
-          padding: 0 18px;
-          border-radius: 14px;
-          background: linear-gradient(
-            135deg,
-            rgba(255, 153, 102, 0.15),
-            rgba(255, 94, 98, 0.15)
-          );
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-weight: 700;
-        }
-
-        .table-card {
+        .results-count {
+          min-width: 140px;
+          height: 62px;
+          border-radius: 22px;
           background: white;
-          border-radius: 28px;
-          overflow: hidden;
-          border: 1px solid #f3f4f6;
-          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.04);
-        }
-
-        .table-wrap {
-          overflow-x: auto;
-        }
-
-        table {
-          width: 100%;
-          min-width: 1100px;
-          border-collapse: collapse;
-        }
-
-        thead {
-          background: #f9fafb;
-        }
-
-        th {
-          padding: 18px;
-          text-align: left;
-          font-size: 12px;
-          text-transform: uppercase;
-          color: #6b7280;
-        }
-
-        td {
-          padding: 18px;
-          border-top: 1px solid #f3f4f6;
-          font-size: 14px;
-          color: #374151;
-        }
-
-        tr:hover {
-          background: #fafafa;
-        }
-
-        .cell {
-          display: inline-flex;
+          border: 1px solid #e5e7eb;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
           align-items: center;
-          gap: 8px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.04);
         }
 
-        .strong {
-          font-weight: 800;
+        .results-count strong {
+          font-size: 22px;
           color: #111827;
         }
 
-        .descricao {
-          max-width: 320px;
+        .results-count span {
+          color: #6b7280;
+          font-size: 13px;
         }
 
-        code {
-          background: #fff3ed;
-          color: #ff5e62;
-          padding: 6px 10px;
-          border-radius: 10px;
-          font-size: 12px;
+        /* GRID */
+
+        .grid-categorias {
+          display: grid;
+          grid-template-columns: repeat(
+            auto-fit,
+            minmax(320px, 1fr)
+          );
+          gap: 22px;
+        }
+
+        .card {
+          background: white;
+          border-radius: 30px;
+          padding: 22px;
+          border: 1px solid #eceff4;
+          box-shadow: 0 14px 40px rgba(0, 0, 0, 0.05);
+          transition: 0.3s;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .card:hover {
+          transform: translateY(-6px);
+          box-shadow: 0 20px 50px rgba(0, 0, 0, 0.08);
+        }
+
+        .card::before {
+          content: "";
+          position: absolute;
+          width: 180px;
+          height: 180px;
+          background: linear-gradient(
+            135deg,
+            rgba(139, 92, 246, 0.08),
+            rgba(99, 102, 241, 0.05)
+          );
+          border-radius: 50%;
+          top: -60px;
+          right: -60px;
+        }
+
+        .card-top {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 24px;
+          position: relative;
+          z-index: 2;
+        }
+
+        .badge-id {
+          height: 38px;
+          padding: 0 14px;
+          border-radius: 999px;
+          background: #f3f4f6;
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 13px;
           font-weight: 700;
         }
 
         .status {
-          display: inline-flex;
+          height: 38px;
+          padding: 0 14px;
+          border-radius: 999px;
+          display: flex;
           align-items: center;
           gap: 6px;
-          height: 34px;
-          padding: 0 12px;
-          border-radius: 999px;
           font-size: 12px;
           font-weight: 800;
         }
 
         .ativo {
           background: rgba(34, 197, 94, 0.12);
-          color: #15803d;
+          color: #16a34a;
         }
 
         .inativo {
           background: rgba(239, 68, 68, 0.12);
-          color: #dc2626;
+          color: #ef4444;
         }
 
-        .acoes {
-          display: flex;
-          gap: 8px;
+        .card-content {
+          position: relative;
+          z-index: 2;
         }
 
-        .icon-btn {
-          width: 42px;
-          height: 42px;
-          border-radius: 14px;
-          border: none;
-          cursor: pointer;
+        .icon-card {
+          width: 68px;
+          height: 68px;
+          border-radius: 22px;
+          background: linear-gradient(
+            135deg,
+            #8b5cf6,
+            #6366f1
+          );
           display: flex;
           align-items: center;
           justify-content: center;
-          transition: 0.2s;
+          color: white;
+          margin-bottom: 18px;
+          font-size: 24px;
         }
 
-        .icon-btn:hover {
-          transform: scale(1.06);
+        .card h3 {
+          margin: 0;
+          font-size: 24px;
+          color: #111827;
         }
 
-        .icon-btn.edit {
-          background: rgba(59, 130, 246, 0.12);
-          color: #2563eb;
+        .slug {
+          display: inline-block;
+          margin-top: 8px;
+          color: #6366f1;
+          font-weight: 700;
+          font-size: 13px;
+          background: #eef2ff;
+          padding: 6px 12px;
+          border-radius: 999px;
         }
 
-        .icon-btn.delete {
-          background: rgba(239, 68, 68, 0.12);
-          color: #dc2626;
+        .card p {
+          margin-top: 18px;
+          color: #6b7280;
+          line-height: 1.7;
+          font-size: 14px;
+          min-height: 70px;
         }
 
-        .pagination {
+        .meta {
           display: flex;
           justify-content: space-between;
-          align-items: center;
-          gap: 16px;
-          flex-wrap: wrap;
-          background: white;
-          border-radius: 24px;
-          padding: 16px 18px;
-          border: 1px solid #f3f4f6;
+          gap: 12px;
+          margin-top: 20px;
+          padding-top: 20px;
+          border-top: 1px solid #f3f4f6;
         }
 
-        .page-btn {
-          height: 46px;
-          padding: 0 16px;
-          border-radius: 14px;
-          border: 1px solid #e5e7eb;
-          background: white;
+        .meta div {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+        }
+
+        .meta small {
+          color: #9ca3af;
+          font-size: 12px;
+        }
+
+        .meta strong {
+          color: #111827;
+          font-size: 15px;
+        }
+
+        .card-actions {
+          display: flex;
+          gap: 12px;
+          margin-top: 24px;
+        }
+
+        .action {
+          flex: 1;
+          height: 48px;
+          border-radius: 16px;
+          border: none;
           display: flex;
           align-items: center;
+          justify-content: center;
           gap: 8px;
           font-weight: 700;
           cursor: pointer;
+          transition: 0.25s;
         }
 
-        .page-info {
-          font-weight: 600;
-          color: #6b7280;
+        .action:hover {
+          transform: translateY(-2px);
         }
+
+        .action.edit {
+          background: #eef2ff;
+          color: #4f46e5;
+        }
+
+        .action.delete {
+          background: #fef2f2;
+          color: #ef4444;
+        }
+
+        /* STATES */
 
         .state {
           height: 72px;
-          border-radius: 22px;
+          border-radius: 24px;
           display: flex;
           align-items: center;
+          justify-content: center;
           gap: 12px;
-          padding: 0 20px;
           font-weight: 700;
         }
 
         .loading {
-          background: #eff6ff;
-          color: #2563eb;
+          background: #eef2ff;
+          color: #4f46e5;
         }
 
         .error {
           background: #fef2f2;
-          color: #dc2626;
+          color: #ef4444;
         }
 
         .empty {
-          background: #f9fafb;
+          background: white;
+          border-radius: 30px;
+          padding: 80px 30px;
+          text-align: center;
+          border: 1px solid #eceff4;
+        }
+
+        .empty h2 {
+          margin-top: 20px;
+          color: #111827;
+        }
+
+        .empty p {
           color: #6b7280;
         }
 
@@ -975,41 +976,43 @@ export default function CategoriasPage() {
 
         /* MODAL */
 
-        .modal-overlay {
+        .overlay {
           position: fixed;
           inset: 0;
           background: rgba(15, 23, 42, 0.6);
           backdrop-filter: blur(6px);
-          z-index: 999;
           display: flex;
           align-items: center;
           justify-content: center;
+          z-index: 999;
           padding: 20px;
         }
 
         .modal {
           width: 100%;
-          max-width: 620px;
+          max-width: 650px;
           background: white;
-          border-radius: 30px;
+          border-radius: 34px;
           overflow: hidden;
-          animation: modalIn 0.25s ease;
+          animation: modal 0.25s ease;
         }
 
-        @keyframes modalIn {
+        @keyframes modal {
           from {
             opacity: 0;
-            transform: translateY(20px) scale(0.98);
+            transform: translateY(20px)
+              scale(0.98);
           }
 
           to {
             opacity: 1;
-            transform: translateY(0px) scale(1);
+            transform: translateY(0px)
+              scale(1);
           }
         }
 
         .modal-header {
-          padding: 24px;
+          padding: 28px;
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -1018,106 +1021,105 @@ export default function CategoriasPage() {
 
         .modal-header h2 {
           margin: 0;
-          font-size: 24px;
+          font-size: 28px;
         }
 
-        .close-btn {
-          width: 42px;
-          height: 42px;
-          border-radius: 14px;
+        .close {
+          width: 46px;
+          height: 46px;
+          border-radius: 16px;
           border: none;
           background: #f3f4f6;
           cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
         }
 
         .modal-body {
-          padding: 24px;
+          padding: 28px;
           display: flex;
           flex-direction: column;
           gap: 18px;
         }
 
-        .form-group {
+        .field {
           display: flex;
           flex-direction: column;
           gap: 8px;
         }
 
-        .form-group label {
-          font-size: 14px;
+        .field label {
           font-weight: 700;
           color: #374151;
         }
 
-        .form-group input,
-        .form-group textarea,
-        .form-group select {
+        .field input,
+        .field textarea,
+        .field select {
           width: 100%;
           border: 1px solid #e5e7eb;
-          border-radius: 16px;
-          padding: 14px;
+          border-radius: 18px;
+          padding: 16px;
           outline: none;
           font-size: 14px;
         }
 
-        .form-group input:focus,
-        .form-group textarea:focus,
-        .form-group select:focus {
-          border-color: #ff5e62;
-          box-shadow: 0 0 0 4px rgba(255, 94, 98, 0.1);
+        .field input:focus,
+        .field textarea:focus,
+        .field select:focus {
+          border-color: #6366f1;
+          box-shadow: 0 0 0 4px
+            rgba(99, 102, 241, 0.1);
         }
 
-        .grid {
+        .grid-form {
           display: grid;
           grid-template-columns: 1fr 1fr;
           gap: 16px;
         }
 
         .modal-footer {
-          padding: 24px;
+          padding: 28px;
           border-top: 1px solid #f3f4f6;
           display: flex;
           justify-content: flex-end;
           gap: 12px;
         }
 
-        .modal-danger {
+        .danger {
           max-width: 500px;
         }
 
         .danger-text {
-          margin-top: 12px;
-          color: #dc2626;
+          margin-top: 14px;
+          color: #ef4444;
           font-weight: 700;
         }
 
+        /* RESPONSIVO */
+
         @media (max-width: 768px) {
-          .grid {
-            grid-template-columns: 1fr;
+          .hero {
+            padding: 26px;
           }
 
-          .topbar {
-            align-items: flex-start;
+          h1 {
+            font-size: 32px;
           }
 
-          .topbar-actions {
+          .hero-actions {
             width: 100%;
           }
 
           .btn {
             flex: 1;
-          }
-
-          .pagination {
-            flex-direction: column;
-          }
-
-          .page-btn {
-            width: 100%;
             justify-content: center;
+          }
+
+          .grid-form {
+            grid-template-columns: 1fr;
+          }
+
+          .card-actions {
+            flex-direction: column;
           }
         }
       `}</style>
