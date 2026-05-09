@@ -3,8 +3,10 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import Navbar from "@/components/site/menu/navbar";
 import Footer from "@/components/site/Rodape/Footer";
@@ -125,7 +127,9 @@ function getQrCodePix(data: ApiPixResponse): string {
   return data?.dados?.pix?.qr_code ?? data?.pix?.qr_code ?? "";
 }
 
-function normalizarStatusPagamento(pedido: Pedido | null): "approved" | "pending" | "rejected" {
+function normalizarStatusPagamento(
+  pedido: Pedido | null
+): "approved" | "pending" | "rejected" {
   const status = String(
     pedido?.status_pagamento ??
       pedido?.status ??
@@ -160,6 +164,8 @@ function normalizarStatusPagamento(pedido: Pedido | null): "approved" | "pending
 
 export default function PagamentoPage() {
   const params = useParams();
+  const router = useRouter();
+
   const rawPedidoId = params?.id;
   const pedidoId = Array.isArray(rawPedidoId) ? rawPedidoId[0] : rawPedidoId;
 
@@ -173,8 +179,9 @@ export default function PagamentoPage() {
 
   const [pixCode, setPixCode] = useState("");
   const [copiado, setCopiado] = useState(false);
-  const [metodo, setMetodo] = useState<"pix" | "cartao">("pix");
   const [mensagemStatus, setMensagemStatus] = useState<string>("");
+
+  const [metodo, setMetodo] = useState<"pix" | "cartao">("pix");
 
   const [cartao, setCartao] = useState({
     numero: "",
@@ -209,6 +216,12 @@ export default function PagamentoPage() {
       ? "error"
       : "pending";
 
+  async function redirecionarParaPedidos() {
+    setTimeout(() => {
+      router.push("/Pedidos");
+    }, 1800);
+  }
+
   async function carregarPedido() {
     try {
       setLoading(true);
@@ -231,16 +244,22 @@ export default function PagamentoPage() {
       setUsuario(usuarioData);
 
       const status = normalizarStatusPagamento(pedidoData);
-      setMensagemStatus(
-        status === "approved"
-          ? "Pagamento aprovado."
-          : status === "rejected"
-          ? "Pagamento recusado."
-          : "Aguardando confirmação do pagamento."
-      );
+
+      if (status === "approved") {
+        setMensagemStatus("Pagamento aprovado com sucesso.");
+        toast.success("Pagamento aprovado com sucesso!");
+        setTimeout(() => {
+          router.push("/Pedidos");
+        }, 1800);
+      } else if (status === "rejected") {
+        setMensagemStatus("Pagamento recusado.");
+      } else {
+        setMensagemStatus("Aguardando confirmação do pagamento.");
+      }
     } catch (error) {
       console.error("Erro ao carregar pagamento:", error);
       setMensagemStatus("Não foi possível carregar os dados do pedido.");
+      toast.error("Não foi possível carregar os dados do pedido.");
     } finally {
       setLoading(false);
     }
@@ -262,8 +281,7 @@ export default function PagamentoPage() {
 
       const data = res.data;
 
-      const pedidoAtualizado =
-        data?.dados?.pedido ?? data?.pedido ?? null;
+      const pedidoAtualizado = data?.dados?.pedido ?? data?.pedido ?? null;
 
       const statusRecebido = normalizarStatusPagamento(
         pedidoAtualizado ??
@@ -290,26 +308,39 @@ export default function PagamentoPage() {
 
       if (statusRecebido === "approved") {
         setMensagemStatus("Pagamento aprovado com sucesso.");
-        if (!silencioso) {
-          alert("Pagamento aprovado com sucesso!");
-        }
-      } else if (statusRecebido === "rejected") {
+        setPedido((prev) =>
+          prev
+            ? {
+                ...prev,
+                status_pagamento: "approved",
+                status: "approved",
+              }
+            : prev
+        );
+
+        toast.success("Pagamento aprovado com sucesso!");
+        redirecionarParaPedidos();
+        return;
+      }
+
+      if (statusRecebido === "rejected") {
         setMensagemStatus("Pagamento recusado ou cancelado.");
         if (!silencioso) {
-          alert("Pagamento recusado ou cancelado.");
+          toast.error("Pagamento recusado ou cancelado.");
         }
-      } else {
-        setMensagemStatus("Pagamento ainda não confirmado.");
-        if (!silencioso) {
-          alert("Ainda não identificamos o pagamento. Tente novamente em alguns segundos.");
-        }
+        return;
+      }
+
+      setMensagemStatus("Pagamento ainda não confirmado.");
+      if (!silencioso) {
+        toast.info("Ainda não identificamos o pagamento.");
       }
     } catch (error) {
       console.error("Erro ao verificar pagamento:", error);
       setMensagemStatus("Não foi possível verificar o pagamento agora.");
 
       if (!silencioso) {
-        alert("Não foi possível verificar o pagamento agora.");
+        toast.error("Não foi possível verificar o pagamento agora.");
       }
     } finally {
       setVerificandoPagamento(false);
@@ -887,6 +918,8 @@ export default function PagamentoPage() {
             </aside>
           </div>
         </div>
+
+        <ToastContainer position="top-right" autoClose={1800} />
 
         <style jsx global>{`
           .page {
