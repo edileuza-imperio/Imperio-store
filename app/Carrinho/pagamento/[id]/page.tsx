@@ -10,7 +10,6 @@ import { toast, ToastContainer } from "react-toastify";
 import Navbar from "@/components/site/menu/navbar";
 import Footer from "@/components/site/Rodape/Footer";
 import { InicioApi } from "@/services/api/api";
-import styles from "./pagamento.module.css";
 
 import {
   FiCopy,
@@ -26,6 +25,8 @@ import {
   FiTag,
   FiShield,
 } from "react-icons/fi";
+
+import styles from "./pagamento.module.css";
 
 type Pedido = {
   id_pedido?: number;
@@ -112,9 +113,15 @@ export default function PagamentoPage() {
   });
 
   const statusPagamento = useMemo(() => {
-    const status = String(pedido?.status_pagamento ?? pedido?.status ?? "").toLowerCase();
+    const status = String(
+      pedido?.status_pagamento ?? pedido?.status ?? ""
+    ).toLowerCase();
 
-    if (status.includes("approved") || status.includes("aprovado") || status.includes("paid")) {
+    if (
+      status.includes("approved") ||
+      status.includes("aprovado") ||
+      status.includes("paid")
+    ) {
       return "approved";
     }
 
@@ -134,7 +141,9 @@ export default function PagamentoPage() {
         }),
       ]);
 
-      const pedidoData = pedidoRes.data?.dados?.pedido ?? pedidoRes.data?.pedido ?? null;
+      const pedidoData =
+        pedidoRes.data?.dados?.pedido ?? pedidoRes.data?.pedido ?? null;
+
       const usuarioData = meRes.data?.dados?.usuario ?? meRes.data?.usuario ?? null;
 
       setPedido(pedidoData);
@@ -160,9 +169,13 @@ export default function PagamentoPage() {
         cpf: usuario?.cpf?.replace(/\D/g, "") ?? "",
       };
 
-      const res = await InicioApi.post<ApiPixResponse>("/mercado/pagamento/pix", payload, {
-        withCredentials: true,
-      });
+      const res = await InicioApi.post<ApiPixResponse>(
+        "/mercado/pagamento/pix",
+        payload,
+        {
+          withCredentials: true,
+        }
+      );
 
       const qr = res.data?.dados?.pix?.qr_code ?? res.data?.pix?.qr_code ?? "";
 
@@ -185,7 +198,6 @@ export default function PagamentoPage() {
     if (!pixCode) return;
 
     await navigator.clipboard.writeText(pixCode);
-
     setCopiado(true);
     toast.success("Código PIX copiado");
 
@@ -212,7 +224,9 @@ export default function PagamentoPage() {
         setPedido(pedidoAtualizado);
       }
 
-      const status = String(pedidoAtualizado?.status_pagamento ?? pedidoAtualizado?.status ?? "").toLowerCase();
+      const status = String(
+        pedidoAtualizado?.status_pagamento ?? pedidoAtualizado?.status ?? ""
+      ).toLowerCase();
 
       if (status.includes("approved") || status.includes("aprovado")) {
         toast.success("Pagamento aprovado");
@@ -270,7 +284,9 @@ export default function PagamentoPage() {
         <main className={styles.loadingPage}>
           <div className={styles.loadingCard}>
             <FiClock size={40} />
+
             <h2>Carregando pagamento</h2>
+
             <p>Aguarde um instante...</p>
           </div>
         </main>
@@ -338,6 +354,7 @@ export default function PagamentoPage() {
                   <FiPackage />
                   <span>Pedido</span>
                 </div>
+
                 <strong>#{pedido?.id_pedido}</strong>
               </div>
 
@@ -346,6 +363,7 @@ export default function PagamentoPage() {
                   <FiTruck />
                   <span>Frete</span>
                 </div>
+
                 <strong>{formatarMoeda(pedido?.valor_frete)}</strong>
               </div>
 
@@ -354,6 +372,7 @@ export default function PagamentoPage() {
                   <FiTag />
                   <span>Desconto</span>
                 </div>
+
                 <strong>- {formatarMoeda(pedido?.valor_desconto)}</strong>
               </div>
             </div>
@@ -382,7 +401,11 @@ export default function PagamentoPage() {
             </div>
 
             {!pixCode ? (
-              <button className={styles.primaryBtn} onClick={gerarPix} disabled={loadingPix}>
+              <button
+                className={styles.primaryBtn}
+                onClick={gerarPix}
+                disabled={loadingPix}
+              >
                 {loadingPix ? "Gerando..." : "Gerar PIX"}
                 <FiRefreshCw />
               </button>
@@ -419,6 +442,7 @@ export default function PagamentoPage() {
 
             <div className={styles.field}>
               <span>Número do cartão</span>
+
               <input
                 placeholder="0000 0000 0000 0000"
                 value={cartao.numero}
@@ -433,6 +457,7 @@ export default function PagamentoPage() {
 
             <div className={styles.field}>
               <span>Nome no cartão</span>
+
               <input
                 placeholder="Nome completo"
                 value={cartao.nome}
@@ -448,6 +473,7 @@ export default function PagamentoPage() {
             <div className={styles.triple}>
               <div className={styles.field}>
                 <span>Mês</span>
+
                 <input
                   placeholder="MM"
                   value={cartao.mes}
@@ -462,6 +488,7 @@ export default function PagamentoPage() {
 
               <div className={styles.field}>
                 <span>Ano</span>
+
                 <input
                   placeholder="AA"
                   value={cartao.ano}
@@ -476,6 +503,7 @@ export default function PagamentoPage() {
 
               <div className={styles.field}>
                 <span>CVV</span>
+
                 <input
                   placeholder="123"
                   value={cartao.cvv}
@@ -491,6 +519,7 @@ export default function PagamentoPage() {
 
             <div className={styles.field}>
               <span>Parcelas</span>
+
               <select
                 value={cartao.parcelas}
                 onChange={(e) =>
@@ -507,7 +536,11 @@ export default function PagamentoPage() {
               </select>
             </div>
 
-            <button className={styles.primaryBtn} onClick={pagarCartao} disabled={loadingCartao}>
+            <button
+              className={styles.primaryBtn}
+              onClick={pagarCartao}
+              disabled={loadingCartao}
+            >
               {loadingCartao ? "Processando..." : "Pagar agora"}
               <FiCreditCard />
             </button>
