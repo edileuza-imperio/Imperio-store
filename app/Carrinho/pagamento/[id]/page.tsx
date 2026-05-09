@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
 import { toast, ToastContainer } from "react-toastify";
+import { initMercadoPago } from "@mercadopago/sdk-react";
 
 import Navbar from "@/components/site/menu/navbar";
 import Footer from "@/components/site/Rodape/Footer";
 import { InicioApi } from "@/services/api/api";
 
 import {
-  FiLock,
   FiCopy,
   FiCheckCircle,
   FiClock,
@@ -26,6 +27,17 @@ import {
   FiTag,
   FiShield,
 } from "react-icons/fi";
+
+const CardPayment = dynamic(
+  () => import("@mercadopago/sdk-react").then((mod) => mod.CardPayment),
+  { ssr: false }
+);
+
+const mpPublicKey = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY;
+
+if (mpPublicKey) {
+  initMercadoPago(mpPublicKey, { locale: "pt-BR" });
+}
 
 type Pedido = {
   id_pedido?: number;
@@ -49,7 +61,6 @@ type ApiPedidoResponse = {
     pedido?: Pedido;
     usuario?: Usuario;
   };
-
   pedido?: Pedido;
   usuario?: Usuario;
 };
@@ -60,7 +71,6 @@ type ApiPixResponse = {
       qr_code?: string;
     };
   };
-
   pix?: {
     qr_code?: string;
   };
@@ -70,7 +80,6 @@ type ApiVerificarPagamentoResponse = {
   dados?: {
     pedido?: Pedido;
   };
-
   pedido?: Pedido;
 };
 
@@ -78,9 +87,7 @@ function normalizarNumero(valor: unknown): number {
   if (typeof valor === "number") return valor;
 
   if (typeof valor === "string") {
-    return Number(
-      valor.replace(/\./g, "").replace(",", ".")
-    );
+    return Number(valor.replace(/\./g, "").replace(",", "."));
   }
 
   return 0;
@@ -97,46 +104,22 @@ export default function PagamentoPage() {
   const params = useParams();
   const router = useRouter();
 
-  const pedidoId = Array.isArray(params?.id)
-    ? params.id[0]
-    : params?.id;
+  const pedidoId = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
-  const [pedido, setPedido] =
-    useState<Pedido | null>(null);
+  const [pedido, setPedido] = useState<Pedido | null>(null);
+  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [pixCode, setPixCode] = useState("");
+  const [copiado, setCopiado] = useState(false);
+  const [loadingPix, setLoadingPix] = useState(false);
+  const [loadingCartao, setLoadingCartao] = useState(false);
 
-  const [usuario, setUsuario] =
-    useState<Usuario | null>(null);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [pixCode, setPixCode] =
-    useState("");
-
-  const [copiado, setCopiado] =
-    useState(false);
-
-  const [loadingPix, setLoadingPix] =
-    useState(false);
-
-  const [loadingCartao, setLoadingCartao] =
-    useState(false);
-
-  const [cartao, setCartao] = useState({
-    numero: "",
-    nome: "",
-    mes: "",
-    ano: "",
-    cvv: "",
-    parcelas: "1",
-  });
+  const valorTotal = useMemo(() => {
+    return normalizarNumero(pedido?.valor_total);
+  }, [pedido?.valor_total]);
 
   const statusPagamento = useMemo(() => {
-    const status = String(
-      pedido?.status_pagamento ??
-        pedido?.status ??
-        ""
-    ).toLowerCase();
+    const status = String(pedido?.status_pagamento ?? pedido?.status ?? "").toLowerCase();
 
     if (
       status.includes("approved") ||
@@ -153,22 +136,14 @@ export default function PagamentoPage() {
     try {
       setLoading(true);
 
-      const [pedidoRes, meRes] =
-        await Promise.all([
-          InicioApi.get<ApiPedidoResponse>(
-            `/pedido/${pedidoId}`,
-            {
-              withCredentials: true,
-            }
-          ),
-
-          InicioApi.get<ApiPedidoResponse>(
-            "/me",
-            {
-              withCredentials: true,
-            }
-          ),
-        ]);
+      const [pedidoRes, meRes] = await Promise.all([
+        InicioApi.get<ApiPedidoResponse>(`/pedido/${pedidoId}`, {
+          withCredentials: true,
+        }),
+        InicioApi.get<ApiPedidoResponse>("/me", {
+          withCredentials: true,
+        }),
+      ]);
 
       const pedidoData =
         pedidoRes.data?.dados?.pedido ??
@@ -184,10 +159,7 @@ export default function PagamentoPage() {
       setUsuario(usuarioData);
     } catch (err) {
       console.error(err);
-
-      toast.error(
-        "Erro ao carregar pedido"
-      );
+      toast.error("Erro ao carregar pedido");
     } finally {
       setLoading(false);
     }
@@ -199,32 +171,20 @@ export default function PagamentoPage() {
 
       const payload = {
         id_pedido: pedido?.id_pedido,
-
         usuario_id: usuario?.id_usuario,
-
-        valor: normalizarNumero(
-          pedido?.valor_total
-        ),
-
+        valor: normalizarNumero(pedido?.valor_total),
         email: usuario?.email,
-
         nome: usuario?.nome,
-
-        cpf:
-          usuario?.cpf?.replace(
-            /\D/g,
-            ""
-          ) ?? "",
+        cpf: usuario?.cpf?.replace(/\D/g, "") ?? "",
       };
 
-      const res =
-        await InicioApi.post<ApiPixResponse>(
-          "/mercado/pagamento/pix",
-          payload,
-          {
-            withCredentials: true,
-          }
-        );
+      const res = await InicioApi.post<ApiPixResponse>(
+        "/mercado/pagamento/pix",
+        payload,
+        {
+          withCredentials: true,
+        }
+      );
 
       const qr =
         res.data?.dados?.pix?.qr_code ??
@@ -232,24 +192,15 @@ export default function PagamentoPage() {
         "";
 
       if (!qr) {
-        toast.error(
-          "Erro ao gerar PIX"
-        );
-
+        toast.error("Erro ao gerar PIX");
         return;
       }
 
       setPixCode(qr);
-
-      toast.success(
-        "PIX gerado com sucesso"
-      );
+      toast.success("PIX gerado com sucesso");
     } catch (err) {
       console.error(err);
-
-      toast.error(
-        "Erro ao gerar PIX"
-      );
+      toast.error("Erro ao gerar PIX");
     } finally {
       setLoadingPix(false);
     }
@@ -258,15 +209,9 @@ export default function PagamentoPage() {
   async function copiarPix() {
     if (!pixCode) return;
 
-    await navigator.clipboard.writeText(
-      pixCode
-    );
-
+    await navigator.clipboard.writeText(pixCode);
     setCopiado(true);
-
-    toast.success(
-      "Código PIX copiado"
-    );
+    toast.success("Código PIX copiado");
 
     setTimeout(() => {
       setCopiado(false);
@@ -275,18 +220,15 @@ export default function PagamentoPage() {
 
   async function verificarPagamento() {
     try {
-      const res =
-        await InicioApi.post<ApiVerificarPagamentoResponse>(
-          "/mercado/pagamento/verificar",
-          {
-            id_pedido: Number(
-              pedidoId
-            ),
-          },
-          {
-            withCredentials: true,
-          }
-        );
+      const res = await InicioApi.post<ApiVerificarPagamentoResponse>(
+        "/mercado/pagamento/verificar",
+        {
+          id_pedido: Number(pedidoId),
+        },
+        {
+          withCredentials: true,
+        }
+      );
 
       const pedidoAtualizado =
         res.data?.dados?.pedido ??
@@ -298,78 +240,69 @@ export default function PagamentoPage() {
       }
 
       const status = String(
-        pedidoAtualizado?.status_pagamento ??
-          pedidoAtualizado?.status ??
-          ""
+        pedidoAtualizado?.status_pagamento ?? pedidoAtualizado?.status ?? ""
       ).toLowerCase();
 
-      if (
-        status.includes(
-          "approved"
-        ) ||
-        status.includes(
-          "aprovado"
-        )
-      ) {
-        toast.success(
-          "Pagamento aprovado"
-        );
+      if (status.includes("approved") || status.includes("aprovado")) {
+        toast.success("Pagamento aprovado");
 
         setTimeout(() => {
           router.push("/Pedidos");
         }, 1500);
       } else {
-        toast.info(
-          "Pagamento ainda pendente"
-        );
+        toast.info("Pagamento ainda pendente");
       }
     } catch (err) {
       console.error(err);
-
-      toast.error(
-        "Erro ao verificar pagamento"
-      );
+      toast.error("Erro ao verificar pagamento");
     }
   }
 
-  async function pagarCartao() {
+  async function pagarCartao(formData: any, additionalData: any) {
     try {
       setLoadingCartao(true);
 
+      const paymentMethodId =
+        formData?.payment_method_id ??
+        formData?.paymentMethodId ??
+        additionalData?.paymentTypeId ??
+        null;
+
+      const payload = {
+        id_pedido: pedido?.id_pedido,
+        usuario_id: usuario?.id_usuario,
+        valor: normalizarNumero(pedido?.valor_total),
+
+        token: formData?.token ?? null,
+        payment_method_id: paymentMethodId,
+        issuer_id: formData?.issuer_id ?? formData?.issuerId ?? null,
+        parcelas: Number(formData?.installments ?? 1),
+        transaction_amount: Number(
+          formData?.transaction_amount ?? formData?.transactionAmount ?? valorTotal
+        ),
+
+        payer: {
+          email: usuario?.email ?? formData?.payer?.email ?? null,
+          identification: formData?.payer?.identification ?? null,
+        },
+      };
+
       await InicioApi.post(
         "/mercado/pagamento/cartao",
-        {
-          id_pedido:
-            pedido?.id_pedido,
-
-          usuario_id:
-            usuario?.id_usuario,
-
-          valor:
-            normalizarNumero(
-              pedido?.valor_total
-            ),
-
-          token: "TOKEN_AQUI",
-
-          parcelas: Number(
-            cartao.parcelas
-          ),
-        },
+        payload,
         {
           withCredentials: true,
         }
       );
 
-      toast.success(
-        "Pagamento enviado"
-      );
+      toast.success("Pagamento enviado");
+      setTimeout(() => {
+        router.push("/Pedidos");
+      }, 1500);
     } catch (err) {
       console.error(err);
-
-      toast.error(
-        "Erro ao processar cartão"
-      );
+      toast.error("Erro ao processar cartão");
+      throw err;
     } finally {
       setLoadingCartao(false);
     }
@@ -390,13 +323,9 @@ export default function PagamentoPage() {
           <div className="loadingCard">
             <FiClock size={40} />
 
-            <h2>
-              Carregando pagamento
-            </h2>
+            <h2>Carregando pagamento</h2>
 
-            <p>
-              Aguarde um instante...
-            </p>
+            <p>Aguarde um instante...</p>
           </div>
         </main>
 
@@ -419,27 +348,19 @@ export default function PagamentoPage() {
             Ambiente seguro
           </div>
 
-          <h1>
-            Finalizar pagamento
-          </h1>
+          <h1>Finalizar pagamento</h1>
 
           <p>
-            Experiência premium,
-            rápida e elegante para
-            concluir seu pedido.
+            Experiência premium, rápida e elegante para concluir seu pedido.
           </p>
         </div>
 
         <div
           className={`statusBadge ${
-            statusPagamento ===
-            "approved"
-              ? "ok"
-              : "pending"
+            statusPagamento === "approved" ? "ok" : "pending"
           }`}
         >
-          {statusPagamento ===
-          "approved"
+          {statusPagamento === "approved"
             ? "Pagamento aprovado"
             : "Aguardando pagamento"}
         </div>
@@ -462,13 +383,8 @@ export default function PagamentoPage() {
               </div>
 
               <div className="userData">
-                <strong>
-                  {usuario?.nome}
-                </strong>
-
-                <span>
-                  {usuario?.email}
-                </span>
+                <strong>{usuario?.nome}</strong>
+                <span>{usuario?.email}</span>
               </div>
             </div>
 
@@ -479,12 +395,7 @@ export default function PagamentoPage() {
                   <span>Pedido</span>
                 </div>
 
-                <strong>
-                  #
-                  {
-                    pedido?.id_pedido
-                  }
-                </strong>
+                <strong>#{pedido?.id_pedido}</strong>
               </div>
 
               <div className="infoItem">
@@ -493,45 +404,26 @@ export default function PagamentoPage() {
                   <span>Frete</span>
                 </div>
 
-                <strong>
-                  {formatarMoeda(
-                    pedido?.valor_frete
-                  )}
-                </strong>
+                <strong>{formatarMoeda(pedido?.valor_frete)}</strong>
               </div>
 
               <div className="infoItem">
                 <div className="infoLeft">
                   <FiTag />
-                  <span>
-                    Desconto
-                  </span>
+                  <span>Desconto</span>
                 </div>
 
-                <strong>
-                  -
-                  {" "}
-                  {formatarMoeda(
-                    pedido?.valor_desconto
-                  )}
-                </strong>
+                <strong>- {formatarMoeda(pedido?.valor_desconto)}</strong>
               </div>
             </div>
 
             <div className="totalBox">
               <span>Total</span>
 
-              <strong>
-                {formatarMoeda(
-                  pedido?.valor_total
-                )}
-              </strong>
+              <strong>{formatarMoeda(pedido?.valor_total)}</strong>
             </div>
 
-            <Link
-              href="/Carrinho"
-              className="backBtn"
-            >
+            <Link href="/Carrinho" className="backBtn">
               <FiArrowLeft />
               Voltar ao carrinho
             </Link>
@@ -545,11 +437,7 @@ export default function PagamentoPage() {
 
               <div>
                 <h2>PIX</h2>
-
-                <p>
-                  Escaneie o QR Code
-                  ou copie o código.
-                </p>
+                <p>Escaneie o QR Code ou copie o código.</p>
               </div>
             </div>
 
@@ -557,52 +445,28 @@ export default function PagamentoPage() {
               <button
                 className="primaryBtn"
                 onClick={gerarPix}
-                disabled={
-                  loadingPix
-                }
+                disabled={loadingPix}
               >
-                {loadingPix
-                  ? "Gerando..."
-                  : "Gerar PIX"}
-
+                {loadingPix ? "Gerando..." : "Gerar PIX"}
                 <FiRefreshCw />
               </button>
             ) : (
               <>
                 <div className="qrWrapper">
                   <div className="qrCard">
-                    <QRCodeCanvas
-                      value={pixCode}
-                      size={250}
-                    />
+                    <QRCodeCanvas value={pixCode} size={250} />
                   </div>
                 </div>
 
-                <textarea
-                  value={pixCode}
-                  readOnly
-                />
+                <textarea value={pixCode} readOnly />
 
                 <div className="pixActions">
-                  <button
-                    className="softBtn"
-                    onClick={
-                      copiarPix
-                    }
-                  >
+                  <button className="softBtn" onClick={copiarPix}>
                     <FiCopy />
-
-                    {copiado
-                      ? "Copiado"
-                      : "Copiar"}
+                    {copiado ? "Copiado" : "Copiar"}
                   </button>
 
-                  <button
-                    className="successBtn"
-                    onClick={
-                      verificarPagamento
-                    }
-                  >
+                  <button className="successBtn" onClick={verificarPagamento}>
                     <FiCheckCircle />
                     Já paguei
                   </button>
@@ -617,192 +481,42 @@ export default function PagamentoPage() {
               Cartão
             </div>
 
-            <div className="field">
-              <span>
-                Número do cartão
-              </span>
-
-              <input
-                placeholder="0000 0000 0000 0000"
-                value={
-                  cartao.numero
-                }
-                onChange={(e) =>
-                  setCartao(
-                    (
-                      prev
-                    ) => ({
-                      ...prev,
-                      numero:
-                        e
-                          .target
-                          .value,
-                    })
-                  )
-                }
-              />
+            <div className="mpSummary">
+              <strong>{formatarMoeda(pedido?.valor_total)}</strong>
+              <span>Pagamento seguro com campos do Mercado Pago</span>
             </div>
 
-            <div className="field">
-              <span>
-                Nome no cartão
-              </span>
-
-              <input
-                placeholder="Nome completo"
-                value={
-                  cartao.nome
-                }
-                onChange={(e) =>
-                  setCartao(
-                    (
-                      prev
-                    ) => ({
-                      ...prev,
-                      nome:
-                        e
-                          .target
-                          .value,
-                    })
-                  )
-                }
-              />
-            </div>
-
-            <div className="triple">
-              <div className="field">
-                <span>Mês</span>
-
-                <input
-                  placeholder="MM"
-                  value={
-                    cartao.mes
-                  }
-                  onChange={(e) =>
-                    setCartao(
-                      (
-                        prev
-                      ) => ({
-                        ...prev,
-                        mes: e
-                          .target
-                          .value,
-                      })
-                    )
-                  }
+            {valorTotal > 0 ? (
+              <div className="mpCardWrap">
+                <CardPayment
+                  initialization={{
+                    amount: valorTotal,
+                  }}
+                  onSubmit={async (param: any, additionalData: any) => {
+                    await pagarCartao(param?.formData ?? param, additionalData);
+                  }}
+                  onReady={() => {
+                    console.log("CardPayment pronto");
+                  }}
+                  onError={(error: any) => {
+                    console.error(error);
+                    toast.error("Erro no formulário do cartão");
+                  }}
                 />
               </div>
-
-              <div className="field">
-                <span>Ano</span>
-
-                <input
-                  placeholder="AA"
-                  value={
-                    cartao.ano
-                  }
-                  onChange={(e) =>
-                    setCartao(
-                      (
-                        prev
-                      ) => ({
-                        ...prev,
-                        ano: e
-                          .target
-                          .value,
-                      })
-                    )
-                  }
-                />
+            ) : (
+              <div className="mpEmpty">
+                Não foi possível carregar o valor do pedido.
               </div>
+            )}
 
-              <div className="field">
-                <span>CVV</span>
-
-                <input
-                  placeholder="123"
-                  value={
-                    cartao.cvv
-                  }
-                  onChange={(e) =>
-                    setCartao(
-                      (
-                        prev
-                      ) => ({
-                        ...prev,
-                        cvv: e
-                          .target
-                          .value,
-                      })
-                    )
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="field">
-              <span>
-                Parcelas
-              </span>
-
-              <select
-                value={
-                  cartao.parcelas
-                }
-                onChange={(e) =>
-                  setCartao(
-                    (
-                      prev
-                    ) => ({
-                      ...prev,
-                      parcelas:
-                        e
-                          .target
-                          .value,
-                    })
-                  )
-                }
-              >
-                <option value="1">
-                  1x sem juros
-                </option>
-
-                <option value="2">
-                  2x
-                </option>
-
-                <option value="3">
-                  3x
-                </option>
-
-                <option value="4">
-                  4x
-                </option>
-              </select>
-            </div>
-
-            <button
-              className="primaryBtn"
-              onClick={
-                pagarCartao
-              }
-              disabled={
-                loadingCartao
-              }
-            >
-              {loadingCartao
-                ? "Processando..."
-                : "Pagar agora"}
-
-              <FiCreditCard />
-            </button>
+            {loadingCartao && (
+              <div className="mpLoading">Processando pagamento...</div>
+            )}
           </aside>
         </div>
 
-        <ToastContainer
-          position="top-right"
-          autoClose={1800}
-        />
+        <ToastContainer position="top-right" autoClose={1800} />
 
         <style jsx global>{`
           * {
@@ -811,24 +525,14 @@ export default function PagamentoPage() {
 
           body {
             margin: 0;
-            background:
-              linear-gradient(
-                135deg,
-                #f7e6e4 0%,
-                #f5efee 50%,
-                #f7e7e8 100%
-              );
-            font-family:
-              Inter,
-              sans-serif;
+            background: linear-gradient(135deg, #f7e6e4 0%, #f5efee 50%, #f7e7e8 100%);
+            font-family: Inter, sans-serif;
           }
 
           .checkout {
             position: relative;
             min-height: 100vh;
-            padding:
-              120px 24px
-              80px;
+            padding: 120px 24px 80px;
             overflow: hidden;
           }
 
@@ -866,29 +570,15 @@ export default function PagamentoPage() {
             display: inline-flex;
             align-items: center;
             gap: 10px;
-            padding:
-              12px 18px;
+            padding: 12px 18px;
             border-radius: 999px;
-            background:
-              rgba(
-                255,
-                255,
-                255,
-                0.55
-              );
-            backdrop-filter:
-              blur(12px);
+            background: rgba(255, 255, 255, 0.55);
+            backdrop-filter: blur(12px);
             color: #8b4b56;
             font-size: 13px;
             font-weight: 700;
             margin-bottom: 24px;
-            border: 1px solid
-              rgba(
-                255,
-                255,
-                255,
-                0.4
-              );
+            border: 1px solid rgba(255, 255, 255, 0.4);
           }
 
           .topHero h1 {
@@ -900,8 +590,7 @@ export default function PagamentoPage() {
           }
 
           .topHero p {
-            margin:
-              18px auto 0;
+            margin: 18px auto 0;
             max-width: 720px;
             color: #7b5960;
             font-size: 17px;
@@ -909,35 +598,20 @@ export default function PagamentoPage() {
 
           .statusBadge {
             width: fit-content;
-            margin:
-              0 auto 40px;
-            padding:
-              14px 22px;
+            margin: 0 auto 40px;
+            padding: 14px 22px;
             border-radius: 999px;
             font-weight: 700;
-            backdrop-filter:
-              blur(12px);
+            backdrop-filter: blur(12px);
           }
 
           .pending {
-            background:
-              rgba(
-                255,
-                240,
-                240,
-                0.75
-              );
+            background: rgba(255, 240, 240, 0.75);
             color: #a14f5a;
           }
 
           .ok {
-            background:
-              rgba(
-                236,
-                253,
-                243,
-                0.85
-              );
+            background: rgba(236, 253, 243, 0.85);
             color: #027a48;
           }
 
@@ -947,41 +621,18 @@ export default function PagamentoPage() {
             max-width: 1500px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns:
-              1fr
-              1.15fr
-              1fr;
+            grid-template-columns: 1fr 1.15fr 1fr;
             gap: 24px;
             align-items: start;
           }
 
           .glass {
-            background:
-              rgba(
-                255,
-                255,
-                255,
-                0.58
-              );
-            backdrop-filter:
-              blur(24px);
-            border: 1px solid
-              rgba(
-                255,
-                255,
-                255,
-                0.45
-              );
+            background: rgba(255, 255, 255, 0.58);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.45);
             border-radius: 36px;
             padding: 30px;
-            box-shadow:
-              0 25px 80px
-              rgba(
-                108,
-                42,
-                55,
-                0.12
-              );
+            box-shadow: 0 25px 80px rgba(108, 42, 55, 0.12);
           }
 
           .cardTitle {
@@ -1000,13 +651,7 @@ export default function PagamentoPage() {
             gap: 16px;
             padding: 18px;
             border-radius: 24px;
-            background:
-              rgba(
-                255,
-                255,
-                255,
-                0.55
-              );
+            background: rgba(255, 255, 255, 0.55);
             margin-bottom: 24px;
           }
 
@@ -1042,16 +687,9 @@ export default function PagamentoPage() {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding:
-              16px 18px;
+            padding: 16px 18px;
             border-radius: 22px;
-            background:
-              rgba(
-                255,
-                255,
-                255,
-                0.55
-              );
+            background: rgba(255, 255, 255, 0.55);
           }
 
           .infoLeft {
@@ -1068,13 +706,7 @@ export default function PagamentoPage() {
           .totalBox {
             margin-top: 26px;
             padding-top: 24px;
-            border-top: 1px solid
-              rgba(
-                108,
-                42,
-                55,
-                0.1
-              );
+            border-top: 1px solid rgba(108, 42, 55, 0.1);
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -1100,13 +732,7 @@ export default function PagamentoPage() {
             text-decoration: none;
             height: 58px;
             border-radius: 20px;
-            background:
-              rgba(
-                255,
-                255,
-                255,
-                0.7
-              );
+            background: rgba(255, 255, 255, 0.7);
             color: #7c4450;
             font-weight: 700;
           }
@@ -1132,21 +758,8 @@ export default function PagamentoPage() {
             font-size: 32px;
             margin-bottom: 16px;
             color: #8b4b56;
-            background:
-              linear-gradient(
-                135deg,
-                #fff,
-                #ffe7eb
-              );
-            box-shadow:
-              inset 0 0 0
-              1px
-              rgba(
-                255,
-                255,
-                255,
-                0.8
-              );
+            background: linear-gradient(135deg, #fff, #ffe7eb);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.8);
           }
 
           .pixHeader h2 {
@@ -1170,14 +783,7 @@ export default function PagamentoPage() {
             padding: 28px;
             border-radius: 34px;
             background: #fff;
-            box-shadow:
-              0 20px 50px
-              rgba(
-                109,
-                44,
-                55,
-                0.1
-              );
+            box-shadow: 0 20px 50px rgba(109, 44, 55, 0.1);
           }
 
           textarea {
@@ -1188,21 +794,14 @@ export default function PagamentoPage() {
             border: none;
             padding: 18px;
             resize: none;
-            background:
-              rgba(
-                255,
-                255,
-                255,
-                0.75
-              );
+            background: rgba(255, 255, 255, 0.75);
             color: #573138;
             outline: none;
           }
 
           .pixActions {
             display: grid;
-            grid-template-columns:
-              1fr 1fr;
+            grid-template-columns: 1fr 1fr;
             gap: 14px;
             margin-top: 18px;
           }
@@ -1225,15 +824,8 @@ export default function PagamentoPage() {
             height: 58px;
             border-radius: 20px;
             border: none;
-            padding:
-              0 18px;
-            background:
-              rgba(
-                255,
-                255,
-                255,
-                0.75
-              );
+            padding: 0 18px;
+            background: rgba(255, 255, 255, 0.75);
             outline: none;
             color: #4b232a;
             font-size: 15px;
@@ -1241,8 +833,7 @@ export default function PagamentoPage() {
 
           .triple {
             display: grid;
-            grid-template-columns:
-              1fr 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 12px;
           }
 
@@ -1258,54 +849,29 @@ export default function PagamentoPage() {
             align-items: center;
             justify-content: center;
             gap: 10px;
-            transition:
-              0.2s ease;
+            transition: 0.2s ease;
           }
 
           .primaryBtn:hover,
           .softBtn:hover,
           .successBtn:hover,
           .backBtn:hover {
-            transform:
-              translateY(-2px);
+            transform: translateY(-2px);
           }
 
           .primaryBtn {
-            background:
-              linear-gradient(
-                135deg,
-                #8d4a52,
-                #c77785
-              );
+            background: linear-gradient(135deg, #8d4a52, #c77785);
             color: white;
-            box-shadow:
-              0 16px 40px
-              rgba(
-                141,
-                74,
-                82,
-                0.35
-              );
+            box-shadow: 0 16px 40px rgba(141, 74, 82, 0.35);
           }
 
           .softBtn {
-            background:
-              rgba(
-                255,
-                255,
-                255,
-                0.7
-              );
+            background: rgba(255, 255, 255, 0.7);
             color: #7f4a54;
           }
 
           .successBtn {
-            background:
-              linear-gradient(
-                135deg,
-                #0d7a50,
-                #17a56c
-              );
+            background: linear-gradient(135deg, #0d7a50, #17a56c);
             color: white;
           }
 
@@ -1314,8 +880,7 @@ export default function PagamentoPage() {
             display: flex;
             align-items: center;
             justify-content: center;
-            padding:
-              120px 20px;
+            padding: 120px 20px;
           }
 
           .loadingCard {
@@ -1324,16 +889,47 @@ export default function PagamentoPage() {
             padding: 42px;
             border-radius: 34px;
             text-align: center;
-            background:
-              rgba(
-                255,
-                255,
-                255,
-                0.65
-              );
-            backdrop-filter:
-              blur(20px);
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(20px);
             color: #6b3944;
+          }
+
+          .mpSummary {
+            display: grid;
+            gap: 6px;
+            margin-bottom: 18px;
+            padding: 16px 18px;
+            border-radius: 22px;
+            background: rgba(255, 255, 255, 0.55);
+            text-align: left;
+          }
+
+          .mpSummary strong {
+            font-size: 24px;
+            color: #8d4a52;
+            letter-spacing: -1px;
+          }
+
+          .mpSummary span {
+            color: #7b5960;
+            font-size: 14px;
+          }
+
+          .mpCardWrap {
+            text-align: left;
+            padding: 14px;
+            border-radius: 26px;
+            background: rgba(255, 255, 255, 0.45);
+          }
+
+          .mpEmpty,
+          .mpLoading {
+            margin-top: 14px;
+            padding: 14px 16px;
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.65);
+            color: #6b3944;
+            font-size: 14px;
           }
 
           @media (max-width: 1200px) {
@@ -1344,9 +940,7 @@ export default function PagamentoPage() {
 
           @media (max-width: 768px) {
             .checkout {
-              padding:
-                100px 16px
-                60px;
+              padding: 100px 16px 60px;
             }
 
             .topHero h1 {
