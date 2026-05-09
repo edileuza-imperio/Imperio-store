@@ -40,6 +40,9 @@ import "./../public/usuario/editar.css";
 
 import { ToastContainer } from "react-toastify";
 
+import Navbar from "@/components/site/menu/navbar";
+import Footer from "@/components/site/Rodape/Footer";
+
 import { getSiteConfig } from "@/services/siteConfig";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -59,7 +62,12 @@ export default function RootLayout({
   return (
     <html lang="pt-br">
       <body className="antialiased">
+
+        <Navbar />
+
         {children}
+
+        <Footer />
 
         <ToastContainer
           position="top-right"

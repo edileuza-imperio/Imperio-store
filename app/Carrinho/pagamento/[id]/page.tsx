@@ -26,72 +26,9 @@ import {
   FiTag,
   FiShield,
 } from "react-icons/fi";
+import { ApiPedidoResponse, ApiPixResponse, ApiVerificarPagamentoResponse, formatarMoeda, normalizarNumero, Pedido, Usuario } from "@/components/Bibioteca/carrinho";
 
-type Pedido = {
-  id_pedido?: number;
-  valor_total?: number | string;
-  valor_produtos?: number | string;
-  valor_frete?: number | string;
-  valor_desconto?: number | string;
-  status_pagamento?: string;
-  status?: string;
-};
 
-type Usuario = {
-  id_usuario?: number;
-  nome?: string;
-  email?: string;
-  cpf?: string;
-};
-
-type ApiPedidoResponse = {
-  dados?: {
-    pedido?: Pedido;
-    usuario?: Usuario;
-  };
-
-  pedido?: Pedido;
-  usuario?: Usuario;
-};
-
-type ApiPixResponse = {
-  dados?: {
-    pix?: {
-      qr_code?: string;
-    };
-  };
-
-  pix?: {
-    qr_code?: string;
-  };
-};
-
-type ApiVerificarPagamentoResponse = {
-  dados?: {
-    pedido?: Pedido;
-  };
-
-  pedido?: Pedido;
-};
-
-function normalizarNumero(valor: unknown): number {
-  if (typeof valor === "number") return valor;
-
-  if (typeof valor === "string") {
-    return Number(
-      valor.replace(/\./g, "").replace(",", ".")
-    );
-  }
-
-  return 0;
-}
-
-function formatarMoeda(valor: unknown) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(normalizarNumero(valor));
-}
 
 export default function PagamentoPage() {
   const params = useParams();

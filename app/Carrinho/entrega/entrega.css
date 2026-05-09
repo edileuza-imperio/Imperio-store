@@ -1,362 +1,308 @@
-/* =========================================================
-   CHECKOUT / ENTREGA
-========================================================= */
+* {
+  box-sizing: border-box;
+}
 
 .checkout-page {
-  width: 100%;
+  position: relative;
   min-height: 100vh;
-  background: #f5f5f7;
-  padding: 40px 20px;
+  padding: 120px 20px 80px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f7e6e4 0%, #f5efee 50%, #f7e7e8 100%);
+  font-family: Inter, sans-serif;
+}
+
+.checkout-bg {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(120px);
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+.blur-1 {
+  width: 360px;
+  height: 360px;
+  background: #d98695;
+  top: -100px;
+  left: -100px;
+}
+
+.blur-2 {
+  width: 360px;
+  height: 360px;
+  background: #f0b8c1;
+  bottom: -100px;
+  right: -100px;
 }
 
 .checkout-container {
-  width: 100%;
+  position: relative;
+  z-index: 2;
   max-width: 1280px;
   margin: 0 auto;
 }
 
-/* =========================================================
-   HEADER
-========================================================= */
-
-.checkout-header {
-  margin-bottom: 40px;
+.checkout-hero {
+  text-align: center;
+  margin-bottom: 34px;
 }
 
-.checkout-header h1 {
-  font-size: 38px;
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  margin-bottom: 20px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+  color: #8b4b56;
+  font-size: 13px;
   font-weight: 700;
-  color: #111;
-  margin-bottom: 10px;
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
 }
 
-.checkout-header p {
-  font-size: 16px;
-  color: #666;
+.checkout-hero h1 {
+  margin: 0;
+  font-size: 58px;
+  line-height: 1;
+  letter-spacing: -3px;
+  color: #4f2630;
 }
 
-/* =========================================================
-   STEPS
-========================================================= */
+.checkout-hero p {
+  margin: 14px auto 0;
+  max-width: 720px;
+  color: #7b5960;
+  font-size: 17px;
+}
 
 .checkout-steps {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 35px;
-  overflow-x: auto;
-  padding-bottom: 10px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
 }
 
 .step {
-  flex: 1;
-  min-width: 240px;
   display: flex;
   align-items: center;
   gap: 14px;
-  background: #fff;
-  border: 1px solid #e7e7e7;
   padding: 18px;
-  border-radius: 18px;
-  transition: 0.3s;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.56);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  color: #6c2a37;
 }
 
 .step-icon {
   width: 52px;
   height: 52px;
-  border-radius: 14px;
-  background: #f2f2f2;
-  color: #777;
+  border-radius: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 22px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #8b4b56;
+  flex-shrink: 0;
 }
 
 .step strong {
   display: block;
   font-size: 15px;
-  color: #111;
   margin-bottom: 4px;
 }
 
 .step p {
+  margin: 0;
   font-size: 13px;
-  color: #777;
+  color: #7d666b;
 }
 
-/* STEP ACTIVE */
-
+.step.completed,
 .step.active {
-  border-color: #16a34a;
-  background: #effdf4;
+  box-shadow: 0 18px 40px rgba(108, 42, 55, 0.08);
 }
-
-.step.active .step-icon {
-  background: #16a34a;
-  color: #fff;
-}
-
-/* STEP COMPLETED */
-
-.step.completed {
-  border-color: #16a34a;
-  background: #fff;
-}
-
-.step.completed .step-icon {
-  background: #16a34a;
-  color: #fff;
-}
-
-/* =========================================================
-   CONTENT
-========================================================= */
 
 .checkout-content {
   display: flex;
-  gap: 25px;
+  justify-content: center;
 }
 
 .checkout-card {
   width: 100%;
-  background: #fff;
-  border-radius: 24px;
-  padding: 35px;
-  box-shadow:
-    0 10px 30px rgba(0, 0, 0, 0.04);
+  max-width: 860px;
+  padding: 30px;
+  border-radius: 34px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(22px);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 25px 80px rgba(108, 42, 55, 0.12);
 }
-
-/* =========================================================
-   CARD HEADER
-========================================================= */
 
 .card-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  margin-bottom: 30px;
+  align-items: center;
   gap: 20px;
+  margin-bottom: 24px;
 }
 
 .card-header h2 {
+  margin: 0;
+  color: #4f2630;
   font-size: 26px;
-  color: #111;
-  font-weight: 700;
 }
 
-.new-address-btn,
-.change-address,
-.address-btn {
-  height: 48px;
-  padding: 0 22px;
-  border-radius: 14px;
-  background: #111;
-  color: #fff;
+.card-header p {
+  margin: 6px 0 0;
+  color: #7b5960;
   font-size: 14px;
-  font-weight: 600;
-  border: none;
+}
+
+.change-address {
   text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: 0.3s;
+  color: #7c4450;
+  font-weight: 700;
+  padding: 12px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.68);
+  white-space: nowrap;
 }
 
-.new-address-btn:hover,
-.change-address:hover,
-.address-btn:hover {
-  opacity: 0.9;
+.empty-address {
+  text-align: center;
+  padding: 42px 20px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.5);
+  color: #6f4450;
 }
 
-/* =========================================================
-   ADDRESS LIST
-========================================================= */
-
-.address-list {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.address-card {
-  width: 100%;
-  border: 2px solid #ececec;
-  background: #fff;
-  border-radius: 22px;
-  padding: 22px;
-  cursor: pointer;
-  transition: 0.3s;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  text-align: left;
-}
-
-.address-card:hover {
-  border-color: #16a34a;
-  transform: translateY(-2px);
-}
-
-.address-card.active {
-  border-color: #16a34a;
-  background: #f0fdf4;
-}
-
-.address-content strong {
-  display: block;
-  font-size: 17px;
-  color: #111;
+.empty-address svg {
+  font-size: 44px;
   margin-bottom: 10px;
 }
 
-.address-content p {
-  color: #666;
-  margin-bottom: 6px;
-  font-size: 15px;
+.empty-address h3 {
+  margin: 10px 0 8px;
+  color: #4f2630;
+  font-size: 24px;
 }
 
-.address-content small {
-  color: #888;
-  font-size: 13px;
+.empty-address p {
+  margin: 0 0 22px;
+  color: #7d666b;
 }
 
-.check-icon {
-  color: #16a34a;
-  font-size: 28px;
+.address-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  height: 56px;
+  padding: 0 22px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #8d4a52, #c77785);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 16px 40px rgba(141, 74, 82, 0.28);
 }
-
-/* =========================================================
-   DELIVERY
-========================================================= */
 
 .delivery-options {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
+  display: grid;
+  gap: 14px;
 }
 
 .delivery-card {
   width: 100%;
-  border: 2px solid #ececec;
-  background: #fff;
-  border-radius: 22px;
-  padding: 24px;
+  border: none;
   cursor: pointer;
-  transition: 0.3s;
+  padding: 18px 20px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #4b232a;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
+  transition: 0.2s ease;
   text-align: left;
+  box-shadow: inset 0 0 0 1px rgba(141, 74, 82, 0.08);
 }
 
 .delivery-card:hover {
-  border-color: #16a34a;
+  transform: translateY(-2px);
 }
 
 .delivery-card.active {
-  border-color: #16a34a;
-  background: #f0fdf4;
+  background: linear-gradient(135deg, rgba(141, 74, 82, 0.12), rgba(199, 119, 133, 0.16));
+  box-shadow: inset 0 0 0 1px rgba(141, 74, 82, 0.25);
 }
 
-.delivery-card strong {
+.delivery-info strong {
   display: block;
-  font-size: 18px;
-  margin-bottom: 8px;
-  color: #111;
+  font-size: 17px;
+  margin-bottom: 6px;
 }
 
-.delivery-card p {
-  color: #666;
+.delivery-info p {
+  margin: 0;
+  color: #7b5960;
   font-size: 14px;
 }
 
-.delivery-card span {
-  font-size: 20px;
-  font-weight: 700;
-  color: #111;
+.delivery-price {
+  font-size: 17px;
+  font-weight: 800;
+  color: #8d4a52;
+  white-space: nowrap;
 }
 
-/* =========================================================
-   ACTIONS
-========================================================= */
+.delivery-note {
+  margin-top: 18px;
+  padding: 16px 18px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.62);
+  color: #6f4450;
+}
 
 .checkout-actions {
-  margin-top: 30px;
+  margin-top: 22px;
   display: flex;
   justify-content: flex-end;
 }
 
 .continue-btn {
-  height: 56px;
-  padding: 0 34px;
   border: none;
-  border-radius: 16px;
-  background: #16a34a;
-  color: #fff;
-  font-size: 16px;
-  font-weight: 700;
   cursor: pointer;
-  transition: 0.3s;
+  height: 58px;
+  padding: 0 24px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #8d4a52, #c77785);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: 0 16px 40px rgba(141, 74, 82, 0.35);
+  transition: 0.2s ease;
 }
 
 .continue-btn:hover {
-  background: #15803d;
   transform: translateY(-2px);
 }
 
-/* =========================================================
-   EMPTY
-========================================================= */
-
-.empty-address {
-  width: 100%;
-  border: 2px dashed #d7d7d7;
-  border-radius: 24px;
-  padding: 50px 30px;
-  background: #fafafa;
-  text-align: center;
+.continue-btn:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+  transform: none;
 }
-
-.empty-address svg {
-  font-size: 54px;
-  color: #999;
-  margin-bottom: 18px;
-}
-
-.empty-address h3 {
-  font-size: 24px;
-  margin-bottom: 10px;
-  color: #111;
-}
-
-.empty-address p {
-  color: #666;
-  margin-bottom: 24px;
-  line-height: 1.6;
-}
-
-/* =========================================================
-   LOADING
-========================================================= */
-
-.checkout-loading {
-  width: 100%;
-  background: #fff;
-  padding: 40px;
-  border-radius: 24px;
-  text-align: center;
-  color: #666;
-  font-size: 16px;
-}
-
-/* =========================================================
-   RESPONSIVO
-========================================================= */
 
 @media (max-width: 900px) {
-  .checkout-content {
-    flex-direction: column;
+  .checkout-steps {
+    grid-template-columns: 1fr;
   }
 
   .card-header {
@@ -365,33 +311,26 @@
   }
 
   .checkout-card {
-    padding: 25px;
+    padding: 22px;
   }
 
-  .checkout-header h1 {
-    font-size: 30px;
+  .checkout-hero h1 {
+    font-size: 42px;
   }
 }
 
 @media (max-width: 600px) {
   .checkout-page {
-    padding: 25px 14px;
+    padding: 100px 14px 60px;
   }
 
-  .checkout-card {
-    padding: 20px;
-    border-radius: 18px;
-  }
-
-  .step {
-    min-width: 210px;
-  }
-
-  .address-card,
   .delivery-card {
     flex-direction: column;
     align-items: flex-start;
-    gap: 18px;
+  }
+
+  .delivery-price {
+    align-self: flex-end;
   }
 
   .checkout-actions {

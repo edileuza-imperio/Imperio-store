@@ -5,8 +5,7 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import Navbar from "@/components/site/menu/navbar";
-import Footer from "@/components/site/Rodape/Footer";
+
 import { InicioApi } from "@/services/api/api";
 
 import {
@@ -301,7 +300,7 @@ export default function CheckoutPage() {
 
   return (
     <>
-      <Navbar />
+      
 
       <main className="checkout-page">
         <div className="checkout-shell">
@@ -1062,7 +1061,7 @@ export default function CheckoutPage() {
         `}</style>
       </main>
 
-      <Footer />
+      
     </>
   );
 }

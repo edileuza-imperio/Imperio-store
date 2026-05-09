@@ -15,8 +15,6 @@ import {
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { InicioApi } from "@/services/api/api";
 
-import Navbar from "@/components/site/menu/navbar";
-import Footer from "@/components/site/Rodape/Footer";
 
 /* =========================
    TIPAGEM
@@ -213,7 +211,7 @@ export default function CarrinhoPage() {
   if (!loading && itens.length === 0) {
     return (
       <>
-        <Navbar />
+       
 
         <main className={styles.page}>
           <div className={styles.shell}>
@@ -232,14 +230,14 @@ export default function CarrinhoPage() {
           </div>
         </main>
 
-        <Footer />
+        
       </>
     );
   }
 
   return (
     <>
-      <Navbar />
+     
 
       <main className={styles.page}>
         <div className={styles.shell}>
@@ -366,7 +364,7 @@ export default function CarrinhoPage() {
         </div>
       </main>
 
-      <Footer />
+      
     </>
   );
 }
