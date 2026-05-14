@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import api from "@/Api/conectar";
 
@@ -10,9 +11,9 @@ import {
   FiArrowRight,
   FiChevronLeft,
   FiChevronRight,
-  FiCheck,
+  FiLoader,
+  FiCheckCircle,
 } from "react-icons/fi";
-
 import { toast } from "react-toastify";
 
 import {
@@ -36,7 +37,6 @@ function resolverImagem(src?: string | null) {
   if (!src) return "";
 
   const valor = String(src).trim();
-
   if (!valor) return "";
 
   if (
@@ -49,15 +49,11 @@ function resolverImagem(src?: string | null) {
   }
 
   const baseURL =
-    typeof api === "string"
-      ? api
-      : (api as any)?.defaults?.baseURL || "";
+    typeof api === "string" ? api : (api as any)?.defaults?.baseURL || "";
 
   if (!baseURL) return valor;
 
-  if (valor.startsWith("/")) {
-    return `${baseURL}${valor}`;
-  }
+  if (valor.startsWith("/")) return `${baseURL}${valor}`;
 
   return `${baseURL}/${valor}`;
 }
@@ -79,15 +75,10 @@ function obterMelhorImagem(
 }
 
 function formatarPreco(valor?: number | string | null) {
-  if (valor === null || valor === undefined || valor === "") {
-    return null;
-  }
+  if (valor === null || valor === undefined || valor === "") return null;
 
   const numero = Number(valor);
-
-  if (Number.isNaN(numero)) {
-    return null;
-  }
+  if (Number.isNaN(numero)) return null;
 
   return numero.toLocaleString("pt-BR", {
     style: "currency",
@@ -117,7 +108,6 @@ function calcularEconomia(
   }
 
   const percentual = Math.round(((original - final) / original) * 100);
-
   return `${percentual}% OFF`;
 }
 
@@ -130,7 +120,6 @@ function descobrirTipoItem(
   if (item.categoria_id) return "categoria";
 
   const tipo = String(tipoVitrine || "").toLowerCase();
-
   if (tipo === "banner") return "banner";
 
   return "custom";
@@ -147,29 +136,25 @@ export default function Destaques({
   verMaisTexto = "Ver mais",
   onAdicionarCarrinho,
 }: Props) {
+  const router = useRouter();
+
   const [loading, setLoading] = useState<boolean>(true);
   const [erro, setErro] = useState<string>("");
-  const [vitrine, setVitrine] = useState<Vitrine | null>(
-    vitrineProp || null
-  );
-
+  const [vitrine, setVitrine] = useState<Vitrine | null>(vitrineProp || null);
   const [itens, setItens] = useState<ItemResolvido[]>([]);
-
-  const [adicionandoId, setAdicionandoId] = useState<string | null>(
-    null
-  );
-
-  const [itensCarrinho, setItensCarrinho] = useState<number[]>([]);
+  const [adicionandoId, setAdicionandoId] = useState<string | null>(null);
+  const [podeVoltar, setPodeVoltar] = useState(false);
+  const [podeAvancar, setPodeAvancar] = useState(false);
+  const [pausado, setPausado] = useState(false);
+  const [abrindoCarrinho, setAbrindoCarrinho] = useState(false);
 
   const carouselRef = useRef<HTMLDivElement | null>(null);
+  const autoplayRef = useRef<number | null>(null);
 
   const vitrineComItens = useMemo(() => {
     if (!vitrineProp) return null;
 
-    const lista = Array.isArray(vitrineProp.itens)
-      ? vitrineProp.itens
-      : [];
-
+    const lista = Array.isArray(vitrineProp.itens) ? vitrineProp.itens : [];
     return {
       ...vitrineProp,
       itens: limite ? lista.slice(0, limite) : lista,
@@ -189,39 +174,31 @@ export default function Destaques({
         if (vitrineComItens?.id_vitrine) {
           vitrineAtual = vitrineComItens;
         } else if (slug) {
-          const vitrineResponse = await api.get(
-            `/vitrine/slug/${slug}`
-          );
-
-          const vitrineData =
-            normalizarDados<Vitrine>(vitrineResponse?.data);
+          const vitrineResponse = await api.get(`/vitrine/slug/${slug}`);
+          const vitrineData = normalizarDados<Vitrine>(vitrineResponse?.data);
 
           if (!vitrineData || !vitrineData.id_vitrine) {
             if (!ativo) return;
-
             setErro("Vitrine não encontrada.");
             setVitrine(null);
             setItens([]);
             return;
           }
 
-          const itensResponse = await api.get(
-            `/vitrine/${vitrineData.id_vitrine}/itens`
-          );
+          const itensResponse = await api.get(`/vitrine/${vitrineData.id_vitrine}/itens`);
+          let itensData = normalizarLista<VitrineItem>(itensResponse?.data);
 
-          let itensData =
-            normalizarLista<VitrineItem>(itensResponse?.data);
-
-          if (limite) {
-            itensData = itensData.slice(0, limite);
-          }
+          if (limite) itensData = itensData.slice(0, limite);
 
           vitrineAtual = {
             ...vitrineData,
             itens: itensData,
           };
         } else {
+          if (!ativo) return;
           setErro("Nenhuma vitrine informada.");
+          setVitrine(null);
+          setItens([]);
           return;
         }
 
@@ -229,27 +206,16 @@ export default function Destaques({
 
         setVitrine(vitrineAtual);
 
-        const listaItens = Array.isArray(vitrineAtual.itens)
-          ? vitrineAtual.itens
-          : [];
+        const listaItens = Array.isArray(vitrineAtual.itens) ? vitrineAtual.itens : [];
 
         const itensResolvidos: ItemResolvido[] = await Promise.all(
           listaItens.map(async (item) => {
-            const tipoItem = descobrirTipoItem(
-              item,
-              vitrineAtual?.tipo
-            );
+            const tipoItem = descobrirTipoItem(item, vitrineAtual?.tipo);
 
             try {
               if (tipoItem === "produto" && item.produto_id) {
-                const res = await api.get(
-                  `/produto/${item.produto_id}`
-                );
-
-                const produto =
-                  normalizarDados<EntidadeGenerica>(
-                    res?.data
-                  ) || {};
+                const res = await api.get(`/produto/${item.produto_id}`);
+                const produto = normalizarDados<EntidadeGenerica>(res?.data) || {};
 
                 const precoPromocional =
                   produto.preco_promocional !== null &&
@@ -258,51 +224,99 @@ export default function Destaques({
                     ? produto.preco_promocional
                     : null;
 
-                const precoFinal =
-                  precoPromocional || produto.preco || null;
-
-                const precoOriginal = precoPromocional
-                  ? produto.preco || null
-                  : null;
+                const precoFinal = precoPromocional || produto.preco || null;
+                const precoOriginal = precoPromocional ? produto.preco || null : null;
 
                 return {
                   ...item,
                   entidade: produto,
                   tipo_item: "produto",
-
                   titulo_final:
                     item.titulo_personalizado ||
                     produto.nome ||
                     produto.titulo ||
                     `Produto #${item.produto_id}`,
-
                   subtitulo_final:
                     item.subtitulo_personalizado ||
                     produto.subtitulo ||
                     produto.descricao_curta ||
                     "",
-
                   descricao_final:
                     produto.descricao_curta ||
                     produto.descricao ||
+                    item.subtitulo_personalizado ||
                     "",
-
-                  imagem_final: obterMelhorImagem(
-                    item,
-                    produto
-                  ),
-
+                  imagem_final: obterMelhorImagem(item, produto),
                   link_final: produto.slug
                     ? `/produto/${produto.slug}`
                     : `/produto/${item.produto_id}`,
-
                   preco_final: precoFinal,
                   preco_original: precoOriginal,
+                  marca_final: produto.marca || "",
+                  sku_final: produto.sku || "",
+                  economia_final: calcularEconomia(precoOriginal, precoFinal),
+                };
+              }
 
-                  economia_final: calcularEconomia(
-                    precoOriginal,
-                    precoFinal
-                  ),
+              if (tipoItem === "campanha" && item.campanha_id) {
+                const res = await api.get(`/campanha/${item.campanha_id}`);
+                const campanha = normalizarDados<EntidadeGenerica>(res?.data) || {};
+
+                return {
+                  ...item,
+                  entidade: campanha,
+                  tipo_item: "campanha",
+                  titulo_final:
+                    item.titulo_personalizado ||
+                    campanha.nome ||
+                    campanha.titulo ||
+                    `Campanha #${item.campanha_id}`,
+                  subtitulo_final:
+                    item.subtitulo_personalizado ||
+                    campanha.subtitulo ||
+                    campanha.descricao ||
+                    "",
+                  descricao_final: campanha.descricao_curta || campanha.descricao || "",
+                  imagem_final: obterMelhorImagem(item, campanha),
+                  link_final: campanha.slug
+                    ? `/campanha/${campanha.slug}`
+                    : `/campanha/${item.campanha_id}`,
+                  preco_final: null,
+                  preco_original: null,
+                  marca_final: "",
+                  sku_final: "",
+                  economia_final: null,
+                };
+              }
+
+              if (tipoItem === "categoria" && item.categoria_id) {
+                const res = await api.get(`/categoria/${item.categoria_id}`);
+                const categoria = normalizarDados<EntidadeGenerica>(res?.data) || {};
+
+                return {
+                  ...item,
+                  entidade: categoria,
+                  tipo_item: "categoria",
+                  titulo_final:
+                    item.titulo_personalizado ||
+                    categoria.nome ||
+                    categoria.titulo ||
+                    `Categoria #${item.categoria_id}`,
+                  subtitulo_final:
+                    item.subtitulo_personalizado ||
+                    categoria.subtitulo ||
+                    categoria.descricao_curta ||
+                    "",
+                  descricao_final: categoria.descricao_curta || categoria.descricao || "",
+                  imagem_final: obterMelhorImagem(item, categoria),
+                  link_final: categoria.slug
+                    ? `/categoria/${categoria.slug}`
+                    : `/categoria/${item.categoria_id}`,
+                  preco_final: null,
+                  preco_original: null,
+                  marca_final: "",
+                  sku_final: "",
+                  economia_final: null,
                 };
               }
 
@@ -310,25 +324,15 @@ export default function Destaques({
                 ...item,
                 entidade: null,
                 tipo_item: tipoItem,
-
-                titulo_final:
-                  item.titulo_personalizado ||
-                  "Item da vitrine",
-
-                subtitulo_final:
-                  item.subtitulo_personalizado || "",
-
-                descricao_final:
-                  item.subtitulo_personalizado || "",
-
-                imagem_final: resolverImagem(
-                  item.imagem_personalizada || ""
-                ),
-
+                titulo_final: item.titulo_personalizado || "Item da vitrine",
+                subtitulo_final: item.subtitulo_personalizado || "",
+                descricao_final: item.subtitulo_personalizado || "",
+                imagem_final: resolverImagem(item.imagem_personalizada || ""),
                 link_final: "#",
-
                 preco_final: null,
                 preco_original: null,
+                marca_final: "",
+                sku_final: "",
                 economia_final: null,
               };
             } catch {
@@ -336,25 +340,15 @@ export default function Destaques({
                 ...item,
                 entidade: null,
                 tipo_item: tipoItem,
-
-                titulo_final:
-                  item.titulo_personalizado ||
-                  "Item da vitrine",
-
-                subtitulo_final:
-                  item.subtitulo_personalizado || "",
-
-                descricao_final:
-                  item.subtitulo_personalizado || "",
-
-                imagem_final: resolverImagem(
-                  item.imagem_personalizada || ""
-                ),
-
+                titulo_final: item.titulo_personalizado || "Item da vitrine",
+                subtitulo_final: item.subtitulo_personalizado || "",
+                descricao_final: item.subtitulo_personalizado || "",
+                imagem_final: resolverImagem(item.imagem_personalizada || ""),
                 link_final: "#",
-
                 preco_final: null,
                 preco_original: null,
+                marca_final: "",
+                sku_final: "",
                 economia_final: null,
               };
             }
@@ -362,35 +356,15 @@ export default function Destaques({
         );
 
         if (!ativo) return;
-
         setItens(itensResolvidos);
-
-        try {
-          const carrinhoResponse = await api.get("/carrinho", {
-            withCredentials: true,
-          });
-
-          const carrinhoItens =
-            normalizarLista<any>(carrinhoResponse?.data);
-
-          const ids = carrinhoItens
-            .map((item: any) => Number(item.produto_id))
-            .filter(Boolean);
-
-          setItensCarrinho(ids);
-        } catch {
-          setItensCarrinho([]);
-        }
       } catch (error) {
-        console.error(error);
-
+        console.error("Erro ao carregar vitrine:", error);
         if (!ativo) return;
-
-        setErro("Erro ao carregar vitrine.");
+        setErro("Não foi possível carregar a vitrine.");
+        setVitrine(null);
+        setItens([]);
       } finally {
-        if (ativo) {
-          setLoading(false);
-        }
+        if (ativo) setLoading(false);
       }
     }
 
@@ -401,23 +375,99 @@ export default function Destaques({
     };
   }, [slug, limite, vitrineComItens]);
 
-  function moverCarousel(direcao: "left" | "right") {
-    if (!carouselRef.current) return;
+  useEffect(() => {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
 
-    const largura = carouselRef.current.offsetWidth;
+    const atualizarBotoes = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = carousel;
+      const maxScroll = scrollWidth - clientWidth;
 
-    carouselRef.current.scrollBy({
-      left: direcao === "left" ? -largura : largura,
-      behavior: "smooth",
-    });
+      setPodeVoltar(scrollLeft > 4);
+      setPodeAvancar(scrollLeft < maxScroll - 4);
+    };
+
+    atualizarBotoes();
+    carousel.addEventListener("scroll", atualizarBotoes);
+    window.addEventListener("resize", atualizarBotoes);
+
+    return () => {
+      carousel.removeEventListener("scroll", atualizarBotoes);
+      window.removeEventListener("resize", atualizarBotoes);
+    };
+  }, [itens.length, loading]);
+
+  useEffect(() => {
+    const carousel = carouselRef.current;
+    if (!carousel || loading || itens.length <= 1) return;
+
+    if (autoplayRef.current) {
+      window.clearInterval(autoplayRef.current);
+      autoplayRef.current = null;
+    }
+
+    autoplayRef.current = window.setInterval(() => {
+      if (pausado || abrindoCarrinho) return;
+
+      const card = carousel.querySelector<HTMLElement>(".destaque-card");
+      const larguraCard = card?.offsetWidth || 280;
+      const gap = 18;
+      const distancia = larguraCard + gap;
+
+      const { scrollLeft, scrollWidth, clientWidth } = carousel;
+      const maxScroll = scrollWidth - clientWidth;
+
+      if (scrollLeft >= maxScroll - 8) {
+        carousel.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        carousel.scrollBy({ left: distancia, behavior: "smooth" });
+      }
+    }, 3200);
+
+    const handleVisibility = () => {
+      setPausado(document.hidden);
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
+      if (autoplayRef.current) {
+        window.clearInterval(autoplayRef.current);
+        autoplayRef.current = null;
+      }
+    };
+  }, [loading, itens.length, pausado, abrindoCarrinho]);
+
+  function moverCarousel(direcao: "prev" | "next") {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    const card = carousel.querySelector<HTMLElement>(".destaque-card");
+    const larguraCard = card?.offsetWidth || 280;
+    const gap = 18;
+    const distancia = larguraCard + gap;
+
+    const { scrollLeft, scrollWidth, clientWidth } = carousel;
+    const maxScroll = scrollWidth - clientWidth;
+
+    if (direcao === "next") {
+      if (scrollLeft >= maxScroll - 8) {
+        carousel.scrollTo({ left: 0, behavior: "smooth" });
+      } else {
+        carousel.scrollBy({ left: distancia, behavior: "smooth" });
+      }
+    } else {
+      if (scrollLeft <= 8) {
+        carousel.scrollTo({ left: maxScroll, behavior: "smooth" });
+      } else {
+        carousel.scrollBy({ left: -distancia, behavior: "smooth" });
+      }
+    }
   }
 
-  async function adicionarNoCarrinhoBanco(
-    item: ItemResolvido
-  ) {
-    if (item.tipo_item !== "produto" || !item.produto_id) {
-      return;
-    }
+  async function adicionarNoCarrinhoBanco(item: ItemResolvido) {
+    if (item.tipo_item !== "produto" || !item.produto_id) return;
 
     const precoBase =
       item.preco_original !== null &&
@@ -439,104 +489,242 @@ export default function Destaques({
         produto_id: Number(item.produto_id),
         quantidade: 1,
         preco: Number.isNaN(precoBase) ? 0 : precoBase,
-
         preco_promocional:
-          precoPromocional !== null &&
-          !Number.isNaN(precoPromocional)
+          precoPromocional !== null && !Number.isNaN(precoPromocional)
             ? precoPromocional
             : null,
       },
-      {
-        withCredentials: true,
-      }
+      { withCredentials: true }
     );
   }
 
-  async function handleAdicionarCarrinho(
-    item: ItemResolvido
-  ) {
+  async function handleAdicionarCarrinho(item: ItemResolvido) {
     if (onAdicionarCarrinho) {
       onAdicionarCarrinho(item);
       return;
     }
 
-    if (item.tipo_item !== "produto" || !item.produto_id) {
-      return;
-    }
+    if (item.tipo_item !== "produto" || !item.produto_id) return;
+
+    const toastId = toast.loading("Adicionando ao carrinho...");
 
     try {
       setAdicionandoId(String(item.id_vitrine_item));
 
       await adicionarNoCarrinhoBanco(item);
 
-      setItensCarrinho((prev) => [
-        ...new Set([...prev, Number(item.produto_id)]),
-      ]);
+      toast.update(toastId, {
+        render: "Produto adicionado com sucesso.",
+        type: "success",
+        isLoading: false,
+        autoClose: 1200,
+        closeButton: true,
+      });
 
-      toast.success("Produto adicionado ao carrinho.");
+      setAbrindoCarrinho(true);
+
+      window.setTimeout(() => {
+        router.push("/carrinho");
+      }, 700);
     } catch (error: any) {
-      console.error(error);
+      console.error("Erro ao adicionar no carrinho:", error);
 
       const mensagemErro =
         error?.response?.data?.dados?.erro ||
         error?.response?.data?.mensagem ||
-        "Não foi possível adicionar.";
+        "Não foi possível adicionar o produto ao carrinho.";
 
-      toast.error(mensagemErro);
+      toast.update(toastId, {
+        render: mensagemErro,
+        type: "error",
+        isLoading: false,
+        autoClose: 2500,
+        closeButton: true,
+      });
     } finally {
       setAdicionandoId(null);
+      window.setTimeout(() => setAbrindoCarrinho(false), 1200);
     }
   }
 
   if (loading) {
     return (
       <section className={`destaques-section ${className}`}>
-        <div className="loading-grid">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="skeleton-card" />
-          ))}
+        <div className="destaques-container">
+          <div className="destaques-header destaques-header-row">
+            <div className="destaques-header-texto">
+              <div className="skeleton skeleton-badge" />
+              <div className="skeleton skeleton-title" />
+              <div className="skeleton skeleton-text" />
+            </div>
+            <div className="skeleton skeleton-button" />
+          </div>
+
+          <div className="skeleton-grid">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <article className="skeleton-card" key={index}>
+                <div className="skeleton skeleton-image" />
+                <div className="skeleton-body">
+                  <div className="skeleton skeleton-line title" />
+                  <div className="skeleton skeleton-line" />
+                  <div className="skeleton skeleton-line short" />
+                  <div className="skeleton-actions">
+                    <div className="skeleton skeleton-btn" />
+                    <div className="skeleton skeleton-btn outline" />
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
 
         <style jsx>{`
-          .loading-grid {
+          .destaques-section {
+            padding: 28px 0;
+          }
+
+          .destaques-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 16px;
+          }
+
+          .destaques-header-row {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 18px;
+          }
+
+          .destaques-header-texto {
+            flex: 1;
+          }
+
+          .skeleton {
+            position: relative;
+            overflow: hidden;
+            background: #eadfd8;
+            border-radius: 16px;
+          }
+
+          .skeleton::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -160px;
+            width: 120px;
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              transparent,
+              rgba(255, 255, 255, 0.7),
+              transparent
+            );
+            animation: shimmer 1.15s infinite;
+          }
+
+          .skeleton-badge {
+            width: 86px;
+            height: 26px;
+            margin-bottom: 12px;
+            border-radius: 999px;
+          }
+
+          .skeleton-title {
+            width: min(360px, 70%);
+            height: 38px;
+            margin-bottom: 10px;
+          }
+
+          .skeleton-text {
+            width: min(520px, 90%);
+            height: 18px;
+          }
+
+          .skeleton-button {
+            width: 124px;
+            height: 44px;
+            border-radius: 14px;
+          }
+
+          .skeleton-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 18px;
           }
 
           .skeleton-card {
-            height: 420px;
-            border-radius: 28px;
-            background: linear-gradient(
-              90deg,
-              #f8e8e1 25%,
-              #fff6f1 50%,
-              #f8e8e1 75%
-            );
+            border-radius: 24px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.72);
+            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+          }
 
-            background-size: 400% 100%;
+          .skeleton-image {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 0;
+          }
 
-            animation: shimmer 1.5s infinite;
+          .skeleton-body {
+            padding: 16px;
+          }
+
+          .skeleton-line {
+            height: 16px;
+            margin-bottom: 10px;
+          }
+
+          .skeleton-line.title {
+            height: 22px;
+            width: 82%;
+          }
+
+          .skeleton-line.short {
+            width: 62%;
+            margin-bottom: 18px;
+          }
+
+          .skeleton-actions {
+            display: flex;
+            gap: 10px;
+          }
+
+          .skeleton-btn {
+            flex: 1;
+            height: 42px;
+            border-radius: 14px;
+          }
+
+          .skeleton-btn.outline {
+            background: #f2e7e1;
           }
 
           @keyframes shimmer {
-            0% {
-              background-position: 100% 0;
-            }
-
             100% {
-              background-position: -100% 0;
+              left: 120%;
             }
           }
 
           @media (max-width: 900px) {
-            .loading-grid {
-              grid-template-columns: repeat(2, 1fr);
+            .skeleton-grid {
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .destaques-header-row {
+              align-items: flex-start;
+              flex-direction: column;
+            }
+
+            .skeleton-button {
+              width: 100%;
+              max-width: 180px;
             }
           }
 
           @media (max-width: 640px) {
-            .loading-grid {
+            .skeleton-grid {
               grid-template-columns: 1fr;
             }
           }
@@ -545,190 +733,173 @@ export default function Destaques({
     );
   }
 
-  if (erro || !vitrine || itens.length === 0) {
-    return null;
-  }
+  if (erro || !vitrine || itens.length === 0) return null;
 
   const linkVerMais =
     verMaisHref ||
-    (vitrine.slug
-      ? `/Vitrine/${vitrine.slug}`
-      : slug
-      ? `/Vitrine/${slug}`
-      : "#");
+    (vitrine.slug ? `/Vitrine/${vitrine.slug}` : slug ? `/Vitrine/${slug}` : "#");
 
   return (
-    <>
-      <section className={`destaques-section ${className}`}>
-        <div className="container">
-          <div className="topo">
-            <div>
-              <span className="badge">
-                {vitrine?.tipo || "Produtos"}
-              </span>
+    <section
+      className={`destaques-section ${className}`}
+      onMouseEnter={() => setPausado(true)}
+      onMouseLeave={() => setPausado(false)}
+      onTouchStart={() => setPausado(true)}
+      onTouchEnd={() => setPausado(false)}
+    >
+      <div className="destaques-container">
+        <div className="destaques-header destaques-header-row">
+          <div className="destaques-header-texto">
+            <span className="destaques-badge">{vitrine?.tipo || "Vitrine"}</span>
 
-              <h2>
-                {tituloPersonalizado ||
-                  vitrine?.titulo ||
-                  vitrine?.nome}
-              </h2>
+            <h2 className="destaques-title">
+              {tituloPersonalizado || vitrine?.titulo || vitrine?.nome}
+            </h2>
 
-              {(subtituloPersonalizado ||
-                vitrine?.subtitulo) && (
-                <p>
-                  {subtituloPersonalizado ||
-                    vitrine?.subtitulo}
-                </p>
-              )}
-            </div>
-
-            <div className="acoes-topo">
-              <button
-                type="button"
-                className="nav-btn"
-                onClick={() => moverCarousel("left")}
-              >
-                <FiChevronLeft />
-              </button>
-
-              <button
-                type="button"
-                className="nav-btn"
-                onClick={() => moverCarousel("right")}
-              >
-                <FiChevronRight />
-              </button>
-
-              <Link
-                href={linkVerMais}
-                className="btn-vermais"
-              >
-                {verMaisTexto}
-              </Link>
-            </div>
+            {(subtituloPersonalizado || vitrine?.subtitulo) && (
+              <p className="destaques-description">
+                {subtituloPersonalizado || vitrine?.subtitulo}
+              </p>
+            )}
           </div>
 
-          <div ref={carouselRef} className="carousel">
+          <div className="header-actions">
+            <button
+              type="button"
+              className="nav-btn"
+              onClick={() => moverCarousel("prev")}
+              disabled={!podeVoltar || abrindoCarrinho}
+              aria-label="Anterior"
+            >
+              <FiChevronLeft />
+            </button>
+
+            <button
+              type="button"
+              className="nav-btn"
+              onClick={() => moverCarousel("next")}
+              disabled={!podeAvancar || abrindoCarrinho}
+              aria-label="Próximo"
+            >
+              <FiChevronRight />
+            </button>
+
+            <Link href={linkVerMais} className="btn-ver-mais">
+              <span>{verMaisTexto}</span>
+              <FiArrowRight className="btn-icon" />
+            </Link>
+          </div>
+        </div>
+
+        <div className="carousel-shell">
+          <div ref={carouselRef} className="destaques-carousel">
             {itens.map((item) => {
-              const precoFormatado = formatarPreco(
-                item.preco_final
-              );
+              const precoFormatado = formatarPreco(item.preco_final);
+              const precoOriginalFormatado = formatarPreco(item.preco_original);
 
-              const precoOriginalFormatado = formatarPreco(
-                item.preco_original
-              );
+              const slugVisualizacao =
+                item.entidade?.slug ||
+                (item.produto_id ? String(item.produto_id) : null) ||
+                (item.campanha_id ? String(item.campanha_id) : null) ||
+                (item.categoria_id ? String(item.categoria_id) : null);
 
-              const estaNoCarrinho = itensCarrinho.includes(
-                Number(item.produto_id)
-              );
+              const linkVisualizarCard = slugVisualizacao
+                ? `/Vitrine/visualizar/${slugVisualizacao}`
+                : "#";
 
-              const estaAdicionando =
-                adicionandoId ===
-                String(item.id_vitrine_item);
+              const estaAdicionando = adicionandoId === String(item.id_vitrine_item);
 
               return (
-                <article
-                  key={String(item.id_vitrine_item)}
-                  className="card"
-                >
-                  <Link
-                    href={item.link_final || "#"}
-                    className="imagem-area"
-                  >
-                    {item.economia_final && (
-                      <span className="tag-off">
-                        {item.economia_final}
-                      </span>
-                    )}
-
-                    {item.imagem_final ? (
-                      <img
-                        src={item.imagem_final}
-                        alt={item.titulo_final}
-                        className="imagem"
-                      />
-                    ) : (
-                      <div className="sem-imagem">
-                        Sem imagem
-                      </div>
-                    )}
-                  </Link>
-
-                  <div className="conteudo">
-                    <Link
-                      href={item.link_final || "#"}
-                      className="titulo-link"
-                    >
-                      <h3>{item.titulo_final}</h3>
+                <article key={String(item.id_vitrine_item)} className="destaque-card">
+                  <div className="destaque-media">
+                    <Link href={item.link_final || "#"} className="imagem-link">
+                      {item.imagem_final ? (
+                        <img
+                          src={item.imagem_final}
+                          alt={item.titulo_final}
+                          className="destaque-imagem"
+                        />
+                      ) : (
+                        <div className="destaque-sem-imagem">
+                          <span>Sem imagem</span>
+                        </div>
+                      )}
                     </Link>
 
-                    {item.subtitulo_final && (
-                      <p className="subtitulo">
-                        {item.subtitulo_final}
-                      </p>
+                    {item.economia_final && (
+                      <span className="economia-badge">{item.economia_final}</span>
                     )}
+                  </div>
 
-                    <div className="precos">
-                      {precoOriginalFormatado && (
-                        <span className="preco-antigo">
-                          {precoOriginalFormatado}
-                        </span>
+                  <div className="destaque-conteudo">
+                    <div className="destaque-meta">
+                      {item.marca_final && (
+                        <span className="meta-chip">{item.marca_final}</span>
                       )}
 
-                      {precoFormatado && (
-                        <strong>{precoFormatado}</strong>
+                      {item.sku_final && (
+                        <span className="meta-chip">SKU {item.sku_final}</span>
                       )}
                     </div>
 
-                    <div className="botoes">
+                    <Link href={item.link_final || "#"} className="titulo-link">
+                      <h3 className="destaque-titulo">{item.titulo_final}</h3>
+                    </Link>
+
+                    {item.subtitulo_final && (
+                      <p className="destaque-subtitulo">{item.subtitulo_final}</p>
+                    )}
+
+                    {item.descricao_final && (
+                      <p className="destaque-descricao">{item.descricao_final}</p>
+                    )}
+
+                    {(precoFormatado || precoOriginalFormatado) && (
+                      <div className="destaque-precos">
+                        {precoOriginalFormatado && (
+                          <span className="preco-original">{precoOriginalFormatado}</span>
+                        )}
+
+                        {precoFormatado && (
+                          <strong className="destaque-preco">{precoFormatado}</strong>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="destaque-acoes">
                       {item.tipo_item === "produto" ? (
                         <button
                           type="button"
-                          className={`btn-carrinho ${
-                            estaNoCarrinho
-                              ? "adicionado"
-                              : ""
-                          }`}
-                          onClick={() =>
-                            handleAdicionarCarrinho(item)
-                          }
-                          disabled={
-                            estaAdicionando ||
-                            estaNoCarrinho
-                          }
+                          className="btn-carrinho"
+                          onClick={() => handleAdicionarCarrinho(item)}
+                          disabled={estaAdicionando || abrindoCarrinho}
                         >
                           {estaAdicionando ? (
-                            <>
-                              <span className="mini-loader" />
-                              <span>Adicionando</span>
-                            </>
-                          ) : estaNoCarrinho ? (
-                            <>
-                              <FiCheck />
-                              <span>No carrinho</span>
-                            </>
+                            <FiLoader className="btn-icon spin" />
+                          ) : abrindoCarrinho ? (
+                            <FiCheckCircle className="btn-icon" />
                           ) : (
-                            <>
-                              <FiShoppingCart />
-                              <span>Adicionar</span>
-                            </>
+                            <FiShoppingCart className="btn-icon" />
                           )}
+
+                          <span>
+                            {estaAdicionando
+                              ? "Adicionando..."
+                              : abrindoCarrinho
+                              ? "Abrindo..."
+                              : "Carrinho"}
+                          </span>
                         </button>
                       ) : (
-                        <Link
-                          href={item.link_final || "#"}
-                          className="btn-carrinho"
-                        >
-                          <FiArrowRight />
+                        <Link href={item.link_final || "#"} className="btn-carrinho">
+                          <FiArrowRight className="btn-icon" />
                           <span>Acessar</span>
                         </Link>
                       )}
 
-                      <Link
-                        href={item.link_final || "#"}
-                        className="btn-visualizar"
-                      >
-                        <FiEye />
+                      <Link href={linkVisualizarCard} className="btn-visualizar">
+                        <FiEye className="btn-icon" />
+                        <span>Visualizar</span>
                       </Link>
                     </div>
                   </div>
@@ -736,238 +907,447 @@ export default function Destaques({
               );
             })}
           </div>
+
+          <div className="carousel-fade left" />
+          <div className="carousel-fade right" />
         </div>
-      </section>
+      </div>
+
+      {abrindoCarrinho && (
+        <div className="cart-overlay">
+          <div className="cart-card">
+            <div className="cart-spinner" />
+            <h3>Levando você para o carrinho</h3>
+            <p>Seu produto foi adicionado com sucesso.</p>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         .destaques-section {
-          width: 100%;
-          padding: 40px 0;
+          padding: 28px 0;
         }
 
-        .container {
-          width: 100%;
+        .destaques-container {
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 0 16px;
         }
 
-        .topo {
+        .destaques-header-row {
           display: flex;
-          align-items: flex-end;
+          align-items: end;
           justify-content: space-between;
-          gap: 20px;
-          margin-bottom: 28px;
+          gap: 18px;
+          margin-bottom: 20px;
         }
 
-        .badge {
+        .destaques-header-texto {
+          min-width: 0;
+        }
+
+        .destaques-badge {
           display: inline-flex;
-          padding: 8px 16px;
+          align-items: center;
+          padding: 8px 14px;
           border-radius: 999px;
-          background: #f6dfd7;
-          color: #9a5f55;
+          background: rgba(183, 110, 121, 0.12);
+          color: #8b4d59;
           font-size: 12px;
           font-weight: 800;
-          margin-bottom: 14px;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          margin-bottom: 12px;
         }
 
-        h2 {
+        .destaques-title {
           margin: 0;
-          font-size: 34px;
-          color: #2f2a28;
-          font-weight: 800;
+          font-size: 30px;
+          line-height: 1.1;
+          font-weight: 900;
+          letter-spacing: -0.04em;
+          color: #6d4c52;
         }
 
-        .topo p {
+        .destaques-description {
           margin: 10px 0 0;
-          color: #7c6f69;
+          max-width: 720px;
+          color: #8b6b70;
           font-size: 15px;
+          line-height: 1.75;
         }
 
-        .acoes-topo {
+        .header-actions {
           display: flex;
           align-items: center;
-          gap: 12px;
-        }
-
-        .nav-btn {
-          width: 48px;
-          height: 48px;
-          border: none;
-          border-radius: 16px;
-          background: #fff;
-          color: #8b5e54;
-          cursor: pointer;
-          font-size: 22px;
-          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
-        }
-
-        .btn-vermais {
-          height: 48px;
-          padding: 0 20px;
-          border-radius: 16px;
-          background: linear-gradient(
-            135deg,
-            #c9897b,
-            #8b5e54
-          );
-
-          color: #fff;
-          display: flex;
-          align-items: center;
-          text-decoration: none;
-          font-weight: 700;
-        }
-
-        .carousel {
-          display: flex;
-          gap: 22px;
-          overflow-x: auto;
-          scroll-behavior: smooth;
-          scrollbar-width: none;
-        }
-
-        .carousel::-webkit-scrollbar {
-          display: none;
-        }
-
-        .card {
-          min-width: 290px;
-          max-width: 290px;
-          background: #fffdfb;
-          border-radius: 28px;
-          overflow: hidden;
-          border: 1px solid #f4e5de;
-          transition: all 0.25s ease;
+          gap: 10px;
           flex-shrink: 0;
         }
 
-        .card:hover {
-          transform: translateY(-6px);
-          box-shadow: 0 18px 40px rgba(0, 0, 0, 0.08);
+        .nav-btn {
+          width: 46px;
+          height: 46px;
+          border: 1px solid rgba(183, 110, 121, 0.14);
+          background: rgba(255, 250, 247, 0.96);
+          color: #6d4c52;
+          border-radius: 14px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 22px;
+          cursor: pointer;
+          box-shadow: 0 14px 32px rgba(183, 110, 121, 0.08);
+          transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
         }
 
-        .imagem-area {
+        .nav-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 18px 38px rgba(183, 110, 121, 0.12);
+        }
+
+        .nav-btn:disabled {
+          opacity: 0.38;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: 0 10px 24px rgba(183, 110, 121, 0.04);
+        }
+
+        .btn-ver-mais {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          height: 46px;
+          padding: 0 18px;
+          border-radius: 14px;
+          background: linear-gradient(135deg, #b76e79 0%, #9d5c67 100%);
+          color: #fffaf7;
+          font-size: 14px;
+          font-weight: 800;
+          text-decoration: none;
+          box-shadow: 0 16px 34px rgba(183, 110, 121, 0.18);
+          white-space: nowrap;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-ver-mais:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 20px 42px rgba(183, 110, 121, 0.22);
+        }
+
+        .btn-icon {
+          font-size: 18px;
+          flex-shrink: 0;
+        }
+
+        .spin {
+          animation: spin 0.8s linear infinite;
+        }
+
+        .carousel-shell {
           position: relative;
+        }
+
+        .carousel-fade {
+          position: absolute;
+          top: 0;
+          bottom: 14px;
+          width: 42px;
+          pointer-events: none;
+          z-index: 2;
+        }
+
+        .carousel-fade.left {
+          left: 0;
+          background: linear-gradient(to right, rgba(248, 239, 236, 0.96), transparent);
+        }
+
+        .carousel-fade.right {
+          right: 0;
+          background: linear-gradient(to left, rgba(248, 239, 236, 0.96), transparent);
+        }
+
+        .destaques-carousel {
+          display: grid;
+          grid-auto-flow: column;
+          grid-auto-columns: clamp(250px, 24vw, 290px);
+          gap: 18px;
+          overflow-x: auto;
+          overflow-y: hidden;
+          padding: 6px 2px 14px;
+          scroll-snap-type: x mandatory;
+          scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
+          -ms-overflow-style: none;
+          cursor: grab;
+          user-select: none;
+        }
+
+        .destaques-carousel.dragging {
+          cursor: grabbing;
+          scroll-snap-type: none;
+        }
+
+        .destaques-carousel::-webkit-scrollbar {
+          display: none;
+        }
+
+        .destaque-card {
+          scroll-snap-align: start;
+          overflow: hidden;
+          border-radius: 26px;
+          background: rgba(255, 250, 247, 0.98);
+          border: 1px solid rgba(183, 110, 121, 0.1);
+          box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+          display: flex;
+          flex-direction: column;
+          min-height: 100%;
+          transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+
+        .destaque-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 24px 54px rgba(15, 23, 42, 0.1);
+        }
+
+        .destaque-media {
+          position: relative;
+          overflow: hidden;
+          background: linear-gradient(135deg, #f5ebe7 0%, #fffaf7 100%);
+        }
+
+        .imagem-link {
+          display: block;
+          text-decoration: none;
+        }
+
+        .destaque-imagem {
           width: 100%;
-          height: 270px;
-          background: #fff7f3;
+          aspect-ratio: 1 / 1;
+          object-fit: cover;
+          display: block;
+          transition: transform 0.35s ease;
+        }
+
+        .destaque-card:hover .destaque-imagem {
+          transform: scale(1.03);
+        }
+
+        .destaque-sem-imagem {
+          width: 100%;
+          aspect-ratio: 1 / 1;
           display: flex;
           align-items: center;
           justify-content: center;
+          color: #8b6b70;
+          font-size: 14px;
+          background:
+            radial-gradient(circle at top, rgba(183, 110, 121, 0.08), transparent 46%),
+            #f7efeb;
         }
 
-        .imagem {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
-
-        .tag-off {
+        .economia-badge {
           position: absolute;
-          top: 14px;
           left: 14px;
-          z-index: 2;
-          background: #d45b5b;
-          color: #fff;
+          top: 14px;
           padding: 8px 12px;
           border-radius: 999px;
-          font-size: 12px;
+          background: rgba(109, 76, 82, 0.94);
+          color: #fffaf7;
+          font-size: 11px;
           font-weight: 800;
+          letter-spacing: 0.04em;
+          box-shadow: 0 12px 26px rgba(109, 76, 82, 0.18);
         }
 
-        .conteudo {
-          padding: 18px;
+        .destaque-conteudo {
+          padding: 16px 16px 18px;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          flex: 1;
+        }
+
+        .destaque-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .meta-chip {
+          display: inline-flex;
+          align-items: center;
+          height: 24px;
+          padding: 0 10px;
+          border-radius: 999px;
+          background: #f4e8e4;
+          color: #8b4d59;
+          font-size: 11px;
+          font-weight: 700;
         }
 
         .titulo-link {
           text-decoration: none;
+          color: inherit;
         }
 
-        h3 {
+        .destaque-titulo {
           margin: 0;
-          color: #2f2a28;
-          font-size: 17px;
-          font-weight: 700;
-          line-height: 1.4;
+          color: #2f1f22;
+          font-size: 18px;
+          line-height: 1.3;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          min-height: 46px;
         }
 
-        .subtitulo {
-          margin: 8px 0 16px;
-          color: #7c6f69;
-          font-size: 14px;
-          line-height: 1.6;
-          min-height: 44px;
+        .destaque-subtitulo {
+          margin: 0;
+          color: #6f5c60;
+          font-size: 13px;
+          line-height: 1.7;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
         }
 
-        .precos {
+        .destaque-descricao {
+          margin: 0;
+          color: #8b6b70;
+          font-size: 13px;
+          line-height: 1.7;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .destaque-precos {
           display: flex;
-          flex-direction: column;
-          gap: 4px;
-          margin-bottom: 18px;
+          align-items: baseline;
+          gap: 10px;
+          margin-top: auto;
+          padding-top: 4px;
+          flex-wrap: wrap;
         }
 
-        .preco-antigo {
-          color: #9ca3af;
+        .preco-original {
+          color: #a89a9d;
+          font-size: 13px;
           text-decoration: line-through;
-          font-size: 14px;
         }
 
-        .precos strong {
-          font-size: 24px;
-          color: #8b5e54;
+        .destaque-preco {
+          color: #6d4c52;
+          font-size: 18px;
+          font-weight: 900;
+          letter-spacing: -0.02em;
         }
 
-        .botoes {
+        .destaque-acoes {
           display: grid;
-          grid-template-columns: 1fr 54px;
-          gap: 12px;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+          margin-top: 4px;
         }
 
         .btn-carrinho,
         .btn-visualizar {
-          height: 52px;
-          border-radius: 16px;
-          border: none;
-          cursor: pointer;
-          display: flex;
+          width: 100%;
+          min-width: 0;
+          height: 46px;
+          border-radius: 14px;
+          display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
-          font-size: 15px;
-          font-weight: 700;
-          transition: all 0.2s ease;
+          gap: 8px;
+          font-size: 13px;
+          font-weight: 800;
           text-decoration: none;
+          transition: transform 0.2s ease, box-shadow 0.2s ease,
+            background 0.2s ease, border-color 0.2s ease;
+          white-space: nowrap;
         }
 
         .btn-carrinho {
-          background: linear-gradient(
-            135deg,
-            #c9897b,
-            #8b5e54
-          );
-
-          color: #fff;
+          border: none;
+          background: linear-gradient(135deg, #b76e79 0%, #9d5c67 100%);
+          color: #fffaf7;
+          box-shadow: 0 14px 28px rgba(183, 110, 121, 0.18);
+          cursor: pointer;
         }
 
-        .btn-carrinho:hover {
-          transform: translateY(-2px);
+        .btn-carrinho:hover,
+        .btn-visualizar:hover {
+          transform: translateY(-1px);
         }
 
-        .btn-carrinho.adicionado {
-          background: #ecfdf3;
-          color: #0f9f6e;
+        .btn-carrinho:disabled {
+          opacity: 0.72;
+          cursor: not-allowed;
+          transform: none;
         }
 
         .btn-visualizar {
-          background: #f7f1ee;
-          color: #8b5e54;
+          border: 1px solid #ecd7d3;
+          color: #6d4c52;
+          background: #fff;
         }
 
-        .mini-loader {
-          width: 18px;
-          height: 18px;
+        .btn-visualizar:hover {
+          border-color: #dcb7b0;
+          background: #fff7f5;
+        }
+
+        .cart-overlay {
+          position: fixed;
+          inset: 0;
+          z-index: 80;
+          background: rgba(15, 23, 42, 0.42);
+          backdrop-filter: blur(6px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+        }
+
+        .cart-card {
+          width: 100%;
+          max-width: 360px;
+          background: rgba(255, 250, 247, 0.98);
+          border: 1px solid rgba(183, 110, 121, 0.1);
+          border-radius: 28px;
+          padding: 30px 24px;
+          text-align: center;
+          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
+        }
+
+        .cart-spinner {
+          width: 54px;
+          height: 54px;
+          margin: 0 auto 18px;
           border-radius: 50%;
-          border: 2px solid rgba(255, 255, 255, 0.4);
-          border-top-color: #fff;
-          animation: spin 0.8s linear infinite;
+          border: 4px solid #eadfd8;
+          border-top-color: #b76e79;
+          animation: spin 0.85s linear infinite;
+        }
+
+        .cart-card h3 {
+          margin: 0 0 8px;
+          font-size: 22px;
+          color: #6d4c52;
+        }
+
+        .cart-card p {
+          margin: 0;
+          color: #8b6b70;
+          font-size: 14px;
+          line-height: 1.7;
         }
 
         @keyframes spin {
@@ -976,31 +1356,102 @@ export default function Destaques({
           }
         }
 
+        @media (max-width: 1100px) {
+          .destaques-title {
+            font-size: 26px;
+          }
+
+          .destaques-carousel {
+            grid-auto-columns: minmax(250px, 280px);
+          }
+        }
+
         @media (max-width: 768px) {
-          .topo {
-            flex-direction: column;
+          .destaques-section {
+            padding: 20px 0;
+          }
+
+          .destaques-header-row {
             align-items: flex-start;
+            flex-direction: column;
           }
 
-          .acoes-topo {
+          .header-actions {
             width: 100%;
-            justify-content: space-between;
+            justify-content: flex-start;
+            flex-wrap: wrap;
           }
 
-          .card {
-            min-width: 240px;
-            max-width: 240px;
+          .btn-ver-mais {
+            margin-left: auto;
           }
 
-          .imagem-area {
-            height: 220px;
+          .destaques-title {
+            font-size: 24px;
           }
 
-          h2 {
-            font-size: 28px;
+          .destaques-description {
+            font-size: 14px;
+          }
+
+          .destaques-carousel {
+            grid-auto-columns: minmax(240px, 78vw);
+            gap: 14px;
+            padding-bottom: 10px;
+          }
+
+          .destaque-titulo {
+            font-size: 17px;
+          }
+
+          .destaque-acoes {
+            grid-template-columns: 1fr 1fr;
+          }
+
+          .carousel-fade {
+            display: none;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .destaques-container {
+            padding: 0 12px;
+          }
+
+          .destaques-carousel {
+            grid-auto-columns: 86vw;
+          }
+
+          .nav-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+          }
+
+          .btn-ver-mais {
+            height: 42px;
+            padding: 0 14px;
+            font-size: 13px;
+          }
+
+          .destaque-conteudo {
+            padding: 14px;
+          }
+
+          .destaque-card {
+            border-radius: 22px;
+          }
+
+          .destaque-acoes {
+            grid-template-columns: 1fr;
+          }
+
+          .btn-carrinho,
+          .btn-visualizar {
+            height: 44px;
           }
         }
       `}</style>
-    </>
+    </section>
   );
 }
