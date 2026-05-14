@@ -50,9 +50,7 @@ function resolverImagem(src?: string | null) {
 
   if (!baseURL) return valor;
 
-  if (valor.startsWith("/")) {
-    return `${baseURL}${valor}`;
-  }
+  if (valor.startsWith("/")) return `${baseURL}${valor}`;
 
   return `${baseURL}/${valor}`;
 }
@@ -74,15 +72,10 @@ function obterMelhorImagem(
 }
 
 function formatarPreco(valor?: number | string | null) {
-  if (valor === null || valor === undefined || valor === "") {
-    return null;
-  }
+  if (valor === null || valor === undefined || valor === "") return null;
 
   const numero = Number(valor);
-
-  if (Number.isNaN(numero)) {
-    return null;
-  }
+  if (Number.isNaN(numero)) return null;
 
   return numero.toLocaleString("pt-BR", {
     style: "currency",
@@ -112,7 +105,6 @@ function calcularEconomia(
   }
 
   const percentual = Math.round(((original - final) / original) * 100);
-
   return `${percentual}% OFF`;
 }
 
@@ -125,7 +117,6 @@ function descobrirTipoItem(
   if (item.categoria_id) return "categoria";
 
   const tipo = String(tipoVitrine || "").toLowerCase();
-
   if (tipo === "banner") return "banner";
 
   return "custom";
@@ -158,7 +149,6 @@ export default function Destaques({
     if (!vitrineProp) return null;
 
     const lista = Array.isArray(vitrineProp.itens) ? vitrineProp.itens : [];
-
     return {
       ...vitrineProp,
       itens: limite ? lista.slice(0, limite) : lista,
@@ -183,22 +173,16 @@ export default function Destaques({
 
           if (!vitrineData || !vitrineData.id_vitrine) {
             if (!ativo) return;
-
             setErro("Vitrine não encontrada.");
             setVitrine(null);
             setItens([]);
             return;
           }
 
-          const itensResponse = await api.get(
-            `/vitrine/${vitrineData.id_vitrine}/itens`
-          );
-
+          const itensResponse = await api.get(`/vitrine/${vitrineData.id_vitrine}/itens`);
           let itensData = normalizarLista<VitrineItem>(itensResponse?.data);
 
-          if (limite) {
-            itensData = itensData.slice(0, limite);
-          }
+          if (limite) itensData = itensData.slice(0, limite);
 
           vitrineAtual = {
             ...vitrineData,
@@ -206,7 +190,6 @@ export default function Destaques({
           };
         } else {
           if (!ativo) return;
-
           setErro("Nenhuma vitrine informada.");
           setVitrine(null);
           setItens([]);
@@ -217,9 +200,7 @@ export default function Destaques({
 
         setVitrine(vitrineAtual);
 
-        const listaItens = Array.isArray(vitrineAtual.itens)
-          ? vitrineAtual.itens
-          : [];
+        const listaItens = Array.isArray(vitrineAtual.itens) ? vitrineAtual.itens : [];
 
         const itensResolvidos: ItemResolvido[] = await Promise.all(
           listaItens.map(async (item) => {
@@ -244,31 +225,25 @@ export default function Destaques({
                   ...item,
                   entidade: produto,
                   tipo_item: "produto",
-
                   titulo_final:
                     item.titulo_personalizado ||
                     produto.nome ||
                     produto.titulo ||
                     `Produto #${item.produto_id}`,
-
                   subtitulo_final:
                     item.subtitulo_personalizado ||
                     produto.subtitulo ||
                     produto.descricao_curta ||
                     "",
-
                   descricao_final:
                     produto.descricao_curta ||
                     produto.descricao ||
                     item.subtitulo_personalizado ||
                     "",
-
                   imagem_final: obterMelhorImagem(item, produto),
-
                   link_final: produto.slug
                     ? `/produto/${produto.slug}`
                     : `/produto/${item.produto_id}`,
-
                   preco_final: precoFinal,
                   preco_original: precoOriginal,
                   marca_final: produto.marca || "",
@@ -285,28 +260,21 @@ export default function Destaques({
                   ...item,
                   entidade: campanha,
                   tipo_item: "campanha",
-
                   titulo_final:
                     item.titulo_personalizado ||
                     campanha.nome ||
                     campanha.titulo ||
                     `Campanha #${item.campanha_id}`,
-
                   subtitulo_final:
                     item.subtitulo_personalizado ||
                     campanha.subtitulo ||
                     campanha.descricao ||
                     "",
-
-                  descricao_final:
-                    campanha.descricao_curta || campanha.descricao || "",
-
+                  descricao_final: campanha.descricao_curta || campanha.descricao || "",
                   imagem_final: obterMelhorImagem(item, campanha),
-
                   link_final: campanha.slug
                     ? `/campanha/${campanha.slug}`
                     : `/campanha/${item.campanha_id}`,
-
                   preco_final: null,
                   preco_original: null,
                   marca_final: "",
@@ -323,28 +291,21 @@ export default function Destaques({
                   ...item,
                   entidade: categoria,
                   tipo_item: "categoria",
-
                   titulo_final:
                     item.titulo_personalizado ||
                     categoria.nome ||
                     categoria.titulo ||
                     `Categoria #${item.categoria_id}`,
-
                   subtitulo_final:
                     item.subtitulo_personalizado ||
                     categoria.subtitulo ||
                     categoria.descricao_curta ||
                     "",
-
-                  descricao_final:
-                    categoria.descricao_curta || categoria.descricao || "",
-
+                  descricao_final: categoria.descricao_curta || categoria.descricao || "",
                   imagem_final: obterMelhorImagem(item, categoria),
-
                   link_final: categoria.slug
                     ? `/categoria/${categoria.slug}`
                     : `/categoria/${item.categoria_id}`,
-
                   preco_final: null,
                   preco_original: null,
                   marca_final: "",
@@ -357,7 +318,6 @@ export default function Destaques({
                 ...item,
                 entidade: null,
                 tipo_item: tipoItem,
-
                 titulo_final: item.titulo_personalizado || "Item da vitrine",
                 subtitulo_final: item.subtitulo_personalizado || "",
                 descricao_final: item.subtitulo_personalizado || "",
@@ -374,7 +334,6 @@ export default function Destaques({
                 ...item,
                 entidade: null,
                 tipo_item: tipoItem,
-
                 titulo_final: item.titulo_personalizado || "Item da vitrine",
                 subtitulo_final: item.subtitulo_personalizado || "",
                 descricao_final: item.subtitulo_personalizado || "",
@@ -391,20 +350,15 @@ export default function Destaques({
         );
 
         if (!ativo) return;
-
         setItens(itensResolvidos);
       } catch (error) {
         console.error("Erro ao carregar vitrine:", error);
-
         if (!ativo) return;
-
         setErro("Não foi possível carregar a vitrine.");
         setVitrine(null);
         setItens([]);
       } finally {
-        if (ativo) {
-          setLoading(false);
-        }
+        if (ativo) setLoading(false);
       }
     }
 
@@ -417,7 +371,6 @@ export default function Destaques({
 
   useEffect(() => {
     const carousel = carouselRef.current;
-
     if (!carousel) return;
 
     const atualizarBotoes = () => {
@@ -429,7 +382,6 @@ export default function Destaques({
     };
 
     atualizarBotoes();
-
     carousel.addEventListener("scroll", atualizarBotoes);
     window.addEventListener("resize", atualizarBotoes);
 
@@ -441,30 +393,44 @@ export default function Destaques({
 
   useEffect(() => {
     const carousel = carouselRef.current;
-
     if (!carousel || loading || itens.length <= 1) return;
 
-    const autoplay = window.setInterval(() => {
-      if (pausado) return;
+    const iniciarAutoplay = () => {
+      if (autoplayRef.current) window.clearInterval(autoplayRef.current);
 
-      const card = carousel.querySelector<HTMLElement>(".destaque-card");
-      const larguraCard = card?.offsetWidth || 280;
-      const gap = 18;
-      const distancia = larguraCard + gap;
+      autoplayRef.current = window.setInterval(() => {
+        if (pausado) return;
 
-      const { scrollLeft, scrollWidth, clientWidth } = carousel;
-      const maxScroll = scrollWidth - clientWidth;
+        const card = carousel.querySelector<HTMLElement>(".destaque-card");
+        const larguraCard = card?.offsetWidth || 280;
+        const gap = 18;
+        const distancia = larguraCard + gap;
 
-      if (scrollLeft >= maxScroll - 8) {
-        carousel.scrollTo({ left: 0, behavior: "smooth" });
+        const { scrollLeft, scrollWidth, clientWidth } = carousel;
+        const maxScroll = scrollWidth - clientWidth;
+
+        if (scrollLeft >= maxScroll - 8) {
+          carousel.scrollTo({ left: 0, behavior: "smooth" });
+        } else {
+          carousel.scrollBy({ left: distancia, behavior: "smooth" });
+        }
+      }, 3200);
+    };
+
+    iniciarAutoplay();
+
+    const handleVisibility = () => {
+      if (document.hidden) {
+        setPausado(true);
       } else {
-        carousel.scrollBy({ left: distancia, behavior: "smooth" });
+        setPausado(false);
       }
-    }, 3600);
+    };
 
-    autoplayRef.current = autoplay;
+    document.addEventListener("visibilitychange", handleVisibility);
 
     return () => {
+      document.removeEventListener("visibilitychange", handleVisibility);
       if (autoplayRef.current) {
         window.clearInterval(autoplayRef.current);
         autoplayRef.current = null;
@@ -500,9 +466,7 @@ export default function Destaques({
   }
 
   async function adicionarNoCarrinhoBanco(item: ItemResolvido) {
-    if (item.tipo_item !== "produto" || !item.produto_id) {
-      return;
-    }
+    if (item.tipo_item !== "produto" || !item.produto_id) return;
 
     const precoBase =
       item.preco_original !== null &&
@@ -529,9 +493,7 @@ export default function Destaques({
             ? precoPromocional
             : null,
       },
-      {
-        withCredentials: true,
-      }
+      { withCredentials: true }
     );
   }
 
@@ -541,15 +503,11 @@ export default function Destaques({
       return;
     }
 
-    if (item.tipo_item !== "produto" || !item.produto_id) {
-      return;
-    }
+    if (item.tipo_item !== "produto" || !item.produto_id) return;
 
     try {
       setAdicionandoId(String(item.id_vitrine_item));
-
       await adicionarNoCarrinhoBanco(item);
-
       toast.success("Produto adicionado ao carrinho com sucesso.");
     } catch (error: any) {
       console.error("Erro ao adicionar no carrinho:", error);
@@ -751,9 +709,7 @@ export default function Destaques({
     );
   }
 
-  if (erro || !vitrine || itens.length === 0) {
-    return null;
-  }
+  if (erro || !vitrine || itens.length === 0) return null;
 
   const linkVerMais =
     verMaisHref ||
@@ -830,10 +786,7 @@ export default function Destaques({
               const estaAdicionando = adicionandoId === String(item.id_vitrine_item);
 
               return (
-                <article
-                  key={String(item.id_vitrine_item)}
-                  className="destaque-card destaque-slide"
-                >
+                <article key={String(item.id_vitrine_item)} className="destaque-card">
                   <div className="destaque-media">
                     <Link href={item.link_final || "#"} className="imagem-link">
                       {item.imagem_final ? (
@@ -917,6 +870,9 @@ export default function Destaques({
               );
             })}
           </div>
+
+          <div className="carousel-fade left" />
+          <div className="carousel-fade right" />
         </div>
       </div>
 
@@ -1040,10 +996,29 @@ export default function Destaques({
           position: relative;
         }
 
+        .carousel-fade {
+          position: absolute;
+          top: 0;
+          bottom: 14px;
+          width: 42px;
+          pointer-events: none;
+          z-index: 2;
+        }
+
+        .carousel-fade.left {
+          left: 0;
+          background: linear-gradient(to right, rgba(248, 239, 236, 0.96), transparent);
+        }
+
+        .carousel-fade.right {
+          right: 0;
+          background: linear-gradient(to left, rgba(248, 239, 236, 0.96), transparent);
+        }
+
         .destaques-carousel {
           display: grid;
           grid-auto-flow: column;
-          grid-auto-columns: minmax(260px, 290px);
+          grid-auto-columns: clamp(250px, 24vw, 290px);
           gap: 18px;
           overflow-x: auto;
           overflow-y: hidden;
@@ -1328,6 +1303,10 @@ export default function Destaques({
 
           .destaque-acoes {
             grid-template-columns: 1fr 1fr;
+          }
+
+          .carousel-fade {
+            display: none;
           }
         }
 
