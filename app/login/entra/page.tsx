@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import {
   FaArrowLeft,
@@ -46,7 +46,7 @@ export default function EntrarPage() {
   const [loadingPin, setLoadingPin] = useState(false);
   const [mostrarModalPin, setMostrarModalPin] = useState(false);
 
-  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
+  async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     if (!email.trim()) {
@@ -66,8 +66,6 @@ export default function EntrarPage() {
         email: email.trim(),
         senha: senha.trim(),
       });
-
-      console.log("RESPOSTA LOGIN =>", response.data);
 
       const body = response.data;
       const dados = body?.dados;
@@ -92,7 +90,9 @@ export default function EntrarPage() {
 
       if (etapa2) {
         if (!usuarioId) {
-          toast.error("Não foi possível identificar o usuário para validar o PIN.");
+          toast.error(
+            "Não foi possível identificar o usuário para validar o PIN."
+          );
           return;
         }
 
@@ -138,8 +138,6 @@ export default function EntrarPage() {
         pin: pin.trim(),
       });
 
-      console.log("RESPOSTA LOGIN2 =>", response.data);
-
       const body = response.data;
       const dados = body?.dados;
 
@@ -184,73 +182,100 @@ export default function EntrarPage() {
   return (
     <>
       <main className="login-page">
+        <div className="overlay" />
         <div className="bg-circle circle-1" />
         <div className="bg-circle circle-2" />
         <div className="bg-circle circle-3" />
 
-        <section className="card">
-          <div className="top-line" />
+        <section className="container">
+          <div className="left-side">
+            <div className="brand-badge">
+              <FaShieldAlt />
+              Acesso seguro
+            </div>
 
-          <button
-            type="button"
-            className="back-button"
-            onClick={() => router.push("/login")}
-          >
-            <FaArrowLeft />
-            <span>Voltar</span>
-          </button>
+            <h1>Login</h1>
 
-          <div className="icon-brand">
-            <FaShieldAlt />
+            <p>
+              Entre com seu e-mail e senha para acessar sua conta e continuar
+              sua experiência de compra.
+            </p>
+
+            <div className="features">
+              <div className="feature">Compra segura</div>
+              <div className="feature">Acesso rápido</div>
+              <div className="feature">Atendimento premium</div>
+            </div>
           </div>
 
-          <span className="badge">Acesso seguro</span>
+          <div className="right-side">
+            <div className="card">
+              <div className="top-line" />
 
-          <h1>Login</h1>
+              <button
+                type="button"
+                className="back-button"
+                onClick={() => router.push("/login")}
+              >
+                <FaArrowLeft />
+                <span>Voltar</span>
+              </button>
 
-          <p className="subtitle">
-            Informe seu e-mail e senha para acessar a plataforma.
-          </p>
-
-          <form onSubmit={handleLogin} className="form">
-            <div className="input-group">
-              <label htmlFor="email">E-mail</label>
-              <div className="input-wrapper">
-                <span className="input-icon">
-                  <FaEnvelope />
-                </span>
-                <input
-                  id="email"
-                  type="email"
-                  placeholder="Digite seu e-mail"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  autoComplete="email"
-                />
+              <div className="icon-brand">
+                <FaShieldAlt />
               </div>
-            </div>
 
-            <div className="input-group">
-              <label htmlFor="senha">Senha</label>
-              <div className="input-wrapper">
-                <span className="input-icon">
-                  <FaLock />
-                </span>
-                <input
-                  id="senha"
-                  type="password"
-                  placeholder="Digite sua senha"
-                  value={senha}
-                  onChange={(e) => setSenha(e.target.value)}
-                  autoComplete="current-password"
-                />
-              </div>
-            </div>
+              <span className="badge">Bem-vindo de volta</span>
 
-            <button type="submit" className="btn-login" disabled={loading}>
-              {loading ? "Validando..." : "Continuar"}
-            </button>
-          </form>
+              <p className="subtitle">
+                Informe seus dados para entrar na sua conta.
+              </p>
+
+              <form onSubmit={handleLogin} className="form">
+                <div className="input-group">
+                  <label htmlFor="email">E-mail</label>
+
+                  <div className="input-wrapper">
+                    <span className="input-icon">
+                      <FaEnvelope />
+                    </span>
+
+                    <input
+                      id="email"
+                      type="email"
+                      placeholder="Digite seu e-mail"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      autoComplete="email"
+                    />
+                  </div>
+                </div>
+
+                <div className="input-group">
+                  <label htmlFor="senha">Senha</label>
+
+                  <div className="input-wrapper">
+                    <span className="input-icon">
+                      <FaLock />
+                    </span>
+
+                    <input
+                      id="senha"
+                      type="password"
+                      placeholder="Digite sua senha"
+                      value={senha}
+                      onChange={(e) => setSenha(e.target.value)}
+                      autoComplete="current-password"
+                    />
+                  </div>
+                </div>
+
+                <button type="submit" className="btn-login" disabled={loading}>
+                  {loading ? "Validando..." : "Continuar"}
+                </button>
+              </form>
+            </div>
+          </div>
         </section>
 
         {mostrarModalPin && (
@@ -261,7 +286,9 @@ export default function EntrarPage() {
               </div>
 
               <h2>PIN de acesso</h2>
-              <p className="modal-text">Digite o PIN para concluir o login.</p>
+              <p className="modal-text">
+                Digite o PIN para concluir o login.
+              </p>
 
               <div className="pin-display">
                 {Array.from({ length: 6 }).map((_, index) => (
@@ -275,17 +302,19 @@ export default function EntrarPage() {
               </div>
 
               <div className="keypad">
-                {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((numero) => (
-                  <button
-                    key={numero}
-                    type="button"
-                    className="key"
-                    onClick={() => adicionarNumero(numero)}
-                    disabled={loadingPin}
-                  >
-                    {numero}
-                  </button>
-                ))}
+                {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map(
+                  (numero) => (
+                    <button
+                      key={numero}
+                      type="button"
+                      className="key"
+                      onClick={() => adicionarNumero(numero)}
+                      disabled={loadingPin}
+                    >
+                      {numero}
+                    </button>
+                  )
+                )}
 
                 <button
                   type="button"
@@ -354,21 +383,33 @@ export default function EntrarPage() {
           position: relative;
           overflow: hidden;
           padding: 24px;
-          background: linear-gradient(135deg, #b76e79 0%, #1f3a5f 100%);
+          background: linear-gradient(
+            135deg,
+            #f7ebe8 0%,
+            #f5efe8 50%,
+            #fffaf7 100%
+          );
+        }
+
+        .overlay {
+          position: absolute;
+          inset: 0;
+          backdrop-filter: blur(4px);
+          background: rgba(183, 110, 121, 0.14);
         }
 
         .bg-circle {
           position: absolute;
           border-radius: 999px;
           filter: blur(10px);
-          opacity: 0.22;
+          opacity: 0.18;
           pointer-events: none;
         }
 
         .circle-1 {
           width: 320px;
           height: 320px;
-          background: rgba(255, 255, 255, 0.35);
+          background: rgba(183, 110, 121, 0.24);
           top: -90px;
           left: -80px;
         }
@@ -376,7 +417,7 @@ export default function EntrarPage() {
         .circle-2 {
           width: 420px;
           height: 420px;
-          background: rgba(255, 255, 255, 0.18);
+          background: rgba(109, 76, 82, 0.12);
           bottom: -140px;
           right: -120px;
         }
@@ -384,22 +425,94 @@ export default function EntrarPage() {
         .circle-3 {
           width: 220px;
           height: 220px;
-          background: rgba(255, 255, 255, 0.18);
+          background: rgba(255, 255, 255, 0.24);
           top: 18%;
           right: 12%;
         }
 
-        .card {
+        .container {
           position: relative;
           z-index: 2;
           width: 100%;
-          max-width: 500px;
-          background: rgba(255, 255, 255, 0.96);
-          backdrop-filter: blur(14px);
-          border-radius: 32px;
+          max-width: 1280px;
+          display: grid;
+          grid-template-columns: 1.1fr 460px;
+          align-items: center;
+          gap: 60px;
+        }
+
+        .left-side {
+          color: #6d4c52;
+        }
+
+        .brand-badge {
+          width: fit-content;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 18px;
+          border-radius: 999px;
+          background: rgba(255, 250, 247, 0.74);
+          border: 1px solid rgba(183, 110, 121, 0.14);
+          margin-bottom: 28px;
+          font-size: 13px;
+          font-weight: 700;
+          backdrop-filter: blur(12px);
+          color: #8b4d59;
+        }
+
+        .left-side h1 {
+          margin: 0 0 20px;
+          font-size: 72px;
+          line-height: 0.95;
+          font-weight: 900;
+          letter-spacing: -0.05em;
+          max-width: 700px;
+          color: #6d4c52;
+        }
+
+        .left-side p {
+          max-width: 560px;
+          margin: 0;
+          color: #8b6b70;
+          font-size: 18px;
+          line-height: 1.8;
+        }
+
+        .features {
+          margin-top: 40px;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 16px;
+        }
+
+        .feature {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 14px 18px;
+          border-radius: 18px;
+          background: rgba(255, 250, 247, 0.76);
+          border: 1px solid rgba(183, 110, 121, 0.1);
+          backdrop-filter: blur(10px);
+          font-size: 14px;
+          font-weight: 600;
+          color: #6d4c52;
+        }
+
+        .right-side {
+          display: flex;
+          justify-content: center;
+        }
+
+        .card {
+          width: 100%;
+          background: rgba(255, 250, 247, 0.98);
+          border-radius: 36px;
           padding: 34px 34px 30px;
-          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.2);
-          border: 1px solid rgba(255, 255, 255, 0.6);
+          box-shadow: 0 30px 80px rgba(183, 110, 121, 0.18);
+          border: 1px solid rgba(183, 110, 121, 0.08);
+          backdrop-filter: blur(14px);
         }
 
         .top-line {
@@ -407,7 +520,7 @@ export default function EntrarPage() {
           height: 6px;
           border-radius: 999px;
           margin: 0 auto 22px;
-          background: linear-gradient(135deg, #b76e79, #1f3a5f);
+          background: linear-gradient(135deg, #b76e79, #d6b7a6);
         }
 
         .back-button {
@@ -416,7 +529,7 @@ export default function EntrarPage() {
           gap: 8px;
           border: none;
           background: transparent;
-          color: #4b5563;
+          color: #8b6b70;
           font-size: 14px;
           font-weight: 700;
           cursor: pointer;
@@ -434,8 +547,9 @@ export default function EntrarPage() {
           align-items: center;
           justify-content: center;
           font-size: 30px;
-          color: #fff;
-          background: linear-gradient(135deg, #b76e79 0%, #1f3a5f 100%);
+          color: #fffaf7;
+          background: linear-gradient(135deg, #b76e79 0%, #9d5c67 100%);
+          box-shadow: 0 16px 30px rgba(183, 110, 121, 0.24);
         }
 
         .badge {
@@ -457,7 +571,7 @@ export default function EntrarPage() {
           text-align: center;
           font-size: 38px;
           font-weight: 800;
-          color: #111827;
+          color: #6d4c52;
         }
 
         .subtitle,
@@ -465,7 +579,7 @@ export default function EntrarPage() {
           margin: 0 auto 28px;
           max-width: 390px;
           text-align: center;
-          color: #4b5563;
+          color: #8b6b70;
           font-size: 15px;
           line-height: 1.75;
         }
@@ -485,7 +599,7 @@ export default function EntrarPage() {
         .input-group label {
           font-size: 14px;
           font-weight: 700;
-          color: #1f2937;
+          color: #6d4c52;
         }
 
         .input-wrapper {
@@ -497,18 +611,25 @@ export default function EntrarPage() {
           left: 16px;
           top: 50%;
           transform: translateY(-50%);
-          color: #8b4d59;
+          color: #b76e79;
         }
 
         .input-group input {
           width: 100%;
           height: 56px;
           border-radius: 16px;
-          border: 1px solid #e5e7eb;
+          border: 1px solid #ecd7d3;
           background: #fff;
           padding: 0 16px 0 46px;
           font-size: 15px;
           outline: none;
+          color: #2f1f22;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .input-group input:focus {
+          border-color: #b76e79;
+          box-shadow: 0 0 0 4px rgba(183, 110, 121, 0.12);
         }
 
         .btn-login,
@@ -520,17 +641,34 @@ export default function EntrarPage() {
           font-size: 16px;
           font-weight: 700;
           cursor: pointer;
+          transition: transform 0.2s ease, box-shadow 0.2s ease,
+            background 0.2s ease;
         }
 
         .btn-login,
         .btn-confirmar {
-          background: linear-gradient(135deg, #b76e79 0%, #1f3a5f 100%);
-          color: #fff;
+          background: linear-gradient(135deg, #b76e79 0%, #9d5c67 100%);
+          color: #fffaf7;
+          box-shadow: 0 18px 40px rgba(183, 110, 121, 0.22);
+        }
+
+        .btn-login:hover,
+        .btn-confirmar:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 22px 48px rgba(183, 110, 121, 0.28);
+        }
+
+        .btn-login:disabled,
+        .btn-confirmar:disabled,
+        .btn-cancelar:disabled,
+        .key:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
         }
 
         .btn-cancelar {
-          background: #f3f4f6;
-          color: #111827;
+          background: #f3e9e6;
+          color: #6d4c52;
         }
 
         .modal-overlay {
@@ -548,11 +686,12 @@ export default function EntrarPage() {
         .modal-pin {
           width: 100%;
           max-width: 420px;
-          background: #fff;
+          background: rgba(255, 250, 247, 0.98);
           border-radius: 28px;
           padding: 28px 24px 24px;
           box-shadow: 0 30px 80px rgba(0, 0, 0, 0.28);
           text-align: center;
+          border: 1px solid rgba(183, 110, 121, 0.08);
         }
 
         .pin-display {
@@ -566,18 +705,18 @@ export default function EntrarPage() {
           width: 42px;
           height: 50px;
           border-radius: 14px;
-          border: 1px solid #e5e7eb;
-          background: #f9fafb;
+          border: 1px solid #ecd7d3;
+          background: #fff;
           display: flex;
           align-items: center;
           justify-content: center;
           font-size: 26px;
-          color: #111827;
+          color: #6d4c52;
         }
 
         .dot.active {
           border-color: #b76e79;
-          background: #fff7f8;
+          background: #fff4f2;
         }
 
         .keypad {
@@ -591,16 +730,137 @@ export default function EntrarPage() {
           height: 58px;
           border: none;
           border-radius: 16px;
-          background: #f3f4f6;
-          color: #111827;
+          background: #f3e9e6;
+          color: #6d4c52;
           font-size: 20px;
           font-weight: 800;
           cursor: pointer;
         }
 
+        .key-action {
+          background: #ecd7d3;
+        }
+
         .modal-actions {
           display: flex;
           gap: 12px;
+        }
+
+        @media (max-width: 1100px) {
+          .container {
+            grid-template-columns: 1fr;
+            gap: 40px;
+          }
+
+          .left-side {
+            text-align: center;
+          }
+
+          .brand-badge {
+            margin-left: auto;
+            margin-right: auto;
+          }
+
+          .left-side h1 {
+            font-size: 54px;
+            margin-left: auto;
+            margin-right: auto;
+          }
+
+          .left-side p {
+            margin-left: auto;
+            margin-right: auto;
+          }
+
+          .features {
+            justify-content: center;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .login-page {
+            padding: 18px;
+          }
+
+          .container {
+            gap: 28px;
+          }
+
+          .left-side h1 {
+            font-size: 40px;
+          }
+
+          .left-side p {
+            font-size: 15px;
+            line-height: 1.7;
+          }
+
+          .card {
+            padding: 32px 22px;
+            border-radius: 28px;
+          }
+
+          .icon-brand,
+          .modal-icon {
+            width: 68px;
+            height: 68px;
+            font-size: 26px;
+          }
+
+          .card h2,
+          .modal-pin h2 {
+            font-size: 30px;
+          }
+
+          .btn-login,
+          .btn-register,
+          .btn-confirmar,
+          .btn-cancelar {
+            height: 54px;
+            border-radius: 16px;
+          }
+
+          .features {
+            gap: 12px;
+          }
+
+          .feature {
+            width: 100%;
+            justify-content: center;
+          }
+
+          .modal-actions {
+            flex-direction: column;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .left-side h1 {
+            font-size: 32px;
+          }
+
+          .card {
+            padding: 28px 18px;
+          }
+
+          .dot {
+            width: 38px;
+            height: 46px;
+          }
+
+          .key {
+            height: 54px;
+            border-radius: 14px;
+          }
+        }
+
+        @supports (padding: max(0px)) {
+          .login-page {
+            padding-left: max(18px, env(safe-area-inset-left));
+            padding-right: max(18px, env(safe-area-inset-right));
+            padding-top: max(18px, env(safe-area-inset-top));
+            padding-bottom: max(18px, env(safe-area-inset-bottom));
+          }
         }
       `}</style>
     </>
