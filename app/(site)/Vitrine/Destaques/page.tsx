@@ -11,7 +11,6 @@ import {
   FiChevronLeft,
   FiChevronRight,
 } from "react-icons/fi";
-
 import { toast } from "react-toastify";
 
 import {
@@ -28,7 +27,6 @@ function normalizarDados<T = any>(payload: any): T | null {
 
 function normalizarLista<T = any>(payload: any): T[] {
   const dados = payload?.dados?.dados ?? payload?.dados ?? payload ?? [];
-
   return Array.isArray(dados) ? dados : [];
 }
 
@@ -36,7 +34,6 @@ function resolverImagem(src?: string | null) {
   if (!src) return "";
 
   const valor = String(src).trim();
-
   if (!valor) return "";
 
   if (
@@ -49,9 +46,7 @@ function resolverImagem(src?: string | null) {
   }
 
   const baseURL =
-    typeof api === "string"
-      ? api
-      : (api as any)?.defaults?.baseURL || "";
+    typeof api === "string" ? api : (api as any)?.defaults?.baseURL || "";
 
   if (!baseURL) return valor;
 
@@ -116,9 +111,7 @@ function calcularEconomia(
     return null;
   }
 
-  const percentual = Math.round(
-    ((original - final) / original) * 100
-  );
+  const percentual = Math.round(((original - final) / original) * 100);
 
   return `${percentual}% OFF`;
 }
@@ -151,22 +144,18 @@ export default function Destaques({
 }: Props) {
   const [loading, setLoading] = useState<boolean>(true);
   const [erro, setErro] = useState<string>("");
-
-  const [vitrine, setVitrine] = useState<Vitrine | null>(
-    vitrineProp || null
-  );
-
+  const [vitrine, setVitrine] = useState<Vitrine | null>(vitrineProp || null);
   const [itens, setItens] = useState<ItemResolvido[]>([]);
   const [adicionandoId, setAdicionandoId] = useState<string | null>(null);
+  const [podeVoltar, setPodeVoltar] = useState(false);
+  const [podeAvancar, setPodeAvancar] = useState(false);
 
   const carouselRef = useRef<HTMLDivElement | null>(null);
 
   const vitrineComItens = useMemo(() => {
     if (!vitrineProp) return null;
 
-    const lista = Array.isArray(vitrineProp.itens)
-      ? vitrineProp.itens
-      : [];
+    const lista = Array.isArray(vitrineProp.itens) ? vitrineProp.itens : [];
 
     return {
       ...vitrineProp,
@@ -187,13 +176,8 @@ export default function Destaques({
         if (vitrineComItens?.id_vitrine) {
           vitrineAtual = vitrineComItens;
         } else if (slug) {
-          const vitrineResponse = await api.get(
-            `/vitrine/slug/${slug}`
-          );
-
-          const vitrineData = normalizarDados<Vitrine>(
-            vitrineResponse?.data
-          );
+          const vitrineResponse = await api.get(`/vitrine/slug/${slug}`);
+          const vitrineData = normalizarDados<Vitrine>(vitrineResponse?.data);
 
           if (!vitrineData || !vitrineData.id_vitrine) {
             if (!ativo) return;
@@ -201,7 +185,6 @@ export default function Destaques({
             setErro("Vitrine não encontrada.");
             setVitrine(null);
             setItens([]);
-
             return;
           }
 
@@ -209,9 +192,7 @@ export default function Destaques({
             `/vitrine/${vitrineData.id_vitrine}/itens`
           );
 
-          let itensData = normalizarLista<VitrineItem>(
-            itensResponse?.data
-          );
+          let itensData = normalizarLista<VitrineItem>(itensResponse?.data);
 
           if (limite) {
             itensData = itensData.slice(0, limite);
@@ -227,7 +208,6 @@ export default function Destaques({
           setErro("Nenhuma vitrine informada.");
           setVitrine(null);
           setItens([]);
-
           return;
         }
 
@@ -241,21 +221,12 @@ export default function Destaques({
 
         const itensResolvidos: ItemResolvido[] = await Promise.all(
           listaItens.map(async (item) => {
-            const tipoItem = descobrirTipoItem(
-              item,
-              vitrineAtual?.tipo
-            );
+            const tipoItem = descobrirTipoItem(item, vitrineAtual?.tipo);
 
             try {
               if (tipoItem === "produto" && item.produto_id) {
-                const res = await api.get(
-                  `/produto/${item.produto_id}`
-                );
-
-                const produto =
-                  normalizarDados<EntidadeGenerica>(
-                    res?.data
-                  ) || {};
+                const res = await api.get(`/produto/${item.produto_id}`);
+                const produto = normalizarDados<EntidadeGenerica>(res?.data) || {};
 
                 const precoPromocional =
                   produto.preco_promocional !== null &&
@@ -264,12 +235,8 @@ export default function Destaques({
                     ? produto.preco_promocional
                     : null;
 
-                const precoFinal =
-                  precoPromocional || produto.preco || null;
-
-                const precoOriginal = precoPromocional
-                  ? produto.preco || null
-                  : null;
+                const precoFinal = precoPromocional || produto.preco || null;
+                const precoOriginal = precoPromocional ? produto.preco || null : null;
 
                 return {
                   ...item,
@@ -291,6 +258,7 @@ export default function Destaques({
                   descricao_final:
                     produto.descricao_curta ||
                     produto.descricao ||
+                    item.subtitulo_personalizado ||
                     "",
 
                   imagem_final: obterMelhorImagem(item, produto),
@@ -301,11 +269,85 @@ export default function Destaques({
 
                   preco_final: precoFinal,
                   preco_original: precoOriginal,
+                  marca_final: produto.marca || "",
+                  sku_final: produto.sku || "",
+                  economia_final: calcularEconomia(precoOriginal, precoFinal),
+                };
+              }
 
-                  economia_final: calcularEconomia(
-                    precoOriginal,
-                    precoFinal
-                  ),
+              if (tipoItem === "campanha" && item.campanha_id) {
+                const res = await api.get(`/campanha/${item.campanha_id}`);
+                const campanha = normalizarDados<EntidadeGenerica>(res?.data) || {};
+
+                return {
+                  ...item,
+                  entidade: campanha,
+                  tipo_item: "campanha",
+
+                  titulo_final:
+                    item.titulo_personalizado ||
+                    campanha.nome ||
+                    campanha.titulo ||
+                    `Campanha #${item.campanha_id}`,
+
+                  subtitulo_final:
+                    item.subtitulo_personalizado ||
+                    campanha.subtitulo ||
+                    campanha.descricao ||
+                    "",
+
+                  descricao_final:
+                    campanha.descricao_curta || campanha.descricao || "",
+
+                  imagem_final: obterMelhorImagem(item, campanha),
+
+                  link_final: campanha.slug
+                    ? `/campanha/${campanha.slug}`
+                    : `/campanha/${item.campanha_id}`,
+
+                  preco_final: null,
+                  preco_original: null,
+                  marca_final: "",
+                  sku_final: "",
+                  economia_final: null,
+                };
+              }
+
+              if (tipoItem === "categoria" && item.categoria_id) {
+                const res = await api.get(`/categoria/${item.categoria_id}`);
+                const categoria = normalizarDados<EntidadeGenerica>(res?.data) || {};
+
+                return {
+                  ...item,
+                  entidade: categoria,
+                  tipo_item: "categoria",
+
+                  titulo_final:
+                    item.titulo_personalizado ||
+                    categoria.nome ||
+                    categoria.titulo ||
+                    `Categoria #${item.categoria_id}`,
+
+                  subtitulo_final:
+                    item.subtitulo_personalizado ||
+                    categoria.subtitulo ||
+                    categoria.descricao_curta ||
+                    "",
+
+                  descricao_final:
+                    categoria.descricao_curta || categoria.descricao || "",
+
+                  imagem_final: obterMelhorImagem(item, categoria),
+
+                  link_final: categoria.slug
+                    ? `/categoria/${categoria.slug}`
+                    : `/categoria/${item.categoria_id}`,
+
+                  preco_final: null,
+                  preco_original: null,
+                  marca_final: "",
+                  sku_final: "",
+                  economia_final: null,
                 };
               }
 
@@ -314,25 +356,15 @@ export default function Destaques({
                 entidade: null,
                 tipo_item: tipoItem,
 
-                titulo_final:
-                  item.titulo_personalizado ||
-                  "Item da vitrine",
-
-                subtitulo_final:
-                  item.subtitulo_personalizado || "",
-
-                descricao_final:
-                  item.subtitulo_personalizado || "",
-
-                imagem_final: resolverImagem(
-                  item.imagem_personalizada || ""
-                ),
-
+                titulo_final: item.titulo_personalizado || "Item da vitrine",
+                subtitulo_final: item.subtitulo_personalizado || "",
+                descricao_final: item.subtitulo_personalizado || "",
+                imagem_final: resolverImagem(item.imagem_personalizada || ""),
                 link_final: "#",
-
                 preco_final: null,
                 preco_original: null,
-
+                marca_final: "",
+                sku_final: "",
                 economia_final: null,
               };
             } catch {
@@ -341,25 +373,15 @@ export default function Destaques({
                 entidade: null,
                 tipo_item: tipoItem,
 
-                titulo_final:
-                  item.titulo_personalizado ||
-                  "Item da vitrine",
-
-                subtitulo_final:
-                  item.subtitulo_personalizado || "",
-
-                descricao_final:
-                  item.subtitulo_personalizado || "",
-
-                imagem_final: resolverImagem(
-                  item.imagem_personalizada || ""
-                ),
-
+                titulo_final: item.titulo_personalizado || "Item da vitrine",
+                subtitulo_final: item.subtitulo_personalizado || "",
+                descricao_final: item.subtitulo_personalizado || "",
+                imagem_final: resolverImagem(item.imagem_personalizada || ""),
                 link_final: "#",
-
                 preco_final: null,
                 preco_original: null,
-
+                marca_final: "",
+                sku_final: "",
                 economia_final: null,
               };
             }
@@ -370,11 +392,12 @@ export default function Destaques({
 
         setItens(itensResolvidos);
       } catch (error) {
-        console.error(error);
+        console.error("Erro ao carregar vitrine:", error);
 
         if (!ativo) return;
 
         setErro("Não foi possível carregar a vitrine.");
+        setVitrine(null);
         setItens([]);
       } finally {
         if (ativo) {
@@ -390,13 +413,41 @@ export default function Destaques({
     };
   }, [slug, limite, vitrineComItens]);
 
-  function scrollCarousel(direction: "left" | "right") {
-    if (!carouselRef.current) return;
+  useEffect(() => {
+    const carousel = carouselRef.current;
 
-    const width = carouselRef.current.offsetWidth;
+    if (!carousel) return;
 
-    carouselRef.current.scrollBy({
-      left: direction === "left" ? -width : width,
+    const atualizarBotoes = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = carousel;
+      const maxScroll = scrollWidth - clientWidth;
+
+      setPodeVoltar(scrollLeft > 4);
+      setPodeAvancar(scrollLeft < maxScroll - 4);
+    };
+
+    atualizarBotoes();
+
+    carousel.addEventListener("scroll", atualizarBotoes);
+    window.addEventListener("resize", atualizarBotoes);
+
+    return () => {
+      carousel.removeEventListener("scroll", atualizarBotoes);
+      window.removeEventListener("resize", atualizarBotoes);
+    };
+  }, [itens.length, loading]);
+
+  function moverCarousel(direcao: "prev" | "next") {
+    const carousel = carouselRef.current;
+    if (!carousel) return;
+
+    const card = carousel.querySelector<HTMLElement>(".destaque-card");
+    const larguraCard = card?.offsetWidth || 280;
+    const gap = 18;
+    const distancia = larguraCard + gap;
+
+    carousel.scrollBy({
+      left: direcao === "next" ? distancia : -distancia,
       behavior: "smooth",
     });
   }
@@ -426,10 +477,8 @@ export default function Destaques({
         produto_id: Number(item.produto_id),
         quantidade: 1,
         preco: Number.isNaN(precoBase) ? 0 : precoBase,
-
         preco_promocional:
-          precoPromocional !== null &&
-          !Number.isNaN(precoPromocional)
+          precoPromocional !== null && !Number.isNaN(precoPromocional)
             ? precoPromocional
             : null,
       },
@@ -439,12 +488,13 @@ export default function Destaques({
     );
   }
 
-  async function handleAdicionarCarrinho(
-    item: ItemResolvido
-  ) {
+  async function handleAdicionarCarrinho(item: ItemResolvido) {
     if (onAdicionarCarrinho) {
       onAdicionarCarrinho(item);
+      return;
+    }
 
+    if (item.tipo_item !== "produto" || !item.produto_id) {
       return;
     }
 
@@ -453,25 +503,205 @@ export default function Destaques({
 
       await adicionarNoCarrinhoBanco(item);
 
-      toast.success(
-        "Produto adicionado ao carrinho com sucesso."
-      );
+      toast.success("Produto adicionado ao carrinho com sucesso.");
     } catch (error: any) {
-      console.error(error);
+      console.error("Erro ao adicionar no carrinho:", error);
 
-      const mensagem =
+      const mensagemErro =
         error?.response?.data?.dados?.erro ||
         error?.response?.data?.mensagem ||
-        "Erro ao adicionar produto.";
+        "Não foi possível adicionar o produto ao carrinho.";
 
-      toast.error(mensagem);
+      toast.error(mensagemErro);
     } finally {
       setAdicionandoId(null);
     }
   }
 
   if (loading) {
-    return null;
+    return (
+      <section className={`destaques-section ${className}`}>
+        <div className="destaques-container">
+          <div className="destaques-header destaques-header-row">
+            <div className="destaques-header-texto">
+              <div className="skeleton skeleton-badge" />
+              <div className="skeleton skeleton-title" />
+              <div className="skeleton skeleton-text" />
+            </div>
+            <div className="skeleton skeleton-button" />
+          </div>
+
+          <div className="skeleton-grid">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <article className="skeleton-card" key={index}>
+                <div className="skeleton skeleton-image" />
+                <div className="skeleton-body">
+                  <div className="skeleton skeleton-line title" />
+                  <div className="skeleton skeleton-line" />
+                  <div className="skeleton skeleton-line short" />
+                  <div className="skeleton-actions">
+                    <div className="skeleton skeleton-btn" />
+                    <div className="skeleton skeleton-btn outline" />
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+
+        <style jsx>{`
+          .destaques-section {
+            padding: 24px 0;
+          }
+
+          .destaques-container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 16px;
+          }
+
+          .destaques-header-row {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 16px;
+            margin-bottom: 22px;
+          }
+
+          .destaques-header-texto {
+            flex: 1;
+          }
+
+          .skeleton {
+            position: relative;
+            overflow: hidden;
+            background: #eadfd8;
+            border-radius: 16px;
+          }
+
+          .skeleton::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -160px;
+            width: 120px;
+            height: 100%;
+            background: linear-gradient(
+              90deg,
+              transparent,
+              rgba(255, 255, 255, 0.7),
+              transparent
+            );
+            animation: shimmer 1.15s infinite;
+          }
+
+          .skeleton-badge {
+            width: 86px;
+            height: 26px;
+            margin-bottom: 12px;
+            border-radius: 999px;
+          }
+
+          .skeleton-title {
+            width: min(360px, 70%);
+            height: 38px;
+            margin-bottom: 10px;
+          }
+
+          .skeleton-text {
+            width: min(520px, 90%);
+            height: 18px;
+          }
+
+          .skeleton-button {
+            width: 124px;
+            height: 44px;
+            border-radius: 14px;
+          }
+
+          .skeleton-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 18px;
+          }
+
+          .skeleton-card {
+            border-radius: 24px;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.72);
+            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+          }
+
+          .skeleton-image {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            border-radius: 0;
+          }
+
+          .skeleton-body {
+            padding: 16px;
+          }
+
+          .skeleton-line {
+            height: 16px;
+            margin-bottom: 10px;
+          }
+
+          .skeleton-line.title {
+            height: 22px;
+            width: 82%;
+          }
+
+          .skeleton-line.short {
+            width: 62%;
+            margin-bottom: 18px;
+          }
+
+          .skeleton-actions {
+            display: flex;
+            gap: 10px;
+          }
+
+          .skeleton-btn {
+            flex: 1;
+            height: 42px;
+            border-radius: 14px;
+          }
+
+          .skeleton-btn.outline {
+            background: #f2e7e1;
+          }
+
+          @keyframes shimmer {
+            100% {
+              left: 120%;
+            }
+          }
+
+          @media (max-width: 900px) {
+            .skeleton-grid {
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .destaques-header-row {
+              align-items: flex-start;
+              flex-direction: column;
+            }
+
+            .skeleton-button {
+              width: 100%;
+              max-width: 180px;
+            }
+          }
+
+          @media (max-width: 640px) {
+            .skeleton-grid {
+              grid-template-columns: 1fr;
+            }
+          }
+        `}</style>
+      </section>
+    );
   }
 
   if (erro || !vitrine || itens.length === 0) {
@@ -480,161 +710,151 @@ export default function Destaques({
 
   const linkVerMais =
     verMaisHref ||
-    (vitrine.slug
-      ? `/Vitrine/${vitrine.slug}`
-      : slug
-      ? `/Vitrine/${slug}`
-      : "#");
+    (vitrine.slug ? `/Vitrine/${vitrine.slug}` : slug ? `/Vitrine/${slug}` : "#");
 
   return (
-    <>
-      <section
-        className={`destaques-section ${className}`}
-      >
-        <div className="destaques-container">
-          <div className="destaques-header">
-            <div>
-              <span className="badge">
-                {vitrine?.tipo || "Vitrine"}
-              </span>
+    <section className={`destaques-section ${className}`}>
+      <div className="destaques-container">
+        <div className="destaques-header destaques-header-row">
+          <div className="destaques-header-texto">
+            <span className="destaques-badge">{vitrine?.tipo || "Vitrine"}</span>
 
-              <h2 className="title">
-                {tituloPersonalizado ||
-                  vitrine?.titulo ||
-                  vitrine?.nome}
-              </h2>
+            <h2 className="destaques-title">
+              {tituloPersonalizado || vitrine?.titulo || vitrine?.nome}
+            </h2>
 
-              {(subtituloPersonalizado ||
-                vitrine?.subtitulo) && (
-                <p className="subtitle">
-                  {subtituloPersonalizado ||
-                    vitrine?.subtitulo}
-                </p>
-              )}
-            </div>
-
-            <div className="header-actions">
-              <button
-                className="arrow-btn"
-                onClick={() =>
-                  scrollCarousel("left")
-                }
-              >
-                <FiChevronLeft />
-              </button>
-
-              <button
-                className="arrow-btn"
-                onClick={() =>
-                  scrollCarousel("right")
-                }
-              >
-                <FiChevronRight />
-              </button>
-
-              <Link
-                href={linkVerMais}
-                className="btn-ver-mais"
-              >
-                {verMaisTexto}
-              </Link>
-            </div>
+            {(subtituloPersonalizado || vitrine?.subtitulo) && (
+              <p className="destaques-description">
+                {subtituloPersonalizado || vitrine?.subtitulo}
+              </p>
+            )}
           </div>
 
-          <div
-            ref={carouselRef}
-            className="carousel"
-          >
+          <div className="header-actions">
+            <button
+              type="button"
+              className="nav-btn"
+              onClick={() => moverCarousel("prev")}
+              disabled={!podeVoltar}
+              aria-label="Anterior"
+            >
+              <FiChevronLeft />
+            </button>
+
+            <button
+              type="button"
+              className="nav-btn"
+              onClick={() => moverCarousel("next")}
+              disabled={!podeAvancar}
+              aria-label="Próximo"
+            >
+              <FiChevronRight />
+            </button>
+
+            <Link href={linkVerMais} className="btn-ver-mais">
+              <span>{verMaisTexto}</span>
+              <FiArrowRight className="btn-icon" />
+            </Link>
+          </div>
+        </div>
+
+        <div className="carousel-shell">
+          <div ref={carouselRef} className="destaques-carousel">
             {itens.map((item) => {
-              const precoFormatado = formatarPreco(
-                item.preco_final
-              );
+              const precoFormatado = formatarPreco(item.preco_final);
+              const precoOriginalFormatado = formatarPreco(item.preco_original);
 
-              const precoOriginalFormatado =
-                formatarPreco(item.preco_original);
+              const slugVisualizacao =
+                item.entidade?.slug ||
+                (item.produto_id ? String(item.produto_id) : null) ||
+                (item.campanha_id ? String(item.campanha_id) : null) ||
+                (item.categoria_id ? String(item.categoria_id) : null);
 
-              const estaAdicionando =
-                adicionandoId ===
-                String(item.id_vitrine_item);
+              const linkVisualizarCard = slugVisualizacao
+                ? `/Vitrine/visualizar/${slugVisualizacao}`
+                : "#";
+
+              const estaAdicionando = adicionandoId === String(item.id_vitrine_item);
 
               return (
                 <article
                   key={String(item.id_vitrine_item)}
-                  className="card"
+                  className="destaque-card destaque-slide"
                 >
-                  <Link
-                    href={item.link_final || "#"}
-                    className="image-wrapper"
-                  >
+                  <div className="destaque-media">
+                    <Link href={item.link_final || "#"} className="imagem-link">
+                      {item.imagem_final ? (
+                        <img
+                          src={item.imagem_final}
+                          alt={item.titulo_final}
+                          className="destaque-imagem"
+                        />
+                      ) : (
+                        <div className="destaque-sem-imagem">
+                          <span>Sem imagem</span>
+                        </div>
+                      )}
+                    </Link>
+
                     {item.economia_final && (
-                      <span className="off-badge">
-                        {item.economia_final}
-                      </span>
+                      <span className="economia-badge">{item.economia_final}</span>
                     )}
+                  </div>
 
-                    {item.imagem_final ? (
-                      <img
-                        src={item.imagem_final}
-                        alt={item.titulo_final}
-                        className="image"
-                      />
-                    ) : (
-                      <div className="sem-imagem">
-                        Sem imagem
-                      </div>
-                    )}
-                  </Link>
-
-                  <div className="content">
-                    <h3 className="product-title">
-                      {item.titulo_final}
-                    </h3>
-
-                    {item.subtitulo_final && (
-                      <p className="product-subtitle">
-                        {item.subtitulo_final}
-                      </p>
-                    )}
-
-                    <div className="prices">
-                      {precoOriginalFormatado && (
-                        <span className="old-price">
-                          {precoOriginalFormatado}
-                        </span>
+                  <div className="destaque-conteudo">
+                    <div className="destaque-meta">
+                      {item.marca_final && (
+                        <span className="meta-chip">{item.marca_final}</span>
                       )}
 
-                      {precoFormatado && (
-                        <strong className="price">
-                          {precoFormatado}
-                        </strong>
-                      )}
+                      {item.sku_final && <span className="meta-chip">SKU {item.sku_final}</span>}
                     </div>
 
-                    <div className="buttons">
-                      <button
-                        type="button"
-                        className="btn-cart"
-                        onClick={() =>
-                          handleAdicionarCarrinho(
-                            item
-                          )
-                        }
-                        disabled={estaAdicionando}
-                      >
-                        <FiShoppingCart />
+                    <Link href={item.link_final || "#"} className="titulo-link">
+                      <h3 className="destaque-titulo">{item.titulo_final}</h3>
+                    </Link>
 
-                        <span>
-                          {estaAdicionando
-                            ? "Adicionando..."
-                            : "Carrinho"}
-                        </span>
-                      </button>
+                    {item.subtitulo_final && (
+                      <p className="destaque-subtitulo">{item.subtitulo_final}</p>
+                    )}
 
-                      <Link
-                        href={item.link_final || "#"}
-                        className="btn-view"
-                      >
-                        <FiEye />
+                    {item.descricao_final && (
+                      <p className="destaque-descricao">{item.descricao_final}</p>
+                    )}
+
+                    {(precoFormatado || precoOriginalFormatado) && (
+                      <div className="destaque-precos">
+                        {precoOriginalFormatado && (
+                          <span className="preco-original">{precoOriginalFormatado}</span>
+                        )}
+
+                        {precoFormatado && (
+                          <strong className="destaque-preco">{precoFormatado}</strong>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="destaque-acoes">
+                      {item.tipo_item === "produto" ? (
+                        <button
+                          type="button"
+                          className="btn-carrinho"
+                          onClick={() => handleAdicionarCarrinho(item)}
+                          disabled={estaAdicionando}
+                        >
+                          <FiShoppingCart className="btn-icon" />
+                          <span>{estaAdicionando ? "Adicionando..." : "Carrinho"}</span>
+                        </button>
+                      ) : (
+                        <Link href={item.link_final || "#"} className="btn-carrinho">
+                          <FiArrowRight className="btn-icon" />
+                          <span>Acessar</span>
+                        </Link>
+                      )}
+
+                      <Link href={linkVisualizarCard} className="btn-visualizar">
+                        <FiEye className="btn-icon" />
+                        <span>Visualizar</span>
                       </Link>
                     </div>
                   </div>
@@ -643,272 +863,442 @@ export default function Destaques({
             })}
           </div>
         </div>
-      </section>
+      </div>
 
       <style jsx>{`
         .destaques-section {
-          width: 100%;
-          padding: 42px 0;
+          padding: 28px 0;
         }
 
         .destaques-container {
-          width: 100%;
+          max-width: 1280px;
+          margin: 0 auto;
+          padding: 0 16px;
         }
 
-        .destaques-header {
+        .destaques-header-row {
           display: flex;
-          align-items: center;
+          align-items: end;
           justify-content: space-between;
-          gap: 20px;
-          margin-bottom: 28px;
-          flex-wrap: wrap;
+          gap: 18px;
+          margin-bottom: 20px;
         }
 
-        .badge {
+        .destaques-header-texto {
+          min-width: 0;
+        }
+
+        .destaques-badge {
           display: inline-flex;
-          padding: 7px 14px;
+          align-items: center;
+          padding: 8px 14px;
           border-radius: 999px;
-          background: #f7e7df;
-          color: #a14d67;
+          background: rgba(183, 110, 121, 0.12);
+          color: #8b4d59;
           font-size: 12px;
-          font-weight: 700;
+          font-weight: 800;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
           margin-bottom: 12px;
         }
 
-        .title {
+        .destaques-title {
           margin: 0;
-          font-size: 32px;
-          font-weight: 800;
-          color: #3e2b2f;
+          font-size: 30px;
+          line-height: 1.1;
+          font-weight: 900;
+          letter-spacing: -0.04em;
+          color: #6d4c52;
         }
 
-        .subtitle {
-          margin-top: 10px;
-          color: #7a6a6e;
+        .destaques-description {
+          margin: 10px 0 0;
+          max-width: 720px;
+          color: #8b6b70;
           font-size: 15px;
-          line-height: 1.6;
-          max-width: 620px;
+          line-height: 1.75;
         }
 
         .header-actions {
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 10px;
+          flex-shrink: 0;
         }
 
-        .arrow-btn {
+        .nav-btn {
           width: 46px;
           height: 46px;
-          border: none;
+          border: 1px solid rgba(183, 110, 121, 0.14);
+          background: rgba(255, 250, 247, 0.96);
+          color: #6d4c52;
           border-radius: 14px;
-          background: #fff7f2;
-          color: #a14d67;
-          display: flex;
+          display: inline-flex;
           align-items: center;
           justify-content: center;
-          font-size: 20px;
+          font-size: 22px;
           cursor: pointer;
-          transition: 0.2s;
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+          box-shadow: 0 14px 32px rgba(183, 110, 121, 0.08);
+          transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
         }
 
-        .arrow-btn:hover {
-          transform: translateY(-2px);
-          background: #fce9e1;
+        .nav-btn:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 18px 38px rgba(183, 110, 121, 0.12);
+        }
+
+        .nav-btn:disabled {
+          opacity: 0.38;
+          cursor: not-allowed;
+          transform: none;
+          box-shadow: 0 10px 24px rgba(183, 110, 121, 0.04);
         }
 
         .btn-ver-mais {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
           height: 46px;
           padding: 0 18px;
           border-radius: 14px;
-          background: linear-gradient(
-            135deg,
-            #b76e79 0%,
-            #d89c8d 100%
-          );
-          color: #fff;
-          text-decoration: none;
+          background: linear-gradient(135deg, #b76e79 0%, #9d5c67 100%);
+          color: #fffaf7;
           font-size: 14px;
-          font-weight: 700;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          font-weight: 800;
+          text-decoration: none;
+          box-shadow: 0 16px 34px rgba(183, 110, 121, 0.18);
+          white-space: nowrap;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .carousel {
-          display: flex;
+        .btn-ver-mais:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 20px 42px rgba(183, 110, 121, 0.22);
+        }
+
+        .btn-icon {
+          font-size: 18px;
+          flex-shrink: 0;
+        }
+
+        .carousel-shell {
+          position: relative;
+        }
+
+        .destaques-carousel {
+          display: grid;
+          grid-auto-flow: column;
+          grid-auto-columns: minmax(260px, 290px);
           gap: 18px;
           overflow-x: auto;
+          overflow-y: hidden;
+          padding: 6px 2px 14px;
+          scroll-snap-type: x mandatory;
           scroll-behavior: smooth;
+          -webkit-overflow-scrolling: touch;
           scrollbar-width: none;
-          padding-bottom: 6px;
+          -ms-overflow-style: none;
+          cursor: grab;
         }
 
-        .carousel::-webkit-scrollbar {
+        .destaques-carousel.dragging {
+          cursor: grabbing;
+          scroll-snap-type: none;
+          user-select: none;
+        }
+
+        .destaques-carousel::-webkit-scrollbar {
           display: none;
         }
 
-        .card {
-          min-width: 260px;
-          max-width: 260px;
-          background: #fffdfb;
+        .destaque-card {
+          scroll-snap-align: start;
+          overflow: hidden;
           border-radius: 26px;
-          overflow: hidden;
-          flex-shrink: 0;
-          border: 1px solid #f3e4dc;
-          transition: 0.25s ease;
-          box-shadow: 0 8px 28px rgba(0, 0, 0, 0.04);
+          background: rgba(255, 250, 247, 0.98);
+          border: 1px solid rgba(183, 110, 121, 0.1);
+          box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+          display: flex;
+          flex-direction: column;
+          min-height: 100%;
+          transition: transform 0.25s ease, box-shadow 0.25s ease;
         }
 
-        .card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 18px 34px rgba(0, 0, 0, 0.08);
+        .destaque-card:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 24px 54px rgba(15, 23, 42, 0.1);
         }
 
-        .image-wrapper {
+        .destaque-media {
           position: relative;
-          width: 100%;
-          height: 260px;
-          background: #f8f3ef;
-          display: block;
           overflow: hidden;
+          background: linear-gradient(135deg, #f5ebe7 0%, #fffaf7 100%);
         }
 
-        .image {
+        .imagem-link {
+          display: block;
+          text-decoration: none;
+        }
+
+        .destaque-imagem {
           width: 100%;
-          height: 100%;
+          aspect-ratio: 1 / 1;
           object-fit: cover;
-          transition: 0.3s;
+          display: block;
+          transition: transform 0.35s ease;
         }
 
-        .card:hover .image {
-          transform: scale(1.05);
+        .destaque-card:hover .destaque-imagem {
+          transform: scale(1.03);
         }
 
-        .off-badge {
-          position: absolute;
-          top: 14px;
-          left: 14px;
-          z-index: 5;
-          background: #b76e79;
-          color: #fff;
-          padding: 7px 12px;
-          border-radius: 999px;
-          font-size: 12px;
-          font-weight: 700;
-        }
-
-        .sem-imagem {
+        .destaque-sem-imagem {
           width: 100%;
-          height: 100%;
+          aspect-ratio: 1 / 1;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #9b8c8c;
+          color: #8b6b70;
           font-size: 14px;
+          background:
+            radial-gradient(circle at top, rgba(183, 110, 121, 0.08), transparent 46%),
+            #f7efeb;
         }
 
-        .content {
-          padding: 18px;
+        .economia-badge {
+          position: absolute;
+          left: 14px;
+          top: 14px;
+          padding: 8px 12px;
+          border-radius: 999px;
+          background: rgba(109, 76, 82, 0.94);
+          color: #fffaf7;
+          font-size: 11px;
+          font-weight: 800;
+          letter-spacing: 0.04em;
+          box-shadow: 0 12px 26px rgba(109, 76, 82, 0.18);
         }
 
-        .product-title {
-          font-size: 17px;
-          font-weight: 700;
-          color: #3f2e32;
-          margin: 0 0 8px;
-          line-height: 1.4;
-        }
-
-        .product-subtitle {
-          font-size: 14px;
-          color: #7b6f72;
-          line-height: 1.6;
-          margin-bottom: 16px;
-          min-height: 42px;
-        }
-
-        .prices {
+        .destaque-conteudo {
+          padding: 16px 16px 18px;
           display: flex;
           flex-direction: column;
-          gap: 4px;
-          margin-bottom: 18px;
+          gap: 10px;
+          flex: 1;
         }
 
-        .old-price {
-          color: #9ca3af;
-          font-size: 14px;
+        .destaque-meta {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+        }
+
+        .meta-chip {
+          display: inline-flex;
+          align-items: center;
+          height: 24px;
+          padding: 0 10px;
+          border-radius: 999px;
+          background: #f4e8e4;
+          color: #8b4d59;
+          font-size: 11px;
+          font-weight: 700;
+        }
+
+        .titulo-link {
+          text-decoration: none;
+          color: inherit;
+        }
+
+        .destaque-titulo {
+          margin: 0;
+          color: #2f1f22;
+          font-size: 18px;
+          line-height: 1.3;
+          font-weight: 800;
+          letter-spacing: -0.02em;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          min-height: 46px;
+        }
+
+        .destaque-subtitulo {
+          margin: 0;
+          color: #6f5c60;
+          font-size: 13px;
+          line-height: 1.7;
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .destaque-descricao {
+          margin: 0;
+          color: #8b6b70;
+          font-size: 13px;
+          line-height: 1.7;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+        }
+
+        .destaque-precos {
+          display: flex;
+          align-items: baseline;
+          gap: 10px;
+          margin-top: auto;
+          padding-top: 4px;
+          flex-wrap: wrap;
+        }
+
+        .preco-original {
+          color: #a89a9d;
+          font-size: 13px;
           text-decoration: line-through;
         }
 
-        .price {
-          color: #b76e79;
-          font-size: 24px;
-          font-weight: 800;
+        .destaque-preco {
+          color: #6d4c52;
+          font-size: 18px;
+          font-weight: 900;
+          letter-spacing: -0.02em;
         }
 
-        .buttons {
+        .destaque-acoes {
           display: flex;
           gap: 10px;
+          margin-top: 4px;
         }
 
-        .btn-cart {
+        .btn-carrinho,
+        .btn-visualizar {
           flex: 1;
-          height: 48px;
-          border: none;
+          height: 44px;
           border-radius: 14px;
-          background: linear-gradient(
-            135deg,
-            #b76e79 0%,
-            #d89c8d 100%
-          );
-          color: #fff;
-          font-size: 14px;
-          font-weight: 700;
-          display: flex;
+          display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 8px;
+          font-size: 13px;
+          font-weight: 800;
+          text-decoration: none;
+          transition: transform 0.2s ease, box-shadow 0.2s ease,
+            background 0.2s ease;
+          white-space: nowrap;
+        }
+
+        .btn-carrinho {
+          border: none;
+          background: linear-gradient(135deg, #b76e79 0%, #9d5c67 100%);
+          color: #fffaf7;
+          box-shadow: 0 14px 28px rgba(183, 110, 121, 0.18);
           cursor: pointer;
         }
 
-        .btn-view {
-          width: 48px;
-          height: 48px;
-          border-radius: 14px;
-          background: #fff3ec;
-          color: #b76e79;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          text-decoration: none;
-          font-size: 18px;
+        .btn-carrinho:hover,
+        .btn-visualizar:hover {
+          transform: translateY(-1px);
+        }
+
+        .btn-carrinho:disabled {
+          opacity: 0.72;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .btn-visualizar {
+          border: 1px solid #ecd7d3;
+          color: #6d4c52;
+          background: #fff;
+        }
+
+        @media (max-width: 1100px) {
+          .destaques-title {
+            font-size: 26px;
+          }
+
+          .destaques-carousel {
+            grid-auto-columns: minmax(250px, 280px);
+          }
         }
 
         @media (max-width: 768px) {
-          .title {
-            font-size: 24px;
+          .destaques-section {
+            padding: 20px 0;
           }
 
-          .card {
-            min-width: 210px;
-            max-width: 210px;
-          }
-
-          .image-wrapper {
-            height: 210px;
+          .destaques-header-row {
+            align-items: flex-start;
+            flex-direction: column;
           }
 
           .header-actions {
             width: 100%;
             justify-content: space-between;
+            flex-wrap: wrap;
           }
 
           .btn-ver-mais {
-            flex: 1;
+            margin-left: auto;
+          }
+
+          .destaques-title {
+            font-size: 24px;
+          }
+
+          .destaques-description {
+            font-size: 14px;
+          }
+
+          .destaques-carousel {
+            grid-auto-columns: minmax(240px, 78vw);
+            gap: 14px;
+            padding-bottom: 10px;
+          }
+
+          .destaque-titulo {
+            font-size: 17px;
+          }
+
+          .destaque-acoes {
+            flex-direction: column;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .destaques-container {
+            padding: 0 12px;
+          }
+
+          .destaques-carousel {
+            grid-auto-columns: 86vw;
+          }
+
+          .nav-btn {
+            width: 42px;
+            height: 42px;
+            border-radius: 12px;
+          }
+
+          .btn-ver-mais {
+            height: 42px;
+            padding: 0 14px;
+            font-size: 13px;
+          }
+
+          .destaque-conteudo {
+            padding: 14px;
+          }
+
+          .destaque-card {
+            border-radius: 22px;
           }
         }
       `}</style>
-    </>
+    </section>
   );
 }
