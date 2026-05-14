@@ -10,11 +10,12 @@ import {
   FiPlus,
   FiMinus,
   FiArrowRight,
+  FiLoader,
 } from "react-icons/fi";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { InicioApi } from "@/services/api/api";
-
+import { toast } from "react-toastify";
 
 /* =========================
    TIPAGEM
@@ -24,19 +25,25 @@ type CarrinhoItem = {
   id_carrinho_item?: number | string;
   id_item?: number | string;
   item_id?: number | string;
+
   nome?: string;
   titulo?: string;
   produto_nome?: string;
+
   produto?: {
     nome?: string;
     titulo?: string;
     imagem?: string;
+    miniatura?: string;
     foto?: string;
   };
+
   imagem?: string;
   miniatura?: string;
   foto?: string;
+
   quantidade?: number | string;
+
   preco?: number | string;
   preco_unitario?: number | string;
   subtotal?: number | string;
@@ -44,7 +51,7 @@ type CarrinhoItem = {
 };
 
 /* =========================
-   BASE URL FIXA
+   BASE URL
 ========================= */
 const BASE_URL = "https://lightgrey-cattle-160990.hostingersite.com";
 
@@ -55,6 +62,10 @@ function resolverImagem(src?: string | null) {
   if (!src) return "/images/sem-imagem.png";
 
   const valor = String(src).trim();
+
+  if (!valor) {
+    return "/images/sem-imagem.png";
+  }
 
   if (
     valor.startsWith("http://") ||
@@ -69,11 +80,14 @@ function resolverImagem(src?: string | null) {
 }
 
 function normalizarNumero(valor: unknown): number {
-  if (typeof valor === "number") return Number.isFinite(valor) ? valor : 0;
+  if (typeof valor === "number") {
+    return Number.isFinite(valor) ? valor : 0;
+  }
 
   if (typeof valor === "string") {
     const limpo = valor.replace(/\./g, "").replace(",", ".");
     const numero = Number(limpo);
+
     return Number.isFinite(numero) ? numero : 0;
   }
 
@@ -92,7 +106,9 @@ function extrairLista<T = unknown>(payload: any): T[] {
   if (Array.isArray(payload?.dados)) return payload.dados;
   if (Array.isArray(payload?.data)) return payload.data;
   if (Array.isArray(payload?.itens)) return payload.itens;
+  if (Array.isArray(payload?.dados?.itens)) return payload.dados.itens;
   if (Array.isArray(payload?.carrinho?.itens)) return payload.carrinho.itens;
+
   return [];
 }
 
@@ -100,271 +116,380 @@ function extrairLista<T = unknown>(payload: any): T[] {
    HELPERS ITEM
 ========================= */
 function getItemId(item: CarrinhoItem) {
-  return item.id_carrinho_item ?? item.id ?? item.id_item ?? item.item_id ?? "";
+  return (
+    item.id_carrinho_item ??
+    item.id ??
+    item.id_item ??
+    item.item_id ??
+    ""
+  );
 }
 
 function getItemNome(item: CarrinhoItem) {
-  const nome =
+  return (
     item.produto?.nome ||
     item.produto?.titulo ||
     item.produto_nome ||
     item.nome ||
-    item.titulo;
-
-  return nome?.trim() ? nome : "Produto sem nome";
+    item.titulo ||
+    "Produto"
+  );
 }
 
 function getItemImagem(item: CarrinhoItem) {
   return resolverImagem(
-    item.miniatura ||
-      item.imagem ||
+    item.imagem ||
+      item.miniatura ||
       item.foto ||
       item.produto?.imagem ||
+      item.produto?.miniatura ||
       item.produto?.foto
   );
 }
 
-function getItemQuantidade(item: CarrinhoItem) {
+function getQuantidade(item: CarrinhoItem) {
   return Math.max(1, normalizarNumero(item.quantidade) || 1);
 }
 
-function getItemSubtotal(item: CarrinhoItem) {
-  const subtotal =
-    item.subtotal ??
-    item.total ??
-    (item.preco_unitario != null && item.quantidade != null
-      ? normalizarNumero(item.preco_unitario) * normalizarNumero(item.quantidade)
-      : item.preco);
+function getPrecoUnitario(item: CarrinhoItem) {
+  return normalizarNumero(
+    item.preco_unitario ?? item.preco ?? 0
+  );
+}
 
-  return normalizarNumero(subtotal);
+function getSubtotal(item: CarrinhoItem) {
+  if (item.subtotal != null) {
+    return normalizarNumero(item.subtotal);
+  }
+
+  return getPrecoUnitario(item) * getQuantidade(item);
 }
 
 /* =========================
    PAGE
 ========================= */
 export default function CarrinhoPage() {
-  const [loading, setLoading] = useState(false);
-  const [removingId, setRemovingId] = useState<string | number | null>(null);
+  const [loading, setLoading] = useState(true);
+
   const [itens, setItens] = useState<CarrinhoItem[]>([]);
 
+  const [loadingItem, setLoadingItem] = useState<
+    string | number | null
+  >(null);
+
+  /* =========================
+     CARREGAR
+  ========================= */
   const carregarCarrinho = useCallback(async () => {
     try {
       setLoading(true);
+
       const response = await InicioApi.get("/carrinho/itens", {
         withCredentials: true,
       });
-      setItens(extrairLista(response.data));
-    } catch (err) {
-      console.error("Erro ao carregar carrinho:", err);
+
+      const lista = extrairLista<CarrinhoItem>(response.data);
+
+      setItens(lista);
+    } catch (error) {
+      console.error(error);
+      toast.error("Não foi possível carregar o carrinho.");
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  const removerItem = useCallback(async (itemId: string | number) => {
-    try {
-      setRemovingId(itemId);
-
-      await InicioApi.delete(`/carrinho/item/${itemId}`, {
-        withCredentials: true,
-      });
-
-      setItens((prev) =>
-        prev.filter((i) => String(getItemId(i)) !== String(itemId))
-      );
-    } catch (err) {
-      console.error("Erro ao remover item:", err);
-    } finally {
-      setRemovingId(null);
-    }
-  }, []);
-
-  const alterarQuantidade = useCallback((itemId: string | number, delta: number) => {
-    setItens((prev) =>
-      prev.map((item) => {
-        if (String(getItemId(item)) !== String(itemId)) return item;
-
-        const atual = getItemQuantidade(item);
-        const novaQtd = Math.max(1, atual + delta);
-
-        return {
-          ...item,
-          quantidade: novaQtd,
-          subtotal:
-            item.preco_unitario != null
-              ? normalizarNumero(item.preco_unitario) * novaQtd
-              : item.subtotal,
-        };
-      })
-    );
   }, []);
 
   useEffect(() => {
     carregarCarrinho();
   }, [carregarCarrinho]);
 
-  const total = useMemo(
-    () => itens.reduce((acc, item) => acc + getItemSubtotal(item), 0),
-    [itens]
-  );
+  /* =========================
+     REMOVER
+  ========================= */
+  async function removerItem(itemId: string | number) {
+    try {
+      setLoadingItem(itemId);
 
+      await InicioApi.delete(`/carrinho/item/${itemId}`, {
+        withCredentials: true,
+      });
+
+      setItens((prev) =>
+        prev.filter(
+          (item) => String(getItemId(item)) !== String(itemId)
+        )
+      );
+
+      toast.success("Produto removido.");
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao remover produto.");
+    } finally {
+      setLoadingItem(null);
+    }
+  }
+
+  /* =========================
+     QUANTIDADE
+  ========================= */
+  async function alterarQuantidade(
+    item: CarrinhoItem,
+    novaQuantidade: number
+  ) {
+    const itemId = getItemId(item);
+
+    if (novaQuantidade < 1) return;
+
+    try {
+      setLoadingItem(itemId);
+
+      setItens((prev) =>
+        prev.map((produto) => {
+          if (
+            String(getItemId(produto)) !== String(itemId)
+          ) {
+            return produto;
+          }
+
+          return {
+            ...produto,
+            quantidade: novaQuantidade,
+          };
+        })
+      );
+
+      await InicioApi.put(
+        `/carrinho/item/${itemId}`,
+        {
+          quantidade: novaQuantidade,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao atualizar quantidade.");
+
+      carregarCarrinho();
+    } finally {
+      setLoadingItem(null);
+    }
+  }
+
+  /* =========================
+     TOTAL
+  ========================= */
+  const total = useMemo(() => {
+    return itens.reduce((acc, item) => {
+      return acc + getSubtotal(item);
+    }, 0);
+  }, [itens]);
+
+  /* =========================
+     EMPTY
+  ========================= */
   if (!loading && itens.length === 0) {
     return (
-      <>
-       
-
-        <main className={styles.page}>
-          <div className={styles.shell}>
-            <div className={`${styles.emptyCard} ${styles.glass}`}>
-              <div className={styles.emptyIcon}>
-                <FiShoppingCart size={34} />
-              </div>
-
-              <h1>Carrinho vazio</h1>
-              <p>Adicione produtos para continuar.</p>
-
-              <Link href="/" className={styles.primaryBtn}>
-                Ver produtos
-              </Link>
-            </div>
+      <main className={styles.page}>
+        <div className={styles.emptyContainer}>
+          <div className={styles.emptyIcon}>
+            <FiShoppingCart />
           </div>
-        </main>
 
-        
-      </>
+          <h1>Seu carrinho está vazio</h1>
+
+          <p>
+            Adicione produtos incríveis para continuar
+            comprando.
+          </p>
+
+          <Link href="/" className={styles.primaryButton}>
+            Explorar produtos
+          </Link>
+        </div>
+      </main>
+    );
+  }
+
+  /* =========================
+     LOADING
+  ========================= */
+  if (loading) {
+    return (
+      <main className={styles.page}>
+        <div className={styles.loadingBox}>
+          <FiLoader className={styles.loadingIcon} />
+
+          <span>Carregando carrinho...</span>
+        </div>
+      </main>
     );
   }
 
   return (
-    <>
-     
+    <main className={styles.page}>
+      <div className={styles.container}>
+        {/* HEADER */}
+        <header className={styles.header}>
+          <div>
+            <span className={styles.badge}>
+              <FiShoppingCart />
+              Carrinho
+            </span>
 
-      <main className={styles.page}>
-        <div className={styles.shell}>
-          <header className={`${styles.hero} ${styles.glass}`}>
-            <div>
-              <div className={styles.eyebrow}>
-                <FiShoppingCart />
-                Carrinho de compras
-              </div>
+            <h1>Seu carrinho</h1>
 
-              <h1>Seu carrinho</h1>
-              <p>Revise os produtos antes de finalizar a compra.</p>
-            </div>
-
-            <div className={styles.badge}>
-              {itens.length} {itens.length === 1 ? "item" : "itens"}
-            </div>
-          </header>
-
-          <div className={styles.layout}>
-            <section className={styles.itemsPanel}>
-              <div className={styles.sectionTitle}>
-                <h2>Itens adicionados</h2>
-                <span>{loading ? "Carregando..." : "Atualize quantidades ou remova produtos"}</span>
-              </div>
-
-              <div className={styles.itemsList}>
-                {itens.map((item) => {
-                  const id = getItemId(item);
-                  const qtd = getItemQuantidade(item);
-                  const subtotal = getItemSubtotal(item);
-
-                  return (
-                    <article key={String(id)} className={`${styles.itemCard} ${styles.glass}`}>
-                      <div className={styles.itemImageWrap}>
-                        <Image
-                          src={getItemImagem(item)}
-                          alt={getItemNome(item)}
-                          width={96}
-                          height={96}
-                          className={styles.itemImage}
-                          unoptimized
-                        />
-                      </div>
-
-                      <div className={styles.itemContent}>
-                        <div className={styles.itemTop}>
-                          <h3>{getItemNome(item)}</h3>
-
-                          <button
-                            type="button"
-                            className={styles.removeBtn}
-                            onClick={() => removerItem(id)}
-                            disabled={removingId === id}
-                            aria-label="Remover item"
-                            title="Remover item"
-                          >
-                            <FiTrash2 />
-                          </button>
-                        </div>
-
-                        <div className={styles.itemBottom}>
-                          <div className={styles.qtyControl}>
-                            <button
-                              type="button"
-                              onClick={() => alterarQuantidade(id, -1)}
-                              aria-label="Diminuir quantidade"
-                            >
-                              <FiMinus />
-                            </button>
-
-                            <span>{qtd}</span>
-
-                            <button
-                              type="button"
-                              onClick={() => alterarQuantidade(id, 1)}
-                              aria-label="Aumentar quantidade"
-                            >
-                              <FiPlus />
-                            </button>
-                          </div>
-
-                          <div className={styles.priceBlock}>
-                            <span>Subtotal</span>
-                            <strong>{formatarMoeda(subtotal)}</strong>
-                          </div>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            </section>
-
-            <aside className={styles.summaryPanel}>
-              <div className={`${styles.summaryCard} ${styles.glass}`}>
-                <div className={styles.summaryHeader}>
-                  <h2>Resumo</h2>
-                  <p>Confira o total do pedido.</p>
-                </div>
-
-                <div className={styles.summaryLines}>
-                  <div className={styles.summaryRow}>
-                    <span>Itens</span>
-                    <strong>{itens.length}</strong>
-                  </div>
-
-                  <div className={styles.summaryTotal}>
-                    <span>Total</span>
-                    <strong>{formatarMoeda(total)}</strong>
-                  </div>
-                </div>
-
-                <Link href="/Carrinho/checkout" className={styles.checkoutBtn}>
-                  Finalizar compra <FiArrowRight />
-                </Link>
-
-                <p className={styles.summaryNote}>
-                  Frete e descontos podem ser calculados na próxima etapa.
-                </p>
-              </div>
-            </aside>
+            <p>
+              Revise seus produtos antes de finalizar a
+              compra.
+            </p>
           </div>
-        </div>
-      </main>
 
-      
-    </>
+          <div className={styles.counter}>
+            {itens.length}{" "}
+            {itens.length === 1 ? "item" : "itens"}
+          </div>
+        </header>
+
+        {/* CONTENT */}
+        <div className={styles.content}>
+          {/* LISTA */}
+          <section className={styles.products}>
+            {itens.map((item) => {
+              const id = getItemId(item);
+
+              const nome = getItemNome(item);
+
+              const imagem = getItemImagem(item);
+
+              const quantidade = getQuantidade(item);
+
+              const preco = getPrecoUnitario(item);
+
+              const subtotal = getSubtotal(item);
+
+              const carregando = loadingItem === id;
+
+              return (
+                <article
+                  key={String(id)}
+                  className={styles.productCard}
+                >
+                  <div className={styles.imageBox}>
+                    <Image
+                      src={imagem}
+                      alt={nome}
+                      width={120}
+                      height={120}
+                      className={styles.image}
+                      unoptimized
+                    />
+                  </div>
+
+                  <div className={styles.productContent}>
+                    <div className={styles.top}>
+                      <div>
+                        <h2>{nome}</h2>
+
+                        <span className={styles.unitPrice}>
+                          {formatarMoeda(preco)}
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        className={styles.removeButton}
+                        onClick={() => removerItem(id)}
+                        disabled={carregando}
+                      >
+                        <FiTrash2 />
+                      </button>
+                    </div>
+
+                    <div className={styles.bottom}>
+                      <div className={styles.quantity}>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            alterarQuantidade(
+                              item,
+                              quantidade - 1
+                            )
+                          }
+                          disabled={carregando}
+                        >
+                          <FiMinus />
+                        </button>
+
+                        <span>{quantidade}</span>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            alterarQuantidade(
+                              item,
+                              quantidade + 1
+                            )
+                          }
+                          disabled={carregando}
+                        >
+                          <FiPlus />
+                        </button>
+                      </div>
+
+                      <div className={styles.subtotal}>
+                        <span>Subtotal</span>
+
+                        <strong>
+                          {formatarMoeda(subtotal)}
+                        </strong>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+
+          {/* RESUMO */}
+          <aside className={styles.summary}>
+            <div className={styles.summaryCard}>
+              <h3>Resumo do pedido</h3>
+
+              <div className={styles.summaryRow}>
+                <span>Produtos</span>
+                <strong>{itens.length}</strong>
+              </div>
+
+              <div className={styles.summaryRow}>
+                <span>Entrega</span>
+                <strong>Grátis</strong>
+              </div>
+
+              <div className={styles.line} />
+
+              <div className={styles.totalRow}>
+                <span>Total</span>
+
+                <strong>{formatarMoeda(total)}</strong>
+              </div>
+
+              <Link
+                href="/Carrinho/checkout"
+                className={styles.checkoutButton}
+              >
+                Finalizar compra
+                <FiArrowRight />
+              </Link>
+
+              <Link href="/" className={styles.continueButton}>
+                Continuar comprando
+              </Link>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </main>
   );
 }

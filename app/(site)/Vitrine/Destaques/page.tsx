@@ -524,7 +524,7 @@ export default function Destaques({
       setAbrindoCarrinho(true);
 
       window.setTimeout(() => {
-        router.push("/carrinho");
+        router.push("/Carrinho");
       }, 700);
     } catch (error: any) {
       console.error("Erro ao adicionar no carrinho:", error);
