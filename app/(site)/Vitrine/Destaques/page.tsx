@@ -4,7 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import api from "@/Api/conectar";
 
-import { FiShoppingCart, FiEye, FiArrowRight } from "react-icons/fi";
+import {
+  FiShoppingCart,
+  FiEye,
+  FiArrowRight,
+  FiChevronLeft,
+  FiChevronRight,
+} from "react-icons/fi";
+
 import { toast } from "react-toastify";
 
 import {
@@ -21,6 +28,7 @@ function normalizarDados<T = any>(payload: any): T | null {
 
 function normalizarLista<T = any>(payload: any): T[] {
   const dados = payload?.dados?.dados ?? payload?.dados ?? payload ?? [];
+
   return Array.isArray(dados) ? dados : [];
 }
 
@@ -40,7 +48,10 @@ function resolverImagem(src?: string | null) {
     return valor;
   }
 
-  const baseURL = typeof api === "string" ? api : (api as any)?.defaults?.baseURL || "";
+  const baseURL =
+    typeof api === "string"
+      ? api
+      : (api as any)?.defaults?.baseURL || "";
 
   if (!baseURL) return valor;
 
@@ -51,7 +62,10 @@ function resolverImagem(src?: string | null) {
   return `${baseURL}/${valor}`;
 }
 
-function obterMelhorImagem(item?: VitrineItem | null, entidade?: EntidadeGenerica | null) {
+function obterMelhorImagem(
+  item?: VitrineItem | null,
+  entidade?: EntidadeGenerica | null
+) {
   return resolverImagem(
     item?.imagem_personalizada ||
       entidade?.imagem ||
@@ -102,12 +116,17 @@ function calcularEconomia(
     return null;
   }
 
-  const percentual = Math.round(((original - final) / original) * 100);
+  const percentual = Math.round(
+    ((original - final) / original) * 100
+  );
 
   return `${percentual}% OFF`;
 }
 
-function descobrirTipoItem(item: VitrineItem, tipoVitrine?: string): ItemResolvido["tipo_item"] {
+function descobrirTipoItem(
+  item: VitrineItem,
+  tipoVitrine?: string
+): ItemResolvido["tipo_item"] {
   if (item.produto_id) return "produto";
   if (item.campanha_id) return "campanha";
   if (item.categoria_id) return "categoria";
@@ -132,7 +151,11 @@ export default function Destaques({
 }: Props) {
   const [loading, setLoading] = useState<boolean>(true);
   const [erro, setErro] = useState<string>("");
-  const [vitrine, setVitrine] = useState<Vitrine | null>(vitrineProp || null);
+
+  const [vitrine, setVitrine] = useState<Vitrine | null>(
+    vitrineProp || null
+  );
+
   const [itens, setItens] = useState<ItemResolvido[]>([]);
   const [adicionandoId, setAdicionandoId] = useState<string | null>(null);
 
@@ -141,7 +164,9 @@ export default function Destaques({
   const vitrineComItens = useMemo(() => {
     if (!vitrineProp) return null;
 
-    const lista = Array.isArray(vitrineProp.itens) ? vitrineProp.itens : [];
+    const lista = Array.isArray(vitrineProp.itens)
+      ? vitrineProp.itens
+      : [];
 
     return {
       ...vitrineProp,
@@ -162,9 +187,13 @@ export default function Destaques({
         if (vitrineComItens?.id_vitrine) {
           vitrineAtual = vitrineComItens;
         } else if (slug) {
-          const vitrineResponse = await api.get(`/vitrine/slug/${slug}`);
+          const vitrineResponse = await api.get(
+            `/vitrine/slug/${slug}`
+          );
 
-          const vitrineData = normalizarDados<Vitrine>(vitrineResponse?.data);
+          const vitrineData = normalizarDados<Vitrine>(
+            vitrineResponse?.data
+          );
 
           if (!vitrineData || !vitrineData.id_vitrine) {
             if (!ativo) return;
@@ -172,12 +201,17 @@ export default function Destaques({
             setErro("Vitrine não encontrada.");
             setVitrine(null);
             setItens([]);
+
             return;
           }
 
-          const itensResponse = await api.get(`/vitrine/${vitrineData.id_vitrine}/itens`);
+          const itensResponse = await api.get(
+            `/vitrine/${vitrineData.id_vitrine}/itens`
+          );
 
-          let itensData = normalizarLista<VitrineItem>(itensResponse?.data);
+          let itensData = normalizarLista<VitrineItem>(
+            itensResponse?.data
+          );
 
           if (limite) {
             itensData = itensData.slice(0, limite);
@@ -193,6 +227,7 @@ export default function Destaques({
           setErro("Nenhuma vitrine informada.");
           setVitrine(null);
           setItens([]);
+
           return;
         }
 
@@ -200,17 +235,27 @@ export default function Destaques({
 
         setVitrine(vitrineAtual);
 
-        const listaItens = Array.isArray(vitrineAtual.itens) ? vitrineAtual.itens : [];
+        const listaItens = Array.isArray(vitrineAtual.itens)
+          ? vitrineAtual.itens
+          : [];
 
         const itensResolvidos: ItemResolvido[] = await Promise.all(
           listaItens.map(async (item) => {
-            const tipoItem = descobrirTipoItem(item, vitrineAtual?.tipo);
+            const tipoItem = descobrirTipoItem(
+              item,
+              vitrineAtual?.tipo
+            );
 
             try {
               if (tipoItem === "produto" && item.produto_id) {
-                const res = await api.get(`/produto/${item.produto_id}`);
+                const res = await api.get(
+                  `/produto/${item.produto_id}`
+                );
 
-                const produto = normalizarDados<EntidadeGenerica>(res?.data) || {};
+                const produto =
+                  normalizarDados<EntidadeGenerica>(
+                    res?.data
+                  ) || {};
 
                 const precoPromocional =
                   produto.preco_promocional !== null &&
@@ -219,9 +264,12 @@ export default function Destaques({
                     ? produto.preco_promocional
                     : null;
 
-                const precoFinal = precoPromocional || produto.preco || null;
+                const precoFinal =
+                  precoPromocional || produto.preco || null;
 
-                const precoOriginal = precoPromocional ? produto.preco || null : null;
+                const precoOriginal = precoPromocional
+                  ? produto.preco || null
+                  : null;
 
                 return {
                   ...item,
@@ -243,7 +291,6 @@ export default function Destaques({
                   descricao_final:
                     produto.descricao_curta ||
                     produto.descricao ||
-                    item.subtitulo_personalizado ||
                     "",
 
                   imagem_final: obterMelhorImagem(item, produto),
@@ -254,85 +301,11 @@ export default function Destaques({
 
                   preco_final: precoFinal,
                   preco_original: precoOriginal,
-                  marca_final: produto.marca || "",
-                  sku_final: produto.sku || "",
-                  economia_final: calcularEconomia(precoOriginal, precoFinal),
-                };
-              }
 
-              if (tipoItem === "campanha" && item.campanha_id) {
-                const res = await api.get(`/campanha/${item.campanha_id}`);
-
-                const campanha = normalizarDados<EntidadeGenerica>(res?.data) || {};
-
-                return {
-                  ...item,
-                  entidade: campanha,
-                  tipo_item: "campanha",
-
-                  titulo_final:
-                    item.titulo_personalizado ||
-                    campanha.nome ||
-                    campanha.titulo ||
-                    `Campanha #${item.campanha_id}`,
-
-                  subtitulo_final:
-                    item.subtitulo_personalizado ||
-                    campanha.subtitulo ||
-                    campanha.descricao ||
-                    "",
-
-                  descricao_final: campanha.descricao_curta || campanha.descricao || "",
-
-                  imagem_final: obterMelhorImagem(item, campanha),
-
-                  link_final: campanha.slug
-                    ? `/campanha/${campanha.slug}`
-                    : `/campanha/${item.campanha_id}`,
-
-                  preco_final: null,
-                  preco_original: null,
-                  marca_final: "",
-                  sku_final: "",
-                  economia_final: null,
-                };
-              }
-
-              if (tipoItem === "categoria" && item.categoria_id) {
-                const res = await api.get(`/categoria/${item.categoria_id}`);
-
-                const categoria = normalizarDados<EntidadeGenerica>(res?.data) || {};
-
-                return {
-                  ...item,
-                  entidade: categoria,
-                  tipo_item: "categoria",
-
-                  titulo_final:
-                    item.titulo_personalizado ||
-                    categoria.nome ||
-                    categoria.titulo ||
-                    `Categoria #${item.categoria_id}`,
-
-                  subtitulo_final:
-                    item.subtitulo_personalizado ||
-                    categoria.subtitulo ||
-                    categoria.descricao_curta ||
-                    "",
-
-                  descricao_final: categoria.descricao_curta || categoria.descricao || "",
-
-                  imagem_final: obterMelhorImagem(item, categoria),
-
-                  link_final: categoria.slug
-                    ? `/categoria/${categoria.slug}`
-                    : `/categoria/${item.categoria_id}`,
-
-                  preco_final: null,
-                  preco_original: null,
-                  marca_final: "",
-                  sku_final: "",
-                  economia_final: null,
+                  economia_final: calcularEconomia(
+                    precoOriginal,
+                    precoFinal
+                  ),
                 };
               }
 
@@ -341,15 +314,25 @@ export default function Destaques({
                 entidade: null,
                 tipo_item: tipoItem,
 
-                titulo_final: item.titulo_personalizado || "Item da vitrine",
-                subtitulo_final: item.subtitulo_personalizado || "",
-                descricao_final: item.subtitulo_personalizado || "",
-                imagem_final: resolverImagem(item.imagem_personalizada || ""),
+                titulo_final:
+                  item.titulo_personalizado ||
+                  "Item da vitrine",
+
+                subtitulo_final:
+                  item.subtitulo_personalizado || "",
+
+                descricao_final:
+                  item.subtitulo_personalizado || "",
+
+                imagem_final: resolverImagem(
+                  item.imagem_personalizada || ""
+                ),
+
                 link_final: "#",
+
                 preco_final: null,
                 preco_original: null,
-                marca_final: "",
-                sku_final: "",
+
                 economia_final: null,
               };
             } catch {
@@ -358,15 +341,25 @@ export default function Destaques({
                 entidade: null,
                 tipo_item: tipoItem,
 
-                titulo_final: item.titulo_personalizado || "Item da vitrine",
-                subtitulo_final: item.subtitulo_personalizado || "",
-                descricao_final: item.subtitulo_personalizado || "",
-                imagem_final: resolverImagem(item.imagem_personalizada || ""),
+                titulo_final:
+                  item.titulo_personalizado ||
+                  "Item da vitrine",
+
+                subtitulo_final:
+                  item.subtitulo_personalizado || "",
+
+                descricao_final:
+                  item.subtitulo_personalizado || "",
+
+                imagem_final: resolverImagem(
+                  item.imagem_personalizada || ""
+                ),
+
                 link_final: "#",
+
                 preco_final: null,
                 preco_original: null,
-                marca_final: "",
-                sku_final: "",
+
                 economia_final: null,
               };
             }
@@ -377,12 +370,11 @@ export default function Destaques({
 
         setItens(itensResolvidos);
       } catch (error) {
-        console.error("Erro ao carregar vitrine:", error);
+        console.error(error);
 
         if (!ativo) return;
 
         setErro("Não foi possível carregar a vitrine.");
-        setVitrine(null);
         setItens([]);
       } finally {
         if (ativo) {
@@ -398,67 +390,16 @@ export default function Destaques({
     };
   }, [slug, limite, vitrineComItens]);
 
-  useEffect(() => {
-    const carousel = carouselRef.current;
+  function scrollCarousel(direction: "left" | "right") {
+    if (!carouselRef.current) return;
 
-    if (!carousel) return;
+    const width = carouselRef.current.offsetWidth;
 
-    let isDown = false;
-    let startX = 0;
-    let scrollLeft = 0;
-
-    const startDragging = (pageX: number) => {
-      isDown = true;
-      carousel.classList.add("dragging");
-      startX = pageX - carousel.offsetLeft;
-      scrollLeft = carousel.scrollLeft;
-    };
-
-    const stopDragging = () => {
-      isDown = false;
-      carousel.classList.remove("dragging");
-    };
-
-    const move = (pageX: number) => {
-      if (!isDown) return;
-
-      const x = pageX - carousel.offsetLeft;
-      const walk = (x - startX) * 1.3;
-
-      carousel.scrollLeft = scrollLeft - walk;
-    };
-
-    const mouseDown = (e: MouseEvent) => startDragging(e.pageX);
-
-    const mouseMove = (e: MouseEvent) => {
-      e.preventDefault();
-      move(e.pageX);
-    };
-
-    const touchStart = (e: TouchEvent) => startDragging(e.touches[0].pageX);
-
-    const touchMove = (e: TouchEvent) => move(e.touches[0].pageX);
-
-    carousel.addEventListener("mousedown", mouseDown);
-    carousel.addEventListener("mouseleave", stopDragging);
-    carousel.addEventListener("mouseup", stopDragging);
-    carousel.addEventListener("mousemove", mouseMove);
-
-    carousel.addEventListener("touchstart", touchStart, { passive: true });
-    carousel.addEventListener("touchend", stopDragging);
-    carousel.addEventListener("touchmove", touchMove, { passive: true });
-
-    return () => {
-      carousel.removeEventListener("mousedown", mouseDown);
-      carousel.removeEventListener("mouseleave", stopDragging);
-      carousel.removeEventListener("mouseup", stopDragging);
-      carousel.removeEventListener("mousemove", mouseMove);
-
-      carousel.removeEventListener("touchstart", touchStart);
-      carousel.removeEventListener("touchend", stopDragging);
-      carousel.removeEventListener("touchmove", touchMove);
-    };
-  }, []);
+    carouselRef.current.scrollBy({
+      left: direction === "left" ? -width : width,
+      behavior: "smooth",
+    });
+  }
 
   async function adicionarNoCarrinhoBanco(item: ItemResolvido) {
     if (item.tipo_item !== "produto" || !item.produto_id) {
@@ -485,8 +426,12 @@ export default function Destaques({
         produto_id: Number(item.produto_id),
         quantidade: 1,
         preco: Number.isNaN(precoBase) ? 0 : precoBase,
+
         preco_promocional:
-          precoPromocional !== null && !Number.isNaN(precoPromocional) ? precoPromocional : null,
+          precoPromocional !== null &&
+          !Number.isNaN(precoPromocional)
+            ? precoPromocional
+            : null,
       },
       {
         withCredentials: true,
@@ -494,13 +439,12 @@ export default function Destaques({
     );
   }
 
-  async function handleAdicionarCarrinho(item: ItemResolvido) {
+  async function handleAdicionarCarrinho(
+    item: ItemResolvido
+  ) {
     if (onAdicionarCarrinho) {
       onAdicionarCarrinho(item);
-      return;
-    }
 
-    if (item.tipo_item !== "produto" || !item.produto_id) {
       return;
     }
 
@@ -509,23 +453,25 @@ export default function Destaques({
 
       await adicionarNoCarrinhoBanco(item);
 
-      toast.success("Produto adicionado ao carrinho com sucesso.");
+      toast.success(
+        "Produto adicionado ao carrinho com sucesso."
+      );
     } catch (error: any) {
-      console.error("Erro ao adicionar no carrinho:", error);
+      console.error(error);
 
-      const mensagemErro =
+      const mensagem =
         error?.response?.data?.dados?.erro ||
         error?.response?.data?.mensagem ||
-        "Não foi possível adicionar o produto ao carrinho.";
+        "Erro ao adicionar produto.";
 
-      toast.error(mensagemErro);
+      toast.error(mensagem);
     } finally {
       setAdicionandoId(null);
     }
   }
 
   if (loading) {
-    return <section className={`destaques-section ${className}`}>Carregando...</section>;
+    return null;
   }
 
   if (erro || !vitrine || itens.length === 0) {
@@ -533,115 +479,436 @@ export default function Destaques({
   }
 
   const linkVerMais =
-    verMaisHref || (vitrine.slug ? `/Vitrine/${vitrine.slug}` : slug ? `/Vitrine/${slug}` : "#");
+    verMaisHref ||
+    (vitrine.slug
+      ? `/Vitrine/${vitrine.slug}`
+      : slug
+      ? `/Vitrine/${slug}`
+      : "#");
 
   return (
-    <section className={`destaques-section ${className}`}>
-      <div className="destaques-container">
-        <div className="destaques-header destaques-header-row">
-          <div className="destaques-header-texto">
-            <span className="destaques-badge">{vitrine?.tipo || "Vitrine"}</span>
+    <>
+      <section
+        className={`destaques-section ${className}`}
+      >
+        <div className="destaques-container">
+          <div className="destaques-header">
+            <div>
+              <span className="badge">
+                {vitrine?.tipo || "Vitrine"}
+              </span>
 
-            <h2 className="destaques-title">
-              {tituloPersonalizado || vitrine?.titulo || vitrine?.nome}
-            </h2>
+              <h2 className="title">
+                {tituloPersonalizado ||
+                  vitrine?.titulo ||
+                  vitrine?.nome}
+              </h2>
 
-            {(subtituloPersonalizado || vitrine?.subtitulo) && (
-              <p className="destaques-description">
-                {subtituloPersonalizado || vitrine?.subtitulo}
-              </p>
-            )}
+              {(subtituloPersonalizado ||
+                vitrine?.subtitulo) && (
+                <p className="subtitle">
+                  {subtituloPersonalizado ||
+                    vitrine?.subtitulo}
+                </p>
+              )}
+            </div>
+
+            <div className="header-actions">
+              <button
+                className="arrow-btn"
+                onClick={() =>
+                  scrollCarousel("left")
+                }
+              >
+                <FiChevronLeft />
+              </button>
+
+              <button
+                className="arrow-btn"
+                onClick={() =>
+                  scrollCarousel("right")
+                }
+              >
+                <FiChevronRight />
+              </button>
+
+              <Link
+                href={linkVerMais}
+                className="btn-ver-mais"
+              >
+                {verMaisTexto}
+              </Link>
+            </div>
           </div>
 
-          <Link href={linkVerMais} className="btn-ver-mais">
-            <span>{verMaisTexto}</span>
-            <FiArrowRight className="btn-icon" />
-          </Link>
-        </div>
+          <div
+            ref={carouselRef}
+            className="carousel"
+          >
+            {itens.map((item) => {
+              const precoFormatado = formatarPreco(
+                item.preco_final
+              );
 
-        <div ref={carouselRef} className="destaques-carousel">
-          {itens.map((item) => {
-            const precoFormatado = formatarPreco(item.preco_final);
-            const precoOriginalFormatado = formatarPreco(item.preco_original);
+              const precoOriginalFormatado =
+                formatarPreco(item.preco_original);
 
-            const slugVisualizacao =
-              item.entidade?.slug ||
-              (item.produto_id ? String(item.produto_id) : null) ||
-              (item.campanha_id ? String(item.campanha_id) : null) ||
-              (item.categoria_id ? String(item.categoria_id) : null);
+              const estaAdicionando =
+                adicionandoId ===
+                String(item.id_vitrine_item);
 
-            const linkVisualizarCard = slugVisualizacao
-              ? `/Vitrine/visualizar/${slugVisualizacao}`
-              : "#";
+              return (
+                <article
+                  key={String(item.id_vitrine_item)}
+                  className="card"
+                >
+                  <Link
+                    href={item.link_final || "#"}
+                    className="image-wrapper"
+                  >
+                    {item.economia_final && (
+                      <span className="off-badge">
+                        {item.economia_final}
+                      </span>
+                    )}
 
-            const estaAdicionando = adicionandoId === String(item.id_vitrine_item);
-
-            return (
-              <article key={String(item.id_vitrine_item)} className="destaque-card destaque-slide">
-                <div className="destaque-imagem-wrap">
-                  <Link href={item.link_final || "#"} className="imagem-link">
                     {item.imagem_final ? (
                       <img
                         src={item.imagem_final}
                         alt={item.titulo_final}
-                        className="destaque-imagem"
+                        className="image"
                       />
                     ) : (
-                      <div className="destaque-sem-imagem">
-                        <span>Sem imagem</span>
+                      <div className="sem-imagem">
+                        Sem imagem
                       </div>
                     )}
                   </Link>
-                </div>
 
-                <div className="destaque-conteudo">
-                  <Link href={item.link_final || "#" } className="titulo-link">
-                    <h3 className="destaque-titulo">{item.titulo_final}</h3>
-                  </Link>
+                  <div className="content">
+                    <h3 className="product-title">
+                      {item.titulo_final}
+                    </h3>
 
-                  {item.subtitulo_final && <p className="destaque-subtitulo">{item.subtitulo_final}</p>}
-
-                  {item.descricao_final && <p className="destaque-descricao">{item.descricao_final}</p>}
-
-                  {(precoFormatado || precoOriginalFormatado) && (
-                    <div className="destaque-precos">
-                      {precoOriginalFormatado && (
-                        <span className="preco-original">{precoOriginalFormatado}</span>
-                      )}
-
-                      {precoFormatado && <strong className="destaque-preco">{precoFormatado}</strong>}
-                    </div>
-                  )}
-
-                  <div className="destaque-acoes">
-                    {item.tipo_item === "produto" ? (
-                      <button
-                        type="button"
-                        className="btn-carrinho"
-                        onClick={() => handleAdicionarCarrinho(item)}
-                        disabled={estaAdicionando}
-                      >
-                        <FiShoppingCart className="btn-icon" />
-                        <span>{estaAdicionando ? "Adicionando..." : "Carrinho"}</span>
-                      </button>
-                    ) : (
-                      <Link href={item.link_final || "#"} className="btn-carrinho">
-                        <FiArrowRight className="btn-icon" />
-                        <span>Acessar</span>
-                      </Link>
+                    {item.subtitulo_final && (
+                      <p className="product-subtitle">
+                        {item.subtitulo_final}
+                      </p>
                     )}
 
-                    <Link href={linkVisualizarCard} className="btn-visualizar">
-                      <FiEye className="btn-icon" />
-                      <span>Visualizar</span>
-                    </Link>
+                    <div className="prices">
+                      {precoOriginalFormatado && (
+                        <span className="old-price">
+                          {precoOriginalFormatado}
+                        </span>
+                      )}
+
+                      {precoFormatado && (
+                        <strong className="price">
+                          {precoFormatado}
+                        </strong>
+                      )}
+                    </div>
+
+                    <div className="buttons">
+                      <button
+                        type="button"
+                        className="btn-cart"
+                        onClick={() =>
+                          handleAdicionarCarrinho(
+                            item
+                          )
+                        }
+                        disabled={estaAdicionando}
+                      >
+                        <FiShoppingCart />
+
+                        <span>
+                          {estaAdicionando
+                            ? "Adicionando..."
+                            : "Carrinho"}
+                        </span>
+                      </button>
+
+                      <Link
+                        href={item.link_final || "#"}
+                        className="btn-view"
+                      >
+                        <FiEye />
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              </article>
-            );
-          })}
+                </article>
+              );
+            })}
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <style jsx>{`
+        .destaques-section {
+          width: 100%;
+          padding: 42px 0;
+        }
+
+        .destaques-container {
+          width: 100%;
+        }
+
+        .destaques-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 20px;
+          margin-bottom: 28px;
+          flex-wrap: wrap;
+        }
+
+        .badge {
+          display: inline-flex;
+          padding: 7px 14px;
+          border-radius: 999px;
+          background: #f7e7df;
+          color: #a14d67;
+          font-size: 12px;
+          font-weight: 700;
+          margin-bottom: 12px;
+        }
+
+        .title {
+          margin: 0;
+          font-size: 32px;
+          font-weight: 800;
+          color: #3e2b2f;
+        }
+
+        .subtitle {
+          margin-top: 10px;
+          color: #7a6a6e;
+          font-size: 15px;
+          line-height: 1.6;
+          max-width: 620px;
+        }
+
+        .header-actions {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .arrow-btn {
+          width: 46px;
+          height: 46px;
+          border: none;
+          border-radius: 14px;
+          background: #fff7f2;
+          color: #a14d67;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 20px;
+          cursor: pointer;
+          transition: 0.2s;
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+        }
+
+        .arrow-btn:hover {
+          transform: translateY(-2px);
+          background: #fce9e1;
+        }
+
+        .btn-ver-mais {
+          height: 46px;
+          padding: 0 18px;
+          border-radius: 14px;
+          background: linear-gradient(
+            135deg,
+            #b76e79 0%,
+            #d89c8d 100%
+          );
+          color: #fff;
+          text-decoration: none;
+          font-size: 14px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .carousel {
+          display: flex;
+          gap: 18px;
+          overflow-x: auto;
+          scroll-behavior: smooth;
+          scrollbar-width: none;
+          padding-bottom: 6px;
+        }
+
+        .carousel::-webkit-scrollbar {
+          display: none;
+        }
+
+        .card {
+          min-width: 260px;
+          max-width: 260px;
+          background: #fffdfb;
+          border-radius: 26px;
+          overflow: hidden;
+          flex-shrink: 0;
+          border: 1px solid #f3e4dc;
+          transition: 0.25s ease;
+          box-shadow: 0 8px 28px rgba(0, 0, 0, 0.04);
+        }
+
+        .card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 18px 34px rgba(0, 0, 0, 0.08);
+        }
+
+        .image-wrapper {
+          position: relative;
+          width: 100%;
+          height: 260px;
+          background: #f8f3ef;
+          display: block;
+          overflow: hidden;
+        }
+
+        .image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          transition: 0.3s;
+        }
+
+        .card:hover .image {
+          transform: scale(1.05);
+        }
+
+        .off-badge {
+          position: absolute;
+          top: 14px;
+          left: 14px;
+          z-index: 5;
+          background: #b76e79;
+          color: #fff;
+          padding: 7px 12px;
+          border-radius: 999px;
+          font-size: 12px;
+          font-weight: 700;
+        }
+
+        .sem-imagem {
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #9b8c8c;
+          font-size: 14px;
+        }
+
+        .content {
+          padding: 18px;
+        }
+
+        .product-title {
+          font-size: 17px;
+          font-weight: 700;
+          color: #3f2e32;
+          margin: 0 0 8px;
+          line-height: 1.4;
+        }
+
+        .product-subtitle {
+          font-size: 14px;
+          color: #7b6f72;
+          line-height: 1.6;
+          margin-bottom: 16px;
+          min-height: 42px;
+        }
+
+        .prices {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          margin-bottom: 18px;
+        }
+
+        .old-price {
+          color: #9ca3af;
+          font-size: 14px;
+          text-decoration: line-through;
+        }
+
+        .price {
+          color: #b76e79;
+          font-size: 24px;
+          font-weight: 800;
+        }
+
+        .buttons {
+          display: flex;
+          gap: 10px;
+        }
+
+        .btn-cart {
+          flex: 1;
+          height: 48px;
+          border: none;
+          border-radius: 14px;
+          background: linear-gradient(
+            135deg,
+            #b76e79 0%,
+            #d89c8d 100%
+          );
+          color: #fff;
+          font-size: 14px;
+          font-weight: 700;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          cursor: pointer;
+        }
+
+        .btn-view {
+          width: 48px;
+          height: 48px;
+          border-radius: 14px;
+          background: #fff3ec;
+          color: #b76e79;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          text-decoration: none;
+          font-size: 18px;
+        }
+
+        @media (max-width: 768px) {
+          .title {
+            font-size: 24px;
+          }
+
+          .card {
+            min-width: 210px;
+            max-width: 210px;
+          }
+
+          .image-wrapper {
+            height: 210px;
+          }
+
+          .header-actions {
+            width: 100%;
+            justify-content: space-between;
+          }
+
+          .btn-ver-mais {
+            flex: 1;
+          }
+        }
+      `}</style>
+    </>
   );
 }
