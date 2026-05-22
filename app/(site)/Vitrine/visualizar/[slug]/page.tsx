@@ -13,7 +13,7 @@ import {
   FiRefreshCcw,
   FiStar,
 } from "react-icons/fi";
-import Navbar from "@/components/site/menu/navbar";
+
 
 type Produto = {
   id?: number | string;
@@ -202,7 +202,7 @@ export default function VisualizarProdutoDaVitrine() {
 
   return (
     <>
-      <Navbar />
+      
 
       <section className="produto-visualizar-page">
         <div className="bg-decor bg-decor-top" />
