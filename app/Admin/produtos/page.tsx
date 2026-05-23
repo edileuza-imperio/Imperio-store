@@ -55,7 +55,6 @@ function formatarPreco(valor: number) {
 
 function resolverImagem(produto: Produto) {
   const imagem = produto.imagem || produto.miniatura || "";
-
   if (!imagem) return "";
 
   if (imagem.startsWith("http://") || imagem.startsWith("https://")) {
@@ -63,7 +62,6 @@ function resolverImagem(produto: Produto) {
   }
 
   const baseURL = api.defaults.baseURL || "";
-
   const limpa = imagem.replace(/^\/+/, "");
 
   if (limpa.startsWith("upload/")) {
@@ -72,6 +70,18 @@ function resolverImagem(produto: Produto) {
 
   return `${baseURL}/upload/${limpa}`;
 }
+
+type EditForm = {
+  nome: string;
+  sku: string;
+  marca: string;
+  modelo: string;
+  preco: string;
+  preco_promocional: string;
+  categoria_id: string;
+  status_id: string;
+  descricao: string;
+};
 
 export default function ProdutosListaPage() {
   const router = useRouter();
@@ -83,9 +93,30 @@ export default function ProdutosListaPage() {
   const [busca, setBusca] = useState("");
   const [excluindoId, setExcluindoId] = useState<string | number | null>(null);
 
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [itensPorPagina, setItensPorPagina] = useState(6);
+
+  const [editandoId, setEditandoId] = useState<string | number | null>(null);
+  const [salvandoId, setSalvandoId] = useState<string | number | null>(null);
+  const [editForm, setEditForm] = useState<EditForm>({
+    nome: "",
+    sku: "",
+    marca: "",
+    modelo: "",
+    preco: "",
+    preco_promocional: "",
+    categoria_id: "",
+    status_id: "",
+    descricao: "",
+  });
+
   useEffect(() => {
     carregarDados();
   }, []);
+
+  useEffect(() => {
+    setPaginaAtual(1);
+  }, [busca, itensPorPagina]);
 
   async function carregarDados() {
     try {
@@ -101,7 +132,6 @@ export default function ProdutosListaPage() {
       setCategorias(extrairListaCategorias(categoriasResponse?.data));
     } catch (error: any) {
       console.error("Erro ao carregar dados:", error?.response?.data || error);
-
       setErro(
         error?.response?.data?.mensagem ||
           "Erro ao carregar produtos e categorias."
@@ -123,6 +153,74 @@ export default function ProdutosListaPage() {
     return categoria?.nome || "Sem categoria";
   }
 
+  function abrirEdicao(produto: Produto) {
+    const id = getId(produto);
+    if (!id) return;
+
+    setEditandoId(id);
+    setEditForm({
+      nome: produto.nome || "",
+      sku: produto.sku || "",
+      marca: produto.marca || "",
+      modelo: produto.modelo || "",
+      preco: String(produto.preco ?? ""),
+      preco_promocional:
+        produto.preco_promocional !== null &&
+        produto.preco_promocional !== undefined
+          ? String(produto.preco_promocional)
+          : "",
+      categoria_id: String(produto.categoria_id ?? ""),
+      status_id: String(produto.status_id ?? ""),
+      descricao: produto.descricao || "",
+    });
+  }
+
+  function cancelarEdicao() {
+    setEditandoId(null);
+    setEditForm({
+      nome: "",
+      sku: "",
+      marca: "",
+      modelo: "",
+      preco: "",
+      preco_promocional: "",
+      categoria_id: "",
+      status_id: "",
+      descricao: "",
+    });
+  }
+
+  async function salvarEdicao(id: number | string) {
+    try {
+      setSalvandoId(id);
+
+      const payload = {
+        nome: editForm.nome.trim(),
+        sku: editForm.sku.trim(),
+        marca: editForm.marca.trim(),
+        modelo: editForm.modelo.trim(),
+        preco: editForm.preco,
+        preco_promocional: editForm.preco_promocional || null,
+        categoria_id: editForm.categoria_id,
+        status_id: editForm.status_id,
+        descricao: editForm.descricao.trim(),
+      };
+
+      await api.put(`/painel/produto/${id}`, payload);
+
+      await carregarDados();
+      cancelarEdicao();
+    } catch (error: any) {
+      console.error("Erro ao salvar edição:", error?.response?.data || error);
+      alert(
+        error?.response?.data?.mensagem ||
+          "Erro ao salvar alterações."
+      );
+    } finally {
+      setSalvandoId(null);
+    }
+  }
+
   async function excluirProduto(id: number | string) {
     const confirmar = window.confirm("Deseja excluir este produto?");
     if (!confirmar) return;
@@ -137,7 +235,6 @@ export default function ProdutosListaPage() {
       );
     } catch (error: any) {
       console.error("Erro ao excluir produto:", error?.response?.data || error);
-
       alert(
         error?.response?.data?.mensagem ||
           "Erro ao excluir produto."
@@ -173,12 +270,34 @@ export default function ProdutosListaPage() {
     });
   }, [produtos, busca, categorias]);
 
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(produtosFiltrados.length / itensPorPagina)
+  );
+
+  const paginaSegura = Math.min(paginaAtual, totalPaginas);
+
+  const inicio = (paginaSegura - 1) * itensPorPagina;
+  const fim = inicio + itensPorPagina;
+
+  const produtosPaginados = produtosFiltrados.slice(inicio, fim);
+
+  function irPaginaAnterior() {
+    setPaginaAtual((prev) => Math.max(prev - 1, 1));
+  }
+
+  function irProximaPagina() {
+    setPaginaAtual((prev) => Math.min(prev + 1, totalPaginas));
+  }
+
   return (
     <div className="page">
       <div className="header">
         <div>
           <h1>Produtos</h1>
-          <p>{produtos.length} produto(s) cadastrados</p>
+          <p>
+            {produtos.length} produto(s) cadastrados
+          </p>
         </div>
 
         <div className="header-actions">
@@ -192,13 +311,34 @@ export default function ProdutosListaPage() {
         </div>
       </div>
 
-      <div className="search-box">
+      <div className="toolbar">
         <input
           type="text"
           placeholder="Buscar por nome, SKU, marca, modelo, slug ou categoria..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
+          className="search"
         />
+
+        <div className="toolbar-right">
+          <label className="select-label">
+            Itens por página
+            <select
+              value={itensPorPagina}
+              onChange={(e) => setItensPorPagina(Number(e.target.value))}
+              className="select"
+            >
+              <option value={4}>4</option>
+              <option value={6}>6</option>
+              <option value={8}>8</option>
+              <option value={12}>12</option>
+            </select>
+          </label>
+
+          <div className="counter">
+            {produtosFiltrados.length} resultado(s)
+          </div>
+        </div>
       </div>
 
       {carregando && <div className="state">Carregando produtos...</div>}
@@ -210,110 +350,298 @@ export default function ProdutosListaPage() {
       )}
 
       {!carregando && !erro && produtosFiltrados.length > 0 && (
-        <div className="grid">
-          {produtosFiltrados.map((produto) => {
-            const id = getId(produto);
-            const imagemUrl = resolverImagem(produto);
-            const precoNormal = Number(produto.preco || 0);
-            const precoPromo = produto.preco_promocional
-              ? Number(produto.preco_promocional)
-              : 0;
+        <>
+          <div className="grid">
+            {produtosPaginados.map((produto) => {
+              const id = getId(produto);
+              const imagemUrl = resolverImagem(produto);
+              const precoNormal = Number(produto.preco || 0);
+              const precoPromo = produto.preco_promocional
+                ? Number(produto.preco_promocional)
+                : 0;
 
-            return (
-              <div className="card" key={String(id)}>
-                <div className="image-box">
-                  {imagemUrl ? (
-                    <img
-                      src={imagemUrl}
-                      alt={produto.nome || "Produto"}
-                      className="image"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="image-placeholder">
-                      <span>Sem imagem</span>
-                    </div>
-                  )}
-                </div>
+              const editando = String(editandoId) === String(id);
 
-                <div className="content">
-                  <div className="top-line">
-                    <span className="badge">ID #{id}</span>
-                    <span className="sku">{produto.sku || "Sem SKU"}</span>
-                  </div>
-
-                  <h3>{produto.nome || "-"}</h3>
-
-                  <p className="slug">{produto.slug || "-"}</p>
-
-                  <div className="meta">
-                    <div>
-                      <small>Marca</small>
-                      <strong>{produto.marca || "-"}</strong>
-                    </div>
-
-                    <div>
-                      <small>Modelo</small>
-                      <strong>{produto.modelo || "-"}</strong>
-                    </div>
-                  </div>
-
-                  <div className="category">
-                    {getCategoriaNome(produto.categoria_id)}
-                  </div>
-
-                  <p className="description">
-                    {produto.descricao?.trim() || "Sem descrição cadastrada."}
-                  </p>
-
-                  <div className="prices">
-                    {precoPromo > 0 ? (
-                      <>
-                        <span className="old-price">
-                          {formatarPreco(precoNormal)}
-                        </span>
-                        <strong className="price">
-                          {formatarPreco(precoPromo)}
-                        </strong>
-                      </>
+              return (
+                <div className="card" key={String(id)}>
+                  <div className="image-box">
+                    {imagemUrl ? (
+                      <img
+                        src={imagemUrl}
+                        alt={produto.nome || "Produto"}
+                        className="image"
+                        loading="lazy"
+                      />
                     ) : (
-                      <strong className="price">
-                        {formatarPreco(precoNormal)}
-                      </strong>
+                      <div className="image-placeholder">
+                        <span>Sem imagem</span>
+                      </div>
                     )}
                   </div>
 
-                  <div className="actions">
-                    <button
-                      className="btn action view"
-                      type="button"
-                      onClick={() => router.push(`/Admin/produtos/${id}`)}
-                    >
-                      Ver
-                    </button>
+                  <div className="content">
+                    {editando ? (
+                      <>
+                        <div className="edit-grid">
+                          <label>
+                            Nome
+                            <input
+                              value={editForm.nome}
+                              onChange={(e) =>
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  nome: e.target.value,
+                                }))
+                              }
+                            />
+                          </label>
 
-                    <button
-                      className="btn action edit"
-                      type="button"
-                      onClick={() => router.push(`/Admin/produtos/${id}/editar`)}
-                    >
-                      Editar
-                    </button>
+                          <label>
+                            SKU
+                            <input
+                              value={editForm.sku}
+                              onChange={(e) =>
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  sku: e.target.value,
+                                }))
+                              }
+                            />
+                          </label>
 
-                    <button
-                      className="btn action delete"
-                      type="button"
-                      onClick={() => excluirProduto(id!)}
-                      disabled={excluindoId === id}
-                    >
-                      {excluindoId === id ? "Excluindo..." : "Excluir"}
-                    </button>
+                          <label>
+                            Marca
+                            <input
+                              value={editForm.marca}
+                              onChange={(e) =>
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  marca: e.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+
+                          <label>
+                            Modelo
+                            <input
+                              value={editForm.modelo}
+                              onChange={(e) =>
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  modelo: e.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+
+                          <label>
+                            Preço
+                            <input
+                              value={editForm.preco}
+                              onChange={(e) =>
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  preco: e.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+
+                          <label>
+                            Promoção
+                            <input
+                              value={editForm.preco_promocional}
+                              onChange={(e) =>
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  preco_promocional: e.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+
+                          <label className="full">
+                            Categoria
+                            <select
+                              value={editForm.categoria_id}
+                              onChange={(e) =>
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  categoria_id: e.target.value,
+                                }))
+                              }
+                            >
+                              <option value="">Selecione</option>
+                              {categorias.map((cat) => (
+                                <option
+                                  key={String(cat.id_categoria ?? cat.id)}
+                                  value={String(cat.id_categoria ?? cat.id)}
+                                >
+                                  {cat.nome}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+
+                          <label className="full">
+                            Status
+                            <select
+                              value={editForm.status_id}
+                              onChange={(e) =>
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  status_id: e.target.value,
+                                }))
+                              }
+                            >
+                              <option value="">Selecione</option>
+                              <option value="1">Ativo</option>
+                              <option value="0">Inativo</option>
+                            </select>
+                          </label>
+
+                          <label className="full">
+                            Descrição
+                            <textarea
+                              rows={4}
+                              value={editForm.descricao}
+                              onChange={(e) =>
+                                setEditForm((prev) => ({
+                                  ...prev,
+                                  descricao: e.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+                        </div>
+
+                        <div className="actions edit-actions">
+                          <button
+                            className="btn action cancel"
+                            type="button"
+                            onClick={cancelarEdicao}
+                          >
+                            Cancelar
+                          </button>
+
+                          <button
+                            className="btn action save"
+                            type="button"
+                            onClick={() => salvarEdicao(id!)}
+                            disabled={salvandoId === id}
+                          >
+                            {salvandoId === id ? "Salvando..." : "Salvar"}
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="top-line">
+                          <span className="badge">ID #{id}</span>
+                          <span className="sku">{produto.sku || "Sem SKU"}</span>
+                        </div>
+
+                        <h3>{produto.nome || "-"}</h3>
+
+                        <p className="slug">{produto.slug || "-"}</p>
+
+                        <div className="meta">
+                          <div>
+                            <small>Marca</small>
+                            <strong>{produto.marca || "-"}</strong>
+                          </div>
+
+                          <div>
+                            <small>Modelo</small>
+                            <strong>{produto.modelo || "-"}</strong>
+                          </div>
+                        </div>
+
+                        <div className="category">
+                          {getCategoriaNome(produto.categoria_id)}
+                        </div>
+
+                        <p className="description">
+                          {produto.descricao?.trim() || "Sem descrição cadastrada."}
+                        </p>
+
+                        <div className="prices">
+                          {precoPromo > 0 ? (
+                            <>
+                              <span className="old-price">
+                                {formatarPreco(precoNormal)}
+                              </span>
+                              <strong className="price">
+                                {formatarPreco(precoPromo)}
+                              </strong>
+                            </>
+                          ) : (
+                            <strong className="price">
+                              {formatarPreco(precoNormal)}
+                            </strong>
+                          )}
+                        </div>
+
+                        <div className="actions">
+                          <button
+                            className="btn action view"
+                            type="button"
+                            onClick={() => router.push(`/Admin/produtos/${id}`)}
+                          >
+                            Ver
+                          </button>
+
+                          <button
+                            className="btn action edit"
+                            type="button"
+                            onClick={() => abrirEdicao(produto)}
+                          >
+                            Editar
+                          </button>
+
+                          <button
+                            className="btn action delete"
+                            type="button"
+                            onClick={() => excluirProduto(id!)}
+                            disabled={excluindoId === id}
+                          >
+                            {excluindoId === id ? "Excluindo..." : "Excluir"}
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+
+          <div className="pagination">
+            <button
+              type="button"
+              className="page-btn"
+              onClick={irPaginaAnterior}
+              disabled={paginaSegura === 1}
+            >
+              Anterior
+            </button>
+
+            <div className="page-info">
+              Página <strong>{paginaSegura}</strong> de{" "}
+              <strong>{totalPaginas}</strong>
+            </div>
+
+            <button
+              type="button"
+              className="page-btn"
+              onClick={irProximaPagina}
+              disabled={paginaSegura === totalPaginas}
+            >
+              Próxima
+            </button>
+          </div>
+        </>
       )}
 
       <style jsx>{`
@@ -326,7 +654,7 @@ export default function ProdutosListaPage() {
 
         .header {
           max-width: 1400px;
-          margin: 0 auto 20px auto;
+          margin: 0 auto 18px auto;
           display: flex;
           justify-content: space-between;
           align-items: center;
@@ -384,13 +712,19 @@ export default function ProdutosListaPage() {
           transform: translateY(-1px);
         }
 
-        .search-box {
+        .toolbar {
           max-width: 1400px;
           margin: 0 auto 20px auto;
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          flex-wrap: wrap;
+          align-items: center;
         }
 
-        .search-box input {
-          width: 100%;
+        .search {
+          flex: 1;
+          min-width: 280px;
           border: 1px solid #d1d5db;
           border-radius: 16px;
           padding: 15px 18px;
@@ -398,6 +732,42 @@ export default function ProdutosListaPage() {
           outline: none;
           background: #fff;
           box-shadow: 0 10px 25px rgba(17, 24, 39, 0.04);
+        }
+
+        .toolbar-right {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        .select-label {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-weight: 700;
+          color: #374151;
+          background: #fff;
+          border: 1px solid #e5e7eb;
+          border-radius: 14px;
+          padding: 10px 12px;
+        }
+
+        .select {
+          border: none;
+          outline: none;
+          background: transparent;
+          font-weight: 700;
+          color: #111827;
+        }
+
+        .counter {
+          background: #fff;
+          border: 1px solid #e5e7eb;
+          border-radius: 14px;
+          padding: 12px 14px;
+          font-weight: 700;
+          color: #374151;
         }
 
         .state {
@@ -602,6 +972,89 @@ export default function ProdutosListaPage() {
           cursor: not-allowed;
         }
 
+        .pagination {
+          max-width: 1400px;
+          margin: 18px auto 0 auto;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+          background: #fff;
+          border: 1px solid #e5e7eb;
+          border-radius: 18px;
+          padding: 14px 16px;
+          box-shadow: 0 10px 25px rgba(17, 24, 39, 0.05);
+        }
+
+        .page-btn {
+          border: none;
+          border-radius: 12px;
+          padding: 10px 16px;
+          font-weight: 700;
+          cursor: pointer;
+          background: #111827;
+          color: #fff;
+        }
+
+        .page-btn:disabled {
+          opacity: 0.45;
+          cursor: not-allowed;
+        }
+
+        .page-info {
+          font-weight: 700;
+          color: #374151;
+        }
+
+        .edit-grid {
+          display: grid;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          gap: 10px;
+        }
+
+        .edit-grid label {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          font-size: 12px;
+          font-weight: 700;
+          color: #374151;
+        }
+
+        .edit-grid input,
+        .edit-grid select,
+        .edit-grid textarea {
+          width: 100%;
+          border: 1px solid #d1d5db;
+          border-radius: 12px;
+          padding: 10px 12px;
+          font-size: 14px;
+          outline: none;
+          background: #fff;
+          color: #111827;
+          resize: vertical;
+        }
+
+        .edit-grid .full {
+          grid-column: 1 / -1;
+        }
+
+        .edit-actions {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+          margin-top: 6px;
+        }
+
+        .cancel {
+          background: #f3f4f6;
+          color: #111827;
+        }
+
+        .save {
+          background: #16a34a;
+          color: #fff;
+        }
+
         @media (max-width: 768px) {
           .page {
             padding: 16px;
@@ -634,6 +1087,34 @@ export default function ProdutosListaPage() {
 
           .actions {
             grid-template-columns: 1fr;
+          }
+
+          .edit-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .edit-actions {
+            grid-template-columns: 1fr;
+          }
+
+          .toolbar-right {
+            width: 100%;
+          }
+
+          .select-label,
+          .counter {
+            width: 100%;
+            justify-content: space-between;
+          }
+
+          .pagination {
+            flex-direction: column;
+          }
+
+          .page-btn,
+          .page-info {
+            width: 100%;
+            text-align: center;
           }
         }
       `}</style>
