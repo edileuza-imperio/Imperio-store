@@ -18,16 +18,12 @@ import "react-toastify/dist/ReactToastify.css";
 type Categoria = {
   id_categoria: number | string;
   nome: string;
-  slug?: string;
-  status_id?: number | string;
 };
 
 type StatusItem = {
   id_status?: number | string;
   id?: number | string;
   nome: string;
-  codigo?: string;
-  descricao?: string;
 };
 
 type ProdutoForm = {
@@ -112,50 +108,6 @@ function gerarSkuAutomatico(nome: string, categoriaNome?: string) {
   return `${baseCategoria || "CAT"}-${baseNome || "PROD"}-${data}${hora}`;
 }
 
-function extrairListaCategorias(data: any): Categoria[] {
-  if (Array.isArray(data)) return data;
-
-  if (Array.isArray(data?.dados)) {
-    return data.dados;
-  }
-
-  if (Array.isArray(data?.categorias)) {
-    return data.categorias;
-  }
-
-  if (Array.isArray(data?.dados?.categorias)) {
-    return data.dados.categorias;
-  }
-
-  if (Array.isArray(data?.dados?.dados)) {
-    return data.dados.dados;
-  }
-
-  return [];
-}
-
-function extrairListaStatus(data: any): StatusItem[] {
-  if (Array.isArray(data)) return data;
-
-  if (Array.isArray(data?.dados?.dados)) {
-    return data.dados.dados;
-  }
-
-  if (Array.isArray(data?.dados)) {
-    return data.dados;
-  }
-
-  if (Array.isArray(data?.status)) {
-    return data.status;
-  }
-
-  if (Array.isArray(data?.dados?.status)) {
-    return data.dados.status;
-  }
-
-  return [];
-}
-
 export default function CadastrarProduto() {
   const router = useRouter();
 
@@ -163,20 +115,16 @@ export default function CadastrarProduto() {
 
   const [salvando, setSalvando] = useState(false);
 
-  const [carregandoCategorias, setCarregandoCategorias] = useState(true);
-
-  const [carregandoStatus, setCarregandoStatus] = useState(true);
-
   const [categorias, setCategorias] = useState<Categoria[]>([]);
 
   const [statusLista, setStatusLista] = useState<StatusItem[]>([]);
 
-  const [slugEditadoManualmente, setSlugEditadoManualmente] =
-    useState(false);
-
   const [arquivoImagem, setArquivoImagem] = useState<File | null>(null);
 
   const [previewImagem, setPreviewImagem] = useState("");
+
+  const [slugEditadoManualmente, setSlugEditadoManualmente] =
+    useState(false);
 
   const [form, setForm] = useState<ProdutoForm>({
     nome: "",
@@ -192,58 +140,21 @@ export default function CadastrarProduto() {
   });
 
   useEffect(() => {
-    async function carregarCategorias() {
+    async function carregarDados() {
       try {
-        setCarregandoCategorias(true);
+        const categoriasResponse = await api.get("/painel/categorias");
 
-        const response = await api.get("/painel/categorias");
+        const statusResponse = await api.get("/painel/status");
 
-        const lista = extrairListaCategorias(response?.data);
+        setCategorias(categoriasResponse?.data?.dados || []);
 
-        setCategorias(lista);
+        setStatusLista(statusResponse?.data?.dados || []);
       } catch (error) {
-        console.error("Erro ao carregar categorias:", error);
-
-        toast.error("Não foi possível carregar as categorias.");
-      } finally {
-        setCarregandoCategorias(false);
+        toast.error("Erro ao carregar dados.");
       }
     }
 
-    carregarCategorias();
-  }, []);
-
-  useEffect(() => {
-    async function carregarStatus() {
-      try {
-        setCarregandoStatus(true);
-
-        const response = await api.get("/painel/status");
-
-        const lista = extrairListaStatus(response?.data);
-
-        setStatusLista(lista);
-
-        if (Array.isArray(lista) && lista.length > 0) {
-          const primeiroStatus = String(
-            lista[0].id_status ?? lista[0].id ?? ""
-          );
-
-          setForm((prev) => ({
-            ...prev,
-            status_id: prev.status_id || primeiroStatus,
-          }));
-        }
-      } catch (error) {
-        console.error("Erro ao carregar status:", error);
-
-        toast.error("Não foi possível carregar os status.");
-      } finally {
-        setCarregandoStatus(false);
-      }
-    }
-
-    carregarStatus();
+    carregarDados();
   }, []);
 
   useEffect(() => {
@@ -286,9 +197,7 @@ export default function CadastrarProduto() {
       setSlugEditadoManualmente(true);
     }
 
-    if (name === "sku") {
-      return;
-    }
+    if (name === "sku") return;
 
     setForm((prev) => ({
       ...prev,
@@ -311,94 +220,17 @@ export default function CadastrarProduto() {
 
     if (!file) return;
 
-    const tiposPermitidos = [
-      "image/png",
-      "image/jpeg",
-      "image/jpg",
-      "image/webp",
-    ];
-
-    if (!tiposPermitidos.includes(file.type)) {
-      toast.error(
-        "Envie uma imagem PNG, JPG, JPEG ou WEBP."
-      );
-
-      e.target.value = "";
-
-      return;
-    }
-
-    if (previewImagem) {
-      URL.revokeObjectURL(previewImagem);
-    }
-
     const preview = URL.createObjectURL(file);
 
     setArquivoImagem(file);
 
     setPreviewImagem(preview);
-
-    toast.success("Imagem carregada com sucesso.");
-  }
-
-  useEffect(() => {
-    return () => {
-      if (previewImagem) {
-        URL.revokeObjectURL(previewImagem);
-      }
-    };
-  }, [previewImagem]);
-
-  function validarCampos() {
-    if (!limparTexto(form.nome)) {
-      toast.error("Preencha o nome do produto.");
-      return false;
-    }
-
-    if (!limparTexto(form.slug)) {
-      toast.error("Preencha o slug do produto.");
-      return false;
-    }
-
-    if (!limparTexto(form.descricao)) {
-      toast.error("Preencha a descrição do produto.");
-      return false;
-    }
-
-    if (!limparTexto(form.preco)) {
-      toast.error("Preencha o preço.");
-      return false;
-    }
-
-    if (!limparTexto(form.marca)) {
-      toast.error("Preencha a marca.");
-      return false;
-    }
-
-    if (!limparTexto(form.categoria_id)) {
-      toast.error("Selecione uma categoria.");
-      return false;
-    }
-
-    if (!limparTexto(form.status_id)) {
-      toast.error("Selecione um status.");
-      return false;
-    }
-
-    if (!arquivoImagem) {
-      toast.error("Envie uma imagem do produto.");
-      return false;
-    }
-
-    return true;
   }
 
   async function handleSubmit(
     e: FormEvent<HTMLFormElement>
   ) {
     e.preventDefault();
-
-    if (!validarCampos()) return;
 
     try {
       setSalvando(true);
@@ -407,106 +239,47 @@ export default function CadastrarProduto() {
 
       const formData = new FormData();
 
-      const payload = {
-        nome: limparTexto(form.nome),
-        slug: limparTexto(form.slug),
-        descricao: limparTexto(form.descricao),
-        preco: limparTexto(form.preco),
-        preco_promocional: limparTexto(
-          form.preco_promocional
-        ),
-        sku: limparTexto(form.sku),
-        modelo: limparTexto(form.modelo),
-        marca: limparTexto(form.marca),
-        categoria_id: limparTexto(form.categoria_id),
-        status_id: limparTexto(form.status_id),
-        criado_em: agora,
-        atualizado_em: agora,
-      };
-
-      formData.append("nome", payload.nome);
-      formData.append("slug", payload.slug);
-      formData.append("descricao", payload.descricao);
-      formData.append("preco", payload.preco);
-      formData.append("sku", payload.sku);
-      formData.append("marca", payload.marca);
+      formData.append("nome", limparTexto(form.nome));
+      formData.append("slug", limparTexto(form.slug));
+      formData.append(
+        "descricao",
+        limparTexto(form.descricao)
+      );
+      formData.append("preco", limparTexto(form.preco));
+      formData.append(
+        "preco_promocional",
+        limparTexto(form.preco_promocional)
+      );
+      formData.append("sku", limparTexto(form.sku));
+      formData.append("modelo", limparTexto(form.modelo));
+      formData.append("marca", limparTexto(form.marca));
       formData.append(
         "categoria_id",
-        payload.categoria_id
+        limparTexto(form.categoria_id)
       );
-      formData.append("status_id", payload.status_id);
-      formData.append("criado_em", payload.criado_em);
       formData.append(
-        "atualizado_em",
-        payload.atualizado_em
+        "status_id",
+        limparTexto(form.status_id)
       );
 
-      if (payload.preco_promocional) {
-        formData.append(
-          "preco_promocional",
-          payload.preco_promocional
-        );
-      }
-
-      if (payload.modelo) {
-        formData.append("modelo", payload.modelo);
-      }
+      formData.append("criado_em", agora);
+      formData.append("atualizado_em", agora);
 
       if (arquivoImagem) {
-        formData.append(
-          "imagem",
-          arquivoImagem,
-          arquivoImagem.name
-        );
+        formData.append("imagem", arquivoImagem);
       }
 
-      const response = await api.post(
-        "/painel/produto",
-        formData,
-        {
-          withCredentials: true,
-          transformRequest: [(data) => data],
-        }
-      );
+      await api.post("/painel/produto", formData, {
+        withCredentials: true,
+      });
 
-      const data = response?.data;
+      toast.success("Produto cadastrado com sucesso!");
 
-      const sucesso =
-        response.status === 200 ||
-        response.status === 201 ||
-        data?.status === 200 ||
-        data?.status === 201 ||
-        data?.dados?.status === 200 ||
-        data?.dados?.status === 201;
-
-      if (sucesso) {
-        toast.success(
-          data?.mensagem ||
-            data?.dados?.mensagem ||
-            "Produto cadastrado com sucesso!"
-        );
-
-        setTimeout(() => {
-          router.push("/Admin/produtos");
-        }, 1500);
-
-        return;
-      }
-
-      toast.error(
-        data?.mensagem ||
-          data?.dados?.mensagem ||
-          "Não foi possível cadastrar o produto."
-      );
-    } catch (error: any) {
-      console.error(error);
-
-      const mensagemErro =
-        error?.response?.data?.dados?.mensagem ||
-        error?.response?.data?.mensagem ||
-        "Erro ao conectar com a API ao cadastrar o produto.";
-
-      toast.error(mensagemErro);
+      setTimeout(() => {
+        router.push("/Admin/produtos");
+      }, 1500);
+    } catch (error) {
+      toast.error("Erro ao cadastrar produto.");
     } finally {
       setSalvando(false);
     }
@@ -519,206 +292,432 @@ export default function CadastrarProduto() {
         autoClose={3000}
       />
 
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Nome do produto</label>
+      <style jsx>{`
+        .container {
+          min-height: 100vh;
+          background: #f4f7fb;
+          padding: 40px;
+        }
 
-          <input
-            type="text"
-            name="nome"
-            value={form.nome}
-            onChange={handleChange}
-            placeholder="Ex: Arranjo Luxo Casamento"
-          />
+        .header {
+          margin-bottom: 30px;
+        }
+
+        .header h1 {
+          font-size: 34px;
+          color: #111827;
+          margin-bottom: 8px;
+        }
+
+        .header p {
+          color: #6b7280;
+          font-size: 15px;
+        }
+
+        .formulario {
+          display: grid;
+          grid-template-columns: 360px 1fr;
+          gap: 25px;
+        }
+
+        .uploadCard,
+        .cardFormulario {
+          background: white;
+          border-radius: 22px;
+          padding: 25px;
+          box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+        }
+
+        .uploadCard h2 {
+          margin-bottom: 20px;
+          color: #111827;
+        }
+
+        .inputFile {
+          display: none;
+        }
+
+        .previewBox {
+          width: 100%;
+          height: 340px;
+          border-radius: 18px;
+          overflow: hidden;
+          border: 2px dashed #d1d5db;
+          background: #f9fafb;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 20px;
+        }
+
+        .previewImagem {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+
+        .semImagem {
+          text-align: center;
+          color: #6b7280;
+        }
+
+        .semImagem span {
+          font-size: 55px;
+          display: block;
+          margin-bottom: 10px;
+        }
+
+        .botaoUpload {
+          width: 100%;
+          height: 52px;
+          border: none;
+          border-radius: 14px;
+          background: #111827;
+          color: white;
+          font-size: 15px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: 0.3s;
+        }
+
+        .botaoUpload:hover {
+          background: #1f2937;
+        }
+
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 20px;
+        }
+
+        .campoGrande {
+          grid-column: span 2;
+        }
+
+        .grid label {
+          display: block;
+          margin-bottom: 8px;
+          color: #374151;
+          font-size: 14px;
+          font-weight: 600;
+        }
+
+        .grid input,
+        .grid textarea,
+        .grid select {
+          width: 100%;
+          border: 1px solid #d1d5db;
+          border-radius: 14px;
+          padding: 14px;
+          font-size: 14px;
+          outline: none;
+          transition: 0.3s;
+          background: white;
+        }
+
+        .grid textarea {
+          min-height: 140px;
+          resize: vertical;
+        }
+
+        .grid input:focus,
+        .grid textarea:focus,
+        .grid select:focus {
+          border-color: #111827;
+          box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.1);
+        }
+
+        .botoes {
+          display: flex;
+          justify-content: flex-end;
+          gap: 15px;
+          margin-top: 30px;
+        }
+
+        .botaoVoltar,
+        .botaoSalvar {
+          height: 50px;
+          padding: 0 28px;
+          border-radius: 14px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: 0.3s;
+        }
+
+        .botaoVoltar {
+          background: white;
+          border: 1px solid #d1d5db;
+          color: #374151;
+        }
+
+        .botaoVoltar:hover {
+          background: #f3f4f6;
+        }
+
+        .botaoSalvar {
+          background: #111827;
+          border: none;
+          color: white;
+        }
+
+        .botaoSalvar:hover {
+          background: #1f2937;
+        }
+
+        @media (max-width: 980px) {
+          .formulario {
+            grid-template-columns: 1fr;
+          }
+        }
+
+        @media (max-width: 700px) {
+          .container {
+            padding: 20px;
+          }
+
+          .grid {
+            grid-template-columns: 1fr;
+          }
+
+          .campoGrande {
+            grid-column: span 1;
+          }
+
+          .botoes {
+            flex-direction: column;
+          }
+
+          .botaoVoltar,
+          .botaoSalvar {
+            width: 100%;
+          }
+        }
+      `}</style>
+
+      <div className="container">
+        <div className="header">
+          <h1>Cadastrar Produto</h1>
+
+          <p>
+            Adicione um novo produto ao sistema.
+          </p>
         </div>
 
-        <div>
-          <label>Slug</label>
+        <form
+          onSubmit={handleSubmit}
+          className="formulario"
+        >
+          <div className="uploadCard">
+            <h2>Imagem do Produto</h2>
 
-          <input
-            type="text"
-            name="slug"
-            value={form.slug}
-            onChange={handleChange}
-            placeholder="arranjo-luxo-casamento"
-          />
-        </div>
-
-        <div>
-          <label>Descrição</label>
-
-          <textarea
-            name="descricao"
-            value={form.descricao}
-            onChange={handleChange}
-            placeholder="Descreva o produto"
-          />
-        </div>
-
-        <div>
-          <label>Preço</label>
-
-          <input
-            type="text"
-            name="preco"
-            value={form.preco}
-            onChange={handleChange}
-            placeholder="0.00"
-          />
-        </div>
-
-        <div>
-          <label>Preço promocional</label>
-
-          <input
-            type="text"
-            name="preco_promocional"
-            value={form.preco_promocional}
-            onChange={handleChange}
-            placeholder="0.00"
-          />
-        </div>
-
-        <div>
-          <label>SKU automático</label>
-
-          <input
-            type="text"
-            name="sku"
-            value={form.sku}
-            readOnly
-            disabled
-          />
-        </div>
-
-        <div>
-          <label>Modelo</label>
-
-          <input
-            type="text"
-            name="modelo"
-            value={form.modelo}
-            onChange={handleChange}
-            placeholder="Linha Premium"
-          />
-        </div>
-
-        <div>
-          <label>Marca</label>
-
-          <input
-            type="text"
-            name="marca"
-            value={form.marca}
-            onChange={handleChange}
-            placeholder="Universo Império"
-          />
-        </div>
-
-        <div>
-          <label>Categoria</label>
-
-          <select
-            name="categoria_id"
-            value={form.categoria_id}
-            onChange={handleChange}
-            disabled={carregandoCategorias}
-          >
-            <option value="">
-              {carregandoCategorias
-                ? "Carregando categorias..."
-                : "Selecione uma categoria"}
-            </option>
-
-            {categorias.map((categoria) => (
-              <option
-                key={String(categoria.id_categoria)}
-                value={String(
-                  categoria.id_categoria
-                )}
-              >
-                {categoria.nome}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label>Status</label>
-
-          <select
-            name="status_id"
-            value={form.status_id}
-            onChange={handleChange}
-            disabled={carregandoStatus}
-          >
-            <option value="">
-              {carregandoStatus
-                ? "Carregando status..."
-                : statusLista.length === 0
-                ? "Nenhum status encontrado"
-                : "Selecione um status"}
-            </option>
-
-            {statusLista.map((status) => {
-              const valor = String(
-                status.id_status ?? status.id ?? ""
-              );
-
-              return (
-                <option
-                  key={valor}
-                  value={valor}
-                >
-                  {status.nome}
-                </option>
-              );
-            })}
-          </select>
-        </div>
-
-        <div>
-          <label>Imagem</label>
-
-          <input
-            ref={inputImagemRef}
-            type="file"
-            name="imagem"
-            accept="image/png,image/jpeg,image/jpg,image/webp"
-            onChange={handleImagem}
-          />
-        </div>
-
-        {previewImagem && (
-          <div>
-            <img
-              src={previewImagem}
-              alt="Prévia do produto"
-              width={200}
+            <input
+              ref={inputImagemRef}
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              onChange={handleImagem}
+              className="inputFile"
             />
+
+            <div className="previewBox">
+              {previewImagem ? (
+                <img
+                  src={previewImagem}
+                  alt="Preview"
+                  className="previewImagem"
+                />
+              ) : (
+                <div className="semImagem">
+                  <span>+</span>
+                  <p>
+                    Nenhuma imagem selecionada
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={abrirUpload}
+              className="botaoUpload"
+            >
+              Selecionar imagem
+            </button>
           </div>
-        )}
 
-        <div>
-          <button
-            type="button"
-            onClick={() =>
-              router.push("/Admin/produtos")
-            }
-          >
-            Voltar
-          </button>
+          <div className="cardFormulario">
+            <div className="grid">
+              <div className="campoGrande">
+                <label>Nome do produto</label>
 
-          <button
-            type="submit"
-            disabled={salvando}
-          >
-            {salvando
-              ? "Salvando produto..."
-              : "Cadastrar produto"}
-          </button>
-        </div>
-      </form>
+                <input
+                  type="text"
+                  name="nome"
+                  value={form.nome}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="campoGrande">
+                <label>Slug</label>
+
+                <input
+                  type="text"
+                  name="slug"
+                  value={form.slug}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="campoGrande">
+                <label>Descrição</label>
+
+                <textarea
+                  name="descricao"
+                  value={form.descricao}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
+                <label>Preço</label>
+
+                <input
+                  type="text"
+                  name="preco"
+                  value={form.preco}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
+                <label>
+                  Preço promocional
+                </label>
+
+                <input
+                  type="text"
+                  name="preco_promocional"
+                  value={form.preco_promocional}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
+                <label>SKU</label>
+
+                <input
+                  type="text"
+                  value={form.sku}
+                  disabled
+                />
+              </div>
+
+              <div>
+                <label>Modelo</label>
+
+                <input
+                  type="text"
+                  name="modelo"
+                  value={form.modelo}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
+                <label>Marca</label>
+
+                <input
+                  type="text"
+                  name="marca"
+                  value={form.marca}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div>
+                <label>Categoria</label>
+
+                <select
+                  name="categoria_id"
+                  value={form.categoria_id}
+                  onChange={handleChange}
+                >
+                  <option value="">
+                    Selecione
+                  </option>
+
+                  {categorias.map((categoria) => (
+                    <option
+                      key={String(
+                        categoria.id_categoria
+                      )}
+                      value={String(
+                        categoria.id_categoria
+                      )}
+                    >
+                      {categoria.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label>Status</label>
+
+                <select
+                  name="status_id"
+                  value={form.status_id}
+                  onChange={handleChange}
+                >
+                  <option value="">
+                    Selecione
+                  </option>
+
+                  {statusLista.map((status) => {
+                    const valor = String(
+                      status.id_status ??
+                        status.id ??
+                        ""
+                    );
+
+                    return (
+                      <option
+                        key={valor}
+                        value={valor}
+                      >
+                        {status.nome}
+                      </option>
+                    );
+                  })}
+                </select>
+              </div>
+            </div>
+
+            <div className="botoes">
+              <button
+                type="button"
+                className="botaoVoltar"
+                onClick={() =>
+                  router.push("/Admin/produtos")
+                }
+              >
+                Voltar
+              </button>
+
+              <button
+                type="submit"
+                disabled={salvando}
+                className="botaoSalvar"
+              >
+                {salvando
+                  ? "Salvando..."
+                  : "Cadastrar Produto"}
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
     </>
   );
 }
