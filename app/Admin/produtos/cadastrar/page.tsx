@@ -203,7 +203,7 @@ export default function CadastrarProduto() {
       ...prev,
       [name]:
         name === "preco" ||
-        name === "preco_promocional"
+          name === "preco_promocional"
           ? formatarPreco(value)
           : value,
     }));
@@ -475,8 +475,8 @@ export default function CadastrarProduto() {
                   {statusLista.map((status) => {
                     const valor = String(
                       status.id_status ??
-                        status.id ??
-                        ""
+                      status.id ??
+                      ""
                     );
 
                     return (
@@ -517,210 +517,200 @@ export default function CadastrarProduto() {
         </form>
       </div>
 
-      <style jsx>{`
-        .container {
-          min-height: 100vh;
-          background: #f4f7fb;
-          padding: 40px;
-        }
+      <style jsx global>{`
+  .container {
+    min-height: 100vh;
+    background: #f4f7fb;
+    padding: 40px;
+  }
 
-        .header {
-          margin-bottom: 30px;
-        }
+  .header {
+    margin-bottom: 30px;
+  }
 
-        .header h1 {
-          font-size: 34px;
-          color: #111827;
-          margin-bottom: 8px;
-        }
+  .header h1 {
+    font-size: 34px;
+    color: #111827;
+    margin-bottom: 8px;
+  }
 
-        .header p {
-          color: #6b7280;
-          font-size: 15px;
-        }
+  .header p {
+    color: #6b7280;
+    font-size: 15px;
+  }
 
-        .formulario {
-          display: grid;
-          grid-template-columns: 360px 1fr;
-          gap: 25px;
-        }
+  .formulario {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    gap: 25px;
+  }
 
-        .uploadCard,
-        .cardFormulario {
-          background: #ffffff;
-          border-radius: 24px;
-          padding: 25px;
-          box-shadow: 0 10px 30px
-            rgba(0, 0, 0, 0.05);
-        }
+  .uploadCard,
+  .cardFormulario {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 25px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  }
 
-        .uploadCard h2 {
-          margin-bottom: 20px;
-          color: #111827;
-        }
+  .uploadCard h2 {
+    margin-bottom: 20px;
+    color: #111827;
+  }
 
-        .inputFile {
-          display: none;
-        }
+  .inputFile {
+    display: none;
+  }
 
-        .previewBox {
-          width: 100%;
-          height: 340px;
-          border-radius: 18px;
-          overflow: hidden;
-          border: 2px dashed #d1d5db;
-          background: #f9fafb;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 20px;
-        }
+  .previewBox {
+    width: 100%;
+    height: 340px;
+    border-radius: 18px;
+    overflow: hidden;
+    border: 2px dashed #d1d5db;
+    background: #f9fafb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
 
-        .previewImagem {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
-        }
+  .previewImagem {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
 
-        .semImagem {
-          text-align: center;
-          color: #6b7280;
-        }
+  .semImagem {
+    text-align: center;
+    color: #6b7280;
+  }
 
-        .semImagem span {
-          font-size: 60px;
-          display: block;
-          margin-bottom: 10px;
-        }
+  .semImagem span {
+    font-size: 60px;
+    display: block;
+    margin-bottom: 10px;
+  }
 
-        .botaoUpload {
-          width: 100%;
-          height: 54px;
-          border: none;
-          border-radius: 14px;
-          background: #111827;
-          color: white;
-          font-size: 15px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: 0.3s;
-        }
+  .botaoUpload {
+    width: 100%;
+    height: 54px;
+    border: none;
+    border-radius: 14px;
+    background: #111827;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+  }
 
-        .botaoUpload:hover {
-          background: #1f2937;
-        }
+  .botaoUpload:hover {
+    background: #1f2937;
+  }
 
-        .grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 20px;
-        }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
 
-        .campoGrande {
-          grid-column: span 2;
-        }
+  .campoGrande {
+    grid-column: span 2;
+  }
 
-        .grid label {
-          display: block;
-          margin-bottom: 8px;
-          color: #374151;
-          font-size: 14px;
-          font-weight: 600;
-        }
+  .grid label {
+    display: block;
+    margin-bottom: 8px;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+  }
 
-        .grid input,
-        .grid textarea,
-        .grid select {
-          width: 100%;
-          border: 1px solid #d1d5db;
-          border-radius: 14px;
-          padding: 14px;
-          font-size: 14px;
-          outline: none;
-          transition: 0.3s;
-          background: #ffffff;
-        }
+  .grid input,
+  .grid textarea,
+  .grid select {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 14px;
+    outline: none;
+    transition: 0.3s;
+    background: #ffffff;
+  }
 
-        .grid textarea {
-          min-height: 140px;
-          resize: vertical;
-        }
+  .grid textarea {
+    min-height: 140px;
+    resize: vertical;
+  }
 
-        .grid input:focus,
-        .grid textarea:focus,
-        .grid select:focus {
-          border-color: #111827;
-          box-shadow: 0 0 0 4px
-            rgba(17, 24, 39, 0.1);
-        }
+  .grid input:focus,
+  .grid textarea:focus,
+  .grid select:focus {
+    border-color: #111827;
+    box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.1);
+  }
 
-        .botoes {
-          display: flex;
-          justify-content: flex-end;
-          gap: 15px;
-          margin-top: 30px;
-        }
+  .botoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 15px;
+    margin-top: 30px;
+  }
 
-        .botaoVoltar,
-        .botaoSalvar {
-          height: 52px;
-          padding: 0 28px;
-          border-radius: 14px;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-          transition: 0.3s;
-        }
+  .botaoVoltar,
+  .botaoSalvar {
+    height: 52px;
+    padding: 0 28px;
+    border-radius: 14px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s;
+  }
 
-        .botaoVoltar {
-          background: white;
-          border: 1px solid #d1d5db;
-          color: #374151;
-        }
+  .botaoVoltar {
+    background: white;
+    border: 1px solid #d1d5db;
+    color: #374151;
+  }
 
-        .botaoVoltar:hover {
-          background: #f3f4f6;
-        }
+  .botaoSalvar {
+    background: #111827;
+    border: none;
+    color: white;
+  }
 
-        .botaoSalvar {
-          background: #111827;
-          border: none;
-          color: white;
-        }
+  @media (max-width: 980px) {
+    .formulario {
+      grid-template-columns: 1fr;
+    }
+  }
 
-        .botaoSalvar:hover {
-          background: #1f2937;
-        }
+  @media (max-width: 700px) {
+    .container {
+      padding: 20px;
+    }
 
-        @media (max-width: 980px) {
-          .formulario {
-            grid-template-columns: 1fr;
-          }
-        }
+    .grid {
+      grid-template-columns: 1fr;
+    }
 
-        @media (max-width: 700px) {
-          .container {
-            padding: 20px;
-          }
+    .campoGrande {
+      grid-column: span 1;
+    }
 
-          .grid {
-            grid-template-columns: 1fr;
-          }
+    .botoes {
+      flex-direction: column;
+    }
 
-          .campoGrande {
-            grid-column: span 1;
-          }
-
-          .botoes {
-            flex-direction: column;
-          }
-
-          .botaoVoltar,
-          .botaoSalvar {
-            width: 100%;
-          }
-        }
-      `}</style>
+    .botaoVoltar,
+    .botaoSalvar {
+      width: 100%;
+    }
+  }
+`}</style>
     </>
   );
 }
