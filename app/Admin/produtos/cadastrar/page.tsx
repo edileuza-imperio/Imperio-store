@@ -12,6 +12,14 @@ import {
 import api from "@/Api/conectar";
 import { useRouter } from "next/navigation";
 
+import {
+  FiUploadCloud,
+  FiArrowLeft,
+  FiPackage,
+  FiTag,
+  FiImage,
+} from "react-icons/fi";
+
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -116,7 +124,6 @@ export default function CadastrarProduto() {
   const [salvando, setSalvando] = useState(false);
 
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-
   const [statusLista, setStatusLista] = useState<StatusItem[]>([]);
 
   const [arquivoImagem, setArquivoImagem] = useState<File | null>(null);
@@ -142,13 +149,34 @@ export default function CadastrarProduto() {
   useEffect(() => {
     async function carregarDados() {
       try {
-        const categoriasResponse = await api.get("/painel/categorias");
+        const [categoriasResponse, statusResponse] = await Promise.all([
+          api.get("/painel/categorias"),
+          api.get("/painel/status"),
+        ]);
 
-        const statusResponse = await api.get("/painel/status");
+        setCategorias(
+          categoriasResponse?.data?.dados ||
+            categoriasResponse?.data ||
+            []
+        );
 
-        setCategorias(categoriasResponse?.data?.dados || []);
+        const listaStatus =
+          statusResponse?.data?.dados ||
+          statusResponse?.data ||
+          [];
 
-        setStatusLista(statusResponse?.data?.dados || []);
+        setStatusLista(listaStatus);
+
+        if (listaStatus.length > 0) {
+          setForm((prev) => ({
+            ...prev,
+            status_id: String(
+              listaStatus[0].id_status ??
+                listaStatus[0].id ??
+                ""
+            ),
+          }));
+        }
       } catch (error) {
         toast.error("Erro ao carregar dados.");
       }
@@ -197,20 +225,14 @@ export default function CadastrarProduto() {
       setSlugEditadoManualmente(true);
     }
 
-    if (name === "sku") return;
-
     setForm((prev) => ({
       ...prev,
       [name]:
         name === "preco" ||
-          name === "preco_promocional"
+        name === "preco_promocional"
           ? formatarPreco(value)
           : value,
     }));
-  }
-
-  function abrirUpload() {
-    inputImagemRef.current?.click();
   }
 
   function handleImagem(
@@ -223,14 +245,36 @@ export default function CadastrarProduto() {
     const preview = URL.createObjectURL(file);
 
     setArquivoImagem(file);
-
     setPreviewImagem(preview);
+
+    toast.success("Imagem adicionada.");
+  }
+
+  function validarCampos() {
+    if (!form.nome) {
+      toast.error("Digite o nome do produto.");
+      return false;
+    }
+
+    if (!form.preco) {
+      toast.error("Digite o preço.");
+      return false;
+    }
+
+    if (!arquivoImagem) {
+      toast.error("Selecione uma imagem.");
+      return false;
+    }
+
+    return true;
   }
 
   async function handleSubmit(
     e: FormEvent<HTMLFormElement>
   ) {
     e.preventDefault();
+
+    if (!validarCampos()) return;
 
     try {
       setSalvando(true);
@@ -266,20 +310,36 @@ export default function CadastrarProduto() {
       formData.append("atualizado_em", agora);
 
       if (arquivoImagem) {
-        formData.append("imagem", arquivoImagem);
+        formData.append(
+          "imagem",
+          arquivoImagem,
+          arquivoImagem.name
+        );
       }
 
-      await api.post("/painel/produto", formData, {
-        withCredentials: true,
-      });
+      const response = await api.post(
+        "/painel/produto",
+        formData,
+        {
+          withCredentials: true,
+        }
+      );
 
-      toast.success("Produto cadastrado com sucesso!");
+      if (
+        response.status === 200 ||
+        response.status === 201
+      ) {
+        toast.success("Produto cadastrado com sucesso!");
 
-      setTimeout(() => {
-        router.push("/Admin/produtos");
-      }, 1500);
-    } catch (error) {
-      toast.error("Erro ao cadastrar produto.");
+        setTimeout(() => {
+          router.push("/Admin/produtos");
+        }, 1500);
+      }
+    } catch (error: any) {
+      toast.error(
+        error?.response?.data?.mensagem ||
+          "Erro ao cadastrar produto."
+      );
     } finally {
       setSalvando(false);
     }
@@ -287,430 +347,286 @@ export default function CadastrarProduto() {
 
   return (
     <>
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-      />
+      <ToastContainer position="top-right" />
 
-      <div className="container">
-        <div className="header">
-          <h1>Cadastrar Produto</h1>
-
-          <p>
-            Adicione um novo produto ao sistema
-          </p>
-        </div>
-
-        <form
-          onSubmit={handleSubmit}
-          className="formulario"
-        >
-          <div className="uploadCard">
-            <h2>Imagem do Produto</h2>
-
-            <input
-              ref={inputImagemRef}
-              type="file"
-              accept="image/png,image/jpeg,image/jpg,image/webp"
-              onChange={handleImagem}
-              className="inputFile"
-            />
-
-            <div className="previewBox">
-              {previewImagem ? (
-                <img
-                  src={previewImagem}
-                  alt="Preview"
-                  className="previewImagem"
-                />
-              ) : (
-                <div className="semImagem">
-                  <span>+</span>
-
-                  <p>
-                    Nenhuma imagem selecionada
-                  </p>
-                </div>
-              )}
-            </div>
-
+      <div className="min-h-screen bg-[#f5f5f7] p-6">
+        <div className="max-w-7xl mx-auto">
+          <div className="mb-8">
             <button
-              type="button"
-              onClick={abrirUpload}
-              className="botaoUpload"
+              onClick={() =>
+                router.push("/Admin/produtos")
+              }
+              className="flex items-center gap-2 text-gray-600 hover:text-black transition"
             >
-              Selecionar imagem
+              <FiArrowLeft />
+              Voltar
             </button>
+
+            <h1 className="text-4xl font-bold mt-4 text-gray-800">
+              Cadastrar Produto
+            </h1>
+
+            <p className="text-gray-500 mt-2">
+              Adicione um novo produto ao sistema.
+            </p>
           </div>
 
-          <div className="cardFormulario">
-            <div className="grid">
-              <div className="campoGrande">
-                <label>Nome do produto</label>
-
-                <input
-                  type="text"
-                  name="nome"
-                  value={form.nome}
-                  onChange={handleChange}
-                />
+          <form
+            onSubmit={handleSubmit}
+            className="grid lg:grid-cols-[420px_1fr] gap-8"
+          >
+            <div className="bg-white rounded-3xl shadow-lg p-6 h-fit">
+              <div className="flex items-center gap-3 mb-6">
+                <FiImage size={22} />
+                <h2 className="text-2xl font-semibold">
+                  Imagem do Produto
+                </h2>
               </div>
 
-              <div className="campoGrande">
-                <label>Slug</label>
-
-                <input
-                  type="text"
-                  name="slug"
-                  value={form.slug}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div className="campoGrande">
-                <label>Descrição</label>
-
-                <textarea
-                  name="descricao"
-                  value={form.descricao}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div>
-                <label>Preço</label>
-
-                <input
-                  type="text"
-                  name="preco"
-                  value={form.preco}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div>
-                <label>
-                  Preço promocional
-                </label>
-
-                <input
-                  type="text"
-                  name="preco_promocional"
-                  value={form.preco_promocional}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div>
-                <label>SKU</label>
-
-                <input
-                  type="text"
-                  value={form.sku}
-                  disabled
-                />
-              </div>
-
-              <div>
-                <label>Modelo</label>
-
-                <input
-                  type="text"
-                  name="modelo"
-                  value={form.modelo}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div>
-                <label>Marca</label>
-
-                <input
-                  type="text"
-                  name="marca"
-                  value={form.marca}
-                  onChange={handleChange}
-                />
-              </div>
-
-              <div>
-                <label>Categoria</label>
-
-                <select
-                  name="categoria_id"
-                  value={form.categoria_id}
-                  onChange={handleChange}
-                >
-                  <option value="">
-                    Selecione
-                  </option>
-
-                  {categorias.map((categoria) => (
-                    <option
-                      key={String(
-                        categoria.id_categoria
-                      )}
-                      value={String(
-                        categoria.id_categoria
-                      )}
-                    >
-                      {categoria.nome}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label>Status</label>
-
-                <select
-                  name="status_id"
-                  value={form.status_id}
-                  onChange={handleChange}
-                >
-                  <option value="">
-                    Selecione
-                  </option>
-
-                  {statusLista.map((status) => {
-                    const valor = String(
-                      status.id_status ??
-                      status.id ??
-                      ""
-                    );
-
-                    return (
-                      <option
-                        key={valor}
-                        value={valor}
-                      >
-                        {status.nome}
-                      </option>
-                    );
-                  })}
-                </select>
-              </div>
-            </div>
-
-            <div className="botoes">
-              <button
-                type="button"
-                className="botaoVoltar"
+              <div
                 onClick={() =>
-                  router.push("/Admin/produtos")
+                  inputImagemRef.current?.click()
                 }
+                className="border-2 border-dashed border-gray-300 rounded-3xl h-[420px] cursor-pointer hover:border-black transition overflow-hidden flex items-center justify-center bg-gray-50"
               >
-                Voltar
-              </button>
+                {previewImagem ? (
+                  <img
+                    src={previewImagem}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="text-center px-6">
+                    <FiUploadCloud
+                      size={70}
+                      className="mx-auto text-gray-400 mb-4"
+                    />
 
-              <button
-                type="submit"
-                disabled={salvando}
-                className="botaoSalvar"
-              >
-                {salvando
-                  ? "Salvando..."
-                  : "Cadastrar Produto"}
-              </button>
+                    <h3 className="text-xl font-semibold text-gray-700">
+                      Clique para enviar imagem
+                    </h3>
+
+                    <p className="text-gray-400 mt-2">
+                      PNG, JPG ou WEBP
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <input
+                ref={inputImagemRef}
+                type="file"
+                hidden
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                onChange={handleImagem}
+              />
             </div>
-          </div>
-        </form>
+
+            <div className="bg-white rounded-3xl shadow-lg p-8">
+              <div className="flex items-center gap-3 mb-8">
+                <FiPackage size={24} />
+
+                <h2 className="text-3xl font-bold text-gray-800">
+                  Informações do Produto
+                </h2>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-6">
+                <div className="md:col-span-2">
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                    Nome do produto
+                  </label>
+
+                  <input
+                    type="text"
+                    name="nome"
+                    value={form.nome}
+                    onChange={handleChange}
+                    placeholder="Digite o nome do produto"
+                    className="w-full h-14 px-5 rounded-2xl border border-gray-300 outline-none focus:border-black"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                    Preço
+                  </label>
+
+                  <input
+                    type="text"
+                    name="preco"
+                    value={form.preco}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                    className="w-full h-14 px-5 rounded-2xl border border-gray-300 outline-none focus:border-black"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                    Promoção
+                  </label>
+
+                  <input
+                    type="text"
+                    name="preco_promocional"
+                    value={form.preco_promocional}
+                    onChange={handleChange}
+                    placeholder="0.00"
+                    className="w-full h-14 px-5 rounded-2xl border border-gray-300 outline-none focus:border-black"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                    Marca
+                  </label>
+
+                  <input
+                    type="text"
+                    name="marca"
+                    value={form.marca}
+                    onChange={handleChange}
+                    placeholder="Marca"
+                    className="w-full h-14 px-5 rounded-2xl border border-gray-300 outline-none focus:border-black"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                    Modelo
+                  </label>
+
+                  <input
+                    type="text"
+                    name="modelo"
+                    value={form.modelo}
+                    onChange={handleChange}
+                    placeholder="Modelo"
+                    className="w-full h-14 px-5 rounded-2xl border border-gray-300 outline-none focus:border-black"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                    Categoria
+                  </label>
+
+                  <select
+                    name="categoria_id"
+                    value={form.categoria_id}
+                    onChange={handleChange}
+                    className="w-full h-14 px-5 rounded-2xl border border-gray-300 outline-none focus:border-black"
+                  >
+                    <option value="">
+                      Selecione
+                    </option>
+
+                    {categorias.map((categoria) => (
+                      <option
+                        key={String(
+                          categoria.id_categoria
+                        )}
+                        value={String(
+                          categoria.id_categoria
+                        )}
+                      >
+                        {categoria.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                    Status
+                  </label>
+
+                  <select
+                    name="status_id"
+                    value={form.status_id}
+                    onChange={handleChange}
+                    className="w-full h-14 px-5 rounded-2xl border border-gray-300 outline-none focus:border-black"
+                  >
+                    {statusLista.map((status) => {
+                      const valor = String(
+                        status.id_status ??
+                          status.id ??
+                          ""
+                      );
+
+                      return (
+                        <option
+                          key={valor}
+                          value={valor}
+                        >
+                          {status.nome}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                    SKU
+                  </label>
+
+                  <div className="relative">
+                    <FiTag
+                      className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                      size={18}
+                    />
+
+                    <input
+                      type="text"
+                      value={form.sku}
+                      disabled
+                      className="w-full h-14 pl-12 pr-5 rounded-2xl border border-gray-300 bg-gray-100 text-gray-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="text-sm font-semibold text-gray-700 mb-2 block">
+                    Descrição
+                  </label>
+
+                  <textarea
+                    name="descricao"
+                    value={form.descricao}
+                    onChange={handleChange}
+                    placeholder="Descrição do produto..."
+                    className="w-full min-h-[160px] p-5 rounded-2xl border border-gray-300 outline-none focus:border-black resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-4 mt-10">
+                <button
+                  type="button"
+                  onClick={() =>
+                    router.push("/Admin/produtos")
+                  }
+                  className="h-14 px-8 rounded-2xl border border-gray-300 font-semibold hover:bg-gray-100 transition"
+                >
+                  Cancelar
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={salvando}
+                  className="h-14 px-8 rounded-2xl bg-black text-white font-semibold hover:opacity-90 transition"
+                >
+                  {salvando
+                    ? "Salvando..."
+                    : "Cadastrar Produto"}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
       </div>
-
-      <style jsx global>{`
-  .container {
-    min-height: 100vh;
-    background: #f4f7fb;
-    padding: 40px;
-  }
-
-  .header {
-    margin-bottom: 30px;
-  }
-
-  .header h1 {
-    font-size: 34px;
-    color: #111827;
-    margin-bottom: 8px;
-  }
-
-  .header p {
-    color: #6b7280;
-    font-size: 15px;
-  }
-
-  .formulario {
-    display: grid;
-    grid-template-columns: 360px 1fr;
-    gap: 25px;
-  }
-
-  .uploadCard,
-  .cardFormulario {
-    background: #ffffff;
-    border-radius: 24px;
-    padding: 25px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-  }
-
-  .uploadCard h2 {
-    margin-bottom: 20px;
-    color: #111827;
-  }
-
-  .inputFile {
-    display: none;
-  }
-
-  .previewBox {
-    width: 100%;
-    height: 340px;
-    border-radius: 18px;
-    overflow: hidden;
-    border: 2px dashed #d1d5db;
-    background: #f9fafb;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-  }
-
-  .previewImagem {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .semImagem {
-    text-align: center;
-    color: #6b7280;
-  }
-
-  .semImagem span {
-    font-size: 60px;
-    display: block;
-    margin-bottom: 10px;
-  }
-
-  .botaoUpload {
-    width: 100%;
-    height: 54px;
-    border: none;
-    border-radius: 14px;
-    background: #111827;
-    color: white;
-    font-size: 15px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.3s;
-  }
-
-  .botaoUpload:hover {
-    background: #1f2937;
-  }
-
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-  }
-
-  .campoGrande {
-    grid-column: span 2;
-  }
-
-  .grid label {
-    display: block;
-    margin-bottom: 8px;
-    color: #374151;
-    font-size: 14px;
-    font-weight: 600;
-  }
-
-  .grid input,
-  .grid textarea,
-  .grid select {
-    width: 100%;
-    border: 1px solid #d1d5db;
-    border-radius: 14px;
-    padding: 14px;
-    font-size: 14px;
-    outline: none;
-    transition: 0.3s;
-    background: #ffffff;
-  }
-
-  .grid textarea {
-    min-height: 140px;
-    resize: vertical;
-  }
-
-  .grid input:focus,
-  .grid textarea:focus,
-  .grid select:focus {
-    border-color: #111827;
-    box-shadow: 0 0 0 4px rgba(17, 24, 39, 0.1);
-  }
-
-  .botoes {
-    display: flex;
-    justify-content: flex-end;
-    gap: 15px;
-    margin-top: 30px;
-  }
-
-  .botaoVoltar,
-  .botaoSalvar {
-    height: 52px;
-    padding: 0 28px;
-    border-radius: 14px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.3s;
-  }
-
-  .botaoVoltar {
-    background: white;
-    border: 1px solid #d1d5db;
-    color: #374151;
-  }
-
-  .botaoSalvar {
-    background: #111827;
-    border: none;
-    color: white;
-  }
-
-  @media (max-width: 980px) {
-    .formulario {
-      grid-template-columns: 1fr;
-    }
-  }
-
-  @media (max-width: 700px) {
-    .container {
-      padding: 20px;
-    }
-
-    .grid {
-      grid-template-columns: 1fr;
-    }
-
-    .campoGrande {
-      grid-column: span 1;
-    }
-
-    .botoes {
-      flex-direction: column;
-    }
-
-    .botaoVoltar,
-    .botaoSalvar {
-      width: 100%;
-    }
-  }
-`}</style>
     </>
   );
 }
