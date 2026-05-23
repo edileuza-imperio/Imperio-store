@@ -143,17 +143,26 @@ const TIPOS_PERMITIDOS = [
 
 export default function CadastrarProduto() {
   const router = useRouter();
+
   const inputImagemRef = useRef<HTMLInputElement | null>(null);
 
   const [salvando, setSalvando] = useState(false);
+
   const [carregandoCategorias, setCarregandoCategorias] = useState(true);
+
   const [carregandoStatus, setCarregandoStatus] = useState(true);
+
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+
   const [statusLista, setStatusLista] = useState<StatusItem[]>([]);
-  const [slugEditadoManualmente, setSlugEditadoManualmente] = useState(false);
+
+  const [slugEditadoManualmente, setSlugEditadoManualmente] =
+    useState(false);
 
   const [arquivosImagem, setArquivosImagem] = useState<File[]>([]);
+
   const [previewsImagem, setPreviewsImagem] = useState<string[]>([]);
+
   const [imagemPrincipalIndex, setImagemPrincipalIndex] = useState(0);
 
   const [form, setForm] = useState<ProdutoForm>({
@@ -175,6 +184,7 @@ export default function CadastrarProduto() {
         setCarregandoCategorias(true);
 
         const response = await api.get("/painel/categorias");
+
         const lista = extrairListaCategorias(response?.data);
 
         setCategorias(lista);
@@ -194,6 +204,7 @@ export default function CadastrarProduto() {
         setCarregandoStatus(true);
 
         const response = await api.get("/painel/status");
+
         const lista = extrairListaStatus(response?.data);
 
         setStatusLista(lista);
@@ -243,7 +254,9 @@ export default function CadastrarProduto() {
 
   useEffect(() => {
     return () => {
-      previewsImagem.forEach((preview) => URL.revokeObjectURL(preview));
+      previewsImagem.forEach((preview) =>
+        URL.revokeObjectURL(preview)
+      );
     };
   }, [previewsImagem]);
 
@@ -290,37 +303,35 @@ export default function CadastrarProduto() {
       URL.createObjectURL(file)
     );
 
-    setArquivosImagem((prev) => {
-      const listaAtualizada = [...prev, ...arquivosValidos];
-      return listaAtualizada;
-    });
+    setArquivosImagem((prev) => [...prev, ...arquivosValidos]);
 
-    setPreviewsImagem((prev) => {
-      const listaAtualizada = [...prev, ...novosPreviews];
-      return listaAtualizada;
-    });
+    setPreviewsImagem((prev) => [...prev, ...novosPreviews]);
 
-    if (arquivosImagem.length === 0 && novosPreviews.length > 0) {
-      setImagemPrincipalIndex(0);
-    }
-
-    toast.success("Imagem(ns) carregada(s) com sucesso.");
+    toast.success("Imagem(ns) adicionada(s) com sucesso.");
 
     e.target.value = "";
   }
 
   function removerImagem(index: number) {
-    setArquivosImagem((prev) => prev.filter((_, i) => i !== index));
+    setArquivosImagem((prev) =>
+      prev.filter((_, i) => i !== index)
+    );
 
     setPreviewsImagem((prev) => {
       const removida = prev[index];
-      if (removida) URL.revokeObjectURL(removida);
+
+      if (removida) {
+        URL.revokeObjectURL(removida);
+      }
+
       return prev.filter((_, i) => i !== index);
     });
 
     setImagemPrincipalIndex((prev) => {
-      if (index < prev) return prev - 1;
       if (index === prev) return 0;
+
+      if (index < prev) return prev - 1;
+
       return prev;
     });
   }
@@ -332,12 +343,12 @@ export default function CadastrarProduto() {
     }
 
     if (!limparTexto(form.slug)) {
-      toast.error("Preencha o slug do produto.");
+      toast.error("Preencha o slug.");
       return false;
     }
 
     if (!limparTexto(form.descricao)) {
-      toast.error("Preencha a descrição do produto.");
+      toast.error("Preencha a descrição.");
       return false;
     }
 
@@ -362,7 +373,7 @@ export default function CadastrarProduto() {
     }
 
     if (arquivosImagem.length === 0) {
-      toast.error("Envie pelo menos uma imagem do produto.");
+      toast.error("Adicione pelo menos uma imagem.");
       return false;
     }
 
@@ -378,53 +389,71 @@ export default function CadastrarProduto() {
       setSalvando(true);
 
       const agora = dataAtualMysql();
+
       const formData = new FormData();
 
-      const payload = {
-        nome: limparTexto(form.nome),
-        slug: limparTexto(form.slug),
-        descricao: limparTexto(form.descricao),
-        preco: limparTexto(form.preco),
-        preco_promocional: limparTexto(form.preco_promocional),
-        sku: limparTexto(form.sku),
-        modelo: limparTexto(form.modelo),
-        marca: limparTexto(form.marca),
-        categoria_id: limparTexto(form.categoria_id),
-        status_id: limparTexto(form.status_id),
-        criado_em: agora,
-        atualizado_em: agora,
-      };
+      formData.append("nome", limparTexto(form.nome));
 
-      formData.append("nome", payload.nome);
-      formData.append("slug", payload.slug);
-      formData.append("descricao", payload.descricao);
-      formData.append("preco", payload.preco);
-      formData.append("sku", payload.sku);
-      formData.append("marca", payload.marca);
-      formData.append("categoria_id", payload.categoria_id);
-      formData.append("status_id", payload.status_id);
-      formData.append("criado_em", payload.criado_em);
-      formData.append("atualizado_em", payload.atualizado_em);
+      formData.append("slug", limparTexto(form.slug));
 
-      if (payload.preco_promocional) {
-        formData.append("preco_promocional", payload.preco_promocional);
-      }
+      formData.append(
+        "descricao",
+        limparTexto(form.descricao)
+      );
 
-      if (payload.modelo) {
-        formData.append("modelo", payload.modelo);
-      }
+      formData.append("preco", limparTexto(form.preco));
+
+      formData.append(
+        "preco_promocional",
+        limparTexto(form.preco_promocional)
+      );
+
+      formData.append("sku", limparTexto(form.sku));
+
+      formData.append("modelo", limparTexto(form.modelo));
+
+      formData.append("marca", limparTexto(form.marca));
+
+      formData.append(
+        "categoria_id",
+        limparTexto(form.categoria_id)
+      );
+
+      formData.append(
+        "status_id",
+        limparTexto(form.status_id)
+      );
+
+      formData.append("criado_em", agora);
+
+      formData.append("atualizado_em", agora);
+
+      formData.append(
+        "imagem_principal_index",
+        String(imagemPrincipalIndex)
+      );
 
       arquivosImagem.forEach((arquivo, index) => {
+        formData.append("imagens[]", arquivo);
+
         if (index === imagemPrincipalIndex) {
-          formData.append("imagem_principal", arquivo, arquivo.name);
+          formData.append(
+            "imagem_principal",
+            arquivo
+          );
         }
-        formData.append("imagens[]", arquivo, arquivo.name);
       });
 
-      const response = await api.post("/painel/produto", formData, {
-        withCredentials: true,
-        transformRequest: [(data) => data],
-      });
+      const response = await api.post(
+        "/painel/produto",
+        formData,
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
 
       const data = response?.data;
 
@@ -432,14 +461,11 @@ export default function CadastrarProduto() {
         response.status === 200 ||
         response.status === 201 ||
         data?.status === 200 ||
-        data?.status === 201 ||
-        data?.dados?.status === 200 ||
-        data?.dados?.status === 201;
+        data?.status === 201;
 
       if (sucesso) {
         toast.success(
           data?.mensagem ||
-            data?.dados?.mensagem ||
             "Produto cadastrado com sucesso!"
         );
 
@@ -452,38 +478,60 @@ export default function CadastrarProduto() {
 
       toast.error(
         data?.mensagem ||
-          data?.dados?.mensagem ||
           "Não foi possível cadastrar o produto."
       );
     } catch (error: any) {
-      const mensagemErro =
-        error?.response?.data?.dados?.mensagem ||
+      toast.error(
         error?.response?.data?.mensagem ||
-        "Erro ao conectar com a API ao cadastrar o produto.";
-
-      toast.error(mensagemErro);
+          "Erro ao cadastrar produto."
+      );
     } finally {
       setSalvando(false);
     }
   }
 
-  const imagemPrincipal = previewsImagem[imagemPrincipalIndex] || "";
+  const imagemPrincipal =
+    previewsImagem[imagemPrincipalIndex] || "";
 
   return (
     <>
-      <ToastContainer position="top-right" autoClose={3000} />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+      />
 
       <div className="container-produto">
-        <form className="form-produto" onSubmit={handleSubmit}>
-          {/* ETAPA 1 */}
+        <form
+          className="form-produto"
+          onSubmit={handleSubmit}
+        >
           <div className="card-etapa">
-            <h2>Imagem do Produto</h2>
+            <div className="topo-imagem">
+              <div>
+                <h2>Imagens do Produto</h2>
+
+                <p>
+                  Escolha várias imagens e defina a
+                  principal.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="btn-upload"
+                onClick={() =>
+                  inputImagemRef.current?.click()
+                }
+              >
+                Adicionar imagens
+              </button>
+            </div>
 
             <div className="upload-area">
               {imagemPrincipal ? (
                 <img
                   src={imagemPrincipal}
-                  alt="Preview principal"
+                  alt="Imagem principal"
                   className="preview-principal"
                 />
               ) : (
@@ -498,40 +546,51 @@ export default function CadastrarProduto() {
                     <div
                       key={`${preview}-${index}`}
                       className={`miniatura-wrapper ${
-                        index === imagemPrincipalIndex ? "ativa" : ""
+                        imagemPrincipalIndex === index
+                          ? "ativa"
+                          : ""
                       }`}
-                      onClick={() => setImagemPrincipalIndex(index)}
-                      role="button"
-                      tabIndex={0}
                     >
                       <img
                         src={preview}
-                        alt={`Miniatura ${index + 1}`}
+                        alt={`Imagem ${index + 1}`}
                         className="miniatura"
+                        onClick={() =>
+                          setImagemPrincipalIndex(index)
+                        }
                       />
 
-                      <button
-                        type="button"
-                        className="btn-remover"
-                        onClick={(ev) => {
-                          ev.stopPropagation();
-                          removerImagem(index);
-                        }}
-                      >
-                        ×
-                      </button>
+                      <div className="miniatura-acoes">
+                        <button
+                          type="button"
+                          className={`btn-principal ${
+                            imagemPrincipalIndex === index
+                              ? "principal-ativa"
+                              : ""
+                          }`}
+                          onClick={() =>
+                            setImagemPrincipalIndex(index)
+                          }
+                        >
+                          {imagemPrincipalIndex === index
+                            ? "Principal"
+                            : "Definir"}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="btn-remover"
+                          onClick={() =>
+                            removerImagem(index)
+                          }
+                        >
+                          ×
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
-
-              <button
-                type="button"
-                className="btn-upload"
-                onClick={() => inputImagemRef.current?.click()}
-              >
-                Escolher imagens
-              </button>
 
               <input
                 ref={inputImagemRef}
@@ -544,101 +603,107 @@ export default function CadastrarProduto() {
             </div>
           </div>
 
-          {/* ETAPA 2 */}
           <div className="card-etapa">
             <h2>Informações do Produto</h2>
 
             <div className="grid">
               <div className="campo">
                 <label>Nome</label>
+
                 <input
                   type="text"
                   name="nome"
                   value={form.nome}
                   onChange={handleChange}
-                  placeholder="Ex: Arranjo Luxo Casamento"
+                  placeholder="Nome do produto"
                 />
               </div>
 
               <div className="campo">
                 <label>Slug</label>
+
                 <input
                   type="text"
                   name="slug"
                   value={form.slug}
                   onChange={handleChange}
-                  placeholder="arranjo-luxo-casamento"
                 />
               </div>
 
               <div className="campo full">
                 <label>Descrição</label>
+
                 <textarea
                   name="descricao"
                   value={form.descricao}
                   onChange={handleChange}
-                  placeholder="Descreva o produto"
                 />
               </div>
 
               <div className="campo">
                 <label>Preço</label>
+
                 <input
                   type="text"
                   name="preco"
                   value={form.preco}
                   onChange={handleChange}
-                  placeholder="0.00"
                 />
               </div>
 
               <div className="campo">
                 <label>Preço promocional</label>
+
                 <input
                   type="text"
                   name="preco_promocional"
                   value={form.preco_promocional}
                   onChange={handleChange}
-                  placeholder="0.00"
                 />
               </div>
 
               <div className="campo">
                 <label>SKU automático</label>
-                <input type="text" value={form.sku} readOnly disabled />
+
+                <input
+                  type="text"
+                  value={form.sku}
+                  readOnly
+                  disabled
+                />
               </div>
             </div>
           </div>
 
-          {/* ETAPA 3 */}
           <div className="card-etapa">
             <h2>Categoria e Status</h2>
 
             <div className="grid">
               <div className="campo">
                 <label>Modelo</label>
+
                 <input
                   type="text"
                   name="modelo"
                   value={form.modelo}
                   onChange={handleChange}
-                  placeholder="Linha Premium"
                 />
               </div>
 
               <div className="campo">
                 <label>Marca</label>
+
                 <input
                   type="text"
                   name="marca"
                   value={form.marca}
                   onChange={handleChange}
-                  placeholder="Universo Império"
                 />
               </div>
 
               <div className="campo">
                 <label>Categoria</label>
+
                 <select
                   name="categoria_id"
                   value={form.categoria_id}
@@ -646,15 +711,17 @@ export default function CadastrarProduto() {
                   disabled={carregandoCategorias}
                 >
                   <option value="">
-                    {carregandoCategorias
-                      ? "Carregando categorias..."
-                      : "Selecione uma categoria"}
+                    Selecione
                   </option>
 
                   {categorias.map((categoria) => (
                     <option
-                      key={String(categoria.id_categoria)}
-                      value={String(categoria.id_categoria)}
+                      key={String(
+                        categoria.id_categoria
+                      )}
+                      value={String(
+                        categoria.id_categoria
+                      )}
                     >
                       {categoria.nome}
                     </option>
@@ -664,6 +731,7 @@ export default function CadastrarProduto() {
 
               <div className="campo">
                 <label>Status</label>
+
                 <select
                   name="status_id"
                   value={form.status_id}
@@ -671,18 +739,21 @@ export default function CadastrarProduto() {
                   disabled={carregandoStatus}
                 >
                   <option value="">
-                    {carregandoStatus
-                      ? "Carregando status..."
-                      : statusLista.length === 0
-                      ? "Nenhum status encontrado"
-                      : "Selecione um status"}
+                    Selecione
                   </option>
 
                   {statusLista.map((status) => {
-                    const valor = String(status.id_status ?? status.id ?? "");
+                    const valor = String(
+                      status.id_status ??
+                        status.id ??
+                        ""
+                    );
 
                     return (
-                      <option key={valor} value={valor}>
+                      <option
+                        key={valor}
+                        value={valor}
+                      >
                         {status.nome}
                       </option>
                     );
@@ -695,7 +766,9 @@ export default function CadastrarProduto() {
               <button
                 type="button"
                 className="btn-voltar"
-                onClick={() => router.push("/Admin/produtos")}
+                onClick={() =>
+                  router.push("/Admin/produtos")
+                }
               >
                 Voltar
               </button>
@@ -705,7 +778,9 @@ export default function CadastrarProduto() {
                 className="btn-salvar"
                 disabled={salvando}
               >
-                {salvando ? "Salvando..." : "Cadastrar Produto"}
+                {salvando
+                  ? "Salvando..."
+                  : "Cadastrar Produto"}
               </button>
             </div>
           </div>
@@ -715,125 +790,150 @@ export default function CadastrarProduto() {
       <style jsx>{`
         .container-produto {
           width: 100%;
-          padding: 30px;
-          background: #f5f5f5;
           min-height: 100vh;
+          background: #f4f4f5;
+          padding: 30px;
         }
 
         .form-produto {
-          max-width: 1200px;
+          max-width: 1250px;
           margin: auto;
           display: flex;
           flex-direction: column;
-          gap: 25px;
+          gap: 24px;
         }
 
         .card-etapa {
           background: #fff;
-          border-radius: 18px;
-          padding: 25px;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+          border-radius: 24px;
+          padding: 28px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
         }
 
         .card-etapa h2 {
-          margin-bottom: 20px;
-          font-size: 22px;
-          color: #222;
+          font-size: 24px;
+          color: #111827;
+          margin-bottom: 6px;
+        }
+
+        .card-etapa p {
+          color: #6b7280;
+          font-size: 14px;
+        }
+
+        .topo-imagem {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 20px;
+          margin-bottom: 25px;
         }
 
         .upload-area {
           display: flex;
           flex-direction: column;
+          gap: 24px;
           align-items: center;
-          gap: 20px;
         }
 
         .preview-principal {
-          width: 350px;
-          height: 350px;
+          width: 100%;
+          max-width: 500px;
+          height: 500px;
           object-fit: cover;
-          border-radius: 15px;
-          border: 2px solid #eee;
+          border-radius: 22px;
+          border: 2px solid #e5e7eb;
         }
 
         .sem-imagem {
-          width: 350px;
-          height: 350px;
-          border-radius: 15px;
-          background: #f0f0f0;
+          width: 100%;
+          max-width: 500px;
+          height: 500px;
+          background: #f3f4f6;
+          border-radius: 22px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #777;
-          text-align: center;
-          padding: 20px;
+          color: #6b7280;
         }
 
         .miniaturas {
-          display: flex;
-          gap: 12px;
-          flex-wrap: wrap;
-          justify-content: center;
           width: 100%;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 14px;
+          justify-content: center;
         }
 
         .miniatura-wrapper {
-          position: relative;
-          width: 90px;
-          height: 90px;
-          border-radius: 12px;
+          width: 120px;
+          background: #fff;
+          border-radius: 16px;
           overflow: hidden;
-          border: 2px solid #ddd;
-          cursor: pointer;
-          transition: 0.2s ease;
-          flex-shrink: 0;
-        }
-
-        .miniatura-wrapper:hover {
-          transform: translateY(-2px);
+          border: 2px solid #e5e7eb;
+          transition: 0.2s;
         }
 
         .miniatura-wrapper.ativa {
-          border-color: #111;
-          box-shadow: 0 0 0 2px rgba(17, 17, 17, 0.08);
+          border-color: #111827;
+          transform: translateY(-3px);
         }
 
         .miniatura {
           width: 100%;
-          height: 100%;
+          height: 110px;
           object-fit: cover;
+          cursor: pointer;
+        }
+
+        .miniatura-acoes {
+          padding: 10px;
+          display: flex;
+          gap: 8px;
+        }
+
+        .btn-principal {
+          flex: 1;
+          border: none;
+          background: #f3f4f6;
+          padding: 8px;
+          border-radius: 10px;
+          cursor: pointer;
+          font-size: 12px;
+          font-weight: 600;
+        }
+
+        .principal-ativa {
+          background: #111827;
+          color: white;
         }
 
         .btn-remover {
-          position: absolute;
-          top: 4px;
-          right: 4px;
-          width: 22px;
-          height: 22px;
+          width: 34px;
           border: none;
-          border-radius: 50%;
-          background: rgba(0, 0, 0, 0.75);
-          color: #fff;
+          background: #ef4444;
+          color: white;
+          border-radius: 10px;
           cursor: pointer;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          line-height: 1;
-          font-size: 16px;
+          font-size: 18px;
         }
 
         .btn-upload {
-          background: #111;
-          color: #fff;
           border: none;
-          padding: 12px 20px;
-          border-radius: 10px;
+          background: #111827;
+          color: white;
+          padding: 14px 20px;
+          border-radius: 14px;
           cursor: pointer;
+          font-weight: 600;
         }
 
         .grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          grid-template-columns: repeat(
+            auto-fit,
+            minmax(260px, 1fr)
+          );
           gap: 20px;
         }
 
@@ -848,49 +948,58 @@ export default function CadastrarProduto() {
         }
 
         .campo label {
+          font-size: 14px;
           font-weight: 600;
-          color: #333;
+          color: #374151;
         }
 
         .campo input,
         .campo textarea,
         .campo select {
           width: 100%;
-          border: 1px solid #ddd;
-          border-radius: 10px;
+          border: 1px solid #d1d5db;
+          border-radius: 14px;
           padding: 14px;
-          font-size: 15px;
           outline: none;
-          background: #fff;
+          font-size: 15px;
+          transition: 0.2s;
+        }
+
+        .campo input:focus,
+        .campo textarea:focus,
+        .campo select:focus {
+          border-color: #111827;
         }
 
         .campo textarea {
-          min-height: 130px;
+          min-height: 140px;
           resize: none;
         }
 
         .acoes {
-          margin-top: 25px;
           display: flex;
           justify-content: flex-end;
-          gap: 15px;
+          gap: 14px;
+          margin-top: 24px;
         }
 
         .btn-voltar {
-          background: #e5e5e5;
           border: none;
-          padding: 12px 20px;
-          border-radius: 10px;
+          background: #e5e7eb;
+          padding: 14px 20px;
+          border-radius: 14px;
           cursor: pointer;
+          font-weight: 600;
         }
 
         .btn-salvar {
-          background: #0f172a;
-          color: white;
           border: none;
-          padding: 12px 25px;
-          border-radius: 10px;
+          background: #111827;
+          color: white;
+          padding: 14px 24px;
+          border-radius: 14px;
           cursor: pointer;
+          font-weight: 600;
         }
 
         .btn-salvar:disabled {
@@ -900,13 +1009,30 @@ export default function CadastrarProduto() {
 
         @media (max-width: 768px) {
           .container-produto {
-            padding: 15px;
+            padding: 14px;
+          }
+
+          .card-etapa {
+            padding: 18px;
+            border-radius: 18px;
           }
 
           .preview-principal,
           .sem-imagem {
-            width: 100%;
-            height: 260px;
+            height: 320px;
+          }
+
+          .miniatura-wrapper {
+            width: 90px;
+          }
+
+          .miniatura {
+            height: 85px;
+          }
+
+          .topo-imagem {
+            flex-direction: column;
+            align-items: stretch;
           }
 
           .acoes {
@@ -914,13 +1040,9 @@ export default function CadastrarProduto() {
           }
 
           .btn-voltar,
-          .btn-salvar {
+          .btn-salvar,
+          .btn-upload {
             width: 100%;
-          }
-
-          .miniatura-wrapper {
-            width: 78px;
-            height: 78px;
           }
         }
       `}</style>
