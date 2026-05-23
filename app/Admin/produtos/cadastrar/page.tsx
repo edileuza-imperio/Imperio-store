@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import api from "@/Api/conectar";
 import { useRouter } from "next/navigation";
 import { ToastContainer, toast } from "react-toastify";
@@ -92,9 +92,9 @@ function gerarSkuAutomatico(nome: string, categoriaNome?: string) {
   const data = `${agora.getFullYear()}${String(agora.getMonth() + 1).padStart(2, "0")}${String(
     agora.getDate()
   ).padStart(2, "0")}`;
-  const hora = `${String(agora.getHours()).padStart(2, "0")}${String(
-    agora.getMinutes()
-  ).padStart(2, "0")}`;
+  const hora = `${String(agora.getHours()).padStart(2, "0")}${String(agora.getMinutes()).padStart(
+    "0"
+  )}`;
 
   return `${baseCategoria || "CAT"}-${baseNome || "PROD"}-${data}${hora}`;
 }
@@ -121,7 +121,6 @@ export default function CadastrarProduto() {
   const router = useRouter();
   const inputImagemRef = useRef<HTMLInputElement | null>(null);
 
-  const [etapa, setEtapa] = useState(1);
   const [salvando, setSalvando] = useState(false);
   const [carregandoCategorias, setCarregandoCategorias] = useState(true);
   const [carregandoStatus, setCarregandoStatus] = useState(true);
@@ -167,10 +166,8 @@ export default function CadastrarProduto() {
     async function carregarStatus() {
       try {
         setCarregandoStatus(true);
-
         const response = await api.get("/painel/status");
-        const data = response?.data;
-        const lista = extrairListaStatus(data);
+        const lista = extrairListaStatus(response?.data);
 
         setStatusLista(lista);
 
@@ -216,7 +213,7 @@ export default function CadastrarProduto() {
   }, [form.nome, categoriaSelecionada?.nome]);
 
   function handleChange(
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) {
     const { name, value } = e.target;
 
@@ -241,7 +238,7 @@ export default function CadastrarProduto() {
     inputImagemRef.current?.click();
   }
 
-  function handleImagem(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleImagem(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -258,10 +255,8 @@ export default function CadastrarProduto() {
     }
 
     const preview = URL.createObjectURL(file);
-
     setArquivoImagem(file);
     setPreviewImagem(preview);
-
     toast.success("Imagem carregada com sucesso.");
   }
 
@@ -273,74 +268,54 @@ export default function CadastrarProduto() {
     };
   }, [previewImagem]);
 
-  function validarEtapaAtual() {
-    if (etapa === 1) {
-      if (!limparTexto(form.nome)) {
-        toast.error("Preencha o nome do produto.");
-        return false;
-      }
-
-      if (!limparTexto(form.slug)) {
-        toast.error("Preencha o slug do produto.");
-        return false;
-      }
-
-      if (!limparTexto(form.descricao)) {
-        toast.error("Preencha a descrição do produto.");
-        return false;
-      }
+  function validarCampos() {
+    if (!limparTexto(form.nome)) {
+      toast.error("Preencha o nome do produto.");
+      return false;
     }
 
-    if (etapa === 2) {
-      if (!limparTexto(form.preco)) {
-        toast.error("Preencha o preço.");
-        return false;
-      }
-
-      if (!limparTexto(form.marca)) {
-        toast.error("Preencha a marca.");
-        return false;
-      }
-
-      if (!limparTexto(form.categoria_id)) {
-        toast.error("Selecione uma categoria.");
-        return false;
-      }
-
-      if (!limparTexto(form.status_id)) {
-        toast.error("Selecione um status.");
-        return false;
-      }
+    if (!limparTexto(form.slug)) {
+      toast.error("Preencha o slug do produto.");
+      return false;
     }
 
-    if (etapa === 3) {
-      if (!arquivoImagem) {
-        toast.error("Envie uma imagem do produto.");
-        return false;
-      }
+    if (!limparTexto(form.descricao)) {
+      toast.error("Preencha a descrição do produto.");
+      return false;
+    }
+
+    if (!limparTexto(form.preco)) {
+      toast.error("Preencha o preço.");
+      return false;
+    }
+
+    if (!limparTexto(form.marca)) {
+      toast.error("Preencha a marca.");
+      return false;
+    }
+
+    if (!limparTexto(form.categoria_id)) {
+      toast.error("Selecione uma categoria.");
+      return false;
+    }
+
+    if (!limparTexto(form.status_id)) {
+      toast.error("Selecione um status.");
+      return false;
+    }
+
+    if (!arquivoImagem) {
+      toast.error("Envie uma imagem do produto.");
+      return false;
     }
 
     return true;
   }
 
-  function avancarEtapa() {
-    if (!validarEtapaAtual()) return;
-    setEtapa((prev) => Math.min(prev + 1, 3));
-  }
-
-  function voltarEtapa() {
-    setEtapa((prev) => Math.max(prev - 1, 1));
-  }
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (!validarEtapaAtual()) return;
-
-    if (!arquivoImagem) {
-      toast.error("Envie uma imagem do produto.");
-      return;
-    }
+    if (!validarCampos()) return;
 
     try {
       setSalvando(true);
@@ -382,21 +357,14 @@ export default function CadastrarProduto() {
         formData.append("modelo", payload.modelo);
       }
 
-      formData.append("imagem", arquivoImagem, arquivoImagem.name);
-
-      console.log("===== DEBUG FORM =====");
-      Object.entries(payload).forEach(([key, value]) => {
-        console.log(key, value);
-      });
-      console.log("imagem", arquivoImagem);
-      console.log("content-type automatico do browser (FormData)");
+      if (arquivoImagem) {
+        formData.append("imagem", arquivoImagem, arquivoImagem.name);
+      }
 
       const response = await api.post("/painel/produto", formData, {
         withCredentials: true,
         transformRequest: [(data) => data],
       });
-
-      console.log("RESPOSTA API:", response);
 
       const data = response?.data;
       const sucesso =
@@ -408,33 +376,16 @@ export default function CadastrarProduto() {
         data?.dados?.status === 201;
 
       if (sucesso) {
-        toast.success(
-          data?.mensagem ||
-            data?.dados?.mensagem ||
-            "Produto cadastrado com sucesso!"
-        );
-
+        toast.success(data?.mensagem || data?.dados?.mensagem || "Produto cadastrado com sucesso!");
         setTimeout(() => {
           router.push("/Admin/produtos");
-        }, 1800);
-
+        }, 1500);
         return;
       }
 
-      toast.error(
-        data?.mensagem ||
-          data?.dados?.mensagem ||
-          "Não foi possível cadastrar o produto."
-      );
+      toast.error(data?.mensagem || data?.dados?.mensagem || "Não foi possível cadastrar o produto.");
     } catch (error: any) {
-      console.log("===== ERRO API =====");
       console.error(error);
-
-      if (error?.response) {
-        console.log("STATUS:", error.response.status);
-        console.log("DATA:", error.response.data);
-        console.log("HEADERS:", error.response.headers);
-      }
 
       const mensagemErro =
         error?.response?.data?.dados?.mensagem ||
@@ -451,774 +402,162 @@ export default function CadastrarProduto() {
     <>
       <ToastContainer position="top-right" autoClose={3000} />
 
-      <div className="pagina-produto">
-        <div className="header-page">
-          <div>
-            <span className="badge-topo">Painel Administrativo</span>
-            <h1>Cadastrar Produto</h1>
-            <p>
-              Cadastre um novo produto em 3 passos com categoria dinâmica,
-              status puxado da API, SKU automático e upload real de imagem.
-            </p>
-          </div>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>Nome do produto</label>
+          <input
+            type="text"
+            name="nome"
+            value={form.nome}
+            onChange={handleChange}
+            placeholder="Ex: Arranjo Luxo Casamento"
+          />
+        </div>
 
-          <button
-            type="button"
-            className="btn-secundario"
-            onClick={() => router.push("/Admin/produtos")}
+        <div>
+          <label>Slug</label>
+          <input
+            type="text"
+            name="slug"
+            value={form.slug}
+            onChange={handleChange}
+            placeholder="arranjo-luxo-casamento"
+          />
+        </div>
+
+        <div>
+          <label>Descrição</label>
+          <textarea
+            name="descricao"
+            value={form.descricao}
+            onChange={handleChange}
+            placeholder="Descreva o produto"
+          />
+        </div>
+
+        <div>
+          <label>Preço</label>
+          <input
+            type="text"
+            name="preco"
+            value={form.preco}
+            onChange={handleChange}
+            placeholder="0.00"
+          />
+        </div>
+
+        <div>
+          <label>Preço promocional</label>
+          <input
+            type="text"
+            name="preco_promocional"
+            value={form.preco_promocional}
+            onChange={handleChange}
+            placeholder="0.00"
+          />
+        </div>
+
+        <div>
+          <label>SKU automático</label>
+          <input type="text" name="sku" value={form.sku} readOnly disabled />
+        </div>
+
+        <div>
+          <label>Modelo</label>
+          <input
+            type="text"
+            name="modelo"
+            value={form.modelo}
+            onChange={handleChange}
+            placeholder="Linha Premium"
+          />
+        </div>
+
+        <div>
+          <label>Marca</label>
+          <input
+            type="text"
+            name="marca"
+            value={form.marca}
+            onChange={handleChange}
+            placeholder="Universo Império"
+          />
+        </div>
+
+        <div>
+          <label>Categoria</label>
+          <select
+            name="categoria_id"
+            value={form.categoria_id}
+            onChange={handleChange}
+            disabled={carregandoCategorias}
           >
-            Voltar para produtos
+            <option value="">
+              {carregandoCategorias ? "Carregando categorias..." : "Selecione uma categoria"}
+            </option>
+
+            {categorias.map((categoria) => (
+              <option key={String(categoria.id_categoria)} value={String(categoria.id_categoria)}>
+                {categoria.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label>Status</label>
+          <select
+            name="status_id"
+            value={form.status_id}
+            onChange={handleChange}
+            disabled={carregandoStatus}
+          >
+            <option value="">
+              {carregandoStatus
+                ? "Carregando status..."
+                : statusLista.length === 0
+                ? "Nenhum status encontrado"
+                : "Selecione um status"}
+            </option>
+
+            {statusLista.map((status) => {
+              const valor = String(status.id_status ?? status.id ?? "");
+              return (
+                <option key={valor} value={valor}>
+                  {status.nome}
+                </option>
+              );
+            })}
+          </select>
+        </div>
+
+        <div>
+          <label>Imagem</label>
+          <input
+            ref={inputImagemRef}
+            type="file"
+            name="imagem"
+            accept="image/png,image/jpeg,image/jpg,image/webp"
+            onChange={handleImagem}
+          />
+        </div>
+
+        {previewImagem && (
+          <div>
+            <img src={previewImagem} alt="Prévia do produto" width={200} />
+          </div>
+        )}
+
+        <div>
+          <button type="button" onClick={() => router.push("/Admin/produtos")}>
+            Voltar
+          </button>
+
+          <button type="submit" disabled={salvando}>
+            {salvando ? "Salvando produto..." : "Cadastrar produto"}
           </button>
         </div>
-
-        <div className="wrapper">
-          <aside className="painel-lateral">
-            <div className="card-etapas">
-              <div className={`etapa-item ${etapa >= 1 ? "ativo" : ""}`}>
-                <div className="numero">1</div>
-                <div>
-                  <strong>Informações</strong>
-                  <span>Nome, slug e descrição</span>
-                </div>
-              </div>
-
-              <div className={`etapa-item ${etapa >= 2 ? "ativo" : ""}`}>
-                <div className="numero">2</div>
-                <div>
-                  <strong>Comercial</strong>
-                  <span>Preço, marca, SKU, status e categoria</span>
-                </div>
-              </div>
-
-              <div className={`etapa-item ${etapa >= 3 ? "ativo" : ""}`}>
-                <div className="numero">3</div>
-                <div>
-                  <strong>Imagem e revisão</strong>
-                  <span>Upload e envio final</span>
-                </div>
-              </div>
-            </div>
-          </aside>
-
-          <main className="conteudo">
-            <form onSubmit={handleSubmit} className="form-produto">
-              {etapa === 1 && (
-                <section className="card-form">
-                  <div className="titulo-bloco">
-                    <h2>Passo 1 — Informações principais</h2>
-                    <p>Preencha os dados básicos do produto.</p>
-                  </div>
-
-                  <div className="grid">
-                    <div className="campo campo-full">
-                      <label>Nome do produto</label>
-                      <input
-                        type="text"
-                        name="nome"
-                        placeholder="Ex: Arranjo Luxo Casamento"
-                        value={form.nome}
-                        onChange={handleChange}
-                      />
-                    </div>
-
-                    <div className="campo campo-full">
-                      <label>Slug</label>
-                      <input
-                        type="text"
-                        name="slug"
-                        placeholder="arranjo-luxo-casamento"
-                        value={form.slug}
-                        onChange={handleChange}
-                      />
-                      <small>
-                        O slug é preenchido automaticamente, mas você pode editar.
-                      </small>
-                    </div>
-
-                    <div className="campo campo-full">
-                      <label>Descrição</label>
-                      <textarea
-                        name="descricao"
-                        placeholder="Descreva o produto com detalhes..."
-                        value={form.descricao}
-                        onChange={handleChange}
-                      />
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {etapa === 2 && (
-                <section className="card-form">
-                  <div className="titulo-bloco">
-                    <h2>Passo 2 — Dados comerciais</h2>
-                    <p>Defina valores, identificação, status e categoria.</p>
-                  </div>
-
-                  <div className="grid">
-                    <div className="campo">
-                      <label>Preço</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="preco"
-                        placeholder="0.00"
-                        value={form.preco}
-                        onChange={handleChange}
-                      />
-                    </div>
-
-                    <div className="campo">
-                      <label>Preço promocional</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        name="preco_promocional"
-                        placeholder="0.00"
-                        value={form.preco_promocional}
-                        onChange={handleChange}
-                      />
-                    </div>
-
-                    <div className="campo">
-                      <label>SKU automático</label>
-                      <input
-                        type="text"
-                        name="sku"
-                        value={form.sku}
-                        readOnly
-                        disabled
-                      />
-                      <small>Gerado automaticamente com base no nome e categoria.</small>
-                    </div>
-
-                    <div className="campo">
-                      <label>Modelo</label>
-                      <input
-                        type="text"
-                        name="modelo"
-                        placeholder="Linha Premium"
-                        value={form.modelo}
-                        onChange={handleChange}
-                      />
-                    </div>
-
-                    <div className="campo">
-                      <label>Marca</label>
-                      <input
-                        type="text"
-                        name="marca"
-                        placeholder="Universo Império"
-                        value={form.marca}
-                        onChange={handleChange}
-                      />
-                    </div>
-
-                    <div className="campo">
-                      <label>Categoria</label>
-                      <select
-                        name="categoria_id"
-                        value={form.categoria_id}
-                        onChange={handleChange}
-                        disabled={carregandoCategorias}
-                      >
-                        <option value="">
-                          {carregandoCategorias
-                            ? "Carregando categorias..."
-                            : "Selecione uma categoria"}
-                        </option>
-
-                        {categorias.map((categoria) => (
-                          <option
-                            key={String(categoria.id_categoria)}
-                            value={String(categoria.id_categoria)}
-                          >
-                            {categoria.nome}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="campo">
-                      <label>Status</label>
-                      <select
-                        name="status_id"
-                        value={form.status_id}
-                        onChange={handleChange}
-                        disabled={carregandoStatus}
-                      >
-                        <option value="">
-                          {carregandoStatus
-                            ? "Carregando status..."
-                            : statusLista.length === 0
-                            ? "Nenhum status encontrado"
-                            : "Selecione um status"}
-                        </option>
-
-                        {statusLista.map((status) => {
-                          const valor = String(status.id_status ?? status.id ?? "");
-                          return (
-                            <option key={valor} value={valor}>
-                              {status.nome}
-                            </option>
-                          );
-                        })}
-                      </select>
-
-                      <small>
-                        {carregandoStatus
-                          ? "Buscando status..."
-                          : `${statusLista.length} status carregado(s).`}
-                      </small>
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              {etapa === 3 && (
-                <section className="card-form">
-                  <div className="titulo-bloco">
-                    <h2>Passo 3 — Imagem e revisão final</h2>
-                    <p>Envie a imagem principal e revise antes de salvar.</p>
-                  </div>
-
-                  <div className="upload-area">
-                    <input
-                      ref={inputImagemRef}
-                      type="file"
-                      name="imagem"
-                      accept="image/png,image/jpeg,image/jpg,image/webp"
-                      onChange={handleImagem}
-                      hidden
-                    />
-
-                    <div className="upload-box" onClick={abrirUpload}>
-                      {!previewImagem ? (
-                        <>
-                          <div className="upload-icon">+</div>
-                          <h3>Clique para enviar a imagem</h3>
-                          <p>PNG, JPG, JPEG ou WEBP</p>
-                        </>
-                      ) : (
-                        <>
-                          <img src={previewImagem} alt="Prévia do produto" />
-                          <div className="overlay-upload">
-                            <span>Trocar imagem</span>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="revisao">
-                    <div className="revisao-item">
-                      <span>Produto</span>
-                      <strong>{form.nome || "-"}</strong>
-                    </div>
-
-                    <div className="revisao-item">
-                      <span>Slug</span>
-                      <strong>{form.slug || "-"}</strong>
-                    </div>
-
-                    <div className="revisao-item">
-                      <span>SKU</span>
-                      <strong>{form.sku || "-"}</strong>
-                    </div>
-
-                    <div className="revisao-item">
-                      <span>Preço</span>
-                      <strong>R$ {form.preco || "0.00"}</strong>
-                    </div>
-
-                    <div className="revisao-item">
-                      <span>Promoção</span>
-                      <strong>
-                        {form.preco_promocional
-                          ? `R$ ${form.preco_promocional}`
-                          : "Sem promoção"}
-                      </strong>
-                    </div>
-
-                    <div className="revisao-item">
-                      <span>Categoria</span>
-                      <strong>{categoriaSelecionada?.nome || "-"}</strong>
-                    </div>
-
-                    <div className="revisao-item">
-                      <span>Marca</span>
-                      <strong>{form.marca || "-"}</strong>
-                    </div>
-
-                    <div className="revisao-item">
-                      <span>Status</span>
-                      <strong>
-                        {statusLista.find(
-                          (item) =>
-                            String(item.id_status ?? item.id ?? "") === String(form.status_id)
-                        )?.nome || "-"}
-                      </strong>
-                    </div>
-                  </div>
-                </section>
-              )}
-
-              <div className="acoes-form">
-                {etapa > 1 && (
-                  <button
-                    type="button"
-                    className="btn-secundario"
-                    onClick={voltarEtapa}
-                  >
-                    Voltar
-                  </button>
-                )}
-
-                {etapa < 3 ? (
-                  <button
-                    type="button"
-                    className="btn-primario"
-                    onClick={avancarEtapa}
-                  >
-                    Continuar
-                  </button>
-                ) : (
-                  <button
-                    type="submit"
-                    className="btn-primario"
-                    disabled={salvando}
-                  >
-                    {salvando ? "Salvando produto..." : "Cadastrar produto"}
-                  </button>
-                )}
-              </div>
-            </form>
-          </main>
-        </div>
-      </div>
-
-      <style jsx>{`
-        .pagina-produto {
-          min-height: 100vh;
-          padding: 32px;
-          background: #f6f7fb;
-          color: #1f2937;
-        }
-
-        .header-page {
-          max-width: 1400px;
-          margin: 0 auto 24px auto;
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 20px;
-        }
-
-        .badge-topo {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          padding: 8px 14px;
-          border-radius: 999px;
-          background: #ffffff;
-          color: #6b7280;
-          font-size: 13px;
-          margin-bottom: 14px;
-          border: 1px solid #e5e7eb;
-        }
-
-        .header-page h1 {
-          margin: 0 0 10px 0;
-          font-size: 2rem;
-          font-weight: 800;
-          color: #111827;
-        }
-
-        .header-page p {
-          margin: 0;
-          color: #6b7280;
-          max-width: 700px;
-          line-height: 1.6;
-        }
-
-        .wrapper {
-          max-width: 1400px;
-          margin: 0 auto;
-          display: grid;
-          grid-template-columns: 300px 1fr;
-          gap: 24px;
-          align-items: start;
-        }
-
-        .painel-lateral {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          position: sticky;
-          top: 24px;
-        }
-
-        .card-etapas,
-        .card-form {
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
-          border-radius: 24px;
-        }
-
-        .card-etapas {
-          padding: 20px;
-        }
-
-        .etapa-item {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          padding: 14px;
-          border-radius: 18px;
-          transition: 0.25s ease;
-          opacity: 0.75;
-          background: #f9fafb;
-        }
-
-        .etapa-item + .etapa-item {
-          margin-top: 10px;
-        }
-
-        .etapa-item.ativo {
-          background: #eef2ff;
-          border: 1px solid #c7d2fe;
-          opacity: 1;
-        }
-
-        .numero {
-          width: 38px;
-          height: 38px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: linear-gradient(135deg, #7c3aed, #6366f1);
-          color: white;
-          font-weight: 700;
-          flex-shrink: 0;
-        }
-
-        .etapa-item strong {
-          display: block;
-          font-size: 0.98rem;
-          color: #111827;
-        }
-
-        .etapa-item span {
-          display: block;
-          font-size: 0.86rem;
-          color: #6b7280;
-          margin-top: 2px;
-        }
-
-        .conteudo {
-          min-width: 0;
-        }
-
-        .form-produto {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-        }
-
-        .card-form {
-          padding: 28px;
-        }
-
-        .titulo-bloco {
-          margin-bottom: 22px;
-        }
-
-        .titulo-bloco h2 {
-          margin: 0 0 8px 0;
-          color: #111827;
-          font-size: 1.5rem;
-        }
-
-        .titulo-bloco p {
-          margin: 0;
-          color: #6b7280;
-        }
-
-        .grid {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 18px;
-        }
-
-        .campo {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .campo-full {
-          grid-column: 1 / -1;
-        }
-
-        .campo label {
-          font-size: 0.94rem;
-          font-weight: 600;
-          color: #374151;
-        }
-
-        .campo input,
-        .campo textarea,
-        .campo select {
-          width: 100%;
-          border: 1px solid #d1d5db;
-          background: #ffffff;
-          color: #111827;
-          border-radius: 16px;
-          padding: 14px 16px;
-          outline: none;
-          transition: 0.25s ease;
-          font-size: 0.98rem;
-        }
-
-        .campo input[disabled] {
-          background: #f3f4f6;
-          color: #6b7280;
-          cursor: not-allowed;
-        }
-
-        .campo input::placeholder,
-        .campo textarea::placeholder {
-          color: #9ca3af;
-        }
-
-        .campo input:focus,
-        .campo textarea:focus,
-        .campo select:focus {
-          border-color: #818cf8;
-          box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
-        }
-
-        .campo textarea {
-          min-height: 160px;
-          resize: vertical;
-        }
-
-        .campo small {
-          color: #6b7280;
-          font-size: 0.82rem;
-        }
-
-        .upload-area {
-          margin-bottom: 24px;
-        }
-
-        .upload-box {
-          width: 100%;
-          min-height: 320px;
-          border-radius: 24px;
-          border: 1.5px dashed #cbd5e1;
-          background: #f8fafc;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-direction: column;
-          text-align: center;
-          cursor: pointer;
-          overflow: hidden;
-          position: relative;
-          transition: 0.25s ease;
-          padding: 24px;
-        }
-
-        .upload-box:hover {
-          transform: translateY(-2px);
-          border-color: #818cf8;
-        }
-
-        .upload-icon {
-          width: 72px;
-          height: 72px;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 2rem;
-          background: linear-gradient(135deg, #7c3aed, #6366f1);
-          color: #fff;
-          margin-bottom: 14px;
-          box-shadow: 0 10px 25px rgba(99, 102, 241, 0.25);
-        }
-
-        .upload-box h3 {
-          margin: 0 0 8px 0;
-          font-size: 1.2rem;
-          color: #111827;
-        }
-
-        .upload-box p {
-          margin: 0;
-          color: #6b7280;
-        }
-
-        .upload-box img {
-          width: 100%;
-          height: 420px;
-          object-fit: cover;
-          border-radius: 20px;
-        }
-
-        .overlay-upload {
-          position: absolute;
-          inset: 0;
-          background: linear-gradient(
-            180deg,
-            rgba(255, 255, 255, 0.08),
-            rgba(17, 24, 39, 0.45)
-          );
-          display: flex;
-          align-items: end;
-          justify-content: center;
-          padding-bottom: 28px;
-          opacity: 0;
-          transition: 0.25s ease;
-        }
-
-        .upload-box:hover .overlay-upload {
-          opacity: 1;
-        }
-
-        .overlay-upload span {
-          background: rgba(255, 255, 255, 0.9);
-          border: 1px solid #e5e7eb;
-          color: #111827;
-          padding: 10px 16px;
-          border-radius: 999px;
-          font-weight: 600;
-        }
-
-        .revisao {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 16px;
-        }
-
-        .revisao-item {
-          padding: 16px;
-          border-radius: 18px;
-          background: #f9fafb;
-          border: 1px solid #e5e7eb;
-        }
-
-        .revisao-item span {
-          display: block;
-          color: #6b7280;
-          font-size: 0.84rem;
-          margin-bottom: 6px;
-        }
-
-        .revisao-item strong {
-          color: #111827;
-          word-break: break-word;
-        }
-
-        .acoes-form {
-          display: flex;
-          justify-content: space-between;
-          gap: 14px;
-        }
-
-        .btn-primario,
-        .btn-secundario {
-          border: none;
-          outline: none;
-          cursor: pointer;
-          border-radius: 16px;
-          padding: 14px 20px;
-          font-weight: 700;
-          font-size: 0.96rem;
-          transition: 0.25s ease;
-        }
-
-        .btn-primario {
-          background: linear-gradient(135deg, #7c3aed, #6366f1);
-          color: white;
-          box-shadow: 0 10px 25px rgba(99, 102, 241, 0.24);
-          margin-left: auto;
-        }
-
-        .btn-primario:hover {
-          transform: translateY(-1px);
-          filter: brightness(1.04);
-        }
-
-        .btn-primario:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
-          transform: none;
-        }
-
-        .btn-secundario {
-          background: #ffffff;
-          color: #374151;
-          border: 1px solid #d1d5db;
-        }
-
-        .btn-secundario:hover {
-          background: #f9fafb;
-        }
-
-        @media (max-width: 1100px) {
-          .wrapper {
-            grid-template-columns: 1fr;
-          }
-
-          .painel-lateral {
-            position: static;
-          }
-        }
-
-        @media (max-width: 768px) {
-          .pagina-produto {
-            padding: 18px;
-          }
-
-          .header-page {
-            flex-direction: column;
-          }
-
-          .grid,
-          .revisao {
-            grid-template-columns: 1fr;
-          }
-
-          .card-form {
-            padding: 20px;
-          }
-
-          .upload-box {
-            min-height: 240px;
-          }
-
-          .upload-box img {
-            height: 280px;
-          }
-
-          .acoes-form {
-            flex-direction: column-reverse;
-          }
-
-          .btn-primario,
-          .btn-secundario {
-            width: 100%;
-          }
-
-          .btn-primario {
-            margin-left: 0;
-          }
-        }
-      `}</style>
+      </form>
     </>
   );
 }
