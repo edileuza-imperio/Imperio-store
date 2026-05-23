@@ -1,8 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type FormEvent,
+} from "react";
+
 import api from "@/Api/conectar";
 import { useRouter } from "next/navigation";
+
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -55,9 +64,11 @@ function limparTexto(valor: string) {
 
 function dataAtualMysql() {
   const agora = new Date();
+
   const yyyy = agora.getFullYear();
   const mm = String(agora.getMonth() + 1).padStart(2, "0");
   const dd = String(agora.getDate()).padStart(2, "0");
+
   const hh = String(agora.getHours()).padStart(2, "0");
   const mi = String(agora.getMinutes()).padStart(2, "0");
   const ss = String(agora.getSeconds()).padStart(2, "0");
@@ -89,46 +100,82 @@ function gerarSkuAutomatico(nome: string, categoriaNome?: string) {
     .join("");
 
   const agora = new Date();
-  const data = `${agora.getFullYear()}${String(agora.getMonth() + 1).padStart(2, "0")}${String(
-    agora.getDate()
+
+  const data = `${agora.getFullYear()}${String(
+    agora.getMonth() + 1
+  ).padStart(2, "0")}${String(agora.getDate()).padStart(2, "0")}`;
+
+  const hora = `${String(agora.getHours()).padStart(2, "0")}${String(
+    agora.getMinutes()
   ).padStart(2, "0")}`;
-  const hora = `${String(agora.getHours()).padStart(2, "0")}${String(agora.getMinutes()).padStart(
-    "0"
-  )}`;
 
   return `${baseCategoria || "CAT"}-${baseNome || "PROD"}-${data}${hora}`;
 }
 
 function extrairListaCategorias(data: any): Categoria[] {
   if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.dados)) return data.dados;
-  if (Array.isArray(data?.categorias)) return data.categorias;
-  if (Array.isArray(data?.dados?.categorias)) return data.dados.categorias;
-  if (Array.isArray(data?.dados?.dados)) return data.dados.dados;
+
+  if (Array.isArray(data?.dados)) {
+    return data.dados;
+  }
+
+  if (Array.isArray(data?.categorias)) {
+    return data.categorias;
+  }
+
+  if (Array.isArray(data?.dados?.categorias)) {
+    return data.dados.categorias;
+  }
+
+  if (Array.isArray(data?.dados?.dados)) {
+    return data.dados.dados;
+  }
+
   return [];
 }
 
 function extrairListaStatus(data: any): StatusItem[] {
   if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.dados?.dados)) return data.dados.dados;
-  if (Array.isArray(data?.dados)) return data.dados;
-  if (Array.isArray(data?.status)) return data.status;
-  if (Array.isArray(data?.dados?.status)) return data.dados.status;
+
+  if (Array.isArray(data?.dados?.dados)) {
+    return data.dados.dados;
+  }
+
+  if (Array.isArray(data?.dados)) {
+    return data.dados;
+  }
+
+  if (Array.isArray(data?.status)) {
+    return data.status;
+  }
+
+  if (Array.isArray(data?.dados?.status)) {
+    return data.dados.status;
+  }
+
   return [];
 }
 
 export default function CadastrarProduto() {
   const router = useRouter();
+
   const inputImagemRef = useRef<HTMLInputElement | null>(null);
 
   const [salvando, setSalvando] = useState(false);
+
   const [carregandoCategorias, setCarregandoCategorias] = useState(true);
+
   const [carregandoStatus, setCarregandoStatus] = useState(true);
+
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+
   const [statusLista, setStatusLista] = useState<StatusItem[]>([]);
-  const [slugEditadoManualmente, setSlugEditadoManualmente] = useState(false);
+
+  const [slugEditadoManualmente, setSlugEditadoManualmente] =
+    useState(false);
 
   const [arquivoImagem, setArquivoImagem] = useState<File | null>(null);
+
   const [previewImagem, setPreviewImagem] = useState("");
 
   const [form, setForm] = useState<ProdutoForm>({
@@ -148,11 +195,15 @@ export default function CadastrarProduto() {
     async function carregarCategorias() {
       try {
         setCarregandoCategorias(true);
+
         const response = await api.get("/painel/categorias");
+
         const lista = extrairListaCategorias(response?.data);
+
         setCategorias(lista);
       } catch (error) {
         console.error("Erro ao carregar categorias:", error);
+
         toast.error("Não foi possível carregar as categorias.");
       } finally {
         setCarregandoCategorias(false);
@@ -166,13 +217,17 @@ export default function CadastrarProduto() {
     async function carregarStatus() {
       try {
         setCarregandoStatus(true);
+
         const response = await api.get("/painel/status");
+
         const lista = extrairListaStatus(response?.data);
 
         setStatusLista(lista);
 
         if (Array.isArray(lista) && lista.length > 0) {
-          const primeiroStatus = String(lista[0].id_status ?? lista[0].id ?? "");
+          const primeiroStatus = String(
+            lista[0].id_status ?? lista[0].id ?? ""
+          );
 
           setForm((prev) => ({
             ...prev,
@@ -181,6 +236,7 @@ export default function CadastrarProduto() {
         }
       } catch (error) {
         console.error("Erro ao carregar status:", error);
+
         toast.error("Não foi possível carregar os status.");
       } finally {
         setCarregandoStatus(false);
@@ -201,19 +257,28 @@ export default function CadastrarProduto() {
 
   const categoriaSelecionada = useMemo(() => {
     return categorias.find(
-      (categoria) => String(categoria.id_categoria) === String(form.categoria_id)
+      (categoria) =>
+        String(categoria.id_categoria) ===
+        String(form.categoria_id)
     );
   }, [categorias, form.categoria_id]);
 
   useEffect(() => {
     setForm((prev) => ({
       ...prev,
-      sku: gerarSkuAutomatico(prev.nome, categoriaSelecionada?.nome),
+      sku: gerarSkuAutomatico(
+        prev.nome,
+        categoriaSelecionada?.nome
+      ),
     }));
   }, [form.nome, categoriaSelecionada?.nome]);
 
   function handleChange(
-    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+    e: ChangeEvent<
+      HTMLInputElement |
+      HTMLTextAreaElement |
+      HTMLSelectElement
+    >
   ) {
     const { name, value } = e.target;
 
@@ -228,7 +293,8 @@ export default function CadastrarProduto() {
     setForm((prev) => ({
       ...prev,
       [name]:
-        name === "preco" || name === "preco_promocional"
+        name === "preco" ||
+        name === "preco_promocional"
           ? formatarPreco(value)
           : value,
     }));
@@ -238,15 +304,27 @@ export default function CadastrarProduto() {
     inputImagemRef.current?.click();
   }
 
-  function handleImagem(e: ChangeEvent<HTMLInputElement>) {
+  function handleImagem(
+    e: ChangeEvent<HTMLInputElement>
+  ) {
     const file = e.target.files?.[0];
+
     if (!file) return;
 
-    const tiposPermitidos = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+    const tiposPermitidos = [
+      "image/png",
+      "image/jpeg",
+      "image/jpg",
+      "image/webp",
+    ];
 
     if (!tiposPermitidos.includes(file.type)) {
-      toast.error("Envie uma imagem PNG, JPG, JPEG ou WEBP.");
+      toast.error(
+        "Envie uma imagem PNG, JPG, JPEG ou WEBP."
+      );
+
       e.target.value = "";
+
       return;
     }
 
@@ -255,8 +333,11 @@ export default function CadastrarProduto() {
     }
 
     const preview = URL.createObjectURL(file);
+
     setArquivoImagem(file);
+
     setPreviewImagem(preview);
+
     toast.success("Imagem carregada com sucesso.");
   }
 
@@ -312,7 +393,9 @@ export default function CadastrarProduto() {
     return true;
   }
 
-  async function handleSubmit(e: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    e: FormEvent<HTMLFormElement>
+  ) {
     e.preventDefault();
 
     if (!validarCampos()) return;
@@ -321,6 +404,7 @@ export default function CadastrarProduto() {
       setSalvando(true);
 
       const agora = dataAtualMysql();
+
       const formData = new FormData();
 
       const payload = {
@@ -328,7 +412,9 @@ export default function CadastrarProduto() {
         slug: limparTexto(form.slug),
         descricao: limparTexto(form.descricao),
         preco: limparTexto(form.preco),
-        preco_promocional: limparTexto(form.preco_promocional),
+        preco_promocional: limparTexto(
+          form.preco_promocional
+        ),
         sku: limparTexto(form.sku),
         modelo: limparTexto(form.modelo),
         marca: limparTexto(form.marca),
@@ -344,13 +430,22 @@ export default function CadastrarProduto() {
       formData.append("preco", payload.preco);
       formData.append("sku", payload.sku);
       formData.append("marca", payload.marca);
-      formData.append("categoria_id", payload.categoria_id);
+      formData.append(
+        "categoria_id",
+        payload.categoria_id
+      );
       formData.append("status_id", payload.status_id);
       formData.append("criado_em", payload.criado_em);
-      formData.append("atualizado_em", payload.atualizado_em);
+      formData.append(
+        "atualizado_em",
+        payload.atualizado_em
+      );
 
       if (payload.preco_promocional) {
-        formData.append("preco_promocional", payload.preco_promocional);
+        formData.append(
+          "preco_promocional",
+          payload.preco_promocional
+        );
       }
 
       if (payload.modelo) {
@@ -358,15 +453,24 @@ export default function CadastrarProduto() {
       }
 
       if (arquivoImagem) {
-        formData.append("imagem", arquivoImagem, arquivoImagem.name);
+        formData.append(
+          "imagem",
+          arquivoImagem,
+          arquivoImagem.name
+        );
       }
 
-      const response = await api.post("/painel/produto", formData, {
-        withCredentials: true,
-        transformRequest: [(data) => data],
-      });
+      const response = await api.post(
+        "/painel/produto",
+        formData,
+        {
+          withCredentials: true,
+          transformRequest: [(data) => data],
+        }
+      );
 
       const data = response?.data;
+
       const sucesso =
         response.status === 200 ||
         response.status === 201 ||
@@ -376,14 +480,24 @@ export default function CadastrarProduto() {
         data?.dados?.status === 201;
 
       if (sucesso) {
-        toast.success(data?.mensagem || data?.dados?.mensagem || "Produto cadastrado com sucesso!");
+        toast.success(
+          data?.mensagem ||
+            data?.dados?.mensagem ||
+            "Produto cadastrado com sucesso!"
+        );
+
         setTimeout(() => {
           router.push("/Admin/produtos");
         }, 1500);
+
         return;
       }
 
-      toast.error(data?.mensagem || data?.dados?.mensagem || "Não foi possível cadastrar o produto.");
+      toast.error(
+        data?.mensagem ||
+          data?.dados?.mensagem ||
+          "Não foi possível cadastrar o produto."
+      );
     } catch (error: any) {
       console.error(error);
 
@@ -400,11 +514,15 @@ export default function CadastrarProduto() {
 
   return (
     <>
-      <ToastContainer position="top-right" autoClose={3000} />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+      />
 
       <form onSubmit={handleSubmit}>
         <div>
           <label>Nome do produto</label>
+
           <input
             type="text"
             name="nome"
@@ -416,6 +534,7 @@ export default function CadastrarProduto() {
 
         <div>
           <label>Slug</label>
+
           <input
             type="text"
             name="slug"
@@ -427,6 +546,7 @@ export default function CadastrarProduto() {
 
         <div>
           <label>Descrição</label>
+
           <textarea
             name="descricao"
             value={form.descricao}
@@ -437,6 +557,7 @@ export default function CadastrarProduto() {
 
         <div>
           <label>Preço</label>
+
           <input
             type="text"
             name="preco"
@@ -448,6 +569,7 @@ export default function CadastrarProduto() {
 
         <div>
           <label>Preço promocional</label>
+
           <input
             type="text"
             name="preco_promocional"
@@ -459,11 +581,19 @@ export default function CadastrarProduto() {
 
         <div>
           <label>SKU automático</label>
-          <input type="text" name="sku" value={form.sku} readOnly disabled />
+
+          <input
+            type="text"
+            name="sku"
+            value={form.sku}
+            readOnly
+            disabled
+          />
         </div>
 
         <div>
           <label>Modelo</label>
+
           <input
             type="text"
             name="modelo"
@@ -475,6 +605,7 @@ export default function CadastrarProduto() {
 
         <div>
           <label>Marca</label>
+
           <input
             type="text"
             name="marca"
@@ -486,6 +617,7 @@ export default function CadastrarProduto() {
 
         <div>
           <label>Categoria</label>
+
           <select
             name="categoria_id"
             value={form.categoria_id}
@@ -493,11 +625,18 @@ export default function CadastrarProduto() {
             disabled={carregandoCategorias}
           >
             <option value="">
-              {carregandoCategorias ? "Carregando categorias..." : "Selecione uma categoria"}
+              {carregandoCategorias
+                ? "Carregando categorias..."
+                : "Selecione uma categoria"}
             </option>
 
             {categorias.map((categoria) => (
-              <option key={String(categoria.id_categoria)} value={String(categoria.id_categoria)}>
+              <option
+                key={String(categoria.id_categoria)}
+                value={String(
+                  categoria.id_categoria
+                )}
+              >
                 {categoria.nome}
               </option>
             ))}
@@ -506,6 +645,7 @@ export default function CadastrarProduto() {
 
         <div>
           <label>Status</label>
+
           <select
             name="status_id"
             value={form.status_id}
@@ -521,9 +661,15 @@ export default function CadastrarProduto() {
             </option>
 
             {statusLista.map((status) => {
-              const valor = String(status.id_status ?? status.id ?? "");
+              const valor = String(
+                status.id_status ?? status.id ?? ""
+              );
+
               return (
-                <option key={valor} value={valor}>
+                <option
+                  key={valor}
+                  value={valor}
+                >
                   {status.nome}
                 </option>
               );
@@ -533,6 +679,7 @@ export default function CadastrarProduto() {
 
         <div>
           <label>Imagem</label>
+
           <input
             ref={inputImagemRef}
             type="file"
@@ -544,17 +691,31 @@ export default function CadastrarProduto() {
 
         {previewImagem && (
           <div>
-            <img src={previewImagem} alt="Prévia do produto" width={200} />
+            <img
+              src={previewImagem}
+              alt="Prévia do produto"
+              width={200}
+            />
           </div>
         )}
 
         <div>
-          <button type="button" onClick={() => router.push("/Admin/produtos")}>
+          <button
+            type="button"
+            onClick={() =>
+              router.push("/Admin/produtos")
+            }
+          >
             Voltar
           </button>
 
-          <button type="submit" disabled={salvando}>
-            {salvando ? "Salvando produto..." : "Cadastrar produto"}
+          <button
+            type="submit"
+            disabled={salvando}
+          >
+            {salvando
+              ? "Salvando produto..."
+              : "Cadastrar produto"}
           </button>
         </div>
       </form>
