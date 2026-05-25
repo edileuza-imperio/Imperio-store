@@ -1,24 +1,23 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-
 import api from "@/Api/conectar";
 import { rotas } from "@/components/Bibioteca/config/rotas";
-
-import { ToastContainer, toast } from "react-toastify";
 
 import {
   FiArrowLeft,
   FiCalendar,
+  FiCheckCircle,
   FiFileText,
   FiImage,
   FiLayers,
+  FiLoader,
   FiTag,
   FiUploadCloud,
 } from "react-icons/fi";
 
+import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 type StatusItem = {
@@ -57,7 +56,7 @@ export default function CadastrarCampanhaPage() {
   const [inicio, setInicio] = useState("");
   const [fim, setFim] = useState("");
 
-  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [imagem, setImagem] = useState<File | null>(null);
   const [preview, setPreview] = useState("");
 
   const slugAutomatico = useMemo(() => gerarSlug(titulo), [titulo]);
@@ -94,8 +93,6 @@ export default function CadastrarCampanhaPage() {
           setStatusid(String(primeiro));
         }
       } catch (error: any) {
-        console.error(error);
-
         toast.error(
           error?.response?.data?.mensagem ||
             "Erro ao carregar status."
@@ -108,16 +105,43 @@ export default function CadastrarCampanhaPage() {
     carregarStatus();
   }, []);
 
-  function handleBanner(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleImagem(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
 
     if (!file) return;
 
-    setBannerFile(file);
+    setImagem(file);
+    setPreview(URL.createObjectURL(file));
+  }
 
-    const url = URL.createObjectURL(file);
+  async function uploadImagem(): Promise<string | null> {
+    if (!imagem) return null;
 
-    setPreview(url);
+    try {
+      const formData = new FormData();
+
+      formData.append("imagem", imagem);
+      formData.append("nome_produto", slug);
+
+      const response = await api.post(
+        "/painel/upload/testar-produto",
+        formData,
+        {
+          withCredentials: true,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      return (
+        response?.data?.dados?.caminho_relativo ||
+        null
+      );
+    } catch (error) {
+      console.error(error);
+      return null;
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -141,53 +165,36 @@ export default function CadastrarCampanhaPage() {
     try {
       setLoading(true);
 
-      const formData = new FormData();
+      let bannerPath: string | null = null;
 
-      formData.append("titulo", titulo.trim());
-      formData.append("slug", gerarSlug(slug));
-      formData.append("descricao", descricao.trim());
+      if (imagem) {
+        bannerPath = await uploadImagem();
 
-      formData.append("statusid", statusid);
-
-      if (inicio) {
-        formData.append("inicio", inicio);
+        if (!bannerPath) {
+          toast.error("Falha ao enviar imagem.");
+          return;
+        }
       }
 
-      if (fim) {
-        formData.append("fim", fim);
-      }
-
-      if (bannerFile) {
-        formData.append("banner", bannerFile);
-      }
+      const body = {
+        titulo: titulo.trim(),
+        slug: gerarSlug(slug),
+        descricao: descricao.trim() || null,
+        banner: bannerPath,
+        statusid: Number(statusid),
+        inicio: inicio || null,
+        fim: fim || null,
+      };
 
       const response = await api.post(
         rotas.painel.campanhaCadastrar,
-        formData,
+        body,
         {
           withCredentials: true,
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
         }
       );
 
       const payload = response?.data;
-
-      const sucesso =
-        response?.status === 200 ||
-        response?.status === 201 ||
-        payload?.status === 200 ||
-        payload?.status === 201;
-
-      if (!sucesso) {
-        toast.error(
-          payload?.mensagem ||
-            "Não foi possível cadastrar."
-        );
-
-        return;
-      }
 
       toast.success(
         payload?.mensagem ||
@@ -196,13 +203,10 @@ export default function CadastrarCampanhaPage() {
 
       setTimeout(() => {
         router.push("/Admin/campanhas");
-      }, 1600);
+      }, 1200);
     } catch (error: any) {
-      console.error(error);
-
       toast.error(
         error?.response?.data?.mensagem ||
-          error?.message ||
           "Erro ao cadastrar campanha."
       );
     } finally {
@@ -215,36 +219,36 @@ export default function CadastrarCampanhaPage() {
       <ToastContainer position="top-right" autoClose={3000} />
 
       <div className="pagina">
-        <div className="backgroundGlow top" />
-        <div className="backgroundGlow bottom" />
+        <div className="blur blur1"></div>
+        <div className="blur blur2"></div>
 
-        <div className="topbar">
-          <button
-            type="button"
-            className="btnVoltar"
-            onClick={() => router.push("/Admin/campanhas")}
-          >
-            <FiArrowLeft />
-            Voltar
-          </button>
-
-          <div className="topbarTextos">
-            <span className="badge">
-              Painel Administrativo
+        <div className="topo">
+          <div>
+            <span className="mini-badge">
+              PAINEL ADMINISTRATIVO
             </span>
 
             <h1>Nova Campanha</h1>
 
             <p>
-              Crie campanhas promocionais com imagem,
-              período, status e descrição personalizada.
+              Cadastre campanhas promocionais modernas
+              para destacar produtos e ofertas.
             </p>
           </div>
+
+          <button
+            className="btn-voltar"
+            onClick={() => router.push("/Admin/campanhas")}
+          >
+            <FiArrowLeft />
+            Voltar
+          </button>
         </div>
 
         <form className="card" onSubmit={handleSubmit}>
           <div className="grid">
-            <div className="campo span2">
+            {/* TITULO */}
+            <div className="campo full">
               <label>
                 <FiLayers />
                 Título da campanha
@@ -252,50 +256,69 @@ export default function CadastrarCampanhaPage() {
 
               <input
                 type="text"
-                placeholder="Ex: Semana Black Friday"
+                placeholder="Ex: Black Friday 2026"
                 value={titulo}
-                onChange={(e) =>
-                  setTitulo(e.target.value)
-                }
+                onChange={(e) => setTitulo(e.target.value)}
               />
             </div>
 
-            <div className="campo span2">
+            {/* SLUG */}
+            <div className="campo">
               <label>
                 <FiTag />
-                Slug da campanha
+                Slug
               </label>
 
               <input
                 type="text"
-                placeholder="semana-black-friday"
+                placeholder="black-friday-2026"
                 value={slug}
                 onChange={(e) => {
                   setSlugManual(true);
-
-                  setSlug(
-                    gerarSlug(e.target.value)
-                  );
+                  setSlug(gerarSlug(e.target.value));
                 }}
               />
-
-              <small>
-                URL amigável da campanha.
-              </small>
             </div>
 
+            {/* STATUS */}
+            <div className="campo">
+              <label>
+                <FiCheckCircle />
+                Status
+              </label>
+
+              <select
+                value={statusid}
+                onChange={(e) => setStatusid(e.target.value)}
+                disabled={loadingStatus}
+              >
+                {statusList.map((item, index) => {
+                  const valor = String(
+                    item.id_status ?? item.id ?? index
+                  );
+
+                  return (
+                    <option key={valor} value={valor}>
+                      {item.nome ||
+                        item.codigo ||
+                        `Status ${valor}`}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {/* DATA */}
             <div className="campo">
               <label>
                 <FiCalendar />
-                Data início
+                Data inicial
               </label>
 
               <input
                 type="datetime-local"
                 value={inicio}
-                onChange={(e) =>
-                  setInicio(e.target.value)
-                }
+                onChange={(e) => setInicio(e.target.value)}
               />
             </div>
 
@@ -308,124 +331,91 @@ export default function CadastrarCampanhaPage() {
               <input
                 type="datetime-local"
                 value={fim}
-                onChange={(e) =>
-                  setFim(e.target.value)
-                }
+                onChange={(e) => setFim(e.target.value)}
               />
             </div>
 
-            <div className="campo">
-              <label>Status</label>
-
-              <select
-                value={statusid}
-                onChange={(e) =>
-                  setStatusid(e.target.value)
-                }
-                disabled={loadingStatus}
-              >
-                {loadingStatus ? (
-                  <option>
-                    Carregando...
-                  </option>
-                ) : (
-                  statusList.map((item, index) => {
-                    const valor = String(
-                      item.id_status ??
-                        item.id ??
-                        index
-                    );
-
-                    return (
-                      <option
-                        key={valor}
-                        value={valor}
-                      >
-                        {item.nome ||
-                          item.codigo}
-                      </option>
-                    );
-                  })
-                )}
-              </select>
-            </div>
-
-            <div className="campo">
-              <label>
-                <FiImage />
-                Banner da campanha
-              </label>
-
-              <label className="uploadArea">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleBanner}
-                />
-
-                <div className="uploadContent">
-                  <FiUploadCloud />
-
-                  <span>
-                    Clique para selecionar
-                    uma imagem
-                  </span>
-
-                  <small>
-                    PNG, JPG, WEBP...
-                  </small>
-                </div>
-              </label>
-            </div>
-
-            {preview && (
-              <div className="previewContainer span2">
-                <div className="previewCard">
-                  <Image
-                    src={preview}
-                    alt="Preview"
-                    fill
-                    className="previewImage"
-                  />
-                </div>
-              </div>
-            )}
-
-            <div className="campo span2">
+            {/* DESCRIÇÃO */}
+            <div className="campo full">
               <label>
                 <FiFileText />
                 Descrição
               </label>
 
               <textarea
-                placeholder="Digite a descrição da campanha..."
+                rows={6}
+                placeholder="Descreva sua campanha..."
                 value={descricao}
                 onChange={(e) =>
                   setDescricao(e.target.value)
                 }
               />
             </div>
+
+            {/* UPLOAD */}
+            <div className="upload-area full">
+              <div className="upload-topo">
+                <div>
+                  <h3>
+                    <FiImage />
+                    Banner da campanha
+                  </h3>
+
+                  <p>
+                    Faça upload da imagem principal da
+                    campanha.
+                  </p>
+                </div>
+              </div>
+
+              <label className="upload-box">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImagem}
+                />
+
+                {preview ? (
+                  <img src={preview} alt="preview" />
+                ) : (
+                  <div className="upload-placeholder">
+                    <FiUploadCloud />
+
+                    <span>
+                      Clique para selecionar uma imagem
+                    </span>
+
+                    <small>
+                      PNG, JPG, WEBP
+                    </small>
+                  </div>
+                )}
+              </label>
+            </div>
           </div>
 
           <div className="acoes">
             <button
               type="button"
-              className="btnCancelar"
-              onClick={() =>
-                router.push("/Admin/campanhas")
-              }
+              className="btn-cancelar"
+              onClick={() => router.push("/Admin/campanhas")}
             >
               Cancelar
             </button>
 
             <button
               type="submit"
-              className="btnSalvar"
+              className="btn-salvar"
               disabled={loading}
             >
-              {loading
-                ? "Cadastrando..."
-                : "Cadastrar campanha"}
+              {loading ? (
+                <>
+                  <FiLoader className="spin" />
+                  Salvando...
+                </>
+              ) : (
+                "Cadastrar campanha"
+              )}
             </button>
           </div>
         </form>
@@ -434,98 +424,119 @@ export default function CadastrarCampanhaPage() {
       <style jsx>{`
         .pagina {
           min-height: 100vh;
-          padding: 32px;
+          padding: 40px;
           position: relative;
           overflow: hidden;
-          background: #0f172a;
+          background:
+            radial-gradient(circle at top left,
+              rgba(255, 120, 120, 0.15),
+              transparent 30%),
+            radial-gradient(circle at bottom right,
+              rgba(120, 180, 255, 0.12),
+              transparent 30%),
+            #0f172a;
         }
 
-        .backgroundGlow {
+        .blur {
           position: absolute;
-          width: 450px;
-          height: 450px;
           border-radius: 999px;
           filter: blur(120px);
-          opacity: 0.2;
+          z-index: 0;
         }
 
-        .backgroundGlow.top {
-          top: -120px;
-          left: -120px;
-          background: #7c3aed;
+        .blur1 {
+          width: 300px;
+          height: 300px;
+          background: #ff4d6d;
+          top: -60px;
+          left: -60px;
+          opacity: 0.18;
         }
 
-        .backgroundGlow.bottom {
-          bottom: -120px;
-          right: -120px;
-          background: #2563eb;
+        .blur2 {
+          width: 320px;
+          height: 320px;
+          background: #3b82f6;
+          bottom: -100px;
+          right: -100px;
+          opacity: 0.18;
         }
 
-        .topbar {
-          display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 20px;
-          margin-bottom: 28px;
+        .topo,
+        .card {
           position: relative;
           z-index: 2;
         }
 
-        .badge {
+        .topo {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 20px;
+          margin-bottom: 30px;
+          flex-wrap: wrap;
+        }
+
+        .mini-badge {
           display: inline-flex;
           padding: 8px 14px;
           border-radius: 999px;
           background: rgba(255,255,255,0.08);
-          border: 1px solid rgba(255,255,255,0.1);
+          border: 1px solid rgba(255,255,255,0.08);
           color: #cbd5e1;
           font-size: 12px;
           font-weight: 700;
-          margin-bottom: 14px;
+          letter-spacing: .6px;
         }
 
-        .topbar h1 {
-          margin: 0;
-          font-size: 42px;
+        .topo h1 {
+          margin: 14px 0 10px;
+          font-size: 52px;
+          line-height: 1;
           color: #fff;
           font-weight: 900;
         }
 
-        .topbar p {
-          margin-top: 12px;
+        .topo p {
+          max-width: 700px;
           color: #94a3b8;
-          max-width: 720px;
-          line-height: 1.6;
+          font-size: 16px;
         }
 
-        .btnVoltar {
-          border: none;
-          height: 48px;
-          padding: 0 18px;
-          border-radius: 16px;
+        .btn-voltar {
+          height: 54px;
+          padding: 0 22px;
+          border-radius: 18px;
+          border: 1px solid rgba(255,255,255,0.1);
+          background: rgba(255,255,255,0.06);
+          color: #fff;
           display: flex;
           align-items: center;
           gap: 10px;
-          background: rgba(255,255,255,0.08);
-          color: #fff;
           cursor: pointer;
           font-weight: 700;
-          backdrop-filter: blur(20px);
+          backdrop-filter: blur(12px);
         }
 
         .card {
-          position: relative;
-          z-index: 2;
+          backdrop-filter: blur(18px);
           background: rgba(15, 23, 42, 0.72);
           border: 1px solid rgba(255,255,255,0.08);
-          backdrop-filter: blur(20px);
-          border-radius: 28px;
-          padding: 30px;
+          border-radius: 32px;
+          padding: 34px;
+          box-shadow:
+            0 10px 40px rgba(0,0,0,.3),
+            inset 0 1px 0 rgba(255,255,255,.05);
         }
 
         .grid {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
+          grid-template-columns: repeat(2, minmax(0,1fr));
           gap: 22px;
+        }
+
+        .full {
+          grid-column: span 2;
         }
 
         .campo {
@@ -534,174 +545,190 @@ export default function CadastrarCampanhaPage() {
           gap: 10px;
         }
 
-        .span2 {
-          grid-column: span 2;
-        }
-
         .campo label {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
           color: #e2e8f0;
           font-size: 14px;
           font-weight: 700;
         }
 
         .campo input,
-        .campo textarea,
-        .campo select {
+        .campo select,
+        .campo textarea {
           width: 100%;
-          border: 1px solid rgba(255,255,255,0.08);
-          background: rgba(255,255,255,0.04);
-          color: #fff;
+          border: 1px solid rgba(255,255,255,.08);
+          background: rgba(255,255,255,.04);
           border-radius: 18px;
-          padding: 16px;
+          padding: 16px 18px;
+          color: #fff;
           outline: none;
-          transition: 0.2s;
+          transition: .25s;
           font-size: 15px;
         }
 
-        .campo textarea {
-          min-height: 180px;
-          resize: vertical;
+        .campo input::placeholder,
+        .campo textarea::placeholder {
+          color: #64748b;
         }
 
         .campo input:focus,
-        .campo textarea:focus,
-        .campo select:focus {
-          border-color: #8b5cf6;
-          box-shadow: 0 0 0 4px rgba(139,92,246,0.15);
+        .campo select:focus,
+        .campo textarea:focus {
+          border-color: #60a5fa;
+          background: rgba(255,255,255,.06);
+          box-shadow: 0 0 0 4px rgba(96,165,250,.12);
         }
 
-        .campo small {
+        .upload-area {
+          margin-top: 8px;
+        }
+
+        .upload-topo h3 {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          color: #fff;
+          margin: 0 0 8px;
+        }
+
+        .upload-topo p {
           color: #94a3b8;
+          margin: 0 0 18px;
         }
 
-        .uploadArea {
-          position: relative;
-          overflow: hidden;
-          cursor: pointer;
-          min-height: 180px;
+        .upload-box {
+          min-height: 320px;
           border-radius: 24px;
-          border: 2px dashed rgba(255,255,255,0.12);
-          background: rgba(255,255,255,0.03);
-        }
-
-        .uploadArea input {
-          position: absolute;
-          inset: 0;
-          opacity: 0;
+          border: 2px dashed rgba(255,255,255,.1);
+          background: rgba(255,255,255,.03);
           cursor: pointer;
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: .25s;
         }
 
-        .uploadContent {
-          min-height: 180px;
+        .upload-box:hover {
+          border-color: #60a5fa;
+          background: rgba(96,165,250,.06);
+        }
+
+        .upload-box input {
+          display: none;
+        }
+
+        .upload-placeholder {
           display: flex;
           flex-direction: column;
           align-items: center;
-          justify-content: center;
-          gap: 12px;
-          color: #cbd5e1;
+          gap: 14px;
+          color: #94a3b8;
         }
 
-        .uploadContent svg {
-          font-size: 42px;
+        .upload-placeholder svg {
+          font-size: 70px;
         }
 
-        .previewContainer {
-          margin-top: 6px;
+        .upload-placeholder span {
+          color: #fff;
+          font-size: 17px;
+          font-weight: 700;
         }
 
-        .previewCard {
-          position: relative;
+        .upload-box img {
           width: 100%;
-          height: 320px;
-          border-radius: 24px;
-          overflow: hidden;
-          border: 1px solid rgba(255,255,255,0.08);
-        }
-
-        .previewImage {
+          height: 100%;
           object-fit: cover;
         }
 
         .acoes {
+          margin-top: 34px;
           display: flex;
           justify-content: flex-end;
-          gap: 14px;
-          margin-top: 28px;
+          gap: 16px;
           flex-wrap: wrap;
         }
 
-        .btnCancelar,
-        .btnSalvar {
-          border: none;
-          height: 54px;
-          padding: 0 24px;
+        .btn-cancelar,
+        .btn-salvar {
+          height: 58px;
+          padding: 0 26px;
           border-radius: 18px;
-          font-weight: 800;
+          border: none;
           cursor: pointer;
-          transition: 0.2s;
+          font-weight: 800;
+          font-size: 15px;
+          transition: .25s;
         }
 
-        .btnCancelar {
-          background: rgba(255,255,255,0.08);
+        .btn-cancelar {
+          background: rgba(255,255,255,.08);
           color: #fff;
         }
 
-        .btnSalvar {
+        .btn-salvar {
           background: linear-gradient(
             135deg,
-            #7c3aed,
-            #2563eb
+            #2563eb,
+            #7c3aed
           );
+
           color: #fff;
-          min-width: 240px;
-          box-shadow: 0 18px 40px rgba(124,58,237,0.3);
+
+          display: flex;
+          align-items: center;
+          gap: 10px;
+
+          box-shadow:
+            0 10px 25px rgba(37,99,235,.35);
         }
 
-        .btnSalvar:disabled {
-          opacity: 0.7;
-          cursor: not-allowed;
+        .btn-salvar:hover {
+          transform: translateY(-2px);
+        }
+
+        .spin {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
         }
 
         @media (max-width: 900px) {
           .pagina {
-            padding: 18px;
-          }
-
-          .topbar {
-            flex-direction: column;
+            padding: 20px;
           }
 
           .grid {
             grid-template-columns: 1fr;
           }
 
-          .span2 {
+          .full {
             grid-column: span 1;
           }
 
-          .topbar h1 {
-            font-size: 32px;
+          .card {
+            padding: 22px;
+            border-radius: 24px;
           }
 
-          .card {
-            padding: 20px;
-            border-radius: 24px;
+          .topo h1 {
+            font-size: 38px;
           }
 
           .acoes {
             flex-direction: column;
           }
 
-          .btnSalvar,
-          .btnCancelar {
+          .btn-cancelar,
+          .btn-salvar {
             width: 100%;
-          }
-
-          .previewCard {
-            height: 240px;
           }
         }
       `}</style>
