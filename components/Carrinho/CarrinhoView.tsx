@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 
-import styles from "../carrinho.module.css";
+import styles from "./../../app/(site)/Carrinho/carrinho.module.css";
 
 import {
   FiShoppingCart,
