@@ -114,36 +114,6 @@ export default function CadastrarCampanhaPage() {
     setPreview(URL.createObjectURL(file));
   }
 
-  async function uploadImagem(): Promise<string | null> {
-    if (!imagem) return null;
-
-    try {
-      const formData = new FormData();
-
-      formData.append("imagem", imagem);
-      formData.append("nome_produto", slug);
-
-      const response = await api.post(
-        "/painel/upload/testar-produto",
-        formData,
-        {
-          withCredentials: true,
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      return (
-        response?.data?.dados?.caminho_relativo ||
-        null
-      );
-    } catch (error) {
-      console.error(error);
-      return null;
-    }
-  }
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
@@ -165,32 +135,49 @@ export default function CadastrarCampanhaPage() {
     try {
       setLoading(true);
 
-      let bannerPath: string | null = null;
+      // =========================
+      // ENVIA TUDO JUNTO
+      // =========================
 
+      const formData = new FormData();
+
+      formData.append("titulo", titulo.trim());
+      formData.append("slug", gerarSlug(slug));
+
+      formData.append(
+        "descricao",
+        descricao.trim() || ""
+      );
+
+      formData.append(
+        "statusid",
+        String(Number(statusid))
+      );
+
+      formData.append(
+        "inicio",
+        inicio || ""
+      );
+
+      formData.append(
+        "fim",
+        fim || ""
+      );
+
+      // imagem
       if (imagem) {
-        bannerPath = await uploadImagem();
-
-        if (!bannerPath) {
-          toast.error("Falha ao enviar imagem.");
-          return;
-        }
+        formData.append("imagem", imagem);
       }
-
-      const body = {
-        titulo: titulo.trim(),
-        slug: gerarSlug(slug),
-        descricao: descricao.trim() || null,
-        banner: bannerPath,
-        statusid: Number(statusid),
-        inicio: inicio || null,
-        fim: fim || null,
-      };
 
       const response = await api.post(
         rotas.painel.campanhaCadastrar,
-        body,
+        formData,
         {
           withCredentials: true,
+          headers: {
+            "Content-Type":
+              "multipart/form-data",
+          },
         }
       );
 
@@ -216,36 +203,47 @@ export default function CadastrarCampanhaPage() {
 
   return (
     <>
-      <ToastContainer position="top-right" autoClose={3000} />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+      />
 
       <div className="pagina">
-        <div className="blur blur1"></div>
-        <div className="blur blur2"></div>
+        <div className="efeito efeito1"></div>
+        <div className="efeito efeito2"></div>
 
-        <div className="topo">
+        {/* HEADER */}
+        <div className="header">
           <div>
-            <span className="mini-badge">
-              PAINEL ADMINISTRATIVO
+            <span className="badge">
+              NOVA CAMPANHA
             </span>
 
-            <h1>Nova Campanha</h1>
+            <h1>Cadastrar campanha</h1>
 
             <p>
-              Cadastre campanhas promocionais modernas
-              para destacar produtos e ofertas.
+              Crie campanhas promocionais com
+              banner, período e descrição para
+              destacar ofertas da loja.
             </p>
           </div>
 
           <button
             className="btn-voltar"
-            onClick={() => router.push("/Admin/campanhas")}
+            onClick={() =>
+              router.push("/Admin/campanhas")
+            }
           >
             <FiArrowLeft />
             Voltar
           </button>
         </div>
 
-        <form className="card" onSubmit={handleSubmit}>
+        {/* FORM */}
+        <form
+          className="container-form"
+          onSubmit={handleSubmit}
+        >
           <div className="grid">
             {/* TITULO */}
             <div className="campo full">
@@ -256,9 +254,11 @@ export default function CadastrarCampanhaPage() {
 
               <input
                 type="text"
-                placeholder="Ex: Black Friday 2026"
+                placeholder="Ex: Amor Meu 2026"
                 value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
+                onChange={(e) =>
+                  setTitulo(e.target.value)
+                }
               />
             </div>
 
@@ -271,11 +271,13 @@ export default function CadastrarCampanhaPage() {
 
               <input
                 type="text"
-                placeholder="black-friday-2026"
+                placeholder="amor-meu-2026"
                 value={slug}
                 onChange={(e) => {
                   setSlugManual(true);
-                  setSlug(gerarSlug(e.target.value));
+                  setSlug(
+                    gerarSlug(e.target.value)
+                  );
                 }}
               />
             </div>
@@ -289,16 +291,23 @@ export default function CadastrarCampanhaPage() {
 
               <select
                 value={statusid}
-                onChange={(e) => setStatusid(e.target.value)}
+                onChange={(e) =>
+                  setStatusid(e.target.value)
+                }
                 disabled={loadingStatus}
               >
                 {statusList.map((item, index) => {
                   const valor = String(
-                    item.id_status ?? item.id ?? index
+                    item.id_status ??
+                      item.id ??
+                      index
                   );
 
                   return (
-                    <option key={valor} value={valor}>
+                    <option
+                      key={valor}
+                      value={valor}
+                    >
                       {item.nome ||
                         item.codigo ||
                         `Status ${valor}`}
@@ -318,7 +327,9 @@ export default function CadastrarCampanhaPage() {
               <input
                 type="datetime-local"
                 value={inicio}
-                onChange={(e) => setInicio(e.target.value)}
+                onChange={(e) =>
+                  setInicio(e.target.value)
+                }
               />
             </div>
 
@@ -331,7 +342,9 @@ export default function CadastrarCampanhaPage() {
               <input
                 type="datetime-local"
                 value={fim}
-                onChange={(e) => setFim(e.target.value)}
+                onChange={(e) =>
+                  setFim(e.target.value)
+                }
               />
             </div>
 
@@ -344,31 +357,24 @@ export default function CadastrarCampanhaPage() {
 
               <textarea
                 rows={6}
-                placeholder="Descreva sua campanha..."
+                placeholder="Descreva os detalhes da campanha..."
                 value={descricao}
                 onChange={(e) =>
-                  setDescricao(e.target.value)
+                  setDescricao(
+                    e.target.value
+                  )
                 }
               />
             </div>
 
             {/* UPLOAD */}
-            <div className="upload-area full">
-              <div className="upload-topo">
-                <div>
-                  <h3>
-                    <FiImage />
-                    Banner da campanha
-                  </h3>
+            <div className="full">
+              <label className="label-upload">
+                <FiImage />
+                Banner da campanha
+              </label>
 
-                  <p>
-                    Faça upload da imagem principal da
-                    campanha.
-                  </p>
-                </div>
-              </div>
-
-              <label className="upload-box">
+              <label className="upload">
                 <input
                   type="file"
                   accept="image/*"
@@ -376,17 +382,21 @@ export default function CadastrarCampanhaPage() {
                 />
 
                 {preview ? (
-                  <img src={preview} alt="preview" />
+                  <img
+                    src={preview}
+                    alt="preview"
+                  />
                 ) : (
-                  <div className="upload-placeholder">
+                  <div className="placeholder">
                     <FiUploadCloud />
 
                     <span>
-                      Clique para selecionar uma imagem
+                      Clique para selecionar uma
+                      imagem
                     </span>
 
                     <small>
-                      PNG, JPG, WEBP
+                      PNG, JPG ou WEBP
                     </small>
                   </div>
                 )}
@@ -394,11 +404,14 @@ export default function CadastrarCampanhaPage() {
             </div>
           </div>
 
+          {/* AÇÕES */}
           <div className="acoes">
             <button
               type="button"
               className="btn-cancelar"
-              onClick={() => router.push("/Admin/campanhas")}
+              onClick={() =>
+                router.push("/Admin/campanhas")
+              }
             >
               Cancelar
             </button>
@@ -425,113 +438,112 @@ export default function CadastrarCampanhaPage() {
         .pagina {
           min-height: 100vh;
           padding: 40px;
+          background: #0b1120;
           position: relative;
           overflow: hidden;
-          background:
-            radial-gradient(circle at top left,
-              rgba(255, 120, 120, 0.15),
-              transparent 30%),
-            radial-gradient(circle at bottom right,
-              rgba(120, 180, 255, 0.12),
-              transparent 30%),
-            #0f172a;
         }
 
-        .blur {
+        .efeito {
           position: absolute;
           border-radius: 999px;
           filter: blur(120px);
-          z-index: 0;
         }
 
-        .blur1 {
-          width: 300px;
-          height: 300px;
-          background: #ff4d6d;
-          top: -60px;
-          left: -60px;
-          opacity: 0.18;
+        .efeito1 {
+          width: 350px;
+          height: 350px;
+          background: rgba(168, 85, 247, 0.25);
+          top: -120px;
+          left: -120px;
         }
 
-        .blur2 {
-          width: 320px;
-          height: 320px;
-          background: #3b82f6;
-          bottom: -100px;
-          right: -100px;
-          opacity: 0.18;
+        .efeito2 {
+          width: 350px;
+          height: 350px;
+          background: rgba(59, 130, 246, 0.2);
+          bottom: -120px;
+          right: -120px;
         }
 
-        .topo,
-        .card {
+        .header {
           position: relative;
           z-index: 2;
-        }
 
-        .topo {
           display: flex;
           justify-content: space-between;
           align-items: center;
           gap: 20px;
-          margin-bottom: 30px;
           flex-wrap: wrap;
+
+          margin-bottom: 30px;
         }
 
-        .mini-badge {
+        .badge {
           display: inline-flex;
-          padding: 8px 14px;
+          align-items: center;
+          padding: 8px 16px;
           border-radius: 999px;
-          background: rgba(255,255,255,0.08);
-          border: 1px solid rgba(255,255,255,0.08);
+          background: rgba(255,255,255,.08);
           color: #cbd5e1;
           font-size: 12px;
           font-weight: 700;
-          letter-spacing: .6px;
+          letter-spacing: .5px;
+          border: 1px solid rgba(255,255,255,.08);
         }
 
-        .topo h1 {
-          margin: 14px 0 10px;
-          font-size: 52px;
-          line-height: 1;
+        .header h1 {
           color: #fff;
+          font-size: 52px;
           font-weight: 900;
+          margin: 16px 0 10px;
         }
 
-        .topo p {
-          max-width: 700px;
+        .header p {
           color: #94a3b8;
-          font-size: 16px;
+          max-width: 700px;
+          line-height: 1.6;
         }
 
         .btn-voltar {
           height: 54px;
           padding: 0 22px;
           border-radius: 18px;
-          border: 1px solid rgba(255,255,255,0.1);
-          background: rgba(255,255,255,0.06);
+          border: 1px solid rgba(255,255,255,.08);
+          background: rgba(255,255,255,.05);
           color: #fff;
           display: flex;
           align-items: center;
           gap: 10px;
           cursor: pointer;
           font-weight: 700;
-          backdrop-filter: blur(12px);
+          transition: .25s;
         }
 
-        .card {
+        .btn-voltar:hover {
+          background: rgba(255,255,255,.08);
+        }
+
+        .container-form {
+          position: relative;
+          z-index: 2;
+
+          background: rgba(15,23,42,.82);
           backdrop-filter: blur(18px);
-          background: rgba(15, 23, 42, 0.72);
-          border: 1px solid rgba(255,255,255,0.08);
-          border-radius: 32px;
-          padding: 34px;
-          box-shadow:
-            0 10px 40px rgba(0,0,0,.3),
-            inset 0 1px 0 rgba(255,255,255,.05);
+
+          border: 1px solid rgba(255,255,255,.08);
+
+          border-radius: 30px;
+
+          padding: 32px;
         }
 
         .grid {
           display: grid;
-          grid-template-columns: repeat(2, minmax(0,1fr));
+          grid-template-columns: repeat(
+            2,
+            minmax(0, 1fr)
+          );
+
           gap: 22px;
         }
 
@@ -545,27 +557,33 @@ export default function CadastrarCampanhaPage() {
           gap: 10px;
         }
 
-        .campo label {
+        .campo label,
+        .label-upload {
           display: flex;
           align-items: center;
           gap: 10px;
-          color: #e2e8f0;
-          font-size: 14px;
+          color: #fff;
           font-weight: 700;
+          font-size: 14px;
         }
 
         .campo input,
         .campo select,
         .campo textarea {
           width: 100%;
-          border: 1px solid rgba(255,255,255,.08);
-          background: rgba(255,255,255,.04);
-          border-radius: 18px;
           padding: 16px 18px;
+
+          border-radius: 18px;
+
+          border: 1px solid
+            rgba(255,255,255,.08);
+
+          background: rgba(255,255,255,.04);
+
           color: #fff;
           outline: none;
+
           transition: .25s;
-          font-size: 15px;
         }
 
         .campo input::placeholder,
@@ -576,51 +594,47 @@ export default function CadastrarCampanhaPage() {
         .campo input:focus,
         .campo select:focus,
         .campo textarea:focus {
-          border-color: #60a5fa;
+          border-color: #8b5cf6;
+
+          box-shadow: 0 0 0 4px
+            rgba(139,92,246,.15);
+
           background: rgba(255,255,255,.06);
-          box-shadow: 0 0 0 4px rgba(96,165,250,.12);
         }
 
-        .upload-area {
-          margin-top: 8px;
-        }
+        .upload {
+          margin-top: 12px;
 
-        .upload-topo h3 {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          color: #fff;
-          margin: 0 0 8px;
-        }
-
-        .upload-topo p {
-          color: #94a3b8;
-          margin: 0 0 18px;
-        }
-
-        .upload-box {
           min-height: 320px;
+
           border-radius: 24px;
-          border: 2px dashed rgba(255,255,255,.1);
+
+          border: 2px dashed
+            rgba(255,255,255,.12);
+
           background: rgba(255,255,255,.03);
-          cursor: pointer;
+
           overflow: hidden;
+
           display: flex;
           align-items: center;
           justify-content: center;
+
+          cursor: pointer;
+
           transition: .25s;
         }
 
-        .upload-box:hover {
-          border-color: #60a5fa;
-          background: rgba(96,165,250,.06);
+        .upload:hover {
+          border-color: #8b5cf6;
+          background: rgba(139,92,246,.06);
         }
 
-        .upload-box input {
+        .upload input {
           display: none;
         }
 
-        .upload-placeholder {
+        .placeholder {
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -628,17 +642,17 @@ export default function CadastrarCampanhaPage() {
           color: #94a3b8;
         }
 
-        .upload-placeholder svg {
-          font-size: 70px;
+        .placeholder svg {
+          font-size: 72px;
         }
 
-        .upload-placeholder span {
+        .placeholder span {
           color: #fff;
           font-size: 17px;
           font-weight: 700;
         }
 
-        .upload-box img {
+        .upload img {
           width: 100%;
           height: 100%;
           object-fit: cover;
@@ -646,6 +660,7 @@ export default function CadastrarCampanhaPage() {
 
         .acoes {
           margin-top: 34px;
+
           display: flex;
           justify-content: flex-end;
           gap: 16px;
@@ -655,12 +670,17 @@ export default function CadastrarCampanhaPage() {
         .btn-cancelar,
         .btn-salvar {
           height: 58px;
-          padding: 0 26px;
+          padding: 0 28px;
+
           border-radius: 18px;
+
           border: none;
+
           cursor: pointer;
-          font-weight: 800;
+
           font-size: 15px;
+          font-weight: 800;
+
           transition: .25s;
         }
 
@@ -672,8 +692,8 @@ export default function CadastrarCampanhaPage() {
         .btn-salvar {
           background: linear-gradient(
             135deg,
-            #2563eb,
-            #7c3aed
+            #7c3aed,
+            #2563eb
           );
 
           color: #fff;
@@ -683,7 +703,8 @@ export default function CadastrarCampanhaPage() {
           gap: 10px;
 
           box-shadow:
-            0 10px 25px rgba(37,99,235,.35);
+            0 10px 30px
+            rgba(124,58,237,.35);
         }
 
         .btn-salvar:hover {
@@ -705,6 +726,10 @@ export default function CadastrarCampanhaPage() {
             padding: 20px;
           }
 
+          .header h1 {
+            font-size: 38px;
+          }
+
           .grid {
             grid-template-columns: 1fr;
           }
@@ -713,13 +738,9 @@ export default function CadastrarCampanhaPage() {
             grid-column: span 1;
           }
 
-          .card {
+          .container-form {
             padding: 22px;
             border-radius: 24px;
-          }
-
-          .topo h1 {
-            font-size: 38px;
           }
 
           .acoes {
