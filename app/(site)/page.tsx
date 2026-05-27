@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import ApiError from "@/components/pages/Error/ApiError";
 import HomeSkeleton from "@/components/pages/ui/HomeSkeleton";
 import useApi from "@/components/principal/UseApi";
-import HomeContent from "@/Home/HomeContent";
+import HomeContent from "@/app/(site)/Home/HomeContent";
 import useUsuario from "@/hooks/Auth/useUsuario";
 
 

@@ -6,6 +6,7 @@ import api from "@/Api/conectar";
 import Destaques from "@/app/(site)/Vitrine/Destaques/page";
 import Banner from "@/components/site/Banner/Banner";
 import CategoriasDestaque from "@/components/site/categoria/Categoria";
+import Campanha from "../campanha/page";
 
 
 
@@ -59,7 +60,7 @@ export default function HomeContent() {
       
       <Banner />
       <CategoriasDestaque />
-
+      <Campanha  />
       {!loading &&
         vitrines.map((vitrine) => (
           <Destaques
