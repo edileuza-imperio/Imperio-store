@@ -806,7 +806,7 @@ export default function VitrinePage({
                       styles.pageButton
                     }
                   >
-                    Próxima
+                    Próximad
                   </button>
                 </div>
               )}
