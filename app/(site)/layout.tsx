@@ -51,6 +51,7 @@ import { ToastContainer } from "react-toastify";
 import { getSiteConfig } from "@/services/siteConfig";
 import Navbar from "@/components/site/menu/navbar";
 import FooterProfissional from "@/components/site/Rodape/Footer";
+import Topbar from "@/components/site/Topbar/Topbar";
 
 export async function generateMetadata(): Promise<Metadata> {
 
@@ -72,6 +73,7 @@ export default function RootLayout({
     <html lang="pt-br">
 
       <body className="antialiased">
+        <Topbar />
         <Navbar /> 
 
         {children}

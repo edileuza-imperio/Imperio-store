@@ -1,0 +1,101 @@
+.topbar {
+  width: 100%;
+  height: 42px;
+
+  background: linear-gradient(
+    90deg,
+    #b76e79 0%,
+    #cf8d98 50%,
+    #e0b4bb 100%
+  );
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  position: relative;
+  z-index: 999;
+
+  border-bottom: 1px solid
+    rgba(255, 255, 255, 0.15);
+
+  overflow: hidden;
+}
+
+.topbar::before {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  background: linear-gradient(
+    120deg,
+    transparent,
+    rgba(255, 255, 255, 0.08),
+    transparent
+  );
+
+  animation: brilho 6s linear infinite;
+}
+
+.container {
+  width: 100%;
+  max-width: 1400px;
+
+  padding: 0 24px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  position: relative;
+  z-index: 2;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  color: white;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  letter-spacing: 0.2px;
+}
+
+.item svg {
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+@keyframes brilho {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    height: auto;
+    padding: 10px 0;
+  }
+
+  .container {
+    flex-direction: column;
+    gap: 8px;
+
+    text-align: center;
+  }
+
+  .item {
+    font-size: 12px;
+  }
+}
