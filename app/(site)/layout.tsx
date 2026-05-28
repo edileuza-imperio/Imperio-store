@@ -38,8 +38,7 @@ import "@/public/footer/footer.css";
 // LOGIN
 import "@/public/Login/Login.css";
 
-// VITRINE
-import "@/public/Vitrine/Destaque.css";
+
 
 
 // USUÁRIO
