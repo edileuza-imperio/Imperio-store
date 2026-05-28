@@ -14,6 +14,12 @@ import {
   FiShoppingCart,
   FiUser,
   FiX,
+  FiLogOut,
+  FiGrid,
+  FiPackage,
+  FiHome,
+  FiSettings,
+  FiHeart,
 } from "react-icons/fi";
 
 import * as FiIcons from "react-icons/fi";
@@ -51,6 +57,11 @@ type SiteConfig = {
   subtitulo: string;
 };
 
+type CarrinhoItem = {
+  id_carrinho_item: number;
+  quantidade: number;
+};
+
 export default function Navbar() {
 
   const [menus, setMenus] =
@@ -74,12 +85,15 @@ export default function Navbar() {
   const [scrolled, setScrolled] =
     useState(false);
 
+  const [quantidadeCarrinho, setQuantidadeCarrinho] =
+    useState(0);
+
   useEffect(() => {
 
     carregar();
 
     const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
+      setScrolled(window.scrollY > 8);
     };
 
     window.addEventListener(
@@ -125,15 +139,51 @@ export default function Navbar() {
           : null
       );
 
+      carregarUsuario();
+
+      carregarCarrinho();
+
     } catch (error) {
 
       console.log(error);
 
-      setMenus([]);
+    }
+  }
+
+  async function carregarCarrinho() {
+
+    try {
+
+      const res =
+        await api.get(
+          "/carrinho/itens"
+        );
+
+      const itens =
+        Array.isArray(res.data)
+          ? res.data
+          : [];
+
+      const total =
+        itens.reduce(
+          (
+            acc: number,
+            item: CarrinhoItem
+          ) =>
+            acc +
+            Number(
+              item.quantidade || 0
+            ),
+          0
+        );
+
+      setQuantidadeCarrinho(total);
+
+    } catch (error) {
+
+      setQuantidadeCarrinho(0);
 
     }
-
-    carregarUsuario();
   }
 
   async function carregarUsuario() {
@@ -214,18 +264,71 @@ export default function Navbar() {
 
   }, [menus]);
 
+  function iconFallback(
+    nome: string
+  ) {
+
+    const lower =
+      nome.toLowerCase();
+
+    if (
+      lower.includes("perfil")
+    ) {
+      return (
+        <FiUser size={16} />
+      );
+    }
+
+    if (
+      lower.includes("pedido")
+    ) {
+      return (
+        <FiPackage size={16} />
+      );
+    }
+
+    if (
+      lower.includes("admin")
+    ) {
+      return (
+        <FiSettings size={16} />
+      );
+    }
+
+    if (
+      lower.includes("sair")
+    ) {
+      return (
+        <FiLogOut size={16} />
+      );
+    }
+
+    return (
+      <FiGrid size={16} />
+    );
+  }
+
   const renderIcon = (
     name: string | null,
-    size = 16
+    size = 16,
+    nome?: string
   ) => {
 
-    if (!name) return null;
+    if (!name) {
+      return nome
+        ? iconFallback(nome)
+        : null;
+    }
 
     const Icon =
       (FiIcons as any)[name] ||
       (BiIcons as any)[name];
 
-    if (!Icon) return null;
+    if (!Icon) {
+      return nome
+        ? iconFallback(nome)
+        : null;
+    }
 
     return <Icon size={size} />;
   };
@@ -419,7 +522,8 @@ export default function Navbar() {
 
                               {renderIcon(
                                 item.icone,
-                                16
+                                16,
+                                item.nome
                               )}
 
                               <span>
@@ -448,7 +552,8 @@ export default function Navbar() {
 
                             {renderIcon(
                               item.icone,
-                              16
+                              16,
+                              item.nome
                             )}
 
                             <span>
@@ -498,9 +603,32 @@ export default function Navbar() {
                 }
               >
 
-                <FiShoppingCart
-                  size={18}
-                />
+                <div
+                  className={
+                    styles.cartWrapper
+                  }
+                >
+
+                  <FiShoppingCart
+                    size={19}
+                  />
+
+                  {quantidadeCarrinho >
+                    0 && (
+
+                    <span
+                      className={
+                        styles.badge
+                      }
+                    >
+                      {
+                        quantidadeCarrinho
+                      }
+                    </span>
+
+                  )}
+
+                </div>
 
                 <span>
                   Carrinho
@@ -652,7 +780,8 @@ export default function Navbar() {
 
                               {renderIcon(
                                 item.icone,
-                                16
+                                16,
+                                item.nome
                               )}
 
                               <span>
@@ -681,7 +810,8 @@ export default function Navbar() {
 
                             {renderIcon(
                               item.icone,
-                              16
+                              16,
+                              item.nome
                             )}
 
                             <span>
@@ -727,9 +857,32 @@ export default function Navbar() {
                 }
               >
 
-                <FiShoppingCart
-                  size={17}
-                />
+                <div
+                  className={
+                    styles.cartWrapper
+                  }
+                >
+
+                  <FiShoppingCart
+                    size={18}
+                  />
+
+                  {quantidadeCarrinho >
+                    0 && (
+
+                    <span
+                      className={
+                        styles.badge
+                      }
+                    >
+                      {
+                        quantidadeCarrinho
+                      }
+                    </span>
+
+                  )}
+
+                </div>
 
               </Link>
 
@@ -877,7 +1030,8 @@ export default function Navbar() {
 
               {renderIcon(
                 m.icone,
-                18
+                18,
+                m.nome
               )}
 
               <span>
