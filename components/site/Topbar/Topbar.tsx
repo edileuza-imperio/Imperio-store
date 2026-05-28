@@ -2,49 +2,31 @@
 
 import styles from "./Topbar.module.css";
 
-import {
-  FiTruck,
-  FiShield,
-  FiCreditCard,
-} from "react-icons/fi";
+import { FiTruck, FiShield, FiCreditCard } from "react-icons/fi";
 
 export default function Topbar() {
   return (
     <div className={styles.topbar}>
-      <div className={styles.glow} />
-
       <div className={styles.container}>
         <div className={styles.item}>
-          <div className={styles.icon}>
+          <span className={styles.iconWrapper}>
             <FiTruck />
-          </div>
-
-          <div className={styles.content}>
-            <strong>Entrega Rápida</strong>
-            <span>Enviamos para todo o Brasil</span>
-          </div>
+          </span>
+          <span className={styles.text}>Entrega rápida para todo o Brasil</span>
         </div>
 
         <div className={styles.item}>
-          <div className={styles.icon}>
+          <span className={styles.iconWrapper}>
             <FiShield />
-          </div>
-
-          <div className={styles.content}>
-            <strong>Compra Segura</strong>
-            <span>Pagamento protegido e confiável</span>
-          </div>
+          </span>
+          <span className={styles.text}>Compra 100% segura e protegida</span>
         </div>
 
         <div className={styles.item}>
-          <div className={styles.icon}>
+          <span className={styles.iconWrapper}>
             <FiCreditCard />
-          </div>
-
-          <div className={styles.content}>
-            <strong>Parcelamento</strong>
-            <span>Parcele em até 12x no cartão</span>
-          </div>
+          </span>
+          <span className={styles.text}>Parcele suas compras em até 12x</span>
         </div>
       </div>
     </div>
