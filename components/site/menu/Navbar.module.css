@@ -1,7 +1,3 @@
-/* =========================================================
-   HEADER
-========================================================= */
-
 .header {
   position: sticky;
   top: 0;
@@ -17,10 +13,6 @@
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
 }
 
-/* =========================================================
-   DESKTOP
-========================================================= */
-
 .desktopNavbar {
   width: 100%;
   max-width: 1440px;
@@ -32,10 +24,6 @@
   gap: 24px;
   padding: 0 32px;
 }
-
-/* =========================================================
-   BRAND
-========================================================= */
 
 .brand {
   display: flex;
@@ -72,10 +60,6 @@
   color: #8f8680;
   margin-top: 2px;
 }
-
-/* =========================================================
-   SEARCH
-========================================================= */
 
 .searchWrapper {
   flex: 1;
@@ -137,19 +121,11 @@
   color: #fff;
 }
 
-/* =========================================================
-   RIGHT
-========================================================= */
-
 .right {
   display: flex;
   align-items: center;
   gap: 14px;
 }
-
-/* =========================================================
-   ICON BUTTON
-========================================================= */
 
 .iconBtn {
   height: 48px;
@@ -165,6 +141,7 @@
   font-size: 14px;
   font-weight: 600;
   transition: 0.2s ease;
+  overflow: visible;
 }
 
 .iconBtn:hover {
@@ -173,15 +150,12 @@
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
 }
 
-/* =========================================================
-   CART
-========================================================= */
-
 .cartWrapper {
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: visible;
 }
 
 .badge {
@@ -202,6 +176,7 @@
   border: 2px solid #fff;
   box-shadow: 0 6px 16px rgba(201, 125, 99, 0.35);
   animation: badgePop 0.25s ease;
+  z-index: 10;
 }
 
 @keyframes badgePop {
@@ -229,6 +204,7 @@
   text-decoration: none;
   transition: 0.25s ease;
   color: #2b2b2b;
+  overflow: visible;
 }
 
 .cartButton:hover {
@@ -256,10 +232,6 @@
   font-weight: 700;
   color: #222;
 }
-
-/* =========================================================
-   USER
-========================================================= */
 
 .userDropdown {
   position: relative;
@@ -316,10 +288,6 @@
   color: #222;
 }
 
-/* =========================================================
-   DROPDOWN
-========================================================= */
-
 .dropdownMenu {
   position: absolute;
   top: 62px;
@@ -355,10 +323,6 @@
   background: #f7f4f2;
 }
 
-/* =========================================================
-   MOBILE NAVBAR
-========================================================= */
-
 .mobileNavbar {
   display: none;
 }
@@ -366,10 +330,6 @@
 .mobileSearch {
   display: none;
 }
-
-/* =========================================================
-   SIDEBAR
-========================================================= */
 
 .overlay {
   position: fixed;
@@ -486,10 +446,6 @@
   background: #f8f5f3;
 }
 
-/* =========================================================
-   MOBILE
-========================================================= */
-
 @media (max-width: 991px) {
   .desktopNavbar {
     display: none;
@@ -554,6 +510,7 @@
     justify-content: center;
     color: #2b2b2b;
     text-decoration: none;
+    overflow: visible;
   }
 
   .mobileCartBtn {
@@ -567,6 +524,7 @@
     justify-content: center;
     color: #2b2b2b;
     text-decoration: none;
+    overflow: visible;
   }
 
   .mobileUserDropdown {
@@ -664,10 +622,6 @@
     width: 280px;
   }
 }
-
-/* =========================================================
-   EXTRA SMALL
-========================================================= */
 
 @media (max-width: 480px) {
   .mobileNavbar {

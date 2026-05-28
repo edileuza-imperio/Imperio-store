@@ -105,22 +105,24 @@ export default function Navbar() {
 
   async function carregarCarrinho() {
     try {
-      const res = await api.get("/carrinho/itens");
+      const response = await api.get("/carrinho/itens");
 
-      const itens: CarrinhoItem[] = Array.isArray(res.data?.dados)
-        ? res.data.dados
-        : Array.isArray(res.data)
-          ? res.data
-          : [];
+      const itens: CarrinhoItem[] = response.data?.dados || [];
+
+      if (!Array.isArray(itens)) {
+        setQuantidadeCarrinho(0);
+        return;
+      }
 
       const total = itens.reduce(
-        (acc: number, item: CarrinhoItem) => acc + Number(item.quantidade || 0),
+        (soma: number, item: CarrinhoItem) =>
+          soma + Number(item.quantidade || 0),
         0
       );
 
       setQuantidadeCarrinho(total);
     } catch (error) {
-      console.log(error);
+      console.log("Erro ao carregar carrinho:", error);
       setQuantidadeCarrinho(0);
     }
   }
@@ -181,7 +183,11 @@ export default function Navbar() {
     return <FiGrid size={16} />;
   }
 
-  const renderIcon = (name: string | null, size = 16, nome?: string) => {
+  const renderIcon = (
+    name: string | null,
+    size = 16,
+    nome?: string
+  ) => {
     if (!name) {
       return nome ? iconFallback(nome) : null;
     }
