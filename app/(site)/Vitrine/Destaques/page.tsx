@@ -24,6 +24,8 @@ import {
   VitrineItem,
 } from "@/components/Bibioteca/Bibiotecas";
 
+import styles from "./Destaques.module.css";
+
 function normalizarDados<T = any>(payload: any): T | null {
   return payload?.dados?.dados ?? payload?.dados ?? payload ?? null;
 }
@@ -125,6 +127,10 @@ function descobrirTipoItem(
   return "custom";
 }
 
+function temValor(valor: unknown) {
+  return valor !== null && valor !== undefined && String(valor).trim() !== "";
+}
+
 export default function Destaques({
   slug,
   vitrine: vitrineProp,
@@ -185,7 +191,9 @@ export default function Destaques({
             return;
           }
 
-          const itensResponse = await api.get(`/vitrine/${vitrineData.id_vitrine}/itens`);
+          const itensResponse = await api.get(
+            `/vitrine/${vitrineData.id_vitrine}/itens`
+          );
           let itensData = normalizarLista<VitrineItem>(itensResponse?.data);
 
           if (limite) itensData = itensData.slice(0, limite);
@@ -206,7 +214,9 @@ export default function Destaques({
 
         setVitrine(vitrineAtual);
 
-        const listaItens = Array.isArray(vitrineAtual.itens) ? vitrineAtual.itens : [];
+        const listaItens = Array.isArray(vitrineAtual.itens)
+          ? vitrineAtual.itens
+          : [];
 
         const itensResolvidos: ItemResolvido[] = await Promise.all(
           listaItens.map(async (item) => {
@@ -217,12 +227,9 @@ export default function Destaques({
                 const res = await api.get(`/produto/${item.produto_id}`);
                 const produto = normalizarDados<EntidadeGenerica>(res?.data) || {};
 
-                const precoPromocional =
-                  produto.preco_promocional !== null &&
-                  produto.preco_promocional !== undefined &&
-                  produto.preco_promocional !== ""
-                    ? produto.preco_promocional
-                    : null;
+                const precoPromocional = temValor(produto.preco_promocional)
+                  ? produto.preco_promocional
+                  : null;
 
                 const precoFinal = precoPromocional || produto.preco || null;
                 const precoOriginal = precoPromocional ? produto.preco || null : null;
@@ -276,7 +283,8 @@ export default function Destaques({
                     campanha.subtitulo ||
                     campanha.descricao ||
                     "",
-                  descricao_final: campanha.descricao_curta || campanha.descricao || "",
+                  descricao_final:
+                    campanha.descricao_curta || campanha.descricao || "",
                   imagem_final: obterMelhorImagem(item, campanha),
                   link_final: campanha.slug
                     ? `/campanha/${campanha.slug}`
@@ -307,7 +315,8 @@ export default function Destaques({
                     categoria.subtitulo ||
                     categoria.descricao_curta ||
                     "",
-                  descricao_final: categoria.descricao_curta || categoria.descricao || "",
+                  descricao_final:
+                    categoria.descricao_curta || categoria.descricao || "",
                   imagem_final: obterMelhorImagem(item, categoria),
                   link_final: categoria.slug
                     ? `/categoria/${categoria.slug}`
@@ -424,9 +433,7 @@ export default function Destaques({
       }
     }, 3200);
 
-    const handleVisibility = () => {
-      setPausado(document.hidden);
-    };
+    const handleVisibility = () => setPausado(document.hidden);
 
     document.addEventListener("visibilitychange", handleVisibility);
 
@@ -470,18 +477,13 @@ export default function Destaques({
     if (item.tipo_item !== "produto" || !item.produto_id) return;
 
     const precoBase =
-      item.preco_original !== null &&
-      item.preco_original !== undefined &&
-      item.preco_original !== ""
+      temValor(item.preco_original)
         ? Number(item.preco_original)
         : Number(item.preco_final || 0);
 
-    const precoPromocional =
-      item.preco_original !== null &&
-      item.preco_original !== undefined &&
-      item.preco_original !== ""
-        ? Number(item.preco_final || 0)
-        : null;
+    const precoPromocional = temValor(item.preco_original)
+      ? Number(item.preco_final || 0)
+      : null;
 
     await api.post(
       "/carrinho/adicionar",
@@ -549,186 +551,36 @@ export default function Destaques({
 
   if (loading) {
     return (
-      <section className={`destaques-section ${className}`}>
-        <div className="destaques-container">
-          <div className="destaques-header destaques-header-row">
-            <div className="destaques-header-texto">
-              <div className="skeleton skeleton-badge" />
-              <div className="skeleton skeleton-title" />
-              <div className="skeleton skeleton-text" />
+      <section className={`${styles.section} ${className}`}>
+        <div className={styles.container}>
+          <div className={styles.header}>
+            <div className={styles.headerText}>
+              <div className={`${styles.skeleton} ${styles.skeletonBadge}`} />
+              <div className={`${styles.skeleton} ${styles.skeletonTitle}`} />
+              <div className={`${styles.skeleton} ${styles.skeletonText}`} />
             </div>
-            <div className="skeleton skeleton-button" />
+            <div className={`${styles.skeleton} ${styles.skeletonButton}`} />
           </div>
 
-          <div className="skeleton-grid">
+          <div className={styles.skeletonGrid}>
             {Array.from({ length: 4 }).map((_, index) => (
-              <article className="skeleton-card" key={index}>
-                <div className="skeleton skeleton-image" />
-                <div className="skeleton-body">
-                  <div className="skeleton skeleton-line title" />
-                  <div className="skeleton skeleton-line" />
-                  <div className="skeleton skeleton-line short" />
-                  <div className="skeleton-actions">
-                    <div className="skeleton skeleton-btn" />
-                    <div className="skeleton skeleton-btn outline" />
+              <article className={styles.skeletonCard} key={index}>
+                <div className={`${styles.skeleton} ${styles.skeletonImage}`} />
+                <div className={styles.skeletonBody}>
+                  <div className={`${styles.skeleton} ${styles.skeletonLineTitle}`} />
+                  <div className={`${styles.skeleton} ${styles.skeletonLine}`} />
+                  <div className={`${styles.skeleton} ${styles.skeletonLineShort}`} />
+                  <div className={styles.skeletonActions}>
+                    <div className={`${styles.skeleton} ${styles.skeletonBtn}`} />
+                    <div
+                      className={`${styles.skeleton} ${styles.skeletonBtn} ${styles.outline}`}
+                    />
                   </div>
                 </div>
               </article>
             ))}
           </div>
         </div>
-
-        <style jsx>{`
-          .destaques-section {
-            padding: 28px 0;
-          }
-
-          .destaques-container {
-            max-width: 1280px;
-            margin: 0 auto;
-            padding: 0 16px;
-          }
-
-          .destaques-header-row {
-            display: flex;
-            align-items: end;
-            justify-content: space-between;
-            gap: 16px;
-            margin-bottom: 18px;
-          }
-
-          .destaques-header-texto {
-            flex: 1;
-          }
-
-          .skeleton {
-            position: relative;
-            overflow: hidden;
-            background: #eadfd8;
-            border-radius: 16px;
-          }
-
-          .skeleton::before {
-            content: "";
-            position: absolute;
-            top: 0;
-            left: -160px;
-            width: 120px;
-            height: 100%;
-            background: linear-gradient(
-              90deg,
-              transparent,
-              rgba(255, 255, 255, 0.7),
-              transparent
-            );
-            animation: shimmer 1.15s infinite;
-          }
-
-          .skeleton-badge {
-            width: 86px;
-            height: 26px;
-            margin-bottom: 12px;
-            border-radius: 999px;
-          }
-
-          .skeleton-title {
-            width: min(360px, 70%);
-            height: 38px;
-            margin-bottom: 10px;
-          }
-
-          .skeleton-text {
-            width: min(520px, 90%);
-            height: 18px;
-          }
-
-          .skeleton-button {
-            width: 124px;
-            height: 44px;
-            border-radius: 14px;
-          }
-
-          .skeleton-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 18px;
-          }
-
-          .skeleton-card {
-            border-radius: 24px;
-            overflow: hidden;
-            background: rgba(255, 255, 255, 0.72);
-            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
-          }
-
-          .skeleton-image {
-            width: 100%;
-            aspect-ratio: 1 / 1;
-            border-radius: 0;
-          }
-
-          .skeleton-body {
-            padding: 16px;
-          }
-
-          .skeleton-line {
-            height: 16px;
-            margin-bottom: 10px;
-          }
-
-          .skeleton-line.title {
-            height: 22px;
-            width: 82%;
-          }
-
-          .skeleton-line.short {
-            width: 62%;
-            margin-bottom: 18px;
-          }
-
-          .skeleton-actions {
-            display: flex;
-            gap: 10px;
-          }
-
-          .skeleton-btn {
-            flex: 1;
-            height: 42px;
-            border-radius: 14px;
-          }
-
-          .skeleton-btn.outline {
-            background: #f2e7e1;
-          }
-
-          @keyframes shimmer {
-            100% {
-              left: 120%;
-            }
-          }
-
-          @media (max-width: 900px) {
-            .skeleton-grid {
-              grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            .destaques-header-row {
-              align-items: flex-start;
-              flex-direction: column;
-            }
-
-            .skeleton-button {
-              width: 100%;
-              max-width: 180px;
-            }
-          }
-
-          @media (max-width: 640px) {
-            .skeleton-grid {
-              grid-template-columns: 1fr;
-            }
-          }
-        `}</style>
       </section>
     );
   }
@@ -741,32 +593,32 @@ export default function Destaques({
 
   return (
     <section
-      className={`destaques-section ${className}`}
+      className={`${styles.section} ${className}`}
       onMouseEnter={() => setPausado(true)}
       onMouseLeave={() => setPausado(false)}
       onTouchStart={() => setPausado(true)}
       onTouchEnd={() => setPausado(false)}
     >
-      <div className="destaques-container">
-        <div className="destaques-header destaques-header-row">
-          <div className="destaques-header-texto">
-            <span className="destaques-badge">{vitrine?.tipo || "Vitrine"}</span>
+      <div className={styles.container}>
+        <div className={styles.header}>
+          <div className={styles.headerText}>
+            <span className={styles.badge}>{vitrine?.tipo || "Vitrine"}</span>
 
-            <h2 className="destaques-title">
+            <h2 className={styles.title}>
               {tituloPersonalizado || vitrine?.titulo || vitrine?.nome}
             </h2>
 
             {(subtituloPersonalizado || vitrine?.subtitulo) && (
-              <p className="destaques-description">
+              <p className={styles.description}>
                 {subtituloPersonalizado || vitrine?.subtitulo}
               </p>
             )}
           </div>
 
-          <div className="header-actions">
+          <div className={styles.headerActions}>
             <button
               type="button"
-              className="nav-btn"
+              className={styles.navButton}
               onClick={() => moverCarousel("prev")}
               disabled={!podeVoltar || abrindoCarrinho}
               aria-label="Anterior"
@@ -776,7 +628,7 @@ export default function Destaques({
 
             <button
               type="button"
-              className="nav-btn"
+              className={styles.navButton}
               onClick={() => moverCarousel("next")}
               disabled={!podeAvancar || abrindoCarrinho}
               aria-label="Próximo"
@@ -784,15 +636,15 @@ export default function Destaques({
               <FiChevronRight />
             </button>
 
-            <Link href={linkVerMais} className="btn-ver-mais">
+            <Link href={linkVerMais} className={styles.verMaisButton}>
               <span>{verMaisTexto}</span>
-              <FiArrowRight className="btn-icon" />
+              <FiArrowRight className={styles.inlineIcon} />
             </Link>
           </div>
         </div>
 
-        <div className="carousel-shell">
-          <div ref={carouselRef} className="destaques-carousel">
+        <div className={styles.carouselShell}>
+          <div ref={carouselRef} className={styles.carousel}>
             {itens.map((item) => {
               const precoFormatado = formatarPreco(item.preco_final);
               const precoOriginalFormatado = formatarPreco(item.preco_original);
@@ -811,75 +663,77 @@ export default function Destaques({
 
               return (
                 <article key={String(item.id_vitrine_item)} className="destaque-card">
-                  <div className="destaque-media">
-                    <Link href={item.link_final || "#"} className="imagem-link">
+                  <div className={styles.media}>
+                    <Link href={item.link_final || "#"} className={styles.imageLink}>
                       {item.imagem_final ? (
                         <img
                           src={item.imagem_final}
                           alt={item.titulo_final}
-                          className="destaque-imagem"
+                          className={styles.image}
                         />
                       ) : (
-                        <div className="destaque-sem-imagem">
+                        <div className={styles.noImage}>
                           <span>Sem imagem</span>
                         </div>
                       )}
                     </Link>
 
                     {item.economia_final && (
-                      <span className="economia-badge">{item.economia_final}</span>
+                      <span className={styles.economyBadge}>{item.economia_final}</span>
                     )}
                   </div>
 
-                  <div className="destaque-conteudo">
-                    <div className="destaque-meta">
+                  <div className={styles.content}>
+                    <div className={styles.meta}>
                       {item.marca_final && (
-                        <span className="meta-chip">{item.marca_final}</span>
+                        <span className={styles.chip}>{item.marca_final}</span>
                       )}
 
                       {item.sku_final && (
-                        <span className="meta-chip">SKU {item.sku_final}</span>
+                        <span className={styles.chip}>SKU {item.sku_final}</span>
                       )}
                     </div>
 
-                    <Link href={item.link_final || "#"} className="titulo-link">
-                      <h3 className="destaque-titulo">{item.titulo_final}</h3>
+                    <Link href={item.link_final || "#"} className={styles.cardLink}>
+                      <h3 className={styles.cardTitle}>{item.titulo_final}</h3>
                     </Link>
 
                     {item.subtitulo_final && (
-                      <p className="destaque-subtitulo">{item.subtitulo_final}</p>
+                      <p className={styles.subtitle}>{item.subtitulo_final}</p>
                     )}
 
                     {item.descricao_final && (
-                      <p className="destaque-descricao">{item.descricao_final}</p>
+                      <p className={styles.text}>{item.descricao_final}</p>
                     )}
 
                     {(precoFormatado || precoOriginalFormatado) && (
-                      <div className="destaque-precos">
+                      <div className={styles.prices}>
                         {precoOriginalFormatado && (
-                          <span className="preco-original">{precoOriginalFormatado}</span>
+                          <span className={styles.oldPrice}>
+                            {precoOriginalFormatado}
+                          </span>
                         )}
 
                         {precoFormatado && (
-                          <strong className="destaque-preco">{precoFormatado}</strong>
+                          <strong className={styles.price}>{precoFormatado}</strong>
                         )}
                       </div>
                     )}
 
-                    <div className="destaque-acoes">
+                    <div className={styles.actions}>
                       {item.tipo_item === "produto" ? (
                         <button
                           type="button"
-                          className="btn-carrinho"
+                          className={styles.cartButton}
                           onClick={() => handleAdicionarCarrinho(item)}
                           disabled={estaAdicionando || abrindoCarrinho}
                         >
                           {estaAdicionando ? (
-                            <FiLoader className="btn-icon spin" />
+                            <FiLoader className={`${styles.inlineIcon} ${styles.spin}`} />
                           ) : abrindoCarrinho ? (
-                            <FiCheckCircle className="btn-icon" />
+                            <FiCheckCircle className={styles.inlineIcon} />
                           ) : (
-                            <FiShoppingCart className="btn-icon" />
+                            <FiShoppingCart className={styles.inlineIcon} />
                           )}
 
                           <span>
@@ -891,14 +745,14 @@ export default function Destaques({
                           </span>
                         </button>
                       ) : (
-                        <Link href={item.link_final || "#"} className="btn-carrinho">
-                          <FiArrowRight className="btn-icon" />
+                        <Link href={item.link_final || "#"} className={styles.cartButton}>
+                          <FiArrowRight className={styles.inlineIcon} />
                           <span>Acessar</span>
                         </Link>
                       )}
 
-                      <Link href={linkVisualizarCard} className="btn-visualizar">
-                        <FiEye className="btn-icon" />
+                      <Link href={linkVisualizarCard} className={styles.viewButton}>
+                        <FiEye className={styles.inlineIcon} />
                         <span>Visualizar</span>
                       </Link>
                     </div>
@@ -908,550 +762,20 @@ export default function Destaques({
             })}
           </div>
 
-          <div className="carousel-fade left" />
-          <div className="carousel-fade right" />
+          <div className={`${styles.carouselFade} ${styles.left}`} />
+          <div className={`${styles.carouselFade} ${styles.right}`} />
         </div>
       </div>
 
       {abrindoCarrinho && (
-        <div className="cart-overlay">
-          <div className="cart-card">
-            <div className="cart-spinner" />
+        <div className={styles.overlay}>
+          <div className={styles.modal}>
+            <div className={styles.spinner} />
             <h3>Levando você para o carrinho</h3>
             <p>Seu produto foi adicionado com sucesso.</p>
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        .destaques-section {
-          padding: 28px 0;
-        }
-
-        .destaques-container {
-          max-width: 1280px;
-          margin: 0 auto;
-          padding: 0 16px;
-        }
-
-        .destaques-header-row {
-          display: flex;
-          align-items: end;
-          justify-content: space-between;
-          gap: 18px;
-          margin-bottom: 20px;
-        }
-
-        .destaques-header-texto {
-          min-width: 0;
-        }
-
-        .destaques-badge {
-          display: inline-flex;
-          align-items: center;
-          padding: 8px 14px;
-          border-radius: 999px;
-          background: rgba(183, 110, 121, 0.12);
-          color: #8b4d59;
-          font-size: 12px;
-          font-weight: 800;
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          margin-bottom: 12px;
-        }
-
-        .destaques-title {
-          margin: 0;
-          font-size: 30px;
-          line-height: 1.1;
-          font-weight: 900;
-          letter-spacing: -0.04em;
-          color: #6d4c52;
-        }
-
-        .destaques-description {
-          margin: 10px 0 0;
-          max-width: 720px;
-          color: #8b6b70;
-          font-size: 15px;
-          line-height: 1.75;
-        }
-
-        .header-actions {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          flex-shrink: 0;
-        }
-
-        .nav-btn {
-          width: 46px;
-          height: 46px;
-          border: 1px solid rgba(183, 110, 121, 0.14);
-          background: rgba(255, 250, 247, 0.96);
-          color: #6d4c52;
-          border-radius: 14px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 22px;
-          cursor: pointer;
-          box-shadow: 0 14px 32px rgba(183, 110, 121, 0.08);
-          transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-        }
-
-        .nav-btn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 18px 38px rgba(183, 110, 121, 0.12);
-        }
-
-        .nav-btn:disabled {
-          opacity: 0.38;
-          cursor: not-allowed;
-          transform: none;
-          box-shadow: 0 10px 24px rgba(183, 110, 121, 0.04);
-        }
-
-        .btn-ver-mais {
-          display: inline-flex;
-          align-items: center;
-          gap: 10px;
-          height: 46px;
-          padding: 0 18px;
-          border-radius: 14px;
-          background: linear-gradient(135deg, #b76e79 0%, #9d5c67 100%);
-          color: #fffaf7;
-          font-size: 14px;
-          font-weight: 800;
-          text-decoration: none;
-          box-shadow: 0 16px 34px rgba(183, 110, 121, 0.18);
-          white-space: nowrap;
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .btn-ver-mais:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 20px 42px rgba(183, 110, 121, 0.22);
-        }
-
-        .btn-icon {
-          font-size: 18px;
-          flex-shrink: 0;
-        }
-
-        .spin {
-          animation: spin 0.8s linear infinite;
-        }
-
-        .carousel-shell {
-          position: relative;
-        }
-
-        .carousel-fade {
-          position: absolute;
-          top: 0;
-          bottom: 14px;
-          width: 42px;
-          pointer-events: none;
-          z-index: 2;
-        }
-
-        .carousel-fade.left {
-          left: 0;
-          background: linear-gradient(to right, rgba(248, 239, 236, 0.96), transparent);
-        }
-
-        .carousel-fade.right {
-          right: 0;
-          background: linear-gradient(to left, rgba(248, 239, 236, 0.96), transparent);
-        }
-
-        .destaques-carousel {
-          display: grid;
-          grid-auto-flow: column;
-          grid-auto-columns: clamp(250px, 24vw, 290px);
-          gap: 18px;
-          overflow-x: auto;
-          overflow-y: hidden;
-          padding: 6px 2px 14px;
-          scroll-snap-type: x mandatory;
-          scroll-behavior: smooth;
-          -webkit-overflow-scrolling: touch;
-          scrollbar-width: none;
-          -ms-overflow-style: none;
-          cursor: grab;
-          user-select: none;
-        }
-
-        .destaques-carousel.dragging {
-          cursor: grabbing;
-          scroll-snap-type: none;
-        }
-
-        .destaques-carousel::-webkit-scrollbar {
-          display: none;
-        }
-
-        .destaque-card {
-          scroll-snap-align: start;
-          overflow: hidden;
-          border-radius: 26px;
-          background: rgba(255, 250, 247, 0.98);
-          border: 1px solid rgba(183, 110, 121, 0.1);
-          box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
-          display: flex;
-          flex-direction: column;
-          min-height: 100%;
-          transition: transform 0.25s ease, box-shadow 0.25s ease;
-        }
-
-        .destaque-card:hover {
-          transform: translateY(-3px);
-          box-shadow: 0 24px 54px rgba(15, 23, 42, 0.1);
-        }
-
-        .destaque-media {
-          position: relative;
-          overflow: hidden;
-          background: linear-gradient(135deg, #f5ebe7 0%, #fffaf7 100%);
-        }
-
-        .imagem-link {
-          display: block;
-          text-decoration: none;
-        }
-
-        .destaque-imagem {
-          width: 100%;
-          aspect-ratio: 1 / 1;
-          object-fit: cover;
-          display: block;
-          transition: transform 0.35s ease;
-        }
-
-        .destaque-card:hover .destaque-imagem {
-          transform: scale(1.03);
-        }
-
-        .destaque-sem-imagem {
-          width: 100%;
-          aspect-ratio: 1 / 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #8b6b70;
-          font-size: 14px;
-          background:
-            radial-gradient(circle at top, rgba(183, 110, 121, 0.08), transparent 46%),
-            #f7efeb;
-        }
-
-        .economia-badge {
-          position: absolute;
-          left: 14px;
-          top: 14px;
-          padding: 8px 12px;
-          border-radius: 999px;
-          background: rgba(109, 76, 82, 0.94);
-          color: #fffaf7;
-          font-size: 11px;
-          font-weight: 800;
-          letter-spacing: 0.04em;
-          box-shadow: 0 12px 26px rgba(109, 76, 82, 0.18);
-        }
-
-        .destaque-conteudo {
-          padding: 16px 16px 18px;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          flex: 1;
-        }
-
-        .destaque-meta {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-
-        .meta-chip {
-          display: inline-flex;
-          align-items: center;
-          height: 24px;
-          padding: 0 10px;
-          border-radius: 999px;
-          background: #f4e8e4;
-          color: #8b4d59;
-          font-size: 11px;
-          font-weight: 700;
-        }
-
-        .titulo-link {
-          text-decoration: none;
-          color: inherit;
-        }
-
-        .destaque-titulo {
-          margin: 0;
-          color: #2f1f22;
-          font-size: 18px;
-          line-height: 1.3;
-          font-weight: 800;
-          letter-spacing: -0.02em;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-          min-height: 46px;
-        }
-
-        .destaque-subtitulo {
-          margin: 0;
-          color: #6f5c60;
-          font-size: 13px;
-          line-height: 1.7;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-
-        .destaque-descricao {
-          margin: 0;
-          color: #8b6b70;
-          font-size: 13px;
-          line-height: 1.7;
-          display: -webkit-box;
-          -webkit-line-clamp: 3;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-
-        .destaque-precos {
-          display: flex;
-          align-items: baseline;
-          gap: 10px;
-          margin-top: auto;
-          padding-top: 4px;
-          flex-wrap: wrap;
-        }
-
-        .preco-original {
-          color: #a89a9d;
-          font-size: 13px;
-          text-decoration: line-through;
-        }
-
-        .destaque-preco {
-          color: #6d4c52;
-          font-size: 18px;
-          font-weight: 900;
-          letter-spacing: -0.02em;
-        }
-
-        .destaque-acoes {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 10px;
-          margin-top: 4px;
-        }
-
-        .btn-carrinho,
-        .btn-visualizar {
-          width: 100%;
-          min-width: 0;
-          height: 46px;
-          border-radius: 14px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          font-size: 13px;
-          font-weight: 800;
-          text-decoration: none;
-          transition: transform 0.2s ease, box-shadow 0.2s ease,
-            background 0.2s ease, border-color 0.2s ease;
-          white-space: nowrap;
-        }
-
-        .btn-carrinho {
-          border: none;
-          background: linear-gradient(135deg, #b76e79 0%, #9d5c67 100%);
-          color: #fffaf7;
-          box-shadow: 0 14px 28px rgba(183, 110, 121, 0.18);
-          cursor: pointer;
-        }
-
-        .btn-carrinho:hover,
-        .btn-visualizar:hover {
-          transform: translateY(-1px);
-        }
-
-        .btn-carrinho:disabled {
-          opacity: 0.72;
-          cursor: not-allowed;
-          transform: none;
-        }
-
-        .btn-visualizar {
-          border: 1px solid #ecd7d3;
-          color: #6d4c52;
-          background: #fff;
-        }
-
-        .btn-visualizar:hover {
-          border-color: #dcb7b0;
-          background: #fff7f5;
-        }
-
-        .cart-overlay {
-          position: fixed;
-          inset: 0;
-          z-index: 80;
-          background: rgba(15, 23, 42, 0.42);
-          backdrop-filter: blur(6px);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 20px;
-        }
-
-        .cart-card {
-          width: 100%;
-          max-width: 360px;
-          background: rgba(255, 250, 247, 0.98);
-          border: 1px solid rgba(183, 110, 121, 0.1);
-          border-radius: 28px;
-          padding: 30px 24px;
-          text-align: center;
-          box-shadow: 0 24px 60px rgba(0, 0, 0, 0.18);
-        }
-
-        .cart-spinner {
-          width: 54px;
-          height: 54px;
-          margin: 0 auto 18px;
-          border-radius: 50%;
-          border: 4px solid #eadfd8;
-          border-top-color: #b76e79;
-          animation: spin 0.85s linear infinite;
-        }
-
-        .cart-card h3 {
-          margin: 0 0 8px;
-          font-size: 22px;
-          color: #6d4c52;
-        }
-
-        .cart-card p {
-          margin: 0;
-          color: #8b6b70;
-          font-size: 14px;
-          line-height: 1.7;
-        }
-
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        @media (max-width: 1100px) {
-          .destaques-title {
-            font-size: 26px;
-          }
-
-          .destaques-carousel {
-            grid-auto-columns: minmax(250px, 280px);
-          }
-        }
-
-        @media (max-width: 768px) {
-          .destaques-section {
-            padding: 20px 0;
-          }
-
-          .destaques-header-row {
-            align-items: flex-start;
-            flex-direction: column;
-          }
-
-          .header-actions {
-            width: 100%;
-            justify-content: flex-start;
-            flex-wrap: wrap;
-          }
-
-          .btn-ver-mais {
-            margin-left: auto;
-          }
-
-          .destaques-title {
-            font-size: 24px;
-          }
-
-          .destaques-description {
-            font-size: 14px;
-          }
-
-          .destaques-carousel {
-            grid-auto-columns: minmax(240px, 78vw);
-            gap: 14px;
-            padding-bottom: 10px;
-          }
-
-          .destaque-titulo {
-            font-size: 17px;
-          }
-
-          .destaque-acoes {
-            grid-template-columns: 1fr 1fr;
-          }
-
-          .carousel-fade {
-            display: none;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .destaques-container {
-            padding: 0 12px;
-          }
-
-          .destaques-carousel {
-            grid-auto-columns: 86vw;
-          }
-
-          .nav-btn {
-            width: 42px;
-            height: 42px;
-            border-radius: 12px;
-          }
-
-          .btn-ver-mais {
-            height: 42px;
-            padding: 0 14px;
-            font-size: 13px;
-          }
-
-          .destaque-conteudo {
-            padding: 14px;
-          }
-
-          .destaque-card {
-            border-radius: 22px;
-          }
-
-          .destaque-acoes {
-            grid-template-columns: 1fr;
-          }
-
-          .btn-carrinho,
-          .btn-visualizar {
-            height: 44px;
-          }
-        }
-      `}</style>
     </section>
   );
 }

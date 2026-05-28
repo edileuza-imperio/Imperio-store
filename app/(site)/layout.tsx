@@ -40,7 +40,7 @@ import "@/public/Login/Login.css";
 
 // VITRINE
 import "@/public/Vitrine/Destaque.css";
-import "@/public/Vitrine/slug.css";
+
 
 // USUÁRIO
 import "@/public/usuario/usuario.css";
