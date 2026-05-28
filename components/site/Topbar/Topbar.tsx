@@ -11,26 +11,40 @@ import {
 export default function Topbar() {
   return (
     <div className={styles.topbar}>
+      <div className={styles.glow} />
+
       <div className={styles.container}>
         <div className={styles.item}>
-          <FiTruck />
-          <span>
-            Entrega rápida para todo o Brasil
-          </span>
+          <div className={styles.icon}>
+            <FiTruck />
+          </div>
+
+          <div className={styles.content}>
+            <strong>Entrega Rápida</strong>
+            <span>Enviamos para todo o Brasil</span>
+          </div>
         </div>
 
         <div className={styles.item}>
-          <FiShield />
-          <span>
-            Compra 100% segura e protegida
-          </span>
+          <div className={styles.icon}>
+            <FiShield />
+          </div>
+
+          <div className={styles.content}>
+            <strong>Compra Segura</strong>
+            <span>Pagamento protegido e confiável</span>
+          </div>
         </div>
 
         <div className={styles.item}>
-          <FiCreditCard />
-          <span>
-            Parcele suas compras em até 12x
-          </span>
+          <div className={styles.icon}>
+            <FiCreditCard />
+          </div>
+
+          <div className={styles.content}>
+            <strong>Parcelamento</strong>
+            <span>Parcele em até 12x no cartão</span>
+          </div>
         </div>
       </div>
     </div>
