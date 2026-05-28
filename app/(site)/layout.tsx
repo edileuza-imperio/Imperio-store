@@ -4,44 +4,29 @@ import "./../globals.css";
 
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
-
 import "react-toastify/dist/ReactToastify.css";
 
-// PRODUTOS
+// CSS ORGANIZADO
 import "@/public/produto/produto.css";
 import "@/public/produto/page.css";
 import "@/public/produto/destaque.css";
 
-// ADMIN
 import "@/public/admin/admin.css";
 import "@/public/admin/painel.css";
 import "@/public/admin/cards.css";
-
 import "@/public/admin/produtos/pdt.css";
 import "@/public/admin/produtos/adicionar.css";
 import "@/public/admin/produtos/listar.css";
 
-// CATEGORIA
 import "@/public/categoria/cateid.css";
-
-// DESTAQUE
 import "@/public/destaque/destaque.css";
 
-// NAVBAR
-import "@/public/navbar/navbar.css";
 import "@/public/navbar/mobile.css";
 import "@/public/navbar/Banner.css";
 
-// FOOTER
 import "@/public/footer/footer.css";
 
-// LOGIN
 import "@/public/Login/Login.css";
-
-
-
-
-// USUÁRIO
 import "@/public/usuario/usuario.css";
 import "@/public/usuario/editar.css";
 
@@ -53,7 +38,6 @@ import FooterProfissional from "@/components/site/Rodape/Footer";
 import Topbar from "@/components/site/Topbar/Topbar";
 
 export async function generateMetadata(): Promise<Metadata> {
-
   const site = await getSiteConfig();
 
   return {
@@ -67,15 +51,20 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-
   return (
     <html lang="pt-br">
+      <body suppressHydrationWarning className="antialiased layout-body">
 
-      <body className="antialiased">
-        <Topbar />
-        <Navbar /> 
+        {/* HEADER STACK FIXO */}
+        <div className="header-stack">
+          
+          <Navbar />
+        </div>
 
-        {children}
+        {/* CONTEÚDO */}
+        <main className="main-content">
+          {children}
+        </main>
 
         <FooterProfissional />
 
@@ -91,7 +80,6 @@ export default function RootLayout({
         />
 
       </body>
-
     </html>
   );
 }

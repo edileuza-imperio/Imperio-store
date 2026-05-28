@@ -1,40 +1,53 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useMemo, useEffect, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import SearchBar from "../Pesquisa/SearchBar";
 
-import api from "@/Api/conectar";
-import { rotas } from "@/components/Bibioteca/config/rotas";
-
 import {
   FiUser,
+  FiShoppingCart,
   FiChevronDown,
+  FiLogOut,
+  FiPackage,
+  FiSettings,
 } from "react-icons/fi";
 
-import {
-  Menu,
-  MenuItem,
-} from "@/components/Bibioteca/Bibiotecas";
+import api from "@/Api/conectar";
 
-import useUsuario from "@/hooks/Auth/useUsuario";
+type MenuItem = {
+  id_item: number;
+  menu_id: number;
+  nome: string;
+  rota: string;
+  icone?: string | null;
+  posicao?: number;
+};
 
-import CarrinhoQuantidade from "@/components/Carrinho/CarrinhoQuantidade";
+type Menu = {
+  id_menu: number;
+  site_config_id: number;
+  nome: string;
+  rota?: string | null;
+  icone?: string | null;
+  pesquisa_placeholder?: string | null;
+  itens?: MenuItem[];
+};
 
-import { IconHelper } from "@/components/Bibioteca/icons/IconHelper";
-
-export interface Categoria {
-  id_categoria?: number;
+type Usuario = {
+  id?: number;
   nome?: string;
-  slug?: string;
-  icone?: string;
-}
+  email?: string;
+};
 
 type Props = {
   menus: Menu[];
-  categorias?: Categoria[];
   searchPlaceholder?: string;
   tituloNavbar?: string | null;
   subtituloNavbar?: string | null;
@@ -42,726 +55,582 @@ type Props = {
 
 export default function NavbarDesktop({
   menus,
-  categorias,
   searchPlaceholder,
   tituloNavbar,
   subtituloNavbar,
 }: Props) {
-  const router = useRouter();
-
-  const {
-    usuario,
-    loading: usuarioLoading,
-    logado,
-    isAdmin,
-  } = useUsuario();
-
-  const [openUserDropdown, setOpenUserDropdown] =
+  const [openLoginMenu, setOpenLoginMenu] =
     useState(false);
 
-  const [openMenuId, setOpenMenuId] =
-    useState<number | null>(null);
+  const [usuario, setUsuario] =
+    useState<Usuario | null>(null);
 
-  const [scrolled, setScrolled] =
-    useState(false);
+  const dropdownRef =
+    useRef<HTMLDivElement>(null);
 
-  const headerRef =
-    useRef<HTMLElement | null>(null);
-
-  /* =========================================================
-     SCROLL
-  ========================================================= */
+  /* ========================================= */
+  /* VERIFICAR LOGIN */
+  /* ========================================= */
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
-    };
+    async function buscarUsuario() {
+      try {
+        const response =
+          await api.get("/me");
 
-    window.addEventListener(
-      "scroll",
-      handleScroll
-    );
+        if (
+          response?.data?.dados
+        ) {
+          setUsuario(
+            response.data.dados
+          );
+        }
+      } catch (error) {
+        setUsuario(null);
+      }
+    }
 
-    return () => {
-      window.removeEventListener(
-        "scroll",
-        handleScroll
-      );
-    };
+    buscarUsuario();
   }, []);
 
-  /* =========================================================
-     CLICK OUTSIDE
-  ========================================================= */
+  /* ========================================= */
+  /* FECHAR MENU */
+  /* ========================================= */
 
   useEffect(() => {
-    const onDown = (e: MouseEvent) => {
-      if (!headerRef.current) return;
-
+    function handleClickOutside(
+      event: MouseEvent
+    ) {
       if (
-        !headerRef.current.contains(
-          e.target as Node
+        dropdownRef.current &&
+        !dropdownRef.current.contains(
+          event.target as Node
         )
       ) {
-        setOpenUserDropdown(false);
-        setOpenMenuId(null);
+        setOpenLoginMenu(false);
       }
-    };
-
-    const onKey = (
-      e: KeyboardEvent
-    ) => {
-      if (e.key === "Escape") {
-        setOpenUserDropdown(false);
-        setOpenMenuId(null);
-      }
-    };
+    }
 
     document.addEventListener(
       "mousedown",
-      onDown
-    );
-
-    document.addEventListener(
-      "keydown",
-      onKey
+      handleClickOutside
     );
 
     return () => {
       document.removeEventListener(
         "mousedown",
-        onDown
-      );
-
-      document.removeEventListener(
-        "keydown",
-        onKey
+        handleClickOutside
       );
     };
   }, []);
 
-  /* =========================================================
-     HELPERS
-  ========================================================= */
+  /* ========================================= */
+  /* MENU PESQUISA */
+  /* ========================================= */
 
-  const titleParts = (
-    tituloNavbar ||
-    "Universo Império"
-  ).split(" ");
-
-  const first =
-    titleParts[0] || "Universo";
-
-  const rest =
-    titleParts.slice(1).join(" ") ||
-    "Império";
-
-  const getMenuNome = (
-    menu?: Partial<Menu>
-  ) =>
-    String(
-      menu?.nome ||
-        menu?.titulo ||
-        ""
-    ).trim();
-
-  const getMenuId = (
-    menu?: Partial<Menu>
-  ) =>
-    Number(
-      menu?.id_menu ||
-        menu?.id ||
-        0
-    );
-
-  const getItemNome = (
-    item?: Partial<MenuItem>
-  ) =>
-    String(
-      item?.nome ||
-        item?.titulo ||
-        ""
-    ).trim();
-
-  const getItemId = (
-    item?: Partial<MenuItem>
-  ) =>
-    Number(
-      item?.id_item ||
-        item?.id ||
-        0
-    );
-
-  const getMenuRota = (
-    menu?: Partial<Menu>
-  ) => {
-    const rota = String(
-      menu?.rota || ""
-    ).trim();
-
-    if (!rota || rota === "0") {
-      return "#";
-    }
-
-    return rota;
-  };
-
-  const getItemRota = (
-    item?: Partial<MenuItem>
-  ) => {
-    const rota = String(
-      item?.rota || ""
-    ).trim();
-
-    if (!rota || rota === "0") {
-      return "#";
-    }
-
-    return rota;
-  };
-
-  const isPainelAdministrativo = (
-    item?: Partial<MenuItem>
-  ) => {
-    const nome = String(
-      item?.nome ||
-        item?.titulo ||
-        ""
-    )
-      .trim()
-      .toLowerCase();
-
-    return nome.includes(
-      "painel administrativo"
-    );
-  };
-
-  const isCartIcon = (
-    icone?: string | null
-  ) => {
-    const name = String(
-      icone || ""
-    ).toLowerCase();
-
-    return (
-      name.includes("bi-cart") ||
-      name.includes("cart") ||
-      name.includes("carrito") ||
-      name.includes("carrinho")
-    );
-  };
-
-  const isCarrinhoMenu = (
-    menu?: Partial<Menu>
-  ) => {
-    const nome =
-      getMenuNome(menu).toLowerCase();
-
-    return (
-      nome.includes("carrinho") ||
-      nome.includes("carrito") ||
-      isCartIcon(menu?.icone)
-    );
-  };
-
-  /* =========================================================
-     MENUS
-  ========================================================= */
-
-  const searchMenu = menus.find(
-    (m) => m.pesquisa_placeholder
-  );
-
-  const accountMenu = menus.find(
-    (m) =>
-      getMenuNome(m).toLowerCase() ===
-      "login"
-  );
-
-  const mainMenus = menus.filter(
-    (m) => {
-      if (m.pesquisa_placeholder) {
-        return false;
-      }
-
-      const nome =
-        getMenuNome(m).toLowerCase();
-
-      if (
-        nome === "login" &&
-        logado
-      ) {
-        return false;
-      }
-
-      return true;
-    }
-  );
-
-  const accountItems = useMemo(() => {
-    const itens =
-      accountMenu?.itens || [];
-
-    return [...itens]
-      .filter((item) => {
-        if (
-          isPainelAdministrativo(
-            item
-          )
-        ) {
-          return isAdmin;
-        }
-
-        return true;
-      })
-      .sort(
-        (a, b) =>
-          (a.posicao ?? 0) -
-          (b.posicao ?? 0)
+  const menuPesquisa =
+    useMemo(() => {
+      return menus.find(
+        (menu) =>
+          menu.pesquisa_placeholder
       );
-  }, [accountMenu, isAdmin]);
+    }, [menus]);
 
-  /* =========================================================
-     ACTIONS
-  ========================================================= */
+  /* ========================================= */
+  /* MENU CARRINHO */
+  /* ========================================= */
 
-  const irParaLogin = () => {
-    setOpenUserDropdown(false);
-    setOpenMenuId(null);
+  const menuCarrinho =
+    useMemo(() => {
+      return menus.find(
+        (menu) =>
+          menu.rota?.toLowerCase() ===
+          "/carrinho"
+      );
+    }, [menus]);
 
-    router.push(rotas.paginas.login);
-  };
+  /* ========================================= */
+  /* MENU LOGIN */
+  /* ========================================= */
 
-  const abrirCarrinho = () => {
-    setOpenUserDropdown(false);
-    setOpenMenuId(null);
-
-    router.push("/Carrinho");
-  };
-
-  const handleProtectedDropdown = (
-    menuId: number
-  ) => {
-    if (usuarioLoading) return;
-
-    if (!logado) {
-      irParaLogin();
-      return;
-    }
-
-    setOpenMenuId((prev) =>
-      prev === menuId ? null : menuId
+  const menuLogin = useMemo(() => {
+    return menus.find(
+      (menu) =>
+        menu.rota?.toLowerCase() ===
+        "/login"
     );
-  };
+  }, [menus]);
 
-  const handleAccountItem = async (
-    item: MenuItem
-  ) => {
-    setOpenUserDropdown(false);
-    setOpenMenuId(null);
+  /* ========================================= */
+  /* MENUS NORMAIS */
+  /* ========================================= */
 
-    if (!logado) {
-      irParaLogin();
-      return;
-    }
-
-    const titulo = String(
-      item.titulo ||
-        item.nome ||
-        ""
-    ).toLowerCase();
-
-    if (titulo.includes("sair")) {
-      try {
-        await api.post(
-          rotas.auth.logout,
-          {},
-          {
-            withCredentials: true,
+  const menusNormais =
+    useMemo(() => {
+      return menus.filter(
+        (menu) => {
+          if (
+            menu.pesquisa_placeholder
+          ) {
+            return false;
           }
-        );
-      } catch (e) {
-        console.error(e);
-      } finally {
-        router.replace(
-          rotas.paginas.login
-        );
 
-        router.refresh();
-      }
+          if (
+            menu.rota?.toLowerCase() ===
+            "/carrinho"
+          ) {
+            return false;
+          }
 
-      return;
-    }
+          if (
+            menu.rota?.toLowerCase() ===
+            "/login"
+          ) {
+            return false;
+          }
 
-    const rota = getItemRota(item);
-
-    if (rota !== "#") {
-      router.push(rota);
-    }
-  };
-
-  /* =========================================================
-     ICONS
-  ========================================================= */
-
-  const renderMenuIcon = (
-    icone?: string | null
-  ) => {
-    if (isCartIcon(icone)) {
-      return (
-        <CarrinhoQuantidade size={18} />
+          return true;
+        }
       );
+    }, [menus]);
+
+  /* ========================================= */
+  /* LOGOUT */
+  /* ========================================= */
+
+  async function handleLogout() {
+    try {
+      await api.post("/logout");
+
+      window.location.href =
+        "/login";
+    } catch (error) {
+      console.log(error);
     }
-
-    return IconHelper.render({
-      nome: icone,
-      size: 18,
-    });
-  };
-
-  /* =========================================================
-     JSX
-  ========================================================= */
+  }
 
   return (
-    <header
-      ref={headerRef as any}
-      className={`ui-navbar ${
-        scrolled
-          ? "ui-navbar--scrolled"
-          : ""
-      }`}
-    >
-      <div className="ui-navbar-container">
+    <>
+      {/* CSS TEMPORÁRIO */}
 
-        {/* ========================================= */}
-        {/* LOGO */}
-        {/* ========================================= */}
+      <style jsx>{`
+        .navbar {
+          width: 100%;
+          height: 82px;
+          background: #ffffff;
+          border-bottom: 1px solid #ececec;
+          position: sticky;
+          top: 0;
+          z-index: 999;
+        }
 
-        <Link
-          href="/"
-          className="ui-brand"
-        >
-          <div className="ui-title">
-            <span className="ui-titleFirst">
-              {first}
-            </span>
+        .container {
+          max-width: 1450px;
+          width: 100%;
+          height: 100%;
+          margin: 0 auto;
+          padding: 0 28px;
 
-            <span className="ui-titleAccent">
-              {rest}
-            </span>
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 24px;
+        }
 
-            <span className="ui-dot" />
-          </div>
+        .brand {
+          text-decoration: none;
+          min-width: 220px;
+        }
 
-          <div className="ui-subtitle">
-            {subtituloNavbar ||
-              "Decorações & Eventos"}
-          </div>
-        </Link>
+        .title {
+          font-size: 1.4rem;
+          font-weight: 800;
+          color: #111827;
+          line-height: 1;
+        }
 
-        {/* ========================================= */}
-        {/* SEARCH */}
-        {/* ========================================= */}
+        .subtitle {
+          margin-top: 6px;
+          font-size: 0.78rem;
+          color: #6b7280;
+        }
 
-        {(searchMenu ||
-          searchPlaceholder) && (
-          <div className="ui-searchWrap">
+        .searchWrap {
+          flex: 1;
+          max-width: 650px;
+        }
+
+        .actions {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+
+        .menuLink {
+          text-decoration: none;
+          color: #111827;
+          font-size: 0.95rem;
+          font-weight: 600;
+          padding: 10px 14px;
+          border-radius: 12px;
+          transition: 0.2s;
+        }
+
+        .menuLink:hover {
+          background: #f5f5f5;
+        }
+
+        .iconButton {
+          width: 46px;
+          height: 46px;
+          border-radius: 14px;
+          background: #f8fafc;
+          color: #111827;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          text-decoration: none;
+          transition: 0.2s;
+        }
+
+        .iconButton:hover {
+          background: #ececec;
+        }
+
+        .userDropdown {
+          position: relative;
+        }
+
+        .userButton {
+          border: none;
+          background: #f8fafc;
+          border-radius: 16px;
+          padding: 10px 14px;
+          cursor: pointer;
+
+          display: flex;
+          align-items: center;
+          gap: 12px;
+
+          transition: 0.2s;
+        }
+
+        .userButton:hover {
+          background: #ececec;
+        }
+
+        .userAvatar {
+          width: 38px;
+          height: 38px;
+          border-radius: 12px;
+          background: #111827;
+          color: white;
+
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .userInfo {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .userName {
+          font-size: 0.9rem;
+          font-weight: 700;
+          color: #111827;
+        }
+
+        .userText {
+          font-size: 0.72rem;
+          color: #6b7280;
+        }
+
+        .dropdownMenu {
+          position: absolute;
+          top: 62px;
+          right: 0;
+
+          width: 250px;
+
+          background: white;
+          border-radius: 18px;
+          border: 1px solid #ececec;
+
+          padding: 10px;
+
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+
+          box-shadow:
+            0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .dropdownItem {
+          width: 100%;
+          border: none;
+          background: transparent;
+          text-decoration: none;
+
+          display: flex;
+          align-items: center;
+          gap: 12px;
+
+          padding: 12px 14px;
+
+          border-radius: 12px;
+
+          font-size: 0.92rem;
+          font-weight: 600;
+
+          color: #111827;
+
+          transition: 0.2s;
+        }
+
+        .dropdownItem:hover {
+          background: #f4f4f5;
+        }
+
+        .logoutButton {
+          width: 100%;
+          border: none;
+          cursor: pointer;
+
+          display: flex;
+          align-items: center;
+          gap: 12px;
+
+          padding: 12px 14px;
+          margin-top: 6px;
+
+          border-radius: 12px;
+
+          background: #fff1f2;
+          color: #dc2626;
+
+          font-size: 0.92rem;
+          font-weight: 700;
+
+          transition: 0.2s;
+        }
+
+        .logoutButton:hover {
+          background: #ffe4e6;
+        }
+
+        @media (max-width: 1100px) {
+          .navbar {
+            display: none;
+          }
+        }
+      `}</style>
+
+      <header className="navbar">
+        <div className="container">
+
+          {/* LOGO */}
+
+          <Link
+            href="/"
+            className="brand"
+          >
+            <div className="title">
+              {tituloNavbar ||
+                "Universo Império"}
+            </div>
+
+            <div className="subtitle">
+              {subtituloNavbar ||
+                "Decorações & Eventos"}
+            </div>
+          </Link>
+
+          {/* SEARCH */}
+
+          <div className="searchWrap">
             <SearchBar
               placeholder={
                 searchPlaceholder ||
-                searchMenu?.pesquisa_placeholder ||
+                menuPesquisa?.pesquisa_placeholder ||
                 "Buscar produtos..."
               }
               className="w-100"
             />
           </div>
-        )}
 
-        {/* ========================================= */}
-        {/* ACTIONS */}
-        {/* ========================================= */}
+          {/* ACTIONS */}
 
-        <nav className="ui-actions">
-          <div className="ui-mainMenus">
+          <nav className="actions">
 
-            {mainMenus.map((m) => {
-              const menuId =
-                getMenuId(m);
+            {/* MENUS */}
 
-              const itens = [
-                ...(m.itens || []),
-              ].sort(
-                (a, b) =>
-                  (a.posicao ?? 0) -
-                  (b.posicao ?? 0)
-              );
-
-              const hasItens =
-                itens.length > 0;
-
-              const isOpen =
-                openMenuId === menuId;
-
-              const isCartMenu =
-                isCarrinhoMenu(m);
-
-              /* ========================================= */
-              /* DROPDOWN */
-              /* ========================================= */
-
-              if (hasItens) {
-                return (
-                  <div
-                    key={menuId}
-                    className="ui-dropdown"
-                  >
-                    <button
-                      type="button"
-                      className="ui-pill ui-pill--primary ui-userBtn"
-                      onClick={() =>
-                        handleProtectedDropdown(
-                          menuId
-                        )
-                      }
-                    >
-                      <span className="ui-pillIcon">
-                        {renderMenuIcon(
-                          m.icone
-                        )}
-                      </span>
-
-                      <span className="ui-pillText">
-                        {getMenuNome(m)}
-                      </span>
-
-                      <FiChevronDown
-                        size={16}
-                        className={`ui-chevIcon ${
-                          isOpen
-                            ? "open"
-                            : ""
-                        }`}
-                      />
-                    </button>
-
-                    {logado && isOpen && (
-                      <div className="ui-menu">
-                        {itens.map((it) => (
-                          <button
-                            key={getItemId(
-                              it
-                            )}
-                            type="button"
-                            className="ui-item"
-                            onClick={() =>
-                              handleAccountItem(
-                                it
-                              )
-                            }
-                          >
-                            <span className="ui-itemIcon">
-                              {renderMenuIcon(
-                                it.icone
-                              )}
-                            </span>
-
-                            <span className="ui-itemText">
-                              {getItemNome(
-                                it
-                              )}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-
-              /* ========================================= */
-              /* CARRINHO */
-              /* ========================================= */
-
-              if (isCartMenu) {
-                return (
-                  <button
-                    key={menuId}
-                    type="button"
-                    className="ui-linkButton"
-                    onClick={
-                      abrirCarrinho
-                    }
-                  >
-                    <span className="ui-pill ui-pill--primary">
-                      <span className="ui-pillIcon">
-                        {renderMenuIcon(
-                          m.icone
-                        )}
-                      </span>
-
-                      <span className="ui-pillText">
-                        {getMenuNome(m)}
-                      </span>
-                    </span>
-                  </button>
-                );
-              }
-
-              /* ========================================= */
-              /* LOGIN */
-              /* ========================================= */
-
-              const nomeMenu =
-                getMenuNome(
-                  m
-                ).toLowerCase();
-
-              if (
-                nomeMenu === "login" &&
-                !logado
-              ) {
-                return (
-                  <button
-                    key={menuId}
-                    type="button"
-                    className="ui-linkButton"
-                    onClick={
-                      irParaLogin
-                    }
-                  >
-                    <span className="ui-pill ui-pill--secondary">
-                      <span className="ui-pillIcon">
-                        {renderMenuIcon(
-                          m.icone
-                        )}
-                      </span>
-
-                      <span className="ui-pillText">
-                        Entrar
-                      </span>
-                    </span>
-                  </button>
-                );
-              }
-
-              /* ========================================= */
-              /* LINK NORMAL */
-              /* ========================================= */
-
-              return (
+            {menusNormais.map(
+              (menu) => (
                 <Link
-                  key={menuId}
-                  href={getMenuRota(m)}
-                  className="ui-link"
+                  key={menu.id_menu}
+                  href={
+                    menu.rota || "#"
+                  }
+                  className="menuLink"
                 >
-                  <span className="ui-pill ui-pill--primary">
-                    <span className="ui-pillIcon">
-                      {renderMenuIcon(
-                        m.icone
-                      )}
-                    </span>
-
-                    <span className="ui-pillText">
-                      {getMenuNome(m)}
-                    </span>
-                  </span>
+                  {menu.nome}
                 </Link>
-              );
-            })}
-          </div>
+              )
+            )}
 
-          {/* ========================================= */}
-          {/* USER */}
-          {/* ========================================= */}
+            {/* CARRINHO */}
 
-          {!usuarioLoading &&
-            logado &&
-            accountItems.length > 0 && (
-              <div className="ui-dropdown">
+            {menuCarrinho && (
+              <Link
+                href={
+                  menuCarrinho.rota ||
+                  "/carrinho"
+                }
+                className="iconButton"
+              >
+                <FiShoppingCart
+                  size={20}
+                />
+              </Link>
+            )}
+
+            {/* LOGIN */}
+
+            {menuLogin && (
+              <div
+                className="userDropdown"
+                ref={dropdownRef}
+              >
                 <button
                   type="button"
-                  className="ui-pill ui-pill--secondary ui-userBtn"
+                  className="userButton"
                   onClick={() =>
-                    setOpenUserDropdown(
-                      (v) => !v
+                    setOpenLoginMenu(
+                      !openLoginMenu
                     )
                   }
                 >
-                  <span className="ui-pillIcon">
-                    <FiUser size={18} />
-                  </span>
+                  <div className="userAvatar">
+                    <FiUser size={16} />
+                  </div>
 
-                  <span className="ui-pillText ui-strong">
-                    {usuario?.nome?.split(
-                      " "
-                    )[0] || "Usuário"}
-                  </span>
+                  <div className="userInfo">
+                    <span className="userName">
+                      {usuario?.nome
+                        ? usuario.nome
+                        : "Minha Conta"}
+                    </span>
+
+                    <span className="userText">
+                      {usuario
+                        ? "Bem-vindo"
+                        : "Entrar"}
+                    </span>
+                  </div>
 
                   <FiChevronDown
                     size={16}
-                    className={`ui-chevIcon ${
-                      openUserDropdown
-                        ? "open"
-                        : ""
-                    }`}
                   />
                 </button>
 
-                {openUserDropdown && (
-                  <div className="ui-menu">
-                    {accountItems.map(
-                      (it) => {
-                        const texto =
-                          String(
-                            it.titulo ||
-                              it.nome ||
-                              ""
-                          );
+                {openLoginMenu && (
+                  <div className="dropdownMenu">
 
-                        const isSair =
-                          texto
-                            .toLowerCase()
-                            .includes(
-                              "sair"
-                            );
+                    {/* NÃO LOGADO */}
 
-                        return (
-                          <button
-                            key={String(
-                              it.id ||
-                                it.id_item
-                            )}
-                            className={`ui-item ${
-                              isSair
-                                ? "ui-item--danger"
-                                : ""
-                            }`}
-                            onClick={() =>
-                              handleAccountItem(
-                                it
-                              )
-                            }
-                          >
-                            <span className="ui-itemIcon">
-                              {renderMenuIcon(
-                                it.icone
+                    {!usuario && (
+                      <Link
+                        href={
+                          menuLogin.rota ||
+                          "/login"
+                        }
+                        className="dropdownItem"
+                      >
+                        <FiUser />
+                        Entrar
+                      </Link>
+                    )}
+
+                    {/* LOGADO */}
+
+                    {usuario && (
+                      <>
+                        {menuLogin.itens
+                          ?.sort(
+                            (a, b) =>
+                              (a.posicao ||
+                                0) -
+                              (b.posicao ||
+                                0)
+                          )
+                          .map((item) => (
+                            <Link
+                              key={
+                                item.id_item
+                              }
+                              href={
+                                item.rota
+                              }
+                              className="dropdownItem"
+                            >
+                              {item.nome
+                                .toLowerCase()
+                                .includes(
+                                  "pedido"
+                                ) && (
+                                <FiPackage />
                               )}
-                            </span>
 
-                            <span className="ui-itemText">
-                              {texto}
-                            </span>
-                          </button>
-                        );
-                      }
+                              {item.nome
+                                .toLowerCase()
+                                .includes(
+                                  "painel"
+                                ) && (
+                                <FiSettings />
+                              )}
+
+                              {!item.nome
+                                .toLowerCase()
+                                .includes(
+                                  "pedido"
+                                ) &&
+                                !item.nome
+                                  .toLowerCase()
+                                  .includes(
+                                    "painel"
+                                  ) && (
+                                  <FiUser />
+                                )}
+
+                              {item.nome}
+                            </Link>
+                          ))}
+
+                        <button
+                          type="button"
+                          onClick={
+                            handleLogout
+                          }
+                          className="logoutButton"
+                        >
+                          <FiLogOut />
+                          Sair
+                        </button>
+                      </>
                     )}
                   </div>
                 )}
               </div>
             )}
-        </nav>
-      </div>
-    </header>
+          </nav>
+        </div>
+      </header>
+    </>
   );
 }

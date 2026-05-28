@@ -313,7 +313,7 @@ export default function Login() {
                   onClick={() => {
                     toast.success("Redirecionando...");
 
-                    router.push("/login/entra");
+                    router.push("/Login/entra");
                   }}
                 >
                   <FiLock size={18} />
@@ -328,7 +328,7 @@ export default function Login() {
                   onClick={() => {
                     toast.success("Abrindo cadastro...");
 
-                    router.push("/login/cadastro");
+                    router.push("/Login/cadastro");
                   }}
                 >
                   <FiUserPlus size={18} />
