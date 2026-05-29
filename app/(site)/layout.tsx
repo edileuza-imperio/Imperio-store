@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
+
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 
 import "./../globals.css";
 
@@ -21,20 +23,14 @@ import "@/public/categoria/cateid.css";
 import "@/public/destaque/destaque.css";
 
 import "@/public/navbar/Banner.css";
-
 import "@/public/footer/footer.css";
-
 import "@/public/Login/Login.css";
-
 import "@/public/usuario/usuario.css";
 import "@/public/usuario/editar.css";
 
 /*
 |--------------------------------------------------------------------------
 | CSS ADMIN
-|--------------------------------------------------------------------------
-| Ideal futuramente:
-| importar apenas nas páginas admin
 |--------------------------------------------------------------------------
 */
 
@@ -56,8 +52,6 @@ import { getSiteConfig } from "@/services/siteConfig";
 /*
 |--------------------------------------------------------------------------
 | CACHE NEXT
-|--------------------------------------------------------------------------
-| evita request toda renderização
 |--------------------------------------------------------------------------
 */
 
@@ -95,15 +89,13 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="pt-BR">
-      <body
-        suppressHydrationWarning
-        className="antialiased layout-body"
-      >
+      <body suppressHydrationWarning className="antialiased layout-body">
+
         {/* HEADER */}
         <header className="header-stack">
           <Navbar />
@@ -129,8 +121,12 @@ export default function RootLayout({
           theme="light"
         />
 
-        {/* VERCEL SPEED INSIGHTS */}
+        {/* ANALYTICS VERCEL */}
+        <Analytics />
+
+        {/* SPEED INSIGHTS */}
         <SpeedInsights />
+
       </body>
     </html>
   );
