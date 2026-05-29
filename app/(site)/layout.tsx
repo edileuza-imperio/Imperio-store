@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import "./../globals.css";
 
@@ -6,68 +7,117 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap-icons/font/bootstrap-icons.css";
 import "react-toastify/dist/ReactToastify.css";
 
-// CSS ORGANIZADO
+/*
+|--------------------------------------------------------------------------
+| CSS SITE
+|--------------------------------------------------------------------------
+*/
+
 import "@/public/produto/produto.css";
 import "@/public/produto/page.css";
 import "@/public/produto/destaque.css";
 
-import "@/public/admin/admin.css";
-import "@/public/admin/painel.css";
-import "@/public/admin/cards.css";
-import "@/public/admin/produtos/pdt.css";
-import "@/public/admin/produtos/adicionar.css";
-import "@/public/admin/produtos/listar.css";
-
 import "@/public/categoria/cateid.css";
 import "@/public/destaque/destaque.css";
-
 
 import "@/public/navbar/Banner.css";
 
 import "@/public/footer/footer.css";
 
 import "@/public/Login/Login.css";
+
 import "@/public/usuario/usuario.css";
 import "@/public/usuario/editar.css";
 
+/*
+|--------------------------------------------------------------------------
+| CSS ADMIN
+|--------------------------------------------------------------------------
+| Ideal futuramente:
+| importar apenas nas páginas admin
+|--------------------------------------------------------------------------
+*/
+
+import "@/public/admin/admin.css";
+import "@/public/admin/painel.css";
+import "@/public/admin/cards.css";
+
+import "@/public/admin/produtos/pdt.css";
+import "@/public/admin/produtos/adicionar.css";
+import "@/public/admin/produtos/listar.css";
+
 import { ToastContainer } from "react-toastify";
 
-import { getSiteConfig } from "@/services/siteConfig";
 import Navbar from "@/components/site/menu/navbar";
 import FooterProfissional from "@/components/site/Rodape/Footer";
-import Topbar from "@/components/site/Topbar/Topbar";
+
+import { getSiteConfig } from "@/services/siteConfig";
+
+/*
+|--------------------------------------------------------------------------
+| CACHE NEXT
+|--------------------------------------------------------------------------
+| evita request toda renderização
+|--------------------------------------------------------------------------
+*/
+
+export const revalidate = 300;
+
+/*
+|--------------------------------------------------------------------------
+| METADATA
+|--------------------------------------------------------------------------
+*/
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getSiteConfig();
+  try {
+    const site = await getSiteConfig();
 
-  return {
-    title: site.titulo,
-    description: site.subtitulo,
-  };
+    return {
+      title: site?.titulo || "Império",
+      description: site?.subtitulo || "Loja online",
+    };
+  } catch (error) {
+    console.error("Erro metadata:", error);
+
+    return {
+      title: "Império",
+      description: "Loja online",
+    };
+  }
 }
+
+/*
+|--------------------------------------------------------------------------
+| ROOT LAYOUT
+|--------------------------------------------------------------------------
+*/
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
-    <html lang="pt-br">
-      <body suppressHydrationWarning className="antialiased layout-body">
-
-        {/* HEADER STACK FIXO */}
-        <div className="header-stack">
-          
+    <html lang="pt-BR">
+      <body
+        suppressHydrationWarning
+        className="antialiased layout-body"
+      >
+        {/* HEADER */}
+        <header className="header-stack">
           <Navbar />
-        </div>
+        </header>
 
         {/* CONTEÚDO */}
         <main className="main-content">
           {children}
         </main>
 
+        {/* FOOTER */}
         <FooterProfissional />
 
+        {/* TOAST */}
         <ToastContainer
           position="top-right"
           autoClose={3000}
@@ -79,6 +129,8 @@ export default function RootLayout({
           theme="light"
         />
 
+        {/* VERCEL SPEED INSIGHTS */}
+        <SpeedInsights />
       </body>
     </html>
   );
