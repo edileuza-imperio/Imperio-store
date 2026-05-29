@@ -22,7 +22,7 @@ import "@/public/produto/destaque.css";
 import "@/public/categoria/cateid.css";
 import "@/public/destaque/destaque.css";
 
-import "@/public/navbar/Banner.css";
+
 import "@/public/footer/footer.css";
 import "@/public/Login/Login.css";
 import "@/public/usuario/usuario.css";
