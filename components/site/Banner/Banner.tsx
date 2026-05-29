@@ -1,167 +1,103 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/Api/conectar";
-import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { rotas } from "@/components/Bibioteca/config/rotas";
-
 import styles from "./Banner.module.css";
 
 type BannerItem = {
-  id_banner?: number;
-  titulo?: string;
+  id_banner: number;
+  titulo: string;
   descricao?: string;
-  imagem?: string;
+  imagem: string;
   link?: string | null;
-  statusid?: number;
-  status_id?: number;
 };
 
 export default function Banner() {
   const [banners, setBanners] = useState<BannerItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [index, setIndex] = useState(0);
-  const [hover, setHover] = useState(false);
 
   const router = useRouter();
-  const timer = useRef<number | null>(null);
-
-  const safe = useMemo(() => banners.filter(Boolean), [banners]);
-  const many = safe.length > 1;
 
   useEffect(() => {
-    let active = true;
-
     async function load() {
-      setLoading(true);
-
       try {
         const res = await api.get(rotas.banners.listar);
-        const data = res?.data;
 
-        const list =
-          data?.dados ??
-          data?.banners ??
-          (Array.isArray(data) ? data : []);
+        // 🔥 CORREÇÃO PRINCIPAL DO TEU BUG
+        const data = res.data?.dados?.dados ?? [];
 
-        const filtered = list.filter(
-          (b: BannerItem) =>
-            Number(b?.statusid ?? b?.status_id ?? 1) === 1 && b?.imagem
+        const validos = data.filter(
+          (b: BannerItem) => b?.statusid === 1 && b?.imagem
         );
 
-        if (!active) return;
-        setBanners(filtered);
-      } finally {
-        if (active) setLoading(false);
+        setBanners(validos);
+      } catch (err) {
+        console.error("Erro banners:", err);
       }
     }
 
     load();
-    return () => {
-      active = false;
-    };
   }, []);
 
   useEffect(() => {
-    if (!many || hover) return;
+    if (banners.length <= 1) return;
 
-    timer.current = window.setInterval(() => {
-      setIndex((i) => (i + 1) % safe.length);
+    const t = setInterval(() => {
+      setIndex((i) => (i + 1) % banners.length);
     }, 5000);
 
-    return () => {
-      if (timer.current) clearInterval(timer.current);
-    };
-  }, [many, hover, safe.length]);
+    return () => clearInterval(t);
+  }, [banners.length]);
 
-  const item = safe[index];
+  const banner = banners[index];
 
-  const imgUrl = useMemo(() => {
-    if (!item?.imagem) return null;
+  if (!banner) return null;
 
-    if (item.imagem.startsWith("http")) return item.imagem;
+  const goLink = () => {
+    if (!banner.link) return;
 
-    const base = api.defaults.baseURL?.replace(/\/$/, "");
-    return `${base}/${item.imagem.replace(/^\/+/, "")}`;
-  }, [item?.imagem]);
-
-  const go = (i: number) => {
-    if (!safe.length) return;
-    setIndex((i + safe.length) % safe.length);
-  };
-
-  const click = () => {
-    if (!item?.link) return;
-
-    if (item.link.startsWith("http")) {
-      window.location.href = item.link;
-    } else {
-      router.push(item.link);
+    if (banner.link.startsWith("http")) {
+      window.location.href = banner.link;
+      return;
     }
+
+    router.push(banner.link);
   };
-
-  if (loading) {
-    return <div className={styles.loading} />;
-  }
-
-  if (!imgUrl) return null;
 
   return (
-    <section
-      className={styles.banner}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-    >
-      <div className={styles.inner}>
-        <div className={styles.text}>
-          <span className={styles.tag}>Destaque</span>
+    <section className={styles.wrap}>
+      <div className={styles.content}>
+        <h1 className={styles.title}>{banner.titulo}</h1>
 
-          <h1 className={styles.title}>{item?.titulo}</h1>
+        {banner.descricao && (
+          <p className={styles.text}>{banner.descricao}</p>
+        )}
 
-          {item?.descricao && (
-            <p className={styles.desc}>{item.descricao}</p>
-          )}
-
-          {item?.link && (
-            <button className={styles.btn} onClick={click}>
-              Ver mais
-            </button>
-          )}
-        </div>
-
-        <div className={styles.media}>
-          <div className={styles.imageWrap}>
-            <img
-              src={imgUrl}
-              alt={item?.titulo || "Banner"}
-              className={styles.img}
-              onClick={click}
-            />
-          </div>
-        </div>
+        <button className={styles.btn} onClick={goLink}>
+          Acessar
+        </button>
       </div>
 
-      {many && (
-        <>
-          <button className={styles.prev} onClick={() => go(index - 1)}>
-            <FiChevronLeft />
-          </button>
+      <div className={styles.media} onClick={goLink}>
+        <img
+          className={styles.img}
+          src={banner.imagem}
+          alt={banner.titulo}
+        />
+      </div>
 
-          <button className={styles.next} onClick={() => go(index + 1)}>
-            <FiChevronRight />
-          </button>
-
-          <div className={styles.dots}>
-            {safe.map((_, i) => (
-              <button
-                key={i}
-                className={`${styles.dot} ${i === index ? styles.active : ""}`}
-                onClick={() => setIndex(i)}
-              />
-            ))}
-          </div>
-        </>
+      {banners.length > 1 && (
+        <div className={styles.dots}>
+          {banners.map((_, i) => (
+            <button
+              key={i}
+              className={`${styles.dot} ${i === index ? styles.active : ""}`}
+              onClick={() => setIndex(i)}
+            />
+          ))}
+        </div>
       )}
     </section>
   );
