@@ -12,6 +12,7 @@ import {
   FiPackage,
   FiSettings,
   FiMenu,
+  FiTag,
 } from "react-icons/fi";
 
 import * as FiIcons from "react-icons/fi";
@@ -44,6 +45,7 @@ type Usuario = {
 };
 
 type SiteConfig = {
+  id_site_config?: number;
   titulo: string;
   subtitulo: string;
 };
@@ -53,10 +55,21 @@ type CarrinhoItem = {
   quantidade: number;
 };
 
+type Categoria = {
+  id_categoria?: number;
+  nome?: string;
+  slug?: string;
+  icone?: string | null;
+  imagem?: string | null;
+  ordem?: number;
+  status_id?: number;
+};
+
 export default function Navbar() {
   const [menus, setMenus] = useState<Menu[]>([]);
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [site, setSite] = useState<SiteConfig | null>(null);
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [openMenu, setOpenMenu] = useState(false);
   const [dropdown, setDropdown] = useState(false);
   const [pesquisa, setPesquisa] = useState("");
@@ -94,12 +107,37 @@ export default function Navbar() {
       setMenus(Array.isArray(menusDados) ? menusDados : []);
 
       const siteDados = siteRes.data?.dados;
-      setSite(Array.isArray(siteDados) ? siteDados[0] : null);
+      const siteAtual = Array.isArray(siteDados) ? siteDados[0] : null;
+
+      setSite(siteAtual || null);
 
       carregarUsuario();
       carregarCarrinho();
+
+      if (siteAtual?.id_site_config) {
+        carregarCategorias(siteAtual.id_site_config);
+      } else {
+        carregarCategorias();
+      }
     } catch (error) {
       console.log(error);
+    }
+  }
+
+  async function carregarCategorias(siteConfigId?: number) {
+    try {
+      const url = siteConfigId
+        ? `/categorias/site/${siteConfigId}/ativas`
+        : "/categorias";
+
+      const response = await api.get(url);
+
+      const dados = response.data?.dados || [];
+
+      setCategorias(Array.isArray(dados) ? dados : []);
+    } catch (error) {
+      console.log("Erro ao carregar categorias:", error);
+      setCategorias([]);
     }
   }
 
@@ -179,6 +217,7 @@ export default function Navbar() {
     if (lower.includes("pedido")) return <FiPackage size={16} />;
     if (lower.includes("admin")) return <FiSettings size={16} />;
     if (lower.includes("sair")) return <FiLogOut size={16} />;
+    if (lower.includes("categoria")) return <FiTag size={16} />;
 
     return <FiGrid size={16} />;
   }
@@ -199,6 +238,13 @@ export default function Navbar() {
     }
 
     return <Icon size={size} />;
+  };
+
+  const normalizeImg = (src?: string | null) => {
+    if (!src) return null;
+    if (src.startsWith("http://") || src.startsWith("https://")) return src;
+    if (src.startsWith("/")) return src;
+    return `/${src}`;
   };
 
   const titulo = site?.titulo || "Universo Império";
@@ -345,7 +391,7 @@ export default function Navbar() {
             className={styles.hamburger}
             onClick={() => setOpenMenu(true)}
             type="button"
-            aria-label="Abrir menu"
+            aria-label="Abrir categorias"
           >
             <FiMenu size={22} />
           </button>
@@ -472,14 +518,19 @@ export default function Navbar() {
         onClick={() => setOpenMenu(false)}
       />
 
-      {/* SIDEBAR */}
+      {/* SIDEBAR MOBILE */}
       <aside
         className={`${styles.sidebar} ${
           openMenu ? styles.sidebarOpen : ""
         }`}
       >
         <div className={styles.sidebarHeader}>
-          <h2>Menu</h2>
+          <div>
+            <h2>Categorias</h2>
+            <span className={styles.sidebarSubtitle}>
+              Escolha uma categoria
+            </span>
+          </div>
 
           <button
             className={styles.closeBtn}
@@ -491,31 +542,54 @@ export default function Navbar() {
           </button>
         </div>
 
-        {usuario && (
-          <div className={styles.sidebarUser}>
-            <div className={styles.sidebarAvatar}>
-              {usuario.nome?.charAt(0)?.toUpperCase()}
-            </div>
+        <div className={styles.categoriesSection}>
+          {categorias.length > 0 ? (
+            <div className={styles.categoriesList}>
+              {categorias
+                .slice()
+                .sort((a, b) => Number(a.ordem || 0) - Number(b.ordem || 0))
+                .map((categoria) => {
+                  const href = categoria.slug
+                    ? `/categoria/slug/${categoria.slug}`
+                    : "#";
 
-            <div className={styles.sidebarUserInfo}>
-              <strong>{usuario.nome}</strong>
-              <span>{usuario.email}</span>
-            </div>
-          </div>
-        )}
+                  const img = normalizeImg(categoria.imagem);
 
-        <div className={styles.menuList}>
-          {menus.map((m) => (
-            <Link
-              key={m.id_menu}
-              href={m.rota}
-              className={styles.menuItem}
-              onClick={() => setOpenMenu(false)}
-            >
-              {renderIcon(m.icone, 18, m.nome)}
-              <span>{m.nome}</span>
-            </Link>
-          ))}
+                  return (
+                    <Link
+                      key={categoria.id_categoria ?? categoria.slug ?? categoria.nome}
+                      href={href}
+                      className={styles.categoryItem}
+                      onClick={() => setOpenMenu(false)}
+                    >
+                      <div className={styles.categoryThumb}>
+                        {img ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={img}
+                            alt={categoria.nome || "Categoria"}
+                            className={styles.categoryImage}
+                          />
+                        ) : (
+                          <FiTag size={18} />
+                        )}
+                      </div>
+
+                      <div className={styles.categoryInfo}>
+                        <strong>{categoria.nome || "Categoria"}</strong>
+                        <span>
+                          {categoria.slug || "ver produtos"}
+                        </span>
+                      </div>
+                    </Link>
+                  );
+                })}
+            </div>
+          ) : (
+            <div className={styles.categoryEmpty}>
+              Nenhuma categoria disponível no momento.
+            </div>
+          )}
         </div>
       </aside>
     </>
