@@ -13,6 +13,11 @@ import {
   FiSettings,
   FiMenu,
   FiTag,
+  FiHome,
+  FiShoppingBag,
+  FiHelpCircle,
+  FiChevronRight,
+  FiHeart,
 } from "react-icons/fi";
 
 import * as FiIcons from "react-icons/fi";
@@ -73,6 +78,7 @@ export default function Navbar() {
   const [openMenu, setOpenMenu] = useState(false);
   const [dropdown, setDropdown] = useState(false);
   const [pesquisa, setPesquisa] = useState("");
+  const [sidebarPesquisa, setSidebarPesquisa] = useState("");
   const [scrolled, setScrolled] = useState(false);
   const [quantidadeCarrinho, setQuantidadeCarrinho] = useState(0);
 
@@ -131,7 +137,6 @@ export default function Navbar() {
         : "/categorias";
 
       const response = await api.get(url);
-
       const dados = response.data?.dados || [];
 
       setCategorias(Array.isArray(dados) ? dados : []);
@@ -144,7 +149,6 @@ export default function Navbar() {
   async function carregarCarrinho() {
     try {
       const response = await api.get("/carrinho/itens");
-
       const itens: CarrinhoItem[] = response.data?.dados || [];
 
       if (!Array.isArray(itens)) {
@@ -168,7 +172,6 @@ export default function Navbar() {
   async function carregarUsuario() {
     try {
       const res = await api.get("/me");
-
       const dados = res.data?.usuario || res.data?.dados?.usuario;
 
       if (dados) {
@@ -207,6 +210,22 @@ export default function Navbar() {
 
     return menus.find(
       (m) => m.nome?.toLowerCase()?.trim() === "login"
+    );
+  }, [menus]);
+
+  const pedidoMenu = useMemo(() => {
+    if (!Array.isArray(menus)) return null;
+
+    return menus.find(
+      (m) => m.nome?.toLowerCase()?.includes("pedido")
+    );
+  }, [menus]);
+
+  const contatoMenu = useMemo(() => {
+    if (!Array.isArray(menus)) return null;
+
+    return menus.find(
+      (m) => m.nome?.toLowerCase()?.includes("contato")
     );
   }, [menus]);
 
@@ -254,6 +273,40 @@ export default function Navbar() {
   const titulo1 = tituloSplit[0] || "Universo";
   const titulo2 = tituloSplit[1] || "Império";
 
+  const categoriasFiltradas = categorias.filter((categoria) => {
+    const nome = (categoria.nome || "").toLowerCase();
+    const slug = (categoria.slug || "").toLowerCase();
+    const filtro = sidebarPesquisa.toLowerCase().trim();
+
+    if (!filtro) return true;
+
+    return nome.includes(filtro) || slug.includes(filtro);
+  });
+
+  const actions = [
+    {
+      label: "Início",
+      href: "/",
+      icon: <FiHome size={18} />,
+    },
+    {
+      label: "Carrinho",
+      href: carrinho?.rota || "/carrinho",
+      icon: <FiShoppingCart size={18} />,
+      badge: quantidadeCarrinho > 0 ? quantidadeCarrinho : 0,
+    },
+    {
+      label: "Pedidos",
+      href: pedidoMenu?.rota || "/pedidos",
+      icon: <FiShoppingBag size={18} />,
+    },
+    {
+      label: "Ajuda",
+      href: contatoMenu?.rota || "/contato",
+      icon: <FiHelpCircle size={18} />,
+    },
+  ];
+
   return (
     <>
       <header
@@ -263,7 +316,6 @@ export default function Navbar() {
       >
         {/* DESKTOP */}
         <div className={styles.desktopNavbar}>
-          {/* LOGO */}
           <div className={styles.brand}>
             <Link href="/" className={styles.logo}>
               <span className={styles.logoDark}>{titulo1}</span>
@@ -273,7 +325,6 @@ export default function Navbar() {
             <span className={styles.subtitle}>{subtitulo}</span>
           </div>
 
-          {/* SEARCH */}
           <div className={styles.searchWrapper}>
             <div className={styles.searchBar}>
               <FiSearch size={18} />
@@ -298,7 +349,6 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* RIGHT */}
           <div className={styles.right}>
             {usuario ? (
               <div className={styles.userDropdown}>
@@ -391,7 +441,7 @@ export default function Navbar() {
             className={styles.hamburger}
             onClick={() => setOpenMenu(true)}
             type="button"
-            aria-label="Abrir categorias"
+            aria-label="Abrir menu"
           >
             <FiMenu size={22} />
           </button>
@@ -526,9 +576,9 @@ export default function Navbar() {
       >
         <div className={styles.sidebarHeader}>
           <div>
-            <h2>Categorias</h2>
+            <h2>Menu</h2>
             <span className={styles.sidebarSubtitle}>
-              Escolha uma categoria
+              Acesse tudo em um só lugar
             </span>
           </div>
 
@@ -542,10 +592,90 @@ export default function Navbar() {
           </button>
         </div>
 
-        <div className={styles.categoriesSection}>
-          {categorias.length > 0 ? (
-            <div className={styles.categoriesList}>
-              {categorias
+        <div className={styles.sidebarContent}>
+          {usuario ? (
+            <div className={styles.sidebarUserCard}>
+              <div className={styles.sidebarAvatarLarge}>
+                {usuario.nome?.charAt(0)?.toUpperCase()}
+              </div>
+
+              <div className={styles.sidebarUserData}>
+                <strong>{usuario.nome}</strong>
+                <span>{usuario.email}</span>
+              </div>
+            </div>
+          ) : (
+            <div className={styles.sidebarGuestCard}>
+              <div className={styles.sidebarGuestIcon}>
+                <FiUser size={20} />
+              </div>
+
+              <div className={styles.sidebarUserData}>
+                <strong>Bem-vindo</strong>
+                <span>Entre para ver seus pedidos e favoritos</span>
+              </div>
+            </div>
+          )}
+
+          <div className={styles.quickSection}>
+            <div className={styles.sectionTitle}>Atalhos rápidos</div>
+
+            <div className={styles.quickGrid}>
+              {actions.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className={styles.quickAction}
+                  onClick={() => setOpenMenu(false)}
+                >
+                  <span className={styles.quickActionIcon}>
+                    {item.icon}
+                    {item.badge && item.badge > 0 && (
+                      <span className={styles.quickBadge}>{item.badge}</span>
+                    )}
+                  </span>
+
+                  <span className={styles.quickActionLabel}>
+                    {item.label}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </div>
+
+          <div className={styles.sidebarSearchBlock}>
+            <div className={styles.sectionTitle}>Procurar categoria</div>
+
+            <div className={styles.sidebarSearchBox}>
+              <FiSearch size={16} />
+              <input
+                type="text"
+                value={sidebarPesquisa}
+                onChange={(e) => setSidebarPesquisa(e.target.value)}
+                placeholder="Filtrar categorias..."
+              />
+              {sidebarPesquisa.trim() !== "" && (
+                <button
+                  type="button"
+                  className={styles.sidebarClearBtn}
+                  onClick={() => setSidebarPesquisa("")}
+                >
+                  <FiX size={14} />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.categoriesHeader}>
+            <div className={styles.sectionTitle}>Categorias</div>
+            <span className={styles.categoriesCount}>
+              {categoriasFiltradas.length}
+            </span>
+          </div>
+
+          <div className={styles.categoriesList}>
+            {categoriasFiltradas.length > 0 ? (
+              categoriasFiltradas
                 .slice()
                 .sort((a, b) => Number(a.ordem || 0) - Number(b.ordem || 0))
                 .map((categoria) => {
@@ -557,7 +687,11 @@ export default function Navbar() {
 
                   return (
                     <Link
-                      key={categoria.id_categoria ?? categoria.slug ?? categoria.nome}
+                      key={
+                        categoria.id_categoria ??
+                        categoria.slug ??
+                        categoria.nome
+                      }
                       href={href}
                       className={styles.categoryItem}
                       onClick={() => setOpenMenu(false)}
@@ -577,19 +711,52 @@ export default function Navbar() {
 
                       <div className={styles.categoryInfo}>
                         <strong>{categoria.nome || "Categoria"}</strong>
-                        <span>
-                          {categoria.slug || "ver produtos"}
-                        </span>
+                        <span>{categoria.slug || "ver produtos"}</span>
                       </div>
+
+                      <FiChevronRight size={16} className={styles.categoryArrow} />
                     </Link>
                   );
-                })}
-            </div>
-          ) : (
-            <div className={styles.categoryEmpty}>
-              Nenhuma categoria disponível no momento.
-            </div>
-          )}
+                })
+            ) : (
+              <div className={styles.categoryEmpty}>
+                Nenhuma categoria encontrada.
+              </div>
+            )}
+          </div>
+
+          <div className={styles.sidebarFooter}>
+            {login && (
+              <Link
+                href={login.rota}
+                className={styles.footerButton}
+                onClick={() => setOpenMenu(false)}
+              >
+                <FiUser size={16} />
+                <span>Minha conta</span>
+              </Link>
+            )}
+
+            {usuario && (
+              <button
+                type="button"
+                className={styles.footerButtonDanger}
+                onClick={logout}
+              >
+                <FiLogOut size={16} />
+                <span>Sair</span>
+              </button>
+            )}
+
+            <Link
+              href="/"
+              className={styles.footerButtonSecondary}
+              onClick={() => setOpenMenu(false)}
+            >
+              <FiHome size={16} />
+              <span>Ir para o início</span>
+            </Link>
+          </div>
         </div>
       </aside>
     </>
