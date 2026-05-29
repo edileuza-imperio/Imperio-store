@@ -17,7 +17,6 @@ import {
   FiShoppingBag,
   FiHelpCircle,
   FiChevronRight,
-  FiHeart,
 } from "react-icons/fi";
 
 import * as FiIcons from "react-icons/fi";
@@ -109,12 +108,18 @@ export default function Navbar() {
         api.get("/site-configs"),
       ]);
 
-      const menusDados = menusRes.data?.dados;
+      console.log("MENU RES:", menusRes.data);
+      console.log("SITE RES:", siteRes.data);
+
+      const menusDados = menusRes.data?.dados?.dados || [];
+      const siteDados = siteRes.data?.dados?.dados || [];
+
+      console.log("MENUS DADOS:", menusDados);
+      console.log("SITE DADOS:", siteDados);
+
       setMenus(Array.isArray(menusDados) ? menusDados : []);
 
-      const siteDados = siteRes.data?.dados;
       const siteAtual = Array.isArray(siteDados) ? siteDados[0] : null;
-
       setSite(siteAtual || null);
 
       carregarUsuario();
@@ -126,7 +131,7 @@ export default function Navbar() {
         carregarCategorias();
       }
     } catch (error) {
-      console.log(error);
+      console.log("Erro ao carregar navbar:", error);
     }
   }
 
@@ -138,6 +143,8 @@ export default function Navbar() {
 
       const response = await api.get(url);
       const dados = response.data?.dados || [];
+
+      console.log("CATEGORIAS:", dados);
 
       setCategorias(Array.isArray(dados) ? dados : []);
     } catch (error) {
@@ -151,6 +158,8 @@ export default function Navbar() {
       const response = await api.get("/carrinho/itens");
       const itens: CarrinhoItem[] = response.data?.dados || [];
 
+      console.log("CARRINHO ITENS:", itens);
+
       if (!Array.isArray(itens)) {
         setQuantidadeCarrinho(0);
         return;
@@ -161,6 +170,8 @@ export default function Navbar() {
           soma + Number(item.quantidade || 0),
         0
       );
+
+      console.log("TOTAL CARRINHO:", total);
 
       setQuantidadeCarrinho(total);
     } catch (error) {
@@ -174,6 +185,8 @@ export default function Navbar() {
       const res = await api.get("/me");
       const dados = res.data?.usuario || res.data?.dados?.usuario;
 
+      console.log("USUARIO:", dados);
+
       if (dados) {
         setUsuario({
           id_usuario: dados.id_usuario,
@@ -182,6 +195,7 @@ export default function Navbar() {
         });
       }
     } catch (error) {
+      console.log("Usuário não autenticado ou erro no /me:", error);
       setUsuario(null);
     }
   }
@@ -193,7 +207,7 @@ export default function Navbar() {
       setUsuario(null);
       window.location.href = "/";
     } catch (error) {
-      console.log(error);
+      console.log("Erro no logout:", error);
     }
   }
 
@@ -714,7 +728,10 @@ export default function Navbar() {
                         <span>{categoria.slug || "ver produtos"}</span>
                       </div>
 
-                      <FiChevronRight size={16} className={styles.categoryArrow} />
+                      <FiChevronRight
+                        size={16}
+                        className={styles.categoryArrow}
+                      />
                     </Link>
                   );
                 })
@@ -724,8 +741,6 @@ export default function Navbar() {
               </div>
             )}
           </div>
-
-          
         </div>
       </aside>
     </>

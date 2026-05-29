@@ -93,9 +93,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR">
-      <body suppressHydrationWarning className="antialiased layout-body">
-
+    <html lang="pt-br">
+      <body
+        suppressHydrationWarning
+        className="antialiased layout-body"
+      >
         {/* HEADER */}
         <header className="header-stack">
           <Navbar />
@@ -121,12 +123,11 @@ export default function RootLayout({
           theme="light"
         />
 
-        {/* ANALYTICS VERCEL */}
+        {/* ANALYTICS */}
         <Analytics />
 
         {/* SPEED INSIGHTS */}
         <SpeedInsights />
-
       </body>
     </html>
   );

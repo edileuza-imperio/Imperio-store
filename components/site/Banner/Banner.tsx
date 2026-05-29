@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+
 import api from "@/Api/conectar";
 import { rotas } from "@/components/Bibioteca/config/rotas";
+
 import styles from "./Banner.module.css";
 
 type BannerItem = {
@@ -12,7 +14,7 @@ type BannerItem = {
   descricao?: string;
   imagem: string;
   link?: string | null;
-  statusid?: number; // ✅ ADICIONA ISSO
+  statusid?: number;
 };
 
 export default function Banner() {
@@ -26,11 +28,17 @@ export default function Banner() {
       try {
         const res = await api.get(rotas.banners.listar);
 
+        console.log("BANNERS API:", res.data);
+
         const data = res.data?.dados?.dados ?? [];
+
+        console.log("BANNERS DATA:", data);
 
         const validos = data.filter(
           (b: BannerItem) => b?.statusid === 1 && b?.imagem
         );
+
+        console.log("BANNERS VÁLIDOS:", validos);
 
         setBanners(validos);
       } catch (err) {
@@ -53,7 +61,27 @@ export default function Banner() {
 
   const banner = banners[index];
 
-  if (!banner) return null;
+  if (!banner) {
+    return (
+      <section className={styles.loadingWrap}>
+        <div className={styles.loading}></div>
+      </section>
+    );
+  }
+
+  const normalizeImage = (src: string) => {
+    if (!src) return "";
+
+    if (src.startsWith("http")) {
+      return src;
+    }
+
+    return `https://lightgrey-cattle-160990.hostingersite.com/${src}`;
+  };
+
+  const imagemBanner = normalizeImage(banner.imagem);
+
+  console.log("IMAGEM FINAL:", imagemBanner);
 
   const goLink = () => {
     if (!banner.link) return;
@@ -67,27 +95,51 @@ export default function Banner() {
   };
 
   return (
-    <section className={styles.wrap}>
-      <div className={styles.content}>
-        <h1 className={styles.title}>{banner.titulo}</h1>
+    <section className={styles.banner}>
+      {/* FUNDO */}
+      <div className={styles.background}></div>
 
-        {banner.descricao && (
-          <p className={styles.text}>{banner.descricao}</p>
-        )}
+      <div className={styles.inner}>
+        {/* TEXTO */}
+        <div className={styles.text}>
+          <span className={styles.tag}>
+            Universo Império
+          </span>
 
-        <button className={styles.btn} onClick={goLink}>
-          Acessar
-        </button>
+          <h1 className={styles.title}>
+            {banner.titulo}
+          </h1>
+
+          {banner.descricao && (
+            <p className={styles.desc}>
+              {banner.descricao}
+            </p>
+          )}
+
+          <button
+            className={styles.btn}
+            onClick={goLink}
+          >
+            Comprar Agora
+          </button>
+        </div>
+
+        {/* IMAGEM */}
+        <div className={styles.media}>
+          <div
+            className={styles.imageWrap}
+            onClick={goLink}
+          >
+            <img
+              className={styles.img}
+              src={imagemBanner}
+              alt={banner.titulo}
+            />
+          </div>
+        </div>
       </div>
 
-      <div className={styles.media} onClick={goLink}>
-        <img
-          className={styles.img}
-          src={banner.imagem}
-          alt={banner.titulo}
-        />
-      </div>
-
+      {/* DOTS */}
       {banners.length > 1 && (
         <div className={styles.dots}>
           {banners.map((_, i) => (
