@@ -725,38 +725,7 @@ export default function Navbar() {
             )}
           </div>
 
-          <div className={styles.sidebarFooter}>
-            {login && (
-              <Link
-                href={login.rota}
-                className={styles.footerButton}
-                onClick={() => setOpenMenu(false)}
-              >
-                <FiUser size={16} />
-                <span>Minha conta</span>
-              </Link>
-            )}
-
-            {usuario && (
-              <button
-                type="button"
-                className={styles.footerButtonDanger}
-                onClick={logout}
-              >
-                <FiLogOut size={16} />
-                <span>Sair</span>
-              </button>
-            )}
-
-            <Link
-              href="/"
-              className={styles.footerButtonSecondary}
-              onClick={() => setOpenMenu(false)}
-            >
-              <FiHome size={16} />
-              <span>Ir para o início</span>
-            </Link>
-          </div>
+          
         </div>
       </aside>
     </>
