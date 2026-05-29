@@ -20,7 +20,7 @@ import "@/public/produto/page.css";
 import "@/public/produto/destaque.css";
 
 import "@/public/categoria/cateid.css";
-import "@/public/destaque/destaque.css";
+
 
 
 import "@/public/footer/footer.css";
