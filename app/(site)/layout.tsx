@@ -21,7 +21,7 @@ import "@/public/admin/produtos/listar.css";
 import "@/public/categoria/cateid.css";
 import "@/public/destaque/destaque.css";
 
-import "@/public/navbar/mobile.css";
+
 import "@/public/navbar/Banner.css";
 
 import "@/public/footer/footer.css";
