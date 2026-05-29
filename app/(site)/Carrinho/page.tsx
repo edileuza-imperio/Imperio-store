@@ -3,10 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 
-import { InicioApi } from "@/services/api/api";
+import api from "@/Api/conectar";
 import CarrinhoView from "@/components/Carrinho/CarrinhoView";
-
-
 
 /* =========================
    TIPAGEM
@@ -50,7 +48,7 @@ export type CarrinhoItem = {
    BASE URL
 ========================= */
 const BASE_URL =
-  "https://lightgrey-cattle-160990.hostingersite.com";
+  api.defaults.baseURL || "";
 
 /* =========================
    HELPERS
@@ -82,34 +80,50 @@ function resolverImagem(src?: string | null) {
 
 function normalizarNumero(valor: unknown): number {
   if (typeof valor === "number") {
-    return Number.isFinite(valor) ? valor : 0;
+    return Number.isFinite(valor)
+      ? valor
+      : 0;
   }
 
   if (typeof valor === "string") {
-    const limpo = valor.replace(/\./g, "").replace(",", ".");
+    const limpo = valor
+      .replace(/\./g, "")
+      .replace(",", ".");
+
     const numero = Number(limpo);
 
-    return Number.isFinite(numero) ? numero : 0;
+    return Number.isFinite(numero)
+      ? numero
+      : 0;
   }
 
   return 0;
 }
 
 function formatarMoeda(valor: unknown) {
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(normalizarNumero(valor));
+  return new Intl.NumberFormat(
+    "pt-BR",
+    {
+      style: "currency",
+      currency: "BRL",
+    }
+  ).format(normalizarNumero(valor));
 }
 
-function extrairLista<T = unknown>(payload: any): T[] {
-  if (Array.isArray(payload)) return payload;
+function extrairLista<T = unknown>(
+  payload: any
+): T[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
 
   if (Array.isArray(payload?.dados)) {
     return payload.dados;
   }
 
-  if (Array.isArray(payload?.dados?.itens)) {
+  if (
+    Array.isArray(payload?.dados?.itens)
+  ) {
     return payload.dados.itens;
   }
 
@@ -121,7 +135,9 @@ function extrairLista<T = unknown>(payload: any): T[] {
     return payload.itens;
   }
 
-  if (Array.isArray(payload?.carrinho?.itens)) {
+  if (
+    Array.isArray(payload?.carrinho?.itens)
+  ) {
     return payload.carrinho.itens;
   }
 
@@ -141,7 +157,9 @@ function getItemId(item: CarrinhoItem) {
   );
 }
 
-function getItemNome(item: CarrinhoItem) {
+function getItemNome(
+  item: CarrinhoItem
+) {
   return (
     item.produto?.nome ||
     item.produto?.titulo ||
@@ -152,7 +170,9 @@ function getItemNome(item: CarrinhoItem) {
   );
 }
 
-function getItemImagem(item: CarrinhoItem) {
+function getItemImagem(
+  item: CarrinhoItem
+) {
   return resolverImagem(
     item.imagem_url ||
       item.imagem ||
@@ -165,62 +185,86 @@ function getItemImagem(item: CarrinhoItem) {
   );
 }
 
-function getQuantidade(item: CarrinhoItem) {
-  return Math.max(1, normalizarNumero(item.quantidade) || 1);
+function getQuantidade(
+  item: CarrinhoItem
+) {
+  return Math.max(
+    1,
+    normalizarNumero(
+      item.quantidade
+    ) || 1
+  );
 }
 
 function getPreco(item: CarrinhoItem) {
   return normalizarNumero(
-    item.preco_unitario ?? item.preco ?? 0
+    item.preco_unitario ??
+      item.preco ??
+      0
   );
 }
 
-function getSubtotal(item: CarrinhoItem) {
+function getSubtotal(
+  item: CarrinhoItem
+) {
   if (item.subtotal != null) {
-    return normalizarNumero(item.subtotal);
+    return normalizarNumero(
+      item.subtotal
+    );
   }
 
-  return getPreco(item) * getQuantidade(item);
+  return (
+    getPreco(item) *
+    getQuantidade(item)
+  );
 }
 
 /* =========================
    PAGE
 ========================= */
 export default function CarrinhoPage() {
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] =
+    useState(true);
 
-  const [itens, setItens] = useState<CarrinhoItem[]>([]);
+  const [itens, setItens] = useState<
+    CarrinhoItem[]
+  >([]);
 
-  const [loadingItem, setLoadingItem] = useState<
-    string | number | null
-  >(null);
+  const [loadingItem, setLoadingItem] =
+    useState<
+      string | number | null
+    >(null);
 
   /* =========================
      CARREGAR
   ========================= */
-  const carregarCarrinho = useCallback(async () => {
-    try {
-      setLoading(true);
+  const carregarCarrinho =
+    useCallback(async () => {
+      try {
+        setLoading(true);
 
-      const response = await InicioApi.get("/carrinho/itens", {
-        withCredentials: true,
-      });
+        const response =
+          await api.get(
+            "/carrinho/itens",
+            {
+              withCredentials: true,
+            }
+          );
 
-      const lista = extrairLista<CarrinhoItem>(
-        response.data
-      );
+        const lista =
+          extrairLista<CarrinhoItem>(
+            response.data
+          );
 
-      setItens(lista);
-    } catch (error) {
-      console.error(error);
-
-      toast.error(
-        "Não foi possível carregar o carrinho."
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+        setItens(lista);
+      } catch {
+        toast.error(
+          "Não foi possível carregar o carrinho."
+        );
+      } finally {
+        setLoading(false);
+      }
+    }, []);
 
   useEffect(() => {
     carregarCarrinho();
@@ -235,7 +279,7 @@ export default function CarrinhoPage() {
     try {
       setLoadingItem(itemId);
 
-      await InicioApi.delete(
+      await api.delete(
         `/carrinho/item/${itemId}`,
         {
           withCredentials: true,
@@ -250,11 +294,13 @@ export default function CarrinhoPage() {
         )
       );
 
-      toast.success("Produto removido.");
-    } catch (error) {
-      console.error(error);
-
-      toast.error("Erro ao remover produto.");
+      toast.success(
+        "Produto removido."
+      );
+    } catch {
+      toast.error(
+        "Erro ao remover produto."
+      );
     } finally {
       setLoadingItem(null);
     }
@@ -269,7 +315,9 @@ export default function CarrinhoPage() {
   ) {
     const itemId = getItemId(item);
 
-    if (novaQuantidade < 1) return;
+    if (novaQuantidade < 1) {
+      return;
+    }
 
     try {
       setLoadingItem(itemId);
@@ -277,31 +325,32 @@ export default function CarrinhoPage() {
       setItens((prev) =>
         prev.map((produto) => {
           if (
-            String(getItemId(produto)) !==
-            String(itemId)
+            String(
+              getItemId(produto)
+            ) !== String(itemId)
           ) {
             return produto;
           }
 
           return {
             ...produto,
-            quantidade: novaQuantidade,
+            quantidade:
+              novaQuantidade,
           };
         })
       );
 
-      await InicioApi.put(
+      await api.put(
         `/carrinho/item/${itemId}`,
         {
-          quantidade: novaQuantidade,
+          quantidade:
+            novaQuantidade,
         },
         {
           withCredentials: true,
         }
       );
-    } catch (error) {
-      console.error(error);
-
+    } catch {
       toast.error(
         "Erro ao atualizar quantidade."
       );
@@ -316,9 +365,11 @@ export default function CarrinhoPage() {
      TOTAL
   ========================= */
   const total = useMemo(() => {
-    return itens.reduce((acc, item) => {
-      return acc + getSubtotal(item);
-    }, 0);
+    return itens.reduce(
+      (acc, item) =>
+        acc + getSubtotal(item),
+      0
+    );
   }, [itens]);
 
   return (
@@ -335,7 +386,9 @@ export default function CarrinhoPage() {
       getSubtotal={getSubtotal}
       formatarMoeda={formatarMoeda}
       removerItem={removerItem}
-      alterarQuantidade={alterarQuantidade}
+      alterarQuantidade={
+        alterarQuantidade
+      }
     />
   );
 }

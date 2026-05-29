@@ -28,17 +28,11 @@ export default function Banner() {
       try {
         const res = await api.get(rotas.banners.listar);
 
-        console.log("BANNERS API:", res.data);
-
         const data = res.data?.dados?.dados ?? [];
-
-        console.log("BANNERS DATA:", data);
 
         const validos = data.filter(
           (b: BannerItem) => b?.statusid === 1 && b?.imagem
         );
-
-        console.log("BANNERS VÁLIDOS:", validos);
 
         setBanners(validos);
       } catch (err) {
@@ -81,8 +75,6 @@ export default function Banner() {
 
   const imagemBanner = normalizeImage(banner.imagem);
 
-  console.log("IMAGEM FINAL:", imagemBanner);
-
   const goLink = () => {
     if (!banner.link) return;
 
@@ -96,11 +88,9 @@ export default function Banner() {
 
   return (
     <section className={styles.banner}>
-      {/* FUNDO */}
       <div className={styles.background}></div>
 
       <div className={styles.inner}>
-        {/* TEXTO */}
         <div className={styles.text}>
           <span className={styles.tag}>
             Universo Império
@@ -124,7 +114,6 @@ export default function Banner() {
           </button>
         </div>
 
-        {/* IMAGEM */}
         <div className={styles.media}>
           <div
             className={styles.imageWrap}
@@ -139,7 +128,6 @@ export default function Banner() {
         </div>
       </div>
 
-      {/* DOTS */}
       {banners.length > 1 && (
         <div className={styles.dots}>
           {banners.map((_, i) => (

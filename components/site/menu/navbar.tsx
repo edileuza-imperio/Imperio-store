@@ -108,14 +108,8 @@ export default function Navbar() {
         api.get("/site-configs"),
       ]);
 
-      console.log("MENU RES:", menusRes.data);
-      console.log("SITE RES:", siteRes.data);
-
       const menusDados = menusRes.data?.dados?.dados || [];
       const siteDados = siteRes.data?.dados?.dados || [];
-
-      console.log("MENUS DADOS:", menusDados);
-      console.log("SITE DADOS:", siteDados);
 
       setMenus(Array.isArray(menusDados) ? menusDados : []);
 
@@ -130,8 +124,11 @@ export default function Navbar() {
       } else {
         carregarCategorias();
       }
-    } catch (error) {
-      console.log("Erro ao carregar navbar:", error);
+    } catch {
+      setMenus([]);
+      setSite(null);
+      setCategorias([]);
+      setQuantidadeCarrinho(0);
     }
   }
 
@@ -144,11 +141,8 @@ export default function Navbar() {
       const response = await api.get(url);
       const dados = response.data?.dados || [];
 
-      console.log("CATEGORIAS:", dados);
-
       setCategorias(Array.isArray(dados) ? dados : []);
-    } catch (error) {
-      console.log("Erro ao carregar categorias:", error);
+    } catch {
       setCategorias([]);
     }
   }
@@ -157,8 +151,6 @@ export default function Navbar() {
     try {
       const response = await api.get("/carrinho/itens");
       const itens: CarrinhoItem[] = response.data?.dados || [];
-
-      console.log("CARRINHO ITENS:", itens);
 
       if (!Array.isArray(itens)) {
         setQuantidadeCarrinho(0);
@@ -171,11 +163,8 @@ export default function Navbar() {
         0
       );
 
-      console.log("TOTAL CARRINHO:", total);
-
       setQuantidadeCarrinho(total);
-    } catch (error) {
-      console.log("Erro ao carregar carrinho:", error);
+    } catch {
       setQuantidadeCarrinho(0);
     }
   }
@@ -185,8 +174,6 @@ export default function Navbar() {
       const res = await api.get("/me");
       const dados = res.data?.usuario || res.data?.dados?.usuario;
 
-      console.log("USUARIO:", dados);
-
       if (dados) {
         setUsuario({
           id_usuario: dados.id_usuario,
@@ -194,8 +181,7 @@ export default function Navbar() {
           email: dados.email,
         });
       }
-    } catch (error) {
-      console.log("Usuário não autenticado ou erro no /me:", error);
+    } catch {
       setUsuario(null);
     }
   }
@@ -206,8 +192,8 @@ export default function Navbar() {
       setDropdown(false);
       setUsuario(null);
       window.location.href = "/";
-    } catch (error) {
-      console.log("Erro no logout:", error);
+    } catch {
+      setDropdown(false);
     }
   }
 
@@ -328,7 +314,6 @@ export default function Navbar() {
           scrolled ? styles.headerScrolled : ""
         }`}
       >
-        {/* DESKTOP */}
         <div className={styles.desktopNavbar}>
           <div className={styles.brand}>
             <Link href="/" className={styles.logo}>
@@ -449,7 +434,6 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* MOBILE */}
         <div className={styles.mobileNavbar}>
           <button
             className={styles.hamburger}
@@ -548,7 +532,6 @@ export default function Navbar() {
           </div>
         </div>
 
-        {/* MOBILE SEARCH */}
         <div className={styles.mobileSearch}>
           <div className={styles.searchBar}>
             <FiSearch size={16} />
@@ -574,7 +557,6 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* OVERLAY */}
       <div
         className={`${styles.overlay} ${
           openMenu ? styles.overlayShow : ""
@@ -582,7 +564,6 @@ export default function Navbar() {
         onClick={() => setOpenMenu(false)}
       />
 
-      {/* SIDEBAR MOBILE */}
       <aside
         className={`${styles.sidebar} ${
           openMenu ? styles.sidebarOpen : ""
@@ -645,7 +626,9 @@ export default function Navbar() {
                   <span className={styles.quickActionIcon}>
                     {item.icon}
                     {item.badge && item.badge > 0 && (
-                      <span className={styles.quickBadge}>{item.badge}</span>
+                      <span className={styles.quickBadge}>
+                        {item.badge}
+                      </span>
                     )}
                   </span>
 

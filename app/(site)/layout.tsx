@@ -23,7 +23,7 @@ import "@/public/categoria/cateid.css";
 
 
 
-import "@/public/footer/footer.css";
+
 import "@/public/Login/Login.css";
 import "@/public/usuario/usuario.css";
 import "@/public/usuario/editar.css";
