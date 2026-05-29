@@ -12,6 +12,7 @@ type BannerItem = {
   descricao?: string;
   imagem: string;
   link?: string | null;
+  statusid?: number; // ✅ ADICIONA ISSO
 };
 
 export default function Banner() {
@@ -25,7 +26,6 @@ export default function Banner() {
       try {
         const res = await api.get(rotas.banners.listar);
 
-        // 🔥 CORREÇÃO PRINCIPAL DO TEU BUG
         const data = res.data?.dados?.dados ?? [];
 
         const validos = data.filter(
@@ -93,7 +93,9 @@ export default function Banner() {
           {banners.map((_, i) => (
             <button
               key={i}
-              className={`${styles.dot} ${i === index ? styles.active : ""}`}
+              className={`${styles.dot} ${
+                i === index ? styles.active : ""
+              }`}
               onClick={() => setIndex(i)}
             />
           ))}
