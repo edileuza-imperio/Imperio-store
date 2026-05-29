@@ -1,20 +1,11 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import * as FaIcons from "react-icons/fa";
 import api from "@/Api/conectar";
-import {
-  FaFacebookF,
-  FaInstagram,
-  FaWhatsapp,
-  FaMapMarkerAlt,
-  FaEnvelope,
-  FaPhoneAlt,
-  FaCcVisa,
-  FaCcMastercard,
-  FaCcPaypal,
-  FaArrowRight,
-} from "react-icons/fa";
+
+import styles from "./Footer.module.css";
 
 type FooterConfig = {
   titulo?: string;
@@ -33,7 +24,7 @@ type FooterItem = {
   posicao?: number;
 };
 
-type FooterResponse = {
+type FooterData = {
   footer?: FooterConfig;
   links?: FooterItem[];
   redes_sociais?: FooterItem[];
@@ -41,151 +32,120 @@ type FooterResponse = {
   pagamentos?: FooterItem[];
 };
 
-export default function FooterProfissional() {
-  const [data, setData] = useState<FooterResponse | null>(null);
+export default function Footer() {
+  const [data, setData] = useState<FooterData | null>(null);
 
   useEffect(() => {
-    async function carregarFooter() {
+    async function carregar() {
       try {
         const response = await api.get("/footer");
-        const dados = response?.data?.dados ?? response?.data ?? null;
-        setData(dados);
+
+        const dados = response?.data?.dados?.dados;
+
+        setData(dados || null);
       } catch (error) {
-        console.error("Erro ao carregar footer:", error);
-        setData(null);
+        console.error(error);
       }
     }
 
-    carregarFooter();
+    carregar();
   }, []);
 
   const footer = data?.footer;
 
-  const links = useMemo(
-    () => [...(data?.links || [])].sort((a, b) => (a.posicao ?? 0) - (b.posicao ?? 0)),
-    [data?.links]
-  );
-
-  const redesSociais = useMemo(
-    () => [...(data?.redes_sociais || [])].sort((a, b) => (a.posicao ?? 0) - (b.posicao ?? 0)),
-    [data?.redes_sociais]
-  );
-
-  const contatos = useMemo(
-    () => [...(data?.contatos || [])].sort((a, b) => (a.posicao ?? 0) - (b.posicao ?? 0)),
-    [data?.contatos]
-  );
-
-  const metodosPagamento = useMemo(
-    () => [...(data?.pagamentos || [])].sort((a, b) => (a.posicao ?? 0) - (b.posicao ?? 0)),
-    [data?.pagamentos]
-  );
-
-  const renderIcone = (icone?: string) => {
-    const nome = String(icone || "").toLowerCase();
-
-    if (nome.includes("facebook")) return <FaFacebookF />;
-    if (nome.includes("instagram")) return <FaInstagram />;
-    if (nome.includes("whatsapp")) return <FaWhatsapp />;
-    if (nome.includes("map")) return <FaMapMarkerAlt />;
-    if (nome.includes("envelope") || nome.includes("mail")) return <FaEnvelope />;
-    if (nome.includes("phone")) return <FaPhoneAlt />;
-    if (nome.includes("visa")) return <FaCcVisa />;
-    if (nome.includes("master")) return <FaCcMastercard />;
-    if (nome.includes("paypal")) return <FaCcPaypal />;
-
-    return null;
+  const ordenar = (items?: FooterItem[]) => {
+    return [...(items || [])].sort(
+      (a, b) => (a.posicao || 0) - (b.posicao || 0)
+    );
   };
 
-  const bottomLinks = links.filter((item) => {
-    const titulo = String(item.titulo || "").toLowerCase();
-    return titulo.includes("política") || titulo.includes("termos");
-  });
+  const links = useMemo(() => ordenar(data?.links), [data]);
+  const redes = useMemo(() => ordenar(data?.redes_sociais), [data]);
+  const contatos = useMemo(() => ordenar(data?.contatos), [data]);
+  const pagamentos = useMemo(() => ordenar(data?.pagamentos), [data]);
 
-  const navLinks = links.filter((item) => {
-    const titulo = String(item.titulo || "").toLowerCase();
-    return !titulo.includes("termos") && !titulo.includes("política");
-  });
+  const renderIcon = (iconName?: string) => {
+    if (!iconName) return null;
+
+    const Icon =
+      FaIcons[iconName as keyof typeof FaIcons];
+
+    if (!Icon) return null;
+
+    return <Icon />;
+  };
 
   return (
-    <footer className="footer">
-      <div className="container footer-wrapper">
-        <div className="row g-4">
-          <div className="col-lg-5">
-            <div className="footer-brand">
-              <div className="footer-logo">{footer?.logo_texto || "UI"}</div>
+    <footer className={styles.footer}>
+      <div className={styles.container}>
+        <div className={styles.grid}>
+          <div>
+            <div className={styles.brand}>
+              <div className={styles.logo}>
+                {footer?.logo_texto || "UI"}
+              </div>
+
               <div>
-                <p className="footer-title">{footer?.titulo || "Universo Império"}</p>
-                <p className="footer-subtitle">
-                  {footer?.subtitulo || "Decorações & Eventos"}
-                </p>
+                <h2>{footer?.titulo}</h2>
+                <p>{footer?.subtitulo}</p>
               </div>
             </div>
 
-            <p className="footer-description">
-              {footer?.descricao ||
-                "Produtos selecionados para festas e eventos. Atendimento rápido, qualidade premium e uma experiência luxuosa do início ao fim."}
+            <p className={styles.description}>
+              {footer?.descricao}
             </p>
 
-            <div className="footer-badges">
-              <span className="footer-badge">
-                <span className="footer-badge-dot" /> Pagamento Seguro
-              </span>
-              <span className="footer-badge">
-                <span className="footer-badge-dot" /> Suporte WhatsApp
-              </span>
-            </div>
-
-            <div className="footer-social" aria-label="Redes sociais">
-              {redesSociais.map((rede, idx) => (
+            <div className={styles.social}>
+              {redes.map((item) => (
                 <a
-                  key={rede.id_item || idx}
-                  href={rede.url || "#"}
+                  key={item.id_item}
+                  href={item.url}
                   target="_blank"
-                  rel="noopener noreferrer"
-                  className="footer-social-link"
-                  title={rede.titulo || "Rede social"}
-                  aria-label={rede.titulo || "Rede social"}
+                  rel="noreferrer"
                 >
-                  {renderIcone(rede.icone)}
+                  {renderIcon(item.icone)}
                 </a>
               ))}
             </div>
           </div>
 
-          <div className="col-lg-2 col-sm-6">
-            <h3 className="footer-section-title">Navegação</h3>
-            <ul className="footer-links">
-              {navLinks.map((link, idx) => (
-                <li key={link.id_item || idx}>
-                  <Link href={link.url || "#"} className="footer-link">
-                    <span>{link.titulo}</span>
-                    <FaArrowRight className="footer-link-arrow" size={12} />
+          <div>
+            <h3>Navegação</h3>
+
+            <ul className={styles.links}>
+              {links.map((item) => (
+                <li key={item.id_item}>
+                  <Link href={item.url || "#"}>
+                    {item.titulo}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          <div className="col-lg-5">
-            <h3 className="footer-section-title">Contato</h3>
-            <div className="footer-contact">
-              {contatos.map((contato, idx) => (
-                <div key={contato.id_item || idx} className="footer-contact-item">
-                  <div className="footer-contact-icon">
-                    {renderIcone(contato.icone)}
-                  </div>
+          <div>
+            <h3>Contato</h3>
+
+            <div className={styles.contactList}>
+              {contatos.map((item) => (
+                <div
+                  key={item.id_item}
+                  className={styles.contactItem}
+                >
+                  <span className={styles.contactIcon}>
+                    {renderIcon(item.icone)}
+                  </span>
+
                   <div>
-                    <h4 className="footer-contact-title">{contato.titulo}</h4>
-                    <p className="footer-contact-text">
-                      {contato.url ? (
-                        <a href={contato.url} className="footer-contact-link">
-                          {contato.valor}
-                        </a>
-                      ) : (
-                        contato.valor
-                      )}
-                    </p>
+                    <strong>{item.titulo}</strong>
+
+                    {item.url ? (
+                      <a href={item.url}>
+                        {item.valor}
+                      </a>
+                    ) : (
+                      <p>{item.valor}</p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -193,46 +153,18 @@ export default function FooterProfissional() {
           </div>
         </div>
 
-        <div className="footer-divider" />
-
-        <div className="footer-bottom">
-          <p className="footer-bottom-text">
-            {footer?.copyright_texto ||
-              "© 2024 Universo Império. Todos os direitos reservados."}
+        <div className={styles.bottom}>
+          <p>
+            {footer?.copyright_texto}
           </p>
 
-          <div className="footer-payments">
-            <span
-              style={{
-                fontSize: "12px",
-                fontWeight: "700",
-                color: "var(--color-textMuted)",
-                marginRight: "8px",
-              }}
-            >
-              Formas de pagamento:
-            </span>
-
-            {metodosPagamento.map((metodo, idx) => (
-              <div
-                key={metodo.id_item || idx}
-                className="footer-payment-item"
-                title={metodo.titulo || "Pagamento"}
-              >
-                {renderIcone(metodo.icone)}
-              </div>
+          <div className={styles.payments}>
+            {pagamentos.map((item) => (
+              <span key={item.id_item}>
+                {renderIcon(item.icone)}
+              </span>
             ))}
           </div>
-
-          <ul className="footer-bottom-links">
-            {bottomLinks.map((item, idx) => (
-              <li key={item.id_item || idx}>
-                <a href={item.url || "#"} className="footer-bottom-link">
-                  {item.titulo}
-                </a>
-              </li>
-            ))}
-          </ul>
         </div>
       </div>
     </footer>
