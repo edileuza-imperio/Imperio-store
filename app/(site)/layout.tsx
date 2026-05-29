@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import "./../globals.css";
 
@@ -128,9 +127,6 @@ export default function RootLayout({
           draggable
           theme="light"
         />
-
-        {/* VERCEL SPEED INSIGHTS */}
-        <SpeedInsights />
       </body>
     </html>
   );
