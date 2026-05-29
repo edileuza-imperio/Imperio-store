@@ -6,6 +6,8 @@ import api from "@/Api/conectar";
 import { FiChevronLeft, FiChevronRight } from "react-icons/fi";
 import { rotas } from "@/components/Bibioteca/config/rotas";
 
+import styles from "./Banner.module.css";
+
 type BannerItem = {
   id_banner?: number;
   titulo?: string;
@@ -19,285 +21,143 @@ type BannerItem = {
 export default function Banner() {
   const [banners, setBanners] = useState<BannerItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState<string | null>(null);
   const [index, setIndex] = useState(0);
-  const [isHover, setIsHover] = useState(false);
+  const [hover, setHover] = useState(false);
 
   const router = useRouter();
-  const timerRef = useRef<number | null>(null);
-  const clickLockRef = useRef(false);
-  const lastViewRef = useRef<Record<number, number>>({});
+  const timer = useRef<number | null>(null);
 
-  const intervalMs = 5000;
-  const viewCooldownMs = 30000;
+  const safe = useMemo(() => banners.filter(Boolean), [banners]);
+  const many = safe.length > 1;
 
   useEffect(() => {
-    let ativo = true;
+    let active = true;
 
-    async function carregarBanners() {
+    async function load() {
+      setLoading(true);
+
       try {
-        setLoading(true);
-        setErro(null);
-
         const res = await api.get(rotas.banners.listar);
-        const payload = res?.data;
+        const data = res?.data;
 
-        const listaBase: BannerItem[] =
-          (Array.isArray(payload) && payload) ||
-          (Array.isArray(payload?.dados) && payload.dados) ||
-          (Array.isArray(payload?.banners) && payload.banners) ||
-          (Array.isArray(payload?.dados?.banners) && payload.dados.banners) ||
-          (Array.isArray(payload?.dados?.dados) && payload.dados.dados) ||
-          [];
+        const list =
+          data?.dados ??
+          data?.banners ??
+          (Array.isArray(data) ? data : []);
 
-        const filtrados = listaBase.filter((item) => {
-          const status = Number(item?.statusid ?? item?.status_id ?? 1);
-          const temImagem =
-            typeof item?.imagem === "string" && item.imagem.trim() !== "";
-
-          return !!item && status === 1 && temImagem;
-        });
-
-        if (!ativo) return;
-        setBanners(filtrados);
-      } catch (e: any) {
-        if (!ativo) return;
-        setErro(
-          e?.response?.data?.mensagem ||
-            e?.message ||
-            "Erro ao carregar banners"
+        const filtered = list.filter(
+          (b: BannerItem) =>
+            Number(b?.statusid ?? b?.status_id ?? 1) === 1 && b?.imagem
         );
+
+        if (!active) return;
+        setBanners(filtered);
       } finally {
-        if (ativo) setLoading(false);
+        if (active) setLoading(false);
       }
     }
 
-    carregarBanners();
-
+    load();
     return () => {
-      ativo = false;
+      active = false;
     };
   }, []);
 
-  const safeBanners = useMemo(() => {
-    return Array.isArray(banners) ? banners.filter(Boolean) : [];
-  }, [banners]);
-
-  const hasMany = safeBanners.length > 1;
-
   useEffect(() => {
-    if (!safeBanners.length) return;
-    setIndex((prev) => Math.min(prev, safeBanners.length - 1));
-  }, [safeBanners.length]);
+    if (!many || hover) return;
 
-  const banner = safeBanners[index];
-
-  const makeImageUrl = (img?: string | null) => {
-    if (!img || img.trim() === "") return null;
-
-    if (/^https?:\/\//i.test(img)) {
-      return img;
-    }
-
-    const base = String(api.defaults.baseURL || "").replace(/\/+$/, "");
-    const path = String(img).replace(/^\/+/, "");
-
-    return `${base}/${path}`;
-  };
-
-  const imagemUrl = useMemo(
-    () => makeImageUrl(banner?.imagem),
-    [banner?.imagem]
-  );
-
-  useEffect(() => {
-    if (!hasMany || !safeBanners.length) return;
-
-    const nextIndex = (index + 1) % safeBanners.length;
-    const nextImg = makeImageUrl(safeBanners[nextIndex]?.imagem);
-
-    if (!nextImg) return;
-
-    const img = new Image();
-    img.src = nextImg;
-  }, [hasMany, index, safeBanners]);
-
-  const goTo = (i: number) => {
-    if (!safeBanners.length) return;
-    const next = (i + safeBanners.length) % safeBanners.length;
-    setIndex(next);
-  };
-
-  const next = () => goTo(index + 1);
-  const prev = () => goTo(index - 1);
-
-  useEffect(() => {
-    const id = banner?.id_banner;
-    if (!id) return;
-
-    const now = Date.now();
-    const last = lastViewRef.current[id] || 0;
-
-    if (now - last < viewCooldownMs) return;
-
-    lastViewRef.current[id] = now;
-
-    api.put(rotas.banners.incrementarView(id)).catch(() => {});
-  }, [banner?.id_banner]);
-
-  const possuiLink = !!banner?.link && banner.link !== "#";
-
-  const handleClick = async () => {
-    if (!possuiLink) return;
-
-    const id = banner?.id_banner;
-    const link = String(banner?.link);
-
-    if (id && !clickLockRef.current) {
-      clickLockRef.current = true;
-
-      api.put(rotas.banners.incrementarClick(id)).catch(() => {});
-
-      window.setTimeout(() => {
-        clickLockRef.current = false;
-      }, 800);
-    }
-
-    if (/^https?:\/\//i.test(link)) {
-      window.location.href = link;
-      return;
-    }
-
-    router.push(link);
-  };
-
-  useEffect(() => {
-    if (!hasMany || isHover) return;
-
-    timerRef.current = window.setInterval(() => {
-      setIndex((prev) => (prev + 1) % safeBanners.length);
-    }, intervalMs);
+    timer.current = window.setInterval(() => {
+      setIndex((i) => (i + 1) % safe.length);
+    }, 5000);
 
     return () => {
-      if (timerRef.current) window.clearInterval(timerRef.current);
-      timerRef.current = null;
+      if (timer.current) clearInterval(timer.current);
     };
-  }, [hasMany, isHover, safeBanners.length]);
+  }, [many, hover, safe.length]);
 
-  useEffect(() => {
-    if (!hasMany) return;
+  const item = safe[index];
 
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") next();
-      if (e.key === "ArrowLeft") prev();
-    };
+  const imgUrl = useMemo(() => {
+    if (!item?.imagem) return null;
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [hasMany, index]);
+    if (item.imagem.startsWith("http")) return item.imagem;
+
+    const base = api.defaults.baseURL?.replace(/\/$/, "");
+    return `${base}/${item.imagem.replace(/^\/+/, "")}`;
+  }, [item?.imagem]);
+
+  const go = (i: number) => {
+    if (!safe.length) return;
+    setIndex((i + safe.length) % safe.length);
+  };
+
+  const click = () => {
+    if (!item?.link) return;
+
+    if (item.link.startsWith("http")) {
+      window.location.href = item.link;
+    } else {
+      router.push(item.link);
+    }
+  };
 
   if (loading) {
-    return (
-      <section className="banner-loading" aria-label="Carregando banner">
-        <div className="banner-loading-shine" />
-      </section>
-    );
+    return <div className={styles.loading} />;
   }
 
-  if (erro || !safeBanners.length || !imagemUrl) {
-    return null;
-  }
+  if (!imgUrl) return null;
 
   return (
     <section
-      className={`banner-v2 ${isHover ? "paused" : ""}`}
-      onMouseEnter={() => setIsHover(true)}
-      onMouseLeave={() => setIsHover(false)}
-      aria-label="Banner principal"
+      className={styles.banner}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
     >
-      <div className="banner-v2__inner">
-        <div className="banner-v2__content">
-          <span className="banner-v2__badge">Destaque</span>
+      <div className={styles.inner}>
+        <div className={styles.text}>
+          <span className={styles.tag}>Destaque</span>
 
-          <h1 className="banner-v2__title">{banner?.titulo || ""}</h1>
+          <h1 className={styles.title}>{item?.titulo}</h1>
 
-          {banner?.descricao && (
-            <p className="banner-v2__description">{banner.descricao}</p>
+          {item?.descricao && (
+            <p className={styles.desc}>{item.descricao}</p>
           )}
 
-          <div className="banner-v2__actions">
-            {possuiLink ? (
-              <>
-                <button
-                  type="button"
-                  className="banner-v2__btn banner-v2__btn--primary"
-                  onClick={handleClick}
-                >
-                  Acessar
-                  <FiChevronRight size={18} />
-                </button>
-
-                <button
-                  type="button"
-                  className="banner-v2__btn banner-v2__btn--secondary"
-                  onClick={handleClick}
-                >
-                  Ver mais
-                  <FiChevronRight size={18} />
-                </button>
-              </>
-            ) : (
-              <button
-                type="button"
-                className="banner-v2__btn banner-v2__btn--secondary"
-                disabled
-              >
-                Saiba mais
-              </button>
-            )}
-          </div>
+          {item?.link && (
+            <button className={styles.btn} onClick={click}>
+              Ver mais
+            </button>
+          )}
         </div>
 
-        <div className="banner-v2__media">
-          <div className="banner-v2__imageWrap">
+        <div className={styles.media}>
+          <div className={styles.imageWrap}>
             <img
-              src={imagemUrl}
-              alt={banner?.titulo || "Banner"}
-              className={`banner-v2__image ${possuiLink ? "is-clickable" : ""}`}
-              onClick={possuiLink ? handleClick : undefined}
+              src={imgUrl}
+              alt={item?.titulo || "Banner"}
+              className={styles.img}
+              onClick={click}
             />
           </div>
         </div>
       </div>
 
-      {hasMany && (
+      {many && (
         <>
-          <button
-            type="button"
-            className="banner-v2__arrow banner-v2__arrow--left"
-            onClick={prev}
-            aria-label="Banner anterior"
-          >
-            <FiChevronLeft size={24} />
+          <button className={styles.prev} onClick={() => go(index - 1)}>
+            <FiChevronLeft />
           </button>
 
-          <button
-            type="button"
-            className="banner-v2__arrow banner-v2__arrow--right"
-            onClick={next}
-            aria-label="Próximo banner"
-          >
-            <FiChevronRight size={24} />
+          <button className={styles.next} onClick={() => go(index + 1)}>
+            <FiChevronRight />
           </button>
 
-          <div className="banner-v2__dots">
-            {safeBanners.map((item, i) => (
+          <div className={styles.dots}>
+            {safe.map((_, i) => (
               <button
-                key={item.id_banner ?? i}
-                type="button"
-                className={`banner-v2__dot ${i === index ? "active" : ""}`}
+                key={i}
+                className={`${styles.dot} ${i === index ? styles.active : ""}`}
                 onClick={() => setIndex(i)}
-                aria-label={`Ir para o banner ${i + 1}`}
               />
             ))}
           </div>
