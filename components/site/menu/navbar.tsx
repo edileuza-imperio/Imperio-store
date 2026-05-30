@@ -7,10 +7,6 @@ import {
   FiShoppingCart,
   FiUser,
   FiX,
-  FiLogOut,
-  FiGrid,
-  FiPackage,
-  FiSettings,
   FiMenu,
   FiTag,
   FiHome,
@@ -149,7 +145,9 @@ export default function Navbar() {
   }
 
   const carrinho = useMemo(() => {
-    return menus.find((m) => m.nome?.toLowerCase()?.trim() === "carrinho") || null;
+    return (
+      menus.find((m) => m.nome?.toLowerCase()?.trim() === "carrinho") || null
+    );
   }, [menus]);
 
   const login = useMemo(() => {
@@ -161,17 +159,18 @@ export default function Navbar() {
   }, [menus]);
 
   const contatoMenu = useMemo(() => {
-    return menus.find((m) => m.nome?.toLowerCase()?.includes("contato")) || null;
+    return (
+      menus.find((m) => m.nome?.toLowerCase()?.includes("contato")) || null
+    );
   }, [menus]);
 
   const renderIcon = (name: string | null, size = 16) => {
     if (!name) return null;
 
     const Icon = (FiIcons as any)[name] || (BiIcons as any)[name];
-
     if (!Icon) return null;
 
-    return <Icon size={size} />;
+    return <Icon size={size} aria-hidden="true" focusable="false" />;
   };
 
   const normalizeImg = (src?: string | null) => {
@@ -201,23 +200,23 @@ export default function Navbar() {
     {
       label: "Início",
       href: "/",
-      icon: <FiHome size={18} />,
+      icon: <FiHome size={18} aria-hidden="true" focusable="false" />,
     },
     {
       label: "Carrinho",
       href: carrinho?.rota || "/carrinho",
-      icon: <FiShoppingCart size={18} />,
+      icon: <FiShoppingCart size={18} aria-hidden="true" focusable="false" />,
       badge: quantidadeCarrinho > 0 ? quantidadeCarrinho : 0,
     },
     {
       label: "Pedidos",
       href: pedidoMenu?.rota || "/pedidos",
-      icon: <FiShoppingBag size={18} />,
+      icon: <FiShoppingBag size={18} aria-hidden="true" focusable="false" />,
     },
     {
       label: "Ajuda",
       href: contatoMenu?.rota || "/contato",
-      icon: <FiHelpCircle size={18} />,
+      icon: <FiHelpCircle size={18} aria-hidden="true" focusable="false" />,
     },
   ];
 
@@ -228,7 +227,11 @@ export default function Navbar() {
       >
         <div className={styles.desktopNavbar}>
           <div className={styles.brand}>
-            <Link href="/" className={styles.logo}>
+            <Link
+              href="/"
+              className={styles.logo}
+              aria-label="Ir para a página inicial"
+            >
               <span className={styles.logoDark}>{titulo1}</span>
               <span className={styles.logoPink}>{titulo2}</span>
             </Link>
@@ -238,13 +241,14 @@ export default function Navbar() {
 
           <div className={styles.searchWrapper}>
             <div className={styles.searchBar}>
-              <FiSearch size={18} />
+              <FiSearch size={18} aria-hidden="true" focusable="false" />
 
               <input
                 type="text"
                 value={pesquisa}
                 onChange={(e) => setPesquisa(e.target.value)}
                 placeholder="Buscar produtos..."
+                aria-label="Buscar produtos"
               />
 
               {pesquisa.trim() !== "" && (
@@ -253,8 +257,9 @@ export default function Navbar() {
                   className={styles.clearBtn}
                   onClick={() => setPesquisa("")}
                   aria-label="Limpar busca"
+                  title="Limpar busca"
                 >
-                  <FiX size={14} />
+                  <FiX size={14} aria-hidden="true" focusable="false" />
                 </button>
               )}
             </div>
@@ -267,6 +272,9 @@ export default function Navbar() {
                   className={styles.userBtn}
                   onClick={() => setDropdown(!dropdown)}
                   type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={dropdown}
+                  aria-label={`Abrir menu do usuário: ${usuario.nome}`}
                 >
                   <div className={styles.userAvatar}>
                     {usuario.nome?.charAt(0)?.toUpperCase()}
@@ -279,7 +287,7 @@ export default function Navbar() {
                 </button>
 
                 {dropdown && (
-                  <div className={styles.dropdownMenu}>
+                  <div className={styles.dropdownMenu} role="menu">
                     {login?.itens
                       ?.slice()
                       .sort((a, b) => a.posicao - b.posicao)
@@ -293,6 +301,7 @@ export default function Navbar() {
                               className={styles.dropdownItem}
                               onClick={logout}
                               type="button"
+                              role="menuitem"
                             >
                               {renderIcon(item.icone, 16)}
                               <span>{item.nome}</span>
@@ -306,6 +315,7 @@ export default function Navbar() {
                             href={item.rota}
                             className={styles.dropdownItem}
                             onClick={() => setDropdown(false)}
+                            role="menuitem"
                           >
                             {renderIcon(item.icone, 16)}
                             <span>{item.nome}</span>
@@ -317,17 +327,35 @@ export default function Navbar() {
               </div>
             ) : (
               login && (
-                <Link href={login.rota} className={styles.iconBtn}>
-                  <FiUser size={18} />
+                <Link
+                  href={login.rota}
+                  className={styles.iconBtn}
+                  aria-label="Entrar na conta"
+                  title="Entrar"
+                >
+                  <FiUser size={18} aria-hidden="true" focusable="false" />
                   <span>Entrar</span>
                 </Link>
               )
             )}
 
             {carrinho && (
-              <Link href={carrinho.rota} className={styles.cartButton}>
+              <Link
+                href={carrinho.rota}
+                className={styles.cartButton}
+                aria-label={
+                  quantidadeCarrinho > 0
+                    ? `Ver carrinho de compras, ${quantidadeCarrinho} item(s)`
+                    : "Ver carrinho de compras"
+                }
+                title="Carrinho"
+              >
                 <div className={styles.cartWrapper}>
-                  <FiShoppingCart size={21} />
+                  <FiShoppingCart
+                    size={21}
+                    aria-hidden="true"
+                    focusable="false"
+                  />
 
                   {quantidadeCarrinho > 0 && (
                     <span className={styles.badge}>{quantidadeCarrinho}</span>
@@ -349,12 +377,17 @@ export default function Navbar() {
             onClick={() => setOpenMenu(true)}
             type="button"
             aria-label="Abrir menu"
+            title="Abrir menu"
           >
-            <FiMenu size={22} />
+            <FiMenu size={22} aria-hidden="true" focusable="false" />
           </button>
 
           <div className={styles.mobileBrand}>
-            <Link href="/" className={styles.mobileLogo}>
+            <Link
+              href="/"
+              className={styles.mobileLogo}
+              aria-label="Ir para a página inicial"
+            >
               <span className={styles.logoDark}>{titulo1}</span>
               <span className={styles.logoPink}>{titulo2}</span>
             </Link>
@@ -369,6 +402,9 @@ export default function Navbar() {
                   className={styles.mobileUserBtn}
                   onClick={() => setDropdown(!dropdown)}
                   type="button"
+                  aria-haspopup="menu"
+                  aria-expanded={dropdown}
+                  aria-label={`Abrir menu do usuário: ${usuario.nome}`}
                 >
                   <div className={styles.mobileAvatar}>
                     {usuario.nome?.charAt(0)?.toUpperCase()}
@@ -378,7 +414,7 @@ export default function Navbar() {
                 </button>
 
                 {dropdown && (
-                  <div className={styles.mobileDropdown}>
+                  <div className={styles.mobileDropdown} role="menu">
                     {login?.itens
                       ?.slice()
                       .sort((a, b) => a.posicao - b.posicao)
@@ -392,6 +428,7 @@ export default function Navbar() {
                               className={styles.mobileDropdownItem}
                               onClick={logout}
                               type="button"
+                              role="menuitem"
                             >
                               {renderIcon(item.icone, 16)}
                               <span>{item.nome}</span>
@@ -405,6 +442,7 @@ export default function Navbar() {
                             href={item.rota}
                             className={styles.mobileDropdownItem}
                             onClick={() => setDropdown(false)}
+                            role="menuitem"
                           >
                             {renderIcon(item.icone, 16)}
                             <span>{item.nome}</span>
@@ -416,16 +454,30 @@ export default function Navbar() {
               </div>
             ) : (
               login && (
-                <Link href={login.rota} className={styles.mobileBtn}>
-                  <FiUser size={17} />
+                <Link
+                  href={login.rota}
+                  className={styles.mobileBtn}
+                  aria-label="Entrar na conta"
+                  title="Entrar"
+                >
+                  <FiUser size={17} aria-hidden="true" focusable="false" />
                 </Link>
               )
             )}
 
             {carrinho && (
-              <Link href={carrinho.rota} className={styles.mobileCartBtn}>
+              <Link
+                href={carrinho.rota}
+                className={styles.mobileCartBtn}
+                aria-label={
+                  quantidadeCarrinho > 0
+                    ? `Ver carrinho de compras, ${quantidadeCarrinho} item(s)`
+                    : "Ver carrinho de compras"
+                }
+                title="Carrinho"
+              >
                 <div className={styles.cartWrapper}>
-                  <FiShoppingCart size={18} />
+                  <FiShoppingCart size={18} aria-hidden="true" focusable="false" />
 
                   {quantidadeCarrinho > 0 && (
                     <span className={styles.badge}>{quantidadeCarrinho}</span>
@@ -438,13 +490,14 @@ export default function Navbar() {
 
         <div className={styles.mobileSearch}>
           <div className={styles.searchBar}>
-            <FiSearch size={16} />
+            <FiSearch size={16} aria-hidden="true" focusable="false" />
 
             <input
               type="text"
               value={pesquisa}
               onChange={(e) => setPesquisa(e.target.value)}
               placeholder="Buscar produtos..."
+              aria-label="Buscar produtos"
             />
 
             {pesquisa.trim() !== "" && (
@@ -453,8 +506,9 @@ export default function Navbar() {
                 className={styles.clearBtn}
                 onClick={() => setPesquisa("")}
                 aria-label="Limpar busca"
+                title="Limpar busca"
               >
-                <FiX size={14} />
+                <FiX size={14} aria-hidden="true" focusable="false" />
               </button>
             )}
           </div>
@@ -468,6 +522,7 @@ export default function Navbar() {
 
       <aside
         className={`${styles.sidebar} ${openMenu ? styles.sidebarOpen : ""}`}
+        aria-label="Menu lateral"
       >
         <div className={styles.sidebarHeader}>
           <div>
@@ -482,8 +537,9 @@ export default function Navbar() {
             onClick={() => setOpenMenu(false)}
             type="button"
             aria-label="Fechar menu"
+            title="Fechar menu"
           >
-            <FiX size={22} />
+            <FiX size={22} aria-hidden="true" focusable="false" />
           </button>
         </div>
 
@@ -502,7 +558,7 @@ export default function Navbar() {
           ) : (
             <div className={styles.sidebarGuestCard}>
               <div className={styles.sidebarGuestIcon}>
-                <FiUser size={20} />
+                <FiUser size={20} aria-hidden="true" focusable="false" />
               </div>
 
               <div className={styles.sidebarUserData}>
@@ -523,14 +579,13 @@ export default function Navbar() {
                   className={styles.quickAction}
                   onClick={() => setOpenMenu(false)}
                 >
-                  <span className={styles.quickActionIcon}>
-                    {item.icon}
-                    {item.badge && item.badge > 0 && (
-                      <span className={styles.quickBadge}>{item.badge}</span>
-                    )}
-                  </span>
+                  <span className={styles.quickActionIcon}>{item.icon}</span>
 
                   <span className={styles.quickActionLabel}>{item.label}</span>
+
+                  {item.badge && item.badge > 0 && (
+                    <span className={styles.quickBadge}>{item.badge}</span>
+                  )}
                 </Link>
               ))}
             </div>
@@ -540,20 +595,23 @@ export default function Navbar() {
             <div className={styles.sectionTitle}>Procurar categoria</div>
 
             <div className={styles.sidebarSearchBox}>
-              <FiSearch size={16} />
+              <FiSearch size={16} aria-hidden="true" focusable="false" />
               <input
                 type="text"
                 value={sidebarPesquisa}
                 onChange={(e) => setSidebarPesquisa(e.target.value)}
                 placeholder="Filtrar categorias..."
+                aria-label="Filtrar categorias"
               />
               {sidebarPesquisa.trim() !== "" && (
                 <button
                   type="button"
                   className={styles.sidebarClearBtn}
                   onClick={() => setSidebarPesquisa("")}
+                  aria-label="Limpar filtro"
+                  title="Limpar filtro"
                 >
-                  <FiX size={14} />
+                  <FiX size={14} aria-hidden="true" focusable="false" />
                 </button>
               )}
             </div>
@@ -596,7 +654,7 @@ export default function Navbar() {
                             className={styles.categoryImage}
                           />
                         ) : (
-                          <FiTag size={18} />
+                          <FiTag size={18} aria-hidden="true" focusable="false" />
                         )}
                       </div>
 
@@ -608,6 +666,8 @@ export default function Navbar() {
                       <FiChevronRight
                         size={16}
                         className={styles.categoryArrow}
+                        aria-hidden="true"
+                        focusable="false"
                       />
                     </Link>
                   );
