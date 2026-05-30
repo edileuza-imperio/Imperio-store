@@ -14,7 +14,6 @@ import {
   FiHelpCircle,
   FiChevronRight,
 } from "react-icons/fi";
-
 import * as FiIcons from "react-icons/fi";
 import * as BiIcons from "react-icons/bi";
 
@@ -68,6 +67,18 @@ type BootstrapNavbar = {
   carrinho_total?: number;
 };
 
+function normalizarRota(rota?: string | null) {
+  if (!rota) return "/";
+  const valor = rota.trim();
+  if (!valor) return "/";
+  if (valor.startsWith("http://") || valor.startsWith("https://")) return valor;
+
+  // mantém query/hash, mas normaliza o caminho
+  const [path, resto = ""] = valor.split(/([?#].*)/, 2);
+  const caminho = path.startsWith("/") ? path : `/${path}`;
+  return `${caminho.toLowerCase()}${resto || ""}`;
+}
+
 export default function Navbar() {
   const [menus, setMenus] = useState<Menu[]>([]);
   const [usuario, setUsuario] = useState<Usuario | null>(null);
@@ -83,13 +94,8 @@ export default function Navbar() {
   useEffect(() => {
     carregarBootstrap();
 
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 8);
-    };
-
-    const atualizarNavbar = () => {
-      carregarBootstrap();
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 8);
+    const atualizarNavbar = () => carregarBootstrap();
 
     window.addEventListener("scroll", handleScroll);
     window.addEventListener("carrinhoAtualizado", atualizarNavbar);
@@ -107,8 +113,7 @@ export default function Navbar() {
       const bootstrap: BootstrapNavbar =
         res.data?.dados?.dados ?? res.data?.dados ?? {};
 
-      const menusDados = Array.isArray(bootstrap.menus) ? bootstrap.menus : [];
-      setMenus(menusDados);
+      setMenus(Array.isArray(bootstrap.menus) ? bootstrap.menus : []);
 
       const siteDados = bootstrap.site;
       if (Array.isArray(siteDados)) {
@@ -117,11 +122,7 @@ export default function Navbar() {
         setSite((siteDados as SiteConfig) || null);
       }
 
-      const categoriasDados = Array.isArray(bootstrap.categorias)
-        ? bootstrap.categorias
-        : [];
-      setCategorias(categoriasDados);
-
+      setCategorias(Array.isArray(bootstrap.categorias) ? bootstrap.categorias : []);
       setUsuario(bootstrap.usuario || null);
       setQuantidadeCarrinho(Number(bootstrap.carrinho_total || 0));
     } catch {
@@ -144,105 +145,80 @@ export default function Navbar() {
     }
   }
 
-  const carrinho = useMemo(() => {
-    return (
-      menus.find((m) => m.nome?.toLowerCase()?.trim() === "carrinho") || null
-    );
-  }, [menus]);
+  const carrinho = useMemo(
+    () => menus.find((m) => m.nome?.toLowerCase()?.trim() === "carrinho") || null,
+    [menus]
+  );
 
-  const login = useMemo(() => {
-    return menus.find((m) => m.nome?.toLowerCase()?.trim() === "login") || null;
-  }, [menus]);
+  const login = useMemo(
+    () => menus.find((m) => m.nome?.toLowerCase()?.trim() === "login") || null,
+    [menus]
+  );
 
-  const pedidoMenu = useMemo(() => {
-    return menus.find((m) => m.nome?.toLowerCase()?.includes("pedido")) || null;
-  }, [menus]);
+  const pedidoMenu = useMemo(
+    () => menus.find((m) => m.nome?.toLowerCase()?.includes("pedido")) || null,
+    [menus]
+  );
 
-  const contatoMenu = useMemo(() => {
-    return (
-      menus.find((m) => m.nome?.toLowerCase()?.includes("contato")) || null
-    );
-  }, [menus]);
+  const contatoMenu = useMemo(
+    () => menus.find((m) => m.nome?.toLowerCase()?.includes("contato")) || null,
+    [menus]
+  );
 
   const renderIcon = (name: string | null, size = 16) => {
     if (!name) return null;
-
     const Icon = (FiIcons as any)[name] || (BiIcons as any)[name];
     if (!Icon) return null;
-
     return <Icon size={size} aria-hidden="true" focusable="false" />;
-  };
-
-  const normalizeImg = (src?: string | null) => {
-    if (!src) return null;
-    if (src.startsWith("http://") || src.startsWith("https://")) return src;
-    if (src.startsWith("/")) return src;
-    return `/${src}`;
   };
 
   const titulo = site?.titulo || "Universo Império";
   const subtitulo = site?.subtitulo || "DECORAÇÕES & EVENTOS";
-  const tituloSplit = titulo.split(" ");
-  const titulo1 = tituloSplit[0] || "Universo";
-  const titulo2 = tituloSplit[1] || "Império";
+  const [titulo1, titulo2 = "Império"] = titulo.split(" ");
 
   const categoriasFiltradas = categorias.filter((categoria) => {
     const nome = (categoria.nome || "").toLowerCase();
     const slug = (categoria.slug || "").toLowerCase();
     const filtro = sidebarPesquisa.toLowerCase().trim();
-
     if (!filtro) return true;
-
     return nome.includes(filtro) || slug.includes(filtro);
   });
 
   const actions = [
-    {
-      label: "Início",
-      href: "/",
-      icon: <FiHome size={18} aria-hidden="true" focusable="false" />,
-    },
+    { label: "Início", href: "/", icon: <FiHome size={18} aria-hidden="true" focusable="false" /> },
     {
       label: "Carrinho",
-      href: carrinho?.rota || "/carrinho",
+      href: normalizarRota(carrinho?.rota || "/carrinho"),
       icon: <FiShoppingCart size={18} aria-hidden="true" focusable="false" />,
       badge: quantidadeCarrinho > 0 ? quantidadeCarrinho : 0,
     },
     {
       label: "Pedidos",
-      href: pedidoMenu?.rota || "/pedidos",
+      href: normalizarRota(pedidoMenu?.rota || "/pedidos"),
       icon: <FiShoppingBag size={18} aria-hidden="true" focusable="false" />,
     },
     {
       label: "Ajuda",
-      href: contatoMenu?.rota || "/contato",
+      href: normalizarRota(contatoMenu?.rota || "/"),
       icon: <FiHelpCircle size={18} aria-hidden="true" focusable="false" />,
     },
   ];
 
   return (
     <>
-      <header
-        className={`${styles.header} ${scrolled ? styles.headerScrolled : ""}`}
-      >
+      <header className={`${styles.header} ${scrolled ? styles.headerScrolled : ""}`}>
         <div className={styles.desktopNavbar}>
           <div className={styles.brand}>
-            <Link
-              href="/"
-              className={styles.logo}
-              aria-label="Ir para a página inicial"
-            >
+            <Link href="/" className={styles.logo} aria-label="Ir para a página inicial">
               <span className={styles.logoDark}>{titulo1}</span>
               <span className={styles.logoPink}>{titulo2}</span>
             </Link>
-
             <span className={styles.subtitle}>{subtitulo}</span>
           </div>
 
           <div className={styles.searchWrapper}>
             <div className={styles.searchBar}>
               <FiSearch size={18} aria-hidden="true" focusable="false" />
-
               <input
                 type="text"
                 value={pesquisa}
@@ -250,7 +226,6 @@ export default function Navbar() {
                 placeholder="Buscar produtos..."
                 aria-label="Buscar produtos"
               />
-
               {pesquisa.trim() !== "" && (
                 <button
                   type="button"
@@ -279,7 +254,6 @@ export default function Navbar() {
                   <div className={styles.userAvatar}>
                     {usuario.nome?.charAt(0)?.toUpperCase()}
                   </div>
-
                   <div className={styles.userInfo}>
                     <span>Olá,</span>
                     <strong>{usuario.nome}</strong>
@@ -312,7 +286,7 @@ export default function Navbar() {
                         return (
                           <Link
                             key={item.id_item}
-                            href={item.rota}
+                            href={normalizarRota(item.rota)}
                             className={styles.dropdownItem}
                             onClick={() => setDropdown(false)}
                             role="menuitem"
@@ -328,7 +302,7 @@ export default function Navbar() {
             ) : (
               login && (
                 <Link
-                  href={login.rota}
+                  href={normalizarRota(login.rota)}
                   className={styles.iconBtn}
                   aria-label="Entrar na conta"
                   title="Entrar"
@@ -341,27 +315,15 @@ export default function Navbar() {
 
             {carrinho && (
               <Link
-                href={carrinho.rota}
+                href={normalizarRota(carrinho.rota)}
                 className={styles.cartButton}
-                aria-label={
-                  quantidadeCarrinho > 0
-                    ? `Ver carrinho de compras, ${quantidadeCarrinho} item(s)`
-                    : "Ver carrinho de compras"
-                }
+                aria-label={quantidadeCarrinho > 0 ? `Ver carrinho de compras, ${quantidadeCarrinho} item(s)` : "Ver carrinho de compras"}
                 title="Carrinho"
               >
                 <div className={styles.cartWrapper}>
-                  <FiShoppingCart
-                    size={21}
-                    aria-hidden="true"
-                    focusable="false"
-                  />
-
-                  {quantidadeCarrinho > 0 && (
-                    <span className={styles.badge}>{quantidadeCarrinho}</span>
-                  )}
+                  <FiShoppingCart size={21} aria-hidden="true" focusable="false" />
+                  {quantidadeCarrinho > 0 && <span className={styles.badge}>{quantidadeCarrinho}</span>}
                 </div>
-
                 <div className={styles.cartInfo}>
                   <span className={styles.cartLabel}>Meu</span>
                   <span className={styles.cartTotal}>Carrinho</span>
@@ -383,15 +345,10 @@ export default function Navbar() {
           </button>
 
           <div className={styles.mobileBrand}>
-            <Link
-              href="/"
-              className={styles.mobileLogo}
-              aria-label="Ir para a página inicial"
-            >
+            <Link href="/" className={styles.mobileLogo} aria-label="Ir para a página inicial">
               <span className={styles.logoDark}>{titulo1}</span>
               <span className={styles.logoPink}>{titulo2}</span>
             </Link>
-
             <span className={styles.mobileSubtitle}>{subtitulo}</span>
           </div>
 
@@ -409,7 +366,6 @@ export default function Navbar() {
                   <div className={styles.mobileAvatar}>
                     {usuario.nome?.charAt(0)?.toUpperCase()}
                   </div>
-
                   <span className={styles.mobileUserName}>{usuario.nome}</span>
                 </button>
 
@@ -439,7 +395,7 @@ export default function Navbar() {
                         return (
                           <Link
                             key={item.id_item}
-                            href={item.rota}
+                            href={normalizarRota(item.rota)}
                             className={styles.mobileDropdownItem}
                             onClick={() => setDropdown(false)}
                             role="menuitem"
@@ -455,7 +411,7 @@ export default function Navbar() {
             ) : (
               login && (
                 <Link
-                  href={login.rota}
+                  href={normalizarRota(login.rota)}
                   className={styles.mobileBtn}
                   aria-label="Entrar na conta"
                   title="Entrar"
@@ -467,219 +423,20 @@ export default function Navbar() {
 
             {carrinho && (
               <Link
-                href={carrinho.rota}
+                href={normalizarRota(carrinho.rota)}
                 className={styles.mobileCartBtn}
-                aria-label={
-                  quantidadeCarrinho > 0
-                    ? `Ver carrinho de compras, ${quantidadeCarrinho} item(s)`
-                    : "Ver carrinho de compras"
-                }
+                aria-label={quantidadeCarrinho > 0 ? `Ver carrinho de compras, ${quantidadeCarrinho} item(s)` : "Ver carrinho de compras"}
                 title="Carrinho"
               >
                 <div className={styles.cartWrapper}>
                   <FiShoppingCart size={18} aria-hidden="true" focusable="false" />
-
-                  {quantidadeCarrinho > 0 && (
-                    <span className={styles.badge}>{quantidadeCarrinho}</span>
-                  )}
+                  {quantidadeCarrinho > 0 && <span className={styles.badge}>{quantidadeCarrinho}</span>}
                 </div>
               </Link>
             )}
           </div>
         </div>
-
-        <div className={styles.mobileSearch}>
-          <div className={styles.searchBar}>
-            <FiSearch size={16} aria-hidden="true" focusable="false" />
-
-            <input
-              type="text"
-              value={pesquisa}
-              onChange={(e) => setPesquisa(e.target.value)}
-              placeholder="Buscar produtos..."
-              aria-label="Buscar produtos"
-            />
-
-            {pesquisa.trim() !== "" && (
-              <button
-                type="button"
-                className={styles.clearBtn}
-                onClick={() => setPesquisa("")}
-                aria-label="Limpar busca"
-                title="Limpar busca"
-              >
-                <FiX size={14} aria-hidden="true" focusable="false" />
-              </button>
-            )}
-          </div>
-        </div>
       </header>
-
-      <div
-        className={`${styles.overlay} ${openMenu ? styles.overlayShow : ""}`}
-        onClick={() => setOpenMenu(false)}
-      />
-
-      <aside
-        className={`${styles.sidebar} ${openMenu ? styles.sidebarOpen : ""}`}
-        aria-label="Menu lateral"
-      >
-        <div className={styles.sidebarHeader}>
-          <div>
-            <h2>Menu</h2>
-            <span className={styles.sidebarSubtitle}>
-              Acesse tudo em um só lugar
-            </span>
-          </div>
-
-          <button
-            className={styles.closeBtn}
-            onClick={() => setOpenMenu(false)}
-            type="button"
-            aria-label="Fechar menu"
-            title="Fechar menu"
-          >
-            <FiX size={22} aria-hidden="true" focusable="false" />
-          </button>
-        </div>
-
-        <div className={styles.sidebarContent}>
-          {usuario ? (
-            <div className={styles.sidebarUserCard}>
-              <div className={styles.sidebarAvatarLarge}>
-                {usuario.nome?.charAt(0)?.toUpperCase()}
-              </div>
-
-              <div className={styles.sidebarUserData}>
-                <strong>{usuario.nome}</strong>
-                <span>{usuario.email}</span>
-              </div>
-            </div>
-          ) : (
-            <div className={styles.sidebarGuestCard}>
-              <div className={styles.sidebarGuestIcon}>
-                <FiUser size={20} aria-hidden="true" focusable="false" />
-              </div>
-
-              <div className={styles.sidebarUserData}>
-                <strong>Bem-vindo</strong>
-                <span>Entre para ver seus pedidos e favoritos</span>
-              </div>
-            </div>
-          )}
-
-          <div className={styles.quickSection}>
-            <div className={styles.sectionTitle}>Atalhos rápidos</div>
-
-            <div className={styles.quickGrid}>
-              {actions.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className={styles.quickAction}
-                  onClick={() => setOpenMenu(false)}
-                >
-                  <span className={styles.quickActionIcon}>{item.icon}</span>
-
-                  <span className={styles.quickActionLabel}>{item.label}</span>
-
-                  {item.badge && item.badge > 0 && (
-                    <span className={styles.quickBadge}>{item.badge}</span>
-                  )}
-                </Link>
-              ))}
-            </div>
-          </div>
-
-          <div className={styles.sidebarSearchBlock}>
-            <div className={styles.sectionTitle}>Procurar categoria</div>
-
-            <div className={styles.sidebarSearchBox}>
-              <FiSearch size={16} aria-hidden="true" focusable="false" />
-              <input
-                type="text"
-                value={sidebarPesquisa}
-                onChange={(e) => setSidebarPesquisa(e.target.value)}
-                placeholder="Filtrar categorias..."
-                aria-label="Filtrar categorias"
-              />
-              {sidebarPesquisa.trim() !== "" && (
-                <button
-                  type="button"
-                  className={styles.sidebarClearBtn}
-                  onClick={() => setSidebarPesquisa("")}
-                  aria-label="Limpar filtro"
-                  title="Limpar filtro"
-                >
-                  <FiX size={14} aria-hidden="true" focusable="false" />
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className={styles.categoriesHeader}>
-            <div className={styles.sectionTitle}>Categorias</div>
-            <span className={styles.categoriesCount}>
-              {categoriasFiltradas.length}
-            </span>
-          </div>
-
-          <div className={styles.categoriesList}>
-            {categoriasFiltradas.length > 0 ? (
-              categoriasFiltradas
-                .slice()
-                .sort((a, b) => Number(a.ordem || 0) - Number(b.ordem || 0))
-                .map((categoria) => {
-                  const href = categoria.slug
-                    ? `/categoria/slug/${categoria.slug}`
-                    : "#";
-
-                  const img = normalizeImg(categoria.imagem);
-
-                  return (
-                    <Link
-                      key={
-                        categoria.id_categoria ?? categoria.slug ?? categoria.nome
-                      }
-                      href={href}
-                      className={styles.categoryItem}
-                      onClick={() => setOpenMenu(false)}
-                    >
-                      <div className={styles.categoryThumb}>
-                        {img ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={img}
-                            alt={categoria.nome || "Categoria"}
-                            className={styles.categoryImage}
-                          />
-                        ) : (
-                          <FiTag size={18} aria-hidden="true" focusable="false" />
-                        )}
-                      </div>
-
-                      <div className={styles.categoryInfo}>
-                        <strong>{categoria.nome || "Categoria"}</strong>
-                        <span>{categoria.slug || "ver produtos"}</span>
-                      </div>
-
-                      <FiChevronRight
-                        size={16}
-                        className={styles.categoryArrow}
-                        aria-hidden="true"
-                        focusable="false"
-                      />
-                    </Link>
-                  );
-                })
-            ) : (
-              <div className={styles.categoryEmpty}>
-                Nenhuma categoria encontrada.
-              </div>
-            )}
-          </div>
-        </div>
-      </aside>
     </>
   );
 }
