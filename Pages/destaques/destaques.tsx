@@ -29,8 +29,8 @@ import {
 import styles from "./Destaques.module.css";
 import { imagemFundo } from "@/components/Bibioteca/imagem";
 import { calcularEconomia, descobrirTipoItem, formatarPreco, normalizarDados, normalizarLista, obterMelhorImagem, temValor } from "@/hooks/destaque/functions";
-import { adicionarNoCarrinhoBanco, moverCarousel } from "@/pages/carrinho";
-import { useAutoplayRef, useCarouselRef } from "@/pages/vitrine.service";
+import { adicionarNoCarrinhoBanco, moverCarousel } from "@/hooks/carrinho";
+import { useAutoplayRef, useCarouselRef } from "@/hooks/vitrine.service";
 import SkeletonDestaques from "@/pages/destaque/SkeletonDestaques";
 import ModalCarrinho from "@/pages/destaque/modal/modal";
 export default function Destaques({
