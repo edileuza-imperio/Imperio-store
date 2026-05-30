@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 import api from "@/Api/conectar";
 import { rotas } from "@/components/Bibioteca/config/rotas";
@@ -20,7 +21,6 @@ type BannerItem = {
 export default function Banner() {
   const [banners, setBanners] = useState<BannerItem[]>([]);
   const [index, setIndex] = useState(0);
-
   const router = useRouter();
 
   useEffect(() => {
@@ -63,19 +63,11 @@ export default function Banner() {
     );
   }
 
-  const normalizeImage = (src: string) => {
-    if (!src) return "";
+  const imagemBanner = banner.imagem.startsWith("http")
+    ? banner.imagem
+    : `https://lightgrey-cattle-160990.hostingersite.com/${banner.imagem}`;
 
-    if (src.startsWith("http")) {
-      return src;
-    }
-
-    return `https://lightgrey-cattle-160990.hostingersite.com/${src}`;
-  };
-
-  const imagemBanner = normalizeImage(banner.imagem);
-
-  const goLink = () => {
+  function goLink() {
     if (!banner.link) return;
 
     if (banner.link.startsWith("http")) {
@@ -84,7 +76,7 @@ export default function Banner() {
     }
 
     router.push(banner.link);
-  };
+  }
 
   return (
     <section className={styles.banner}>
@@ -92,37 +84,28 @@ export default function Banner() {
 
       <div className={styles.inner}>
         <div className={styles.text}>
-          <span className={styles.tag}>
-            Universo Império
-          </span>
+          <span className={styles.tag}>Universo Império</span>
 
-          <h1 className={styles.title}>
-            {banner.titulo}
-          </h1>
+          <h1 className={styles.title}>{banner.titulo}</h1>
 
           {banner.descricao && (
-            <p className={styles.desc}>
-              {banner.descricao}
-            </p>
+            <p className={styles.desc}>{banner.descricao}</p>
           )}
 
-          <button
-            className={styles.btn}
-            onClick={goLink}
-          >
+          <button className={styles.btn} onClick={goLink}>
             Comprar Agora
           </button>
         </div>
 
         <div className={styles.media}>
-          <div
-            className={styles.imageWrap}
-            onClick={goLink}
-          >
-            <img
-              className={styles.img}
+          <div className={styles.imageWrap} onClick={goLink}>
+            <Image
               src={imagemBanner}
               alt={banner.titulo}
+              fill
+              priority
+              sizes="(max-width: 980px) 100vw, 50vw"
+              className={styles.img}
             />
           </div>
         </div>
