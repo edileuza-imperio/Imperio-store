@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
 import Link from "next/link";
 
@@ -34,151 +37,80 @@ function getImagemUrl(caminho?: string) {
 
 function resumoDescricao(texto?: string, limite = 88) {
   if (!texto) return "Produto disponível nesta categoria.";
-
   const limpa = texto.replace(/\s+/g, " ").trim();
-
   if (limpa.length <= limite) return limpa;
-
   return `${limpa.slice(0, limite).trim()}...`;
 }
 
-// 🔥 SERVER COMPONENT (SEM useParams, SEM use client)
-export default async function CategoriaPage({
+/* 👇 AQUI ESTÁ A CORREÇÃO */
+export default function CategoriaPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  let produtos: Produto[] = [];
+  const [id, setId] = useState<string>("");
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
 
-  try {
-    const res = await api.get(`/produtos/categoria/${params.id}`);
+  useEffect(() => {
+    params.then((p) => setId(p.id));
+  }, [params]);
 
-    const lista = Array.isArray(res.data?.dados)
-      ? res.data.dados
-      : Array.isArray(res.data)
-      ? res.data
-      : [];
+  useEffect(() => {
+    if (!id) return;
 
-    produtos = lista;
-  } catch (error) {
-    console.error("Erro ao carregar produtos:", error);
-  }
+    async function carregar() {
+      try {
+        setLoading(true);
+        setErro(null);
 
-  const nomeCategoria =
-    produtos[0]?.categoria_nome || "Categoria";
+        const res = await api.get(`/produtos/categoria/${id}`);
+
+        const lista = Array.isArray(res.data?.dados)
+          ? res.data.dados
+          : Array.isArray(res.data)
+          ? res.data
+          : [];
+
+        setProdutos(lista);
+      } catch (error) {
+        console.error(error);
+        setErro("Não foi possível carregar os produtos.");
+        setProdutos([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    carregar();
+  }, [id]);
+
+  const nomeCategoria = produtos[0]?.categoria_nome || "Categoria";
 
   return (
     <main className="page">
       <div className="container">
-        {/* BREADCRUMB */}
-        <div className="breadcrumb">
-          <Link href="/">Home</Link>
-          <span>›</span>
-          <Link href="/categoria">Categorias</Link>
-          <span>›</span>
-          <span>{nomeCategoria}</span>
+        <h1>{nomeCategoria}</h1>
+
+        {loading && <p>Carregando...</p>}
+        {erro && <p>{erro}</p>}
+
+        <div className="grid">
+          {produtos.map((produto) => (
+            <div key={produto.id_produto}>
+              <Link href={`/produto/${produto.slug || produto.id_produto}`}>
+                <img
+                  src={getImagemUrl(produto.imagem)}
+                  alt={produto.nome}
+                  width={200}
+                />
+                <h3>{produto.nome}</h3>
+                <p>{formatMoney(produto.preco)}</p>
+              </Link>
+            </div>
+          ))}
         </div>
-
-        {/* HERO */}
-        <section className="hero">
-          <h1>{nomeCategoria}</h1>
-          <p>
-            Explore nossa seleção de produtos desta categoria.
-          </p>
-
-          <div className="stat">
-            {produtos.length}{" "}
-            {produtos.length === 1 ? "Produto" : "Produtos"}
-          </div>
-        </section>
-
-        {/* EMPTY */}
-        {produtos.length === 0 && (
-          <div className="empty">
-            Nenhum produto encontrado.
-          </div>
-        )}
-
-        {/* GRID */}
-        <section className="grid">
-          {produtos.map((produto) => {
-            const precoPromocional = Number(
-              produto.preco_promocional || 0
-            );
-            const precoNormal = Number(produto.preco || 0);
-
-            const precoFinal =
-              precoPromocional > 0
-                ? precoPromocional
-                : precoNormal;
-
-            const semEstoque =
-              Number(produto.ilimitado || 0) !== 1 &&
-              Number(produto.estoque || 0) <= 0;
-
-            return (
-              <article key={produto.id_produto} className="card">
-                {/* IMAGE */}
-                <Link
-                  href={`/produto/${
-                    produto.slug || produto.id_produto
-                  }`}
-                >
-                  <img
-                    src={getImagemUrl(produto.imagem)}
-                    alt={produto.nome}
-                  />
-                </Link>
-
-                {/* INFO */}
-                <div className="info">
-                  <span className="cat">
-                    {produto.categoria_nome || nomeCategoria}
-                  </span>
-
-                  <Link
-                    href={`/produto/${
-                      produto.slug || produto.id_produto
-                    }`}
-                  >
-                    <h3>{produto.nome}</h3>
-                  </Link>
-
-                  <p>{resumoDescricao(produto.descricao)}</p>
-
-                  <div className="price">
-                    {precoPromocional > 0 && (
-                      <del>
-                        {formatMoney(precoNormal)}
-                      </del>
-                    )}
-
-                    <strong>
-                      {formatMoney(precoFinal)}
-                    </strong>
-                  </div>
-
-                  <div className="actions">
-                    <Link
-                      href={`/produto/${
-                        produto.slug || produto.id_produto
-                      }`}
-                      className="btn"
-                    >
-                      Ver produto
-                    </Link>
-
-                    {semEstoque && (
-                      <span className="out">
-                        Sem estoque
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </article>
-            );
-          })}
-        </section>
       </div>
     </main>
   );

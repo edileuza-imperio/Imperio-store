@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { FiArrowRight, FiLock, FiUserPlus, FiShield } from "react-icons/fi";
 import { toast } from "react-toastify";
-import api from "@/Api/conectar";
 
+import api from "@/Api/conectar";
 import styles from "./Login.module.css";
 import { imagemFundo } from "@/components/Bibioteca/imagem";
 
@@ -22,7 +22,7 @@ function normalizarDados<T = any>(payload: any): T | null {
   return payload?.dados?.dados ?? payload?.dados ?? payload ?? null;
 }
 
-export default function login() {
+export default function Login() {
   const [config, setConfig] = useState<ConfigLogin | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -34,14 +34,19 @@ export default function login() {
     async function carregarConfig() {
       try {
         const response = await api.get("/config-login");
+
         const dados = normalizarDados<ConfigLogin>(response?.data);
 
         if (!ativo) return;
 
         setConfig(dados);
       } catch (error) {
-        console.error(error);
-        toast.error("Erro ao carregar página");
+        console.error("Erro config-login:", error);
+
+        if (ativo) {
+          setConfig(null);
+          toast.error("Erro ao carregar página");
+        }
       } finally {
         if (ativo) setLoading(false);
       }

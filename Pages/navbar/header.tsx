@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import {
   FiSearch,
@@ -38,9 +38,10 @@ type Props = {
 };
 
 function getIcon(name?: string | null, size = 16) {
-  if (!name) return null;
+  const iconName = (name ?? "").trim();
+  if (!iconName) return null;
 
-  const Icon = (FiIcons as any)[name] || (BiIcons as any)[name];
+  const Icon = (FiIcons as any)[iconName] || (BiIcons as any)[iconName];
   if (!Icon) return null;
 
   return <Icon size={size} aria-hidden="true" focusable="false" />;
@@ -64,6 +65,13 @@ export default function NavbarHeader({
   const [openMenu, setOpenMenu] = useState(false);
 
   const closeMenu = () => setOpenMenu(false);
+
+  const safePesquisa = (pesquisa ?? "").trim();
+  const loginItems = useMemo(() => {
+    return Array.isArray(login?.itens)
+      ? [...login.itens].sort((a, b) => a.posicao - b.posicao)
+      : [];
+  }, [login]);
 
   const menuItems = [
     {
@@ -94,12 +102,16 @@ export default function NavbarHeader({
       <header className={`header ${scrolled ? "headerScrolled" : ""}`}>
         <div className="desktopNavbar">
           <div className="brand">
-            <Link href="/" className="logo" aria-label="Ir para a página inicial">
-              <span className="logoDark">{titulo1}</span>
-              <span className="logoPink">{titulo2}</span>
+            <Link
+              href="/"
+              className="logo"
+              aria-label="Ir para a página inicial"
+            >
+              <span className="logoDark">{titulo1 || "Universo"}</span>
+              <span className="logoPink">{titulo2 || "Império"}</span>
             </Link>
 
-            <span className="subtitle">{subtitulo}</span>
+            <span className="subtitle">{subtitulo || ""}</span>
           </div>
 
           <div className="searchWrapper">
@@ -114,7 +126,7 @@ export default function NavbarHeader({
                 aria-label="Buscar produtos"
               />
 
-              {pesquisa.trim() !== "" && (
+              {safePesquisa !== "" && (
                 <button
                   type="button"
                   className="clearBtn"
@@ -137,62 +149,59 @@ export default function NavbarHeader({
                   type="button"
                   aria-haspopup="menu"
                   aria-expanded={dropdown}
-                  aria-label={`Abrir menu do usuário: ${usuario.nome}`}
+                  aria-label={`Abrir menu do usuário: ${usuario?.nome ?? ""}`}
                 >
                   <div className="userAvatar">
-                    {usuario.nome?.charAt(0)?.toUpperCase()}
+                    {(usuario?.nome ?? "?").charAt(0)?.toUpperCase()}
                   </div>
 
                   <div className="userInfo">
                     <span>Olá,</span>
-                    <strong>{usuario.nome}</strong>
+                    <strong>{usuario?.nome ?? "Usuário"}</strong>
                   </div>
                 </button>
 
                 {dropdown && (
                   <div className="dropdownMenu" role="menu">
-                    {login?.itens
-                      ?.slice()
-                      .sort((a, b) => a.posicao - b.posicao)
-                      .map((item) => {
-                        const sair =
-                          item.nome?.toLowerCase()?.trim() === "sair";
+                    {loginItems.map((item) => {
+                      const nome = (item.nome ?? "").toLowerCase().trim();
+                      const sair = nome === "sair";
 
-                        if (sair) {
-                          return (
-                            <button
-                              key={item.id_item}
-                              onClick={logout}
-                              className="dropdownItem"
-                              type="button"
-                              role="menuitem"
-                            >
-                              {getIcon(item.icone, 16)}
-                              <span>{item.nome}</span>
-                            </button>
-                          );
-                        }
-
+                      if (sair) {
                         return (
-                          <Link
+                          <button
                             key={item.id_item}
-                            href={item.rota}
+                            onClick={logout}
                             className="dropdownItem"
-                            onClick={() => setDropdown(false)}
+                            type="button"
                             role="menuitem"
                           >
                             {getIcon(item.icone, 16)}
-                            <span>{item.nome}</span>
-                          </Link>
+                            <span>{item.nome ?? "Sair"}</span>
+                          </button>
                         );
-                      })}
+                      }
+
+                      return (
+                        <Link
+                          key={item.id_item}
+                          href={item.rota || "#"}
+                          className="dropdownItem"
+                          onClick={() => setDropdown(false)}
+                          role="menuitem"
+                        >
+                          {getIcon(item.icone, 16)}
+                          <span>{item.nome ?? "Item"}</span>
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
               </div>
             ) : (
               login && (
                 <Link
-                  href={login.rota}
+                  href={login.rota || "#"}
                   className="iconBtn"
                   aria-label="Entrar na conta"
                   title="Entrar"
@@ -205,7 +214,7 @@ export default function NavbarHeader({
 
             {carrinho && (
               <Link
-                href={carrinho.rota}
+                href={carrinho.rota || "/carrinho"}
                 className="cartButton"
                 aria-label={
                   quantidadeCarrinho > 0
@@ -254,11 +263,11 @@ export default function NavbarHeader({
               className="mobileLogo"
               aria-label="Ir para a página inicial"
             >
-              <span className="logoDark">{titulo1}</span>
-              <span className="logoPink">{titulo2}</span>
+              <span className="logoDark">{titulo1 || "Universo"}</span>
+              <span className="logoPink">{titulo2 || "Império"}</span>
             </Link>
 
-            <span className="mobileSubtitle">{subtitulo}</span>
+            <span className="mobileSubtitle">{subtitulo || ""}</span>
           </div>
 
           <div className="mobileRight">
@@ -270,59 +279,58 @@ export default function NavbarHeader({
                   type="button"
                   aria-haspopup="menu"
                   aria-expanded={dropdown}
-                  aria-label={`Abrir menu do usuário: ${usuario.nome}`}
+                  aria-label={`Abrir menu do usuário: ${usuario?.nome ?? ""}`}
                 >
                   <div className="mobileAvatar">
-                    {usuario.nome?.charAt(0)?.toUpperCase()}
+                    {(usuario?.nome ?? "?").charAt(0)?.toUpperCase()}
                   </div>
 
-                  <span className="mobileUserName">{usuario.nome}</span>
+                  <span className="mobileUserName">
+                    {usuario?.nome ?? "Usuário"}
+                  </span>
                 </button>
 
                 {dropdown && (
                   <div className="mobileDropdown" role="menu">
-                    {login?.itens
-                      ?.slice()
-                      .sort((a, b) => a.posicao - b.posicao)
-                      .map((item) => {
-                        const sair =
-                          item.nome?.toLowerCase()?.trim() === "sair";
+                    {loginItems.map((item) => {
+                      const nome = (item.nome ?? "").toLowerCase().trim();
+                      const sair = nome === "sair";
 
-                        if (sair) {
-                          return (
-                            <button
-                              key={item.id_item}
-                              className="mobileDropdownItem"
-                              onClick={logout}
-                              type="button"
-                              role="menuitem"
-                            >
-                              {getIcon(item.icone, 16)}
-                              <span>{item.nome}</span>
-                            </button>
-                          );
-                        }
-
+                      if (sair) {
                         return (
-                          <Link
+                          <button
                             key={item.id_item}
-                            href={item.rota}
                             className="mobileDropdownItem"
-                            onClick={() => setDropdown(false)}
+                            onClick={logout}
+                            type="button"
                             role="menuitem"
                           >
                             {getIcon(item.icone, 16)}
-                            <span>{item.nome}</span>
-                          </Link>
+                            <span>{item.nome ?? "Sair"}</span>
+                          </button>
                         );
-                      })}
+                      }
+
+                      return (
+                        <Link
+                          key={item.id_item}
+                          href={item.rota || "#"}
+                          className="mobileDropdownItem"
+                          onClick={() => setDropdown(false)}
+                          role="menuitem"
+                        >
+                          {getIcon(item.icone, 16)}
+                          <span>{item.nome ?? "Item"}</span>
+                        </Link>
+                      );
+                    })}
                   </div>
                 )}
               </div>
             ) : (
               login && (
                 <Link
-                  href={login.rota}
+                  href={login.rota || "#"}
                   className="mobileBtn"
                   aria-label="Entrar na conta"
                   title="Entrar"
@@ -334,7 +342,7 @@ export default function NavbarHeader({
 
             {carrinho && (
               <Link
-                href={carrinho.rota}
+                href={carrinho.rota || "/carrinho"}
                 className="mobileCartBtn"
                 aria-label={
                   quantidadeCarrinho > 0
@@ -371,7 +379,7 @@ export default function NavbarHeader({
               aria-label="Buscar produtos"
             />
 
-            {pesquisa.trim() !== "" && (
+            {safePesquisa !== "" && (
               <button
                 type="button"
                 className="clearBtn"
@@ -417,12 +425,12 @@ export default function NavbarHeader({
           {usuario ? (
             <div className="sidebarUserCard">
               <div className="sidebarAvatarLarge">
-                {usuario.nome?.charAt(0)?.toUpperCase()}
+                {(usuario?.nome ?? "?").charAt(0)?.toUpperCase()}
               </div>
 
               <div className="sidebarUserData">
-                <strong>{usuario.nome}</strong>
-                <span>{usuario.email}</span>
+                <strong>{usuario?.nome ?? "Usuário"}</strong>
+                <span>{usuario?.email ?? ""}</span>
               </div>
             </div>
           ) : (
@@ -460,8 +468,6 @@ export default function NavbarHeader({
               ))}
             </div>
           </div>
-
-          
         </div>
       </aside>
 
@@ -801,9 +807,6 @@ export default function NavbarHeader({
         .mobileUserBtn:focus-visible,
         .clearBtn:focus-visible,
         .quickAction:focus-visible,
-        .footerButton:focus-visible,
-        .footerButtonSecondary:focus-visible,
-        .footerButtonDanger:focus-visible,
         .closeBtn:focus-visible {
           outline: 3px solid rgba(181, 111, 90, 0.25);
           outline-offset: 2px;
@@ -1015,55 +1018,6 @@ export default function NavbarHeader({
           align-items: center;
           justify-content: center;
           border: 2px solid #fff;
-        }
-
-        .sidebarFooter {
-          margin-top: 18px;
-          display: flex;
-          flex-direction: column;
-          gap: 10px;
-          padding-bottom: 10px;
-        }
-
-        .footerButton,
-        .footerButtonSecondary,
-        .footerButtonDanger {
-          height: 48px;
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          justify-content: flex-start;
-          padding: 0 14px;
-          text-decoration: none;
-          font-size: 14px;
-          font-weight: 600;
-          transition: 0.2s ease;
-        }
-
-        .footerButton {
-          background: #fff;
-          border: 1px solid #ece5df;
-          color: #2d2d2d;
-        }
-
-        .footerButtonSecondary {
-          background: #f7f3f1;
-          border: 1px solid #eee2dc;
-          color: #2d2d2d;
-        }
-
-        .footerButtonDanger {
-          border: 1px solid #f3d7d0;
-          background: #fff5f3;
-          color: #a85c4f;
-          cursor: pointer;
-        }
-
-        .footerButton:hover,
-        .footerButtonSecondary:hover,
-        .footerButtonDanger:hover {
-          transform: translateY(-1px);
         }
 
         @media (max-width: 991px) {
