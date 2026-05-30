@@ -2,21 +2,18 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 import api from "@/Api/conectar";
-
 import { FiArrowRight } from "react-icons/fi";
 
 import styles from "./Campanhas.module.css";
 
 type Campanha = {
   id_campanha: number | string;
-
   titulo: string;
   slug: string;
-
   descricao?: string;
-
   banner?: string;
   desktop?: string;
   mobile?: string;
@@ -24,18 +21,9 @@ type Campanha = {
 };
 
 function extrairLista(payload: any): any[] {
-  if (Array.isArray(payload?.dados?.dados)) {
-    return payload.dados.dados;
-  }
-
-  if (Array.isArray(payload?.dados)) {
-    return payload.dados;
-  }
-
-  if (Array.isArray(payload)) {
-    return payload;
-  }
-
+  if (Array.isArray(payload?.dados?.dados)) return payload.dados.dados;
+  if (Array.isArray(payload?.dados)) return payload.dados;
+  if (Array.isArray(payload)) return payload;
   return [];
 }
 
@@ -43,7 +31,6 @@ function resolverImagem(src?: string | null) {
   if (!src) return "";
 
   const valor = String(src).trim();
-
   if (!valor) return "";
 
   if (
@@ -55,18 +42,11 @@ function resolverImagem(src?: string | null) {
     return valor;
   }
 
-  const baseURL =
-    typeof api === "string"
-      ? api
-      : (api as any)?.defaults?.baseURL || "";
-
+  const baseURL = api.defaults.baseURL || "";
   if (!baseURL) return valor;
 
-  if (valor.startsWith("/")) {
-    return `${baseURL}${valor}`;
-  }
-
-  return `${baseURL}/${valor}`;
+  const caminho = valor.replace(/^\/+/, "");
+  return `${baseURL}/${caminho}`;
 }
 
 function obterImagemCampanha(campanha: Campanha) {
@@ -93,14 +73,9 @@ export default function Campanhas() {
         });
 
         const lista = extrairLista(response.data);
-
         setCampanhas(lista);
       } catch (error) {
-        console.error(
-          "Erro ao carregar campanhas:",
-          error
-        );
-
+        console.error("Erro ao carregar campanhas:", error);
         setCampanhas([]);
       } finally {
         setLoading(false);
@@ -129,8 +104,7 @@ export default function Campanhas() {
       <div className={styles.container}>
         <div className={styles.grid}>
           {campanhas.map((campanha) => {
-            const imagem =
-              obterImagemCampanha(campanha);
+            const imagem = obterImagemCampanha(campanha);
 
             return (
               <article
@@ -143,27 +117,23 @@ export default function Campanhas() {
                 >
                   <div className={styles.banner}>
                     {imagem ? (
-                      <img
+                      <Image
                         src={imagem}
                         alt={campanha.titulo}
+                        fill
                         className={styles.image}
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 96vw, 1440px"
                       />
                     ) : (
-                      <div className={styles.noImage}>
-                        Sem imagem
-                      </div>
+                      <div className={styles.noImage}>Sem imagem</div>
                     )}
 
                     <div className={styles.overlay} />
 
                     <div className={styles.content}>
-                      <span className={styles.badge}>
-                        Campanha Especial
-                      </span>
+                      <span className={styles.badge}>Campanha Especial</span>
 
-                      <h2 className={styles.title}>
-                        {campanha.titulo}
-                      </h2>
+                      <h2 className={styles.title}>{campanha.titulo}</h2>
 
                       {campanha.descricao && (
                         <p className={styles.description}>
@@ -172,10 +142,7 @@ export default function Campanhas() {
                       )}
 
                       <div className={styles.button}>
-                        <span>
-                          Ver campanha
-                        </span>
-
+                        <span>Ver campanha</span>
                         <FiArrowRight />
                       </div>
                     </div>
