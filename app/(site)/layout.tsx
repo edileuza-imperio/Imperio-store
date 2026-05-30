@@ -11,8 +11,7 @@ import Navbar from "@/components/site/menu/navbar";
 import FooterProfissional from "@/components/site/Rodape/Footer";
 
 import { getSiteConfig } from "@/services/siteConfig";
-import "../../styles/base/variables.css";
-import "../../styles/components/footer.css";
+
 /*
 |--------------------------------------------------------------------------
 | CACHE
