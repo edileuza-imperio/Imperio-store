@@ -1,13 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 
 import api from "@/Api/conectar";
-
-
 import { FiArrowRight } from "react-icons/fi";
 import styles from "./Campanhas.module.css";
+
 import { imagemFundo } from "@/components/Bibioteca/imagem";
 
 /* =========================
@@ -29,12 +28,7 @@ type Campanha = {
    EXTRATOR
 ========================= */
 function extrairLista(payload: any): Campanha[] {
-  return (
-    payload?.dados?.dados ||
-    payload?.dados ||
-    payload ||
-    []
-  );
+  return payload?.dados?.dados || payload?.dados || payload || [];
 }
 
 /* =========================
@@ -49,11 +43,11 @@ export default function Campanhas() {
       try {
         setLoading(true);
 
-        const response = await api.get("/campanhas", {
+        const response = await api.get("/bootstrap/home", {
           withCredentials: true,
         });
 
-        const lista = extrairLista(response.data);
+        const lista = response.data?.dados?.dados?.campanhas || [];
 
         const validas = lista.filter(
           (c: Campanha) => c?.statusid === 1
@@ -71,9 +65,6 @@ export default function Campanhas() {
     carregarCampanhas();
   }, []);
 
-  /* =========================
-     LOADING
-  ========================= */
   if (loading) {
     return (
       <section className={styles.loadingSection}>
@@ -82,27 +73,26 @@ export default function Campanhas() {
     );
   }
 
-  /* =========================
-     SEM DADOS
-  ========================= */
-  if (!campanhas.length) {
-    return null;
-  }
+  if (!campanhas.length) return null;
 
-  /* =========================
-     VIEW
-  ========================= */
   return (
     <section className={styles.section}>
       <div className={styles.container}>
         <div className={styles.grid}>
           {campanhas.map((campanha) => {
-            const imagem = imagemFundo(
-              campanha.banner ||
-              campanha.desktop ||
-              campanha.mobile ||
-              campanha.imagem
-            );
+            const imagem = useMemo(() => {
+              return imagemFundo(
+                campanha.banner ||
+                campanha.desktop ||
+                campanha.mobile ||
+                campanha.imagem
+              );
+            }, [
+              campanha.banner,
+              campanha.desktop,
+              campanha.mobile,
+              campanha.imagem,
+            ]);
 
             return (
               <Link
@@ -112,11 +102,11 @@ export default function Campanhas() {
               >
                 <div
                   className={styles.banner}
-                  style={{
-                    backgroundImage: imagem
-                      ? `url(${imagem})`
-                      : undefined,
-                  }}
+                  style={
+                    imagem
+                      ? { backgroundImage: `url(${imagem})` }
+                      : undefined
+                  }
                 >
                   <div className={styles.overlay} />
 
@@ -136,8 +126,7 @@ export default function Campanhas() {
                     )}
 
                     <div className={styles.button}>
-                      Ver campanha
-                      <FiArrowRight />
+                      Ver campanha <FiArrowRight />
                     </div>
                   </div>
                 </div>
