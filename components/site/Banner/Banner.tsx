@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -53,42 +53,38 @@ export default function Banner() {
     return () => clearInterval(t);
   }, [banners.length]);
 
-  const banner = banners[index];
+  const banner = useMemo(() => banners[index], [banners, index]);
 
-  if (!banner) {
-    return (
-      <section className={styles.loadingWrap}>
-        <div className={styles.loading}></div>
-      </section>
-    );
-  }
-
-  const imagemBanner = banner.imagem.startsWith("http")
-    ? banner.imagem
-    : `https://lightgrey-cattle-160990.hostingersite.com/${banner.imagem}`;
+  const imagemBanner = useMemo(() => {
+    if (!banner?.imagem) return "";
+    return banner.imagem.startsWith("http")
+      ? banner.imagem
+      : `https://lightgrey-cattle-160990.hostingersite.com/${banner.imagem}`;
+  }, [banner]);
 
   function goLink() {
-    if (!banner.link) return;
+    if (!banner?.link) return;
 
     if (banner.link.startsWith("http")) {
       window.location.href = banner.link;
-      return;
+    } else {
+      router.push(banner.link);
     }
-
-    router.push(banner.link);
   }
 
   return (
     <section className={styles.banner}>
-      <div className={styles.background}></div>
+      <div className={styles.background} />
 
       <div className={styles.inner}>
         <div className={styles.text}>
           <span className={styles.tag}>Universo Império</span>
 
-          <h1 className={styles.title}>{banner.titulo}</h1>
+          <h1 className={styles.title}>
+            {banner?.titulo || "Carregando..."}
+          </h1>
 
-          {banner.descricao && (
+          {banner?.descricao && (
             <p className={styles.desc}>{banner.descricao}</p>
           )}
 
@@ -99,14 +95,16 @@ export default function Banner() {
 
         <div className={styles.media}>
           <div className={styles.imageWrap} onClick={goLink}>
-            <Image
-              src={imagemBanner}
-              alt={banner.titulo}
-              fill
-              priority
-              sizes="(max-width: 980px) 100vw, 50vw"
-              className={styles.img}
-            />
+            {imagemBanner && (
+              <Image
+                src={imagemBanner}
+                alt={banner?.titulo || "Banner"}
+                fill
+                priority
+                sizes="(max-width: 980px) 100vw, 50vw"
+                className={styles.img}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -116,9 +114,7 @@ export default function Banner() {
           {banners.map((_, i) => (
             <button
               key={i}
-              className={`${styles.dot} ${
-                i === index ? styles.active : ""
-              }`}
+              className={`${styles.dot} ${i === index ? styles.active : ""}`}
               onClick={() => setIndex(i)}
             />
           ))}

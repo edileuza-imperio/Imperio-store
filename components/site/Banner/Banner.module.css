@@ -15,6 +15,9 @@
 
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
   margin-top: 20px;
+
+  /* 🔥 EVITA SHIFT */
+  min-height: 520px;
 }
 
 .background {
@@ -59,6 +62,9 @@
   line-height: 1.1;
   font-weight: 800;
   color: #5b2230;
+
+  /* 🔥 evita salto de fonte */
+  min-height: 60px;
 }
 
 .desc {
@@ -66,6 +72,8 @@
   font-size: 18px;
   line-height: 1.7;
   color: #6e4450;
+
+  min-height: 40px;
 }
 
 .btn {
@@ -96,12 +104,14 @@
   justify-content: center;
 }
 
-/* 🔥 CORRIGIDO PRA NEXT IMAGE */
+/* 🔥 FIX PRINCIPAL CLS */
 .imageWrap {
   width: 100%;
   max-width: 650px;
 
   aspect-ratio: 16 / 9;
+  min-height: 320px;
+
   position: relative;
 
   overflow: hidden;
@@ -113,6 +123,7 @@
   box-shadow: 0 12px 30px rgba(0,0,0,0.12);
 
   cursor: pointer;
+
   transition: transform 0.35s ease;
 }
 
@@ -148,15 +159,11 @@
   transform: scale(1.2);
 }
 
-.loadingWrap {
+/* 🔥 LOADING FIX (SEM CLS) */
+.skeleton {
   width: 100%;
-  min-height: 420px;
+  height: 520px;
   border-radius: 30px;
-}
-
-.loading {
-  width: 100%;
-  min-height: 420px;
 
   background: linear-gradient(
     90deg,
