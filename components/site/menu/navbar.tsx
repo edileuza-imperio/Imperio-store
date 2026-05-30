@@ -54,11 +54,6 @@ type SiteConfig = {
   subtitulo: string;
 };
 
-type CarrinhoItem = {
-  id_carrinho_item: number;
-  quantidade: number;
-};
-
 type Categoria = {
   id_categoria?: number;
   nome?: string;
@@ -96,16 +91,16 @@ export default function Navbar() {
       setScrolled(window.scrollY > 8);
     };
 
-    const atualizarCarrinho = () => {
-      carregarCarrinho();
+    const atualizarNavbar = () => {
+      carregarBootstrap();
     };
 
     window.addEventListener("scroll", handleScroll);
-    window.addEventListener("carrinhoAtualizado", atualizarCarrinho);
+    window.addEventListener("carrinhoAtualizado", atualizarNavbar);
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("carrinhoAtualizado", atualizarCarrinho);
+      window.removeEventListener("carrinhoAtualizado", atualizarNavbar);
     };
   }, []);
 
@@ -138,28 +133,6 @@ export default function Navbar() {
       setSite(null);
       setCategorias([]);
       setUsuario(null);
-      setQuantidadeCarrinho(0);
-    }
-  }
-
-  async function carregarCarrinho() {
-    try {
-      const response = await api.get("/carrinho/itens");
-      const itens: CarrinhoItem[] = response.data?.dados || [];
-
-      if (!Array.isArray(itens)) {
-        setQuantidadeCarrinho(0);
-        return;
-      }
-
-      const total = itens.reduce(
-        (soma: number, item: CarrinhoItem) =>
-          soma + Number(item.quantidade || 0),
-        0
-      );
-
-      setQuantidadeCarrinho(total);
-    } catch {
       setQuantidadeCarrinho(0);
     }
   }
