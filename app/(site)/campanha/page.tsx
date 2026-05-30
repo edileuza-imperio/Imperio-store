@@ -2,13 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 
 import api from "@/Api/conectar";
+
+
 import { FiArrowRight } from "react-icons/fi";
-
 import styles from "./Campanhas.module.css";
+import { imagemFundo } from "@/components/Bibioteca/imagem";
 
+/* =========================
+   TIPAGEM
+========================= */
 type Campanha = {
   id_campanha: number | string;
   titulo: string;
@@ -18,47 +22,24 @@ type Campanha = {
   desktop?: string;
   mobile?: string;
   imagem?: string;
+  statusid?: number;
 };
 
-function extrairLista(payload: any): any[] {
-  if (Array.isArray(payload?.dados?.dados)) return payload.dados.dados;
-  if (Array.isArray(payload?.dados)) return payload.dados;
-  if (Array.isArray(payload)) return payload;
-  return [];
-}
-
-function resolverImagem(src?: string | null) {
-  if (!src) return "";
-
-  const valor = String(src).trim();
-  if (!valor) return "";
-
-  if (
-    valor.startsWith("http://") ||
-    valor.startsWith("https://") ||
-    valor.startsWith("data:image") ||
-    valor.startsWith("blob:")
-  ) {
-    return valor;
-  }
-
-  const baseURL = api.defaults.baseURL || "";
-  if (!baseURL) return valor;
-
-  const caminho = valor.replace(/^\/+/, "");
-  return `${baseURL}/${caminho}`;
-}
-
-function obterImagemCampanha(campanha: Campanha) {
-  return resolverImagem(
-    campanha.banner ||
-      campanha.desktop ||
-      campanha.mobile ||
-      campanha.imagem ||
-      ""
+/* =========================
+   EXTRATOR
+========================= */
+function extrairLista(payload: any): Campanha[] {
+  return (
+    payload?.dados?.dados ||
+    payload?.dados ||
+    payload ||
+    []
   );
 }
 
+/* =========================
+   COMPONENTE
+========================= */
 export default function Campanhas() {
   const [campanhas, setCampanhas] = useState<Campanha[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +54,12 @@ export default function Campanhas() {
         });
 
         const lista = extrairLista(response.data);
-        setCampanhas(lista);
+
+        const validas = lista.filter(
+          (c: Campanha) => c?.statusid === 1
+        );
+
+        setCampanhas(validas);
       } catch (error) {
         console.error("Erro ao carregar campanhas:", error);
         setCampanhas([]);
@@ -85,70 +71,77 @@ export default function Campanhas() {
     carregarCampanhas();
   }, []);
 
+  /* =========================
+     LOADING
+  ========================= */
   if (loading) {
     return (
       <section className={styles.loadingSection}>
-        <div className={styles.container}>
-          <div className={styles.loadingBanner} />
-        </div>
+        <div className={styles.loadingBanner} />
       </section>
     );
   }
 
+  /* =========================
+     SEM DADOS
+  ========================= */
   if (!campanhas.length) {
     return null;
   }
 
+  /* =========================
+     VIEW
+  ========================= */
   return (
     <section className={styles.section}>
       <div className={styles.container}>
         <div className={styles.grid}>
           {campanhas.map((campanha) => {
-            const imagem = obterImagemCampanha(campanha);
+            const imagem = imagemFundo(
+              campanha.banner ||
+              campanha.desktop ||
+              campanha.mobile ||
+              campanha.imagem
+            );
 
             return (
-              <article
-                key={String(campanha.id_campanha)}
+              <Link
+                key={campanha.id_campanha}
+                href={`/campanha/${campanha.slug}`}
                 className={styles.card}
               >
-                <Link
-                  href={`/campanha/${campanha.slug}`}
-                  className={styles.link}
+                <div
+                  className={styles.banner}
+                  style={{
+                    backgroundImage: imagem
+                      ? `url(${imagem})`
+                      : undefined,
+                  }}
                 >
-                  <div className={styles.banner}>
-                    {imagem ? (
-                      <Image
-                        src={imagem}
-                        alt={campanha.titulo}
-                        fill
-                        className={styles.image}
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 96vw, 1440px"
-                      />
-                    ) : (
-                      <div className={styles.noImage}>Sem imagem</div>
+                  <div className={styles.overlay} />
+
+                  <div className={styles.content}>
+                    <span className={styles.badge}>
+                      Campanha Especial
+                    </span>
+
+                    <h2 className={styles.title}>
+                      {campanha.titulo}
+                    </h2>
+
+                    {campanha.descricao && (
+                      <p className={styles.description}>
+                        {campanha.descricao}
+                      </p>
                     )}
 
-                    <div className={styles.overlay} />
-
-                    <div className={styles.content}>
-                      <span className={styles.badge}>Campanha Especial</span>
-
-                      <h2 className={styles.title}>{campanha.titulo}</h2>
-
-                      {campanha.descricao && (
-                        <p className={styles.description}>
-                          {campanha.descricao}
-                        </p>
-                      )}
-
-                      <div className={styles.button}>
-                        <span>Ver campanha</span>
-                        <FiArrowRight />
-                      </div>
+                    <div className={styles.button}>
+                      Ver campanha
+                      <FiArrowRight />
                     </div>
                   </div>
-                </Link>
-              </article>
+                </div>
+              </Link>
             );
           })}
         </div>
