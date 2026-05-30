@@ -69,6 +69,14 @@ type Categoria = {
   status_id?: number;
 };
 
+type BootstrapNavbar = {
+  menus?: Menu[];
+  site?: SiteConfig | SiteConfig[] | null;
+  categorias?: Categoria[];
+  usuario?: Usuario | null;
+  carrinho_total?: number;
+};
+
 export default function Navbar() {
   const [menus, setMenus] = useState<Menu[]>([]);
   const [usuario, setUsuario] = useState<Usuario | null>(null);
@@ -82,7 +90,7 @@ export default function Navbar() {
   const [quantidadeCarrinho, setQuantidadeCarrinho] = useState(0);
 
   useEffect(() => {
-    carregar();
+    carregarBootstrap();
 
     const handleScroll = () => {
       setScrolled(window.scrollY > 8);
@@ -101,49 +109,36 @@ export default function Navbar() {
     };
   }, []);
 
-  async function carregar() {
+  async function carregarBootstrap() {
     try {
-      const [menusRes, siteRes] = await Promise.all([
-        api.get("/menus"),
-        api.get("/site-configs"),
-      ]);
+      const res = await api.get("/bootstrap/navbar");
 
-      const menusDados = menusRes.data?.dados?.dados || [];
-      const siteDados = siteRes.data?.dados?.dados || [];
+      const bootstrap: BootstrapNavbar =
+        res.data?.dados?.dados ?? res.data?.dados ?? {};
 
-      setMenus(Array.isArray(menusDados) ? menusDados : []);
+      const menusDados = Array.isArray(bootstrap.menus) ? bootstrap.menus : [];
+      setMenus(menusDados);
 
-      const siteAtual = Array.isArray(siteDados) ? siteDados[0] : null;
-      setSite(siteAtual || null);
-
-      carregarUsuario();
-      carregarCarrinho();
-
-      if (siteAtual?.id_site_config) {
-        carregarCategorias(siteAtual.id_site_config);
+      const siteDados = bootstrap.site;
+      if (Array.isArray(siteDados)) {
+        setSite((siteDados[0] as SiteConfig) || null);
       } else {
-        carregarCategorias();
+        setSite((siteDados as SiteConfig) || null);
       }
+
+      const categoriasDados = Array.isArray(bootstrap.categorias)
+        ? bootstrap.categorias
+        : [];
+      setCategorias(categoriasDados);
+
+      setUsuario(bootstrap.usuario || null);
+      setQuantidadeCarrinho(Number(bootstrap.carrinho_total || 0));
     } catch {
       setMenus([]);
       setSite(null);
       setCategorias([]);
+      setUsuario(null);
       setQuantidadeCarrinho(0);
-    }
-  }
-
-  async function carregarCategorias(siteConfigId?: number) {
-    try {
-      const url = siteConfigId
-        ? `/categorias/site/${siteConfigId}/ativas`
-        : "/categorias";
-
-      const response = await api.get(url);
-      const dados = response.data?.dados || [];
-
-      setCategorias(Array.isArray(dados) ? dados : []);
-    } catch {
-      setCategorias([]);
     }
   }
 
@@ -169,23 +164,6 @@ export default function Navbar() {
     }
   }
 
-  async function carregarUsuario() {
-    try {
-      const res = await api.get("/me");
-      const dados = res.data?.usuario || res.data?.dados?.usuario;
-
-      if (dados) {
-        setUsuario({
-          id_usuario: dados.id_usuario,
-          nome: dados.nome,
-          email: dados.email,
-        });
-      }
-    } catch {
-      setUsuario(null);
-    }
-  }
-
   async function logout() {
     try {
       await api.post("/logout");
@@ -200,33 +178,25 @@ export default function Navbar() {
   const carrinho = useMemo(() => {
     if (!Array.isArray(menus)) return null;
 
-    return menus.find(
-      (m) => m.nome?.toLowerCase()?.trim() === "carrinho"
-    );
+    return menus.find((m) => m.nome?.toLowerCase()?.trim() === "carrinho");
   }, [menus]);
 
   const login = useMemo(() => {
     if (!Array.isArray(menus)) return null;
 
-    return menus.find(
-      (m) => m.nome?.toLowerCase()?.trim() === "login"
-    );
+    return menus.find((m) => m.nome?.toLowerCase()?.trim() === "login");
   }, [menus]);
 
   const pedidoMenu = useMemo(() => {
     if (!Array.isArray(menus)) return null;
 
-    return menus.find(
-      (m) => m.nome?.toLowerCase()?.includes("pedido")
-    );
+    return menus.find((m) => m.nome?.toLowerCase()?.includes("pedido"));
   }, [menus]);
 
   const contatoMenu = useMemo(() => {
     if (!Array.isArray(menus)) return null;
 
-    return menus.find(
-      (m) => m.nome?.toLowerCase()?.includes("contato")
-    );
+    return menus.find((m) => m.nome?.toLowerCase()?.includes("contato"));
   }, [menus]);
 
   function iconFallback(nome: string) {
@@ -241,11 +211,7 @@ export default function Navbar() {
     return <FiGrid size={16} />;
   }
 
-  const renderIcon = (
-    name: string | null,
-    size = 16,
-    nome?: string
-  ) => {
+  const renderIcon = (name: string | null, size = 16, nome?: string) => {
     if (!name) {
       return nome ? iconFallback(nome) : null;
     }
@@ -310,9 +276,7 @@ export default function Navbar() {
   return (
     <>
       <header
-        className={`${styles.header} ${
-          scrolled ? styles.headerScrolled : ""
-        }`}
+        className={`${styles.header} ${scrolled ? styles.headerScrolled : ""}`}
       >
         <div className={styles.desktopNavbar}>
           <div className={styles.brand}>
@@ -372,8 +336,7 @@ export default function Navbar() {
                       ?.slice()
                       .sort((a, b) => a.posicao - b.posicao)
                       .map((item) => {
-                        const sair =
-                          item.nome?.toLowerCase()?.trim() === "sair";
+                        const sair = item.nome?.toLowerCase()?.trim() === "sair";
 
                         if (sair) {
                           return (
@@ -419,9 +382,7 @@ export default function Navbar() {
                   <FiShoppingCart size={21} />
 
                   {quantidadeCarrinho > 0 && (
-                    <span className={styles.badge}>
-                      {quantidadeCarrinho}
-                    </span>
+                    <span className={styles.badge}>{quantidadeCarrinho}</span>
                   )}
                 </div>
 
@@ -476,8 +437,7 @@ export default function Navbar() {
                       ?.slice()
                       .sort((a, b) => a.posicao - b.posicao)
                       .map((item) => {
-                        const sair =
-                          item.nome?.toLowerCase()?.trim() === "sair";
+                        const sair = item.nome?.toLowerCase()?.trim() === "sair";
 
                         if (sair) {
                           return (
@@ -522,9 +482,7 @@ export default function Navbar() {
                   <FiShoppingCart size={18} />
 
                   {quantidadeCarrinho > 0 && (
-                    <span className={styles.badge}>
-                      {quantidadeCarrinho}
-                    </span>
+                    <span className={styles.badge}>{quantidadeCarrinho}</span>
                   )}
                 </div>
               </Link>
@@ -558,16 +516,12 @@ export default function Navbar() {
       </header>
 
       <div
-        className={`${styles.overlay} ${
-          openMenu ? styles.overlayShow : ""
-        }`}
+        className={`${styles.overlay} ${openMenu ? styles.overlayShow : ""}`}
         onClick={() => setOpenMenu(false)}
       />
 
       <aside
-        className={`${styles.sidebar} ${
-          openMenu ? styles.sidebarOpen : ""
-        }`}
+        className={`${styles.sidebar} ${openMenu ? styles.sidebarOpen : ""}`}
       >
         <div className={styles.sidebarHeader}>
           <div>
@@ -626,15 +580,11 @@ export default function Navbar() {
                   <span className={styles.quickActionIcon}>
                     {item.icon}
                     {item.badge && item.badge > 0 && (
-                      <span className={styles.quickBadge}>
-                        {item.badge}
-                      </span>
+                      <span className={styles.quickBadge}>{item.badge}</span>
                     )}
                   </span>
 
-                  <span className={styles.quickActionLabel}>
-                    {item.label}
-                  </span>
+                  <span className={styles.quickActionLabel}>{item.label}</span>
                 </Link>
               ))}
             </div>
@@ -685,9 +635,7 @@ export default function Navbar() {
                   return (
                     <Link
                       key={
-                        categoria.id_categoria ??
-                        categoria.slug ??
-                        categoria.nome
+                        categoria.id_categoria ?? categoria.slug ?? categoria.nome
                       }
                       href={href}
                       className={styles.categoryItem}
