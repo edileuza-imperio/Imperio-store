@@ -96,16 +96,17 @@ function obterImagemResolvida(
   item?: VitrineItem | null,
   entidade?: EntidadeGenerica | null
 ) {
-  return imagemFundo(
+  const src =
     item?.imagem_personalizada ||
-      entidade?.imagem ||
-      entidade?.miniatura ||
-      entidade?.banner ||
-      entidade?.foto ||
-      entidade?.desktop ||
-      entidade?.mobile ||
-      ""
-  );
+    entidade?.imagem ||
+    entidade?.miniatura ||
+    entidade?.banner ||
+    entidade?.foto ||
+    entidade?.desktop ||
+    entidade?.mobile ||
+    "";
+
+  return imagemFundo(src);
 }
 
 export default function Destaques({
