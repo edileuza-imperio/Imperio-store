@@ -15,7 +15,7 @@ import {
 } from "react-icons/fa";
 
 import { ToastContainer, toast } from "react-toastify";
-
+import "react-toastify/dist/ReactToastify.css";
 
 import api from "@/Api/conectar";
 import styles from "./Cadastro.module.css";
@@ -45,17 +45,15 @@ export default function CadastroPage() {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
 
-  function formatarTelefone(valor: string) {
-    const n = valor.replace(/\D/g, "").slice(0, 11);
-
+  function formatTelefone(v: string) {
+    const n = v.replace(/\D/g, "").slice(0, 11);
     if (n.length <= 2) return n;
     if (n.length <= 7) return `(${n.slice(0, 2)}) ${n.slice(2)}`;
-
     return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`;
   }
 
-  function formatarCpf(valor: string) {
-    const n = valor.replace(/\D/g, "").slice(0, 11);
+  function formatCpf(v: string) {
+    const n = v.replace(/\D/g, "").slice(0, 11);
 
     if (n.length <= 3) return n;
     if (n.length <= 6) return `${n.slice(0, 3)}.${n.slice(3)}`;
@@ -71,12 +69,12 @@ export default function CadastroPage() {
     e.preventDefault();
 
     if (!form.nome || !form.email || !form.senha) {
-      toast.warning("Preencha os campos obrigatórios.");
+      toast.warning("Preencha todos os campos obrigatórios.");
       return;
     }
 
     if (form.senha.length < 6) {
-      toast.warning("Senha deve ter pelo menos 6 caracteres.");
+      toast.warning("Senha deve ter no mínimo 6 caracteres.");
       return;
     }
 
@@ -99,7 +97,7 @@ export default function CadastroPage() {
       });
 
       toast.success(
-        data?.dados?.mensagem || data?.mensagem || "Conta criada!"
+        data?.dados?.mensagem || data?.mensagem || "Conta criada com sucesso!"
       );
 
       setTimeout(() => router.push("/login/entra"), 1000);
@@ -128,20 +126,14 @@ export default function CadastroPage() {
             <h1>Crie sua conta</h1>
 
             <p>
-              Cadastre-se para acompanhar pedidos e ter uma experiência
-              mais rápida.
+              Faça seu cadastro para acompanhar pedidos e ter acesso
+              completo à plataforma.
             </p>
 
             <div className={styles.features}>
-              <span>
-                <FaCheckCircle /> Compra rápida
-              </span>
-              <span>
-                <FaCheckCircle /> Seguro
-              </span>
-              <span>
-                <FaCheckCircle /> Suporte
-              </span>
+              <span><FaCheckCircle /> Rápido</span>
+              <span><FaCheckCircle /> Seguro</span>
+              <span><FaCheckCircle /> Suporte</span>
             </div>
           </div>
 
@@ -160,7 +152,9 @@ export default function CadastroPage() {
                 <FaShieldAlt />
               </div>
 
-              <h2>cadastro</h2>
+              <span className={styles.badgeSmall}>nova conta</span>
+
+              <h2 className={styles.title}>cadastro</h2>
 
               <div className={styles.form}>
                 <input
@@ -179,7 +173,7 @@ export default function CadastroPage() {
                   placeholder="Telefone"
                   value={form.telefone}
                   onChange={(e) =>
-                    setField("telefone", formatarTelefone(e.target.value))
+                    setField("telefone", formatTelefone(e.target.value))
                   }
                 />
 
@@ -187,7 +181,7 @@ export default function CadastroPage() {
                   placeholder="CPF"
                   value={form.cpf}
                   onChange={(e) =>
-                    setField("cpf", formatarCpf(e.target.value))
+                    setField("cpf", formatCpf(e.target.value))
                   }
                 />
 
@@ -207,13 +201,13 @@ export default function CadastroPage() {
                   }
                 />
 
-                <button disabled={loading} className={styles.btn}>
+                <button className={styles.btn} disabled={loading}>
                   {loading ? "criando..." : "criar conta"}
                 </button>
 
                 <button
                   type="button"
-                  className={styles.btnSecondary}
+                  className={styles.btnOutline}
                   onClick={() => router.push("/login/entra")}
                 >
                   já tenho conta
@@ -224,7 +218,7 @@ export default function CadastroPage() {
         </section>
       </main>
 
-      
+      <ToastContainer position="top-right" autoClose={2500} />
     </>
   );
 }
