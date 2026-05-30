@@ -9,22 +9,11 @@ import "bootstrap/dist/css/bootstrap.min.css";
 
 import "react-toastify/dist/ReactToastify.css";
 
-/*
-|--------------------------------------------------------------------------
-| CSS SITE
-|--------------------------------------------------------------------------
-*/
 
 import "@/public/produto/produto.css";
 import "@/public/produto/page.css";
-import "@/public/produto/destaque.css";
 
 
-
-
-
-
-import "@/public/Login/Login.css";
 import "@/public/usuario/usuario.css";
 import "@/public/usuario/editar.css";
 
