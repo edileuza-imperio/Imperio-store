@@ -3,6 +3,7 @@
 import api from "@/Api/conectar";
 import styles from "./Produtos.module.css";
 import Link from "next/link";
+import Image from "next/image";
 
 import {
   Package,
@@ -10,6 +11,7 @@ import {
   Pencil,
   Trash2,
   Search,
+  Plus,
   Boxes,
 } from "lucide-react";
 
@@ -40,8 +42,7 @@ export default function ProdutosPage() {
     try {
       const response = await api.get("/painel/produtos");
 
-      const lista =
-        response.data?.dados?.dados || []; // ✔️ CORRETO
+      const lista = response.data?.dados?.dados || [];
 
       setProdutos(Array.isArray(lista) ? lista : []);
     } catch (error) {
@@ -91,7 +92,7 @@ export default function ProdutosPage() {
       {/* HEADER */}
       <div className={styles.header}>
         <div>
-          <h1>sistema de Produtos</h1>
+          <h1>Sistema de Produtos</h1>
           <p>Controle todos os produtos cadastrados</p>
         </div>
 
@@ -126,21 +127,22 @@ export default function ProdutosPage() {
           const descricao =
             produto.descricao || "Sem descrição disponível";
 
-          const imagem =
-            produto.imagem || produto.miniatura
-              ? `${api.defaults.baseURL}/${
-                  produto.imagem || produto.miniatura
-                }`
-              : "/placeholder.png";
+          const imgPath =
+            produto.imagem || produto.miniatura || "";
+
+          const imagem = imgPath
+            ? `${api.defaults.baseURL}/${imgPath}`
+            : "/placeholder.png";
 
           return (
             <article key={produto.id_produto} className={styles.card}>
-              {/* IMAGE */}
               <div className={styles.imageWrap}>
-                <img
+                <Image
                   src={imagem}
                   alt={produto.nome}
+                  fill
                   className={styles.image}
+                  sizes="(max-width: 768px) 100vw, 33vw"
                 />
 
                 <span className={styles.price}>
@@ -148,7 +150,6 @@ export default function ProdutosPage() {
                 </span>
               </div>
 
-              {/* CONTENT */}
               <div className={styles.content}>
                 <h3>{produto.nome}</h3>
 
@@ -192,6 +193,15 @@ export default function ProdutosPage() {
           );
         })}
       </div>
+
+      {/* BOTÃO FLUTUANTE (AGORA FUNCIONANDO) */}
+      <Link
+        href="sistema/produtos/cadastrar"
+        className={styles.floatingButton}
+        aria-label="Adicionar produto"
+      >
+        <Plus size={28} />
+      </Link>
     </div>
   );
 }
