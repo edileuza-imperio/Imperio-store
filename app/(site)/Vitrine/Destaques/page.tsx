@@ -25,8 +25,6 @@ import {
   VitrineItem,
 } from "@/components/Bibioteca/Bibiotecas";
 
-
-
 import styles from "./Destaques.module.css";
 import { imagemFundo } from "@/components/Bibioteca/imagem";
 
@@ -262,7 +260,8 @@ export default function Destaques({
                     campanha.subtitulo ||
                     campanha.descricao ||
                     "",
-                  descricao_final: campanha.descricao_curta || campanha.descricao || "",
+                  descricao_final:
+                    campanha.descricao_curta || campanha.descricao || "",
                   imagem_final: obterImagemResolvida(item, campanha),
                   link_final: campanha.slug
                     ? `/campanha/${campanha.slug}`
@@ -293,7 +292,8 @@ export default function Destaques({
                     categoria.subtitulo ||
                     categoria.descricao_curta ||
                     "",
-                  descricao_final: categoria.descricao_curta || categoria.descricao || "",
+                  descricao_final:
+                    categoria.descricao_curta || categoria.descricao || "",
                   imagem_final: obterImagemResolvida(item, categoria),
                   link_final: categoria.slug
                     ? `/categoria/${categoria.slug}`
@@ -650,10 +650,10 @@ export default function Destaques({
                           src={item.imagem_final}
                           alt={item.titulo_final}
                           className={styles.image}
-                          width={700}
-                          height={700}
+                          width={400}
+                          height={400}
                           sizes="(max-width: 480px) 86vw, (max-width: 768px) 78vw, (max-width: 1100px) 280px, 290px"
-                          unoptimized
+                          quality={80}
                         />
                       ) : (
                         <div className={styles.noImage}>
