@@ -1,17 +1,4 @@
-/* =========================
-   FOOTER BASE
-========================= */
 .footer {
-  --bg: #f9f1ec;
-  --bg-2: #fff8f3;
-  --card: rgba(255, 255, 255, 0.72);
-
-  --text: #342326;
-  --muted: #5d484d;
-
-  --primary: #b76e79;
-  --primary-dark: #8f4855;
-
   position: relative;
   overflow: hidden;
 
@@ -23,7 +10,7 @@
   padding: 80px 0 32px;
 }
 
-/* blur decorativo leve (menos pesado que antes) */
+/* DECORAÇÃO */
 .footer::before,
 .footer::after {
   content: "";
@@ -49,9 +36,7 @@
   background: rgba(255,255,255,0.4);
 }
 
-/* =========================
-   CONTAINER
-========================= */
+/* CONTAINER */
 .container {
   position: relative;
   z-index: 2;
@@ -60,190 +45,54 @@
   padding: 0 24px;
 }
 
-/* =========================
-   GRID PRINCIPAL
-========================= */
+/* GRID */
 .topGrid {
   display: grid;
   grid-template-columns: 1.6fr 0.9fr 1.2fr;
   gap: 24px;
 }
 
-/* =========================
-   CARDS BASE
-========================= */
+/* CARD BASE */
 .brandCard,
 .column,
 .columnWide {
   background: var(--card);
   border: 1px solid rgba(255,255,255,0.45);
-  border-radius: 28px;
+  border-radius: var(--radius-lg);
 
   padding: 28px;
 
   backdrop-filter: blur(18px);
+  box-shadow: var(--shadow-sm);
 
-  box-shadow:
-    0 10px 30px rgba(0,0,0,0.05);
-
-  transition: transform .25s ease, box-shadow .25s ease;
+  transition: .25s ease;
 }
 
 .brandCard:hover,
 .column:hover,
 .columnWide:hover {
   transform: translateY(-3px);
-  box-shadow: 0 18px 40px rgba(0,0,0,0.08);
+  box-shadow: var(--shadow-md);
 }
 
-/* =========================
-   BRAND
-========================= */
-.brandHeader {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 18px;
-}
-
+/* BRAND */
 .logo {
   width: 64px;
   height: 64px;
-  border-radius: 18px;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
+  border-radius: 18px;
+
   font-weight: 800;
-  font-size: 22px;
-  color: #fff;
+  color: white;
 
   background: linear-gradient(135deg, var(--primary), var(--primary-dark));
 }
 
-.brandTitle {
-  font-size: 1.4rem;
-  font-weight: 800;
-  color: var(--text);
-  margin: 0;
-}
-
-.brandSubtitle {
-  color: var(--primary-dark);
-  font-weight: 600;
-  margin-top: 4px;
-}
-
-/* =========================
-   TEXTOS
-========================= */
-.description {
-  color: var(--muted);
-  line-height: 1.7;
-  font-size: 0.95rem;
-}
-
-/* =========================
-   BADGES
-========================= */
-.badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.badge {
-  padding: 8px 14px;
-  border-radius: 999px;
-
-  font-size: 0.8rem;
-  font-weight: 700;
-
-  background: rgba(183,110,121,0.10);
-  color: var(--primary-dark);
-}
-
-/* =========================
-   SOCIAL
-========================= */
-.social {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 20px;
-}
-
-.socialLink {
-  width: 44px;
-  height: 44px;
-
-  border-radius: 14px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  background: rgba(255,255,255,0.7);
-  border: 1px solid rgba(255,255,255,0.8);
-
-  color: var(--primary-dark);
-
-  transition: transform .2s ease, background .2s ease;
-}
-
-.socialLink:hover {
-  transform: translateY(-2px);
-  background: rgba(255,255,255,0.9);
-}
-
-/* =========================
-   LINKS
-========================= */
-.sectionTitle {
-  font-size: 1rem;
-  font-weight: 800;
-  margin-bottom: 16px;
-  color: var(--text);
-}
-
-.linkList {
-  display: grid;
-  gap: 10px;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
-
-.navLink {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-
-  padding: 12px 14px;
-  border-radius: 14px;
-
-  text-decoration: none;
-
-  background: rgba(255,255,255,0.6);
-  color: var(--text);
-
-  transition: transform .2s ease, background .2s ease;
-}
-
-.navLink:hover {
-  transform: translateX(3px);
-  background: rgba(255,255,255,0.85);
-}
-
-.navArrow {
-  color: var(--primary);
-}
-
-/* =========================
-   CONTATO
-========================= */
+/* CONTATO (CORRIGIDO — NÃO QUEBRA MAIS) */
 .contactList {
   display: grid;
   gap: 12px;
@@ -257,28 +106,52 @@
   border-radius: 16px;
 
   background: rgba(255,255,255,0.55);
+
+  border: 1px solid rgba(255,255,255,0.6);
 }
 
 .contactIcon {
   width: 42px;
   height: 42px;
 
-  border-radius: 14px;
-
   display: flex;
   align-items: center;
   justify-content: center;
 
+  border-radius: 14px;
+
   background: rgba(183,110,121,0.12);
+  color: var(--primary-dark);
 }
 
-/* =========================
-   FOOTER BOTTOM
-========================= */
+/* LINKS */
+.navLink {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 12px 14px;
+  border-radius: 14px;
+
+  background: rgba(255,255,255,0.6);
+  transition: .2s ease;
+}
+
+.navLink:hover {
+  transform: translateX(3px);
+  background: rgba(255,255,255,0.85);
+}
+
+/* BOTTOM */
 .divider {
   height: 1px;
   margin: 28px 0;
-  background: linear-gradient(90deg, transparent, rgba(183,110,121,0.2), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(183,110,121,0.2),
+    transparent
+  );
 }
 
 .bottom {
@@ -290,105 +163,15 @@
 
 .copy {
   color: var(--muted);
-  font-size: 0.85rem;
 }
 
-/* =========================
-   PAGAMENTOS
-========================= */
-.paymentWrap {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.paymentLabel {
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: var(--primary-dark);
-}
-
-.payments {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.paymentItem {
-  width: 42px;
-  height: 42px;
-
-  border-radius: 14px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  background: rgba(255,255,255,0.75);
-  border: 1px solid rgba(255,255,255,0.85);
-
-  transition: transform .2s ease;
-}
-
-.paymentItem:hover {
-  transform: translateY(-2px);
-}
-
-/* =========================
-   LINKS RODAPÉ FINAL
-========================= */
-.bottomLinks {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.bottomLink {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--primary-dark);
-  text-decoration: none;
-}
-
-/* =========================
-   RESPONSIVO
-========================= */
+/* RESPONSIVO */
 @media (max-width: 1100px) {
   .topGrid {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .columnWide {
-    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
   }
 
   .bottom {
     grid-template-columns: 1fr;
-  }
-
-  .bottomLinks {
-    justify-content: flex-start;
-  }
-}
-
-@media (max-width: 720px) {
-  .topGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .brandCard,
-  .column,
-  .columnWide {
-    padding: 20px;
-  }
-
-  .bottom {
-    gap: 12px;
   }
 }

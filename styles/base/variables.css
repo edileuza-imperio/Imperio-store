@@ -2,9 +2,17 @@
   --bg: #f9f1ec;
   --bg-2: #fff8f3;
 
+  --text: #342326;
+  --muted: #5d484d;
+
   --primary: #b76e79;
   --primary-dark: #8f4855;
 
-  --text: #342326;
-  --muted: #5d484d;
+  --card: rgba(255, 255, 255, 0.72);
+
+  --radius-lg: 28px;
+  --radius-md: 18px;
+
+  --shadow-sm: 0 10px 30px rgba(0,0,0,0.05);
+  --shadow-md: 0 18px 40px rgba(0,0,0,0.08);
 }
