@@ -1,4 +1,4 @@
-import Destaques from "@/pages/destaques/destaques";
+import Destaques from "@/components/destaques/destaques";
 
 
 export default function Page() {
