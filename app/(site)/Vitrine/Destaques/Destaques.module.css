@@ -1,6 +1,5 @@
 .section {
   padding: 28px 0;
-  background: linear-gradient(180deg, #fffaf7 0%, #fff7f4 100%);
 }
 
 .container {
@@ -86,6 +85,7 @@
   opacity: 0.38;
   cursor: not-allowed;
   transform: none;
+  box-shadow: 0 10px 24px rgba(183, 110, 121, 0.04);
 }
 
 .verMaisButton {
@@ -119,10 +119,6 @@
   animation: spin 0.8s linear infinite;
 }
 
-/* =========================
-   CARROSSEL
-========================= */
-
 .carouselShell {
   position: relative;
 }
@@ -149,7 +145,7 @@
 .carousel {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: clamp(240px, 22vw, 280px);
+  grid-auto-columns: clamp(250px, 24vw, 290px);
   gap: 18px;
   overflow-x: auto;
   overflow-y: hidden;
@@ -171,19 +167,13 @@
   cursor: grabbing;
 }
 
-/* =========================
-   CARD
-========================= */
-
 .card {
   scroll-snap-align: start;
   overflow: hidden;
-  border-radius: 22px;
+  border-radius: 26px;
   background: rgba(255, 250, 247, 0.98);
   border: 1px solid rgba(183, 110, 121, 0.1);
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.04),
-    0 12px 32px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
   display: flex;
   flex-direction: column;
   min-height: 100%;
@@ -191,29 +181,24 @@
 }
 
 .card:hover {
-  transform: translateY(-4px);
-  box-shadow:
-    0 8px 20px rgba(0, 0, 0, 0.06),
-    0 18px 42px rgba(0, 0, 0, 0.1);
+  transform: translateY(-3px);
+  box-shadow: 0 24px 54px rgba(15, 23, 42, 0.1);
 }
 
 .media {
   position: relative;
   overflow: hidden;
-  aspect-ratio: 1 / 1;
   background: linear-gradient(135deg, #f5ebe7 0%, #fffaf7 100%);
 }
 
 .imageLink {
   display: block;
-  width: 100%;
-  height: 100%;
   text-decoration: none;
 }
 
 .image {
   width: 100%;
-  height: 100%;
+  aspect-ratio: 1 / 1;
   object-fit: cover;
   display: block;
   transition: transform 0.35s ease;
@@ -225,7 +210,7 @@
 
 .noImage {
   width: 100%;
-  height: 100%;
+  aspect-ratio: 1 / 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -249,10 +234,6 @@
   letter-spacing: 0.04em;
   box-shadow: 0 12px 26px rgba(109, 76, 82, 0.18);
 }
-
-/* =========================
-   CONTEÚDO
-========================= */
 
 .content {
   padding: 16px 16px 18px;
@@ -288,15 +269,15 @@
 .cardTitle {
   margin: 0;
   color: #2f1f22;
-  font-size: 17px;
-  line-height: 1.45;
+  font-size: 18px;
+  line-height: 1.3;
   font-weight: 800;
   letter-spacing: -0.02em;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  min-height: 48px;
+  min-height: 46px;
 }
 
 .subtitle {
@@ -337,14 +318,11 @@
 }
 
 .price {
-  color: #b76e79;
-  font-size: 22px;
+  color: #6d4c52;
+  font-size: 18px;
   font-weight: 900;
+  letter-spacing: -0.02em;
 }
-
-/* =========================
-   AÇÕES
-========================= */
 
 .actions {
   display: grid;
@@ -356,6 +334,7 @@
 .cartButton,
 .viewButton {
   width: 100%;
+  min-width: 0;
   height: 46px;
   border-radius: 14px;
   display: inline-flex;
@@ -365,7 +344,9 @@
   font-size: 13px;
   font-weight: 800;
   text-decoration: none;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease,
+    background 0.2s ease, border-color 0.2s ease;
+  white-space: nowrap;
 }
 
 .cartButton {
@@ -392,10 +373,6 @@
   cursor: not-allowed;
   transform: none;
 }
-
-/* =========================
-   OVERLAY
-========================= */
 
 .overlay {
   position: fixed;
@@ -430,9 +407,18 @@
   animation: spin 0.85s linear infinite;
 }
 
-/* =========================
-   SKELETON
-========================= */
+.modal h3 {
+  margin: 0 0 8px;
+  font-size: 22px;
+  color: #6d4c52;
+}
+
+.modal p {
+  margin: 0;
+  color: #8b6b70;
+  font-size: 14px;
+  line-height: 1.7;
+}
 
 .skeleton {
   position: relative;
@@ -448,8 +434,37 @@
   left: -160px;
   width: 120px;
   height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.7), transparent);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.7),
+    transparent
+  );
   animation: shimmer 1.15s infinite;
+}
+
+.skeletonBadge {
+  width: 86px;
+  height: 26px;
+  margin-bottom: 12px;
+  border-radius: 999px;
+}
+
+.skeletonTitle {
+  width: min(360px, 70%);
+  height: 38px;
+  margin-bottom: 10px;
+}
+
+.skeletonText {
+  width: min(520px, 90%);
+  height: 18px;
+}
+
+.skeletonButton {
+  width: 124px;
+  height: 44px;
+  border-radius: 14px;
 }
 
 .skeletonGrid {
@@ -459,78 +474,52 @@
 }
 
 .skeletonCard {
+  border-radius: 24px;
   overflow: hidden;
-  border-radius: 22px;
-  background: rgba(255, 250, 247, 0.98);
-  border: 1px solid rgba(183, 110, 121, 0.1);
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.04),
-    0 12px 32px rgba(0, 0, 0, 0.06);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
 }
 
 .skeletonImage {
+  width: 100%;
   aspect-ratio: 1 / 1;
   border-radius: 0;
 }
 
 .skeletonBody {
   padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.skeletonBadge {
-  width: 92px;
-  height: 28px;
-  border-radius: 999px;
-  margin-bottom: 12px;
-}
-
-.skeletonTitle {
-  width: min(460px, 68%);
-  height: 34px;
-  border-radius: 14px;
-}
-
-.skeletonText {
-  width: min(620px, 82%);
-  height: 18px;
-  border-radius: 12px;
 }
 
 .skeletonLineTitle {
+  height: 22px;
   width: 82%;
-  height: 18px;
-  border-radius: 12px;
+  margin-bottom: 10px;
 }
 
 .skeletonLine {
-  width: 100%;
-  height: 14px;
-  border-radius: 12px;
+  height: 16px;
+  margin-bottom: 10px;
 }
 
 .skeletonLineShort {
-  width: 72%;
-  height: 14px;
-  border-radius: 12px;
+  width: 62%;
+  height: 16px;
+  margin-bottom: 18px;
 }
 
 .skeletonActions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
+  display: flex;
   gap: 10px;
-  margin-top: 4px;
 }
 
 .skeletonBtn {
-  height: 46px;
+  flex: 1;
+  height: 42px;
   border-radius: 14px;
 }
 
 .outline {
-  background: #f3ebe7;
+  background: #f2e7e1;
 }
 
 @keyframes shimmer {
@@ -545,36 +534,35 @@
   }
 }
 
-/* =========================
-   RESPONSIVO
-========================= */
-
 @media (max-width: 1100px) {
-  .skeletonGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+  .title {
+    font-size: 26px;
+  }
+
+  .carousel {
+    grid-auto-columns: minmax(250px, 280px);
   }
 }
 
 @media (max-width: 768px) {
+  .section {
+    padding: 20px 0;
+  }
+
   .header {
-    flex-direction: column;
     align-items: flex-start;
+    flex-direction: column;
   }
 
-  .carousel {
-    grid-auto-columns: minmax(240px, 78vw);
+  .headerActions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
-  .carouselFade {
-    display: none;
+  .verMaisButton {
+    margin-left: auto;
   }
 
-  .actions {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 560px) {
   .title {
     font-size: 24px;
   }
@@ -583,26 +571,68 @@
     font-size: 14px;
   }
 
-  .headerActions {
-    width: 100%;
+  .carousel {
+    grid-auto-columns: minmax(240px, 78vw);
+    gap: 14px;
+    padding-bottom: 10px;
   }
 
-  .verMaisButton {
-    width: 100%;
-    justify-content: center;
+  .cardTitle {
+    font-size: 17px;
+  }
+
+  .actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .carouselFade {
+    display: none;
   }
 
   .skeletonGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 480px) {
+  .container {
+    padding: 0 12px;
+  }
+
   .carousel {
     grid-auto-columns: 86vw;
   }
 
+  .navButton {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+  }
+
+  .verMaisButton {
+    height: 42px;
+    padding: 0 14px;
+    font-size: 13px;
+  }
+
+  .content {
+    padding: 14px;
+  }
+
+  .card {
+    border-radius: 22px;
+  }
+
   .actions {
+    grid-template-columns: 1fr;
+  }
+
+  .cartButton,
+  .viewButton {
+    height: 44px;
+  }
+
+  .skeletonGrid {
     grid-template-columns: 1fr;
   }
 }
