@@ -2,28 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  FiSearch,
-  FiShoppingCart,
-  FiUser,
-  FiX,
-  FiMenu,
-  FiTag,
-  FiHome,
-  FiShoppingBag,
-  FiHelpCircle,
-  FiChevronRight,
-} from "react-icons/fi";
-
-import * as FiIcons from "react-icons/fi";
-import * as BiIcons from "react-icons/bi";
 
 import api from "@/Api/conectar";
-
 import { BootstrapNavbar, Categoria, Menu, SiteConfig, Usuario } from "./menu";
 import NavbarHeader from "@/Pages/navbar/header";
-
-
 
 export default function Navbar() {
   const [menus, setMenus] = useState<Menu[]>([]);
