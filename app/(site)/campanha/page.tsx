@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
 import api from "@/Api/conectar";
@@ -65,6 +65,9 @@ export default function Campanhas() {
     carregarCampanhas();
   }, []);
 
+  /* =========================
+     LOADING
+  ========================= */
   if (loading) {
     return (
       <section className={styles.loadingSection}>
@@ -73,26 +76,28 @@ export default function Campanhas() {
     );
   }
 
-  if (!campanhas.length) return null;
+  /* =========================
+     SEM CAMPANHAS
+  ========================= */
+  if (!campanhas.length) {
+    return null;
+  }
 
+  /* =========================
+     VIEW
+  ========================= */
   return (
     <section className={styles.section}>
       <div className={styles.container}>
         <div className={styles.grid}>
           {campanhas.map((campanha) => {
-            const imagem = useMemo(() => {
-              return imagemFundo(
-                campanha.banner ||
-                campanha.desktop ||
-                campanha.mobile ||
-                campanha.imagem
-              );
-            }, [
-              campanha.banner,
-              campanha.desktop,
-              campanha.mobile,
-              campanha.imagem,
-            ]);
+            // ✅ CORRETO: sem hooks dentro do map
+            const imagem = imagemFundo(
+              campanha.banner ||
+              campanha.desktop ||
+              campanha.mobile ||
+              campanha.imagem
+            );
 
             return (
               <Link
