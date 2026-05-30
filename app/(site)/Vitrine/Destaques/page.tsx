@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import api from "@/Api/conectar";
 
 import {
@@ -24,7 +25,10 @@ import {
   VitrineItem,
 } from "@/components/Bibioteca/Bibiotecas";
 
+
+
 import styles from "./Destaques.module.css";
+import { imagemFundo } from "@/components/Bibioteca/imagem";
 
 function normalizarDados<T = any>(payload: any): T | null {
   return payload?.dados?.dados ?? payload?.dados ?? payload ?? null;
@@ -33,47 +37,6 @@ function normalizarDados<T = any>(payload: any): T | null {
 function normalizarLista<T = any>(payload: any): T[] {
   const dados = payload?.dados?.dados ?? payload?.dados ?? payload ?? [];
   return Array.isArray(dados) ? dados : [];
-}
-
-function resolverImagem(src?: string | null) {
-  if (!src) return "";
-
-  const valor = String(src).trim();
-  if (!valor) return "";
-
-  if (
-    valor.startsWith("http://") ||
-    valor.startsWith("https://") ||
-    valor.startsWith("data:image") ||
-    valor.startsWith("blob:")
-  ) {
-    return valor;
-  }
-
-  const baseURL =
-    typeof api === "string" ? api : (api as any)?.defaults?.baseURL || "";
-
-  if (!baseURL) return valor;
-
-  if (valor.startsWith("/")) return `${baseURL}${valor}`;
-
-  return `${baseURL}/${valor}`;
-}
-
-function obterMelhorImagem(
-  item?: VitrineItem | null,
-  entidade?: EntidadeGenerica | null
-) {
-  return resolverImagem(
-    item?.imagem_personalizada ||
-      entidade?.imagem ||
-      entidade?.miniatura ||
-      entidade?.banner ||
-      entidade?.foto ||
-      entidade?.desktop ||
-      entidade?.mobile ||
-      ""
-  );
 }
 
 function formatarPreco(valor?: number | string | null) {
@@ -129,6 +92,22 @@ function descobrirTipoItem(
 
 function temValor(valor: unknown) {
   return valor !== null && valor !== undefined && String(valor).trim() !== "";
+}
+
+function obterImagemResolvida(
+  item?: VitrineItem | null,
+  entidade?: EntidadeGenerica | null
+) {
+  return imagemFundo(
+    item?.imagem_personalizada ||
+      entidade?.imagem ||
+      entidade?.miniatura ||
+      entidade?.banner ||
+      entidade?.foto ||
+      entidade?.desktop ||
+      entidade?.mobile ||
+      ""
+  );
 }
 
 export default function Destaques({
@@ -253,7 +232,7 @@ export default function Destaques({
                     produto.descricao ||
                     item.subtitulo_personalizado ||
                     "",
-                  imagem_final: obterMelhorImagem(item, produto),
+                  imagem_final: obterImagemResolvida(item, produto),
                   link_final: produto.slug
                     ? `/produto/${produto.slug}`
                     : `/produto/${item.produto_id}`,
@@ -283,9 +262,8 @@ export default function Destaques({
                     campanha.subtitulo ||
                     campanha.descricao ||
                     "",
-                  descricao_final:
-                    campanha.descricao_curta || campanha.descricao || "",
-                  imagem_final: obterMelhorImagem(item, campanha),
+                  descricao_final: campanha.descricao_curta || campanha.descricao || "",
+                  imagem_final: obterImagemResolvida(item, campanha),
                   link_final: campanha.slug
                     ? `/campanha/${campanha.slug}`
                     : `/campanha/${item.campanha_id}`,
@@ -315,9 +293,8 @@ export default function Destaques({
                     categoria.subtitulo ||
                     categoria.descricao_curta ||
                     "",
-                  descricao_final:
-                    categoria.descricao_curta || categoria.descricao || "",
-                  imagem_final: obterMelhorImagem(item, categoria),
+                  descricao_final: categoria.descricao_curta || categoria.descricao || "",
+                  imagem_final: obterImagemResolvida(item, categoria),
                   link_final: categoria.slug
                     ? `/categoria/${categoria.slug}`
                     : `/categoria/${item.categoria_id}`,
@@ -336,7 +313,7 @@ export default function Destaques({
                 titulo_final: item.titulo_personalizado || "Item da vitrine",
                 subtitulo_final: item.subtitulo_personalizado || "",
                 descricao_final: item.subtitulo_personalizado || "",
-                imagem_final: resolverImagem(item.imagem_personalizada || ""),
+                imagem_final: imagemFundo(item.imagem_personalizada || ""),
                 link_final: "#",
                 preco_final: null,
                 preco_original: null,
@@ -352,7 +329,7 @@ export default function Destaques({
                 titulo_final: item.titulo_personalizado || "Item da vitrine",
                 subtitulo_final: item.subtitulo_personalizado || "",
                 descricao_final: item.subtitulo_personalizado || "",
-                imagem_final: resolverImagem(item.imagem_personalizada || ""),
+                imagem_final: imagemFundo(item.imagem_personalizada || ""),
                 link_final: "#",
                 preco_final: null,
                 preco_original: null,
@@ -662,14 +639,21 @@ export default function Destaques({
               const estaAdicionando = adicionandoId === String(item.id_vitrine_item);
 
               return (
-                <article key={String(item.id_vitrine_item)} className="destaque-card">
+                <article
+                  key={String(item.id_vitrine_item)}
+                  className={`${styles.card} destaque-card`}
+                >
                   <div className={styles.media}>
                     <Link href={item.link_final || "#"} className={styles.imageLink}>
                       {item.imagem_final ? (
-                        <img
+                        <Image
                           src={item.imagem_final}
                           alt={item.titulo_final}
                           className={styles.image}
+                          width={700}
+                          height={700}
+                          sizes="(max-width: 480px) 86vw, (max-width: 768px) 78vw, (max-width: 1100px) 280px, 290px"
+                          unoptimized
                         />
                       ) : (
                         <div className={styles.noImage}>
