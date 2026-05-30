@@ -15,34 +15,23 @@ import {
   Boxes,
 } from "lucide-react";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import { useEffect, useMemo, useState } from "react";
 
 interface Produto {
   id_produto: number;
   nome: string;
-  descricao: string;
-  imagem: string;
+  descricao?: string;
+  imagem?: string;
   preco: string;
   sku: string;
   marca: string;
 }
 
 export default function ProdutosPage() {
-  const [produtos, setProdutos] =
-    useState<Produto[]>([]);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [busca, setBusca] =
-    useState("");
-
-  const [limite, setLimite] =
-    useState("3");
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busca, setBusca] = useState("");
+  const [limite, setLimite] = useState("3");
 
   useEffect(() => {
     carregarProdutos();
@@ -50,282 +39,160 @@ export default function ProdutosPage() {
 
   async function carregarProdutos() {
     try {
-      const response =
-        await api.get("/painel/produtos");
+      const response = await api.get("/painel/produtos");
 
-      setProdutos(
-        response.data?.dados?.dados || []
-      );
+      const lista =
+        response.data?.dados || response.data || [];
+
+      setProdutos(Array.isArray(lista) ? lista : []);
     } catch (error) {
-      console.error(error);
+      console.error("Erro ao carregar produtos:", error);
+      setProdutos([]);
     } finally {
       setLoading(false);
     }
   }
 
-  async function excluirProduto(
-    id: number
-  ) {
-    const confirmar =
-      window.confirm(
-        "Deseja excluir este produto?"
-      );
-
+  async function excluirProduto(id: number) {
+    const confirmar = window.confirm("Deseja excluir este produto?");
     if (!confirmar) return;
 
     try {
-      await api.delete(
-        `/painel/produto/${id}`
-      );
+      await api.delete(`/painel/produto/${id}`);
 
       setProdutos((prev) =>
-        prev.filter(
-          (item) =>
-            item.id_produto !== id
-        )
+        prev.filter((item) => item.id_produto !== id)
       );
     } catch {
-      alert(
-        "Erro ao excluir produto."
-      );
+      alert("Erro ao excluir produto.");
     }
   }
 
-  const produtosFiltrados =
-    useMemo(() => {
-      return produtos.filter(
-        (produto) =>
-          produto.nome
-            .toLowerCase()
-            .includes(
-              busca.toLowerCase()
-            ) ||
-          produto.marca
-            .toLowerCase()
-            .includes(
-              busca.toLowerCase()
-            )
-      );
-    }, [produtos, busca]);
+  const produtosFiltrados = useMemo(() => {
+    return produtos.filter((produto) => {
+      const nome = produto.nome?.toLowerCase() || "";
+      const marca = produto.marca?.toLowerCase() || "";
+      const buscaLower = busca.toLowerCase();
+
+      return nome.includes(buscaLower) || marca.includes(buscaLower);
+    });
+  }, [produtos, busca]);
 
   const produtosExibidos =
     limite === "todos"
       ? produtosFiltrados
-      : produtosFiltrados.slice(
-          0,
-          Number(limite)
-        );
+      : produtosFiltrados.slice(0, Number(limite));
 
   if (loading) {
-    return (
-      <div className={styles.loading}>
-        Carregando produtos...
-      </div>
-    );
+    return <div className={styles.loading}>Carregando produtos...</div>;
   }
 
   return (
     <div className={styles.container}>
+      {/* HEADER */}
       <div className={styles.header}>
         <div>
-          <h1>
-            Gestão de Produtos
-          </h1>
-
-          <p>
-            Controle todos os
-            produtos cadastrados
-          </p>
+          <h1>Gestão de Produtos</h1>
+          <p>Controle todos os produtos cadastrados</p>
         </div>
 
         <div className={styles.stats}>
           <Boxes size={20} />
-          <span>
-            {
-              produtos.length
-            }{" "}
-            produtos
-          </span>
+          <span>{produtos.length} produtos</span>
         </div>
       </div>
 
+      {/* TOOLBAR */}
       <div className={styles.toolbar}>
-        <div
-          className={
-            styles.searchBox
-          }
-        >
+        <div className={styles.searchBox}>
           <Search size={18} />
-
           <input
             type="text"
             placeholder="Pesquisar produto..."
             value={busca}
-            onChange={(e) =>
-              setBusca(
-                e.target.value
-              )
-            }
+            onChange={(e) => setBusca(e.target.value)}
           />
         </div>
 
-        <select
-          value={limite}
-          onChange={(e) =>
-            setLimite(
-              e.target.value
-            )
-          }
-        >
-          <option value="3">
-            Mostrar 3
-          </option>
-
-          <option value="6">
-            Mostrar 6
-          </option>
-
-          <option value="9">
-            Mostrar 9
-          </option>
-
-          <option value="12">
-            Mostrar 12
-          </option>
-
-          <option value="todos">
-            Mostrar todos
-          </option>
+        <select value={limite} onChange={(e) => setLimite(e.target.value)}>
+          <option value="3">Mostrar 3</option>
+          <option value="6">Mostrar 6</option>
+          <option value="9">Mostrar 9</option>
+          <option value="12">Mostrar 12</option>
+          <option value="todos">Mostrar todos</option>
         </select>
       </div>
 
+      {/* GRID */}
       <div className={styles.grid}>
-        {produtosExibidos.map(
-          (produto) => (
-            <article
-              key={
-                produto.id_produto
-              }
-              className={
-                styles.card
-              }
-            >
-              <div
-                className={
-                  styles.imageWrap
-                }
-              >
+        {produtosExibidos.map((produto) => {
+          const descricao = produto.descricao || "Sem descrição";
+          const imagem = produto.imagem
+            ? `${api.defaults.baseURL}/${produto.imagem}`
+            : "/placeholder.png";
+
+          return (
+            <article key={produto.id_produto} className={styles.card}>
+              <div className={styles.imageWrap}>
                 <img
-                  src={`${api.defaults.baseURL}/${produto.imagem}`}
-                  alt={
-                    produto.nome
-                  }
-                  className={
-                    styles.image
-                  }
+                  src={imagem}
+                  alt={produto.nome}
+                  className={styles.image}
                 />
 
-                <span
-                  className={
-                    styles.price
-                  }
-                >
-                  R${" "}
-                  {Number(
-                    produto.preco
-                  ).toFixed(2)}
+                <span className={styles.price}>
+                  R$ {Number(produto.preco || 0).toFixed(2)}
                 </span>
               </div>
 
-              <div
-                className={
-                  styles.content
-                }
-              >
-                <h3>
-                  {produto.nome}
-                </h3>
+              <div className={styles.content}>
+                <h3>{produto.nome}</h3>
 
                 <p>
-                  {produto.descricao.length >
-                  200
-                    ? `${produto.descricao.substring(
-                        0,
-                        200
-                      )}...`
-                    : produto.descricao}
+                  {descricao.length > 200
+                    ? `${descricao.substring(0, 200)}...`
+                    : descricao}
                 </p>
 
-                <div
-                  className={
-                    styles.info
-                  }
-                >
+                <div className={styles.info}>
                   <span>
-                    <Tag
-                      size={14}
-                    />
-
-                    {
-                      produto.marca
-                    }
+                    <Tag size={14} />
+                    {produto.marca || "Sem marca"}
                   </span>
 
                   <span>
-                    <Package
-                      size={14}
-                    />
-
-                    {
-                      produto.sku
-                    }
+                    <Package size={14} />
+                    {produto.sku || "Sem SKU"}
                   </span>
                 </div>
 
-                <div
-                  className={
-                    styles.actions
-                  }
-                >
+                <div className={styles.actions}>
                   <Link
                     href={`/painel/sistema/produtos/editar/${produto.id_produto}`}
-                    className={
-                      styles.editButton
-                    }
+                    className={styles.editButton}
                   >
-                    <Pencil
-                      size={16}
-                    />
+                    <Pencil size={16} />
                     Editar
                   </Link>
 
                   <button
-                    className={
-                      styles.deleteButton
-                    }
-                    onClick={() =>
-                      excluirProduto(
-                        produto.id_produto
-                      )
-                    }
+                    className={styles.deleteButton}
+                    onClick={() => excluirProduto(produto.id_produto)}
                   >
-                    <Trash2
-                      size={16}
-                    />
+                    <Trash2 size={16} />
                     Excluir
                   </button>
                 </div>
               </div>
             </article>
-          )
-        )}
+          );
+        })}
       </div>
 
+      {/* BOTÃO FLUTUANTE REMOVIDO (SE QUISER POSSO TIRAR TBM) */}
       <Link
         href="/painel/sistema/produtos/cadastrar"
-        className={
-          styles.floatingButton
-        }
+        className={styles.floatingButton}
       >
         <Plus size={28} />
       </Link>
