@@ -1,0 +1,111 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f7ebe8;
+  position: relative;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.05);
+}
+
+.container {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 50px;
+  z-index: 2;
+  width: 100%;
+  max-width: 1200px;
+}
+
+.left h1 {
+  font-size: 60px;
+}
+
+.badge {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: #fff;
+}
+
+.features {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.right {
+  display: flex;
+  justify-content: center;
+}
+
+.card {
+  background: #fff;
+  padding: 30px;
+  border-radius: 24px;
+  width: 100%;
+}
+
+.input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+}
+
+.input input {
+  border: none;
+  outline: none;
+  width: 100%;
+}
+
+.btn {
+  width: 100%;
+  margin-top: 20px;
+  padding: 14px;
+  background: #b76e79;
+  color: #fff;
+  border-radius: 12px;
+  border: none;
+}
+
+.back {
+  background: transparent;
+  border: none;
+  margin-bottom: 10px;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modalBox {
+  background: #fff;
+  padding: 20px;
+  border-radius: 20px;
+}
+
+.pin {
+  display: flex;
+  gap: 10px;
+  margin: 20px 0;
+}
+
+.keys {
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 10px;
+}

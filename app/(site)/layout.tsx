@@ -1,37 +1,11 @@
 import type { Metadata } from "next";
 
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Analytics } from "@vercel/analytics/next";
-
 import "./../globals.css";
-
-import "bootstrap/dist/css/bootstrap.min.css";
-
 import "react-toastify/dist/ReactToastify.css";
 
-
-import "@/public/produto/produto.css";
-import "@/public/produto/page.css";
-
-
-import "@/public/usuario/usuario.css";
-import "@/public/usuario/editar.css";
-
-/*
-|--------------------------------------------------------------------------
-| CSS ADMIN
-|--------------------------------------------------------------------------
-*/
-
-import "@/public/admin/admin.css";
-import "@/public/admin/painel.css";
-import "@/public/admin/cards.css";
-
-import "@/public/admin/produtos/pdt.css";
-import "@/public/admin/produtos/adicionar.css";
-import "@/public/admin/produtos/listar.css";
-
 import { ToastContainer } from "react-toastify";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import Navbar from "@/components/site/menu/navbar";
 import FooterProfissional from "@/components/site/Rodape/Footer";
@@ -40,10 +14,9 @@ import { getSiteConfig } from "@/services/siteConfig";
 
 /*
 |--------------------------------------------------------------------------
-| CACHE NEXT
+| CACHE
 |--------------------------------------------------------------------------
 */
-
 export const revalidate = 300;
 
 /*
@@ -51,7 +24,6 @@ export const revalidate = 300;
 | METADATA
 |--------------------------------------------------------------------------
 */
-
 export async function generateMetadata(): Promise<Metadata> {
   try {
     const site = await getSiteConfig();
@@ -75,7 +47,6 @@ export async function generateMetadata(): Promise<Metadata> {
 | ROOT LAYOUT
 |--------------------------------------------------------------------------
 */
-
 export default function RootLayout({
   children,
 }: {
@@ -83,16 +54,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-br">
-      <body
-        suppressHydrationWarning
-        className="antialiased layout-body"
-      >
+      <body suppressHydrationWarning className="antialiased layout-body">
+
         {/* HEADER */}
         <header className="header-stack">
           <Navbar />
         </header>
 
-        {/* CONTEÚDO */}
+        {/* MAIN CONTENT */}
         <main className="main-content">
           {children}
         </main>
@@ -104,7 +73,6 @@ export default function RootLayout({
         <ToastContainer
           position="top-right"
           autoClose={3000}
-          hideProgressBar={false}
           newestOnTop
           closeOnClick
           pauseOnHover
@@ -112,11 +80,12 @@ export default function RootLayout({
           theme="light"
         />
 
-        {/* ANALYTICS */}
+        {/* ANALYTICS (OK manter) */}
         <Analytics />
 
-        {/* SPEED INSIGHTS */}
+        {/* SPEED INSIGHTS (OK manter) */}
         <SpeedInsights />
+
       </body>
     </html>
   );
