@@ -1,17 +1,4 @@
-:global(*) {
-  box-sizing: border-box;
-}
 
-:global(body) {
-  margin: 0;
-  background: linear-gradient(
-    135deg,
-    #f7e6e4 0%,
-    #f5efee 50%,
-    #f7e7e8 100%
-  );
-  font-family: Inter, sans-serif;
-}
 
 .checkout {
   position: relative;

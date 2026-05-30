@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import api from "@/Api/conectar";
 import { BootstrapNavbar, Categoria, Menu, SiteConfig, Usuario } from "./menu";
-import NavbarHeader from "@/Pages/navbar/header";
+import NavbarHeader from "@/pages/navbar/header";
 
 export default function Navbar() {
   const [menus, setMenus] = useState<Menu[]>([]);
