@@ -24,7 +24,9 @@ import {
   VitrineItem,
 } from "@/components/Bibioteca/Bibiotecas";
 
+
 import styles from "./Destaques.module.css";
+import { imagemFundo } from "@/components/Bibioteca/imagem";
 
 function normalizarDados<T = any>(payload: any): T | null {
   return payload?.dados?.dados ?? payload?.dados ?? payload ?? null;
@@ -35,36 +37,11 @@ function normalizarLista<T = any>(payload: any): T[] {
   return Array.isArray(dados) ? dados : [];
 }
 
-function resolverImagem(src?: string | null) {
-  if (!src) return "";
-
-  const valor = String(src).trim();
-  if (!valor) return "";
-
-  if (
-    valor.startsWith("http://") ||
-    valor.startsWith("https://") ||
-    valor.startsWith("data:image") ||
-    valor.startsWith("blob:")
-  ) {
-    return valor;
-  }
-
-  const baseURL =
-    typeof api === "string" ? api : (api as any)?.defaults?.baseURL || "";
-
-  if (!baseURL) return valor;
-
-  if (valor.startsWith("/")) return `${baseURL}${valor}`;
-
-  return `${baseURL}/${valor}`;
-}
-
 function obterMelhorImagem(
   item?: VitrineItem | null,
   entidade?: EntidadeGenerica | null
 ) {
-  return resolverImagem(
+  return imagemFundo(
     item?.imagem_personalizada ||
       entidade?.imagem ||
       entidade?.miniatura ||
@@ -194,6 +171,7 @@ export default function Destaques({
           const itensResponse = await api.get(
             `/vitrine/${vitrineData.id_vitrine}/itens`
           );
+
           let itensData = normalizarLista<VitrineItem>(itensResponse?.data);
 
           if (limite) itensData = itensData.slice(0, limite);
@@ -336,7 +314,7 @@ export default function Destaques({
                 titulo_final: item.titulo_personalizado || "Item da vitrine",
                 subtitulo_final: item.subtitulo_personalizado || "",
                 descricao_final: item.subtitulo_personalizado || "",
-                imagem_final: resolverImagem(item.imagem_personalizada || ""),
+                imagem_final: imagemFundo(item.imagem_personalizada || ""),
                 link_final: "#",
                 preco_final: null,
                 preco_original: null,
@@ -352,7 +330,7 @@ export default function Destaques({
                 titulo_final: item.titulo_personalizado || "Item da vitrine",
                 subtitulo_final: item.subtitulo_personalizado || "",
                 descricao_final: item.subtitulo_personalizado || "",
-                imagem_final: resolverImagem(item.imagem_personalizada || ""),
+                imagem_final: imagemFundo(item.imagem_personalizada || ""),
                 link_final: "#",
                 preco_final: null,
                 preco_original: null,
@@ -670,6 +648,7 @@ export default function Destaques({
                           src={item.imagem_final}
                           alt={item.titulo_final}
                           className={styles.image}
+                          loading="lazy"
                         />
                       ) : (
                         <div className={styles.noImage}>
