@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 
@@ -24,23 +24,28 @@ export default function Banner() {
   const router = useRouter();
 
   useEffect(() => {
+    let mounted = true;
+
     async function load() {
       try {
         const res = await api.get(rotas.banners.listar);
-
         const data = res.data?.dados?.dados ?? [];
 
         const validos = data.filter(
           (b: BannerItem) => b?.statusid === 1 && b?.imagem
         );
 
-        setBanners(validos);
+        if (mounted) setBanners(validos);
       } catch (err) {
         console.error("Erro banners:", err);
       }
     }
 
     load();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -48,39 +53,41 @@ export default function Banner() {
 
     const t = setInterval(() => {
       setIndex((i) => (i + 1) % banners.length);
-    }, 5000);
+    }, 6000);
 
     return () => clearInterval(t);
   }, [banners.length]);
 
   const banner = banners[index];
 
+  const imagemBanner = useMemo(() => {
+    if (!banner?.imagem) return "";
+    return banner.imagem.startsWith("http")
+      ? banner.imagem
+      : `https://lightgrey-cattle-160990.hostingersite.com/${banner.imagem}`;
+  }, [banner]);
+
+  function goLink() {
+    if (!banner?.link) return;
+
+    if (banner.link.startsWith("http")) {
+      window.location.href = banner.link;
+    } else {
+      router.push(banner.link);
+    }
+  }
+
   if (!banner) {
     return (
       <section className={styles.loadingWrap}>
-        <div className={styles.loading}></div>
+        <div className={styles.loading} />
       </section>
     );
   }
 
-  const imagemBanner = banner.imagem.startsWith("http")
-    ? banner.imagem
-    : `https://lightgrey-cattle-160990.hostingersite.com/${banner.imagem}`;
-
-  function goLink() {
-    if (!banner.link) return;
-
-    if (banner.link.startsWith("http")) {
-      window.location.href = banner.link;
-      return;
-    }
-
-    router.push(banner.link);
-  }
-
   return (
     <section className={styles.banner}>
-      <div className={styles.background}></div>
+      <div className={styles.overlay} />
 
       <div className={styles.inner}>
         <div className={styles.text}>
@@ -97,14 +104,14 @@ export default function Banner() {
           </button>
         </div>
 
-        <div className={styles.media}>
-          <div className={styles.imageWrap} onClick={goLink}>
+        <div className={styles.media} onClick={goLink}>
+          <div className={styles.imageWrap}>
             <Image
               src={imagemBanner}
               alt={banner.titulo}
               fill
               priority
-              sizes="(max-width: 980px) 100vw, 50vw"
+              sizes="(max-width: 768px) 100vw, 50vw"
               className={styles.img}
             />
           </div>
@@ -116,9 +123,7 @@ export default function Banner() {
           {banners.map((_, i) => (
             <button
               key={i}
-              className={`${styles.dot} ${
-                i === index ? styles.active : ""
-              }`}
+              className={`${styles.dot} ${i === index ? styles.active : ""}`}
               onClick={() => setIndex(i)}
             />
           ))}
