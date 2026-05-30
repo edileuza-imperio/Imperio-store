@@ -48,41 +48,27 @@ function normalizeText(value: unknown): string {
 
 function pick<T>(obj: Record<string, any> | undefined, ...keys: string[]): T | undefined {
   if (!obj) return undefined;
+
   for (const key of keys) {
     if (obj[key] !== undefined && obj[key] !== null) return obj[key] as T;
   }
+
   return undefined;
 }
 
 function normalizeItem(item: Record<string, any>): FooterItem {
   return {
     id_item: Number(pick(item, "id_item")) || undefined,
-    titulo:
-      String(
-        pick(item, "titulo", "título", "title") ?? ""
-      ).trim() || undefined,
-    valor:
-      String(
-        pick(item, "valor", "value") ?? ""
-      ).trim() || undefined,
-    url:
-      String(
-        pick(item, "url", "link") ?? ""
-      ).trim() || undefined,
-    icone:
-      String(
-        pick(item, "icone", "ícone", "icon") ?? ""
-      ).trim() || undefined,
+    titulo: String(pick(item, "titulo", "título", "title") ?? "").trim() || undefined,
+    valor: String(pick(item, "valor", "value") ?? "").trim() || undefined,
+    url: String(pick(item, "url", "link") ?? "").trim() || undefined,
+    icone: String(pick(item, "icone", "ícone", "icon") ?? "").trim() || undefined,
     posicao: Number(pick(item, "posicao", "posição", "position")) || 0,
   };
 }
 
 function normalizeFooterData(raw: any): FooterData | null {
-  const source =
-    raw?.dados?.dados ??
-    raw?.dados ??
-    raw ??
-    null;
+  const source = raw?.dados?.dados ?? raw?.dados ?? raw ?? null;
 
   if (!source || typeof source !== "object") return null;
 
@@ -91,21 +77,12 @@ function normalizeFooterData(raw: any): FooterData | null {
 
   const footer: FooterConfig | undefined = footerRaw
     ? {
-        titulo: String(
-          pick(footerRaw, "titulo", "título") ?? ""
-        ).trim() || undefined,
-        subtitulo: String(
-          pick(footerRaw, "subtitulo", "subtítulo") ?? ""
-        ).trim() || undefined,
-        logo_texto: String(
-          pick(footerRaw, "logo_texto", "logo texto") ?? ""
-        ).trim() || undefined,
-        descricao: String(
-          pick(footerRaw, "descricao", "descrição") ?? ""
-        ).trim() || undefined,
-        copyright_texto: String(
-          pick(footerRaw, "copyright_texto", "copyright texto") ?? ""
-        ).trim() || undefined,
+        titulo: String(pick(footerRaw, "titulo", "título") ?? "").trim() || undefined,
+        subtitulo: String(pick(footerRaw, "subtitulo", "subtítulo") ?? "").trim() || undefined,
+        logo_texto: String(pick(footerRaw, "logo_texto", "logo texto") ?? "").trim() || undefined,
+        descricao: String(pick(footerRaw, "descricao", "descrição") ?? "").trim() || undefined,
+        copyright_texto:
+          String(pick(footerRaw, "copyright_texto", "copyright texto") ?? "").trim() || undefined,
       }
     : undefined;
 
@@ -158,7 +135,7 @@ function DynamicIcon({ name }: { name?: string }) {
 
   if (!Icon) return null;
 
-  return <Icon />;
+  return <Icon aria-hidden="true" focusable="false" />;
 }
 
 function sortByPosition(items: FooterItem[]) {
@@ -190,26 +167,28 @@ export default function FooterProfissional() {
     () => sortByPosition(data?.redes_sociais || []),
     [data?.redes_sociais]
   );
-  const contatos = useMemo(
-    () => sortByPosition(data?.contatos || []),
-    [data?.contatos]
-  );
-  const pagamentos = useMemo(
-    () => sortByPosition(data?.pagamentos || []),
-    [data?.pagamentos]
-  );
+  const contatos = useMemo(() => sortByPosition(data?.contatos || []), [data?.contatos]);
+  const pagamentos = useMemo(() => sortByPosition(data?.pagamentos || []), [data?.pagamentos]);
 
   const bottomLinks = useMemo(() => {
     return links.filter((item) => {
       const titulo = normalizeText(item.titulo);
-      return titulo.includes("politica") || titulo.includes("termos") || titulo.includes("privacidade");
+      return (
+        titulo.includes("politica") ||
+        titulo.includes("termos") ||
+        titulo.includes("privacidade")
+      );
     });
   }, [links]);
 
   const navLinks = useMemo(() => {
     return links.filter((item) => {
       const titulo = normalizeText(item.titulo);
-      return !titulo.includes("politica") && !titulo.includes("termos") && !titulo.includes("privacidade");
+      return (
+        !titulo.includes("politica") &&
+        !titulo.includes("termos") &&
+        !titulo.includes("privacidade")
+      );
     });
   }, [links]);
 
@@ -226,12 +205,19 @@ export default function FooterProfissional() {
     <footer className={styles.footer}>
       <div className={styles.container}>
         <div className={styles.topGrid}>
-          <section className={styles.brandCard}>
+          <section className={styles.brandCard} aria-labelledby="footer-brand-title">
             <div className={styles.brandHeader}>
-              <div className={styles.logo}>{footer?.logo_texto || "UI"}</div>
+              <div className={styles.logo} aria-hidden="true">
+                {footer?.logo_texto || "UI"}
+              </div>
+
               <div>
-                <h2 className={styles.brandTitle}>{footer?.titulo || "Universo Império"}</h2>
-                <p className={styles.brandSubtitle}>{footer?.subtitulo || "Decorações & Eventos"}</p>
+                <h2 id="footer-brand-title" className={styles.brandTitle}>
+                  {footer?.titulo || "Universo Império"}
+                </h2>
+                <p className={styles.brandSubtitle}>
+                  {footer?.subtitulo || "Decorações & Eventos"}
+                </p>
               </div>
             </div>
 
@@ -245,7 +231,7 @@ export default function FooterProfissional() {
               <span className={styles.badge}>Suporte WhatsApp</span>
             </div>
 
-            <div className={styles.social} aria-label="Redes sociais">
+            <nav className={styles.social} aria-label="Redes sociais">
               {redesSociais.map((rede, idx) => (
                 <a
                   key={rede.id_item || idx}
@@ -259,48 +245,55 @@ export default function FooterProfissional() {
                   <DynamicIcon name={rede.icone} />
                 </a>
               ))}
-            </div>
+            </nav>
           </section>
 
-          <section className={styles.column}>
-            <h3 className={styles.sectionTitle}>Navegação</h3>
+          <section className={styles.column} aria-labelledby="footer-nav-title">
+            <h3 id="footer-nav-title" className={styles.sectionTitle}>
+              Navegação
+            </h3>
+
             <ul className={styles.linkList}>
               {navLinks.map((link, idx) => (
                 <li key={link.id_item || idx}>
                   <Link href={link.url || "#"} className={styles.navLink}>
                     <span>{link.titulo}</span>
-                    <FaIcons.FaArrowRight className={styles.navArrow} />
+                    <FaIcons.FaArrowRight className={styles.navArrow} aria-hidden="true" />
                   </Link>
                 </li>
               ))}
             </ul>
           </section>
 
-          <section className={styles.columnWide}>
-            <h3 className={styles.sectionTitle}>Contato</h3>
+          <section className={styles.columnWide} aria-labelledby="footer-contact-title">
+            <h3 id="footer-contact-title" className={styles.sectionTitle}>
+              Contato
+            </h3>
+
             <div className={styles.contactList}>
               {contatos.map((contato, idx) => (
-                <div key={contato.id_item || idx} className={styles.contactItem}>
-                  <div className={styles.contactIcon}>
+                <article key={contato.id_item || idx} className={styles.contactItem}>
+                  <div className={styles.contactIcon} aria-hidden="true">
                     <DynamicIcon name={contato.icone} />
                   </div>
 
                   <div className={styles.contactTextBlock}>
                     <h4 className={styles.contactTitle}>{contato.titulo}</h4>
+
                     {contato.url || contato.valor ? (
                       <a
                         href={contatoLink(contato)}
                         className={styles.contactText}
-                        target={normalizeText(contato.titulo).includes("http") ? "_blank" : undefined}
-                        rel={normalizeText(contato.titulo).includes("http") ? "noopener noreferrer" : undefined}
+                        target={normalizeText(contato.url).startsWith("http") ? "_blank" : undefined}
+                        rel={normalizeText(contato.url).startsWith("http") ? "noopener noreferrer" : undefined}
                       >
-                        {contato.valor}
+                        {contato.valor || contato.url}
                       </a>
                     ) : (
                       <p className={styles.contactText}>{contato.valor}</p>
                     )}
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           </section>
@@ -310,22 +303,24 @@ export default function FooterProfissional() {
 
         <div className={styles.bottom}>
           <p className={styles.copy}>
-            {footer?.copyright_texto || "© 2024 Universo Império. Todos os direitos reservados."}
+            {footer?.copyright_texto ||
+              "© 2024 Universo Império. Todos os direitos reservados."}
           </p>
 
           <div className={styles.paymentWrap}>
             <span className={styles.paymentLabel}>Formas de pagamento:</span>
 
-            <div className={styles.payments}>
+            <div className={styles.payments} aria-label="Formas de pagamento">
               {pagamentos.map((metodo, idx) => (
-                <div
+                <span
                   key={metodo.id_item || idx}
                   className={styles.paymentItem}
-                  title={metodo.titulo || "Pagamento"}
-                  aria-label={metodo.titulo || "Pagamento"}
+                  role="img"
+                  aria-label={metodo.titulo || "Forma de pagamento"}
+                  title={metodo.titulo || "Forma de pagamento"}
                 >
                   <DynamicIcon name={metodo.icone} />
-                </div>
+                </span>
               ))}
             </div>
           </div>
