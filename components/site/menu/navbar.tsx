@@ -149,51 +149,27 @@ export default function Navbar() {
   }
 
   const carrinho = useMemo(() => {
-    if (!Array.isArray(menus)) return null;
-
-    return menus.find((m) => m.nome?.toLowerCase()?.trim() === "carrinho");
+    return menus.find((m) => m.nome?.toLowerCase()?.trim() === "carrinho") || null;
   }, [menus]);
 
   const login = useMemo(() => {
-    if (!Array.isArray(menus)) return null;
-
-    return menus.find((m) => m.nome?.toLowerCase()?.trim() === "login");
+    return menus.find((m) => m.nome?.toLowerCase()?.trim() === "login") || null;
   }, [menus]);
 
   const pedidoMenu = useMemo(() => {
-    if (!Array.isArray(menus)) return null;
-
-    return menus.find((m) => m.nome?.toLowerCase()?.includes("pedido"));
+    return menus.find((m) => m.nome?.toLowerCase()?.includes("pedido")) || null;
   }, [menus]);
 
   const contatoMenu = useMemo(() => {
-    if (!Array.isArray(menus)) return null;
-
-    return menus.find((m) => m.nome?.toLowerCase()?.includes("contato"));
+    return menus.find((m) => m.nome?.toLowerCase()?.includes("contato")) || null;
   }, [menus]);
 
-  function iconFallback(nome: string) {
-    const lower = nome.toLowerCase();
-
-    if (lower.includes("perfil")) return <FiUser size={16} />;
-    if (lower.includes("pedido")) return <FiPackage size={16} />;
-    if (lower.includes("admin")) return <FiSettings size={16} />;
-    if (lower.includes("sair")) return <FiLogOut size={16} />;
-    if (lower.includes("categoria")) return <FiTag size={16} />;
-
-    return <FiGrid size={16} />;
-  }
-
-  const renderIcon = (name: string | null, size = 16, nome?: string) => {
-    if (!name) {
-      return nome ? iconFallback(nome) : null;
-    }
+  const renderIcon = (name: string | null, size = 16) => {
+    if (!name) return null;
 
     const Icon = (FiIcons as any)[name] || (BiIcons as any)[name];
 
-    if (!Icon) {
-      return nome ? iconFallback(nome) : null;
-    }
+    if (!Icon) return null;
 
     return <Icon size={size} />;
   };
@@ -208,7 +184,6 @@ export default function Navbar() {
   const titulo = site?.titulo || "Universo Império";
   const subtitulo = site?.subtitulo || "DECORAÇÕES & EVENTOS";
   const tituloSplit = titulo.split(" ");
-
   const titulo1 = tituloSplit[0] || "Universo";
   const titulo2 = tituloSplit[1] || "Império";
 
@@ -319,7 +294,7 @@ export default function Navbar() {
                               onClick={logout}
                               type="button"
                             >
-                              {renderIcon(item.icone, 16, item.nome)}
+                              {renderIcon(item.icone, 16)}
                               <span>{item.nome}</span>
                             </button>
                           );
@@ -332,7 +307,7 @@ export default function Navbar() {
                             className={styles.dropdownItem}
                             onClick={() => setDropdown(false)}
                           >
-                            {renderIcon(item.icone, 16, item.nome)}
+                            {renderIcon(item.icone, 16)}
                             <span>{item.nome}</span>
                           </Link>
                         );
@@ -399,9 +374,7 @@ export default function Navbar() {
                     {usuario.nome?.charAt(0)?.toUpperCase()}
                   </div>
 
-                  <span className={styles.mobileUserName}>
-                    {usuario.nome}
-                  </span>
+                  <span className={styles.mobileUserName}>{usuario.nome}</span>
                 </button>
 
                 {dropdown && (
@@ -420,7 +393,7 @@ export default function Navbar() {
                               onClick={logout}
                               type="button"
                             >
-                              {renderIcon(item.icone, 16, item.nome)}
+                              {renderIcon(item.icone, 16)}
                               <span>{item.nome}</span>
                             </button>
                           );
@@ -433,7 +406,7 @@ export default function Navbar() {
                             className={styles.mobileDropdownItem}
                             onClick={() => setDropdown(false)}
                           >
-                            {renderIcon(item.icone, 16, item.nome)}
+                            {renderIcon(item.icone, 16)}
                             <span>{item.nome}</span>
                           </Link>
                         );
