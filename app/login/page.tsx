@@ -140,7 +140,7 @@ export default function login() {
             <div className={styles.actions}>
               <button
                 className={styles.btnLogin}
-                onClick={() => router.push("/Login/entra")}
+                onClick={() => router.push("/login/entra")}
               >
                 <FiLock size={18} />
                 Entrar
@@ -149,7 +149,7 @@ export default function login() {
 
               <button
                 className={styles.btnRegister}
-                onClick={() => router.push("/Login/cadastro")}
+                onClick={() => router.push("/login/cadastro")}
               >
                 <FiUserPlus size={18} />
                 Criar conta
