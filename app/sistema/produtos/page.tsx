@@ -2,13 +2,11 @@
 
 import api from "@/Api/conectar";
 import styles from "./Produtos.module.css";
-
 import Link from "next/link";
 
 import {
   Package,
   Tag,
-  Plus,
   Pencil,
   Trash2,
   Search,
@@ -22,6 +20,7 @@ interface Produto {
   nome: string;
   descricao?: string;
   imagem?: string;
+  miniatura?: string;
   preco: string;
   sku: string;
   marca: string;
@@ -31,7 +30,7 @@ export default function ProdutosPage() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const [busca, setBusca] = useState("");
-  const [limite, setLimite] = useState("3");
+  const [limite, setLimite] = useState("6");
 
   useEffect(() => {
     carregarProdutos();
@@ -42,7 +41,7 @@ export default function ProdutosPage() {
       const response = await api.get("/painel/produtos");
 
       const lista =
-        response.data?.dados || response.data || [];
+        response.data?.dados?.dados || []; // ✔️ CORRETO
 
       setProdutos(Array.isArray(lista) ? lista : []);
     } catch (error) {
@@ -54,8 +53,7 @@ export default function ProdutosPage() {
   }
 
   async function excluirProduto(id: number) {
-    const confirmar = window.confirm("Deseja excluir este produto?");
-    if (!confirmar) return;
+    if (!confirm("Deseja excluir este produto?")) return;
 
     try {
       await api.delete(`/painel/produto/${id}`);
@@ -69,12 +67,13 @@ export default function ProdutosPage() {
   }
 
   const produtosFiltrados = useMemo(() => {
-    return produtos.filter((produto) => {
-      const nome = produto.nome?.toLowerCase() || "";
-      const marca = produto.marca?.toLowerCase() || "";
-      const buscaLower = busca.toLowerCase();
+    const filtro = busca.toLowerCase();
 
-      return nome.includes(buscaLower) || marca.includes(buscaLower);
+    return produtos.filter((p) => {
+      return (
+        (p.nome || "").toLowerCase().includes(filtro) ||
+        (p.marca || "").toLowerCase().includes(filtro)
+      );
     });
   }, [produtos, busca]);
 
@@ -92,7 +91,7 @@ export default function ProdutosPage() {
       {/* HEADER */}
       <div className={styles.header}>
         <div>
-          <h1>Gestão de Produtos</h1>
+          <h1>sistema de Produtos</h1>
           <p>Controle todos os produtos cadastrados</p>
         </div>
 
@@ -107,7 +106,6 @@ export default function ProdutosPage() {
         <div className={styles.searchBox}>
           <Search size={18} />
           <input
-            type="text"
             placeholder="Pesquisar produto..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
@@ -115,7 +113,6 @@ export default function ProdutosPage() {
         </div>
 
         <select value={limite} onChange={(e) => setLimite(e.target.value)}>
-          <option value="3">Mostrar 3</option>
           <option value="6">Mostrar 6</option>
           <option value="9">Mostrar 9</option>
           <option value="12">Mostrar 12</option>
@@ -126,13 +123,19 @@ export default function ProdutosPage() {
       {/* GRID */}
       <div className={styles.grid}>
         {produtosExibidos.map((produto) => {
-          const descricao = produto.descricao || "Sem descrição";
-          const imagem = produto.imagem
-            ? `${api.defaults.baseURL}/${produto.imagem}`
-            : "/placeholder.png";
+          const descricao =
+            produto.descricao || "Sem descrição disponível";
+
+          const imagem =
+            produto.imagem || produto.miniatura
+              ? `${api.defaults.baseURL}/${
+                  produto.imagem || produto.miniatura
+                }`
+              : "/placeholder.png";
 
           return (
             <article key={produto.id_produto} className={styles.card}>
+              {/* IMAGE */}
               <div className={styles.imageWrap}>
                 <img
                   src={imagem}
@@ -145,12 +148,13 @@ export default function ProdutosPage() {
                 </span>
               </div>
 
+              {/* CONTENT */}
               <div className={styles.content}>
                 <h3>{produto.nome}</h3>
 
                 <p>
-                  {descricao.length > 200
-                    ? `${descricao.substring(0, 200)}...`
+                  {descricao.length > 160
+                    ? descricao.substring(0, 160) + "..."
                     : descricao}
                 </p>
 
@@ -188,14 +192,6 @@ export default function ProdutosPage() {
           );
         })}
       </div>
-
-      {/* BOTÃO FLUTUANTE REMOVIDO (SE QUISER POSSO TIRAR TBM) */}
-      <Link
-        href="/painel/sistema/produtos/cadastrar"
-        className={styles.floatingButton}
-      >
-        <Plus size={28} />
-      </Link>
     </div>
   );
 }
