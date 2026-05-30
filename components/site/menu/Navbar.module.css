@@ -3,10 +3,11 @@
   top: 0;
   z-index: 999;
   width: 100%;
-  background: rgba(255, 255, 255, 0.96);
+  background: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(14px);
-  border-bottom: 1px solid #f1ece8;
+  border-bottom: 1px solid #efe7e2;
   transition: 0.3s ease;
+  color: #2b2b2b;
 }
 
 .headerScrolled {
@@ -48,7 +49,7 @@
 .logoPink {
   font-size: 30px;
   font-weight: 800;
-  color: #c99684;
+  color: #b56f5a;
   letter-spacing: -1px;
 }
 
@@ -57,7 +58,7 @@
   font-weight: 600;
   letter-spacing: 3px;
   text-transform: uppercase;
-  color: #8f8680;
+  color: #6f655f;
   margin-top: 2px;
 }
 
@@ -84,7 +85,7 @@
 .searchBar:focus-within {
   background: #fff;
   border-color: #d7b5a8;
-  box-shadow: 0 0 0 4px rgba(201, 150, 132, 0.1);
+  box-shadow: 0 0 0 4px rgba(181, 111, 90, 0.12);
 }
 
 .searchBar input {
@@ -99,7 +100,7 @@
 }
 
 .searchBar input::placeholder {
-  color: #9f948d;
+  color: #7b6f69;
 }
 
 .clearBtn {
@@ -222,7 +223,7 @@
 .cartLabel {
   font-size: 11px;
   font-weight: 600;
-  color: #9b918a;
+  color: #6f655f;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
@@ -276,7 +277,7 @@
 
 .userInfo span {
   font-size: 11px;
-  color: #9b918a;
+  color: #6f655f;
 }
 
 .userInfo strong {
@@ -321,6 +322,26 @@
 
 .dropdownItem:hover {
   background: #f7f4f2;
+}
+
+.dropdownItem:focus-visible,
+.iconBtn:focus-visible,
+.cartButton:focus-visible,
+.userBtn:focus-visible,
+.hamburger:focus-visible,
+.mobileBtn:focus-visible,
+.mobileCartBtn:focus-visible,
+.mobileUserBtn:focus-visible,
+.closeBtn:focus-visible,
+.clearBtn:focus-visible,
+.sidebarClearBtn:focus-visible,
+.quickAction:focus-visible,
+.categoryItem:focus-visible,
+.footerButton:focus-visible,
+.footerButtonSecondary:focus-visible,
+.footerButtonDanger:focus-visible {
+  outline: 3px solid rgba(181, 111, 90, 0.25);
+  outline-offset: 2px;
 }
 
 .mobileNavbar {
@@ -382,7 +403,7 @@
 .sidebarSubtitle {
   display: block;
   font-size: 12px;
-  color: #8e847d;
+  color: #6f655f;
   margin-top: 4px;
 }
 
@@ -451,7 +472,7 @@
 
 .sidebarUserData span {
   font-size: 12px;
-  color: #8f8680;
+  color: #6f655f;
   margin-top: 4px;
   word-break: break-word;
 }
@@ -546,7 +567,7 @@
 .sidebarSearchBox:focus-within {
   background: #fff;
   border-color: #d7b5a8;
-  box-shadow: 0 0 0 4px rgba(201, 150, 132, 0.1);
+  box-shadow: 0 0 0 4px rgba(181, 111, 90, 0.12);
 }
 
 .sidebarSearchBox input {
@@ -559,7 +580,7 @@
 }
 
 .sidebarSearchBox input::placeholder {
-  color: #9f948d;
+  color: #7b6f69;
 }
 
 .sidebarClearBtn {
@@ -659,7 +680,7 @@
 
 .categoryInfo span {
   font-size: 12px;
-  color: #8d817a;
+  color: #6f655f;
   margin-top: 3px;
   text-transform: lowercase;
 }
@@ -728,14 +749,6 @@
   transform: translateY(-1px);
 }
 
-.mobileNavbar {
-  display: none;
-}
-
-.mobileSearch {
-  display: none;
-}
-
 @media (max-width: 991px) {
   .desktopNavbar {
     display: none;
@@ -779,7 +792,7 @@
 
   .mobileSubtitle {
     font-size: 9px;
-    color: #8e847d;
+    color: #6f655f;
     letter-spacing: 2px;
     margin-top: 2px;
   }
