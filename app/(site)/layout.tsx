@@ -6,7 +6,7 @@ import { Analytics } from "@vercel/analytics/next";
 import "./../globals.css";
 
 import "bootstrap/dist/css/bootstrap.min.css";
-import "bootstrap-icons/font/bootstrap-icons.css";
+
 import "react-toastify/dist/ReactToastify.css";
 
 /*
@@ -19,7 +19,7 @@ import "@/public/produto/produto.css";
 import "@/public/produto/page.css";
 import "@/public/produto/destaque.css";
 
-import "@/public/categoria/cateid.css";
+
 
 
 
