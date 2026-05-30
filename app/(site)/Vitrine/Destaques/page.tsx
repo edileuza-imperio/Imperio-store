@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import api from "@/Api/conectar";
 
 import {
@@ -623,7 +624,7 @@ export default function Destaques({
 
         <div className={styles.carouselShell}>
           <div ref={carouselRef} className={styles.carousel}>
-            {itens.map((item) => {
+            {itens.map((item, index) => {
               const precoFormatado = formatarPreco(item.preco_final);
               const precoOriginalFormatado = formatarPreco(item.preco_original);
 
@@ -640,15 +641,21 @@ export default function Destaques({
               const estaAdicionando = adicionandoId === String(item.id_vitrine_item);
 
               return (
-                <article key={String(item.id_vitrine_item)} className="destaque-card">
+                <article
+                  key={String(item.id_vitrine_item)}
+                  className={`${styles.card} destaque-card`}
+                >
                   <div className={styles.media}>
                     <Link href={item.link_final || "#"} className={styles.imageLink}>
                       {item.imagem_final ? (
-                        <img
+                        <Image
                           src={item.imagem_final}
                           alt={item.titulo_final}
+                          fill
+                          sizes="(max-width: 480px) 86vw, (max-width: 768px) 78vw, (max-width: 1100px) 280px, 290px"
                           className={styles.image}
-                          loading="lazy"
+                          quality={75}
+                          priority={index < 2}
                         />
                       ) : (
                         <div className={styles.noImage}>
