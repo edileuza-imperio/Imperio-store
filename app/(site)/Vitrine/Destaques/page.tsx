@@ -28,86 +28,17 @@ import {
 
 import styles from "./Destaques.module.css";
 import { imagemFundo } from "@/components/Bibioteca/imagem";
+import { calcularEconomia, descobrirTipoItem, formatarPreco, normalizarDados, normalizarLista, obterMelhorImagem, temValor } from "@/hooks/destaque/functions";
+import { adicionarNoCarrinhoBanco, moverCarousel } from "@/Pages/carrinho";
+import { useAutoplayRef, useCarouselRef } from "@/Pages/vitrine.service";
+import SkeletonDestaques from "@/Pages/destaque/SkeletonDestaques";
+import ModalCarrinho from "@/Pages/destaque/modal/modal";
 
-function normalizarDados<T = any>(payload: any): T | null {
-  return payload?.dados?.dados ?? payload?.dados ?? payload ?? null;
-}
 
-function normalizarLista<T = any>(payload: any): T[] {
-  const dados = payload?.dados?.dados ?? payload?.dados ?? payload ?? [];
-  return Array.isArray(dados) ? dados : [];
-}
 
-function obterMelhorImagem(
-  item?: VitrineItem | null,
-  entidade?: EntidadeGenerica | null
-) {
-  return imagemFundo(
-    item?.imagem_personalizada ||
-      entidade?.imagem ||
-      entidade?.miniatura ||
-      entidade?.banner ||
-      entidade?.foto ||
-      entidade?.desktop ||
-      entidade?.mobile ||
-      ""
-  );
-}
 
-function formatarPreco(valor?: number | string | null) {
-  if (valor === null || valor === undefined || valor === "") return null;
 
-  const numero = Number(valor);
-  if (Number.isNaN(numero)) return null;
 
-  return numero.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
-
-function calcularEconomia(
-  precoOriginal?: number | string | null,
-  precoFinal?: number | string | null
-) {
-  const original = Number(precoOriginal);
-  const final = Number(precoFinal);
-
-  if (
-    precoOriginal === null ||
-    precoOriginal === undefined ||
-    precoFinal === null ||
-    precoFinal === undefined ||
-    Number.isNaN(original) ||
-    Number.isNaN(final) ||
-    original <= 0 ||
-    final <= 0 ||
-    final >= original
-  ) {
-    return null;
-  }
-
-  const percentual = Math.round(((original - final) / original) * 100);
-  return `${percentual}% OFF`;
-}
-
-function descobrirTipoItem(
-  item: VitrineItem,
-  tipoVitrine?: string
-): ItemResolvido["tipo_item"] {
-  if (item.produto_id) return "produto";
-  if (item.campanha_id) return "campanha";
-  if (item.categoria_id) return "categoria";
-
-  const tipo = String(tipoVitrine || "").toLowerCase();
-  if (tipo === "banner") return "banner";
-
-  return "custom";
-}
-
-function temValor(valor: unknown) {
-  return valor !== null && valor !== undefined && String(valor).trim() !== "";
-}
 
 export default function Destaques({
   slug,
@@ -132,8 +63,8 @@ export default function Destaques({
   const [pausado, setPausado] = useState(false);
   const [abrindoCarrinho, setAbrindoCarrinho] = useState(false);
 
-  const carouselRef = useRef<HTMLDivElement | null>(null);
-  const autoplayRef = useRef<number | null>(null);
+  const carouselRef = useCarouselRef();
+  const autoplayRef = useAutoplayRef();
 
   const vitrineComItens = useMemo(() => {
     if (!vitrineProp) return null;
@@ -425,59 +356,8 @@ export default function Destaques({
     };
   }, [loading, itens.length, pausado, abrindoCarrinho]);
 
-  function moverCarousel(direcao: "prev" | "next") {
-    const carousel = carouselRef.current;
-    if (!carousel) return;
 
-    const card = carousel.querySelector<HTMLElement>(".destaque-card");
-    const larguraCard = card?.offsetWidth || 280;
-    const gap = 18;
-    const distancia = larguraCard + gap;
 
-    const { scrollLeft, scrollWidth, clientWidth } = carousel;
-    const maxScroll = scrollWidth - clientWidth;
-
-    if (direcao === "next") {
-      if (scrollLeft >= maxScroll - 8) {
-        carousel.scrollTo({ left: 0, behavior: "smooth" });
-      } else {
-        carousel.scrollBy({ left: distancia, behavior: "smooth" });
-      }
-    } else {
-      if (scrollLeft <= 8) {
-        carousel.scrollTo({ left: maxScroll, behavior: "smooth" });
-      } else {
-        carousel.scrollBy({ left: -distancia, behavior: "smooth" });
-      }
-    }
-  }
-
-  async function adicionarNoCarrinhoBanco(item: ItemResolvido) {
-    if (item.tipo_item !== "produto" || !item.produto_id) return;
-
-    const precoBase =
-      temValor(item.preco_original)
-        ? Number(item.preco_original)
-        : Number(item.preco_final || 0);
-
-    const precoPromocional = temValor(item.preco_original)
-      ? Number(item.preco_final || 0)
-      : null;
-
-    await api.post(
-      "/carrinho/adicionar",
-      {
-        produto_id: Number(item.produto_id),
-        quantidade: 1,
-        preco: Number.isNaN(precoBase) ? 0 : precoBase,
-        preco_promocional:
-          precoPromocional !== null && !Number.isNaN(precoPromocional)
-            ? precoPromocional
-            : null,
-      },
-      { withCredentials: true }
-    );
-  }
 
   async function handleAdicionarCarrinho(item: ItemResolvido) {
     if (onAdicionarCarrinho) {
@@ -529,40 +409,8 @@ export default function Destaques({
   }
 
   if (loading) {
-    return (
-      <section className={`${styles.section} ${className}`}>
-        <div className={styles.container}>
-          <div className={styles.header}>
-            <div className={styles.headerText}>
-              <div className={`${styles.skeleton} ${styles.skeletonBadge}`} />
-              <div className={`${styles.skeleton} ${styles.skeletonTitle}`} />
-              <div className={`${styles.skeleton} ${styles.skeletonText}`} />
-            </div>
-            <div className={`${styles.skeleton} ${styles.skeletonButton}`} />
-          </div>
-
-          <div className={styles.skeletonGrid}>
-            {Array.from({ length: 4 }).map((_, index) => (
-              <article className={styles.skeletonCard} key={index}>
-                <div className={`${styles.skeleton} ${styles.skeletonImage}`} />
-                <div className={styles.skeletonBody}>
-                  <div className={`${styles.skeleton} ${styles.skeletonLineTitle}`} />
-                  <div className={`${styles.skeleton} ${styles.skeletonLine}`} />
-                  <div className={`${styles.skeleton} ${styles.skeletonLineShort}`} />
-                  <div className={styles.skeletonActions}>
-                    <div className={`${styles.skeleton} ${styles.skeletonBtn}`} />
-                    <div
-                      className={`${styles.skeleton} ${styles.skeletonBtn} ${styles.outline}`}
-                    />
-                  </div>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
+  return <SkeletonDestaques className={className} />;
+}
 
   if (erro || !vitrine || itens.length === 0) return null;
 
@@ -598,7 +446,7 @@ export default function Destaques({
             <button
               type="button"
               className={styles.navButton}
-              onClick={() => moverCarousel("prev")}
+              onClick={() => moverCarousel(carouselRef.current, "prev")}
               disabled={!podeVoltar || abrindoCarrinho}
               aria-label="Anterior"
             >
@@ -608,7 +456,7 @@ export default function Destaques({
             <button
               type="button"
               className={styles.navButton}
-              onClick={() => moverCarousel("next")}
+              onClick={() => moverCarousel(carouselRef.current, "next")}
               disabled={!podeAvancar || abrindoCarrinho}
               aria-label="Próximo"
             >
@@ -726,8 +574,8 @@ export default function Destaques({
                             {estaAdicionando
                               ? "Adicionando..."
                               : abrindoCarrinho
-                              ? "Abrindo..."
-                              : "Carrinho"}
+                                ? "Abrindo..."
+                                : "Carrinho"}
                           </span>
                         </button>
                       ) : (
@@ -753,15 +601,7 @@ export default function Destaques({
         </div>
       </div>
 
-      {abrindoCarrinho && (
-        <div className={styles.overlay}>
-          <div className={styles.modal}>
-            <div className={styles.spinner} />
-            <h3>Levando você para o carrinho</h3>
-            <p>Seu produto foi adicionado com sucesso.</p>
-          </div>
-        </div>
-      )}
+      <ModalCarrinho aberto={abrindoCarrinho} />
     </section>
   );
 }
