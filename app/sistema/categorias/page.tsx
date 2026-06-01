@@ -3,482 +3,326 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import api from "@/Api/conectar";
-import { Plus, FolderOpen, Tag, Sparkles, CircleCheckBig } from "lucide-react";
+import {
+  Plus,
+  FolderOpen,
+  Search,
+  RefreshCcw,
+} from "lucide-react";
 
 type Categoria = {
-  id_categoria: number | string;
+  id_categoria: number;
   nome: string;
   slug: string;
   descricao?: string;
-  status_id?: number;
 };
 
-export default function Page() {
+export default function CategoriasPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [busca, setBusca] = useState("");
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    carregarCategorias();
-  }, []);
 
   async function carregarCategorias() {
     try {
       setLoading(true);
 
-      const response = await api.get("/painel/categorias", {
-        withCredentials: true,
-      });
+      const response = await api.get("/painel/categorias");
 
-      const lista =
-        response.data?.dados?.dados ||
-        response.data?.dados ||
-        response.data ||
-        [];
-
-      setCategorias(Array.isArray(lista) ? lista : []);
+      setCategorias(response.data || []);
     } catch (error) {
-      console.error("Erro ao listar categorias:", error);
-      setCategorias([]);
+      console.error(error);
     } finally {
       setLoading(false);
     }
   }
 
-  const categoriasAtivas = categorias.filter((cat) => cat.status_id === 1)
-    .length;
+  useEffect(() => {
+    carregarCategorias();
+  }, []);
+
+  const categoriasFiltradas = categorias.filter((categoria) =>
+    categoria.nome.toLowerCase().includes(busca.toLowerCase())
+  );
 
   return (
-    <div className="page">
-      <div className="content">
-        <header className="hero">
-          <div className="heroText">
-            <div className="heroBadge">
-              <Sparkles size={16} />
-              <span>Administração</span>
-            </div>
-
+    <>
+      <div className="container">
+        <div className="header">
+          <div>
             <h1>Categorias</h1>
-            <p>Gerencie as categorias cadastradas no sistema de forma simples e organizada.</p>
+            <p>Gerencie todas as categorias do sistema</p>
           </div>
 
-          <Link href="/painel/categoria/nova" className="heroButton">
-            <Plus size={18} />
-            Nova categoria
-          </Link>
-        </header>
+          <button onClick={carregarCategorias} className="btnAtualizar">
+            <RefreshCcw size={18} />
+            Atualizar
+          </button>
+        </div>
 
-        <section className="statsGrid">
-          <article className="statCard">
-            <div className="statIcon total">
-              <FolderOpen size={20} />
-            </div>
+        <div className="busca">
+          <Search size={18} className="iconeBusca" />
 
-            <div className="statInfo">
-              <span>Total de categorias</span>
-              <strong>{categorias.length}</strong>
-            </div>
-          </article>
+          <input
+            type="text"
+            placeholder="Pesquisar categoria..."
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+          />
+        </div>
 
-          <article className="statCard">
-            <div className="statIcon active">
-              <CircleCheckBig size={20} />
-            </div>
-
-            <div className="statInfo">
-              <span>Categorias ativas</span>
-              <strong>{categoriasAtivas}</strong>
-            </div>
-          </article>
-        </section>
+        <div className="cardResumo">
+          <span>Total de Categorias</span>
+          <h2>{categorias.length}</h2>
+        </div>
 
         {loading ? (
-          <div className="stateBox">
-            <div className="spinner" />
-            <p>Carregando categorias...</p>
+          <div className="vazio">
+            Carregando categorias...
           </div>
-        ) : categorias.length === 0 ? (
-          <div className="stateBox empty">
-            <FolderOpen size={52} />
+        ) : categoriasFiltradas.length === 0 ? (
+          <div className="vazio">
+            <FolderOpen size={50} />
             <h3>Nenhuma categoria encontrada</h3>
-            <p>Cadastre a primeira categoria para começar.</p>
+            <p>Cadastre sua primeira categoria.</p>
           </div>
         ) : (
-          <section className="list">
-            {categorias.map((cat) => {
-              const ativa = cat.status_id === 1;
-
-              return (
-                <article key={cat.id_categoria} className="item">
-                  <div className="itemHeader">
-                    <div className="badgeIcon">
-                      <FolderOpen size={18} />
-                    </div>
-
-                    <span className="slug">{cat.slug}</span>
+          <div className="grid">
+            {categoriasFiltradas.map((categoria) => (
+              <div
+                key={categoria.id_categoria}
+                className="card"
+              >
+                <div className="topoCard">
+                  <div className="iconeCard">
+                    <FolderOpen />
                   </div>
 
-                  <h3>{cat.nome}</h3>
-
-                  <p className={cat.descricao ? "description" : "emptyText"}>
-                    {cat.descricao ? cat.descricao : "Sem descrição cadastrada."}
-                  </p>
-
-                  <div className="itemFooter">
-                    <span className={`status ${ativa ? "on" : "off"}`}>
-                      {ativa ? "Ativa" : "Inativa"}
-                    </span>
-
-                    <span className="meta">
-                      <Tag size={14} />
-                      ID {cat.id_categoria}
-                    </span>
+                  <div>
+                    <h2>{categoria.nome}</h2>
+                    <span>{categoria.slug}</span>
                   </div>
-                </article>
-              );
-            })}
-          </section>
+                </div>
+
+                <p className="descricao">
+                  {categoria.descricao ||
+                    "Nenhuma descrição cadastrada."}
+                </p>
+
+                <Link
+                  href={`/sistema/categorias/${categoria.id_categoria}`}
+                  className="btnEditar"
+                >
+                  Editar
+                </Link>
+              </div>
+            ))}
+          </div>
         )}
+
+        <Link
+          href="/sistema/categorias/cadastrar"
+          className="btnFlutuante"
+        >
+          <Plus size={30} />
+        </Link>
       </div>
 
-      <Link
-        href="/painel/categoria/nova"
-        className="fab"
-        aria-label="Nova categoria"
-      >
-        <Plus size={28} />
-      </Link>
-
       <style jsx>{`
-        .page {
+        .container {
           min-height: 100vh;
-          padding: 24px;
-          background:
-            radial-gradient(circle at top left, rgba(123, 92, 255, 0.08), transparent 30%),
-            radial-gradient(circle at top right, rgba(168, 93, 106, 0.08), transparent 28%),
-            #f6f7fb;
+          padding: 30px;
+          background: #f8fafc;
         }
 
-        .content {
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-
-        .hero {
+        .header {
           display: flex;
-          align-items: center;
           justify-content: space-between;
+          align-items: center;
+          margin-bottom: 30px;
           gap: 20px;
-          padding: 28px;
-          border-radius: 28px;
-          background: linear-gradient(135deg, #ffffff, #fdfdfd);
-          border: 1px solid #ececf2;
-          box-shadow: 0 18px 50px rgba(20, 20, 43, 0.06);
-          margin-bottom: 22px;
+          flex-wrap: wrap;
         }
 
-        .heroText h1 {
-          margin: 12px 0 0;
+        .header h1 {
+          margin: 0;
           font-size: 2rem;
-          line-height: 1.1;
-          color: #23212a;
+          color: #1e293b;
         }
 
-        .heroText p {
-          margin: 10px 0 0;
-          max-width: 620px;
-          color: #666476;
-          line-height: 1.6;
+        .header p {
+          margin-top: 5px;
+          color: #64748b;
         }
 
-        .heroBadge {
-          display: inline-flex;
+        .btnAtualizar {
+          display: flex;
           align-items: center;
           gap: 8px;
-          padding: 8px 12px;
-          border-radius: 999px;
-          background: #f1efff;
-          color: #6b57ff;
-          font-size: 0.82rem;
-          font-weight: 700;
+          border: none;
+          background: white;
+          padding: 12px 18px;
+          border-radius: 12px;
+          cursor: pointer;
+          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
         }
 
-        .heroButton {
-          display: inline-flex;
+        .busca {
+          position: relative;
+          margin-bottom: 25px;
+        }
+
+        .iconeBusca {
+          position: absolute;
+          left: 15px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #94a3b8;
+        }
+
+        .busca input {
+          width: 100%;
+          padding: 14px 14px 14px 45px;
+          border-radius: 16px;
+          border: 1px solid #e2e8f0;
+          font-size: 15px;
+          outline: none;
+        }
+
+        .cardResumo {
+          background: white;
+          border-radius: 24px;
+          padding: 25px;
+          margin-bottom: 30px;
+          box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .cardResumo span {
+          color: #64748b;
+        }
+
+        .cardResumo h2 {
+          margin-top: 10px;
+          font-size: 2rem;
+          color: #0f172a;
+        }
+
+        .grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+          gap: 20px;
+        }
+
+        .card {
+          background: white;
+          border-radius: 24px;
+          padding: 24px;
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
+          transition: 0.3s;
+        }
+
+        .card:hover {
+          transform: translateY(-5px);
+        }
+
+        .topoCard {
+          display: flex;
           align-items: center;
-          gap: 8px;
-          padding: 13px 18px;
-          border-radius: 14px;
-          background: linear-gradient(135deg, #a85d6a, #d88b99);
-          color: #fff;
+          gap: 15px;
+          margin-bottom: 15px;
+        }
+
+        .iconeCard {
+          width: 55px;
+          height: 55px;
+          border-radius: 16px;
+          background: #fce7f3;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #db2777;
+        }
+
+        .topoCard h2 {
+          margin: 0;
+          color: #0f172a;
+          font-size: 1rem;
+        }
+
+        .topoCard span {
+          color: #64748b;
+          font-size: 0.85rem;
+        }
+
+        .descricao {
+          color: #475569;
+          line-height: 1.5;
+          margin-bottom: 20px;
+        }
+
+        .btnEditar {
+          display: inline-block;
+          background: #0f172a;
+          color: white;
           text-decoration: none;
-          font-weight: 700;
-          white-space: nowrap;
-          box-shadow: 0 14px 30px rgba(168, 93, 106, 0.25);
-          transition: 0.25s ease;
+          padding: 10px 18px;
+          border-radius: 12px;
+          font-size: 14px;
         }
 
-        .heroButton:hover {
-          transform: translateY(-2px);
-        }
-
-        .statsGrid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 16px;
-          margin-bottom: 22px;
-        }
-
-        .statCard {
-          background: #fff;
-          border: 1px solid #ececf2;
-          border-radius: 20px;
-          padding: 18px;
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          box-shadow: 0 10px 30px rgba(20, 20, 43, 0.04);
-        }
-
-        .statIcon {
-          width: 46px;
-          height: 46px;
-          border-radius: 14px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .statIcon.total {
-          background: #f1efff;
-          color: #6b57ff;
-        }
-
-        .statIcon.active {
-          background: #eefaf1;
-          color: #22a65a;
-        }
-
-        .statInfo span {
-          display: block;
-          color: #757285;
-          font-size: 0.86rem;
-        }
-
-        .statInfo strong {
-          display: block;
-          margin-top: 4px;
-          font-size: 1.5rem;
-          color: #1f1d28;
-        }
-
-        .stateBox {
-          background: #fff;
-          border: 1px solid #ececf2;
-          border-radius: 22px;
-          padding: 56px 20px;
-          text-align: center;
-          box-shadow: 0 10px 30px rgba(20, 20, 43, 0.04);
-          color: #676479;
-        }
-
-        .stateBox.empty svg {
-          color: #a85d6a;
-        }
-
-        .stateBox h3 {
-          margin: 14px 0 8px;
-          color: #1f1d28;
-        }
-
-        .stateBox p {
-          margin: 0;
-          color: #6f6d7d;
-        }
-
-        .spinner {
-          width: 42px;
-          height: 42px;
-          margin: 0 auto;
-          border: 4px solid #ececf2;
-          border-top: 4px solid #a85d6a;
-          border-radius: 50%;
-          animation: spin 0.9s linear infinite;
-        }
-
-        .list {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
-          gap: 18px;
-          padding-bottom: 96px;
-        }
-
-        .item {
-          background: #fff;
-          border: 1px solid #ececf2;
-          border-radius: 22px;
-          padding: 20px;
-          box-shadow: 0 10px 28px rgba(20, 20, 43, 0.05);
-          transition: 0.25s ease;
-        }
-
-        .item:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 18px 40px rgba(20, 20, 43, 0.09);
-        }
-
-        .itemHeader {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          margin-bottom: 16px;
-        }
-
-        .badgeIcon {
-          width: 40px;
-          height: 40px;
-          border-radius: 13px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: #f1efff;
-          color: #6b57ff;
-          flex-shrink: 0;
-        }
-
-        .slug {
-          display: inline-flex;
-          align-items: center;
-          max-width: 160px;
-          padding: 6px 10px;
-          border-radius: 999px;
-          background: #f7f4ff;
-          color: #6b57ff;
-          font-size: 0.78rem;
-          font-weight: 700;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .item h3 {
-          margin: 0;
-          font-size: 1.05rem;
-          color: #21202a;
-        }
-
-        .description,
-        .emptyText {
-          margin: 12px 0 0;
-          line-height: 1.6;
-          font-size: 0.93rem;
-        }
-
-        .description {
-          color: #63616f;
-        }
-
-        .emptyText {
-          color: #9a97a6;
-          font-style: italic;
-        }
-
-        .itemFooter {
-          margin-top: 18px;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-        }
-
-        .status {
-          display: inline-flex;
-          align-items: center;
-          padding: 6px 10px;
-          border-radius: 999px;
-          font-size: 0.78rem;
-          font-weight: 700;
-        }
-
-        .status.on {
-          background: #eefaf1;
-          color: #22a65a;
-        }
-
-        .status.off {
-          background: #fff3ef;
-          color: #de6b4f;
-        }
-
-        .meta {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          color: #7a7888;
-          font-size: 0.82rem;
-        }
-
-        .fab {
+        .btnFlutuante {
           position: fixed;
-          right: 24px;
-          bottom: 24px;
-          width: 70px;
-          height: 70px;
+          bottom: 25px;
+          right: 25px;
+          width: 65px;
+          height: 65px;
           border-radius: 50%;
+          background: #e11d48;
+          color: white;
           display: flex;
           align-items: center;
           justify-content: center;
           text-decoration: none;
-          color: #fff;
-          background: linear-gradient(135deg, #a85d6a, #d88b99);
-          box-shadow: 0 15px 40px rgba(168, 93, 106, 0.38);
+          box-shadow: 0 10px 30px rgba(225, 29, 72, 0.4);
+          transition: 0.3s;
           z-index: 999;
-          transition: 0.25s ease;
         }
 
-        .fab:hover {
-          transform: translateY(-3px) scale(1.05);
+        .btnFlutuante:hover {
+          transform: scale(1.1);
         }
 
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
+        .vazio {
+          background: white;
+          border-radius: 24px;
+          padding: 50px;
+          text-align: center;
+          color: #64748b;
+        }
+
+        .vazio h3 {
+          margin-top: 15px;
+          color: #0f172a;
         }
 
         @media (max-width: 768px) {
-          .page {
-            padding: 18px;
+          .container {
+            padding: 15px;
           }
 
-          .hero {
+          .header {
             flex-direction: column;
             align-items: stretch;
-            padding: 22px;
           }
 
-          .heroText h1 {
-            font-size: 1.7rem;
-          }
-
-          .heroButton {
+          .btnAtualizar {
             justify-content: center;
           }
 
-          .fab {
-            width: 60px;
-            height: 60px;
-            right: 18px;
-            bottom: 18px;
-          }
-
-          .itemFooter {
-            flex-direction: column;
-            align-items: flex-start;
+          .grid {
+            grid-template-columns: 1fr;
           }
         }
       `}</style>
-    </div>
+    </>
   );
 }
