@@ -55,7 +55,7 @@ export default function Page() {
         <div className="header">
           <div>
             <h1>Categorias</h1>
-            <p>Gerencie todas as categorias do sistema com mais organização</p>
+            <p>Gerencie to4das as categorias do sistema com mais organização</p>
           </div>
         </div>
 
