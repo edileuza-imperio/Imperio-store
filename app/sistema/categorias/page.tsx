@@ -4,11 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import api from "@/Api/conectar";
 import {
-  Plus,
-  Search,
-  RefreshCcw,
   FolderOpen,
   Tag,
+  Search,
+  Plus,
+  Boxes,
+  RefreshCcw,
   ArrowRight,
   AlertCircle,
 } from "lucide-react";
@@ -22,23 +23,19 @@ type Categoria = {
   imagem?: string | null;
   ordem?: number;
   status_id?: number;
+  site_config_id?: number;
 };
 
 export default function CategoriasPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [busca, setBusca] = useState("");
   const [loading, setLoading] = useState(true);
+  const [busca, setBusca] = useState("");
+  const [limite, setLimite] = useState("6");
   const [erro, setErro] = useState<string | null>(null);
 
-  function extrairCategorias(resposta: any): Categoria[] {
-    const dados = resposta?.dados;
-
-    if (Array.isArray(resposta)) return resposta;
-    if (Array.isArray(dados)) return dados;
-    if (Array.isArray(dados?.dados)) return dados.dados;
-
-    return [];
-  }
+  useEffect(() => {
+    carregarCategorias();
+  }, []);
 
   async function carregarCategorias() {
     try {
@@ -46,312 +43,344 @@ export default function CategoriasPage() {
       setErro(null);
 
       const response = await api.get("/painel/categorias");
-      const lista = extrairCategorias(response.data);
 
-      setCategorias(lista);
+      const lista =
+        response.data?.dados?.dados ||
+        response.data?.dados ||
+        response.data ||
+        [];
+
+      setCategorias(Array.isArray(lista) ? lista : []);
     } catch (error) {
       console.error("Erro ao carregar categorias:", error);
-      setErro("Não foi possível carregar as categorias.");
       setCategorias([]);
+      setErro("Não foi possível carregar as categorias.");
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {
-    carregarCategorias();
-  }, []);
+  async function excluirCategoria(id: number) {
+    if (!confirm("Deseja excluir esta categoria?")) return;
+
+    try {
+      await api.delete(`/painel/categoria/${id}`);
+
+      setCategorias((prev) =>
+        prev.filter((item) => item.id_categoria !== id)
+      );
+    } catch (error) {
+      console.error("Erro ao excluir categoria:", error);
+      alert("Erro ao excluir categoria.");
+    }
+  }
 
   const categoriasFiltradas = useMemo(() => {
-    if (!Array.isArray(categorias)) return [];
+    const filtro = busca.toLowerCase().trim();
 
-    const termo = busca.trim().toLowerCase();
-    if (!termo) return categorias;
+    if (!filtro) return categorias;
 
     return categorias.filter((categoria) => {
-      const nome = categoria.nome?.toLowerCase() || "";
-      const slug = categoria.slug?.toLowerCase() || "";
-      const descricao = categoria.descricao?.toLowerCase() || "";
-
       return (
-        nome.includes(termo) ||
-        slug.includes(termo) ||
-        descricao.includes(termo)
+        (categoria.nome || "").toLowerCase().includes(filtro) ||
+        (categoria.slug || "").toLowerCase().includes(filtro) ||
+        (categoria.descricao || "").toLowerCase().includes(filtro)
       );
     });
   }, [categorias, busca]);
 
+  const categoriasExibidas =
+    limite === "todos"
+      ? categoriasFiltradas
+      : categoriasFiltradas.slice(0, Number(limite));
+
+  if (loading) {
+    return <div className="loading">Carregando categorias...</div>;
+  }
+
   return (
     <>
-      <main className="page">
-        <section className="hero">
-          <div className="heroLeft">
-            <div className="heroBadge">
+      <div className="container">
+        {/* HEADER */}
+        <div className="header">
+          <div className="headerLeft">
+            <div className="headerBadge">
               <Tag size={16} />
               <span>Gerenciamento</span>
             </div>
 
-            <h1>Categorias</h1>
-            <p>
-              Organize, edite e acompanhe as categorias do sistema com uma
-              interface mais limpa e direta.
-            </p>
+            <h1>Sistema de Categorias</h1>
+            <p>Controle todas as categorias cadastradas</p>
           </div>
 
-          <div className="heroRight">
+          <div className="headerRight">
             <button onClick={carregarCategorias} className="refreshButton">
               <RefreshCcw size={18} />
               Atualizar
             </button>
 
-            <div className="heroStat">
-              <strong>{Array.isArray(categorias) ? categorias.length : 0}</strong>
-              <span>categorias cadastradas</span>
+            <div className="stats">
+              <Boxes size={20} />
+              <span>{categorias.length} categorias</span>
             </div>
           </div>
-        </section>
+        </div>
 
-        <section className="searchSection">
+        {/* TOOLBAR */}
+        <div className="toolbar">
           <div className="searchBox">
-            <Search size={18} className="searchIcon" />
+            <Search size={18} />
             <input
-              type="text"
-              placeholder="Pesquisar por nome, slug ou descrição..."
+              placeholder="Pesquisar categoria..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
           </div>
-        </section>
 
-        {loading ? (
-          <section className="stateCard">
-            <FolderOpen size={42} />
-            <h3>Carregando categorias...</h3>
-            <p>Aguarde um momento enquanto buscamos os dados.</p>
-          </section>
-        ) : erro ? (
-          <section className="stateCard error">
+          <select value={limite} onChange={(e) => setLimite(e.target.value)}>
+            <option value="6">Mostrar 6</option>
+            <option value="9">Mostrar 9</option>
+            <option value="12">Mostrar 12</option>
+            <option value="todos">Mostrar todos</option>
+          </select>
+        </div>
+
+        {/* ERRO */}
+        {erro ? (
+          <div className="estado erro">
             <AlertCircle size={42} />
             <h3>Algo deu errado</h3>
             <p>{erro}</p>
-          </section>
-        ) : categoriasFiltradas.length === 0 ? (
-          <section className="stateCard">
+          </div>
+        ) : null}
+
+        {/* GRID */}
+        {!erro && categoriasExibidas.length === 0 ? (
+          <div className="estado">
             <FolderOpen size={42} />
             <h3>Nenhuma categoria encontrada</h3>
-            <p>Cadastre uma nova categoria usando o botão no canto.</p>
-          </section>
+            <p>Cadastre a primeira categoria usando o botão flutuante.</p>
+          </div>
         ) : (
-          <section className="grid">
-            {categoriasFiltradas.map((categoria) => (
-              <article key={categoria.id_categoria} className="card">
-                <div className="cardTop">
-                  <div className="cardIcon">
-                    <FolderOpen size={20} />
+          <div className="grid">
+            {categoriasExibidas.map((categoria) => {
+              const descricao =
+                categoria.descricao || "Sem descrição disponível";
+
+              return (
+                <article key={categoria.id_categoria} className="card">
+                  <div className="cardHeader">
+                    <div className="cardIcon">
+                      <FolderOpen size={20} />
+                    </div>
+
+                    <div className="cardTitle">
+                      <h3>{categoria.nome}</h3>
+                      <span>{categoria.slug}</span>
+                    </div>
+
+                    <Link
+                      href={`/sistema/categorias/${categoria.id_categoria}`}
+                      className="miniAction"
+                      aria-label="Editar categoria"
+                    >
+                      <ArrowRight size={18} />
+                    </Link>
                   </div>
 
-                  <div className="cardTitle">
-                    <h2>{categoria.nome}</h2>
-                    <span>{categoria.slug}</span>
+                  <p className="description">
+                    {descricao.length > 160
+                      ? descricao.substring(0, 160) + "..."
+                      : descricao}
+                  </p>
+
+                  <div className="info">
+                    <span>
+                      <Tag size={14} />
+                      {categoria.slug || "Sem slug"}
+                    </span>
+
+                    <span>
+                      <Boxes size={14} />
+                      Ordem: {categoria.ordem ?? "-"}
+                    </span>
                   </div>
 
-                  <Link
-                    href={`/sistema/categorias/${categoria.id_categoria}`}
-                    className="miniAction"
-                    aria-label="Editar categoria"
-                  >
-                    <ArrowRight size={18} />
-                  </Link>
-                </div>
+                  <div className="actions">
+                    <Link
+                      href={`/sistema/categorias/${categoria.id_categoria}`}
+                      className="editButton"
+                    >
+                      Editar
+                    </Link>
 
-                <p className="cardDescription">
-                  {categoria.descricao?.trim()
-                    ? categoria.descricao
-                    : "Nenhuma descrição cadastrada."}
-                </p>
-
-                <div className="cardFooter">
-                  <div className="meta">
-                    <span>ID #{categoria.id_categoria}</span>
+                    <button
+                      className="deleteButton"
+                      onClick={() => excluirCategoria(categoria.id_categoria)}
+                    >
+                      Excluir
+                    </button>
                   </div>
-
-                  <Link
-                    href={`/sistema/categorias/${categoria.id_categoria}`}
-                    className="editButton"
-                  >
-                    Editar
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </section>
+                </article>
+              );
+            })}
+          </div>
         )}
 
-        <Link href="/sistema/categorias/cadastrar" className="fab">
-          <Plus size={22} />
-          <span>Nova categoria</span>
+        {/* BOTÃO FLUTUANTE */}
+        <Link
+          href="/sistema/categorias/cadastrar"
+          className="floatingButton"
+          aria-label="Adicionar categoria"
+        >
+          <Plus size={28} />
         </Link>
-      </main>
+      </div>
 
       <style jsx>{`
-        .page {
-          min-height: 100vh;
-          padding: 28px;
-          background:
-            radial-gradient(circle at top left, rgba(236, 72, 153, 0.09), transparent 28%),
-            radial-gradient(circle at top right, rgba(15, 23, 42, 0.05), transparent 26%),
-            linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
-        }
-
-        .hero {
+        .container {
           display: flex;
-          align-items: flex-start;
-          justify-content: space-between;
-          gap: 20px;
-          margin-bottom: 22px;
-          padding: 28px;
-          border: 1px solid rgba(226, 232, 240, 0.9);
+          flex-direction: column;
+          gap: 24px;
+        }
+
+        .loading {
+          min-height: 300px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          font-weight: 600;
+          color: #a85d6a;
+        }
+
+        .header {
+          background: linear-gradient(135deg, #a85d6a, #d88b99);
+          color: white;
           border-radius: 28px;
-          background: rgba(255, 255, 255, 0.88);
-          backdrop-filter: blur(10px);
-          box-shadow: 0 18px 50px rgba(15, 23, 42, 0.06);
+          padding: 30px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 20px;
+          box-shadow: 0 20px 40px rgba(168, 93, 106, 0.25);
         }
 
-        .heroLeft {
-          max-width: 760px;
+        .headerLeft {
+          flex: 1;
         }
 
-        .heroBadge {
+        .headerBadge {
           display: inline-flex;
           align-items: center;
           gap: 8px;
+          background: rgba(255, 255, 255, 0.15);
           padding: 8px 12px;
           border-radius: 999px;
-          background: #fff1f6;
-          color: #be185d;
-          font-size: 0.88rem;
+          font-size: 13px;
           font-weight: 700;
           margin-bottom: 14px;
         }
 
-        .hero h1 {
+        .header h1 {
           margin: 0;
-          font-size: clamp(2rem, 4vw, 3rem);
-          line-height: 1.05;
-          color: #0f172a;
-          font-weight: 900;
-          letter-spacing: -0.04em;
+          font-size: 30px;
+          line-height: 1.1;
         }
 
-        .hero p {
-          margin: 12px 0 0;
-          color: #64748b;
-          line-height: 1.7;
-          font-size: 1rem;
+        .header p {
+          margin-top: 8px;
+          opacity: 0.9;
         }
 
-        .heroRight {
+        .headerRight {
           display: flex;
           flex-direction: column;
           align-items: flex-end;
-          gap: 14px;
-          min-width: 220px;
+          gap: 12px;
         }
 
         .refreshButton {
           display: inline-flex;
           align-items: center;
           gap: 10px;
-          border: 1px solid #e2e8f0;
-          background: #ffffff;
-          color: #0f172a;
-          padding: 12px 16px;
-          border-radius: 16px;
+          border: none;
           cursor: pointer;
+          background: rgba(255, 255, 255, 0.15);
+          color: white;
+          padding: 12px 18px;
+          border-radius: 16px;
           font-weight: 700;
-          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          transition: 0.25s;
         }
 
         .refreshButton:hover {
+          background: rgba(255, 255, 255, 0.22);
           transform: translateY(-1px);
-          box-shadow: 0 14px 30px rgba(15, 23, 42, 0.1);
         }
 
-        .heroStat {
-          min-width: 220px;
-          padding: 18px 18px 16px;
-          border-radius: 22px;
-          background: linear-gradient(135deg, #0f172a, #1f2937);
-          color: #fff;
-          box-shadow: 0 18px 36px rgba(15, 23, 42, 0.18);
+        .stats {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          background: rgba(255, 255, 255, 0.15);
+          padding: 12px 18px;
+          border-radius: 16px;
+          font-weight: 600;
         }
 
-        .heroStat strong {
-          display: block;
-          font-size: 2rem;
-          line-height: 1;
-          margin-bottom: 6px;
-        }
-
-        .heroStat span {
-          display: block;
-          font-size: 0.92rem;
-          color: rgba(255, 255, 255, 0.8);
-        }
-
-        .searchSection {
-          margin-bottom: 18px;
+        .toolbar {
+          display: flex;
+          justify-content: space-between;
+          gap: 20px;
         }
 
         .searchBox {
-          position: relative;
-        }
-
-        .searchIcon {
-          position: absolute;
-          left: 16px;
-          top: 50%;
-          transform: translateY(-50%);
-          color: #94a3b8;
-          pointer-events: none;
+          flex: 1;
+          background: white;
+          border: 1px solid #eee;
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 0 16px;
+          height: 50px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
         }
 
         .searchBox input {
           width: 100%;
-          height: 58px;
-          padding: 0 18px 0 46px;
-          border: 1px solid #e2e8f0;
-          border-radius: 18px;
-          background: #fff;
+          border: none;
           outline: none;
-          font-size: 0.98rem;
-          color: #0f172a;
-          box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+          background: transparent;
+          font-size: 14px;
         }
 
-        .searchBox input:focus {
-          border-color: #ec4899;
-          box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.12);
+        .toolbar select {
+          border: 1px solid #eee;
+          background: white;
+          border-radius: 16px;
+          padding: 0 16px;
+          min-width: 180px;
+          outline: none;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
         }
 
         .grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-          gap: 18px;
-          padding-bottom: 96px;
+          grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+          gap: 24px;
         }
 
         .card {
-          position: relative;
-          overflow: hidden;
-          border: 1px solid #e2e8f0;
+          background: white;
           border-radius: 24px;
-          background: rgba(255, 255, 255, 0.94);
-          box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+          overflow: hidden;
+          border: 1px solid #eee;
+          transition: 0.35s;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
           padding: 22px;
-          transition: transform 0.22s ease, box-shadow 0.22s ease;
+          position: relative;
         }
 
         .card::before {
@@ -361,19 +390,19 @@ export default function CategoriasPage() {
           left: 0;
           width: 100%;
           height: 4px;
-          background: linear-gradient(90deg, #ec4899, #f97316);
+          background: linear-gradient(135deg, #a85d6a, #d88b99);
         }
 
         .card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 20px 40px rgba(15, 23, 42, 0.1);
+          transform: translateY(-8px);
+          box-shadow: 0 25px 50px rgba(0, 0, 0, 0.12);
         }
 
-        .cardTop {
+        .cardHeader {
           display: grid;
           grid-template-columns: 52px 1fr auto;
-          align-items: center;
           gap: 14px;
+          align-items: center;
           margin-bottom: 18px;
         }
 
@@ -381,27 +410,26 @@ export default function CategoriasPage() {
           width: 52px;
           height: 52px;
           border-radius: 18px;
+          background: linear-gradient(135deg, #fce7e9, #f8d7dc);
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(135deg, #fce7f3, #fbcfe8);
-          color: #db2777;
+          color: #a85d6a;
           flex-shrink: 0;
         }
 
-        .cardTitle h2 {
+        .cardTitle h3 {
           margin: 0;
-          font-size: 1.04rem;
-          color: #0f172a;
+          color: #222;
+          font-size: 17px;
           font-weight: 800;
-          line-height: 1.2;
         }
 
         .cardTitle span {
           display: block;
           margin-top: 4px;
-          font-size: 0.88rem;
-          color: #64748b;
+          color: #777;
+          font-size: 13px;
           word-break: break-word;
         }
 
@@ -409,14 +437,14 @@ export default function CategoriasPage() {
           width: 38px;
           height: 38px;
           border-radius: 12px;
-          display: inline-flex;
+          display: flex;
           align-items: center;
           justify-content: center;
           text-decoration: none;
           background: #f8fafc;
-          color: #0f172a;
+          color: #222;
           border: 1px solid #e2e8f0;
-          transition: transform 0.2s ease, background 0.2s ease;
+          transition: 0.2s;
         }
 
         .miniAction:hover {
@@ -424,130 +452,131 @@ export default function CategoriasPage() {
           background: #eef2f7;
         }
 
-        .cardDescription {
+        .description {
           margin: 0;
-          color: #475569;
-          line-height: 1.65;
-          min-height: 54px;
+          color: #666;
+          line-height: 1.7;
+          font-size: 14px;
+          min-height: 56px;
         }
 
-        .cardFooter {
+        .info {
           display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
+          flex-direction: column;
+          gap: 8px;
           margin-top: 18px;
         }
 
-        .meta span {
-          display: inline-flex;
+        .info span {
+          display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 8px 12px;
-          border-radius: 999px;
-          background: #f8fafc;
-          color: #64748b;
-          font-size: 0.85rem;
-          font-weight: 600;
-          border: 1px solid #e2e8f0;
+          gap: 8px;
+          color: #666;
+          font-size: 14px;
+        }
+
+        .actions {
+          margin-top: 20px;
+          display: flex;
+          gap: 12px;
         }
 
         .editButton {
-          display: inline-flex;
+          flex: 1;
+          height: 44px;
+          display: flex;
           align-items: center;
           justify-content: center;
-          padding: 10px 15px;
-          border-radius: 14px;
-          background: #0f172a;
-          color: #fff;
+          border-radius: 12px;
+          background: #eef7ff;
+          color: #0d6efd;
           text-decoration: none;
-          font-weight: 700;
-          transition: transform 0.2s ease, background 0.2s ease;
+          font-weight: 600;
         }
 
-        .editButton:hover {
-          transform: translateY(-1px);
-          background: #111827;
-        }
-
-        .stateCard {
-          margin-top: 20px;
-          padding: 54px 20px;
-          border: 1px solid #e2e8f0;
-          border-radius: 26px;
-          background: #fff;
-          text-align: center;
-          color: #64748b;
-          box-shadow: 0 14px 32px rgba(15, 23, 42, 0.05);
-        }
-
-        .stateCard h3 {
-          margin: 12px 0 8px;
-          color: #0f172a;
-          font-size: 1.2rem;
-        }
-
-        .stateCard p {
-          margin: 0;
-          line-height: 1.6;
-        }
-
-        .stateCard.error {
-          color: #b91c1c;
-        }
-
-        .fab {
-          position: fixed;
-          right: 22px;
-          bottom: 22px;
-          display: inline-flex;
+        .deleteButton {
+          flex: 1;
+          border: none;
+          cursor: pointer;
+          display: flex;
           align-items: center;
-          gap: 10px;
-          padding: 14px 18px;
-          border-radius: 999px;
-          background: linear-gradient(135deg, #ec4899, #db2777);
-          color: #fff;
+          justify-content: center;
+          border-radius: 12px;
+          background: #fff1f1;
+          color: #dc3545;
+          font-weight: 600;
+          height: 44px;
+        }
+
+        .estado {
+          background: white;
+          border-radius: 24px;
+          padding: 50px 20px;
+          text-align: center;
+          color: #666;
+          border: 1px solid #eee;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+        }
+
+        .estado h3 {
+          margin-top: 14px;
+          margin-bottom: 6px;
+          color: #222;
+        }
+
+        .estado.erro {
+          color: #dc3545;
+        }
+
+        .floatingButton {
+          position: fixed;
+          right: 30px;
+          bottom: 30px;
+          width: 70px;
+          height: 70px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           text-decoration: none;
-          box-shadow: 0 18px 38px rgba(219, 39, 119, 0.35);
-          z-index: 50;
-          font-weight: 800;
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          color: white;
+          background: linear-gradient(135deg, #a85d6a, #d88b99);
+          box-shadow: 0 15px 40px rgba(168, 93, 106, 0.4);
+          z-index: 999;
+          transition: 0.25s;
         }
 
-        .fab:hover {
-          transform: scale(1.04);
-          box-shadow: 0 22px 44px rgba(219, 39, 119, 0.42);
+        .floatingButton:hover {
+          transform: scale(1.08);
         }
 
-        .fab span {
-          white-space: nowrap;
-        }
-
-        @media (max-width: 820px) {
-          .page {
-            padding: 16px;
-          }
-
-          .hero {
+        @media (max-width: 768px) {
+          .toolbar {
             flex-direction: column;
-            padding: 20px;
-          }
-
-          .heroRight {
-            width: 100%;
-            align-items: stretch;
-          }
-
-          .heroStat,
-          .refreshButton {
-            width: 100%;
           }
 
           .grid {
             grid-template-columns: 1fr;
           }
 
-          .cardTop {
+          .header {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .headerRight {
+            align-items: stretch;
+          }
+
+          .refreshButton {
+            justify-content: center;
+          }
+
+          .stats {
+            justify-content: center;
+          }
+
+          .cardHeader {
             grid-template-columns: 52px 1fr;
           }
 
@@ -555,16 +584,11 @@ export default function CategoriasPage() {
             display: none;
           }
 
-          .cardFooter {
+          .actions {
             flex-direction: column;
-            align-items: stretch;
           }
 
-          .editButton {
-            width: 100%;
-          }
-
-          .fab {
+          .floatingButton {
             right: 16px;
             bottom: 16px;
           }
