@@ -1,15 +1,13 @@
-'use client';
+"use client";
 
 import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
 
-
 import Banner from "@/components/site/Banner/Banner";
 import CategoriasDestaque from "@/components/site/categoria/Categoria";
-import Campanha from "../campanha/page";
-import Destaques from "../Vitrine/Destaques/page";
 
-
+import Destaques from "@/components/Vitrine/Destaques";
+import Campanhas from "../campanha/page";
 
 type Vitrine = {
   id_vitrine: number | string;
@@ -56,12 +54,10 @@ export default function HomeContent() {
 
   return (
     <>
-      
-
-      
       <Banner />
       <CategoriasDestaque />
-      <Campanha  />
+      <Campanhas />
+
       {!loading &&
         vitrines.map((vitrine) => (
           <Destaques
@@ -69,8 +65,6 @@ export default function HomeContent() {
             vitrine={vitrine}
           />
         ))}
-
-        
     </>
   );
 }
