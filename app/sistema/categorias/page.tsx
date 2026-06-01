@@ -12,6 +12,8 @@ import {
   RefreshCcw,
   ArrowRight,
   AlertCircle,
+  Trash2,
+  Pencil,
 } from "lucide-react";
 
 type Categoria = {
@@ -61,7 +63,11 @@ export default function CategoriasPage() {
   }
 
   async function excluirCategoria(id: number) {
-    if (!confirm("Deseja excluir esta categoria?")) return;
+    const confirmar = window.confirm(
+      "Tem certeza que deseja excluir esta categoria?"
+    );
+
+    if (!confirmar) return;
 
     try {
       await api.delete(`/painel/categoria/${id}`);
@@ -101,7 +107,6 @@ export default function CategoriasPage() {
   return (
     <>
       <div className="container">
-        {/* HEADER */}
         <div className="header">
           <div className="headerLeft">
             <div className="headerBadge">
@@ -126,7 +131,6 @@ export default function CategoriasPage() {
           </div>
         </div>
 
-        {/* TOOLBAR */}
         <div className="toolbar">
           <div className="searchBox">
             <Search size={18} />
@@ -145,7 +149,6 @@ export default function CategoriasPage() {
           </select>
         </div>
 
-        {/* ERRO */}
         {erro ? (
           <div className="estado erro">
             <AlertCircle size={42} />
@@ -154,7 +157,6 @@ export default function CategoriasPage() {
           </div>
         ) : null}
 
-        {/* GRID */}
         {!erro && categoriasExibidas.length === 0 ? (
           <div className="estado">
             <FolderOpen size={42} />
@@ -211,6 +213,7 @@ export default function CategoriasPage() {
                       href={`/sistema/categorias/${categoria.id_categoria}`}
                       className="editButton"
                     >
+                      <Pencil size={16} />
                       Editar
                     </Link>
 
@@ -218,6 +221,7 @@ export default function CategoriasPage() {
                       className="deleteButton"
                       onClick={() => excluirCategoria(categoria.id_categoria)}
                     >
+                      <Trash2 size={16} />
                       Excluir
                     </button>
                   </div>
@@ -227,7 +231,6 @@ export default function CategoriasPage() {
           </div>
         )}
 
-        {/* BOTÃO FLUTUANTE */}
         <Link
           href="/sistema/categorias/cadastrar"
           className="floatingButton"
@@ -487,6 +490,7 @@ export default function CategoriasPage() {
           display: flex;
           align-items: center;
           justify-content: center;
+          gap: 8px;
           border-radius: 12px;
           background: #eef7ff;
           color: #0d6efd;
@@ -501,6 +505,7 @@ export default function CategoriasPage() {
           display: flex;
           align-items: center;
           justify-content: center;
+          gap: 8px;
           border-radius: 12px;
           background: #fff1f1;
           color: #dc3545;
