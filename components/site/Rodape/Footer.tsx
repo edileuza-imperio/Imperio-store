@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ComponentType } from "react";
 import Link from "next/link";
 import * as FaIcons from "react-icons/fa";
 import * as SiIcons from "react-icons/si";
@@ -35,7 +35,7 @@ type FooterData = {
 type ApiFooterEnvelope = {
   status?: number;
   cache?: boolean;
-  dados?: FooterData | { [key: string]: any };
+  dados?: FooterData | Record<string, any>;
 };
 
 function normalizeText(value: unknown): string {
@@ -72,8 +72,7 @@ function normalizeFooterData(raw: any): FooterData | null {
 
   if (!source || typeof source !== "object") return null;
 
-  const footerRaw =
-    pick<Record<string, any>>(source, "footer", "rodape", "rodapé") ?? undefined;
+  const footerRaw = pick<Record<string, any>>(source, "footer", "rodape", "rodapé");
 
   const footer: FooterConfig | undefined = footerRaw
     ? {
@@ -86,24 +85,45 @@ function normalizeFooterData(raw: any): FooterData | null {
       }
     : undefined;
 
-  const links = Array.isArray(source.links) ? source.links.map(normalizeItem) : [];
-  const redes_sociais = Array.isArray(source.redes_sociais)
-    ? source.redes_sociais.map(normalizeItem)
-    : [];
-  const contatos = Array.isArray(source.contatos)
-    ? source.contatos.map(normalizeItem)
-    : [];
-  const pagamentos = Array.isArray(source.pagamentos)
-    ? source.pagamentos.map(normalizeItem)
-    : [];
-
   return {
     footer,
-    links,
-    redes_sociais,
-    contatos,
-    pagamentos,
+    links: Array.isArray(source.links) ? source.links.map(normalizeItem) : [],
+    redes_sociais: Array.isArray(source.redes_sociais)
+      ? source.redes_sociais.map(normalizeItem)
+      : [],
+    contatos: Array.isArray(source.contatos) ? source.contatos.map(normalizeItem) : [],
+    pagamentos: Array.isArray(source.pagamentos) ? source.pagamentos.map(normalizeItem) : [],
   };
+}
+
+function sortByPosition(items: FooterItem[]) {
+  return [...items].sort((a, b) => (a.posicao ?? 0) - (b.posicao ?? 0));
+}
+
+function isInternalHref(href: string) {
+  return href.startsWith("/") && !href.startsWith("//");
+}
+
+function safeHref(href?: string) {
+  const value = String(href ?? "").trim();
+  return value && value !== "#" ? value : "#";
+}
+
+function resolveContactHref(item: FooterItem) {
+  const titulo = normalizeText(item.titulo);
+  const url = safeHref(item.url);
+  const valor = String(item.valor ?? "").trim();
+
+  if (titulo.includes("email")) {
+    return url !== "#" ? url : valor ? `mailto:${valor}` : "#";
+  }
+
+  if (titulo.includes("telefone") || titulo.includes("celular") || titulo.includes("whatsapp")) {
+    const digits = valor.replace(/[^\d+]/g, "");
+    return url !== "#" ? url : digits ? `tel:${digits}` : "#";
+  }
+
+  return url !== "#" ? url : valor || "#";
 }
 
 function DynamicIcon({ name }: { name?: string }) {
@@ -111,7 +131,7 @@ function DynamicIcon({ name }: { name?: string }) {
 
   const clean = name.trim();
 
-  const faMap: Record<string, React.ComponentType<any>> = {
+  const faMap: Record<string, ComponentType<any>> = {
     FaFacebookF: FaIcons.FaFacebookF,
     FaInstagram: FaIcons.FaInstagram,
     FaWhatsapp: FaIcons.FaWhatsapp,
@@ -127,7 +147,7 @@ function DynamicIcon({ name }: { name?: string }) {
     FaQuestionCircle: FaIcons.FaQuestionCircle,
   };
 
-  const siMap: Record<string, React.ComponentType<any>> = {
+  const siMap: Record<string, ComponentType<any>> = {
     SiPix: SiIcons.SiPix,
   };
 
@@ -136,10 +156,6 @@ function DynamicIcon({ name }: { name?: string }) {
   if (!Icon) return null;
 
   return <Icon aria-hidden="true" focusable="false" />;
-}
-
-function sortByPosition(items: FooterItem[]) {
-  return [...items].sort((a, b) => (a.posicao ?? 0) - (b.posicao ?? 0));
 }
 
 export default function FooterProfissional() {
@@ -173,33 +189,16 @@ export default function FooterProfissional() {
   const bottomLinks = useMemo(() => {
     return links.filter((item) => {
       const titulo = normalizeText(item.titulo);
-      return (
-        titulo.includes("politica") ||
-        titulo.includes("termos") ||
-        titulo.includes("privacidade")
-      );
+      return titulo.includes("politica") || titulo.includes("termos") || titulo.includes("privacidade");
     });
   }, [links]);
 
   const navLinks = useMemo(() => {
     return links.filter((item) => {
       const titulo = normalizeText(item.titulo);
-      return (
-        !titulo.includes("politica") &&
-        !titulo.includes("termos") &&
-        !titulo.includes("privacidade")
-      );
+      return !titulo.includes("politica") && !titulo.includes("termos") && !titulo.includes("privacidade");
     });
   }, [links]);
-
-  const contatoLink = (item: FooterItem) => {
-    const titulo = normalizeText(item.titulo);
-    const url = item.url || "#";
-
-    if (titulo.includes("email")) return url || `mailto:${item.valor ?? ""}`;
-    if (titulo.includes("telefone") || titulo.includes("celular")) return url || `tel:${item.valor ?? ""}`;
-    return url;
-  };
 
   return (
     <footer className={styles.footer}>
@@ -208,7 +207,7 @@ export default function FooterProfissional() {
           <section className={styles.brandCard} aria-labelledby="footer-brand-title">
             <div className={styles.brandHeader}>
               <div className={styles.logo} aria-hidden="true">
-                {footer?.logo_texto || "UI"}
+                {(footer?.logo_texto || "UI").slice(0, 3)}
               </div>
 
               <div>
@@ -232,19 +231,23 @@ export default function FooterProfissional() {
             </div>
 
             <nav className={styles.social} aria-label="Redes sociais">
-              {redesSociais.map((rede, idx) => (
-                <a
-                  key={rede.id_item || idx}
-                  href={rede.url || "#"}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.socialLink}
-                  title={rede.titulo || "Rede social"}
-                  aria-label={rede.titulo || "Rede social"}
-                >
-                  <DynamicIcon name={rede.icone} />
-                </a>
-              ))}
+              {redesSociais.map((rede, idx) => {
+                const href = safeHref(rede.url);
+
+                return (
+                  <a
+                    key={rede.id_item || idx}
+                    href={href}
+                    target={href.startsWith("http") ? "_blank" : undefined}
+                    rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+                    className={styles.socialLink}
+                    title={rede.titulo || "Rede social"}
+                    aria-label={rede.titulo || "Rede social"}
+                  >
+                    <DynamicIcon name={rede.icone} />
+                  </a>
+                );
+              })}
             </nav>
           </section>
 
@@ -254,14 +257,26 @@ export default function FooterProfissional() {
             </h3>
 
             <ul className={styles.linkList}>
-              {navLinks.map((link, idx) => (
-                <li key={link.id_item || idx}>
-                  <Link href={link.url || "#"} className={styles.navLink}>
-                    <span>{link.titulo}</span>
-                    <FaIcons.FaArrowRight className={styles.navArrow} aria-hidden="true" />
-                  </Link>
-                </li>
-              ))}
+              {navLinks.map((link, idx) => {
+                const href = safeHref(link.url);
+                const external = !isInternalHref(href);
+
+                return (
+                  <li key={link.id_item || idx}>
+                    {external ? (
+                      <a href={href} className={styles.navLink}>
+                        <span>{link.titulo}</span>
+                        <FaIcons.FaArrowRight className={styles.navArrow} aria-hidden="true" />
+                      </a>
+                    ) : (
+                      <Link href={href} className={styles.navLink}>
+                        <span>{link.titulo}</span>
+                        <FaIcons.FaArrowRight className={styles.navArrow} aria-hidden="true" />
+                      </Link>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </section>
 
@@ -271,30 +286,35 @@ export default function FooterProfissional() {
             </h3>
 
             <div className={styles.contactList}>
-              {contatos.map((contato, idx) => (
-                <article key={contato.id_item || idx} className={styles.contactItem}>
-                  <div className={styles.contactIcon} aria-hidden="true">
-                    <DynamicIcon name={contato.icone} />
-                  </div>
+              {contatos.map((contato, idx) => {
+                const href = resolveContactHref(contato);
+                const external = href.startsWith("http");
 
-                  <div className={styles.contactTextBlock}>
-                    <h4 className={styles.contactTitle}>{contato.titulo}</h4>
+                return (
+                  <article key={contato.id_item || idx} className={styles.contactItem}>
+                    <div className={styles.contactIcon} aria-hidden="true">
+                      <DynamicIcon name={contato.icone} />
+                    </div>
 
-                    {contato.url || contato.valor ? (
-                      <a
-                        href={contatoLink(contato)}
-                        className={styles.contactText}
-                        target={normalizeText(contato.url).startsWith("http") ? "_blank" : undefined}
-                        rel={normalizeText(contato.url).startsWith("http") ? "noopener noreferrer" : undefined}
-                      >
-                        {contato.valor || contato.url}
-                      </a>
-                    ) : (
-                      <p className={styles.contactText}>{contato.valor}</p>
-                    )}
-                  </div>
-                </article>
-              ))}
+                    <div className={styles.contactTextBlock}>
+                      <h4 className={styles.contactTitle}>{contato.titulo}</h4>
+
+                      {contato.url || contato.valor ? (
+                        <a
+                          href={href}
+                          className={styles.contactText}
+                          target={external ? "_blank" : undefined}
+                          rel={external ? "noopener noreferrer" : undefined}
+                        >
+                          {contato.valor || contato.url}
+                        </a>
+                      ) : (
+                        <p className={styles.contactText}>Sem informação</p>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
             </div>
           </section>
         </div>
@@ -303,8 +323,7 @@ export default function FooterProfissional() {
 
         <div className={styles.bottom}>
           <p className={styles.copy}>
-            {footer?.copyright_texto ||
-              "© 2024 Universo Império. Todos os direitos reservados."}
+            {footer?.copyright_texto || "© 2024 Universo Império. Todos os direitos reservados."}
           </p>
 
           <div className={styles.paymentWrap}>
@@ -326,13 +345,24 @@ export default function FooterProfissional() {
           </div>
 
           <ul className={styles.bottomLinks}>
-            {bottomLinks.map((item, idx) => (
-              <li key={item.id_item || idx}>
-                <a href={item.url || "#"} className={styles.bottomLink}>
-                  {item.titulo}
-                </a>
-              </li>
-            ))}
+            {bottomLinks.map((item, idx) => {
+              const href = safeHref(item.url);
+              const external = !isInternalHref(href);
+
+              return (
+                <li key={item.id_item || idx}>
+                  {external ? (
+                    <a href={href} className={styles.bottomLink}>
+                      {item.titulo}
+                    </a>
+                  ) : (
+                    <Link href={href} className={styles.bottomLink}>
+                      {item.titulo}
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>

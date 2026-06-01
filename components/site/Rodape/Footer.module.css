@@ -1,3 +1,10 @@
+.footer,
+.footer *,
+.footer *::before,
+.footer *::after {
+  box-sizing: border-box;
+}
+
 .footer {
   --bg: #f9f1ec;
   --bg-2: #fff8f3;
@@ -31,6 +38,7 @@
   background: rgba(183, 110, 121, 0.12);
   filter: blur(90px);
   border-radius: 50%;
+  pointer-events: none;
 }
 
 .footer::after {
@@ -43,15 +51,16 @@
   background: rgba(255, 255, 255, 0.5);
   filter: blur(80px);
   border-radius: 50%;
+  pointer-events: none;
 }
 
 .container {
   position: relative;
   z-index: 2;
-  width: 100%;
-  max-width: 1280px;
-  margin: auto;
+  width: min(100%, 1280px);
+  margin: 0 auto;
   padding: 0 24px;
+  box-sizing: border-box;
 }
 
 .topGrid {
@@ -68,6 +77,7 @@
   border-radius: 32px;
   background: var(--card);
   backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border: 1px solid rgba(255, 255, 255, 0.45);
   box-shadow:
     0 10px 40px rgba(148, 79, 91, 0.08),
@@ -76,6 +86,7 @@
     transform 0.35s ease,
     box-shadow 0.35s ease,
     border-color 0.35s ease;
+  min-width: 0;
 }
 
 .brandCard:hover,
@@ -100,8 +111,7 @@
   width: 72px;
   height: 72px;
   border-radius: 24px;
-  background:
-    linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -110,6 +120,7 @@
   font-weight: 800;
   letter-spacing: 0.5px;
   box-shadow: 0 18px 35px rgba(183, 110, 121, 0.28);
+  flex-shrink: 0;
 }
 
 .logo::before {
@@ -129,7 +140,7 @@
 }
 
 .brandSubtitle {
-  margin-top: 6px;
+  margin: 6px 0 0;
   color: var(--primary-dark);
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -140,6 +151,7 @@
   line-height: 1.9;
   font-size: 0.98rem;
   max-width: 95%;
+  margin: 0;
 }
 
 .badges {
@@ -185,6 +197,7 @@
     color 0.25s ease,
     box-shadow 0.25s ease,
     background 0.25s ease;
+  text-decoration: none;
 }
 
 .socialLink::before {
@@ -242,6 +255,7 @@
     transform 0.22s ease,
     background 0.22s ease,
     border-color 0.22s ease;
+  min-width: 0;
 }
 
 .navLink:hover {
@@ -254,6 +268,7 @@
   color: var(--primary);
   opacity: 0.75;
   transition: 0.2s ease;
+  flex-shrink: 0;
 }
 
 .navLink:hover .navArrow {
@@ -273,6 +288,7 @@
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.52);
   border: 1px solid rgba(255, 255, 255, 0.58);
+  min-width: 0;
 }
 
 .contactIcon {
@@ -314,8 +330,7 @@
 .divider {
   height: 1px;
   margin: 34px 0 22px;
-  background:
-    linear-gradient(90deg, transparent, rgba(183, 110, 121, 0.18), transparent);
+  background: linear-gradient(90deg, transparent, rgba(183, 110, 121, 0.18), transparent);
 }
 
 .bottom {
@@ -328,6 +343,7 @@
 .copy {
   color: var(--muted);
   font-size: 0.92rem;
+  margin: 0;
 }
 
 .paymentWrap {
