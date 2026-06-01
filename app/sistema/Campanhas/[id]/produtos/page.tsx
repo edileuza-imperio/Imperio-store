@@ -64,7 +64,7 @@ export default function ProdutosCampanhaPage() {
         api.get("/produtos"),
 
         api.get(
-          `/campanha/${id}/produtos`
+          `/painel/campanha/${id}/produto`
         ),
       ]);
 
