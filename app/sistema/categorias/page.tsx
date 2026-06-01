@@ -17,6 +17,12 @@ import {
   Trash2,
   Pencil,
   X,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
+  FileText,
+  Settings2,
+  Sparkles,
 } from "lucide-react";
 
 type Categoria = {
@@ -29,6 +35,15 @@ type Categoria = {
   ordem?: number | null;
   status_id?: number | null;
   site_config_id?: number | null;
+};
+
+type StatusItem = {
+  id_status?: number;
+  status_id?: number;
+  id?: number;
+  nome?: string;
+  codigo?: string;
+  descricao?: string | null;
 };
 
 type CategoriaForm = {
@@ -64,18 +79,31 @@ function slugify(valor: string) {
     .replace(/-+/g, "-");
 }
 
+function getStatusId(item: StatusItem) {
+  return item.id_status ?? item.status_id ?? item.id ?? 0;
+}
+
+function getStatusLabel(item: StatusItem) {
+  return item.nome || item.codigo || item.descricao || `Status ${getStatusId(item)}`;
+}
+
 export default function CategoriasPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [statusDisponiveis, setStatusDisponiveis] = useState<StatusItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingStatus, setLoadingStatus] = useState(true);
   const [busca, setBusca] = useState("");
   const [limite, setLimite] = useState("6");
   const [erro, setErro] = useState<string | null>(null);
+
   const [modalAberto, setModalAberto] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [passoModal, setPassoModal] = useState<1 | 2 | 3>(1);
   const [form, setForm] = useState<CategoriaForm>(formInicial);
 
   useEffect(() => {
     carregarCategorias();
+    carregarStatus();
   }, []);
 
   async function carregarCategorias() {
@@ -101,21 +129,54 @@ export default function CategoriasPage() {
     }
   }
 
+  async function carregarStatus() {
+    try {
+      setLoadingStatus(true);
+
+      const response = await api.get("/painel/status");
+
+      const lista = response.data?.dados || response.data || [];
+      const statusList = Array.isArray(lista) ? lista : [];
+
+      setStatusDisponiveis(statusList);
+
+      setForm((prev) => {
+        if (prev.status_id) return prev;
+
+        const primeiroStatus = statusList[0];
+        const idPadrao = primeiroStatus ? String(getStatusId(primeiroStatus)) : "";
+
+        return {
+          ...prev,
+          status_id: idPadrao,
+        };
+      });
+    } catch (error) {
+      console.error(error);
+      setStatusDisponiveis([]);
+    } finally {
+      setLoadingStatus(false);
+    }
+  }
+
   function abrirModal() {
-    setForm(formInicial);
+    const primeiroStatus = statusDisponiveis[0];
+    setForm({
+      ...formInicial,
+      status_id: primeiroStatus ? String(getStatusId(primeiroStatus)) : "",
+    });
+    setPassoModal(1);
     setModalAberto(true);
   }
 
   function fecharModal() {
     if (salvando) return;
     setModalAberto(false);
+    setPassoModal(1);
     setForm(formInicial);
   }
 
-  function atualizarCampo(
-    campo: keyof CategoriaForm,
-    valor: string
-  ) {
+  function atualizarCampo(campo: keyof CategoriaForm, valor: string) {
     setForm((prev) => {
       if (campo === "nome") {
         return {
@@ -139,16 +200,32 @@ export default function CategoriasPage() {
     });
   }
 
+  function proximoPasso() {
+    if (passoModal < 3) setPassoModal((prev) => (prev + 1) as 1 | 2 | 3);
+  }
+
+  function passoAnterior() {
+    if (passoModal > 1) setPassoModal((prev) => (prev - 1) as 1 | 2 | 3);
+  }
+
   async function salvarCategoria(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
     if (!form.nome.trim()) {
+      setPassoModal(1);
       alert("Informe o nome da categoria.");
       return;
     }
 
     if (!form.slug.trim()) {
+      setPassoModal(1);
       alert("Informe o slug da categoria.");
+      return;
+    }
+
+    if (!form.status_id.trim()) {
+      setPassoModal(3);
+      alert("Selecione um status.");
       return;
     }
 
@@ -163,16 +240,15 @@ export default function CategoriasPage() {
         icone: form.icone.trim() || null,
         imagem: form.imagem.trim() || null,
         ordem: form.ordem ? Number(form.ordem) : null,
-        status_id: form.status_id ? Number(form.status_id) : null,
-        site_config_id: form.site_config_id
-          ? Number(form.site_config_id)
-          : null,
+        status_id: Number(form.status_id),
+        site_config_id: form.site_config_id ? Number(form.site_config_id) : null,
       };
 
-      await api.post("/painel/categorias", payload);
+      await api.post("/painel/categoria", payload);
 
       await carregarCategorias();
       setModalAberto(false);
+      setPassoModal(1);
       setForm(formInicial);
       alert("Categoria cadastrada com sucesso!");
     } catch (error) {
@@ -220,6 +296,10 @@ export default function CategoriasPage() {
     limite === "todos"
       ? categoriasFiltradas
       : categoriasFiltradas.slice(0, Number(limite));
+
+  const statusSelecionado =
+    statusDisponiveis.find((item) => String(getStatusId(item)) === form.status_id) ||
+    null;
 
   if (loading) {
     return <div className={styles.loading}>Carregando categorias...</div>;
@@ -372,7 +452,7 @@ export default function CategoriasPage() {
             <div className={styles.modalHeader}>
               <div>
                 <h2>Nova categoria</h2>
-                <p>Preencha os dados para cadastrar a categoria.</p>
+                <p>Cadastro em 3 etapas para ficar mais organizado.</p>
               </div>
 
               <button
@@ -385,104 +465,155 @@ export default function CategoriasPage() {
               </button>
             </div>
 
-            <form onSubmit={salvarCategoria} className={styles.form}>
-              <div className={styles.formGrid}>
-                <label className={styles.field}>
-                  <span>Nome *</span>
-                  <input
-                    type="text"
-                    value={form.nome}
-                    onChange={(e) =>
-                      atualizarCampo("nome", e.target.value)
-                    }
-                    placeholder="Ex: Moda Feminina"
-                  />
-                </label>
-
-                <label className={styles.field}>
-                  <span>Slug *</span>
-                  <input
-                    type="text"
-                    value={form.slug}
-                    onChange={(e) =>
-                      atualizarCampo("slug", e.target.value)
-                    }
-                    placeholder="Ex: moda-feminina"
-                  />
-                </label>
-
-                <label className={`${styles.field} ${styles.fieldFull}`}>
-                  <span>Descrição</span>
-                  <textarea
-                    value={form.descricao}
-                    onChange={(e) =>
-                      atualizarCampo("descricao", e.target.value)
-                    }
-                    placeholder="Descreva a categoria"
-                    rows={4}
-                  />
-                </label>
-
-                <label className={styles.field}>
-                  <span>Ícone</span>
-                  <input
-                    type="text"
-                    value={form.icone}
-                    onChange={(e) =>
-                      atualizarCampo("icone", e.target.value)
-                    }
-                    placeholder="Ex: folder-open"
-                  />
-                </label>
-
-                <label className={styles.field}>
-                  <span>Imagem</span>
-                  <input
-                    type="text"
-                    value={form.imagem}
-                    onChange={(e) =>
-                      atualizarCampo("imagem", e.target.value)
-                    }
-                    placeholder="URL da imagem"
-                  />
-                </label>
-
-                <label className={styles.field}>
-                  <span>Ordem</span>
-                  <input
-                    type="number"
-                    value={form.ordem}
-                    onChange={(e) =>
-                      atualizarCampo("ordem", e.target.value)
-                    }
-                    placeholder="Ex: 1"
-                  />
-                </label>
-
-                <label className={styles.field}>
-                  <span>Status ID</span>
-                  <input
-                    type="number"
-                    value={form.status_id}
-                    onChange={(e) =>
-                      atualizarCampo("status_id", e.target.value)
-                    }
-                    placeholder="Ex: 1"
-                  />
-                </label>
-
-                <label className={styles.field}>
-                  <span>Site Config ID</span>
-                  <input
-                    type="number"
-                    value={form.site_config_id}
-                    onChange={(e) =>
-                      atualizarCampo("site_config_id", e.target.value)
-                    }
-                    placeholder="Ex: 1"
-                  />
-                </label>
+            <div className={styles.stepper}>
+              <div className={`${styles.stepItem} ${passoModal >= 1 ? styles.stepActive : ""}`}>
+                <FileText size={16} />
+                <span>Dados</span>
               </div>
+              <div className={`${styles.stepItem} ${passoModal >= 2 ? styles.stepActive : ""}`}>
+                <Sparkles size={16} />
+                <span>Visual</span>
+              </div>
+              <div className={`${styles.stepItem} ${passoModal >= 3 ? styles.stepActive : ""}`}>
+                <Settings2 size={16} />
+                <span>Status</span>
+              </div>
+            </div>
+
+            <form onSubmit={salvarCategoria} className={styles.form}>
+              {passoModal === 1 && (
+                <div className={styles.stepContent}>
+                  <div className={styles.sectionTitle}>
+                    <h3>Informações principais</h3>
+                    <p>Comece com o nome, slug e descrição.</p>
+                  </div>
+
+                  <div className={styles.formGrid}>
+                    <label className={styles.field}>
+                      <span>Nome *</span>
+                      <input
+                        type="text"
+                        value={form.nome}
+                        onChange={(e) => atualizarCampo("nome", e.target.value)}
+                        placeholder="Ex: Moda Feminina"
+                      />
+                    </label>
+
+                    <label className={styles.field}>
+                      <span>Slug *</span>
+                      <input
+                        type="text"
+                        value={form.slug}
+                        onChange={(e) => atualizarCampo("slug", e.target.value)}
+                        placeholder="Ex: moda-feminina"
+                      />
+                    </label>
+
+                    <label className={`${styles.field} ${styles.fieldFull}`}>
+                      <span>Descrição</span>
+                      <textarea
+                        value={form.descricao}
+                        onChange={(e) => atualizarCampo("descricao", e.target.value)}
+                        placeholder="Descreva a categoria"
+                        rows={4}
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {passoModal === 2 && (
+                <div className={styles.stepContent}>
+                  <div className={styles.sectionTitle}>
+                    <h3>Visual e organização</h3>
+                    <p>Opcional: ícone, imagem e ordem de exibição.</p>
+                  </div>
+
+                  <div className={styles.formGrid}>
+                    <label className={styles.field}>
+                      <span>Ícone</span>
+                      <input
+                        type="text"
+                        value={form.icone}
+                        onChange={(e) => atualizarCampo("icone", e.target.value)}
+                        placeholder="Ex: folder-open"
+                      />
+                    </label>
+
+                    <label className={styles.field}>
+                      <span>Imagem</span>
+                      <input
+                        type="text"
+                        value={form.imagem}
+                        onChange={(e) => atualizarCampo("imagem", e.target.value)}
+                        placeholder="URL da imagem"
+                      />
+                    </label>
+
+                    <label className={styles.field}>
+                      <span>Ordem</span>
+                      <input
+                        type="number"
+                        value={form.ordem}
+                        onChange={(e) => atualizarCampo("ordem", e.target.value)}
+                        placeholder="Ex: 1"
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {passoModal === 3 && (
+                <div className={styles.stepContent}>
+                  <div className={styles.sectionTitle}>
+                    <h3>Status e revisão final</h3>
+                    <p>Escolha o status correto antes de salvar.</p>
+                  </div>
+
+                  <div className={styles.formGrid}>
+                    <label className={styles.field}>
+                      <span>Status *</span>
+                      <select
+                        value={form.status_id}
+                        onChange={(e) => atualizarCampo("status_id", e.target.value)}
+                        disabled={loadingStatus}
+                      >
+                        <option value="">
+                          {loadingStatus ? "Carregando status..." : "Selecione um status"}
+                        </option>
+
+                        {statusDisponiveis.map((item) => {
+                          const id = getStatusId(item);
+                          return (
+                            <option key={id} value={String(id)}>
+                              {getStatusLabel(item)}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </label>
+
+                    <label className={styles.field}>
+                      <span>Site Config ID</span>
+                      <input
+                        type="number"
+                        value={form.site_config_id}
+                        onChange={(e) =>
+                          atualizarCampo("site_config_id", e.target.value)
+                        }
+                        placeholder="Ex: 1"
+                      />
+                    </label>
+                  </div>
+
+                  <div className={styles.resumeBox}>
+                    <h4>Resumo</h4>
+                    <p><strong>Nome:</strong> {form.nome || "-"}</p>
+                    <p><strong>Slug:</strong> {form.slug || "-"}</p>
+                    <p><strong>Status:</strong> {statusSelecionado ? getStatusLabel(statusSelecionado) : "-"}</p>
+                  </div>
+                </div>
+              )}
 
               <div className={styles.modalActions}>
                 <button
@@ -494,13 +625,40 @@ export default function CategoriasPage() {
                   Cancelar
                 </button>
 
-                <button
-                  type="submit"
-                  className={styles.submitButton}
-                  disabled={salvando}
-                >
-                  {salvando ? "Salvando..." : "Salvar categoria"}
-                </button>
+                <div className={styles.navButtons}>
+                  {passoModal > 1 && (
+                    <button
+                      type="button"
+                      onClick={passoAnterior}
+                      className={styles.backButton}
+                      disabled={salvando}
+                    >
+                      <ChevronLeft size={16} />
+                      Voltar
+                    </button>
+                  )}
+
+                  {passoModal < 3 ? (
+                    <button
+                      type="button"
+                      onClick={proximoPasso}
+                      className={styles.nextButton}
+                      disabled={salvando}
+                    >
+                      Próximo
+                      <ChevronRight size={16} />
+                    </button>
+                  ) : (
+                    <button
+                      type="submit"
+                      className={styles.submitButton}
+                      disabled={salvando}
+                    >
+                      <CheckCircle2 size={16} />
+                      {salvando ? "Salvando..." : "Salvar categoria"}
+                    </button>
+                  )}
+                </div>
               </div>
             </form>
           </div>

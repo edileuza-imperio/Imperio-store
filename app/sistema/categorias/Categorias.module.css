@@ -284,7 +284,7 @@
 
 .modal {
   width: 100%;
-  max-width: 820px;
+  max-width: 900px;
   background: white;
   border-radius: 28px;
   padding: 28px;
@@ -296,7 +296,7 @@
   justify-content: space-between;
   gap: 16px;
   align-items: flex-start;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
 .modalHeader h2 {
@@ -323,10 +323,52 @@
   justify-content: center;
 }
 
+.stepper {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.stepItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.stepActive {
+  background: #fce7e9;
+  color: #a85d6a;
+}
+
 .form {
   display: flex;
   flex-direction: column;
   gap: 20px;
+}
+
+.stepContent {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sectionTitle h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #111827;
+}
+
+.sectionTitle p {
+  margin: 6px 0 0;
+  color: #6b7280;
 }
 
 .formGrid {
@@ -352,7 +394,8 @@
 }
 
 .field input,
-.field textarea {
+.field textarea,
+.field select {
   width: 100%;
   border: 1px solid #e5e7eb;
   border-radius: 14px;
@@ -364,7 +407,8 @@
 }
 
 .field input:focus,
-.field textarea:focus {
+.field textarea:focus,
+.field select:focus {
   border-color: #d88b99;
   box-shadow: 0 0 0 3px rgba(216, 139, 153, 0.12);
 }
@@ -374,13 +418,40 @@
   min-height: 110px;
 }
 
+.resumeBox {
+  border: 1px solid #eee;
+  background: #fafafa;
+  border-radius: 18px;
+  padding: 18px;
+}
+
+.resumeBox h4 {
+  margin: 0 0 10px;
+  color: #111827;
+}
+
+.resumeBox p {
+  margin: 8px 0;
+  color: #374151;
+}
+
 .modalActions {
   display: flex;
   gap: 12px;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.navButtons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .secondaryButton,
+.backButton,
+.nextButton,
 .submitButton {
   height: 46px;
   border-radius: 12px;
@@ -388,11 +459,24 @@
   font-weight: 700;
   border: none;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .secondaryButton {
   background: #f3f4f6;
   color: #111827;
+}
+
+.backButton {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.nextButton {
+  background: #e0f2fe;
+  color: #0369a1;
 }
 
 .submitButton {
@@ -401,6 +485,8 @@
 }
 
 .secondaryButton:disabled,
+.backButton:disabled,
+.nextButton:disabled,
 .submitButton:disabled {
   opacity: 0.7;
   cursor: not-allowed;
@@ -409,7 +495,9 @@
 @media (max-width: 768px) {
   .header,
   .toolbar,
-  .actions {
+  .actions,
+  .modalActions,
+  .navButtons {
     flex-direction: column;
   }
 
@@ -421,17 +509,14 @@
     display: none;
   }
 
-  .formGrid {
+  .formGrid,
+  .stepper {
     grid-template-columns: 1fr;
   }
 
   .modal {
     padding: 20px;
     border-radius: 22px;
-  }
-
-  .modalActions {
-    flex-direction: column;
   }
 
   .floating {
