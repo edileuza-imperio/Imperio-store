@@ -1,3 +1,9 @@
+/* NavbarHeader.module.css */
+
+*{
+  box-sizing: border-box;
+}
+
 .header {
   position: sticky;
   top: 0;
@@ -8,6 +14,7 @@
   border-bottom: 1px solid #efe7e2;
   transition: 0.3s ease;
   color: #2b2b2b;
+  overflow-x: clip;
 }
 
 .headerScrolled {
@@ -24,12 +31,15 @@
   justify-content: space-between;
   gap: 24px;
   padding: 0 32px;
+  min-width: 0;
+  overflow-x: clip;
 }
 
 .brand {
   display: flex;
   flex-direction: column;
   min-width: 220px;
+  flex-shrink: 0;
 }
 
 .logo {
@@ -44,6 +54,7 @@
   font-weight: 800;
   color: #232323;
   letter-spacing: -1px;
+  line-height: 1;
 }
 
 .logoPink {
@@ -51,6 +62,7 @@
   font-weight: 800;
   color: #b56f5a;
   letter-spacing: -1px;
+  line-height: 1;
 }
 
 .subtitle {
@@ -63,7 +75,8 @@
 }
 
 .searchWrapper {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   justify-content: center;
 }
@@ -71,6 +84,7 @@
 .searchBar {
   width: 100%;
   max-width: 620px;
+  min-width: 0;
   height: 52px;
   display: flex;
   align-items: center;
@@ -90,6 +104,7 @@
 
 .searchBar input {
   flex: 1;
+  min-width: 0;
   height: 100%;
   border: none;
   outline: none;
@@ -127,6 +142,8 @@
   display: flex;
   align-items: center;
   gap: 14px;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .iconBtn {
@@ -236,6 +253,7 @@
 
 .userDropdown {
   position: relative;
+  min-width: 0;
 }
 
 .userBtn {
@@ -249,6 +267,7 @@
   border-radius: 14px;
   cursor: pointer;
   transition: 0.2s ease;
+  max-width: 100%;
 }
 
 .userBtn:hover {
@@ -267,12 +286,14 @@
   justify-content: center;
   font-size: 14px;
   font-weight: 700;
+  flex-shrink: 0;
 }
 
 .userInfo {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  min-width: 0;
 }
 
 .userInfo span {
@@ -573,10 +594,12 @@
     justify-content: center;
     cursor: pointer;
     color: #2c2c2c;
+    flex-shrink: 0;
   }
 
   .mobileBrand {
-    flex: 1;
+    flex: 1 1 0;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -586,6 +609,7 @@
     display: flex;
     gap: 4px;
     text-decoration: none;
+    min-width: 0;
   }
 
   .mobileSubtitle {
@@ -593,12 +617,14 @@
     color: #6f655f;
     letter-spacing: 2px;
     margin-top: 2px;
+    text-align: center;
   }
 
   .mobileRight {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-shrink: 0;
   }
 
   .mobileBtn {
@@ -652,6 +678,7 @@
     color: #fff;
     font-size: 13px;
     font-weight: 700;
+    flex-shrink: 0;
   }
 
   .mobileUserName {

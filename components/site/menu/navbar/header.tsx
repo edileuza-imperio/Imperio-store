@@ -465,9 +465,7 @@ export default function NavbarHeader({
                 >
                   <span className={styles.quickActionIcon}>{item.icon}</span>
 
-                  <span className={styles.quickActionLabel}>
-                    {item.label}
-                  </span>
+                  <span className={styles.quickActionLabel}>{item.label}</span>
 
                   {item.badge && item.badge > 0 && (
                     <span className={styles.quickBadge}>{item.badge}</span>
@@ -480,4 +478,4 @@ export default function NavbarHeader({
       </aside>
     </>
   );
-}
+} 
