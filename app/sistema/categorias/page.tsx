@@ -35,7 +35,7 @@ export default function Page() {
         response.data ||
         [];
 
-      setCategorias(lista);
+      setCategorias(Array.isArray(lista) ? lista : []);
     } catch (error) {
       console.error("Erro ao listar categorias:", error);
       setCategorias([]);
@@ -55,7 +55,7 @@ export default function Page() {
         <div className="header">
           <div>
             <h1>Categorias</h1>
-            <p>Gerencie todas as categorias do sistema com praticidade</p>
+            <p>Gerencie todas as categorias do sistema com mais organização</p>
           </div>
         </div>
 
@@ -119,7 +119,11 @@ export default function Page() {
         )}
       </div>
 
-      <Link href="/painel/categoria/nova" className="fab" aria-label="Nova categoria">
+      <Link
+        href="/painel/categoria/nova"
+        className="floatingButton"
+        aria-label="Nova categoria"
+      >
         <Plus size={28} />
       </Link>
 
@@ -137,6 +141,7 @@ export default function Page() {
         .container {
           max-width: 1200px;
           margin: 0 auto;
+          padding-bottom: 90px;
         }
 
         .header {
@@ -328,7 +333,7 @@ export default function Page() {
           color: #9a8b8d !important;
         }
 
-        .fab {
+        .floatingButton {
           position: fixed;
           right: 28px;
           bottom: 28px;
@@ -344,16 +349,16 @@ export default function Page() {
           box-shadow: 0 18px 40px rgba(140, 79, 92, 0.35);
           transition: transform 0.25s ease, box-shadow 0.25s ease,
             filter 0.25s ease;
-          z-index: 50;
+          z-index: 999;
         }
 
-        .fab:hover {
+        .floatingButton:hover {
           transform: translateY(-5px) scale(1.05);
           box-shadow: 0 22px 48px rgba(140, 79, 92, 0.42);
           filter: brightness(1.03);
         }
 
-        .fab:active {
+        .floatingButton:active {
           transform: translateY(-2px) scale(0.98);
         }
 
@@ -375,7 +380,7 @@ export default function Page() {
             font-size: 1.65rem;
           }
 
-          .fab {
+          .floatingButton {
             width: 60px;
             height: 60px;
             right: 18px;
