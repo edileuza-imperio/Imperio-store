@@ -44,137 +44,162 @@ export default function Page() {
     }
   }
 
+  const totalCategorias = categorias.length;
   const categoriasAtivas = categorias.filter(
     (cat) => cat.status_id === 1
   ).length;
 
   return (
-    <div className="container">
-      <div className="header">
-        <div>
-          <h1>Categorias</h1>
-          <p>Gerencie todas as categorias do sistema</p>
-        </div>
-      </div>
-
-      <div className="statsGrid">
-        <div className="statCard">
-          <FolderOpen size={26} />
+    <div className="page">
+      <div className="container">
+        <div className="header">
           <div>
-            <span>Total de Categorias</span>
-            <strong>{categorias.length}</strong>
+            <h1>Categorias</h1>
+            <p>Gerencie todas as categorias do sistema com praticidade</p>
           </div>
         </div>
 
-        <div className="statCard">
-          <Tag size={26} />
-          <div>
-            <span>Categorias Ativas</span>
-            <strong>{categoriasAtivas}</strong>
+        <div className="statsGrid">
+          <div className="statCard">
+            <div className="statIcon">
+              <FolderOpen size={22} />
+            </div>
+            <div>
+              <span>Total de Categorias</span>
+              <strong>{totalCategorias}</strong>
+            </div>
+          </div>
+
+          <div className="statCard">
+            <div className="statIcon">
+              <Tag size={22} />
+            </div>
+            <div>
+              <span>Categorias Ativas</span>
+              <strong>{categoriasAtivas}</strong>
+            </div>
           </div>
         </div>
-      </div>
 
-      {loading ? (
-        <div className="loading">
-          <div className="spinner"></div>
-          <p>Carregando categorias...</p>
-        </div>
-      ) : categorias.length === 0 ? (
-        <div className="empty">
-          <FolderOpen size={60} />
-          <h3>Nenhuma categoria encontrada</h3>
-          <p>Crie sua primeira categoria para começar.</p>
-        </div>
-      ) : (
-        <div className="grid">
-          {categorias.map((cat) => (
-            <div key={cat.id_categoria} className="card">
-              <div className="cardTop">
-                <div className="iconBox">
-                  <FolderOpen size={20} />
+        {loading ? (
+          <div className="loading">
+            <div className="spinner" />
+            <p>Carregando categorias...</p>
+          </div>
+        ) : categorias.length === 0 ? (
+          <div className="empty">
+            <div className="emptyIcon">
+              <FolderOpen size={44} />
+            </div>
+            <h3>Nenhuma categoria encontrada</h3>
+            <p>Crie a primeira categoria para começar a organizar o sistema.</p>
+          </div>
+        ) : (
+          <div className="grid">
+            {categorias.map((cat) => (
+              <div key={cat.id_categoria} className="card">
+                <div className="cardTop">
+                  <div className="cardIcon">
+                    <FolderOpen size={18} />
+                  </div>
+
+                  <span className="slug">{cat.slug}</span>
                 </div>
 
-                <span className="slug">{cat.slug}</span>
+                <h3>{cat.nome}</h3>
+
+                {cat.descricao ? (
+                  <p>{cat.descricao}</p>
+                ) : (
+                  <p className="muted">Nenhuma descrição cadastrada.</p>
+                )}
               </div>
+            ))}
+          </div>
+        )}
+      </div>
 
-              <h3>{cat.nome}</h3>
-
-              {cat.descricao ? (
-                <p>{cat.descricao}</p>
-              ) : (
-                <p className="semDescricao">
-                  Nenhuma descrição cadastrada.
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      <Link href="/painel/categoria/nova" className="fab">
+      <Link href="/painel/categoria/nova" className="fab" aria-label="Nova categoria">
         <Plus size={28} />
       </Link>
 
       <style jsx>{`
-        .container {
-          padding: 28px;
+        .page {
           min-height: 100vh;
-          background: #fafafa;
+          background:
+            radial-gradient(circle at top left, #fff7f8 0%, transparent 28%),
+            radial-gradient(circle at bottom right, #f8eef0 0%, transparent 30%),
+            #faf7f8;
+          padding: 28px;
+          position: relative;
+        }
+
+        .container {
+          max-width: 1200px;
+          margin: 0 auto;
         }
 
         .header {
-          margin-bottom: 28px;
+          margin-bottom: 26px;
         }
 
         .header h1 {
           margin: 0;
           font-size: 2rem;
-          font-weight: 700;
+          font-weight: 800;
           color: #2f2425;
+          letter-spacing: -0.03em;
         }
 
         .header p {
-          margin-top: 6px;
+          margin: 8px 0 0;
           color: #7f6d70;
-          font-size: 0.95rem;
+          font-size: 0.96rem;
         }
 
         .statsGrid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-          gap: 18px;
-          margin-bottom: 30px;
+          grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+          gap: 16px;
+          margin-bottom: 28px;
         }
 
         .statCard {
-          background: white;
-          border-radius: 20px;
-          padding: 22px;
-          border: 1px solid #ece2e3;
-
+          background: rgba(255, 255, 255, 0.88);
+          border: 1px solid #ece0e2;
+          border-radius: 22px;
+          padding: 18px 20px;
           display: flex;
           align-items: center;
-          gap: 16px;
-
+          gap: 14px;
           box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+          backdrop-filter: blur(8px);
         }
 
-        .statCard svg {
-          color: #b26a77;
+        .statIcon {
+          width: 44px;
+          height: 44px;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #fdecef, #f8dde1);
+          color: #a85d6a;
+          flex-shrink: 0;
         }
 
         .statCard span {
           display: block;
-          color: #887376;
-          font-size: 0.85rem;
+          font-size: 0.84rem;
+          color: #8a777a;
         }
 
         .statCard strong {
           display: block;
           margin-top: 4px;
-          font-size: 1.8rem;
+          font-size: 1.7rem;
           color: #2f2425;
+          font-weight: 800;
         }
 
         .loading {
@@ -182,145 +207,154 @@ export default function Page() {
           flex-direction: column;
           align-items: center;
           justify-content: center;
+          gap: 12px;
           padding: 80px 20px;
-          gap: 14px;
+          color: #7b6a6d;
         }
 
         .spinner {
-          width: 40px;
-          height: 40px;
-          border: 4px solid #eee;
-          border-top: 4px solid #b26a77;
+          width: 42px;
+          height: 42px;
           border-radius: 50%;
-          animation: spin 1s linear infinite;
+          border: 4px solid #ead9db;
+          border-top-color: #b26a77;
+          animation: spin 0.9s linear infinite;
         }
 
         .empty {
-          background: white;
-          border-radius: 24px;
-          padding: 70px 30px;
+          background: rgba(255, 255, 255, 0.9);
+          border: 1px solid #ece0e2;
+          border-radius: 28px;
+          padding: 72px 24px;
           text-align: center;
-          border: 1px solid #ece2e3;
+          box-shadow: 0 12px 30px rgba(0, 0, 0, 0.04);
         }
 
-        .empty svg {
+        .emptyIcon {
+          width: 78px;
+          height: 78px;
+          margin: 0 auto 18px;
+          border-radius: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: linear-gradient(135deg, #fdecef, #f8dde1);
           color: #b26a77;
         }
 
         .empty h3 {
-          margin-top: 16px;
+          margin: 0;
+          font-size: 1.2rem;
           color: #342829;
         }
 
         .empty p {
+          margin: 10px 0 0;
           color: #7b6a6d;
+          line-height: 1.6;
         }
 
         .grid {
           display: grid;
-          grid-template-columns: repeat(
-            auto-fill,
-            minmax(280px, 1fr)
-          );
-          gap: 20px;
+          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          gap: 18px;
         }
 
         .card {
-          background: white;
-          border-radius: 22px;
-          padding: 22px;
-          border: 1px solid #ece2e3;
-
-          transition: all 0.25s ease;
-
-          box-shadow: 0 10px 20px rgba(0, 0, 0, 0.04);
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid #ece0e2;
+          border-radius: 24px;
+          padding: 20px;
+          box-shadow: 0 12px 26px rgba(0, 0, 0, 0.04);
+          transition: transform 0.25s ease, box-shadow 0.25s ease;
+          backdrop-filter: blur(8px);
         }
 
         .card:hover {
           transform: translateY(-5px);
-
-          box-shadow: 0 20px 35px rgba(0, 0, 0, 0.08);
+          box-shadow: 0 18px 36px rgba(0, 0, 0, 0.08);
         }
 
         .cardTop {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          margin-bottom: 18px;
+          gap: 12px;
+          margin-bottom: 16px;
         }
 
-        .iconBox {
-          width: 42px;
-          height: 42px;
-          border-radius: 12px;
-
+        .cardIcon {
+          width: 40px;
+          height: 40px;
+          border-radius: 14px;
           display: flex;
           align-items: center;
           justify-content: center;
-
-          background: #fdf0f2;
+          background: #fdf1f3;
           color: #b26a77;
+          flex-shrink: 0;
         }
 
         .slug {
-          background: #fdf0f2;
-          color: #b26a77;
-          padding: 6px 12px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 6px 11px;
           border-radius: 999px;
+          background: #fdf1f3;
+          color: #b26a77;
           font-size: 12px;
-          font-weight: 600;
+          font-weight: 700;
+          white-space: nowrap;
         }
 
         .card h3 {
           margin: 0;
           color: #2f2425;
-          font-size: 1.1rem;
-          font-weight: 700;
+          font-size: 1.08rem;
+          font-weight: 800;
+          line-height: 1.3;
         }
 
         .card p {
-          margin-top: 12px;
+          margin: 12px 0 0;
           color: #6f6062;
           line-height: 1.6;
-          font-size: 0.92rem;
+          font-size: 0.94rem;
         }
 
-        .semDescricao {
-          color: #999;
+        .muted {
           font-style: italic;
+          color: #9a8b8d !important;
         }
 
         .fab {
           position: fixed;
           right: 28px;
           bottom: 28px;
-
-          width: 65px;
-          height: 65px;
-
+          width: 66px;
+          height: 66px;
           border-radius: 50%;
-
-          background: linear-gradient(
-            135deg,
-            #c37c88,
-            #8c4f5c
-          );
-
-          color: white;
-
           display: flex;
           align-items: center;
           justify-content: center;
-
+          background: linear-gradient(135deg, #c37c88, #8c4f5c);
+          color: #fff;
           text-decoration: none;
-
-          box-shadow: 0 20px 40px rgba(140, 79, 92, 0.35);
-
-          transition: all 0.25s ease;
+          box-shadow: 0 18px 40px rgba(140, 79, 92, 0.35);
+          transition: transform 0.25s ease, box-shadow 0.25s ease,
+            filter 0.25s ease;
+          z-index: 50;
         }
 
         .fab:hover {
-          transform: translateY(-4px) scale(1.05);
+          transform: translateY(-5px) scale(1.05);
+          box-shadow: 0 22px 48px rgba(140, 79, 92, 0.42);
+          filter: brightness(1.03);
+        }
+
+        .fab:active {
+          transform: translateY(-2px) scale(0.98);
         }
 
         @keyframes spin {
@@ -333,19 +367,19 @@ export default function Page() {
         }
 
         @media (max-width: 768px) {
-          .container {
-            padding: 20px;
+          .page {
+            padding: 18px;
           }
 
           .header h1 {
-            font-size: 1.7rem;
+            font-size: 1.65rem;
           }
 
           .fab {
-            width: 58px;
-            height: 58px;
-            right: 20px;
-            bottom: 20px;
+            width: 60px;
+            height: 60px;
+            right: 18px;
+            bottom: 18px;
           }
         }
       `}</style>
