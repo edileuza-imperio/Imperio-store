@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import api from "@/Api/conectar";
 import {
@@ -8,29 +8,51 @@ import {
   FolderOpen,
   Search,
   RefreshCcw,
+  AlertCircle,
 } from "lucide-react";
 
 type Categoria = {
   id_categoria: number;
   nome: string;
   slug: string;
-  descricao?: string;
+  descricao?: string | null;
+  icone?: string | null;
+  imagem?: string | null;
+  ordem?: number;
+  status_id?: number;
 };
 
 export default function CategoriasPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [busca, setBusca] = useState("");
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
+
+  function extrairCategorias(resposta: any): Categoria[] {
+    const dados = resposta?.dados;
+
+    if (Array.isArray(dados)) return dados;
+    if (Array.isArray(dados?.dados)) return dados.dados;
+    if (Array.isArray(resposta)) return resposta;
+
+    return [];
+  }
 
   async function carregarCategorias() {
     try {
       setLoading(true);
+      setErro(null);
 
       const response = await api.get("/painel/categorias");
 
-      setCategorias(response.data || []);
+      console.log("Resposta completa:", response.data);
+
+      const lista = extrairCategorias(response.data);
+      setCategorias(lista);
     } catch (error) {
-      console.error(error);
+      console.error("Erro ao carregar categorias:", error);
+      setErro("Não foi possível carregar as categorias.");
+      setCategorias([]);
     } finally {
       setLoading(false);
     }
@@ -40,286 +62,377 @@ export default function CategoriasPage() {
     carregarCategorias();
   }, []);
 
-  const categoriasFiltradas = categorias.filter((categoria) =>
-    categoria.nome.toLowerCase().includes(busca.toLowerCase())
-  );
+  const categoriasFiltradas = useMemo(() => {
+    if (!Array.isArray(categorias)) return [];
+
+    const termo = busca.trim().toLowerCase();
+
+    if (!termo) return categorias;
+
+    return categorias.filter((categoria) => {
+      const nome = categoria.nome?.toLowerCase() || "";
+      const slug = categoria.slug?.toLowerCase() || "";
+      const descricao = categoria.descricao?.toLowerCase() || "";
+
+      return (
+        nome.includes(termo) ||
+        slug.includes(termo) ||
+        descricao.includes(termo)
+      );
+    });
+  }, [categorias, busca]);
 
   return (
     <>
-      <div className="container">
-        <div className="header">
+      <main className="container">
+        <section className="topo">
           <div>
             <h1>Categorias</h1>
-            <p>Gerencie todas as categorias do sistema</p>
+            <p>Gerencie as categorias cadastradas no sistema</p>
           </div>
 
           <button onClick={carregarCategorias} className="btnAtualizar">
             <RefreshCcw size={18} />
             Atualizar
           </button>
-        </div>
+        </section>
 
-        <div className="busca">
+        <section className="buscaBox">
           <Search size={18} className="iconeBusca" />
-
           <input
             type="text"
             placeholder="Pesquisar categoria..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
           />
-        </div>
+        </section>
 
-        <div className="cardResumo">
-          <span>Total de Categorias</span>
-          <h2>{categorias.length}</h2>
-        </div>
+        <section className="resumo">
+          <div className="resumoCard">
+            <span>Total de categorias</span>
+            <strong>{Array.isArray(categorias) ? categorias.length : 0}</strong>
+          </div>
+        </section>
 
         {loading ? (
-          <div className="vazio">
-            Carregando categorias...
-          </div>
+          <section className="estado">
+            <FolderOpen size={44} />
+            <h3>Carregando categorias...</h3>
+            <p>Aguarde um momento.</p>
+          </section>
+        ) : erro ? (
+          <section className="estado erro">
+            <AlertCircle size={44} />
+            <h3>Ops, algo deu errado</h3>
+            <p>{erro}</p>
+          </section>
         ) : categoriasFiltradas.length === 0 ? (
-          <div className="vazio">
-            <FolderOpen size={50} />
+          <section className="estado">
+            <FolderOpen size={44} />
             <h3>Nenhuma categoria encontrada</h3>
-            <p>Cadastre sua primeira categoria.</p>
-          </div>
+            <p>Cadastre a primeira categoria usando o botão flutuante.</p>
+          </section>
         ) : (
-          <div className="grid">
+          <section className="grid">
             {categoriasFiltradas.map((categoria) => (
-              <div
-                key={categoria.id_categoria}
-                className="card"
-              >
-                <div className="topoCard">
+              <article key={categoria.id_categoria} className="card">
+                <div className="cardTopo">
                   <div className="iconeCard">
-                    <FolderOpen />
+                    <FolderOpen size={22} />
                   </div>
 
-                  <div>
+                  <div className="infoCard">
                     <h2>{categoria.nome}</h2>
                     <span>{categoria.slug}</span>
                   </div>
                 </div>
 
-                <p className="descricao">
-                  {categoria.descricao ||
-                    "Nenhuma descrição cadastrada."}
-                </p>
+                <div className="conteudoCard">
+                  <p>
+                    {categoria.descricao?.trim()
+                      ? categoria.descricao
+                      : "Nenhuma descrição cadastrada."}
+                  </p>
+                </div>
 
-                <Link
-                  href={`/sistema/categorias/${categoria.id_categoria}`}
-                  className="btnEditar"
-                >
-                  Editar
-                </Link>
-              </div>
+                <div className="acoes">
+                  <Link
+                    href={`/sistema/categorias/${categoria.id_categoria}`}
+                    className="btnEditar"
+                  >
+                    Editar
+                  </Link>
+                </div>
+              </article>
             ))}
-          </div>
+          </section>
         )}
 
-        <Link
-          href="/sistema/categorias/cadastrar"
-          className="btnFlutuante"
-        >
-          <Plus size={30} />
+        <Link href="/sistema/categorias/cadastrar" className="btnFlutuante">
+          <Plus size={28} />
         </Link>
-      </div>
+      </main>
 
       <style jsx>{`
         .container {
           min-height: 100vh;
-          padding: 30px;
-          background: #f8fafc;
+          padding: 28px;
+          background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
         }
 
-        .header {
+        .topo {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 30px;
           gap: 20px;
           flex-wrap: wrap;
+          margin-bottom: 24px;
         }
 
-        .header h1 {
+        .topo h1 {
           margin: 0;
           font-size: 2rem;
-          color: #1e293b;
+          font-weight: 800;
+          color: #0f172a;
         }
 
-        .header p {
-          margin-top: 5px;
+        .topo p {
+          margin: 6px 0 0;
           color: #64748b;
+          font-size: 0.98rem;
         }
 
         .btnAtualizar {
-          display: flex;
+          display: inline-flex;
           align-items: center;
           gap: 8px;
-          border: none;
-          background: white;
-          padding: 12px 18px;
-          border-radius: 12px;
+          border: 0;
+          background: #ffffff;
+          color: #0f172a;
+          padding: 12px 16px;
+          border-radius: 14px;
+          box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
           cursor: pointer;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          font-weight: 600;
         }
 
-        .busca {
+        .btnAtualizar:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+        }
+
+        .buscaBox {
           position: relative;
-          margin-bottom: 25px;
+          margin-bottom: 18px;
         }
 
         .iconeBusca {
           position: absolute;
-          left: 15px;
+          left: 16px;
           top: 50%;
           transform: translateY(-50%);
           color: #94a3b8;
+          pointer-events: none;
         }
 
-        .busca input {
+        .buscaBox input {
           width: 100%;
-          padding: 14px 14px 14px 45px;
-          border-radius: 16px;
+          height: 54px;
           border: 1px solid #e2e8f0;
-          font-size: 15px;
+          border-radius: 16px;
+          padding: 0 16px 0 46px;
           outline: none;
+          background: #fff;
+          font-size: 0.98rem;
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .cardResumo {
-          background: white;
-          border-radius: 24px;
-          padding: 25px;
-          margin-bottom: 30px;
-          box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+        .buscaBox input:focus {
+          border-color: #ec4899;
+          box-shadow: 0 0 0 4px rgba(236, 72, 153, 0.12);
         }
 
-        .cardResumo span {
+        .resumo {
+          margin-bottom: 22px;
+        }
+
+        .resumoCard {
+          background: #fff;
+          border: 1px solid #e2e8f0;
+          border-radius: 22px;
+          padding: 22px;
+          box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+        }
+
+        .resumoCard span {
+          display: block;
           color: #64748b;
+          font-size: 0.92rem;
+          margin-bottom: 6px;
         }
 
-        .cardResumo h2 {
-          margin-top: 10px;
+        .resumoCard strong {
           font-size: 2rem;
           color: #0f172a;
         }
 
         .grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 20px;
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 18px;
         }
 
         .card {
-          background: white;
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
           border-radius: 24px;
-          padding: 24px;
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.05);
-          transition: 0.3s;
+          padding: 22px;
+          box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
+          transition: transform 0.22s ease, box-shadow 0.22s ease;
         }
 
         .card:hover {
-          transform: translateY(-5px);
+          transform: translateY(-4px);
+          box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
         }
 
-        .topoCard {
+        .cardTopo {
           display: flex;
           align-items: center;
-          gap: 15px;
-          margin-bottom: 15px;
+          gap: 14px;
+          margin-bottom: 16px;
         }
 
         .iconeCard {
-          width: 55px;
-          height: 55px;
+          width: 52px;
+          height: 52px;
           border-radius: 16px;
-          background: #fce7f3;
+          background: linear-gradient(135deg, #fce7f3, #fbcfe8);
           display: flex;
           align-items: center;
           justify-content: center;
           color: #db2777;
+          flex-shrink: 0;
         }
 
-        .topoCard h2 {
+        .infoCard h2 {
           margin: 0;
+          font-size: 1.05rem;
           color: #0f172a;
-          font-size: 1rem;
+          font-weight: 700;
         }
 
-        .topoCard span {
+        .infoCard span {
+          display: block;
+          margin-top: 4px;
           color: #64748b;
-          font-size: 0.85rem;
+          font-size: 0.9rem;
+          word-break: break-word;
         }
 
-        .descricao {
+        .conteudoCard p {
+          margin: 0;
           color: #475569;
-          line-height: 1.5;
-          margin-bottom: 20px;
+          line-height: 1.6;
+          min-height: 48px;
+        }
+
+        .acoes {
+          margin-top: 18px;
+          display: flex;
+          gap: 10px;
         }
 
         .btnEditar {
-          display: inline-block;
-          background: #0f172a;
-          color: white;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
           text-decoration: none;
-          padding: 10px 18px;
-          border-radius: 12px;
-          font-size: 14px;
+          background: #0f172a;
+          color: #fff;
+          padding: 11px 16px;
+          border-radius: 14px;
+          font-weight: 600;
+          transition: transform 0.2s ease, background 0.2s ease;
+        }
+
+        .btnEditar:hover {
+          transform: translateY(-1px);
+          background: #111827;
         }
 
         .btnFlutuante {
           position: fixed;
-          bottom: 25px;
-          right: 25px;
-          width: 65px;
-          height: 65px;
+          right: 24px;
+          bottom: 24px;
+          width: 64px;
+          height: 64px;
           border-radius: 50%;
-          background: #e11d48;
-          color: white;
+          background: linear-gradient(135deg, #ec4899, #db2777);
+          color: #fff;
           display: flex;
           align-items: center;
           justify-content: center;
+          box-shadow: 0 16px 36px rgba(219, 39, 119, 0.38);
+          z-index: 50;
           text-decoration: none;
-          box-shadow: 0 10px 30px rgba(225, 29, 72, 0.4);
-          transition: 0.3s;
-          z-index: 999;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
 
         .btnFlutuante:hover {
-          transform: scale(1.1);
+          transform: scale(1.08);
+          box-shadow: 0 20px 42px rgba(219, 39, 119, 0.45);
         }
 
-        .vazio {
-          background: white;
+        .estado {
+          background: #ffffff;
+          border: 1px solid #e2e8f0;
           border-radius: 24px;
-          padding: 50px;
+          padding: 48px 20px;
           text-align: center;
           color: #64748b;
+          box-shadow: 0 10px 26px rgba(15, 23, 42, 0.05);
         }
 
-        .vazio h3 {
-          margin-top: 15px;
+        .estado h3 {
+          margin: 12px 0 6px;
           color: #0f172a;
+          font-size: 1.15rem;
+        }
+
+        .estado p {
+          margin: 0;
+          line-height: 1.5;
+        }
+
+        .estado.erro {
+          color: #b91c1c;
         }
 
         @media (max-width: 768px) {
           .container {
-            padding: 15px;
+            padding: 16px;
           }
 
-          .header {
-            flex-direction: column;
+          .topo {
             align-items: stretch;
           }
 
           .btnAtualizar {
             justify-content: center;
+            width: 100%;
           }
 
           .grid {
             grid-template-columns: 1fr;
+          }
+
+          .btnFlutuante {
+            right: 16px;
+            bottom: 16px;
+            width: 58px;
+            height: 58px;
           }
         }
       `}</style>
