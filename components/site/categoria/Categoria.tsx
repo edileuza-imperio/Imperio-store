@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as FiIcons from "react-icons/fi";
 import * as BiIcons from "react-icons/bi";
-import { FiGrid } from "react-icons/fi";
+import { FiGrid, FiArrowRight, FiChevronLeft, FiChevronRight } from "react-icons/fi";
 
 import styles from "./CategoriasDestaque.module.css";
 
@@ -50,10 +50,7 @@ function getCategoryIcon(name?: string | null, size = 20) {
   let Icon: any = null;
 
   for (const key of candidates) {
-    Icon =
-      (FiIcons as any)[key] ||
-      (BiIcons as any)[key];
-
+    Icon = (FiIcons as any)[key] || (BiIcons as any)[key];
     if (Icon) break;
   }
 
@@ -67,6 +64,8 @@ export default function CategoriasDestaque() {
 
   const railRef = useRef<HTMLDivElement | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
 
   const startX = useRef(0);
   const scrollLeft = useRef(0);
@@ -76,9 +75,19 @@ export default function CategoriasDestaque() {
     return lista.slice(0, 20) as Categoria[];
   }, [categorias]);
 
+  const updateArrows = () => {
+    const el = railRef.current;
+    if (!el) return;
+
+    setCanScrollLeft(el.scrollLeft > 10);
+    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 10);
+  };
+
   useEffect(() => {
     const el = railRef.current;
     if (!el) return;
+
+    updateArrows();
 
     const wheelScroll = (e: WheelEvent) => {
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
@@ -87,60 +96,96 @@ export default function CategoriasDestaque() {
       }
     };
 
+    const handleScroll = () => updateArrows();
+
     el.addEventListener("wheel", wheelScroll, { passive: false });
+    el.addEventListener("scroll", handleScroll);
 
     return () => {
       el.removeEventListener("wheel", wheelScroll);
+      el.removeEventListener("scroll", handleScroll);
     };
-  }, []);
+  }, [top.length]);
 
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+  const scrollByAmount = (amount: number) => {
+    const el = railRef.current;
+    if (!el) return;
+    el.scrollBy({ left: amount, behavior: "smooth" });
+  };
+
+  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = railRef.current;
     if (!el) return;
 
     setIsDragging(true);
-    startX.current = e.pageX - el.offsetLeft;
+    startX.current = e.clientX - el.getBoundingClientRect().left;
     scrollLeft.current = el.scrollLeft;
+    el.setPointerCapture?.(e.pointerId);
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const el = railRef.current;
     if (!el || !isDragging) return;
 
     e.preventDefault();
 
-    const x = e.pageX - el.offsetLeft;
-    const walk = (x - startX.current) * 1.5;
-
+    const x = e.clientX - el.getBoundingClientRect().left;
+    const walk = (x - startX.current) * 1.4;
     el.scrollLeft = scrollLeft.current - walk;
   };
 
-  const stopDragging = () => {
-    setIsDragging(false);
-  };
+  const stopDragging = () => setIsDragging(false);
 
   if (loading || erro || !top.length) return null;
 
   return (
     <section className={styles.section}>
+      <div className={styles.backgroundOrb1} />
+      <div className={styles.backgroundOrb2} />
+
       <div className={styles.container}>
         <div className={styles.header}>
-          <span className={styles.badge}>✨ Categorias</span>
+          <div className={styles.headerTop}>
+            <span className={styles.badge}>✨ Categorias em destaque</span>
+
+            <div className={styles.controls}>
+              <button
+                type="button"
+                className={styles.navBtn}
+                onClick={() => scrollByAmount(-360)}
+                disabled={!canScrollLeft}
+                aria-label="Mover categorias para a esquerda"
+              >
+                <FiChevronLeft size={18} />
+              </button>
+
+              <button
+                type="button"
+                className={styles.navBtn}
+                onClick={() => scrollByAmount(360)}
+                disabled={!canScrollRight}
+                aria-label="Mover categorias para a direita"
+              >
+                <FiChevronRight size={18} />
+              </button>
+            </div>
+          </div>
 
           <h2>Explore nossas categorias</h2>
 
           <p>
-            Arraste para descobrir novas categorias e encontre o presente perfeito.
+            Arraste, deslize ou use os botões para navegar pelas categorias e encontrar exatamente o que você procura.
           </p>
         </div>
 
         <div
           ref={railRef}
           className={`${styles.rail} ${isDragging ? styles.dragging : ""}`}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={stopDragging}
-          onMouseLeave={stopDragging}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={stopDragging}
+          onPointerLeave={stopDragging}
+          onPointerCancel={stopDragging}
         >
           {top.map((categoria, index) => {
             const nome = categoria?.nome || "Categoria";
@@ -153,6 +198,8 @@ export default function CategoriasDestaque() {
                 className={styles.card}
                 draggable={false}
               >
+                <div className={styles.cardGlow} />
+
                 <div className={styles.circle}>
                   <div className={styles.innerCircle}>
                     {getCategoryIcon(categoria?.icone, 22)}
@@ -160,6 +207,9 @@ export default function CategoriasDestaque() {
                 </div>
 
                 <span className={styles.name}>{nome}</span>
+                <span className={styles.cta}>
+                  Ver categoria <FiArrowRight size={14} />
+                </span>
               </Link>
             );
           })}
