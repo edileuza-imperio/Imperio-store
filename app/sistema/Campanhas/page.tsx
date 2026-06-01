@@ -436,7 +436,7 @@ export default function CampanhasPage() {
 
       {/* BOTÃO NOVA CAMPANHA */}
       <Link
-        href="/painel/sistema/Campanhas/cadastrar"
+        href="/painel/sistema/campanhas/cadastrar"
         className={
           styles.floatingButton
         }
