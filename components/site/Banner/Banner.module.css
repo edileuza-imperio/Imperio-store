@@ -1,13 +1,15 @@
 .banner {
   position: relative;
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   overflow: hidden;
+  overflow-x: clip;
   padding: 72px 40px;
   border-radius: 30px;
   margin-top: 20px;
   min-height: 520px;
-  background:
-    linear-gradient(135deg, #f7eadf 0%, #f5d8d0 40%, #d88c9a 100%);
+  background: linear-gradient(135deg, #f7eadf 0%, #f5d8d0 40%, #d88c9a 100%);
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
 }
 
@@ -24,13 +26,16 @@
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 650px);
-  gap: 50px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 650px);
+  gap: 40px;
   align-items: center;
+  width: 100%;
+  min-width: 0;
 }
 
 .text {
   max-width: 560px;
+  min-width: 0;
 }
 
 .tag {
@@ -53,6 +58,7 @@
   color: #5b2230;
   min-height: 1.2em;
   letter-spacing: -0.04em;
+  word-break: break-word;
 }
 
 .desc {
@@ -62,6 +68,7 @@
   color: #6e4450;
   min-height: 48px;
   max-width: 540px;
+  word-break: break-word;
 }
 
 .btn {
@@ -93,6 +100,7 @@
 .media {
   display: flex;
   justify-content: center;
+  min-width: 0;
 }
 
 .imageWrap {
@@ -106,6 +114,7 @@
   background: rgba(255, 255, 255, 0.35);
   backdrop-filter: blur(10px);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+  min-width: 0;
 }
 
 .clickable {
@@ -127,8 +136,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.35));
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.35));
   color: #5b2230;
   font-weight: 700;
   font-size: 16px;
@@ -165,12 +173,15 @@
 
 .skeleton {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   min-height: 520px;
   border-radius: 30px;
   margin-top: 20px;
   background: linear-gradient(90deg, #f6e6df 0%, #f1d5d8 50%, #f6e6df 100%);
   background-size: 200% 100%;
   animation: pulse 1.4s infinite linear;
+  overflow: hidden;
 }
 
 @keyframes pulse {
@@ -197,6 +208,7 @@
   .text {
     text-align: center;
     margin: 0 auto;
+    max-width: 100%;
   }
 
   .desc {

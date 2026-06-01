@@ -55,11 +55,11 @@ export default function Banner() {
   useEffect(() => {
     if (banners.length <= 1) return;
 
-    const t = setInterval(() => {
+    const t = window.setInterval(() => {
       setIndex((i) => (i + 1) % banners.length);
     }, 5000);
 
-    return () => clearInterval(t);
+    return () => window.clearInterval(t);
   }, [banners.length]);
 
   const banner = useMemo(() => banners[index], [banners, index]);
@@ -80,6 +80,10 @@ export default function Banner() {
     return <section className={styles.skeleton} aria-hidden="true" />;
   }
 
+  if (!banner) {
+    return null;
+  }
+
   return (
     <section className={styles.banner}>
       <div className={styles.background} />
@@ -88,11 +92,9 @@ export default function Banner() {
         <div className={styles.text}>
           <span className={styles.tag}>Universo Império</span>
 
-          <h1 className={styles.title}>
-            {banner?.titulo ?? "Confira nossas novidades"}
-          </h1>
+          <h1 className={styles.title}>{banner.titulo}</h1>
 
-          {banner?.descricao ? (
+          {banner.descricao ? (
             <p className={styles.desc}>{banner.descricao}</p>
           ) : (
             <p className={styles.desc}>
@@ -104,7 +106,7 @@ export default function Banner() {
             type="button"
             className={styles.btn}
             onClick={goLink}
-            disabled={!banner?.link}
+            disabled={!banner.link}
           >
             Comprar agora
           </button>
@@ -112,25 +114,23 @@ export default function Banner() {
 
         <div className={styles.media}>
           <div
-            className={`${styles.imageWrap} ${
-              banner?.link ? styles.clickable : ""
-            }`}
+            className={`${styles.imageWrap} ${banner.link ? styles.clickable : ""}`}
             onClick={goLink}
-            role={banner?.link ? "button" : undefined}
-            tabIndex={banner?.link ? 0 : undefined}
+            role={banner.link ? "button" : undefined}
+            tabIndex={banner.link ? 0 : undefined}
             onKeyDown={(e) => {
-              if (!banner?.link) return;
+              if (!banner.link) return;
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 goLink();
               }
             }}
-            aria-label={banner?.link ? "Abrir banner" : undefined}
+            aria-label={banner.link ? "Abrir banner" : undefined}
           >
             {imagemBanner ? (
               <Image
                 src={imagemBanner}
-                alt={banner?.titulo ?? "Banner"}
+                alt={banner.titulo || "Banner"}
                 fill
                 priority
                 fetchPriority="high"
