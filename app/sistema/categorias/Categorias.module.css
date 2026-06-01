@@ -2,6 +2,8 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  position: relative;
+  z-index: 1;
 }
 
 .loading {
@@ -266,20 +268,20 @@
   justify-content: center;
   background: linear-gradient(135deg, #a85d6a, #d88b99);
   box-shadow: 0 15px 40px rgba(168, 93, 106, 0.4);
-  z-index: 40;
+  z-index: 60;
 }
 
 /* Modal */
 .modalOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(6px);
+  background: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(8px);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 20px;
-  z-index: 50;
+  z-index: 9999;
 }
 
 .modal {
@@ -289,6 +291,8 @@
   border-radius: 28px;
   padding: 28px;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.25);
+  position: relative;
+  z-index: 10000;
 }
 
 .modalHeader {

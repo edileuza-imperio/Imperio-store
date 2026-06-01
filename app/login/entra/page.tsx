@@ -9,6 +9,7 @@ import {
   FaShieldAlt,
   FaKey,
   FaBackspace,
+  FaCheckCircle,
 } from "react-icons/fa";
 
 import { ToastContainer, toast } from "react-toastify";
@@ -44,7 +45,7 @@ export default function EntrarPage() {
   async function handleLogin(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    if (!email || !senha) {
+    if (!email.trim() || !senha.trim()) {
       toast.warning("Preencha todos os campos.");
       return;
     }
@@ -77,7 +78,8 @@ export default function EntrarPage() {
 
       toast.success("Login realizado!");
       router.push("/");
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.error("Erro ao fazer login");
     } finally {
       setLoading(false);
@@ -85,7 +87,10 @@ export default function EntrarPage() {
   }
 
   async function confirmarPin() {
-    if (!usuarioIdPin || !pin) return;
+    if (!usuarioIdPin || pin.length !== 6) {
+      toast.warning("Digite o PIN completo de 6 dígitos.");
+      return;
+    }
 
     try {
       setLoadingPin(true);
@@ -99,7 +104,8 @@ export default function EntrarPage() {
       setMostrarModalPin(false);
       setPin("");
       router.push("/");
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.error("PIN inválido");
     } finally {
       setLoadingPin(false);
@@ -111,12 +117,15 @@ export default function EntrarPage() {
     setPin((p) => p + n);
   }
 
+  function backspace() {
+    setPin((p) => p.slice(0, -1));
+  }
+
   return (
     <main className={styles.page}>
       <div className={styles.overlay} />
 
       <section className={styles.container}>
-        {/* LEFT */}
         <div className={styles.left}>
           <div className={styles.badge}>
             <FaShieldAlt />
@@ -125,19 +134,32 @@ export default function EntrarPage() {
 
           <h1>login</h1>
 
-          <p>Entre para acessar sua conta com segurança.</p>
+          <p>
+            Entre para acessar sua conta com segurança, rapidez e uma
+            experiência mais elegante em qualquer dispositivo.
+          </p>
 
           <div className={styles.features}>
             <span>✔ Seguro</span>
             <span>✔ Rápido</span>
             <span>✔ Premium</span>
           </div>
+
+          <div className={styles.highlightCard}>
+            <div className={styles.highlightIcon}>
+              <FaCheckCircle />
+            </div>
+            <div>
+              <strong>Autenticação em dois passos</strong>
+              <p>Uma camada extra de proteção para sua conta.</p>
+            </div>
+          </div>
         </div>
 
-        {/* RIGHT */}
         <div className={styles.right}>
           <div className={styles.card}>
             <button
+              type="button"
               className={styles.back}
               onClick={() => router.push("/login")}
             >
@@ -149,33 +171,43 @@ export default function EntrarPage() {
               <FaShieldAlt />
             </div>
 
+            <div className={styles.cardTitle}>
+              <h2>Bem-vindo de volta</h2>
+              <p>Faça login para continuar.</p>
+            </div>
+
             <form onSubmit={handleLogin} className={styles.form}>
               <div className={styles.group}>
-                <label>Email</label>
+                <label htmlFor="email">Email</label>
                 <div className={styles.input}>
                   <FaEnvelope />
                   <input
+                    id="email"
+                    type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Digite seu email"
+                    autoComplete="email"
                   />
                 </div>
               </div>
 
               <div className={styles.group}>
-                <label>Senha</label>
+                <label htmlFor="senha">Senha</label>
                 <div className={styles.input}>
                   <FaLock />
                   <input
+                    id="senha"
                     type="password"
                     value={senha}
                     onChange={(e) => setSenha(e.target.value)}
                     placeholder="Digite sua senha"
+                    autoComplete="current-password"
                   />
                 </div>
               </div>
 
-              <button className={styles.btn} disabled={loading}>
+              <button className={styles.btn} type="submit" disabled={loading}>
                 {loading ? "entrando..." : "entrar"}
               </button>
             </form>
@@ -183,41 +215,59 @@ export default function EntrarPage() {
         </div>
       </section>
 
-      {/* MODAL PIN */}
       {mostrarModalPin && (
-        <div className={styles.modal}>
+        <div
+          className={styles.modal}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="pin-title"
+        >
           <div className={styles.modalBox}>
             <div className={styles.modalIcon}>
               <FaKey />
             </div>
 
-            <h2>PIN de segurança</h2>
+            <h2 id="pin-title">PIN de segurança</h2>
             <p>Digite o código de 6 dígitos</p>
 
             <div className={styles.pin}>
               {Array.from({ length: 6 }).map((_, i) => (
-                <span key={i} className={pin[i] ? styles.dotActive : styles.dot}>
+                <span
+                  key={i}
+                  className={pin[i] ? styles.dotActive : styles.dot}
+                >
                   {pin[i] ? "•" : ""}
                 </span>
               ))}
             </div>
 
             <div className={styles.keys}>
-              {[1,2,3,4,5,6,7,8,9].map((n) => (
-                <button key={n} onClick={() => addNumber(String(n))}>
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => addNumber(String(n))}
+                >
                   {n}
                 </button>
               ))}
 
-              <button onClick={() => setPin("")}>C</button>
-              <button onClick={() => addNumber("0")}>0</button>
-              <button onClick={() => setPin((p) => p.slice(0, -1))}>
+              <button type="button" onClick={() => setPin("")}>
+                C
+              </button>
+
+              <button type="button" onClick={() => addNumber("0")}>
+                0
+              </button>
+
+              <button type="button" onClick={backspace}>
                 <FaBackspace />
               </button>
             </div>
 
             <button
               className={styles.confirmBtn}
+              type="button"
               onClick={confirmarPin}
               disabled={loadingPin}
             >
@@ -227,7 +277,7 @@ export default function EntrarPage() {
         </div>
       )}
 
-      <ToastContainer />
+      <ToastContainer position="top-right" autoClose={2500} />
     </main>
   );
 }
