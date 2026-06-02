@@ -14,9 +14,15 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  // Añade esta sección:
+
   experimental: {
     optimizePackageImports: ["react-icons"],
+    scrollRestoration: true,
+  },
+
+  // 🔥 ISSO AQUI AJUDA MUITO NO CSS CHUNKING
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production",
   },
 };
 
