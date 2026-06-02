@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
-import { InicioApi } from "@/services/api/api";
+import api, { InicioApi } from "@/services/api/api";
 import styles from "./page.module.css";
 
 type Categoria = {
@@ -36,6 +37,34 @@ type ApiResponse = {
     dados?: Produto[];
   };
 };
+
+function resolverImagem(src?: string | null) {
+  if (!src) return "";
+
+  const valor = String(src).trim();
+  if (!valor) return "";
+
+  if (
+    valor.startsWith("http://") ||
+    valor.startsWith("https://") ||
+    valor.startsWith("data:image")
+  ) {
+    return valor;
+  }
+
+  const baseURL =
+    process.env.NEXT_PUBLIC_API_URL ||
+    (api as any)?.defaults?.baseURL ||
+    "";
+
+  if (!baseURL) return valor;
+
+  if (valor.startsWith("/")) {
+    return `${baseURL}${valor}`;
+  }
+
+  return `${baseURL}/${valor}`;
+}
 
 export default function ViewCategoriaSlugPage() {
   const params = useParams();
@@ -72,8 +101,7 @@ export default function ViewCategoriaSlugPage() {
         setCategoria(categoriaApi);
         setProdutos(produtosApi);
         setPaginaAtual(1);
-      } catch (error) {
-        console.error(error);
+      } catch {
         setErro(true);
         setCategoria(null);
         setProdutos([]);
@@ -129,7 +157,10 @@ export default function ViewCategoriaSlugPage() {
     }
   }, [produtos, ordenacao]);
 
-  const totalPaginas = Math.max(1, Math.ceil(produtosOrdenados.length / produtosPorPagina));
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(produtosOrdenados.length / produtosPorPagina)
+  );
 
   const produtosPaginados = produtosOrdenados.slice(
     (paginaAtual - 1) * produtosPorPagina,
@@ -152,7 +183,9 @@ export default function ViewCategoriaSlugPage() {
             Categorias
           </Link>
           <span className={styles.separator}>/</span>
-          <span className={styles.breadcrumbCurrent}>{categoria?.nome || slugParam}</span>
+          <span className={styles.breadcrumbCurrent}>
+            {categoria?.nome || slugParam}
+          </span>
         </nav>
 
         {loading && (
@@ -197,17 +230,23 @@ export default function ViewCategoriaSlugPage() {
                 <div className={styles.heroAside}>
                   <div className={styles.statCard}>
                     <span className={styles.statValue}>{produtos.length}</span>
-                    <span className={styles.statLabel}>produtos encontrados</span>
+                    <span className={styles.statLabel}>
+                      produtos encontrados
+                    </span>
                   </div>
 
                   <div className={styles.statCard}>
                     <span className={styles.statValue}>{totalPaginas}</span>
-                    <span className={styles.statLabel}>páginas de navegação</span>
+                    <span className={styles.statLabel}>
+                      páginas de navegação
+                    </span>
                   </div>
 
                   <div className={styles.statCard}>
                     <span className={styles.statValue}>Premium</span>
-                    <span className={styles.statLabel}>apresentação visual</span>
+                    <span className={styles.statLabel}>
+                      apresentação visual
+                    </span>
                   </div>
                 </div>
               </div>
@@ -238,57 +277,72 @@ export default function ViewCategoriaSlugPage() {
             </section>
 
             <section className={styles.grid}>
-              {produtosPaginados.map((produto, index) => (
-                <article
-                  key={produto.id_produto || `${produto.slug}-${index}`}
-                  className={styles.card}
-                >
-                  <div className={styles.imageWrap}>
-                    <img
-                      src={
-                        produto.imagem
-                          ? `https://lightgrey-cattle-160990.hostingersite.com/${produto.imagem}`
-                          : "/placeholder.png"
-                      }
-                      alt={produto.nome || "Produto"}
-                      className={styles.image}
-                    />
+              {produtosPaginados.map((produto, index) => {
+                const imagemResolvida = resolverImagem(produto.imagem);
 
-                    <div className={styles.cardOverlay} />
-                    <div className={styles.priceBadge}>
-                      {formatarPreco(produto.preco_promocional || produto.preco)}
+                return (
+                  <article
+                    key={produto.id_produto || `${produto.slug}-${index}`}
+                    className={styles.card}
+                  >
+                    <div className={styles.imageWrap}>
+                      {imagemResolvida ? (
+                        <Image
+                          src={imagemResolvida}
+                          alt={produto.nome || "Produto"}
+                          fill
+                          className={styles.image}
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                          unoptimized
+                        />
+                      ) : (
+                        <Image
+                          src="/placeholder.png"
+                          alt={produto.nome || "Produto"}
+                          fill
+                          className={styles.image}
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                        />
+                      )}
+
+                      <div className={styles.cardOverlay} />
+                      <div className={styles.priceBadge}>
+                        {formatarPreco(produto.preco_promocional || produto.preco)}
+                      </div>
                     </div>
-                  </div>
 
-                  <div className={styles.cardBody}>
-                    <div className={styles.cardHeader}>
-                      <h3 className={styles.cardTitle}>{produto.nome}</h3>
-                      <span className={styles.cardIndex}>
-                        {(paginaAtual - 1) * produtosPorPagina + index + 1}
-                      </span>
+                    <div className={styles.cardBody}>
+                      <div className={styles.cardHeader}>
+                        <h3 className={styles.cardTitle}>{produto.nome}</h3>
+                        <span className={styles.cardIndex}>
+                          {(paginaAtual - 1) * produtosPorPagina + index + 1}
+                        </span>
+                      </div>
+
+                      <p className={styles.cardText}>
+                        {produto.descricao
+                          ? `${produto.descricao.slice(0, 120)}${
+                              produto.descricao.length > 120 ? "..." : ""
+                            }`
+                          : "Produto sem descrição."}
+                      </p>
+
+                      <div className={styles.cardFooter}>
+                        <span className={styles.metaText}>
+                          Clique para ver detalhes
+                        </span>
+
+                        <Link
+                          href={produto.slug ? `/produto/${produto.slug}` : "#"}
+                          className={styles.button}
+                        >
+                          Ver produto
+                        </Link>
+                      </div>
                     </div>
-
-                    <p className={styles.cardText}>
-                      {produto.descricao
-                        ? `${produto.descricao.slice(0, 120)}${
-                            produto.descricao.length > 120 ? "..." : ""
-                          }`
-                        : "Produto sem descrição."}
-                    </p>
-
-                    <div className={styles.cardFooter}>
-                      <span className={styles.metaText}>Clique para ver detalhes</span>
-
-                      <Link
-                        href={produto.slug ? `/produto/${produto.slug}` : "#"}
-                        className={styles.button}
-                      >
-                        Ver produto
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </section>
 
             {totalPaginas > 1 && (
@@ -318,7 +372,9 @@ export default function ViewCategoriaSlugPage() {
                 <button
                   type="button"
                   className={styles.pageButton}
-                  onClick={() => setPaginaAtual((p) => Math.min(totalPaginas, p + 1))}
+                  onClick={() =>
+                    setPaginaAtual((p) => Math.min(totalPaginas, p + 1))
+                  }
                   disabled={paginaAtual === totalPaginas}
                 >
                   Próxima
