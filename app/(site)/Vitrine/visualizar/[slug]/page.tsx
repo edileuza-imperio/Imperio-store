@@ -4,15 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import api from "@/Api/conectar";
 
-import {
-  FiHeart,
-  FiShoppingCart,
-  FiCreditCard,
-  FiShield,
-  FiTruck,
-  FiRefreshCcw,
-  FiStar,
-} from "react-icons/fi";
+
+import { FiHeart } from "react-icons/fi";
+import { FiShoppingCart } from "react-icons/fi";
+import { FiCreditCard } from "react-icons/fi";
+import { FiShield } from "react-icons/fi";
+import { FiTruck } from "react-icons/fi";
+import { FiRefreshCcw } from "react-icons/fi";
+import { FiStar } from "react-icons/fi";
 
 
 type Produto = {

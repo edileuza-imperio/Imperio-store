@@ -1,50 +1,10 @@
-
-/* app/globals.css */
-
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
-@media (prefers-color-scheme: white) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-/* estrutura geral */
-.layout-body {
   margin: 0;
-  padding: 0;
-  background: #faf8f6;
-}
-
-/* fixa topo corretamente */
-.header-stack {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  z-index: 1000;
-
-  display: flex;
-  flex-direction: column;
-}
-
-/* compensa altura real do Topbar + Navbar */
-.main-content {
-  padding-top: 140px;
-  /* 🔥 ajuste importante */
-}
-
-/* melhora suavidade geral */
-body {
-  scroll-behavior: smooth;
+  font-family: Arial, Helvetica, sans-serif;
 }
