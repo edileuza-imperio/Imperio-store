@@ -52,8 +52,7 @@ type VitrinePageProps = {
 };
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://lightgrey-cattle-160990.hostingersite.com";
+  process.env.NEXT_PUBLIC_API_URL ;
 
 function resolverImagem(src?: string) {
   if (!src) return "";
