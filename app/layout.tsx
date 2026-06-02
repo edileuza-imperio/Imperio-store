@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import "./styles/critical.css";
-import "./styles/variables.css";
-import "./styles/layout.css";
+import "./../styles/variables.css";
+import "./../styles/variables.css";
+import "./../styles/layout.css";
 import "./globals.css";
 
 
