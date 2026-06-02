@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 import { imagemFundo } from "@/components/Bibioteca/imagem";
-import styles from "./banner.module.css";
+import styles from "./Banner.module.css";
 
 export type BannerItem = {
   id_banner: number;
