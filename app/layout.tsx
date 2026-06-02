@@ -3,17 +3,27 @@ import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
 
 import { ToastContainer } from "react-toastify";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+
 import { getSiteConfig } from "@/services/siteConfig";
 
-export const dynamic = "force-dynamic"; // 👈 ISSO AQUI
+export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
-  const site = await getSiteConfig();
+  try {
+    const site = await getSiteConfig();
 
-  return {
-    title: site?.titulo || "Império",
-    description: site?.subtitulo || "Loja online",
-  };
+    return {
+      title: site?.titulo || "Império",
+      description: site?.subtitulo || "Loja online",
+    };
+  } catch {
+    return {
+      title: "Império",
+      description: "Loja online",
+    };
+  }
 }
 
 export default function RootLayout({
@@ -26,7 +36,18 @@ export default function RootLayout({
       <body className="antialiased">
         {children}
 
-        <ToastContainer position="top-right" autoClose={3000} />
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          newestOnTop
+          closeOnClick
+          pauseOnHover
+          draggable
+          theme="light"
+        />
+
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
