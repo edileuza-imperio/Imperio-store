@@ -1,13 +1,18 @@
-"use client";
-
-import { useEffect, useState } from "react";
 import api from "@/Api/conectar";
 
 import Banner from "@/components/site/Banner/Banner";
 import CategoriasDestaque from "@/components/site/categoria/Categoria";
-
 import Destaques from "@/components/Vitrine/Destaques";
 import Campanhas from "../campanha/page";
+
+type BannerItem = {
+  id_banner: number;
+  titulo: string;
+  descricao?: string | null;
+  imagem: string;
+  link?: string | null;
+  statusid?: number;
+};
 
 type Vitrine = {
   id_vitrine: number | string;
@@ -20,51 +25,57 @@ type Vitrine = {
 };
 
 function extrairLista(payload: any): any[] {
-  if (Array.isArray(payload?.dados?.dados)) return payload.dados.dados;
-  if (Array.isArray(payload?.dados)) return payload.dados;
-  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.dados?.dados))
+    return payload.dados.dados;
+
+  if (Array.isArray(payload?.dados))
+    return payload.dados;
+
+  if (Array.isArray(payload))
+    return payload;
+
   return [];
 }
 
-export default function HomeContent() {
-  const [vitrines, setVitrines] = useState<Vitrine[]>([]);
-  const [loading, setLoading] = useState(true);
+export default async function HomeContent() {
+  let vitrines: Vitrine[] = [];
+  let banners: BannerItem[] = [];
 
-  useEffect(() => {
-    async function carregarVitrines() {
-      try {
-        setLoading(true);
+  try {
+    const [resBanners, resVitrines] =
+      await Promise.all([
+        api.get("/banners"),
+        api.get("/vitrines/com-itens"),
+      ]);
 
-        const response = await api.get("/vitrines/com-itens", {
-          withCredentials: true,
-        });
+    banners = (
+      resBanners.data?.dados?.dados ?? []
+    ).filter(
+      (b: BannerItem) =>
+        b.statusid === 1 && b.imagem
+    );
 
-        const lista = extrairLista(response?.data) as Vitrine[];
-        setVitrines(lista);
-      } catch (error) {
-        console.error("Erro ao carregar vitrines:", error);
-        setVitrines([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    carregarVitrines();
-  }, []);
+    vitrines = extrairLista(
+      resVitrines.data
+    ) as Vitrine[];
+  } catch (error) {
+    console.error(error);
+  }
 
   return (
     <>
-      <Banner />
+      <Banner banners={banners} />
+
       <CategoriasDestaque />
+
       <Campanhas />
 
-      {!loading &&
-        vitrines.map((vitrine) => (
-          <Destaques
-            key={String(vitrine.id_vitrine)}
-            vitrine={vitrine}
-          />
-        ))}
+      {vitrines.map((vitrine) => (
+        <Destaques
+          key={String(vitrine.id_vitrine)}
+          vitrine={vitrine}
+        />
+      ))}
     </>
   );
 }
