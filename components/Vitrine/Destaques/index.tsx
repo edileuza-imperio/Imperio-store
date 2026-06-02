@@ -5,15 +5,13 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { toast } from "react-toastify";
-import {
-  FiShoppingCart,
-  FiEye,
-  FiArrowRight,
-  FiChevronLeft,
-  FiChevronRight,
-  FiLoader,
-  FiCheckCircle,
-} from "react-icons/fi";
+import { FiShoppingCart } from "react-icons/fi";
+import { FiEye } from "react-icons/fi";
+import { FiArrowRight } from "react-icons/fi";
+import { FiChevronLeft } from "react-icons/fi";
+import { FiChevronRight } from "react-icons/fi";
+import { FiLoader } from "react-icons/fi";
+import { FiCheckCircle } from "react-icons/fi";
 
 import api from "@/Api/conectar";
 import {
