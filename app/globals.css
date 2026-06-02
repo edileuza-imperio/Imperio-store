@@ -8,19 +8,17 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* 🎨 VARIÁVEIS GLOBAIS */
 :root {
-  --bg-banner: #f5d8d0;
+  --bg-banner: #f6d6cf;
   --text-primary: #5b2230;
   --text-secondary: #6e4450;
+
   --accent: #8f3048;
   --accent-soft: #b14f68;
 
-  --white-soft: rgba(255,255,255,0.25);
-  --white-glass: rgba(255,255,255,0.7);
-  --white-faint: rgba(255,255,255,0.2);
+  --white-glass: rgba(255,255,255,0.55);
 
-  --shadow-sm: 0 6px 18px rgba(0,0,0,0.06);
-  --shadow-md: 0 10px 18px rgba(0,0,0,0.1);
-  --shadow-accent: 0 10px 18px rgba(143,48,72,0.18);
+  --shadow-sm: 0 4px 10px rgba(0,0,0,0.06);
+  --shadow-md: 0 6px 14px rgba(0,0,0,0.08);
+  --shadow-accent: 0 6px 14px rgba(143,48,72,0.18);
 }
