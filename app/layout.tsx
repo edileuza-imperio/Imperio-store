@@ -1,13 +1,14 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./layout.css";
-import "react-toastify/dist/ReactToastify.css";
 
-import { ToastContainer } from "react-toastify";
+
+
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { getSiteConfig } from "@/services/siteConfig";
+import ToastProvider from "@/components/Bibioteca/toast";
 
 export const revalidate = 300;
 
@@ -37,15 +38,7 @@ export default function RootLayout({
       <body className="antialiased">
         {children}
 
-        <ToastContainer
-          position="top-right"
-          autoClose={3000}
-          newestOnTop
-          closeOnClick
-          pauseOnHover
-          draggable
-          theme="light"
-        />
+        <ToastProvider />
 
         <Analytics />
         <SpeedInsights />
