@@ -1,0 +1,14 @@
+:root {
+  --bg-banner: #f6d6cf;
+  --text-primary: #5b2230;
+  --text-secondary: #6e4450;
+
+  --accent: #8f3048;
+  --accent-soft: #b14f68;
+
+  --white-glass: rgba(255,255,255,0.55);
+
+  --shadow-sm: 0 4px 10px rgba(0,0,0,0.06);
+  --shadow-md: 0 6px 14px rgba(0,0,0,0.08);
+  --shadow-accent: 0 6px 14px rgba(143,48,72,0.18);
+}
