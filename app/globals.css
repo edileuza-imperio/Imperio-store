@@ -4,6 +4,25 @@
   box-sizing: border-box;
 }
 
+:root {
+  /* 🎨 cores principais */
+  --bg-banner: #f5d8d0;
+  --text-primary: #5b2230;
+  --text-secondary: #6e4450;
+  --accent: #8f3048;
+  --accent-soft: #b14f68;
+
+  /* 🧼 superfícies */
+  --white-soft: rgba(255, 255, 255, 0.25);
+  --white-glass: rgba(255, 255, 255, 0.7);
+  --white-faint: rgba(255, 255, 255, 0.2);
+
+  /* 🌫 sombras */
+  --shadow-sm: 0 6px 18px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 10px 18px rgba(0, 0, 0, 0.1);
+  --shadow-accent: 0 10px 18px rgba(143, 48, 72, 0.18);
+}
+
 body {
   margin: 0;
   font-family: Arial, Helvetica, sans-serif;
