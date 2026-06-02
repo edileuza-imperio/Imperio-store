@@ -14,6 +14,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Añade esta sección:
+  experimental: {
+    optimizePackageImports: ["react-icons"],
+  },
 };
 
 export default withBundleAnalyzer(nextConfig);
