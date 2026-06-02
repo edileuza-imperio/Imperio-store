@@ -2,8 +2,22 @@
 
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import Link from "next/link";
-import * as FaIcons from "react-icons/fa";
-import * as SiIcons from "react-icons/si";
+import {
+  FaFacebookF,
+  FaInstagram,
+  FaWhatsapp,
+  FaMapMarkerAlt,
+  FaEnvelope,
+  FaPhoneAlt,
+  FaArrowRight,
+  FaCcVisa,
+  FaCcMastercard,
+  FaCcPaypal,
+  FaInfoCircle,
+  FaFileContract,
+  FaQuestionCircle,
+} from "react-icons/fa";
+import { SiPix } from "react-icons/si";
 import api from "@/Api/conectar";
 import styles from "./Footer.module.css";
 
@@ -46,7 +60,10 @@ function normalizeText(value: unknown): string {
     .trim();
 }
 
-function pick<T>(obj: Record<string, any> | undefined, ...keys: string[]): T | undefined {
+function pick<T>(
+  obj: Record<string, any> | undefined,
+  ...keys: string[]
+): T | undefined {
   if (!obj) return undefined;
 
   for (const key of keys) {
@@ -77,11 +94,15 @@ function normalizeFooterData(raw: any): FooterData | null {
   const footer: FooterConfig | undefined = footerRaw
     ? {
         titulo: String(pick(footerRaw, "titulo", "título") ?? "").trim() || undefined,
-        subtitulo: String(pick(footerRaw, "subtitulo", "subtítulo") ?? "").trim() || undefined,
-        logo_texto: String(pick(footerRaw, "logo_texto", "logo texto") ?? "").trim() || undefined,
-        descricao: String(pick(footerRaw, "descricao", "descrição") ?? "").trim() || undefined,
+        subtitulo:
+          String(pick(footerRaw, "subtitulo", "subtítulo") ?? "").trim() || undefined,
+        logo_texto:
+          String(pick(footerRaw, "logo_texto", "logo texto") ?? "").trim() || undefined,
+        descricao:
+          String(pick(footerRaw, "descricao", "descrição") ?? "").trim() || undefined,
         copyright_texto:
-          String(pick(footerRaw, "copyright_texto", "copyright texto") ?? "").trim() || undefined,
+          String(pick(footerRaw, "copyright_texto", "copyright texto") ?? "").trim() ||
+          undefined,
       }
     : undefined;
 
@@ -132,23 +153,23 @@ function DynamicIcon({ name }: { name?: string }) {
   const clean = name.trim();
 
   const faMap: Record<string, ComponentType<any>> = {
-    FaFacebookF: FaIcons.FaFacebookF,
-    FaInstagram: FaIcons.FaInstagram,
-    FaWhatsapp: FaIcons.FaWhatsapp,
-    FaMapMarkerAlt: FaIcons.FaMapMarkerAlt,
-    FaEnvelope: FaIcons.FaEnvelope,
-    FaPhoneAlt: FaIcons.FaPhoneAlt,
-    FaArrowRight: FaIcons.FaArrowRight,
-    FaCcVisa: FaIcons.FaCcVisa,
-    FaCcMastercard: FaIcons.FaCcMastercard,
-    FaCcPaypal: FaIcons.FaCcPaypal,
-    FaInfoCircle: FaIcons.FaInfoCircle,
-    FaFileContract: FaIcons.FaFileContract,
-    FaQuestionCircle: FaIcons.FaQuestionCircle,
+    FaFacebookF,
+    FaInstagram,
+    FaWhatsapp,
+    FaMapMarkerAlt,
+    FaEnvelope,
+    FaPhoneAlt,
+    FaArrowRight,
+    FaCcVisa,
+    FaCcMastercard,
+    FaCcPaypal,
+    FaInfoCircle,
+    FaFileContract,
+    FaQuestionCircle,
   };
 
   const siMap: Record<string, ComponentType<any>> = {
-    SiPix: SiIcons.SiPix,
+    SiPix,
   };
 
   const Icon = faMap[clean] || siMap[clean];
@@ -158,22 +179,101 @@ function DynamicIcon({ name }: { name?: string }) {
   return <Icon aria-hidden="true" focusable="false" />;
 }
 
+function FooterSkeleton() {
+  return (
+    <footer className={styles.footer} aria-busy="true" aria-live="polite">
+      <div className={styles.container}>
+        <div className={styles.topGrid}>
+          <section className={styles.brandCard}>
+            <div className={styles.brandHeader}>
+              <div className={styles.logo} />
+              <div className={styles.skelBlock}>
+                <div className={styles.skelTitle} />
+                <div className={styles.skelSubtitle} />
+              </div>
+            </div>
+
+            <div className={styles.skelTextLg} />
+            <div className={styles.skelTextMd} />
+
+            <div className={styles.badges}>
+              <span className={styles.skelBadge} />
+              <span className={styles.skelBadge} />
+            </div>
+
+            <div className={styles.social}>
+              <span className={styles.skelSocial} />
+              <span className={styles.skelSocial} />
+              <span className={styles.skelSocial} />
+              <span className={styles.skelSocial} />
+            </div>
+          </section>
+
+          <section className={styles.column}>
+            <div className={styles.skelSectionTitle} />
+            <div className={styles.skelNavList}>
+              <span className={styles.skelNavItem} />
+              <span className={styles.skelNavItem} />
+              <span className={styles.skelNavItem} />
+              <span className={styles.skelNavItem} />
+            </div>
+          </section>
+
+          <section className={styles.columnWide}>
+            <div className={styles.skelSectionTitle} />
+            <div className={styles.skelContactList}>
+              <span className={styles.skelContactItem} />
+              <span className={styles.skelContactItem} />
+              <span className={styles.skelContactItem} />
+            </div>
+          </section>
+        </div>
+
+        <div className={styles.divider} />
+
+        <div className={styles.bottom}>
+          <span className={styles.skelCopy} />
+          <span className={styles.skelPayments} />
+          <span className={styles.skelBottomLinks} />
+        </div>
+      </div>
+    </footer>
+  );
+}
+
 export default function FooterProfissional() {
   const [data, setData] = useState<FooterData | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let active = true;
+
     async function carregarFooter() {
       try {
+        setLoading(true);
         const response = await api.get("/footer");
         const normalized = normalizeFooterData(response.data as ApiFooterEnvelope);
-        setData(normalized);
+
+        if (active) {
+          setData(normalized);
+        }
       } catch (error) {
         console.error("Erro ao carregar footer:", error);
-        setData(null);
+        if (active) {
+          setData(null);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
       }
     }
 
     carregarFooter();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const footer = data?.footer;
@@ -189,16 +289,26 @@ export default function FooterProfissional() {
   const bottomLinks = useMemo(() => {
     return links.filter((item) => {
       const titulo = normalizeText(item.titulo);
-      return titulo.includes("politica") || titulo.includes("termos") || titulo.includes("privacidade");
+      return (
+        titulo.includes("politica") ||
+        titulo.includes("termos") ||
+        titulo.includes("privacidade")
+      );
     });
   }, [links]);
 
   const navLinks = useMemo(() => {
     return links.filter((item) => {
       const titulo = normalizeText(item.titulo);
-      return !titulo.includes("politica") && !titulo.includes("termos") && !titulo.includes("privacidade");
+      return (
+        !titulo.includes("politica") &&
+        !titulo.includes("termos") &&
+        !titulo.includes("privacidade")
+      );
     });
   }, [links]);
+
+  if (loading) return <FooterSkeleton />;
 
   return (
     <footer className={styles.footer}>
@@ -266,12 +376,12 @@ export default function FooterProfissional() {
                     {external ? (
                       <a href={href} className={styles.navLink}>
                         <span>{link.titulo}</span>
-                        <FaIcons.FaArrowRight className={styles.navArrow} aria-hidden="true" />
+                        <FaArrowRight className={styles.navArrow} aria-hidden="true" />
                       </a>
                     ) : (
                       <Link href={href} className={styles.navLink}>
                         <span>{link.titulo}</span>
-                        <FaIcons.FaArrowRight className={styles.navArrow} aria-hidden="true" />
+                        <FaArrowRight className={styles.navArrow} aria-hidden="true" />
                       </Link>
                     )}
                   </li>
