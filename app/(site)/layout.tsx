@@ -1,14 +1,10 @@
 import type { Metadata } from "next";
-
-import "./../globals.css";
+import "./globals.css";
 import "react-toastify/dist/ReactToastify.css";
 
 import { ToastContainer } from "react-toastify";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-
-import Navbar from "@/components/site/menu/navbar";
-import FooterProfissional from "@/components/site/Rodape/Footer";
 
 import { getSiteConfig } from "@/services/siteConfig";
 
@@ -30,35 +26,29 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default function SiteLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   return (
-    <>
-      <header className="header-stack">
-        <Navbar />
-      </header>
-
-      <main className="main-content">
+    <html lang="pt-br">
+      <body className="antialiased">
         {children}
-      </main>
 
-      <FooterProfissional />
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          newestOnTop
+          closeOnClick
+          pauseOnHover
+          draggable
+          theme="light"
+        />
 
-      <ToastContainer
-        position="top-right"
-        autoClose={3000}
-        newestOnTop
-        closeOnClick
-        pauseOnHover
-        draggable
-        theme="light"
-      />
-
-      <Analytics />
-      <SpeedInsights />
-    </>
+        <Analytics />
+        <SpeedInsights />
+      </body>
+    </html>
   );
 }
