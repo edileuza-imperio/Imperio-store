@@ -2,50 +2,25 @@
 
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
 
 import { imagemFundo } from "@/components/Bibioteca/imagem";
+import { useBanner } from "./useBanner";
+
 import styles from "./Banner.module.css";
 
-export type BannerItem = {
-  id_banner: number;
-  titulo: string;
-  descricao?: string | null;
-  imagem: string;
-  link?: string | null;
-  statusid?: number;
-};
-
-type Props = {
-  banners: BannerItem[];
-};
-
-export default function Banner({ banners }: Props) {
+export default function Banner() {
   const router = useRouter();
 
-  const [index, setIndex] = useState(0);
-
-  useEffect(() => {
-    if (banners.length <= 1) return;
-
-    const timer = window.setInterval(() => {
-      setIndex((prev) => (prev + 1) % banners.length);
-    }, 5000);
-
-    return () => clearInterval(timer);
-  }, [banners.length]);
-
-  const banner = useMemo(
-    () => banners[index],
-    [banners, index]
-  );
-
-  if (!banner) return null;
-
-  const imagemBanner = imagemFundo(banner.imagem);
+  const {
+    banners,
+    banner,
+    index,
+    setIndex,
+    loading,
+  } = useBanner();
 
   function goLink() {
-    if (!banner.link) return;
+    if (!banner?.link) return;
 
     if (banner.link.startsWith("http")) {
       window.open(
@@ -58,6 +33,18 @@ export default function Banner({ banners }: Props) {
 
     router.push(banner.link);
   }
+
+  if (loading) {
+    return (
+      <section className={styles.skeleton} />
+    );
+  }
+
+  if (!banner) return null;
+
+  const imagemBanner = imagemFundo(
+    banner.imagem
+  );
 
   return (
     <section className={styles.banner}>
@@ -106,6 +93,7 @@ export default function Banner({ banners }: Props) {
           {banners.map((_, i) => (
             <button
               key={i}
+              type="button"
               className={`${styles.dot} ${
                 i === index
                   ? styles.active
