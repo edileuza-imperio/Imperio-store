@@ -2,21 +2,19 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  FiSearch,
-  FiShoppingCart,
-  FiUser,
-  FiX,
-  FiMenu,
-  FiHome,
-  FiShoppingBag,
-  FiHelpCircle,
-} from "react-icons/fi";
+import { FiSearch } from "react-icons/fi";
+import { FiShoppingCart } from "react-icons/fi";
+import { FiUser } from "react-icons/fi";
+import { FiX } from "react-icons/fi";
+import { FiMenu } from "react-icons/fi";
+import { FiHome } from "react-icons/fi";
+import { FiShoppingBag } from "react-icons/fi";
+import { FiHelpCircle } from "react-icons/fi";
 import * as FiIcons from "react-icons/fi";
 import * as BiIcons from "react-icons/bi";
 
 import { Menu, Usuario } from "@/components/site/menu/menu";
-import styles from "./NavbarHeader.module.css";
+import "./../../../styles/navbar/menu.css";
 
 type Props = {
   scrolled: boolean;
@@ -101,25 +99,23 @@ export default function NavbarHeader({
 
   return (
     <>
-      <header
-        className={`${styles.header} ${scrolled ? styles.headerScrolled : ""}`}
-      >
-        <div className={styles.desktopNavbar}>
-          <div className={styles.brand}>
+      <header className={`header ${scrolled ? "headerScrolled" : ""}`}>
+        <div className="desktopNavbar">
+          <div className="brand">
             <Link
               href="/"
-              className={styles.logo}
+              className="logo"
               aria-label="Ir para a página inicial"
             >
-              <span className={styles.logoDark}>{titulo1 || "Universo"}</span>
-              <span className={styles.logoPink}>{titulo2 || "Império"}</span>
+              <span className="logoDark">{titulo1 || "Universo"}</span>
+              <span className="logoPink">{titulo2 || "Império"}</span>
             </Link>
 
-            <span className={styles.subtitle}>{subtitulo || ""}</span>
+            <span className="subtitle">{subtitulo || ""}</span>
           </div>
 
-          <div className={styles.searchWrapper}>
-            <div className={styles.searchBar}>
+          <div className="searchWrapper">
+            <div className="searchBar">
               <FiSearch size={18} aria-hidden="true" focusable="false" />
 
               <input
@@ -133,7 +129,7 @@ export default function NavbarHeader({
               {safePesquisa !== "" && (
                 <button
                   type="button"
-                  className={styles.clearBtn}
+                  className="clearBtn"
                   onClick={() => setPesquisa("")}
                   aria-label="Limpar busca"
                   title="Limpar busca"
@@ -144,29 +140,29 @@ export default function NavbarHeader({
             </div>
           </div>
 
-          <div className={styles.right}>
+          <div className="right">
             {usuario ? (
-              <div className={styles.userDropdown}>
+              <div className="userDropdown">
                 <button
-                  className={styles.userBtn}
+                  className="userBtn"
                   onClick={() => setDropdown(!dropdown)}
                   type="button"
                   aria-haspopup="menu"
                   aria-expanded={dropdown}
                   aria-label={`Abrir menu do usuário: ${usuario?.nome ?? ""}`}
                 >
-                  <div className={styles.userAvatar}>
+                  <div className="userAvatar">
                     {(usuario?.nome ?? "?").charAt(0)?.toUpperCase()}
                   </div>
 
-                  <div className={styles.userInfo}>
+                  <div className="userInfo">
                     <span>Olá,</span>
                     <strong>{usuario?.nome ?? "Usuário"}</strong>
                   </div>
                 </button>
 
                 {dropdown && (
-                  <div className={styles.dropdownMenu} role="menu">
+                  <div className="dropdownMenu" role="menu">
                     {loginItems.map((item) => {
                       const nome = (item.nome ?? "").toLowerCase().trim();
                       const sair = nome === "sair";
@@ -176,7 +172,7 @@ export default function NavbarHeader({
                           <button
                             key={item.id_item}
                             onClick={logout}
-                            className={styles.dropdownItem}
+                            className="dropdownItem"
                             type="button"
                             role="menuitem"
                           >
@@ -190,7 +186,7 @@ export default function NavbarHeader({
                         <Link
                           key={item.id_item}
                           href={item.rota || "#"}
-                          className={styles.dropdownItem}
+                          className="dropdownItem"
                           onClick={() => setDropdown(false)}
                           role="menuitem"
                         >
@@ -206,7 +202,7 @@ export default function NavbarHeader({
               login && (
                 <Link
                   href={login.rota || "#"}
-                  className={styles.iconBtn}
+                  className="iconBtn"
                   aria-label="Entrar na conta"
                   title="Entrar"
                 >
@@ -219,7 +215,7 @@ export default function NavbarHeader({
             {carrinho && (
               <Link
                 href={carrinho.rota || "/carrinho"}
-                className={styles.cartButton}
+                className="cartButton"
                 aria-label={
                   quantidadeCarrinho > 0
                     ? `Ver carrinho de compras, ${quantidadeCarrinho} item(s)`
@@ -227,7 +223,7 @@ export default function NavbarHeader({
                 }
                 title="Carrinho"
               >
-                <div className={styles.cartWrapper}>
+                <div className="cartWrapper">
                   <FiShoppingCart
                     size={21}
                     aria-hidden="true"
@@ -235,22 +231,22 @@ export default function NavbarHeader({
                   />
 
                   {quantidadeCarrinho > 0 && (
-                    <span className={styles.badge}>{quantidadeCarrinho}</span>
+                    <span className="badge">{quantidadeCarrinho}</span>
                   )}
                 </div>
 
-                <div className={styles.cartInfo}>
-                  <span className={styles.cartLabel}>Meu</span>
-                  <span className={styles.cartTotal}>Carrinho</span>
+                <div className="cartInfo">
+                  <span className="cartLabel">Meu</span>
+                  <span className="cartTotal">Carrinho</span>
                 </div>
               </Link>
             )}
           </div>
         </div>
 
-        <div className={styles.mobileNavbar}>
+        <div className="mobileNavbar">
           <button
-            className={styles.hamburger}
+            className="hamburger"
             onClick={() => setOpenMenu(true)}
             type="button"
             aria-label="Abrir menu"
@@ -261,41 +257,41 @@ export default function NavbarHeader({
             <FiMenu size={22} aria-hidden="true" focusable="false" />
           </button>
 
-          <div className={styles.mobileBrand}>
+          <div className="mobileBrand">
             <Link
               href="/"
-              className={styles.mobileLogo}
+              className="mobileLogo"
               aria-label="Ir para a página inicial"
             >
-              <span className={styles.logoDark}>{titulo1 || "Universo"}</span>
-              <span className={styles.logoPink}>{titulo2 || "Império"}</span>
+              <span className="logoDark">{titulo1 || "Universo"}</span>
+              <span className="logoPink">{titulo2 || "Império"}</span>
             </Link>
 
-            <span className={styles.mobileSubtitle}>{subtitulo || ""}</span>
+            <span className="mobileSubtitle">{subtitulo || ""}</span>
           </div>
 
-          <div className={styles.mobileRight}>
+          <div className="mobileRight">
             {usuario ? (
-              <div className={styles.mobileUserDropdown}>
+              <div className="mobileUserDropdown">
                 <button
-                  className={styles.mobileUserBtn}
+                  className="mobileUserBtn"
                   onClick={() => setDropdown(!dropdown)}
                   type="button"
                   aria-haspopup="menu"
                   aria-expanded={dropdown}
                   aria-label={`Abrir menu do usuário: ${usuario?.nome ?? ""}`}
                 >
-                  <div className={styles.mobileAvatar}>
+                  <div className="mobileAvatar">
                     {(usuario?.nome ?? "?").charAt(0)?.toUpperCase()}
                   </div>
 
-                  <span className={styles.mobileUserName}>
+                  <span className="mobileUserName">
                     {usuario?.nome ?? "Usuário"}
                   </span>
                 </button>
 
                 {dropdown && (
-                  <div className={styles.mobileDropdown} role="menu">
+                  <div className="mobileDropdown" role="menu">
                     {loginItems.map((item) => {
                       const nome = (item.nome ?? "").toLowerCase().trim();
                       const sair = nome === "sair";
@@ -304,7 +300,7 @@ export default function NavbarHeader({
                         return (
                           <button
                             key={item.id_item}
-                            className={styles.mobileDropdownItem}
+                            className="mobileDropdownItem"
                             onClick={logout}
                             type="button"
                             role="menuitem"
@@ -319,7 +315,7 @@ export default function NavbarHeader({
                         <Link
                           key={item.id_item}
                           href={item.rota || "#"}
-                          className={styles.mobileDropdownItem}
+                          className="mobileDropdownItem"
                           onClick={() => setDropdown(false)}
                           role="menuitem"
                         >
@@ -335,7 +331,7 @@ export default function NavbarHeader({
               login && (
                 <Link
                   href={login.rota || "#"}
-                  className={styles.mobileBtn}
+                  className="mobileBtn"
                   aria-label="Entrar na conta"
                   title="Entrar"
                 >
@@ -347,7 +343,7 @@ export default function NavbarHeader({
             {carrinho && (
               <Link
                 href={carrinho.rota || "/carrinho"}
-                className={styles.mobileCartBtn}
+                className="mobileCartBtn"
                 aria-label={
                   quantidadeCarrinho > 0
                     ? `Ver carrinho de compras, ${quantidadeCarrinho} item(s)`
@@ -355,7 +351,7 @@ export default function NavbarHeader({
                 }
                 title="Carrinho"
               >
-                <div className={styles.cartWrapper}>
+                <div className="cartWrapper">
                   <FiShoppingCart
                     size={18}
                     aria-hidden="true"
@@ -363,7 +359,7 @@ export default function NavbarHeader({
                   />
 
                   {quantidadeCarrinho > 0 && (
-                    <span className={styles.badge}>{quantidadeCarrinho}</span>
+                    <span className="badge">{quantidadeCarrinho}</span>
                   )}
                 </div>
               </Link>
@@ -371,8 +367,8 @@ export default function NavbarHeader({
           </div>
         </div>
 
-        <div className={styles.mobileSearch}>
-          <div className={styles.searchBar}>
+        <div className="mobileSearch">
+          <div className="searchBar">
             <FiSearch size={16} aria-hidden="true" focusable="false" />
 
             <input
@@ -386,7 +382,7 @@ export default function NavbarHeader({
             {safePesquisa !== "" && (
               <button
                 type="button"
-                className={styles.clearBtn}
+                className="clearBtn"
                 onClick={() => setPesquisa("")}
                 aria-label="Limpar busca"
                 title="Limpar busca"
@@ -399,25 +395,24 @@ export default function NavbarHeader({
       </header>
 
       <div
-        className={`${styles.overlay} ${openMenu ? styles.overlayShow : ""}`}
+        className={`overlay ${openMenu ? "overlayShow" : ""}`}
         onClick={closeMenu}
+        aria-hidden="true"
       />
 
       <aside
         id="mobileSidebar"
-        className={`${styles.sidebar} ${openMenu ? styles.sidebarOpen : ""}`}
+        className={`sidebar ${openMenu ? "sidebarOpen" : ""}`}
         aria-label="Menu lateral"
       >
-        <div className={styles.sidebarHeader}>
+        <div className="sidebarHeader">
           <div>
             <h2>Menu</h2>
-            <span className={styles.sidebarSubtitle}>
-              Acesse tudo em um só lugar
-            </span>
+            <span className="sidebarSubtitle">Acesse tudo em um só lugar</span>
           </div>
 
           <button
-            className={styles.closeBtn}
+            className="closeBtn"
             onClick={closeMenu}
             type="button"
             aria-label="Fechar menu"
@@ -427,48 +422,48 @@ export default function NavbarHeader({
           </button>
         </div>
 
-        <div className={styles.sidebarContent}>
+        <div className="sidebarContent">
           {usuario ? (
-            <div className={styles.sidebarUserCard}>
-              <div className={styles.sidebarAvatarLarge}>
+            <div className="sidebarUserCard">
+              <div className="sidebarAvatarLarge">
                 {(usuario?.nome ?? "?").charAt(0)?.toUpperCase()}
               </div>
 
-              <div className={styles.sidebarUserData}>
+              <div className="sidebarUserData">
                 <strong>{usuario?.nome ?? "Usuário"}</strong>
                 <span>{usuario?.email ?? ""}</span>
               </div>
             </div>
           ) : (
-            <div className={styles.sidebarGuestCard}>
-              <div className={styles.sidebarGuestIcon}>
+            <div className="sidebarGuestCard">
+              <div className="sidebarGuestIcon">
                 <FiUser size={20} aria-hidden="true" focusable="false" />
               </div>
 
-              <div className={styles.sidebarUserData}>
+              <div className="sidebarUserData">
                 <strong>Bem-vindo</strong>
                 <span>Entre para ver seus pedidos e favoritos</span>
               </div>
             </div>
           )}
 
-          <div className={styles.quickSection}>
-            <div className={styles.sectionTitle}>Atalhos rápidos</div>
+          <div className="quickSection">
+            <div className="sectionTitle">Atalhos rápidos</div>
 
-            <div className={styles.quickGrid}>
+            <div className="quickGrid">
               {menuItems.map((item) => (
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={styles.quickAction}
+                  className="quickAction"
                   onClick={closeMenu}
                 >
-                  <span className={styles.quickActionIcon}>{item.icon}</span>
+                  <span className="quickActionIcon">{item.icon}</span>
 
-                  <span className={styles.quickActionLabel}>{item.label}</span>
+                  <span className="quickActionLabel">{item.label}</span>
 
                   {item.badge && item.badge > 0 && (
-                    <span className={styles.quickBadge}>{item.badge}</span>
+                    <span className="quickBadge">{item.badge}</span>
                   )}
                 </Link>
               ))}
@@ -478,4 +473,4 @@ export default function NavbarHeader({
       </aside>
     </>
   );
-} 
+}
