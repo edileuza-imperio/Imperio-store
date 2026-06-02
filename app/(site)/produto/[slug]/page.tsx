@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import api from "@/Api/conectar";
 import styles from "./page.module.css";
 
@@ -84,6 +84,7 @@ function formatarPreco(valor?: number | null) {
 
 export default function ViewProdutoSlugPage() {
   const params = useParams();
+  const router = useRouter();
   const slug = String(params?.slug || "").trim();
 
   const [loading, setLoading] = useState(true);
@@ -101,9 +102,22 @@ export default function ViewProdutoSlugPage() {
 
       const dados = normalizar(response?.data);
       setProduto(dados);
-    } catch (error) {
-      console.error("Erro ao carregar produto:", error);
-      toast.error("Não foi possível carregar o produto.");
+    } catch (error: any) {
+      const status = error?.response?.status;
+      const mensagem =
+        error?.response?.data?.erro ||
+        error?.response?.data?.mensagem ||
+        "Não foi possível carregar o produto.";
+
+      if (status === 401 || mensagem === "Faça login para continuar.") {
+        toast.info("Faça login para continuar.");
+        setTimeout(() => {
+          router.push("/login");
+        }, 1200);
+        return;
+      }
+
+      toast.error(mensagem);
       setProduto(null);
     } finally {
       setLoading(false);
@@ -167,12 +181,21 @@ export default function ViewProdutoSlugPage() {
 
       toast.success("Produto adicionado ao carrinho.");
     } catch (error: any) {
-      console.error("Erro ao adicionar:", error);
-
+      const status = error?.response?.status;
       const mensagem =
         error?.response?.data?.erro ||
         error?.response?.data?.mensagem ||
         "Não foi possível adicionar o produto.";
+
+      if (status === 401 || mensagem === "Faça login para continuar.") {
+        toast.info("Faça login para continuar.");
+
+        setTimeout(() => {
+          router.push("/login");
+        }, 1200);
+
+        return;
+      }
 
       toast.error(mensagem);
     } finally {
