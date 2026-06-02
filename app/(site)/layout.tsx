@@ -1,92 +1,64 @@
-  import type { Metadata } from "next";
+import type { Metadata } from "next";
 
-  import "./../globals.css";
-  import "react-toastify/dist/ReactToastify.css";
+import "./../globals.css";
+import "react-toastify/dist/ReactToastify.css";
 
-  import { ToastContainer } from "react-toastify";
-  import { Analytics } from "@vercel/analytics/next";
-  import { SpeedInsights } from "@vercel/speed-insights/next";
+import { ToastContainer } from "react-toastify";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
-  import Navbar from "@/components/site/menu/navbar";
-  import FooterProfissional from "@/components/site/Rodape/Footer";
+import Navbar from "@/components/site/menu/navbar";
+import FooterProfissional from "@/components/site/Rodape/Footer";
 
-  import { getSiteConfig } from "@/services/siteConfig";
+import { getSiteConfig } from "@/services/siteConfig";
 
-  /*
-  |--------------------------------------------------------------------------
-  | CACHE
-  |--------------------------------------------------------------------------
-  */
-  export const revalidate = 300;
+export const revalidate = 300;
 
-  /*
-  |--------------------------------------------------------------------------
-  | METADATA
-  |--------------------------------------------------------------------------
-  */
-  export async function generateMetadata(): Promise<Metadata> {
-    try {
-      const site = await getSiteConfig();
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const site = await getSiteConfig();
 
-      return {
-        title: site?.titulo || "Império",
-        description: site?.subtitulo || "Loja online",
-      };
-    } catch (error) {
-      console.error("Erro metadata:", error);
-
-      return {
-        title: "Império",
-        description: "Loja online",
-      };
-    }
+    return {
+      title: site?.titulo || "Império",
+      description: site?.subtitulo || "Loja online",
+    };
+  } catch {
+    return {
+      title: "Império",
+      description: "Loja online",
+    };
   }
+}
 
-  /*
-  |--------------------------------------------------------------------------
-  | ROOT LAYOUT
-  |--------------------------------------------------------------------------
-  */
-  export default function RootLayout({
-    children,
-  }: {
-    children: React.ReactNode;
-  }) {
-    return (
-      <html lang="pt-br">
-        <body suppressHydrationWarning className="antialiased layout-body">
+export default function SiteLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <>
+      <header className="header-stack">
+        <Navbar />
+      </header>
 
-          {/* HEADER */}
-          <header className="header-stack">
-            <Navbar />
-          </header>
+      <main className="main-content">
+        {children}
+      </main>
 
-          {/* MAIN CONTENT */}
-          <main className="main-content">
-            {children}
-          </main>
+      <FooterProfissional />
 
-          {/* FOOTER */}
-          <FooterProfissional />
+      <ToastContainer
+        position="top-right"
+        autoClose={3000}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        draggable
+        theme="light"
+      />
 
-          {/* TOAST */}
-          <ToastContainer
-            position="top-right"
-            autoClose={3000}
-            newestOnTop
-            closeOnClick
-            pauseOnHover
-            draggable
-            theme="light"
-          />
-
-          {/* ANALYTICS (OK manter) */}
-          <Analytics />
-
-          {/* SPEED INSIGHTS (OK manter) */}
-          <SpeedInsights />
-
-        </body>
-      </html>
-    );
-  }
+      <Analytics />
+      <SpeedInsights />
+    </>
+  );
+}
