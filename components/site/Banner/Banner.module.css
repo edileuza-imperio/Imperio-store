@@ -1,27 +1,27 @@
 .banner {
   position: relative;
   width: 100%;
-  max-width: 100%;
   box-sizing: border-box;
   overflow: hidden;
-  overflow-x: clip;
   padding: 72px 40px;
   border-radius: 30px;
   margin-top: 20px;
   min-height: 520px;
-  background: linear-gradient(135deg, #f7eadf 0%, #f5d8d0 40%, #d88c9a 100%);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+
+  /* 🔥 otimizado (menos custo de render) */
+  background: #f5d8d0;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 }
 
+/* fundo decorativo mais leve */
 .background {
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at top right, rgba(255, 255, 255, 0.35), transparent 40%),
-    radial-gradient(circle at bottom left, rgba(255, 255, 255, 0.16), transparent 32%);
+  background: rgba(255, 255, 255, 0.12);
   pointer-events: none;
 }
 
+/* layout principal */
 .inner {
   position: relative;
   z-index: 2;
@@ -38,11 +38,12 @@
   min-width: 0;
 }
 
+/* badge */
 .tag {
   display: inline-flex;
   padding: 8px 14px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.7);
   color: #a1455d;
   font-size: 13px;
   font-weight: 800;
@@ -50,27 +51,28 @@
   letter-spacing: 0.06em;
 }
 
+/* título */
 .title {
   margin-top: 22px;
   font-size: clamp(30px, 4vw, 54px);
-  line-height: 1.08;
+  line-height: 1.1;
   font-weight: 800;
   color: #5b2230;
-  min-height: 1.2em;
   letter-spacing: -0.04em;
   word-break: break-word;
 }
 
+/* descrição */
 .desc {
   margin-top: 18px;
   font-size: 18px;
-  line-height: 1.7;
+  line-height: 1.6;
   color: #6e4450;
-  min-height: 48px;
   max-width: 540px;
   word-break: break-word;
 }
 
+/* botão otimizado */
 .btn {
   margin-top: 28px;
   padding: 16px 28px;
@@ -81,13 +83,13 @@
   font-size: 16px;
   font-weight: 800;
   cursor: pointer;
-  transition: transform 0.25s ease, box-shadow 0.25s ease, opacity 0.25s ease;
-  box-shadow: 0 10px 20px rgba(143, 48, 72, 0.25);
+
+  transition: transform 0.2s ease;
+  box-shadow: 0 10px 18px rgba(143, 48, 72, 0.18);
 }
 
 .btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 26px rgba(143, 48, 72, 0.28);
 }
 
 .btn:disabled {
@@ -97,6 +99,7 @@
   box-shadow: none;
 }
 
+/* mídia */
 .media {
   display: flex;
   justify-content: center;
@@ -108,43 +111,45 @@
   width: 100%;
   max-width: 650px;
   aspect-ratio: 16 / 9;
-  min-height: 320px;
+  min-height: 300px;
   overflow: hidden;
   border-radius: 26px;
-  background: rgba(255, 255, 255, 0.35);
-  backdrop-filter: blur(10px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
-  min-width: 0;
+
+  /* 🔥 removido blur (performance) */
+  background: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.1);
 }
 
 .clickable {
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.2s ease;
 }
 
 .clickable:hover {
-  transform: scale(1.015);
+  transform: scale(1.02);
 }
 
 .img {
   object-fit: cover;
 }
 
+/* fallback */
 .imageFallback {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.35));
+  background: rgba(255, 255, 255, 0.2);
   color: #5b2230;
   font-weight: 700;
   font-size: 16px;
 }
 
+/* dots */
 .dots {
   position: absolute;
-  bottom: 22px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -153,13 +158,13 @@
 }
 
 .dot {
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
   border-radius: 999px;
   border: none;
-  background: rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.6);
   cursor: pointer;
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition: transform 0.15s ease;
 }
 
 .dot:hover {
@@ -171,29 +176,29 @@
   transform: scale(1.2);
 }
 
+/* skeleton otimizado (sem loop infinito pesado) */
 .skeleton {
   width: 100%;
-  max-width: 100%;
   box-sizing: border-box;
   min-height: 520px;
   border-radius: 30px;
   margin-top: 20px;
+
   background: linear-gradient(90deg, #f6e6df 0%, #f1d5d8 50%, #f6e6df 100%);
   background-size: 200% 100%;
-  animation: pulse 1.4s infinite linear;
-  overflow: hidden;
+  animation: pulse 1.2s ease 1;
 }
 
 @keyframes pulse {
   0% {
     background-position: 0% 0%;
   }
-
   100% {
     background-position: 200% 0%;
   }
 }
 
+/* responsivo */
 @media (max-width: 980px) {
   .banner {
     padding: 28px 18px 60px;
@@ -212,17 +217,12 @@
   }
 
   .desc {
-    margin-left: auto;
-    margin-right: auto;
+    margin: 0 auto;
   }
 
   .btn {
     width: 100%;
     max-width: 420px;
-  }
-
-  .media {
-    width: 100%;
   }
 
   .imageWrap {
@@ -243,7 +243,6 @@
 
   .desc {
     font-size: 15px;
-    line-height: 1.65;
   }
 
   .btn {
@@ -252,11 +251,11 @@
   }
 
   .dots {
-    bottom: 16px;
+    bottom: 14px;
   }
 
   .dot {
-    width: 10px;
-    height: 10px;
+    width: 9px;
+    height: 9px;
   }
 }
