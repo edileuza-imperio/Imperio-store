@@ -1,11 +1,5 @@
 /* NavbarHeader.module.css */
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
 .header {
   position: sticky;
   top: 0;

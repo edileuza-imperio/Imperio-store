@@ -4,8 +4,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
-import Navbar from "@/components/site/menu/navbar";
-import FooterPrincipal from "@/components/site/Rodape/Footer";
 import { InicioApi } from "@/services/api/api";
 import styles from "./page.module.css";
 
@@ -41,7 +39,6 @@ type ApiResponse = {
 
 export default function ViewCategoriaSlugPage() {
   const params = useParams();
-
   const slugParam = String(params?.slug || "").trim().toLowerCase();
 
   const [categoria, setCategoria] = useState<Categoria | null>(null);
@@ -56,6 +53,8 @@ export default function ViewCategoriaSlugPage() {
 
   useEffect(() => {
     async function carregarDados() {
+      if (!slugParam) return;
+
       try {
         setLoading(true);
         setErro(false);
@@ -83,9 +82,7 @@ export default function ViewCategoriaSlugPage() {
       }
     }
 
-    if (slugParam) {
-      carregarDados();
-    }
+    carregarDados();
   }, [slugParam]);
 
   useEffect(() => {
@@ -139,58 +136,92 @@ export default function ViewCategoriaSlugPage() {
     paginaAtual * produtosPorPagina
   );
 
+  const categoriaDescricao =
+    categoria?.descricao ||
+    "Explore os produtos desta categoria com uma experiência visual mais refinada, leve e moderna.";
+
   return (
-    <>
-      <Navbar />
+    <main className={styles.page}>
+      <div className={styles.container}>
+        <nav className={styles.breadcrumb}>
+          <Link href="/" className={styles.breadcrumbLink}>
+            Início
+          </Link>
+          <span className={styles.separator}>/</span>
+          <Link href="/categorias" className={styles.breadcrumbLink}>
+            Categorias
+          </Link>
+          <span className={styles.separator}>/</span>
+          <span className={styles.breadcrumbCurrent}>{categoria?.nome || slugParam}</span>
+        </nav>
 
-      <main className={styles.page}>
-        <div className={styles.container}>
-          <nav className={styles.breadcrumb}>
-            <Link href="/" className={styles.breadcrumbLink}>
-              Início
+        {loading && (
+          <div className={styles.stateBox}>
+            <div className={styles.loader} />
+            <h2>Carregando produtos</h2>
+            <p>Estamos preparando os itens desta categoria para você.</p>
+          </div>
+        )}
+
+        {!loading && erro && (
+          <div className={styles.stateBox}>
+            <h2>Não foi possível carregar</h2>
+            <p>Houve um problema ao buscar os dados da categoria.</p>
+            <Link href="/categorias" className={styles.backLink}>
+              Voltar para categorias
             </Link>
-            <span className={styles.separator}>/</span>
-            <Link href="/categoria/viecategoria" className={styles.breadcrumbLink}>
-              Categorias
-            </Link>
-            <span className={styles.separator}>/</span>
-            <span className={styles.breadcrumbCurrent}>
-              {categoria?.nome || slugParam}
-            </span>
-          </nav>
+          </div>
+        )}
 
-          {loading && (
-            <div className={styles.stateBox}>
-              <div className={styles.loader} />
-              <p>Carregando produtos...</p>
-            </div>
-          )}
-
-          {!loading && erro && (
-            <div className={styles.stateBox}>
-              <h2>Erro ao carregar</h2>
-              <p>Não foi possível carregar os dados.</p>
-            </div>
-          )}
-
-          {!loading && !erro && categoria && (
-            <>
-              <section className={styles.hero}>
-                <div className={styles.heroOverlay} />
-                <div className={styles.heroContent}>
+        {!loading && !erro && categoria && (
+          <>
+            <section className={styles.hero}>
+              <div className={styles.heroBgOne} />
+              <div className={styles.heroBgTwo} />
+              <div className={styles.heroGrid}>
+                <div className={styles.heroMain}>
                   <span className={styles.badge}>Universo Império</span>
                   <h1>{categoria.nome}</h1>
-                  <p>Explore os melhores produtos da categoria.</p>
-                </div>
-              </section>
+                  <p>{categoriaDescricao}</p>
 
-              <section className={styles.topBar}>
-                <div>
-                  <h2>Produtos encontrados</h2>
-                  <p>{produtos.length} itens disponíveis</p>
+                  <div className={styles.heroActions}>
+                    <Link href="#produtos" className={styles.heroButtonPrimary}>
+                      Ver produtos
+                    </Link>
+                    <span className={styles.heroHint}>
+                      {produtos.length} itens disponíveis nesta categoria
+                    </span>
+                  </div>
                 </div>
 
-                <div className={styles.controls}>
+                <div className={styles.heroAside}>
+                  <div className={styles.statCard}>
+                    <span className={styles.statValue}>{produtos.length}</span>
+                    <span className={styles.statLabel}>produtos encontrados</span>
+                  </div>
+
+                  <div className={styles.statCard}>
+                    <span className={styles.statValue}>{totalPaginas}</span>
+                    <span className={styles.statLabel}>páginas de navegação</span>
+                  </div>
+
+                  <div className={styles.statCard}>
+                    <span className={styles.statValue}>Premium</span>
+                    <span className={styles.statLabel}>apresentação visual</span>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className={styles.topBar} id="produtos">
+              <div className={styles.topBarText}>
+                <h2>Produtos encontrados</h2>
+                <p>{produtos.length} itens disponíveis nesta categoria</p>
+              </div>
+
+              <div className={styles.controls}>
+                <label className={styles.selectLabel}>
+                  <span>Ordenar por</span>
                   <select
                     value={ordenacao}
                     onChange={(e) => setOrdenacao(e.target.value)}
@@ -202,104 +233,122 @@ export default function ViewCategoriaSlugPage() {
                     <option value="maior-preco">Maior preço</option>
                     <option value="nome">Nome A-Z</option>
                   </select>
-                </div>
-              </section>
+                </label>
+              </div>
+            </section>
 
-              <section className={styles.grid}>
-                {produtosPaginados.map((produto) => (
-                  <article key={produto.id_produto} className={styles.card}>
-                    <div className={styles.imageWrap}>
-                      <img
-                        src={
-                          produto.imagem
-                            ? `https://lightgrey-cattle-160990.hostingersite.com/${produto.imagem}`
-                            : "/placeholder.png"
-                        }
-                        alt={produto.nome || "Produto"}
-                        className={styles.image}
-                      />
+            <section className={styles.grid}>
+              {produtosPaginados.map((produto, index) => (
+                <article
+                  key={produto.id_produto || `${produto.slug}-${index}`}
+                  className={styles.card}
+                >
+                  <div className={styles.imageWrap}>
+                    <img
+                      src={
+                        produto.imagem
+                          ? `https://lightgrey-cattle-160990.hostingersite.com/${produto.imagem}`
+                          : "/placeholder.png"
+                      }
+                      alt={produto.nome || "Produto"}
+                      className={styles.image}
+                    />
+
+                    <div className={styles.cardOverlay} />
+                    <div className={styles.priceBadge}>
+                      {formatarPreco(produto.preco_promocional || produto.preco)}
                     </div>
+                  </div>
 
-                    <div className={styles.cardBody}>
+                  <div className={styles.cardBody}>
+                    <div className={styles.cardHeader}>
                       <h3 className={styles.cardTitle}>{produto.nome}</h3>
-
-                      <p className={styles.cardText}>
-                        {produto.descricao
-                          ? `${produto.descricao.slice(0, 120)}${produto.descricao.length > 120 ? "..." : ""}`
-                          : "Produto sem descrição."}
-                      </p>
-
-                      <div className={styles.cardFooter}>
-                        <strong className={styles.price}>
-                          {formatarPreco(produto.preco_promocional || produto.preco)}
-                        </strong>
-
-                        <Link href={`/produto/${produto.slug}`} className={styles.button}>
-                          Ver produto
-                        </Link>
-                      </div>
+                      <span className={styles.cardIndex}>
+                        {(paginaAtual - 1) * produtosPorPagina + index + 1}
+                      </span>
                     </div>
-                  </article>
+
+                    <p className={styles.cardText}>
+                      {produto.descricao
+                        ? `${produto.descricao.slice(0, 120)}${
+                            produto.descricao.length > 120 ? "..." : ""
+                          }`
+                        : "Produto sem descrição."}
+                    </p>
+
+                    <div className={styles.cardFooter}>
+                      <span className={styles.metaText}>Clique para ver detalhes</span>
+
+                      <Link
+                        href={produto.slug ? `/produto/${produto.slug}` : "#"}
+                        className={styles.button}
+                      >
+                        Ver produto
+                      </Link>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </section>
+
+            {totalPaginas > 1 && (
+              <div className={styles.pagination}>
+                <button
+                  type="button"
+                  className={styles.pageButton}
+                  onClick={() => setPaginaAtual((p) => Math.max(1, p - 1))}
+                  disabled={paginaAtual === 1}
+                >
+                  Anterior
+                </button>
+
+                {Array.from({ length: totalPaginas }).map((_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setPaginaAtual(index + 1)}
+                    className={`${styles.pageButton} ${
+                      paginaAtual === index + 1 ? styles.pageButtonActive : ""
+                    }`}
+                  >
+                    {index + 1}
+                  </button>
                 ))}
-              </section>
 
-              {totalPaginas > 1 && (
-                <div className={styles.pagination}>
-                  <button
-                    type="button"
-                    className={styles.pageButton}
-                    onClick={() => setPaginaAtual((p) => Math.max(1, p - 1))}
-                    disabled={paginaAtual === 1}
-                  >
-                    Anterior
-                  </button>
+                <button
+                  type="button"
+                  className={styles.pageButton}
+                  onClick={() => setPaginaAtual((p) => Math.min(totalPaginas, p + 1))}
+                  disabled={paginaAtual === totalPaginas}
+                >
+                  Próxima
+                </button>
+              </div>
+            )}
 
-                  {Array.from({ length: totalPaginas }).map((_, index) => (
-                    <button
-                      key={index}
-                      type="button"
-                      onClick={() => setPaginaAtual(index + 1)}
-                      className={`${styles.pageButton} ${
-                        paginaAtual === index + 1 ? styles.pageButtonActive : ""
-                      }`}
-                    >
-                      {index + 1}
-                    </button>
-                  ))}
+            {!produtos.length && (
+              <div className={styles.emptyProducts}>
+                <i className="bi bi-box-seam" />
+                <h3>Nenhum produto encontrado</h3>
+                <p>Não existe nenhum produto disponível nesta categoria no momento.</p>
+                <Link href="/categorias" className={styles.backLink}>
+                  Voltar para categorias
+                </Link>
+              </div>
+            )}
+          </>
+        )}
 
-                  <button
-                    type="button"
-                    className={styles.pageButton}
-                    onClick={() => setPaginaAtual((p) => Math.min(totalPaginas, p + 1))}
-                    disabled={paginaAtual === totalPaginas}
-                  >
-                    Próxima
-                  </button>
-                </div>
-              )}
-
-              {!produtos.length && (
-                <div className={styles.emptyProducts}>
-                  <i className="bi bi-box-seam" />
-                  <p>Nenhum produto encontrado nesta categoria.</p>
-                </div>
-              )}
-            </>
-          )}
-
-          {!loading && !erro && !categoria && (
-            <div className={styles.stateBox}>
-              <h2>Categoria não encontrada</h2>
-              <p>Essa categoria não existe ou foi removida.</p>
-              <Link href="/categoria/viecategoria" className={styles.backLink}>
-                Voltar
-              </Link>
-            </div>
-          )}
-        </div>
-      </main>
-
-      <FooterPrincipal />
-    </>
+        {!loading && !erro && !categoria && (
+          <div className={styles.stateBox}>
+            <h2>Categoria não encontrada</h2>
+            <p>Essa categoria não existe ou foi removida.</p>
+            <Link href="/categorias" className={styles.backLink}>
+              Voltar para categorias
+            </Link>
+          </div>
+        )}
+      </div>
+    </main>
   );
 }

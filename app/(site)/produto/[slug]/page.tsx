@@ -1,12 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import api from "@/Api/conectar";
 import styles from "./page.module.css";
-
-
 
 import {
   FiArrowLeft,
@@ -18,10 +17,10 @@ import {
   FiHeart,
   FiStar,
   FiImage,
+  FiChevronRight,
 } from "react-icons/fi";
 
 import { toast } from "react-toastify";
-
 
 interface Produto {
   id_produto?: number;
@@ -52,7 +51,6 @@ function resolverImagem(src?: string | null) {
   if (!src) return "";
 
   const valor = String(src).trim();
-
   if (!valor) return "";
 
   if (
@@ -76,9 +74,9 @@ function resolverImagem(src?: string | null) {
 }
 
 function formatarPreco(valor?: number | null) {
-  if (!valor) return null;
+  if (valor === undefined || valor === null) return null;
 
-  return valor.toLocaleString("pt-BR", {
+  return Number(valor).toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });
@@ -86,24 +84,27 @@ function formatarPreco(valor?: number | null) {
 
 export default function ViewProdutoSlugPage() {
   const params = useParams();
-  const slug = String(params?.slug || "");
+  const slug = String(params?.slug || "").trim();
 
   const [loading, setLoading] = useState(true);
   const [produto, setProduto] = useState<Produto | null>(null);
   const [adicionando, setAdicionando] = useState(false);
-  const [imagemAtiva, setImagemAtiva] = useState<string>("");
+  const [imagemAtiva, setImagemAtiva] = useState("");
 
   async function carregarProduto() {
     try {
       setLoading(true);
 
-      const response = await api.get(`/produto/slug/${slug}`);
-      const dados = normalizar(response?.data);
+      const response = await api.get(`/produto/slug/${slug}`, {
+        withCredentials: true,
+      });
 
+      const dados = normalizar(response?.data);
       setProduto(dados);
     } catch (error) {
       console.error("Erro ao carregar produto:", error);
       toast.error("Não foi possível carregar o produto.");
+      setProduto(null);
     } finally {
       setLoading(false);
     }
@@ -145,7 +146,10 @@ export default function ViewProdutoSlugPage() {
   }, [imagens]);
 
   async function adicionarCarrinho() {
-    if (!produto?.id_produto) return;
+    if (!produto?.id_produto) {
+      toast.error("Produto inválido.");
+      return;
+    }
 
     try {
       setAdicionando(true);
@@ -155,8 +159,6 @@ export default function ViewProdutoSlugPage() {
         {
           produto_id: produto.id_produto,
           quantidade: 1,
-          preco: produto.preco_promocional || produto.preco || 0,
-          preco_promocional: produto.preco_promocional || null,
         },
         {
           withCredentials: true,
@@ -164,115 +166,135 @@ export default function ViewProdutoSlugPage() {
       );
 
       toast.success("Produto adicionado ao carrinho.");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao adicionar:", error);
-      toast.error("Não foi possível adicionar o produto.");
+
+      const mensagem =
+        error?.response?.data?.erro ||
+        error?.response?.data?.mensagem ||
+        "Não foi possível adicionar o produto.";
+
+      toast.error(mensagem);
     } finally {
       setAdicionando(false);
     }
   }
 
   if (loading) {
-    return (
-      <>
-        
-        <div className={styles.loading}>Carregando produto...</div>
-        
-      </>
-    );
+    return <div className={styles.loading}>Carregando produto...</div>;
   }
 
   if (!produto) {
-    return (
-      <>
-        
-        <div className={styles.loading}>Produto não encontrado.</div>
-        
-      </>
-    );
+    return <div className={styles.loading}>Produto não encontrado.</div>;
   }
 
   const precoPromocional = produto.preco_promocional || null;
-  const precoFinal = precoPromocional || produto.preco || 0;
+  const precoOriginal = produto.preco || null;
+  const precoFinal = precoPromocional || precoOriginal || 0;
+  const temDesconto = Boolean(precoPromocional && precoOriginal);
+  const emEstoque =
+    typeof produto.estoque === "number" ? produto.estoque > 0 : null;
 
   return (
-    <>
-      
-
-      <section className={styles.page}>
-        <div className={styles.backgroundGlow}></div>
-
-        <div className={styles.container}>
+    <section className={styles.page}>
+      <div className={styles.container}>
+        <div className={styles.topbar}>
           <Link href="/" className={styles.voltar}>
             <FiArrowLeft />
             <span>Voltar para loja</span>
           </Link>
 
-          <div className={styles.grid}>
-            <div className={styles.galeria}>
-              <div className={styles.badge}>
-                <FiStar />
-                <span>Destaque</span>
+          <nav className={styles.breadcrumb}>
+            <Link href="/">Home</Link>
+            <FiChevronRight />
+            <span>{produto.categoria_nome || "Produto"}</span>
+            <FiChevronRight />
+            <strong>{produto.nome}</strong>
+          </nav>
+        </div>
+
+        <div className={styles.grid}>
+          <div className={styles.galeria}>
+            {imagens.length > 1 && (
+              <div className={styles.miniaturasVertical}>
+                {imagens.map((img, index) => (
+                  <button
+                    key={`${img}-${index}`}
+                    type="button"
+                    className={`${styles.miniatura} ${
+                      imagemAtiva === img ? styles.miniaturaAtiva : ""
+                    }`}
+                    onClick={() => setImagemAtiva(img)}
+                    aria-label={`Ver imagem ${index + 1}`}
+                  >
+                    <Image
+                      src={img}
+                      alt={`Miniatura ${index + 1}`}
+                      width={96}
+                      height={96}
+                      className={styles.miniaturaImagem}
+                      unoptimized
+                    />
+                  </button>
+                ))}
               </div>
+            )}
+
+            <div className={styles.imagemContainer}>
+              <div className={styles.badge}>Destaque</div>
 
               <div className={styles.imagem}>
                 {imagemAtiva ? (
-                  <img src={imagemAtiva} alt={produto.nome || "Produto"} />
+                  <Image
+                    src={imagemAtiva}
+                    alt={produto.nome || "Produto"}
+                    fill
+                    className={styles.imagemPrincipal}
+                    sizes="(max-width: 1100px) 100vw, 55vw"
+                    unoptimized
+                    priority
+                  />
                 ) : (
                   <div className={styles.semImagem}>
                     <FiImage />
-                    <span>Sem imagem</span>
+                    <span>Sem imagem disponível</span>
                   </div>
                 )}
               </div>
+            </div>
+          </div>
 
-              {imagens.length > 1 && (
-                <div className={styles.miniaturas}>
-                  {imagens.map((img, index) => (
-                    <button
-                      key={`${img}-${index}`}
-                      type="button"
-                      className={`${styles.miniatura} ${
-                        imagemAtiva === img ? styles.miniaturaAtiva : ""
-                      }`}
-                      onClick={() => setImagemAtiva(img)}
-                      aria-label={`Ver imagem ${index + 1}`}
-                    >
-                      <img src={img} alt={`Miniatura ${index + 1}`} />
-                    </button>
-                  ))}
-                </div>
+          <div className={styles.info}>
+            <div className={styles.metaRow}>
+              {produto.categoria_nome && (
+                <span className={styles.categoria}>{produto.categoria_nome}</span>
               )}
+
+              {produto.marca && <span className={styles.marca}>{produto.marca}</span>}
             </div>
 
-            <div className={styles.info}>
-              {produto.categoria_nome && (
-                <span className={styles.categoria}>
-                  {produto.categoria_nome}
-                </span>
-              )}
+            <h1 className={styles.titulo}>{produto.nome}</h1>
 
-              <h1 className={styles.titulo}>{produto.nome}</h1>
+            {produto.descricao_curta && (
+              <p className={styles.subtitulo}>{produto.descricao_curta}</p>
+            )}
 
-              {produto.descricao_curta && (
-                <p className={styles.subtitulo}>{produto.descricao_curta}</p>
-              )}
-
-              <div className={styles.avaliacao}>
-                <div className={styles.estrelas}>
-                  <FiStar />
-                  <FiStar />
-                  <FiStar />
-                  <FiStar />
-                  <FiStar />
-                </div>
-                <span>Produto popular</span>
+            <div className={styles.avaliacao}>
+              <div className={styles.estrelas} aria-label="Avaliação do produto">
+                <FiStar />
+                <FiStar />
+                <FiStar />
+                <FiStar />
+                <FiStar />
               </div>
+              <span>Produto popular</span>
+            </div>
 
-              <div className={styles.precos}>
-                {precoPromocional && (
+            <div className={styles.precoBox}>
+              <div className={styles.precoLinha}>
+                {temDesconto && (
                   <span className={styles.precoAntigo}>
-                    {formatarPreco(produto.preco)}
+                    {formatarPreco(precoOriginal)}
                   </span>
                 )}
 
@@ -281,58 +303,80 @@ export default function ViewProdutoSlugPage() {
                 </strong>
               </div>
 
-              <div className={styles.beneficios}>
-                <div className={styles.beneficio}>
-                  <FiTruck />
-                  <span>Entrega rápida</span>
-                </div>
-
-                <div className={styles.beneficio}>
-                  <FiShield />
-                  <span>Compra 100% segura</span>
-                </div>
-
-                <div className={styles.beneficio}>
-                  <FiCreditCard />
-                  <span>Parcelamento disponível</span>
-                </div>
-
-                <div className={styles.beneficio}>
-                  <FiCheckCircle />
-                  <span>Produto verificado</span>
-                </div>
-              </div>
-
-              <div className={styles.actions}>
-                <button
-                  type="button"
-                  className={styles.btnCarrinho}
-                  onClick={adicionarCarrinho}
-                  disabled={adicionando}
-                >
-                  <FiShoppingCart />
-                  <span>
-                    {adicionando ? "Adicionando..." : "Adicionar ao carrinho"}
+              <div className={styles.precoInfo}>
+                {emEstoque === null ? (
+                  <span className={styles.estoqueNeutro}>Estoque não informado</span>
+                ) : emEstoque ? (
+                  <span className={styles.estoqueOk}>
+                    {produto.estoque} em estoque
                   </span>
-                </button>
+                ) : (
+                  <span className={styles.estoqueRuim}>Produto indisponível</span>
+                )}
 
-                <button type="button" className={styles.btnFavorito}>
-                  <FiHeart />
-                </button>
+                {temDesconto && <span className={styles.desconto}>Oferta ativa</span>}
+              </div>
+            </div>
+
+            <div className={styles.beneficios}>
+              <div className={styles.beneficio}>
+                <FiTruck />
+                <span>Entrega rápida</span>
               </div>
 
-              {produto.descricao && (
-                <div className={styles.descricao}>
-                  <h2>Descrição do produto</h2>
-                  <p>{produto.descricao}</p>
-                </div>
-              )}
+              <div className={styles.beneficio}>
+                <FiShield />
+                <span>Compra 100% segura</span>
+              </div>
+
+              <div className={styles.beneficio}>
+                <FiCreditCard />
+                <span>Parcelamento disponível</span>
+              </div>
+
+              <div className={styles.beneficio}>
+                <FiCheckCircle />
+                <span>Produto verificado</span>
+              </div>
             </div>
+
+            <div className={styles.actions}>
+              <button
+                type="button"
+                className={styles.btnComprar}
+                onClick={adicionarCarrinho}
+                disabled={adicionando}
+              >
+                <FiShoppingCart />
+                <span>{adicionando ? "Adicionando..." : "Comprar agora"}</span>
+              </button>
+
+              <button type="button" className={styles.btnFavorito} aria-label="Favoritar">
+                <FiHeart />
+              </button>
+            </div>
+
+            <div className={styles.cardsExtras}>
+              <div className={styles.extraCard}>
+                <strong>Frete</strong>
+                <span>Simule na finalização da compra</span>
+              </div>
+
+              <div className={styles.extraCard}>
+                <strong>Garantia</strong>
+                <span>Compra protegida e segura</span>
+              </div>
+            </div>
+
+            {produto.descricao && (
+              <section className={styles.descricao}>
+                <h2>Descrição do produto</h2>
+                <p>{produto.descricao}</p>
+              </section>
+            )}
           </div>
         </div>
-      </section>
-
-      
-    </>
+      </div>
+    </section>
   );
 }

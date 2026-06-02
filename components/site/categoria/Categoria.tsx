@@ -22,20 +22,12 @@ function normalizeIconName(name?: string | null) {
   const value = String(name).trim();
   if (!value) return "";
 
-  if (value.includes("-")) {
-    const parts = value.split("-").filter(Boolean);
-    if (parts.length >= 2) {
-      const prefix = parts[0].toLowerCase();
-      const rest = parts
-        .slice(1)
-        .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-        .join("");
-
-      return `${prefix.charAt(0).toUpperCase()}${prefix.slice(1)}${rest}`;
-    }
-  }
-
-  return value;
+  return value
+    .replace(/[_-]+/g, " ")
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("");
 }
 
 function getCategoryIcon(name?: string | null, size = 20) {
@@ -45,6 +37,8 @@ function getCategoryIcon(name?: string | null, size = 20) {
     raw,
     raw.replace(/^fi/i, "Fi"),
     raw.replace(/^bi/i, "Bi"),
+    `Fi${raw}`,
+    `Bi${raw}`,
   ].filter(Boolean);
 
   let Icon: any = null;
@@ -63,12 +57,8 @@ export default function CategoriasDestaque() {
   const { categorias, loading, erro } = useCategoria();
 
   const railRef = useRef<HTMLDivElement | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(true);
-
-  const startX = useRef(0);
-  const scrollLeft = useRef(0);
 
   const top = useMemo(() => {
     const lista = Array.isArray(categorias) ? categorias : [];
@@ -79,8 +69,9 @@ export default function CategoriasDestaque() {
     const el = railRef.current;
     if (!el) return;
 
-    setCanScrollLeft(el.scrollLeft > 10);
-    setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 10);
+    const hasOverflow = el.scrollWidth > el.clientWidth + 2;
+    setCanScrollLeft(hasOverflow && el.scrollLeft > 8);
+    setCanScrollRight(hasOverflow && el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
   };
 
   useEffect(() => {
@@ -89,70 +80,51 @@ export default function CategoriasDestaque() {
 
     updateArrows();
 
-    const wheelScroll = (e: WheelEvent) => {
-      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
-        e.preventDefault();
-        el.scrollLeft += e.deltaY;
-      }
-    };
-
     const handleScroll = () => updateArrows();
+    const handleResize = () => updateArrows();
 
-    el.addEventListener("wheel", wheelScroll, { passive: false });
     el.addEventListener("scroll", handleScroll);
+    window.addEventListener("resize", handleResize);
+
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateArrows) : null;
+    ro?.observe(el);
 
     return () => {
-      el.removeEventListener("wheel", wheelScroll);
       el.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleResize);
+      ro?.disconnect();
     };
   }, [top.length]);
 
-  const scrollByAmount = (amount: number) => {
-    const el = railRef.current;
-    if (!el) return;
-    el.scrollBy({ left: amount, behavior: "smooth" });
-  };
-
-  const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+  const scrollByAmount = (direction: "prev" | "next") => {
     const el = railRef.current;
     if (!el) return;
 
-    setIsDragging(true);
-    startX.current = e.clientX - el.getBoundingClientRect().left;
-    scrollLeft.current = el.scrollLeft;
-    el.setPointerCapture?.(e.pointerId);
+    const firstCard = el.querySelector(`.${styles.card}`) as HTMLElement | null;
+    const cardWidth = firstCard?.offsetWidth ?? 200;
+    const gap = 16;
+    const amount = cardWidth + gap;
+
+    el.scrollBy({
+      left: direction === "next" ? amount : -amount,
+      behavior: "smooth",
+    });
   };
-
-  const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
-    const el = railRef.current;
-    if (!el || !isDragging) return;
-
-    e.preventDefault();
-
-    const x = e.clientX - el.getBoundingClientRect().left;
-    const walk = (x - startX.current) * 1.4;
-    el.scrollLeft = scrollLeft.current - walk;
-  };
-
-  const stopDragging = () => setIsDragging(false);
 
   if (loading || erro || !top.length) return null;
 
   return (
     <section className={styles.section}>
-      <div className={styles.backgroundOrb1} />
-      <div className={styles.backgroundOrb2} />
-
       <div className={styles.container}>
         <div className={styles.header}>
           <div className={styles.headerTop}>
-            <span className={styles.badge}>✨ Categorias em destaque</span>
+            <span className={styles.badge}>Categorias em destaque</span>
 
             <div className={styles.controls}>
               <button
                 type="button"
                 className={styles.navBtn}
-                onClick={() => scrollByAmount(-360)}
+                onClick={() => scrollByAmount("prev")}
                 disabled={!canScrollLeft}
                 aria-label="Mover categorias para a esquerda"
               >
@@ -162,7 +134,7 @@ export default function CategoriasDestaque() {
               <button
                 type="button"
                 className={styles.navBtn}
-                onClick={() => scrollByAmount(360)}
+                onClick={() => scrollByAmount("next")}
                 disabled={!canScrollRight}
                 aria-label="Mover categorias para a direita"
               >
@@ -174,41 +146,34 @@ export default function CategoriasDestaque() {
           <h2>Explore nossas categorias</h2>
 
           <p>
-            Arraste, deslize ou use os botões para navegar pelas categorias e encontrar exatamente o que você procura.
+            Navegue com conforto pelas categorias mais importantes e encontre o que procura de
+            forma rápida e visual.
           </p>
         </div>
 
-        <div
-          ref={railRef}
-          className={`${styles.rail} ${isDragging ? styles.dragging : ""}`}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={stopDragging}
-          onPointerLeave={stopDragging}
-          onPointerCancel={stopDragging}
-        >
+        <div ref={railRef} className={styles.rail}>
           {top.map((categoria, index) => {
             const nome = categoria?.nome || "Categoria";
             const slug = String(categoria?.slug || "").trim();
+            const href = slug ? `/categorias/${slug}` : "/categorias";
 
             return (
               <Link
-                key={categoria?.id_categoria || index}
-                href={slug ? `/categorias/${slug}` : "#"}
+                key={categoria?.id_categoria || `${nome}-${index}`}
+                href={href}
                 className={styles.card}
-                draggable={false}
               >
-                <div className={styles.cardGlow} />
+                <div className={styles.cardAccent} />
 
-                <div className={styles.circle}>
-                  <div className={styles.innerCircle}>
-                    {getCategoryIcon(categoria?.icone, 22)}
-                  </div>
+                <div className={styles.iconBox}>{getCategoryIcon(categoria?.icone, 24)}</div>
+
+                <div className={styles.content}>
+                  <span className={styles.name}>{nome}</span>
+                  <span className={styles.subtitle}>Ver produtos da categoria</span>
                 </div>
 
-                <span className={styles.name}>{nome}</span>
                 <span className={styles.cta}>
-                  Ver categoria <FiArrowRight size={14} />
+                  Explorar <FiArrowRight size={14} />
                 </span>
               </Link>
             );
