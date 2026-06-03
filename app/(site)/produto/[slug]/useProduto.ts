@@ -157,7 +157,7 @@ export function useProduto(slug: string) {
       );
 
       toast.success("Produto adicionado ao carrinho.");
-      router.push("/carrinho");
+      router.push("/Carrinho");
     } catch (error: any) {
       const status = error?.response?.status;
       const mensagem = extrairMensagemErro(error);
