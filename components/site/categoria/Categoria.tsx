@@ -3,9 +3,34 @@
 import useCategoria from "@/hooks/categoria/useCategoria";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
-import * as FiIcons from "react-icons/fi";
-import * as BiIcons from "react-icons/bi";
-import { FiGrid, FiArrowRight, FiChevronLeft, FiChevronRight } from "react-icons/fi";
+import type { IconType } from "react-icons";
+import {
+  FiGrid,
+  FiArrowRight,
+  FiChevronLeft,
+  FiChevronRight,
+  FiHome,
+  FiShoppingBag,
+  FiGift,
+  FiTag,
+  FiStar,
+  FiHeart,
+  FiMonitor,
+  FiSmartphone,
+  FiWatch,
+  FiCamera,
+  FiBook,
+  FiCoffee,
+  FiShoppingCart,
+} from "react-icons/fi";
+import {
+  BiCategory,
+  BiStore,
+  BiCloset,
+  BiShoppingBag,
+  BiHome,
+  BiGift,
+} from "react-icons/bi";
 
 import styles from "./CategoriasDestaque.module.css";
 
@@ -14,6 +39,30 @@ type Categoria = {
   nome?: string;
   slug?: string;
   icone?: string | null;
+};
+
+const ICONS: Record<string, IconType> = {
+  FiGrid,
+  FiHome,
+  FiShoppingBag,
+  FiGift,
+  FiTag,
+  FiStar,
+  FiHeart,
+  FiMonitor,
+  FiSmartphone,
+  FiWatch,
+  FiCamera,
+  FiBook,
+  FiCoffee,
+  FiShoppingCart,
+
+  BiCategory,
+  BiStore,
+  BiCloset,
+  BiShoppingBag,
+  BiHome,
+  BiGift,
 };
 
 function normalizeIconName(name?: string | null) {
@@ -41,16 +90,15 @@ function getCategoryIcon(name?: string | null, size = 20) {
     `Bi${raw}`,
   ].filter(Boolean);
 
-  let Icon: any = null;
-
   for (const key of candidates) {
-    Icon = (FiIcons as any)[key] || (BiIcons as any)[key];
-    if (Icon) break;
+    const Icon = ICONS[key];
+
+    if (Icon) {
+      return <Icon size={size} aria-hidden="true" focusable="false" />;
+    }
   }
 
-  if (!Icon) Icon = FiGrid;
-
-  return <Icon size={size} aria-hidden="true" focusable="false" />;
+  return <FiGrid size={size} aria-hidden="true" focusable="false" />;
 }
 
 export default function CategoriasDestaque() {
@@ -71,7 +119,9 @@ export default function CategoriasDestaque() {
 
     const hasOverflow = el.scrollWidth > el.clientWidth + 2;
     setCanScrollLeft(hasOverflow && el.scrollLeft > 8);
-    setCanScrollRight(hasOverflow && el.scrollLeft + el.clientWidth < el.scrollWidth - 8);
+    setCanScrollRight(
+      hasOverflow && el.scrollLeft + el.clientWidth < el.scrollWidth - 8
+    );
   };
 
   useEffect(() => {
@@ -86,7 +136,11 @@ export default function CategoriasDestaque() {
     el.addEventListener("scroll", handleScroll);
     window.addEventListener("resize", handleResize);
 
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(updateArrows) : null;
+    const ro =
+      typeof ResizeObserver !== "undefined"
+        ? new ResizeObserver(updateArrows)
+        : null;
+
     ro?.observe(el);
 
     return () => {
@@ -100,7 +154,10 @@ export default function CategoriasDestaque() {
     const el = railRef.current;
     if (!el) return;
 
-    const firstCard = el.querySelector(`.${styles.card}`) as HTMLElement | null;
+    const firstCard = el.querySelector(
+      `.${styles.card}`
+    ) as HTMLElement | null;
+
     const cardWidth = firstCard?.offsetWidth ?? 200;
     const gap = 16;
     const amount = cardWidth + gap;
@@ -146,8 +203,8 @@ export default function CategoriasDestaque() {
           <h2>Explore nossas categorias</h2>
 
           <p>
-            Navegue com conforto pelas categorias mais importantes e encontre o que procura de
-            forma rápida e visual.
+            Navegue com conforto pelas categorias mais importantes e encontre o
+            que procura de forma rápida e visual.
           </p>
         </div>
 
@@ -165,11 +222,15 @@ export default function CategoriasDestaque() {
               >
                 <div className={styles.cardAccent} />
 
-                <div className={styles.iconBox}>{getCategoryIcon(categoria?.icone, 24)}</div>
+                <div className={styles.iconBox}>
+                  {getCategoryIcon(categoria?.icone, 24)}
+                </div>
 
                 <div className={styles.content}>
                   <span className={styles.name}>{nome}</span>
-                  <span className={styles.subtitle}>Ver produtos da categoria</span>
+                  <span className={styles.subtitle}>
+                    Ver produtos da categoria
+                  </span>
                 </div>
 
                 <span className={styles.cta}>

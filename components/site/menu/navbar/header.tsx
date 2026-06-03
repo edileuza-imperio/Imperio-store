@@ -9,6 +9,8 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+
+import type { IconType } from "react-icons";
 import {
   FiSearch,
   FiShoppingCart,
@@ -18,9 +20,27 @@ import {
   FiHome,
   FiShoppingBag,
   FiHelpCircle,
+  FiLogOut,
+  FiSettings,
+  FiHeart,
+  FiPackage,
+  FiUserPlus,
+  FiLock,
+  FiGrid,
+  FiEdit,
+  FiList,
+  FiCreditCard,
+  FiMapPin,
+  FiTruck,
 } from "react-icons/fi";
-import * as FiIcons from "react-icons/fi";
-import * as BiIcons from "react-icons/bi";
+import {
+  BiUserCircle,
+  BiLogOut,
+  BiShoppingBag,
+  BiHome,
+  BiCategory,
+  BiStore,
+} from "react-icons/bi";
 
 import { Menu, Usuario } from "@/components/site/menu/menu";
 import "./../../../styles/navbar/menu.css";
@@ -48,11 +68,41 @@ type FloatingStyle = {
   arrowLeft: number;
 };
 
+const ICONS: Record<string, IconType> = {
+  FiSearch,
+  FiShoppingCart,
+  FiUser,
+  FiX,
+  FiMenu,
+  FiHome,
+  FiShoppingBag,
+  FiHelpCircle,
+  FiLogOut,
+  FiSettings,
+  FiHeart,
+  FiPackage,
+  FiUserPlus,
+  FiLock,
+  FiGrid,
+  FiEdit,
+  FiList,
+  FiCreditCard,
+  FiMapPin,
+  FiTruck,
+
+  BiUserCircle,
+  BiLogOut,
+  BiShoppingBag,
+  BiHome,
+  BiCategory,
+  BiStore,
+};
+
 function getIcon(name?: string | null, size = 16) {
   const iconName = (name ?? "").trim();
   if (!iconName) return null;
 
-  const Icon = (FiIcons as any)[iconName] || (BiIcons as any)[iconName];
+  const Icon = ICONS[iconName];
   if (!Icon) return null;
 
   return <Icon size={size} aria-hidden="true" focusable="false" />;
