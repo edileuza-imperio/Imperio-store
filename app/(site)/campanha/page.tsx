@@ -1,58 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
-
-import api from "@/Api/conectar";
-import { FiArrowRight } from "react-icons/fi";
+import Image from "next/image";
 import styles from "./Campanhas.module.css";
+
+import { useCampanhas } from "./useCampanhas";
 import { imagemFundo } from "@/components/Bibioteca/imagem";
 
-type Campanha = {
-  id_campanha: number | string;
-  titulo: string;
-  slug: string;
-  descricao?: string;
-  banner?: string;
-  desktop?: string;
-  mobile?: string;
-  imagem?: string;
-  statusid?: number;
-};
-
-function extrairLista(payload: any): Campanha[] {
-  return payload?.dados?.dados || payload?.dados || payload || [];
-}
-
 export default function Campanhas() {
-  const [campanhas, setCampanhas] = useState<Campanha[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function carregarCampanhas() {
-      try {
-        setLoading(true);
-
-        const response = await api.get("/bootstrap/home", {
-          withCredentials: true,
-        });
-
-        const lista = response.data?.dados?.dados?.campanhas || [];
-        const validas = Array.isArray(lista)
-          ? lista.filter((c: Campanha) => c?.statusid === 1)
-          : [];
-
-        setCampanhas(validas);
-      } catch (error) {
-        console.error("Erro ao carregar campanhas:", error);
-        setCampanhas([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    carregarCampanhas();
-  }, []);
+  const { campanhas, loading, erro } = useCampanhas();
 
   if (loading) {
     return (
@@ -62,9 +18,7 @@ export default function Campanhas() {
     );
   }
 
-  if (!campanhas.length) {
-    return null;
-  }
+  if (erro || !campanhas.length) return null;
 
   return (
     <section className={styles.section}>
@@ -75,8 +29,7 @@ export default function Campanhas() {
               campanha.banner ||
                 campanha.desktop ||
                 campanha.mobile ||
-                campanha.imagem ||
-                ""
+                campanha.imagem
             );
 
             return (
@@ -84,15 +37,22 @@ export default function Campanhas() {
                 key={campanha.id_campanha}
                 href={`/campanha/${campanha.slug}`}
                 className={styles.card}
+                aria-label={`Ver campanha ${campanha.titulo}`}
               >
-                <div
-                  className={styles.banner}
-                  style={
-                    imagem
-                      ? { backgroundImage: `url(${imagem})` }
-                      : undefined
-                  }
-                >
+                <article className={styles.banner}>
+                  {imagem ? (
+                    <Image
+                      src={imagem}
+                      alt={campanha.titulo}
+                      fill
+                      className={styles.image}
+                      sizes="(max-width: 768px) 100vw, 1200px"
+                      priority={false}
+                    />
+                  ) : (
+                    <div className={styles.imageFallback} />
+                  )}
+
                   <div className={styles.overlay} />
 
                   <div className={styles.content}>
@@ -106,11 +66,11 @@ export default function Campanhas() {
                       </p>
                     )}
 
-                    <div className={styles.button}>
-                      Ver campanha <FiArrowRight />
-                    </div>
+                    <span className={styles.button}>
+                      Ver campanha <span className={styles.buttonArrow}>→</span>
+                    </span>
                   </div>
-                </div>
+                </article>
               </Link>
             );
           })}
