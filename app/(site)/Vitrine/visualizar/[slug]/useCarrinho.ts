@@ -28,6 +28,22 @@ export type Carrinho = {
   total?: number;
 };
 
+function extrairMensagemErro(error: unknown, fallback = "Ocorreu um erro.") {
+  if (typeof error === "string") return error;
+
+  if (error && typeof error === "object") {
+    const anyError = error as any;
+    return (
+      anyError?.response?.data?.erro ||
+      anyError?.response?.data?.mensagem ||
+      anyError?.message ||
+      fallback
+    );
+  }
+
+  return fallback;
+}
+
 export function useCarrinho() {
   const [itens, setItens] = useState<CarrinhoItem[]>([]);
   const [carrinho, setCarrinho] = useState<Carrinho | null>(null);
@@ -53,47 +69,86 @@ export function useCarrinho() {
     }
   }, []);
 
+  const atualizarEstado = useCallback(async () => {
+    await Promise.all([listarItens(), buscarCarrinho()]);
+  }, [buscarCarrinho, listarItens]);
+
   const adicionarProduto = useCallback(
     async (produto_id: number, quantidade: number = 1) => {
-      await api.post("/carrinho/adicionar", {
-        produto_id,
-        quantidade,
-      });
+      try {
+        await api.post("/carrinho/adicionar", {
+          produto_id,
+          quantidade,
+        });
 
-      await listarItens();
-      await buscarCarrinho();
+        await atualizarEstado();
+
+        return {
+          ok: true,
+          mensagem: "Produto adicionado ao carrinho.",
+        };
+      } catch (error) {
+        throw new Error(
+          extrairMensagemErro(error, "Não foi possível adicionar o produto ao carrinho.")
+        );
+      }
     },
-    [buscarCarrinho, listarItens]
+    [atualizarEstado]
   );
 
   const atualizarQuantidade = useCallback(
     async (itemId: number, quantidade: number) => {
-      await api.put(`/carrinho/item/${itemId}`, {
-        quantidade,
-      });
+      try {
+        await api.put(`/carrinho/item/${itemId}`, {
+          quantidade,
+        });
 
-      await listarItens();
-      await buscarCarrinho();
+        await atualizarEstado();
+
+        return {
+          ok: true,
+          mensagem: "Quantidade atualizada com sucesso.",
+        };
+      } catch (error) {
+        throw new Error(
+          extrairMensagemErro(error, "Erro ao atualizar a quantidade do item.")
+        );
+      }
     },
-    [buscarCarrinho, listarItens]
+    [atualizarEstado]
   );
 
   const removerItem = useCallback(
     async (itemId: number) => {
-      await api.delete(`/carrinho/item/${itemId}`);
+      try {
+        await api.delete(`/carrinho/item/${itemId}`);
 
-      await listarItens();
-      await buscarCarrinho();
+        await atualizarEstado();
+
+        return {
+          ok: true,
+          mensagem: "Item removido com sucesso.",
+        };
+      } catch (error) {
+        throw new Error(extrairMensagemErro(error, "Não foi possível remover o item."));
+      }
     },
-    [buscarCarrinho, listarItens]
+    [atualizarEstado]
   );
 
   const recalcular = useCallback(async () => {
-    await api.put("/carrinho/recalcular");
+    try {
+      await api.put("/carrinho/recalcular");
+      await atualizarEstado();
 
-    await listarItens();
-    await buscarCarrinho();
-  }, [buscarCarrinho, listarItens]);
+      return {
+        ok: true,
+        mensagem: "Carrinho recalculado com sucesso.",
+      };
+    } catch (error) {
+      throw new Error(extrairMensagemErro(error, "Erro ao recalcular o carrinho."));
+    }
+  }, [atualizarEstado]);
 
   useEffect(() => {
     buscarCarrinho();

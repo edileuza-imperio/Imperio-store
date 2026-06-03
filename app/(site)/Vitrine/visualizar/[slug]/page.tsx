@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import api from "@/Api/conectar";
 
-
+import { imagemFundo } from "@/components/Bibioteca/imagem";
+import { useCarrinho } from "./useCarrinho";
 
 import { FiHeart } from "react-icons/fi";
 import { FiShoppingCart } from "react-icons/fi";
@@ -13,8 +14,7 @@ import { FiShield } from "react-icons/fi";
 import { FiTruck } from "react-icons/fi";
 import { FiRefreshCcw } from "react-icons/fi";
 import { FiStar } from "react-icons/fi";
-import { imagemFundo } from "@/components/Bibioteca/imagem";
-import { useCarrinho } from "./useCarrinho";
+import { FiCheckCircle, FiAlertCircle, FiX } from "react-icons/fi";
 
 type Produto = {
   id?: number | string;
@@ -35,6 +35,11 @@ type Produto = {
   preco_promocional?: number | string;
   sku?: string;
   marca?: string;
+};
+
+type Notificacao = {
+  tipo: "sucesso" | "erro";
+  texto: string;
 };
 
 function normalizarDados<T = any>(payload: any): T | null {
@@ -94,6 +99,22 @@ function calcularDesconto(
   return Math.round(((original - promocional) / original) * 100);
 }
 
+function extrairMensagemErro(error: unknown, fallback = "Ocorreu um erro.") {
+  if (typeof error === "string") return error;
+
+  if (error && typeof error === "object") {
+    const anyError = error as any;
+    return (
+      anyError?.response?.data?.erro ||
+      anyError?.response?.data?.mensagem ||
+      anyError?.message ||
+      fallback
+    );
+  }
+
+  return fallback;
+}
+
 export default function VisualizarProdutoDaVitrine() {
   const params = useParams();
 
@@ -108,8 +129,22 @@ export default function VisualizarProdutoDaVitrine() {
   const [favoritado, setFavoritado] = useState(false);
   const [imagemSelecionada, setImagemSelecionada] = useState("");
   const [adicionandoCarrinho, setAdicionandoCarrinho] = useState(false);
+  const [notificacao, setNotificacao] = useState<Notificacao | null>(null);
 
+  const timerNotificacao = useRef<number | null>(null);
   const { adicionarProduto } = useCarrinho();
+
+  function mostrarNotificacao(texto: string, tipo: Notificacao["tipo"] = "sucesso") {
+    setNotificacao({ texto, tipo });
+
+    if (timerNotificacao.current) {
+      window.clearTimeout(timerNotificacao.current);
+    }
+
+    timerNotificacao.current = window.setTimeout(() => {
+      setNotificacao(null);
+    }, 2800);
+  }
 
   useEffect(() => {
     let ativo = true;
@@ -147,6 +182,9 @@ export default function VisualizarProdutoDaVitrine() {
 
     return () => {
       ativo = false;
+      if (timerNotificacao.current) {
+        window.clearTimeout(timerNotificacao.current);
+      }
     };
   }, [slug]);
 
@@ -167,25 +205,37 @@ export default function VisualizarProdutoDaVitrine() {
   async function handleAdicionarCarrinho() {
     const produtoId = Number(produto?.id || produto?.id_produto);
 
-    if (!produtoId || Number.isNaN(produtoId)) return;
+    if (!produtoId || Number.isNaN(produtoId)) {
+      mostrarNotificacao("Produto inválido para adicionar ao carrinho.", "erro");
+      return;
+    }
 
     try {
       setAdicionandoCarrinho(true);
-      await adicionarProduto(produtoId, 1);
+      const resultado = await adicionarProduto(produtoId, 1);
+      mostrarNotificacao(resultado?.mensagem || "Produto adicionado ao carrinho.", "sucesso");
     } catch (error) {
       console.error("Erro ao adicionar no carrinho:", error);
+      mostrarNotificacao(
+        extrairMensagemErro(error, "Não foi possível adicionar o produto ao carrinho."),
+        "erro"
+      );
     } finally {
       setAdicionandoCarrinho(false);
     }
   }
 
   function handleComprarAgora() {
+    mostrarNotificacao("Função de comprar agora ainda não foi ligada.", "sucesso");
     console.log("Comprar agora:", produto);
   }
 
   function handleFavoritar() {
     setFavoritado((prev) => !prev);
-    console.log("Favoritar produto:", produto);
+    mostrarNotificacao(
+      favoritado ? "Removido dos favoritos." : "Adicionado aos favoritos.",
+      "sucesso"
+    );
   }
 
   return (
@@ -194,10 +244,39 @@ export default function VisualizarProdutoDaVitrine() {
         <div className="bg-decor bg-decor-top" />
         <div className="bg-decor bg-decor-bottom" />
 
+        {notificacao && (
+          <div
+            className={`toast-notificacao ${
+              notificacao.tipo === "sucesso" ? "toast-sucesso" : "toast-erro"
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            <div className="toast-conteudo">
+              {notificacao.tipo === "sucesso" ? (
+                <FiCheckCircle className="toast-icon" />
+              ) : (
+                <FiAlertCircle className="toast-icon" />
+              )}
+
+              <span>{notificacao.texto}</span>
+            </div>
+
+            <button
+              type="button"
+              className="toast-fechar"
+              onClick={() => setNotificacao(null)}
+              aria-label="Fechar mensagem"
+            >
+              <FiX />
+            </button>
+          </div>
+        )}
+
         <div className="container-produto">
           {loading ? (
             <div className="estado-box">
-              <div className="estado-card">Carregando produto...</div>
+              <div className="estado-card estado-animado">Carregando produto...</div>
             </div>
           ) : erro ? (
             <div className="estado-box">
@@ -237,6 +316,7 @@ export default function VisualizarProdutoDaVitrine() {
                             imagemSelecionada === imagem ? "ativa" : ""
                           }`}
                           onClick={() => setImagemSelecionada(imagem)}
+                          aria-label={`Ver imagem ${index + 1}`}
                         >
                           <img
                             src={imagem}
@@ -350,16 +430,10 @@ export default function VisualizarProdutoDaVitrine() {
                     disabled={adicionandoCarrinho}
                   >
                     <FiShoppingCart className="btn-icon" />
-                    <span>
-                      {adicionandoCarrinho ? "Adicionando..." : "Adicionar ao carrinho"}
-                    </span>
+                    <span>{adicionandoCarrinho ? "Adicionando..." : "Adicionar ao carrinho"}</span>
                   </button>
 
-                  <button
-                    type="button"
-                    className="btn-comprar"
-                    onClick={handleComprarAgora}
-                  >
+                  <button type="button" className="btn-comprar" onClick={handleComprarAgora}>
                     <FiCreditCard className="btn-icon" />
                     <span>Comprar agora</span>
                   </button>
@@ -408,15 +482,18 @@ export default function VisualizarProdutoDaVitrine() {
           position: relative;
           min-height: 100vh;
           padding: 28px 16px 64px;
-          background: linear-gradient(180deg, #fffaf4 0%, #fff4ec 48%, #fdf0e8 100%);
+          background:
+            radial-gradient(circle at top left, rgba(201, 122, 141, 0.12), transparent 30%),
+            radial-gradient(circle at bottom right, rgba(232, 201, 187, 0.18), transparent 30%),
+            linear-gradient(180deg, #fffaf4 0%, #fff4ec 48%, #fdf0e8 100%);
           overflow: hidden;
         }
 
         .bg-decor {
           position: absolute;
           border-radius: 999px;
-          filter: blur(10px);
-          opacity: 0.45;
+          filter: blur(12px);
+          opacity: 0.5;
           pointer-events: none;
         }
 
@@ -425,7 +502,8 @@ export default function VisualizarProdutoDaVitrine() {
           height: 320px;
           top: -100px;
           right: -100px;
-          background: radial-gradient(circle, #c97a8d 0%, transparent 72%);
+          background: radial-gradient(circle, rgba(201, 122, 141, 0.55) 0%, transparent 72%);
+          animation: flutuar 12s ease-in-out infinite;
         }
 
         .bg-decor-bottom {
@@ -433,7 +511,8 @@ export default function VisualizarProdutoDaVitrine() {
           height: 360px;
           bottom: -140px;
           left: -120px;
-          background: radial-gradient(circle, #e8c9bb 0%, transparent 72%);
+          background: radial-gradient(circle, rgba(232, 201, 187, 0.7) 0%, transparent 72%);
+          animation: flutuar 14s ease-in-out infinite reverse;
         }
 
         .container-produto {
@@ -441,6 +520,71 @@ export default function VisualizarProdutoDaVitrine() {
           z-index: 2;
           max-width: 1280px;
           margin: 0 auto;
+        }
+
+        .toast-notificacao {
+          position: fixed;
+          right: 18px;
+          top: 18px;
+          z-index: 50;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 18px;
+          width: min(420px, calc(100vw - 24px));
+          padding: 14px 16px;
+          border-radius: 18px;
+          backdrop-filter: blur(12px);
+          box-shadow: 0 18px 40px rgba(120, 78, 91, 0.16);
+          animation: toastEntrar 0.28s ease-out;
+        }
+
+        .toast-sucesso {
+          background: rgba(236, 248, 240, 0.95);
+          border: 1px solid rgba(62, 150, 86, 0.18);
+          color: #2f6a41;
+        }
+
+        .toast-erro {
+          background: rgba(255, 240, 241, 0.95);
+          border: 1px solid rgba(203, 84, 96, 0.18);
+          color: #9c3140;
+        }
+
+        .toast-conteudo {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+          font-size: 14px;
+          font-weight: 700;
+        }
+
+        .toast-conteudo span {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .toast-icon {
+          flex-shrink: 0;
+          font-size: 18px;
+        }
+
+        .toast-fechar {
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          color: inherit;
+          opacity: 0.75;
+        }
+
+        .toast-fechar:hover {
+          opacity: 1;
         }
 
         .estado-box {
@@ -464,6 +608,10 @@ export default function VisualizarProdutoDaVitrine() {
           font-weight: 600;
         }
 
+        .estado-animado {
+          animation: pulseCard 1.2s ease-in-out infinite;
+        }
+
         .estado-erro {
           color: #8a3248;
         }
@@ -480,6 +628,7 @@ export default function VisualizarProdutoDaVitrine() {
             0 18px 60px rgba(123, 78, 92, 0.14),
             inset 0 1px 0 rgba(255, 255, 255, 0.7);
           backdrop-filter: blur(10px);
+          animation: aparecer 0.45s ease both;
         }
 
         .produto-galeria {
@@ -502,6 +651,7 @@ export default function VisualizarProdutoDaVitrine() {
           font-weight: 800;
           letter-spacing: 0.4px;
           box-shadow: 0 12px 25px rgba(148, 80, 96, 0.28);
+          animation: badgePulse 1.8s ease-in-out infinite;
         }
 
         .btn-favorito-flutuante {
@@ -523,7 +673,10 @@ export default function VisualizarProdutoDaVitrine() {
             0 14px 30px rgba(143, 82, 99, 0.16),
             inset 0 1px 0 rgba(255, 255, 255, 0.85);
           backdrop-filter: blur(10px);
-          transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease,
+          transition:
+            transform 0.25s ease,
+            box-shadow 0.25s ease,
+            background 0.25s ease,
             color 0.25s ease;
         }
 
@@ -562,6 +715,7 @@ export default function VisualizarProdutoDaVitrine() {
 
         .miniaturas-lateral::-webkit-scrollbar {
           width: 6px;
+          height: 6px;
         }
 
         .miniaturas-lateral::-webkit-scrollbar-thumb {
@@ -579,11 +733,14 @@ export default function VisualizarProdutoDaVitrine() {
           cursor: pointer;
           background: rgba(255, 250, 245, 0.95);
           box-shadow: 0 10px 20px rgba(158, 106, 120, 0.08);
-          transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+          transition:
+            transform 0.22s ease,
+            border-color 0.22s ease,
+            box-shadow 0.22s ease;
         }
 
         .miniatura-item:hover {
-          transform: translateY(-2px);
+          transform: translateY(-2px) scale(1.02);
           border-color: rgba(184, 93, 115, 0.35);
         }
 
@@ -644,6 +801,7 @@ export default function VisualizarProdutoDaVitrine() {
           min-height: 620px;
           object-fit: cover;
           display: block;
+          animation: imagemEntrar 0.55s ease both;
         }
 
         .sem-imagem {
@@ -813,7 +971,11 @@ export default function VisualizarProdutoDaVitrine() {
           border: none;
           cursor: pointer;
           font-weight: 700;
-          transition: 0.25s ease;
+          transition:
+            transform 0.25s ease,
+            box-shadow 0.25s ease,
+            background 0.25s ease,
+            opacity 0.25s ease;
           font-size: 15px;
         }
 
@@ -906,6 +1068,71 @@ export default function VisualizarProdutoDaVitrine() {
           line-height: 1.6;
         }
 
+        @keyframes aparecer {
+          from {
+            opacity: 0;
+            transform: translateY(18px) scale(0.985);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes toastEntrar {
+          from {
+            opacity: 0;
+            transform: translateY(-12px) scale(0.98);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+          }
+        }
+
+        @keyframes pulseCard {
+          0%,
+          100% {
+            transform: scale(1);
+            opacity: 0.9;
+          }
+          50% {
+            transform: scale(1.01);
+            opacity: 1;
+          }
+        }
+
+        @keyframes flutuar {
+          0%,
+          100% {
+            transform: translate3d(0, 0, 0);
+          }
+          50% {
+            transform: translate3d(0, 14px, 0);
+          }
+        }
+
+        @keyframes imagemEntrar {
+          from {
+            opacity: 0;
+            transform: scale(1.02);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+
+        @keyframes badgePulse {
+          0%,
+          100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-1px);
+          }
+        }
+
         @media (max-width: 1180px) {
           .produto-hero-card {
             grid-template-columns: 1fr;
@@ -929,27 +1156,43 @@ export default function VisualizarProdutoDaVitrine() {
 
         @media (max-width: 768px) {
           .produto-visualizar-page {
-            padding: 18px 12px 48px;
+            padding: 14px 10px 40px;
+          }
+
+          .toast-notificacao {
+            top: 10px;
+            right: 10px;
+            left: 10px;
+            width: auto;
+            border-radius: 16px;
           }
 
           .produto-hero-card {
-            padding: 16px;
-            border-radius: 24px;
+            padding: 14px;
+            border-radius: 22px;
+            gap: 20px;
           }
 
           .produto-titulo {
-            font-size: 2rem;
+            font-size: 1.9rem;
+            line-height: 1.05;
+          }
+
+          .produto-subtitulo {
+            font-size: 0.98rem;
+            line-height: 1.7;
           }
 
           .btn-favorito-flutuante {
-            top: 14px;
-            right: 14px;
+            top: 12px;
+            right: 12px;
             width: 46px;
             height: 46px;
           }
 
           .galeria-layout {
             grid-template-columns: 1fr;
+            gap: 12px;
           }
 
           .miniaturas-lateral {
@@ -963,27 +1206,101 @@ export default function VisualizarProdutoDaVitrine() {
           }
 
           .miniatura-item {
-            min-width: 78px;
-            width: 78px;
-            height: 78px;
+            min-width: 74px;
+            width: 74px;
+            height: 74px;
             flex-shrink: 0;
-            border-radius: 16px;
+            border-radius: 14px;
           }
 
           .imagem-principal-wrap,
           .imagem-principal,
           .sem-imagem {
-            min-height: 320px;
+            min-height: 290px;
+            border-radius: 18px;
+          }
+
+          .imagem-principal {
+            object-fit: cover;
+          }
+
+          .mini-info-imagem {
+            gap: 8px;
+          }
+
+          .mini-info-pill {
+            width: 100%;
+            justify-content: center;
+            font-size: 12px;
+          }
+
+          .linha-info {
+            gap: 10px;
+          }
+
+          .info-pill {
+            width: 100%;
+            min-width: 0;
+          }
+
+          .bloco-preco {
+            padding: 18px;
             border-radius: 20px;
+          }
+
+          .preco-final {
+            font-size: 2rem;
           }
 
           .acoes-produto {
             flex-direction: column;
+            gap: 10px;
           }
 
           .btn-principal,
           .btn-comprar {
             width: 100%;
+            min-height: 52px;
+          }
+
+          .bloco-descricao {
+            padding: 18px;
+          }
+
+          .beneficio-card {
+            padding: 16px;
+            border-radius: 18px;
+          }
+        }
+
+        @media (max-width: 420px) {
+          .produto-hero-card {
+            padding: 12px;
+          }
+
+          .produto-titulo {
+            font-size: 1.7rem;
+          }
+
+          .preco-final {
+            font-size: 1.85rem;
+          }
+
+          .miniatura-item {
+            min-width: 68px;
+            width: 68px;
+            height: 68px;
+          }
+
+          .imagem-principal-wrap,
+          .imagem-principal,
+          .sem-imagem {
+            min-height: 250px;
+          }
+
+          .selo-vitrine,
+          .tag-desconto {
+            font-size: 11px;
           }
         }
       `}</style>
