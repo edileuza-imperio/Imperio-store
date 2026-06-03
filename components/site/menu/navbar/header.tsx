@@ -9,14 +9,16 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { FiSearch } from "react-icons/fi";
-import { FiShoppingCart } from "react-icons/fi";
-import { FiUser } from "react-icons/fi";
-import { FiX } from "react-icons/fi";
-import { FiMenu } from "react-icons/fi";
-import { FiHome } from "react-icons/fi";
-import { FiShoppingBag } from "react-icons/fi";
-import { FiHelpCircle } from "react-icons/fi";
+import {
+  FiSearch,
+  FiShoppingCart,
+  FiUser,
+  FiX,
+  FiMenu,
+  FiHome,
+  FiShoppingBag,
+  FiHelpCircle,
+} from "react-icons/fi";
 import * as FiIcons from "react-icons/fi";
 import * as BiIcons from "react-icons/bi";
 
@@ -28,17 +30,13 @@ type Props = {
   titulo1: string;
   titulo2: string;
   subtitulo: string;
-
   pesquisa: string;
   setPesquisa: (v: string) => void;
-
   usuario: Usuario | null;
   dropdown: boolean;
   setDropdown: (v: boolean) => void;
-
   login: Menu | null;
   carrinho: Menu | null;
-
   quantidadeCarrinho: number;
   logout: () => void;
 };
@@ -47,6 +45,7 @@ type FloatingStyle = {
   top: number;
   left: number;
   width: number;
+  arrowLeft: number;
 };
 
 function getIcon(name?: string | null, size = 16) {
@@ -78,7 +77,8 @@ export default function NavbarHeader({
   const [mounted, setMounted] = useState(false);
   const [floatingStyle, setFloatingStyle] = useState<FloatingStyle | null>(null);
 
-  const userBtnRef = useRef<HTMLButtonElement | null>(null);
+  const desktopUserBtnRef = useRef<HTMLButtonElement | null>(null);
+  const mobileUserBtnRef = useRef<HTMLButtonElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   const safePesquisa = (pesquisa ?? "").trim();
@@ -156,25 +156,45 @@ export default function NavbarHeader({
     if (!dropdown) return;
 
     const updatePosition = () => {
-      const btn = userBtnRef.current;
+      const viewportWidth = window.innerWidth;
+      const isMobile = viewportWidth <= 991;
+
+      const btn = isMobile
+        ? mobileUserBtnRef.current
+        : desktopUserBtnRef.current;
+
       if (!btn) return;
 
       const rect = btn.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const menuWidth = viewportWidth <= 480 ? 220 : 240;
-      const gap = 12;
+
+      const menuWidth = isMobile ? 220 : 240;
+      const gap = isMobile ? 10 : 6;
+      const margin = 12;
 
       let left = rect.right - menuWidth;
-      left = Math.max(12, Math.min(left, viewportWidth - menuWidth - 12));
+
+      left = Math.max(
+        margin,
+        Math.min(left, viewportWidth - menuWidth - margin)
+      );
+
+      const buttonCenter = rect.left + rect.width / 2;
+
+      const arrowLeft = Math.max(
+        18,
+        Math.min(buttonCenter - left - 6, menuWidth - 30)
+      );
 
       setFloatingStyle({
         top: rect.bottom + gap,
         left,
         width: menuWidth,
+        arrowLeft,
       });
     };
 
     updatePosition();
+
     window.addEventListener("resize", updatePosition);
     window.addEventListener("scroll", updatePosition, true);
 
@@ -190,7 +210,8 @@ export default function NavbarHeader({
     const handlePointerDown = (event: MouseEvent | TouchEvent) => {
       const target = event.target as Node;
 
-      if (userBtnRef.current?.contains(target)) return;
+      if (desktopUserBtnRef.current?.contains(target)) return;
+      if (mobileUserBtnRef.current?.contains(target)) return;
       if (dropdownRef.current?.contains(target)) return;
 
       setDropdown(false);
@@ -218,13 +239,16 @@ export default function NavbarHeader({
           top: floatingStyle.top,
           left: floatingStyle.left,
           width: floatingStyle.width,
-          zIndex: 11000,
+          zIndex: 13000,
+          ["--dropdown-arrow-left" as any]: `${floatingStyle.arrowLeft}px`,
         }}
       >
         <div className="floatingDropdownArrow" aria-hidden="true" />
 
         {loginItems.length === 0 && (
-          <span className="floatingDropdownEmpty">Nenhuma opção disponível</span>
+          <span className="floatingDropdownEmpty">
+            Nenhuma opção disponível
+          </span>
         )}
 
         {loginItems.map((item) => {
@@ -272,11 +296,7 @@ export default function NavbarHeader({
       <header className={`header ${scrolled ? "headerScrolled" : ""}`}>
         <div className="desktopNavbar">
           <div className="brand">
-            <Link
-              href="/"
-              className="logo"
-              aria-label="Ir para a página inicial"
-            >
+            <Link href="/" className="logo" aria-label="Ir para a página inicial">
               <span className="logoDark">{titulo1 || "Universo"}</span>
               <span className="logoPink">{titulo2 || "Império"}</span>
             </Link>
@@ -314,7 +334,7 @@ export default function NavbarHeader({
             {usuario ? (
               <div className="userDropdown">
                 <button
-                  ref={userBtnRef}
+                  ref={desktopUserBtnRef}
                   className="userBtn"
                   onClick={toggleUserDropdown}
                   type="button"
@@ -358,11 +378,7 @@ export default function NavbarHeader({
                 title="Carrinho"
               >
                 <div className="cartWrapper">
-                  <FiShoppingCart
-                    size={21}
-                    aria-hidden="true"
-                    focusable="false"
-                  />
+                  <FiShoppingCart size={21} aria-hidden="true" focusable="false" />
 
                   {quantidadeCarrinho > 0 && (
                     <span className="badge">{quantidadeCarrinho}</span>
@@ -392,11 +408,7 @@ export default function NavbarHeader({
           </button>
 
           <div className="mobileBrand">
-            <Link
-              href="/"
-              className="mobileLogo"
-              aria-label="Ir para a página inicial"
-            >
+            <Link href="/" className="mobileLogo" aria-label="Ir para a página inicial">
               <span className="logoDark">{titulo1 || "Universo"}</span>
               <span className="logoPink">{titulo2 || "Império"}</span>
             </Link>
@@ -408,7 +420,7 @@ export default function NavbarHeader({
             {usuario ? (
               <div className="mobileUserDropdown">
                 <button
-                  ref={userBtnRef}
+                  ref={mobileUserBtnRef}
                   className="mobileUserBtn"
                   onClick={toggleUserDropdown}
                   type="button"
@@ -450,11 +462,7 @@ export default function NavbarHeader({
                 title="Carrinho"
               >
                 <div className="cartWrapper">
-                  <FiShoppingCart
-                    size={18}
-                    aria-hidden="true"
-                    focusable="false"
-                  />
+                  <FiShoppingCart size={18} aria-hidden="true" focusable="false" />
 
                   {quantidadeCarrinho > 0 && (
                     <span className="badge">{quantidadeCarrinho}</span>
@@ -558,7 +566,6 @@ export default function NavbarHeader({
                   onClick={closeMenu}
                 >
                   <span className="quickActionIcon">{item.icon}</span>
-
                   <span className="quickActionLabel">{item.label}</span>
 
                   {item.badge && item.badge > 0 && (

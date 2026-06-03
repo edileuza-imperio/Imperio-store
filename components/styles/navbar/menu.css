@@ -6,9 +6,7 @@
   --nav-primary: #b56f5a;
   --nav-primary-strong: #9f563f;
   --nav-soft: #faf6f3;
-  --nav-soft-2: #f3ebe6;
   --nav-shadow: 0 18px 55px rgba(37, 25, 20, 0.12);
-  --nav-radius: 18px;
 }
 
 * {
@@ -31,13 +29,12 @@ body.menuLock {
   border-bottom: 1px solid var(--nav-border);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  transition: box-shadow 0.25s ease, background 0.25s ease, border-color 0.25s ease;
+  transition: box-shadow 0.25s ease, background 0.25s ease;
   overflow: visible;
 }
 
 .headerScrolled {
   background: rgba(255, 255, 255, 0.97);
-  border-color: rgba(181, 111, 90, 0.18);
   box-shadow: 0 10px 34px rgba(37, 25, 20, 0.08);
 }
 
@@ -125,19 +122,19 @@ body.menuLock {
   background: linear-gradient(180deg, #fff, var(--nav-soft));
   border: 1px solid #eaded6;
   border-radius: 999px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition: 0.2s ease;
   overflow: hidden;
 }
 
 .searchBar:focus-within {
   background: #fff;
   border-color: rgba(181, 111, 90, 0.65);
-  box-shadow: 0 0 0 4px rgba(181, 111, 90, 0.12), 0 12px 28px rgba(37, 25, 20, 0.08);
+  box-shadow: 0 0 0 4px rgba(181, 111, 90, 0.12),
+    0 12px 28px rgba(37, 25, 20, 0.08);
 }
 
 .searchBar input {
-  flex: 1 1 auto;
+  flex: 1;
   min-width: 0;
   height: 100%;
   border: 0;
@@ -174,7 +171,7 @@ body.menuLock {
   cursor: pointer;
   color: #7f6f66;
   background: #eee3dc;
-  transition: transform 0.18s ease, background 0.18s ease, color 0.18s ease;
+  transition: 0.18s ease;
 }
 
 .clearBtn:hover {
@@ -212,7 +209,7 @@ body.menuLock {
   color: var(--nav-text);
   background: rgba(255, 255, 255, 0.82);
   text-decoration: none;
-  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  transition: 0.2s ease;
 }
 
 .iconBtn {
@@ -262,13 +259,19 @@ body.menuLock {
   box-shadow: 0 8px 18px rgba(199, 108, 80, 0.35);
   font-size: 11px;
   font-weight: 900;
-  line-height: 1;
   animation: badgePop 0.25s ease;
 }
 
 @keyframes badgePop {
-  from { transform: scale(0.7); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .cartInfo,
@@ -317,7 +320,6 @@ body.menuLock {
   justify-content: center;
   color: #fff;
   background: linear-gradient(135deg, #d7aa98, #ac624c);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
   font-weight: 900;
 }
 
@@ -352,7 +354,7 @@ body.menuLock {
 .floatingDropdownArrow {
   position: absolute;
   top: -6px;
-  right: 24px;
+  left: var(--dropdown-arrow-left, 24px);
   width: 12px;
   height: 12px;
   border-left: 1px solid rgba(234, 222, 214, 0.95);
@@ -378,7 +380,7 @@ body.menuLock {
   font-size: 14px;
   font-weight: 750;
   cursor: pointer;
-  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+  transition: 0.18s ease;
 }
 
 .floatingDropdownItem:hover {
@@ -403,8 +405,15 @@ body.menuLock {
 }
 
 @keyframes dropdownIn {
-  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .mobileNavbar,
@@ -421,7 +430,7 @@ body.menuLock {
   background: rgba(19, 14, 12, 0.52);
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
-  transition: opacity 0.25s ease, visibility 0.25s ease;
+  transition: 0.25s ease;
 }
 
 .overlayShow {
@@ -443,8 +452,7 @@ body.menuLock {
   background: #fff;
   box-shadow: 18px 0 60px rgba(21, 13, 10, 0.18);
   transform: translateX(-105%);
-  transition: transform 0.28s cubic-bezier(.22,.9,.24,1);
-  will-change: transform;
+  transition: transform 0.28s cubic-bezier(0.22, 0.9, 0.24, 1);
 }
 
 .sidebarOpen {
@@ -453,7 +461,6 @@ body.menuLock {
 
 .sidebarHeader {
   min-height: 88px;
-  flex: 0 0 auto;
   padding: 0 22px;
   border-bottom: 1px solid #f1e7e0;
   display: flex;
@@ -467,7 +474,6 @@ body.menuLock {
   margin: 0;
   color: #201d1c;
   font-size: 23px;
-  line-height: 1;
 }
 
 .sidebarSubtitle {
@@ -481,7 +487,6 @@ body.menuLock {
 .closeBtn {
   width: 42px;
   height: 42px;
-  flex: 0 0 auto;
   border: 0;
   border-radius: 14px;
   display: inline-flex;
@@ -490,7 +495,7 @@ body.menuLock {
   color: #332f2d;
   background: #f4ece7;
   cursor: pointer;
-  transition: transform 0.18s ease, background 0.18s ease;
+  transition: 0.18s ease;
 }
 
 .closeBtn:hover {
@@ -499,7 +504,7 @@ body.menuLock {
 }
 
 .sidebarContent {
-  flex: 1 1 auto;
+  flex: 1;
   min-height: 0;
   padding: 16px;
   overflow-y: auto;
@@ -594,13 +599,14 @@ body.menuLock {
   background: #fff;
   text-decoration: none;
   overflow: hidden;
-  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  transition: 0.18s ease;
 }
 
 .quickAction::after {
   content: "";
   position: absolute;
-  inset: auto -28px -34px auto;
+  right: -28px;
+  bottom: -34px;
   width: 82px;
   height: 82px;
   border-radius: 999px;
@@ -653,7 +659,6 @@ body.menuLock {
   font-weight: 900;
 }
 
-.dropdownItem:focus-visible,
 .iconBtn:focus-visible,
 .cartButton:focus-visible,
 .userBtn:focus-visible,
@@ -693,10 +698,6 @@ body.menuLock {
     display: none;
   }
 
-  .header {
-    z-index: 4000;
-  }
-
   .mobileNavbar {
     position: relative;
     z-index: 2;
@@ -724,7 +725,6 @@ body.menuLock {
     background: #f8f1ed;
     cursor: pointer;
     text-decoration: none;
-    flex: 0 0 auto;
   }
 
   .mobileBrand {
@@ -790,7 +790,6 @@ body.menuLock {
   .mobileSearch {
     display: block;
     padding: 0 12px 13px;
-    overflow: visible;
   }
 
   .mobileSearch .searchBar {
