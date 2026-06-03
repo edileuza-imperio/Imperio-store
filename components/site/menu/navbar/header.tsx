@@ -129,6 +129,29 @@ export default function NavbarHeader({
     setMounted(true);
   }, []);
 
+  useEffect(() => {
+    document.body.classList.toggle("menuLock", openMenu);
+
+    return () => {
+      document.body.classList.remove("menuLock");
+    };
+  }, [openMenu]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpenMenu(false);
+        setDropdown(false);
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [setDropdown]);
+
   useLayoutEffect(() => {
     if (!dropdown) return;
 
@@ -198,6 +221,12 @@ export default function NavbarHeader({
           zIndex: 11000,
         }}
       >
+        <div className="floatingDropdownArrow" aria-hidden="true" />
+
+        {loginItems.length === 0 && (
+          <span className="floatingDropdownEmpty">Nenhuma opção disponível</span>
+        )}
+
         {loginItems.map((item) => {
           const nome = (item.nome ?? "").toLowerCase().trim();
           const sair = nome === "sair";
@@ -206,8 +235,11 @@ export default function NavbarHeader({
             return (
               <button
                 key={item.id_item}
-                onClick={logout}
-                className="floatingDropdownItem"
+                onClick={() => {
+                  setDropdown(false);
+                  logout();
+                }}
+                className="floatingDropdownItem danger"
                 type="button"
                 role="menuitem"
               >
@@ -470,6 +502,7 @@ export default function NavbarHeader({
         id="mobileSidebar"
         className={`sidebar ${openMenu ? "sidebarOpen" : ""}`}
         aria-label="Menu lateral"
+        aria-hidden={!openMenu}
       >
         <div className="sidebarHeader">
           <div>
