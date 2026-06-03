@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Search,
   RefreshCw,
@@ -12,9 +13,11 @@ import {
   Wallet,
   Truck,
   BadgeDollarSign,
+  ArrowRight,
+  CircleDollarSign,
+  TimerReset,
 } from "lucide-react";
 import api from "@/Api/conectar";
-
 
 type Pedido = {
   id_pedido?: number;
@@ -46,8 +49,14 @@ function getCodigoPedido(pedido: Pedido): string {
 
 function toNumber(valor?: number | string | null): number {
   if (valor === null || valor === undefined) return 0;
-  const numero = typeof valor === "string" ? Number(valor) : valor;
-  return Number.isFinite(numero) ? Number(numero) : 0;
+
+  if (typeof valor === "string") {
+    const normalizado = valor.replace(/\./g, "").replace(",", ".");
+    const numero = Number(normalizado);
+    return Number.isFinite(numero) ? numero : 0;
+  }
+
+  return Number.isFinite(valor) ? valor : 0;
 }
 
 function formatarMoeda(valor: number): string {
@@ -65,7 +74,10 @@ function formatarData(data?: string | null): string {
 
   if (Number.isNaN(dt.getTime())) return data;
 
-  return dt.toLocaleString("pt-BR");
+  return dt.toLocaleString("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
 }
 
 function getStatusPagamentoTexto(status?: string | null): string {
@@ -139,12 +151,14 @@ export default function PedidosPage() {
       ).toLowerCase();
       const metodo = String(pedido.metodo_pagamento || "").toLowerCase();
       const referencia = String(pedido.external_reference || "").toLowerCase();
+      const detail = String(pedido.status_detail || "").toLowerCase();
 
       return (
         codigo.includes(termo) ||
         statusPagamento.includes(termo) ||
         metodo.includes(termo) ||
-        referencia.includes(termo)
+        referencia.includes(termo) ||
+        detail.includes(termo)
       );
     });
   }, [pedidos, busca]);
@@ -163,18 +177,23 @@ export default function PedidosPage() {
     return acc + toNumber(pedido.valor_desconto);
   }, 0);
 
+  const ticketMedio = totalPedidos > 0 ? totalVendas / totalPedidos : 0;
+
+  const pedidosAprovados = pedidosFiltrados.filter((pedido) => {
+    const status = (pedido.status_pagamento || "").toLowerCase();
+    return status === "approved" || status === "aprovado";
+  }).length;
+
   return (
     <div className="layout">
-     
-
       <main className="pagina-pedidos">
-        <section className="hero">
-          <div className="hero-texto">
+        <section className="cabecalho">
+          <div className="cabecalho-texto">
             <span className="tag">Painel de pedidos</span>
             <h1>Gestão de pedidos da loja</h1>
             <p>
-              Acompanhe status, pagamento, valores e evolução dos pedidos em um
-              painel mais profissional.
+              Acompanhe status, pagamento, valores e evolução dos pedidos em
+              uma interface limpa, moderna e fácil de ler.
             </p>
           </div>
 
@@ -189,7 +208,7 @@ export default function PedidosPage() {
         </section>
 
         <section className="resumo-grid">
-          <div className="card-resumo destaque">
+          <article className="card-resumo">
             <div className="icone-wrap">
               <ShoppingBag size={20} />
             </div>
@@ -197,9 +216,9 @@ export default function PedidosPage() {
               <span>Total de pedidos</span>
               <strong>{totalPedidos}</strong>
             </div>
-          </div>
+          </article>
 
-          <div className="card-resumo">
+          <article className="card-resumo">
             <div className="icone-wrap">
               <BadgeDollarSign size={20} />
             </div>
@@ -207,9 +226,19 @@ export default function PedidosPage() {
               <span>Total vendido</span>
               <strong>{formatarMoeda(totalVendas)}</strong>
             </div>
-          </div>
+          </article>
 
-          <div className="card-resumo">
+          <article className="card-resumo">
+            <div className="icone-wrap">
+              <CircleDollarSign size={20} />
+            </div>
+            <div>
+              <span>Ticket médio</span>
+              <strong>{formatarMoeda(ticketMedio)}</strong>
+            </div>
+          </article>
+
+          <article className="card-resumo">
             <div className="icone-wrap">
               <Truck size={20} />
             </div>
@@ -217,14 +246,22 @@ export default function PedidosPage() {
               <span>Total de frete</span>
               <strong>{formatarMoeda(totalFrete)}</strong>
             </div>
+          </article>
+        </section>
+
+        <section className="resumo-secundario">
+          <div className="mini-card">
+            <TimerReset size={18} />
+            <div>
+              <span>Pedidos aprovados</span>
+              <strong>{pedidosAprovados}</strong>
+            </div>
           </div>
 
-          <div className="card-resumo">
-            <div className="icone-wrap">
-              <Wallet size={20} />
-            </div>
+          <div className="mini-card">
+            <Wallet size={18} />
             <div>
-              <span>Total descontos</span>
+              <span>Total de descontos</span>
               <strong>{formatarMoeda(totalDescontos)}</strong>
             </div>
           </div>
@@ -235,7 +272,7 @@ export default function PedidosPage() {
             <Search size={18} />
             <input
               type="text"
-              placeholder="Buscar por código, pagamento, referência..."
+              placeholder="Buscar por código, pagamento, referência ou detalhe..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
@@ -365,9 +402,10 @@ export default function PedidosPage() {
                   </div>
 
                   <div className="rodape-card">
-                    <a href={`/Pedidos/${id}`} className="btn-detalhes">
+                    <Link href={`/Pedidos/${id}`} className="btn-detalhes">
                       Ver detalhes
-                    </a>
+                      <ArrowRight size={16} />
+                    </Link>
                   </div>
                 </article>
               );
@@ -376,62 +414,61 @@ export default function PedidosPage() {
         )}
       </main>
 
-     
-
       <style jsx>{`
         .layout {
           min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          background:
-            radial-gradient(circle at top left, rgba(164, 74, 74, 0.10), transparent 24%),
-            radial-gradient(circle at top right, rgba(255, 241, 236, 0.9), transparent 22%),
-            linear-gradient(180deg, #fff8f4 0%, #fff1ec 55%, #ffede6 100%);
+          background: #f4f6f8;
         }
 
         .pagina-pedidos {
-          flex: 1;
           width: 100%;
-          max-width: 1280px;
+          max-width: 1320px;
           margin: 0 auto;
-          padding: 28px 18px 48px;
+          padding: 28px 20px 52px;
         }
 
-        .hero {
+        .cabecalho {
           display: flex;
           justify-content: space-between;
           align-items: center;
           gap: 20px;
           flex-wrap: wrap;
-          margin-bottom: 24px;
-          padding: 24px;
-          border-radius: 28px;
-          background: linear-gradient(135deg, rgba(164, 74, 74, 0.92), rgba(122, 46, 46, 0.92));
-          color: #fffaf7;
-          box-shadow: 0 18px 45px rgba(122, 46, 46, 0.22);
+          padding: 26px;
+          margin-bottom: 20px;
+          border: 1px solid #e5e7eb;
+          border-radius: 22px;
+          background: #ffffff;
+          box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
+        }
+
+        .cabecalho-texto {
+          max-width: 760px;
         }
 
         .tag {
-          display: inline-block;
+          display: inline-flex;
+          align-items: center;
           margin-bottom: 10px;
-          padding: 7px 12px;
+          padding: 6px 10px;
           border-radius: 999px;
-          background: rgba(255, 255, 255, 0.14);
+          background: #f1f5f9;
+          color: #475569;
           font-size: 12px;
           font-weight: 700;
           letter-spacing: 0.4px;
+          text-transform: uppercase;
         }
 
-        .hero h1 {
-          margin: 0 0 10px;
-          font-size: 34px;
-          line-height: 1.1;
+        .cabecalho h1 {
+          margin: 0 0 8px;
+          font-size: clamp(28px, 3vw, 40px);
+          line-height: 1.05;
+          color: #0f172a;
         }
 
-        .hero p {
+        .cabecalho p {
           margin: 0;
-          max-width: 720px;
-          color: rgba(255, 250, 247, 0.92);
+          color: #64748b;
           font-size: 15px;
           line-height: 1.7;
         }
@@ -441,70 +478,92 @@ export default function PedidosPage() {
           align-items: center;
           justify-content: center;
           gap: 8px;
-          border: none;
+          border: 1px solid #dbe3ea;
           border-radius: 14px;
           padding: 13px 18px;
-          background: #fffaf7;
-          color: #7a2e2e;
+          background: #ffffff;
+          color: #0f172a;
           font-weight: 700;
           cursor: pointer;
-          box-shadow: 0 10px 25px rgba(255, 250, 247, 0.25);
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+          transition: transform 0.2s ease, box-shadow 0.2s ease,
+            border-color 0.2s ease;
         }
 
         .btn-atualizar:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 14px 30px rgba(255, 250, 247, 0.34);
+          transform: translateY(-1px);
+          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.07);
+          border-color: #cbd5e1;
         }
 
         .resumo-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-          gap: 18px;
-          margin-bottom: 24px;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 16px;
+          margin-bottom: 16px;
         }
 
         .card-resumo {
           display: flex;
           align-items: center;
           gap: 14px;
-          background: rgba(255, 250, 247, 0.86);
-          border: 1px solid rgba(255, 235, 228, 0.95);
-          border-radius: 22px;
           padding: 20px;
-          box-shadow: 0 12px 32px rgba(122, 46, 46, 0.08);
-          backdrop-filter: blur(8px);
-        }
-
-        .card-resumo.destaque {
-          background: linear-gradient(135deg, #fff7f3, #ffeae1);
-          border-color: #f8d7ca;
+          border: 1px solid #e5e7eb;
+          border-radius: 18px;
+          background: #ffffff;
+          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
         }
 
         .icone-wrap {
-          width: 48px;
-          height: 48px;
-          border-radius: 16px;
-          background: linear-gradient(135deg, #a44a4a, #7a2e2e);
-          color: #fffaf7;
+          width: 46px;
+          height: 46px;
+          border-radius: 14px;
+          background: #0f172a;
+          color: #ffffff;
           display: flex;
           align-items: center;
           justify-content: center;
           flex-shrink: 0;
-          box-shadow: 0 10px 25px rgba(164, 74, 74, 0.24);
         }
 
-        .card-resumo span {
+        .card-resumo span,
+        .mini-card span {
           display: block;
-          margin-bottom: 5px;
-          color: #8b5e57;
+          margin-bottom: 4px;
+          color: #64748b;
           font-size: 13px;
           font-weight: 600;
         }
 
-        .card-resumo strong {
-          font-size: 24px;
-          color: #5c2323;
+        .card-resumo strong,
+        .mini-card strong {
+          font-size: 22px;
+          color: #0f172a;
+          line-height: 1.1;
+        }
+
+        .resumo-secundario {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: 16px;
+          margin-bottom: 20px;
+        }
+
+        .mini-card {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 18px 20px;
+          border: 1px solid #e5e7eb;
+          border-radius: 18px;
+          background: #ffffff;
+          color: #0f172a;
+          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.03);
+        }
+
+        .mini-card :global(svg) {
+          color: #475569;
+          flex-shrink: 0;
         }
 
         .filtros-box {
@@ -513,12 +572,12 @@ export default function PedidosPage() {
           align-items: center;
           gap: 14px;
           flex-wrap: wrap;
-          margin-bottom: 24px;
+          margin-bottom: 20px;
           padding: 16px;
-          background: rgba(255, 250, 247, 0.88);
-          border: 1px solid #f3dfd7;
-          border-radius: 20px;
-          box-shadow: 0 10px 28px rgba(122, 46, 46, 0.06);
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 18px;
+          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.03);
         }
 
         .campo-busca {
@@ -527,10 +586,11 @@ export default function PedidosPage() {
           display: flex;
           align-items: center;
           gap: 10px;
-          border: 1px solid #edd8cf;
-          border-radius: 14px;
           padding: 0 14px;
-          background: #fffdfb;
+          border: 1px solid #dbe3ea;
+          border-radius: 14px;
+          background: #f8fafc;
+          color: #64748b;
         }
 
         .campo-busca input {
@@ -540,38 +600,39 @@ export default function PedidosPage() {
           padding: 14px 0;
           background: transparent;
           font-size: 14px;
-          color: #5c2323;
+          color: #0f172a;
         }
 
         .contador {
-          padding: 12px 16px;
+          padding: 12px 14px;
           border-radius: 14px;
-          background: #fff6f1;
-          color: #8a4b4b;
+          background: #f8fafc;
+          color: #334155;
           font-size: 13px;
           font-weight: 700;
-          border: 1px solid #f0d8cf;
+          border: 1px solid #e2e8f0;
+          white-space: nowrap;
         }
 
         .estado {
-          background: rgba(255, 250, 247, 0.94);
-          border: 1px solid #f0ddd5;
-          border-radius: 24px;
-          padding: 44px 20px;
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 20px;
+          padding: 46px 20px;
           text-align: center;
-          color: #7d5a54;
-          box-shadow: 0 12px 30px rgba(122, 46, 46, 0.06);
+          color: #64748b;
+          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
         }
 
         .estado h3 {
           margin: 12px 0 8px;
-          color: #5c2323;
+          color: #0f172a;
         }
 
         .estado.erro {
-          background: #fff4f4;
-          border-color: #f4caca;
-          color: #b23b3b;
+          background: #fff7f7;
+          border-color: #fecaca;
+          color: #b91c1c;
         }
 
         .loading .loader {
@@ -579,30 +640,33 @@ export default function PedidosPage() {
           height: 42px;
           margin: 0 auto 14px;
           border-radius: 50%;
-          border: 4px solid #f2d7cf;
-          border-top-color: #a44a4a;
+          border: 4px solid #e2e8f0;
+          border-top-color: #0f172a;
           animation: girar 0.8s linear infinite;
         }
 
         .grid-pedidos {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-          gap: 22px;
+          gap: 18px;
         }
 
         .card-pedido {
-          background: rgba(255, 250, 247, 0.92);
-          border: 1px solid rgba(243, 223, 215, 0.95);
-          border-radius: 24px;
+          display: flex;
+          flex-direction: column;
+          background: #ffffff;
+          border: 1px solid #e5e7eb;
+          border-radius: 22px;
           padding: 22px;
-          box-shadow: 0 14px 34px rgba(122, 46, 46, 0.09);
-          backdrop-filter: blur(10px);
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          box-shadow: 0 12px 28px rgba(15, 23, 42, 0.04);
+          transition: transform 0.2s ease, box-shadow 0.2s ease,
+            border-color 0.2s ease;
         }
 
         .card-pedido:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 20px 40px rgba(122, 46, 46, 0.13);
+          transform: translateY(-2px);
+          border-color: #d1d5db;
+          box-shadow: 0 16px 34px rgba(15, 23, 42, 0.07);
         }
 
         .card-header {
@@ -615,10 +679,10 @@ export default function PedidosPage() {
 
         .pedido-label {
           display: inline-block;
+          margin-bottom: 6px;
           font-size: 12px;
           font-weight: 700;
-          color: #a06a61;
-          margin-bottom: 6px;
+          color: #64748b;
           text-transform: uppercase;
           letter-spacing: 0.4px;
         }
@@ -626,7 +690,8 @@ export default function PedidosPage() {
         .card-header h2 {
           margin: 0;
           font-size: 24px;
-          color: #5c2323;
+          color: #0f172a;
+          line-height: 1.15;
         }
 
         .status {
@@ -638,116 +703,143 @@ export default function PedidosPage() {
           font-size: 12px;
           font-weight: 700;
           white-space: nowrap;
+          border: 1px solid transparent;
         }
 
         .status.pendente {
-          background: #fff2e8;
-          color: #c26528;
+          background: #fef3c7;
+          color: #92400e;
+          border-color: #fde68a;
         }
 
         .status.aprovado {
-          background: #eafaf1;
-          color: #1f7a49;
+          background: #dcfce7;
+          color: #166534;
+          border-color: #bbf7d0;
         }
 
         .status.recusado {
-          background: #fff1f2;
-          color: #c13552;
+          background: #fee2e2;
+          color: #991b1b;
+          border-color: #fecaca;
         }
 
         .status.cancelado {
-          background: #f3f4f6;
-          color: #556070;
+          background: #e2e8f0;
+          color: #334155;
+          border-color: #cbd5e1;
         }
 
         .status.analise {
-          background: #eef4ff;
-          color: #315fd3;
+          background: #dbeafe;
+          color: #1d4ed8;
+          border-color: #bfdbfe;
         }
 
         .info-lista {
           display: grid;
-          gap: 11px;
+          gap: 10px;
           margin-bottom: 18px;
+          padding-bottom: 18px;
+          border-bottom: 1px solid #eef2f7;
         }
 
         .info-item {
           display: flex;
           align-items: center;
           gap: 10px;
-          color: #7d5a54;
+          color: #475569;
           font-size: 14px;
           line-height: 1.5;
         }
 
+        .info-item :global(svg) {
+          color: #64748b;
+          flex-shrink: 0;
+        }
+
         .valores {
           display: grid;
-          grid-template-columns: 1fr 1fr;
+          grid-template-columns: repeat(2, minmax(0, 1fr));
           gap: 12px;
           margin-bottom: 16px;
         }
 
         .valor-item {
-          border: 1px solid #f1ddd5;
-          background: #fffdfb;
-          border-radius: 16px;
           padding: 14px;
+          border-radius: 16px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
         }
 
         .valor-item span {
           display: block;
-          font-size: 12px;
-          color: #9a6d65;
           margin-bottom: 5px;
+          color: #64748b;
+          font-size: 12px;
           font-weight: 600;
         }
 
         .valor-item strong {
-          color: #5c2323;
-          font-size: 18px;
+          color: #0f172a;
+          font-size: 17px;
+          line-height: 1.1;
         }
 
         .valor-item.destaque-total {
-          background: linear-gradient(135deg, #fff0ea, #ffe4dc);
-          border-color: #f0cfc3;
+          background: #0f172a;
+          border-color: #0f172a;
+        }
+
+        .valor-item.destaque-total span,
+        .valor-item.destaque-total strong {
+          color: #ffffff;
         }
 
         .meta-box {
           display: grid;
           gap: 8px;
           margin-bottom: 18px;
-          color: #7d5a54;
+          padding: 14px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          color: #475569;
           font-size: 13px;
           word-break: break-word;
-          padding: 14px;
-          background: #fffaf7;
-          border-radius: 16px;
-          border: 1px solid #f2dfd7;
+        }
+
+        .meta-box strong {
+          color: #0f172a;
         }
 
         .rodape-card {
           display: flex;
           justify-content: flex-end;
           align-items: center;
+          margin-top: auto;
         }
 
         .btn-detalhes {
           display: inline-flex;
           align-items: center;
           justify-content: center;
+          gap: 8px;
           text-decoration: none;
-          background: linear-gradient(135deg, #a44a4a, #7a2e2e);
-          color: #fffaf7;
+          background: #0f172a;
+          color: #ffffff;
           border-radius: 14px;
-          padding: 12px 18px;
+          padding: 12px 16px;
           font-weight: 700;
-          box-shadow: 0 10px 24px rgba(164, 74, 74, 0.2);
-          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          transition: transform 0.2s ease, box-shadow 0.2s ease,
+            background 0.2s ease;
+          box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
         }
 
         .btn-detalhes:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 14px 28px rgba(164, 74, 74, 0.28);
+          transform: translateY(-1px);
+          background: #111827;
+          box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16);
         }
 
         @keyframes girar {
@@ -761,11 +853,11 @@ export default function PedidosPage() {
             padding: 18px 12px 36px;
           }
 
-          .hero {
+          .cabecalho {
             padding: 20px;
           }
 
-          .hero h1 {
+          .cabecalho h1 {
             font-size: 28px;
           }
 
@@ -783,6 +875,19 @@ export default function PedidosPage() {
 
           .btn-detalhes {
             width: 100%;
+          }
+
+          .filtros-box {
+            padding: 14px;
+          }
+
+          .campo-busca {
+            min-width: 100%;
+          }
+
+          .contador {
+            width: 100%;
+            text-align: center;
           }
         }
       `}</style>
