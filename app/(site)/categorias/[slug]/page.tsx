@@ -195,13 +195,12 @@ export default function ViewCategoriaSlugPage() {
 
             <section className={styles.grid}>
               {produtosPaginados.map((produto, index) => {
-                const imagemResolvida = produto.imagem_resolvida || imagemFundo(produto.imagem);
+                const imagemResolvida =
+                  produto.imagem_resolvida || imagemFundo(produto.imagem);
+                const href = produto.slug ? `/produto/${produto.slug}` : null;
 
-                return (
-                  <article
-                    key={produto.id_produto || `${produto.slug}-${index}`}
-                    className={styles.card}
-                  >
+                const cardContent = (
+                  <>
                     <div className={styles.imageWrap}>
                       {imagemResolvida ? (
                         <Image
@@ -246,15 +245,27 @@ export default function ViewCategoriaSlugPage() {
 
                       <div className={styles.cardFooter}>
                         <span className={styles.metaText}>Clique para ver detalhes</span>
-
-                        <Link
-                          href={produto.slug ? `/produto/${produto.slug}` : "#"}
-                          className={styles.button}
-                        >
-                          Ver produto
-                        </Link>
+                        <span className={styles.cardActionText}>Ver produto →</span>
                       </div>
                     </div>
+                  </>
+                );
+
+                return href ? (
+                  <Link
+                    key={produto.id_produto || `${produto.slug}-${index}`}
+                    href={href}
+                    className={styles.cardLink}
+                    aria-label={`Ver produto ${produto.nome || ""}`}
+                  >
+                    {cardContent}
+                  </Link>
+                ) : (
+                  <article
+                    key={produto.id_produto || `${produto.slug}-${index}`}
+                    className={`${styles.cardLink} ${styles.cardDisabled}`}
+                  >
+                    {cardContent}
                   </article>
                 );
               })}
@@ -287,9 +298,7 @@ export default function ViewCategoriaSlugPage() {
                 <button
                   type="button"
                   className={styles.pageButton}
-                  onClick={() =>
-                    setPaginaAtual((p) => Math.min(totalPaginas, p + 1))
-                  }
+                  onClick={() => setPaginaAtual((p) => Math.min(totalPaginas, p + 1))}
                   disabled={paginaAtual === totalPaginas}
                 >
                   Próxima
