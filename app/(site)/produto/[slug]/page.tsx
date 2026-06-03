@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useParams } from "next/navigation";
 import {
   FiArrowLeft,
@@ -81,13 +80,11 @@ export default function ViewProdutoSlugPage() {
                     onClick={() => setImagemAtiva(img)}
                     aria-label={`Ver imagem ${index + 1}`}
                   >
-                    <Image
+                    <img
                       src={img}
                       alt={`Miniatura ${index + 1}`}
-                      width={96}
-                      height={96}
                       className={styles.miniaturaImagem}
-                      unoptimized
+                      loading="lazy"
                     />
                   </button>
                 ))}
@@ -99,14 +96,11 @@ export default function ViewProdutoSlugPage() {
 
               <div className={styles.imagem}>
                 {imagemAtiva ? (
-                  <Image
+                  <img
                     src={imagemAtiva}
                     alt={produto.nome || "Produto"}
-                    fill
                     className={styles.imagemPrincipal}
-                    sizes="(max-width: 1100px) 100vw, 55vw"
-                    unoptimized
-                    priority
+                    loading="eager"
                   />
                 ) : (
                   <div className={styles.semImagem}>
@@ -121,9 +115,7 @@ export default function ViewProdutoSlugPage() {
           <div className={styles.info}>
             <div className={styles.metaRow}>
               {produto.categoria_nome && (
-                <span className={styles.categoria}>
-                  {produto.categoria_nome}
-                </span>
+                <span className={styles.categoria}>{produto.categoria_nome}</span>
               )}
 
               {produto.marca && <span className={styles.marca}>{produto.marca}</span>}

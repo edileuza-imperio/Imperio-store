@@ -40,6 +40,15 @@ function extrairMensagemErro(error: any) {
   );
 }
 
+function formatarPreco(valor?: number | null) {
+  if (valor === undefined || valor === null) return null;
+
+  return Number(valor).toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
 export function useProduto(slug: string) {
   const router = useRouter();
 
@@ -48,44 +57,55 @@ export function useProduto(slug: string) {
   const [adicionando, setAdicionando] = useState(false);
   const [imagemAtiva, setImagemAtiva] = useState("");
 
-  const carregarProduto = async () => {
-    try {
-      setLoading(true);
+  useEffect(() => {
+    let ativo = true;
 
-      const response = await api.get(`/produto/slug/${slug}`, {
-        withCredentials: true,
-      });
-
-      const dados = normalizar(response?.data);
-      setProduto(dados);
-    } catch (error: any) {
-      const status = error?.response?.status;
-      const mensagem =
-        error?.response?.data?.erro ||
-        error?.response?.data?.mensagem ||
-        "Não foi possível carregar o produto.";
-
-      if (status === 401 || mensagem === "Faça login para continuar.") {
-        toast.info("Faça login para continuar.");
-        setTimeout(() => {
-          router.push("/login");
-        }, 1200);
+    async function carregarProduto() {
+      if (!slug) {
+        setLoading(false);
+        setProduto(null);
         return;
       }
 
-      toast.error(mensagem);
-      setProduto(null);
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        setLoading(true);
 
-  useEffect(() => {
-    if (slug) {
-      carregarProduto();
+        const response = await api.get(`/produto/slug/${slug}`, {
+          withCredentials: true,
+        });
+
+        const dados = normalizar(response?.data);
+
+        if (!ativo) return;
+        setProduto(dados);
+      } catch (error: any) {
+        const status = error?.response?.status;
+        const mensagem =
+          error?.response?.data?.erro ||
+          error?.response?.data?.mensagem ||
+          "Não foi possível carregar o produto.";
+
+        if (status === 401 || mensagem === "Faça login para continuar.") {
+          toast.info("Faça login para continuar.");
+          setTimeout(() => {
+            router.push("/login");
+          }, 1200);
+          return;
+        }
+
+        toast.error(mensagem);
+        if (ativo) setProduto(null);
+      } finally {
+        if (ativo) setLoading(false);
+      }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]);
+
+    carregarProduto();
+
+    return () => {
+      ativo = false;
+    };
+  }, [slug, router]);
 
   const imagens = useMemo(() => {
     if (!produto) return [];
@@ -166,13 +186,4 @@ export function useProduto(slug: string) {
     adicionarCarrinho,
     formatarPreco,
   };
-}
-
-function formatarPreco(valor?: number | null) {
-  if (valor === undefined || valor === null) return null;
-
-  return Number(valor).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
 }
