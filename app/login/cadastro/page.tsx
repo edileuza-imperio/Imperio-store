@@ -6,6 +6,11 @@ import {
   FaArrowLeft,
   FaShieldAlt,
   FaCheckCircle,
+  FaUser,
+  FaEnvelope,
+  FaPhoneAlt,
+  FaIdCard,
+  FaLock,
 } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -44,20 +49,16 @@ function apenasNumeros(value: string) {
 
 function formatTelefone(value: string) {
   const n = apenasNumeros(value).slice(0, 11);
-
   if (n.length <= 2) return n;
   if (n.length <= 7) return `(${n.slice(0, 2)}) ${n.slice(2)}`;
-
   return `(${n.slice(0, 2)}) ${n.slice(2, 7)}-${n.slice(7)}`;
 }
 
 function formatCpf(value: string) {
   const n = apenasNumeros(value).slice(0, 11);
-
   if (n.length <= 3) return n;
   if (n.length <= 6) return `${n.slice(0, 3)}.${n.slice(3)}`;
   if (n.length <= 9) return `${n.slice(0, 3)}.${n.slice(3, 6)}.${n.slice(6)}`;
-
   return `${n.slice(0, 3)}.${n.slice(3, 6)}.${n.slice(6, 9)}-${n.slice(9)}`;
 }
 
@@ -149,6 +150,10 @@ export default function CadastroPage() {
       };
 
       const { data } = await api.post<CadastroResponse>("/criarusuarios", payload, {
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         withCredentials: true,
       });
 
@@ -184,8 +189,8 @@ export default function CadastroPage() {
             </p>
 
             <div className={styles.features}>
-              <span><FaCheckCircle aria-hidden="true" /> Rápido</span>
-              <span><FaCheckCircle aria-hidden="true" /> Seguro</span>
+              <span><FaCheckCircle aria-hidden="true" /> Cadastro rápido</span>
+              <span><FaCheckCircle aria-hidden="true" /> Dados protegidos</span>
               <span><FaCheckCircle aria-hidden="true" /> Acesso aos pedidos</span>
             </div>
           </div>
@@ -198,7 +203,7 @@ export default function CadastroPage() {
                 onClick={() => router.push("/login")}
               >
                 <FaArrowLeft aria-hidden="true" />
-                voltar
+                Voltar
               </button>
 
               <div className={styles.icon} aria-hidden="true">
@@ -206,77 +211,95 @@ export default function CadastroPage() {
               </div>
 
               <span className={styles.badgeSmall}>nova conta</span>
-              <h2 className={styles.title}>cadastro</h2>
+              <h2 className={styles.title}>Cadastro</h2>
 
               <div className={styles.form}>
-                <input
-                  type="text"
-                  name="nome"
-                  placeholder="Nome completo"
-                  autoComplete="name"
-                  value={form.nome}
-                  onChange={(e) => setField("nome", e.target.value)}
-                  disabled={loading}
-                  required
-                />
+                <label className={styles.field}>
+                  <FaUser className={styles.inputIcon} aria-hidden="true" />
+                  <input
+                    type="text"
+                    name="nome"
+                    placeholder="Nome completo"
+                    autoComplete="name"
+                    value={form.nome}
+                    onChange={(e) => setField("nome", e.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                </label>
 
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="Email"
-                  autoComplete="email"
-                  value={form.email}
-                  onChange={(e) => setField("email", e.target.value)}
-                  disabled={loading}
-                  required
-                />
+                <label className={styles.field}>
+                  <FaEnvelope className={styles.inputIcon} aria-hidden="true" />
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Email"
+                    autoComplete="email"
+                    value={form.email}
+                    onChange={(e) => setField("email", e.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                </label>
 
-                <input
-                  type="tel"
-                  name="telefone"
-                  placeholder="Telefone"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  value={form.telefone}
-                  onChange={(e) => setField("telefone", formatTelefone(e.target.value))}
-                  disabled={loading}
-                />
+                <label className={styles.field}>
+                  <FaPhoneAlt className={styles.inputIcon} aria-hidden="true" />
+                  <input
+                    type="tel"
+                    name="telefone"
+                    placeholder="Telefone"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    value={form.telefone}
+                    onChange={(e) => setField("telefone", formatTelefone(e.target.value))}
+                    disabled={loading}
+                  />
+                </label>
 
-                <input
-                  type="text"
-                  name="cpf"
-                  placeholder="CPF"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  value={form.cpf}
-                  onChange={(e) => setField("cpf", formatCpf(e.target.value))}
-                  disabled={loading}
-                />
+                <label className={styles.field}>
+                  <FaIdCard className={styles.inputIcon} aria-hidden="true" />
+                  <input
+                    type="text"
+                    name="cpf"
+                    placeholder="CPF"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={form.cpf}
+                    onChange={(e) => setField("cpf", formatCpf(e.target.value))}
+                    disabled={loading}
+                  />
+                </label>
 
-                <input
-                  type="password"
-                  name="senha"
-                  placeholder="Senha"
-                  autoComplete="new-password"
-                  value={form.senha}
-                  onChange={(e) => setField("senha", e.target.value)}
-                  disabled={loading}
-                  required
-                />
+                <label className={styles.field}>
+                  <FaLock className={styles.inputIcon} aria-hidden="true" />
+                  <input
+                    type="password"
+                    name="senha"
+                    placeholder="Senha"
+                    autoComplete="new-password"
+                    value={form.senha}
+                    onChange={(e) => setField("senha", e.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                </label>
 
-                <input
-                  type="password"
-                  name="confirmarSenha"
-                  placeholder="Confirmar senha"
-                  autoComplete="new-password"
-                  value={form.confirmarSenha}
-                  onChange={(e) => setField("confirmarSenha", e.target.value)}
-                  disabled={loading}
-                  required
-                />
+                <label className={styles.field}>
+                  <FaLock className={styles.inputIcon} aria-hidden="true" />
+                  <input
+                    type="password"
+                    name="confirmarSenha"
+                    placeholder="Confirmar senha"
+                    autoComplete="new-password"
+                    value={form.confirmarSenha}
+                    onChange={(e) => setField("confirmarSenha", e.target.value)}
+                    disabled={loading}
+                    required
+                  />
+                </label>
 
                 <button type="submit" className={styles.btn} disabled={loading}>
-                  {loading ? "criando conta..." : "criar conta"}
+                  {loading ? "Criando conta..." : "Criar conta"}
                 </button>
 
                 <button
@@ -285,7 +308,7 @@ export default function CadastroPage() {
                   onClick={() => router.push("/login/entra")}
                   disabled={loading}
                 >
-                  já tenho conta
+                  Já tenho conta
                 </button>
               </div>
             </form>
