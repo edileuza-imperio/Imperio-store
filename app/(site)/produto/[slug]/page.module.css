@@ -94,6 +94,7 @@
 }
 
 .miniatura {
+  position: relative;
   width: 104px;
   height: 104px;
   border-radius: 22px;
@@ -111,10 +112,8 @@
 }
 
 .miniaturaImagem {
-  width: 100%;
-  height: 100%;
   object-fit: cover;
-  display: block;
+  object-position: center;
 }
 
 .miniatura:hover {
@@ -152,7 +151,8 @@
 .imagem {
   position: relative;
   width: 100%;
-  min-height: clamp(380px, 58vw, 720px);
+  aspect-ratio: 1 / 1;
+  min-height: 420px;
   border-radius: 32px;
   overflow: hidden;
   background: linear-gradient(180deg, #fffdfb 0%, #fff7f4 100%);
@@ -161,17 +161,15 @@
 }
 
 .imagemPrincipal {
-  width: 100%;
-  height: 100%;
   object-fit: contain;
   object-position: center;
-  display: block;
   padding: 28px;
 }
 
 .semImagem {
   width: 100%;
-  min-height: clamp(380px, 58vw, 720px);
+  height: 100%;
+  min-height: 420px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -619,5 +617,22 @@
 
   .descricao h2 {
     font-size: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voltar,
+  .miniatura,
+  .btnComprar,
+  .btnFavorito,
+  .breadcrumb a {
+    transition: none;
+  }
+
+  .voltar:hover,
+  .miniatura:hover,
+  .btnComprar:hover,
+  .btnFavorito:hover {
+    transform: none;
   }
 }

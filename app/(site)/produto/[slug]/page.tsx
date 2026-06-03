@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import {
@@ -53,15 +54,15 @@ export default function ViewProdutoSlugPage() {
       <div className={styles.container}>
         <div className={styles.topbar}>
           <Link href="/" className={styles.voltar}>
-            <FiArrowLeft />
+            <FiArrowLeft aria-hidden="true" />
             <span>Voltar para loja</span>
           </Link>
 
-          <nav className={styles.breadcrumb}>
+          <nav className={styles.breadcrumb} aria-label="Caminho da página">
             <Link href="/">Home</Link>
-            <FiChevronRight />
+            <FiChevronRight aria-hidden="true" />
             <span>{produto.categoria_nome || "Produto"}</span>
-            <FiChevronRight />
+            <FiChevronRight aria-hidden="true" />
             <strong>{produto.nome}</strong>
           </nav>
         </div>
@@ -80,11 +81,12 @@ export default function ViewProdutoSlugPage() {
                     onClick={() => setImagemAtiva(img)}
                     aria-label={`Ver imagem ${index + 1}`}
                   >
-                    <img
+                    <Image
                       src={img}
-                      alt={`Miniatura ${index + 1}`}
+                      alt={`Miniatura ${index + 1} de ${produto.nome}`}
+                      fill
+                      sizes="104px"
                       className={styles.miniaturaImagem}
-                      loading="lazy"
                     />
                   </button>
                 ))}
@@ -96,15 +98,17 @@ export default function ViewProdutoSlugPage() {
 
               <div className={styles.imagem}>
                 {imagemAtiva ? (
-                  <img
+                  <Image
                     src={imagemAtiva}
                     alt={produto.nome || "Produto"}
+                    fill
+                    priority
+                    sizes="(max-width: 1100px) 100vw, 52vw"
                     className={styles.imagemPrincipal}
-                    loading="eager"
                   />
                 ) : (
                   <div className={styles.semImagem}>
-                    <FiImage />
+                    <FiImage aria-hidden="true" />
                     <span>Sem imagem disponível</span>
                   </div>
                 )}
@@ -115,10 +119,14 @@ export default function ViewProdutoSlugPage() {
           <div className={styles.info}>
             <div className={styles.metaRow}>
               {produto.categoria_nome && (
-                <span className={styles.categoria}>{produto.categoria_nome}</span>
+                <span className={styles.categoria}>
+                  {produto.categoria_nome}
+                </span>
               )}
 
-              {produto.marca && <span className={styles.marca}>{produto.marca}</span>}
+              {produto.marca && (
+                <span className={styles.marca}>{produto.marca}</span>
+              )}
             </div>
 
             <h1 className={styles.titulo}>{produto.nome}</h1>
@@ -128,12 +136,15 @@ export default function ViewProdutoSlugPage() {
             )}
 
             <div className={styles.avaliacao}>
-              <div className={styles.estrelas} aria-label="Avaliação do produto">
-                <FiStar />
-                <FiStar />
-                <FiStar />
-                <FiStar />
-                <FiStar />
+              <div
+                className={styles.estrelas}
+                aria-label="Avaliação visual do produto"
+              >
+                <FiStar aria-hidden="true" />
+                <FiStar aria-hidden="true" />
+                <FiStar aria-hidden="true" />
+                <FiStar aria-hidden="true" />
+                <FiStar aria-hidden="true" />
               </div>
               <span>Produto popular</span>
             </div>
@@ -161,31 +172,35 @@ export default function ViewProdutoSlugPage() {
                     {produto.estoque} em estoque
                   </span>
                 ) : (
-                  <span className={styles.estoqueRuim}>Produto indisponível</span>
+                  <span className={styles.estoqueRuim}>
+                    Produto indisponível
+                  </span>
                 )}
 
-                {temDesconto && <span className={styles.desconto}>Oferta ativa</span>}
+                {temDesconto && (
+                  <span className={styles.desconto}>Oferta ativa</span>
+                )}
               </div>
             </div>
 
             <div className={styles.beneficios}>
               <div className={styles.beneficio}>
-                <FiTruck />
+                <FiTruck aria-hidden="true" />
                 <span>Entrega rápida</span>
               </div>
 
               <div className={styles.beneficio}>
-                <FiShield />
+                <FiShield aria-hidden="true" />
                 <span>Compra 100% segura</span>
               </div>
 
               <div className={styles.beneficio}>
-                <FiCreditCard />
+                <FiCreditCard aria-hidden="true" />
                 <span>Parcelamento disponível</span>
               </div>
 
               <div className={styles.beneficio}>
-                <FiCheckCircle />
+                <FiCheckCircle aria-hidden="true" />
                 <span>Produto verificado</span>
               </div>
             </div>
@@ -197,12 +212,16 @@ export default function ViewProdutoSlugPage() {
                 onClick={adicionarCarrinho}
                 disabled={adicionando}
               >
-                <FiShoppingCart />
+                <FiShoppingCart aria-hidden="true" />
                 <span>{adicionando ? "Adicionando..." : "Comprar agora"}</span>
               </button>
 
-              <button type="button" className={styles.btnFavorito} aria-label="Favoritar">
-                <FiHeart />
+              <button
+                type="button"
+                className={styles.btnFavorito}
+                aria-label="Favoritar"
+              >
+                <FiHeart aria-hidden="true" />
               </button>
             </div>
 
