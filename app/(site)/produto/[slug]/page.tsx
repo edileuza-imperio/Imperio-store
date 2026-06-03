@@ -1,12 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
-import api from "@/Api/conectar";
-import styles from "./page.module.css";
-
+import Image from "next/image";
+import { useParams } from "next/navigation";
 import {
   FiArrowLeft,
   FiShoppingCart,
@@ -20,188 +16,23 @@ import {
   FiChevronRight,
 } from "react-icons/fi";
 
-import { toast } from "react-toastify";
-
-interface Produto {
-  id_produto?: number;
-  nome?: string;
-  slug?: string;
-  descricao?: string;
-  descricao_curta?: string;
-  imagem?: string;
-  miniatura?: string;
-  banner?: string;
-  desktop?: string;
-  mobile?: string;
-  foto?: string;
-  fotos?: string[];
-  imagens?: string[];
-  preco?: number;
-  preco_promocional?: number;
-  estoque?: number;
-  categoria_nome?: string;
-  marca?: string;
-}
-
-function normalizar(payload: any) {
-  return payload?.dados?.dados ?? payload?.dados ?? payload ?? null;
-}
-
-function resolverImagem(src?: string | null) {
-  if (!src) return "";
-
-  const valor = String(src).trim();
-  if (!valor) return "";
-
-  if (
-    valor.startsWith("http://") ||
-    valor.startsWith("https://") ||
-    valor.startsWith("data:image")
-  ) {
-    return valor;
-  }
-
-  const baseURL =
-    typeof api === "string" ? api : (api as any)?.defaults?.baseURL || "";
-
-  if (!baseURL) return valor;
-
-  if (valor.startsWith("/")) {
-    return `${baseURL}${valor}`;
-  }
-
-  return `${baseURL}/${valor}`;
-}
-
-function formatarPreco(valor?: number | null) {
-  if (valor === undefined || valor === null) return null;
-
-  return Number(valor).toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
+import styles from "./page.module.css";
+import { useProduto } from "./useProduto";
 
 export default function ViewProdutoSlugPage() {
   const params = useParams();
-  const router = useRouter();
   const slug = String(params?.slug || "").trim();
 
-  const [loading, setLoading] = useState(true);
-  const [produto, setProduto] = useState<Produto | null>(null);
-  const [adicionando, setAdicionando] = useState(false);
-  const [imagemAtiva, setImagemAtiva] = useState("");
-
-  async function carregarProduto() {
-    try {
-      setLoading(true);
-
-      const response = await api.get(`/produto/slug/${slug}`, {
-        withCredentials: true,
-      });
-
-      const dados = normalizar(response?.data);
-      setProduto(dados);
-    } catch (error: any) {
-      const status = error?.response?.status;
-      const mensagem =
-        error?.response?.data?.erro ||
-        error?.response?.data?.mensagem ||
-        "Não foi possível carregar o produto.";
-
-      if (status === 401 || mensagem === "Faça login para continuar.") {
-        toast.info("Faça login para continuar.");
-        setTimeout(() => {
-          router.push("/login");
-        }, 1200);
-        return;
-      }
-
-      toast.error(mensagem);
-      setProduto(null);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (slug) {
-      carregarProduto();
-    }
-  }, [slug]);
-
-  const imagens = useMemo(() => {
-    if (!produto) return [];
-
-    const listaBase = [
-      produto.imagem,
-      produto.miniatura,
-      produto.banner,
-      produto.desktop,
-      produto.mobile,
-      produto.foto,
-      ...(Array.isArray(produto.imagens) ? produto.imagens : []),
-      ...(Array.isArray(produto.fotos) ? produto.fotos : []),
-    ];
-
-    const resolvidas = listaBase
-      .map((src) => resolverImagem(src || ""))
-      .filter(Boolean);
-
-    return Array.from(new Set(resolvidas));
-  }, [produto]);
-
-  useEffect(() => {
-    if (imagens.length > 0) {
-      setImagemAtiva(imagens[0]);
-    } else {
-      setImagemAtiva("");
-    }
-  }, [imagens]);
-
-  async function adicionarCarrinho() {
-    if (!produto?.id_produto) {
-      toast.error("Produto inválido.");
-      return;
-    }
-
-    try {
-      setAdicionando(true);
-
-      await api.post(
-        "/carrinho/adicionar",
-        {
-          produto_id: produto.id_produto,
-          quantidade: 1,
-        },
-        {
-          withCredentials: true,
-        }
-      );
-
-      toast.success("Produto adicionado ao carrinho.");
-    } catch (error: any) {
-      const status = error?.response?.status;
-      const mensagem =
-        error?.response?.data?.erro ||
-        error?.response?.data?.mensagem ||
-        "Não foi possível adicionar o produto.";
-
-      if (status === 401 || mensagem === "Faça login para continuar.") {
-        toast.info("Faça login para continuar.");
-
-        setTimeout(() => {
-          router.push("/login");
-        }, 1200);
-
-        return;
-      }
-
-      toast.error(mensagem);
-    } finally {
-      setAdicionando(false);
-    }
-  }
+  const {
+    loading,
+    produto,
+    adicionando,
+    imagens,
+    imagemAtiva,
+    setImagemAtiva,
+    adicionarCarrinho,
+    formatarPreco,
+  } = useProduto(slug);
 
   if (loading) {
     return <div className={styles.loading}>Carregando produto...</div>;
@@ -290,7 +121,9 @@ export default function ViewProdutoSlugPage() {
           <div className={styles.info}>
             <div className={styles.metaRow}>
               {produto.categoria_nome && (
-                <span className={styles.categoria}>{produto.categoria_nome}</span>
+                <span className={styles.categoria}>
+                  {produto.categoria_nome}
+                </span>
               )}
 
               {produto.marca && <span className={styles.marca}>{produto.marca}</span>}
@@ -328,7 +161,9 @@ export default function ViewProdutoSlugPage() {
 
               <div className={styles.precoInfo}>
                 {emEstoque === null ? (
-                  <span className={styles.estoqueNeutro}>Estoque não informado</span>
+                  <span className={styles.estoqueNeutro}>
+                    Estoque não informado
+                  </span>
                 ) : emEstoque ? (
                   <span className={styles.estoqueOk}>
                     {produto.estoque} em estoque
