@@ -9,12 +9,11 @@ import {
   ShoppingBag,
   CreditCard,
   CalendarDays,
-  Receipt,
-  Wallet,
-  Truck,
-  BadgeDollarSign,
   ArrowRight,
-  CircleDollarSign,
+  CheckCircle2,
+  Clock3,
+  Truck,
+  XCircle,
   TimerReset,
 } from "lucide-react";
 import api from "@/Api/conectar";
@@ -105,6 +104,30 @@ function getStatusClass(status?: string | null): string {
   return "pendente";
 }
 
+function getEtapaPedido(status?: string | null): number {
+  const valor = (status || "").toLowerCase();
+
+  if (valor === "approved" || valor === "aprovado") return 2;
+  if (valor === "in_process") return 1;
+  if (valor === "rejected" || valor === "recusado" || valor === "cancelled" || valor === "cancelado")
+    return 0;
+
+  return 1;
+}
+
+function getEtapaTexto(etapa: number): string {
+  if (etapa === 0) return "Pedido recebido";
+  if (etapa === 1) return "Pagamento em análise";
+  if (etapa === 2) return "Pagamento aprovado";
+  return "Pedido recebido";
+}
+
+function getEtapaIcone(etapa: number) {
+  if (etapa === 0) return <Clock3 size={16} />;
+  if (etapa === 1) return <TimerReset size={16} />;
+  return <CheckCircle2 size={16} />;
+}
+
 export default function PedidosPage() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -150,38 +173,34 @@ export default function PedidosPage() {
         pedido.status_pagamento
       ).toLowerCase();
       const metodo = String(pedido.metodo_pagamento || "").toLowerCase();
-      const referencia = String(pedido.external_reference || "").toLowerCase();
       const detail = String(pedido.status_detail || "").toLowerCase();
+      const criado = String(pedido.criado_em || "").toLowerCase();
 
       return (
         codigo.includes(termo) ||
         statusPagamento.includes(termo) ||
         metodo.includes(termo) ||
-        referencia.includes(termo) ||
-        detail.includes(termo)
+        detail.includes(termo) ||
+        criado.includes(termo)
       );
     });
   }, [pedidos, busca]);
 
   const totalPedidos = pedidosFiltrados.length;
 
-  const totalVendas = pedidosFiltrados.reduce((acc, pedido) => {
-    return acc + toNumber(pedido.valor_total);
-  }, 0);
-
-  const totalFrete = pedidosFiltrados.reduce((acc, pedido) => {
-    return acc + toNumber(pedido.valor_frete);
-  }, 0);
-
-  const totalDescontos = pedidosFiltrados.reduce((acc, pedido) => {
-    return acc + toNumber(pedido.valor_desconto);
-  }, 0);
-
-  const ticketMedio = totalPedidos > 0 ? totalVendas / totalPedidos : 0;
-
   const pedidosAprovados = pedidosFiltrados.filter((pedido) => {
     const status = (pedido.status_pagamento || "").toLowerCase();
     return status === "approved" || status === "aprovado";
+  }).length;
+
+  const pedidosPendentes = pedidosFiltrados.filter((pedido) => {
+    const status = (pedido.status_pagamento || "").toLowerCase();
+    return status === "pending" || status === "pendente" || status === "in_process";
+  }).length;
+
+  const pedidosCancelados = pedidosFiltrados.filter((pedido) => {
+    const status = (pedido.status_pagamento || "").toLowerCase();
+    return status === "rejected" || status === "recusado" || status === "cancelled" || status === "cancelado";
   }).length;
 
   return (
@@ -189,11 +208,11 @@ export default function PedidosPage() {
       <main className="pagina-pedidos">
         <section className="cabecalho">
           <div className="cabecalho-texto">
-            <span className="tag">Painel de pedidos</span>
-            <h1>Gestão de pedidos da loja</h1>
+            <span className="tag">Minha conta</span>
+            <h1>Meus pedidos</h1>
             <p>
-              Acompanhe status, pagamento, valores e evolução dos pedidos em
-              uma interface limpa, moderna e fácil de ler.
+              Acompanhe suas compras, veja o andamento do pagamento e acesse
+              os detalhes de cada pedido com facilidade.
             </p>
           </div>
 
@@ -203,7 +222,7 @@ export default function PedidosPage() {
             onClick={carregarPedidos}
           >
             <RefreshCw size={18} />
-            Atualizar pedidos
+            Atualizar
           </button>
         </section>
 
@@ -220,51 +239,33 @@ export default function PedidosPage() {
 
           <article className="card-resumo">
             <div className="icone-wrap">
-              <BadgeDollarSign size={20} />
+              <CheckCircle2 size={20} />
             </div>
             <div>
-              <span>Total vendido</span>
-              <strong>{formatarMoeda(totalVendas)}</strong>
-            </div>
-          </article>
-
-          <article className="card-resumo">
-            <div className="icone-wrap">
-              <CircleDollarSign size={20} />
-            </div>
-            <div>
-              <span>Ticket médio</span>
-              <strong>{formatarMoeda(ticketMedio)}</strong>
-            </div>
-          </article>
-
-          <article className="card-resumo">
-            <div className="icone-wrap">
-              <Truck size={20} />
-            </div>
-            <div>
-              <span>Total de frete</span>
-              <strong>{formatarMoeda(totalFrete)}</strong>
-            </div>
-          </article>
-        </section>
-
-        <section className="resumo-secundario">
-          <div className="mini-card">
-            <TimerReset size={18} />
-            <div>
-              <span>Pedidos aprovados</span>
+              <span>Pagamentos aprovados</span>
               <strong>{pedidosAprovados}</strong>
             </div>
-          </div>
+          </article>
 
-          <div className="mini-card">
-            <Wallet size={18} />
-            <div>
-              <span>Total de descontos</span>
-              <strong>{formatarMoeda(totalDescontos)}</strong>
+          <article className="card-resumo">
+            <div className="icone-wrap">
+              <Clock3 size={20} />
             </div>
-          </div>
+            <div>
+              <span>Em aberto</span>
+              <strong>{pedidosPendentes}</strong>
+            </div>
+          </article>
+
+          <article className="card-resumo">
+            <div className="icone-wrap">
+              <XCircle size={20} />
+            </div>
+            <div>
+              <span>Cancelados</span>
+              <strong>{pedidosCancelados}</strong>
+            </div>
+          </article>
         </section>
 
         <section className="filtros-box">
@@ -272,7 +273,7 @@ export default function PedidosPage() {
             <Search size={18} />
             <input
               type="text"
-              placeholder="Buscar por código, pagamento, referência ou detalhe..."
+              placeholder="Buscar pedido, forma de pagamento, status ou data..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
@@ -284,8 +285,8 @@ export default function PedidosPage() {
         {loading && (
           <section className="estado loading">
             <div className="loader" />
-            <h3>Carregando pedidos</h3>
-            <p>Aguarde enquanto buscamos os pedidos da loja.</p>
+            <h3>Carregando seus pedidos</h3>
+            <p>Estamos buscando o histórico das suas compras.</p>
           </section>
         )}
 
@@ -300,7 +301,7 @@ export default function PedidosPage() {
           <section className="estado vazio">
             <Package size={42} />
             <h3>Nenhum pedido encontrado</h3>
-            <p>Quando houver pedidos, eles aparecerão aqui.</p>
+            <p>Quando você fizer uma compra, ela vai aparecer aqui.</p>
           </section>
         )}
 
@@ -316,6 +317,7 @@ export default function PedidosPage() {
               const statusPagamento = getStatusPagamentoTexto(
                 pedido.status_pagamento
               );
+              const etapa = getEtapaPedido(pedido.status_pagamento);
 
               return (
                 <article key={id} className="card-pedido">
@@ -334,29 +336,59 @@ export default function PedidosPage() {
                     </span>
                   </div>
 
-                  <div className="info-lista">
-                    <div className="info-item">
-                      <Receipt size={16} />
-                      <span>Status ID: {pedido.status_id ?? "-"}</span>
-                    </div>
-
-                    <div className="info-item">
-                      <CreditCard size={16} />
-                      <span>
-                        {pedido.metodo_pagamento || "Método não informado"}
+                  <div className="timeline">
+                    <div className={`step ${etapa >= 0 ? "ativo" : ""}`}>
+                      <span className="step-icone">
+                        <ShoppingBag size={16} />
                       </span>
+                      <div>
+                        <strong>Pedido feito</strong>
+                        <small>{formatarData(pedido.criado_em)}</small>
+                      </div>
                     </div>
 
-                    <div className="info-item">
-                      <CalendarDays size={16} />
-                      <span>Criado em: {formatarData(pedido.criado_em)}</span>
-                    </div>
+                    <div className={`linha ${etapa >= 1 ? "ativo" : ""}`} />
 
-                    <div className="info-item">
-                      <CalendarDays size={16} />
-                      <span>
-                        Aprovação: {formatarData(pedido.data_aprovacao)}
+                    <div className={`step ${etapa >= 1 ? "ativo" : ""}`}>
+                      <span className="step-icone">
+                        {getEtapaIcone(etapa)}
                       </span>
+                      <div>
+                        <strong>{getEtapaTexto(etapa)}</strong>
+                        <small>
+                          {pedido.status_detail || "Aguardando atualização"}
+                        </small>
+                      </div>
+                    </div>
+
+                    <div className={`linha ${etapa >= 2 ? "ativo" : ""}`} />
+
+                    <div className={`step ${etapa >= 2 ? "ativo" : ""}`}>
+                      <span className="step-icone">
+                        <Truck size={16} />
+                      </span>
+                      <div>
+                        <strong>Próxima etapa</strong>
+                        <small>Envio e entrega</small>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="resumo-pedido">
+                    <div className="resumo-linha">
+                      <span>Forma de pagamento</span>
+                      <strong>
+                        <CreditCard size={15} />
+                        {pedido.metodo_pagamento || "Não informado"}
+                      </strong>
+                    </div>
+
+                    <div className="resumo-linha">
+                      <span>Data do pedido</span>
+                      <strong>
+                        <CalendarDays size={15} />
+                        {formatarData(pedido.criado_em)}
+                      </strong>
                     </div>
                   </div>
 
@@ -382,25 +414,6 @@ export default function PedidosPage() {
                     </div>
                   </div>
 
-                  <div className="meta-box">
-                    <span>
-                      <strong>Payment ID:</strong>{" "}
-                      {pedido.payment_id || "Não informado"}
-                    </span>
-                    <span>
-                      <strong>Preference ID:</strong>{" "}
-                      {pedido.preference_id || "Não informado"}
-                    </span>
-                    <span>
-                      <strong>Referência:</strong>{" "}
-                      {pedido.external_reference || "Não informada"}
-                    </span>
-                    <span>
-                      <strong>Detalhe:</strong>{" "}
-                      {pedido.status_detail || "Não informado"}
-                    </span>
-                  </div>
-
                   <div className="rodape-card">
                     <Link href={`/Pedidos/${id}`} className="btn-detalhes">
                       Ver detalhes
@@ -422,7 +435,7 @@ export default function PedidosPage() {
 
         .pagina-pedidos {
           width: 100%;
-          max-width: 1320px;
+          max-width: 1240px;
           margin: 0 auto;
           padding: 28px 20px 52px;
         }
@@ -500,7 +513,7 @@ export default function PedidosPage() {
           display: grid;
           grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
           gap: 16px;
-          margin-bottom: 16px;
+          margin-bottom: 20px;
         }
 
         .card-resumo {
@@ -526,8 +539,7 @@ export default function PedidosPage() {
           flex-shrink: 0;
         }
 
-        .card-resumo span,
-        .mini-card span {
+        .card-resumo span {
           display: block;
           margin-bottom: 4px;
           color: #64748b;
@@ -535,35 +547,10 @@ export default function PedidosPage() {
           font-weight: 600;
         }
 
-        .card-resumo strong,
-        .mini-card strong {
+        .card-resumo strong {
           font-size: 22px;
           color: #0f172a;
           line-height: 1.1;
-        }
-
-        .resumo-secundario {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 16px;
-          margin-bottom: 20px;
-        }
-
-        .mini-card {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 18px 20px;
-          border: 1px solid #e5e7eb;
-          border-radius: 18px;
-          background: #ffffff;
-          color: #0f172a;
-          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.03);
-        }
-
-        .mini-card :global(svg) {
-          color: #475569;
-          flex-shrink: 0;
         }
 
         .filtros-box {
@@ -736,26 +723,104 @@ export default function PedidosPage() {
           border-color: #bfdbfe;
         }
 
-        .info-lista {
+        .timeline {
           display: grid;
           gap: 10px;
           margin-bottom: 18px;
-          padding-bottom: 18px;
-          border-bottom: 1px solid #eef2f7;
+          padding: 16px;
+          background: #f8fafc;
+          border: 1px solid #e2e8f0;
+          border-radius: 18px;
         }
 
-        .info-item {
+        .step {
           display: flex;
+          gap: 12px;
+          align-items: flex-start;
+          opacity: 0.55;
+        }
+
+        .step.ativo {
+          opacity: 1;
+        }
+
+        .step-icone {
+          width: 34px;
+          height: 34px;
+          border-radius: 12px;
+          display: inline-flex;
           align-items: center;
-          gap: 10px;
+          justify-content: center;
+          flex-shrink: 0;
+          background: #e2e8f0;
           color: #475569;
+        }
+
+        .step.ativo .step-icone {
+          background: #0f172a;
+          color: #ffffff;
+        }
+
+        .step strong {
+          display: block;
           font-size: 14px;
+          color: #0f172a;
+          margin-bottom: 2px;
+        }
+
+        .step small {
+          display: block;
+          color: #64748b;
+          font-size: 12px;
           line-height: 1.5;
         }
 
-        .info-item :global(svg) {
+        .linha {
+          height: 14px;
+          width: 2px;
+          margin-left: 16px;
+          background: #cbd5e1;
+          border-radius: 999px;
+          opacity: 0.75;
+        }
+
+        .linha.ativo {
+          background: #0f172a;
+          opacity: 1;
+        }
+
+        .resumo-pedido {
+          display: grid;
+          gap: 10px;
+          margin-bottom: 18px;
+        }
+
+        .resumo-linha {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 14px;
+          background: #ffffff;
+          border: 1px solid #eef2f7;
+          border-radius: 14px;
+          color: #475569;
+          font-size: 13px;
+        }
+
+        .resumo-linha span {
           color: #64748b;
-          flex-shrink: 0;
+          white-space: nowrap;
+        }
+
+        .resumo-linha strong {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          color: #0f172a;
+          font-size: 13px;
+          text-align: right;
+          word-break: break-word;
         }
 
         .valores {
@@ -794,23 +859,6 @@ export default function PedidosPage() {
         .valor-item.destaque-total span,
         .valor-item.destaque-total strong {
           color: #ffffff;
-        }
-
-        .meta-box {
-          display: grid;
-          gap: 8px;
-          margin-bottom: 18px;
-          padding: 14px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 16px;
-          color: #475569;
-          font-size: 13px;
-          word-break: break-word;
-        }
-
-        .meta-box strong {
-          color: #0f172a;
         }
 
         .rodape-card {
@@ -888,6 +936,19 @@ export default function PedidosPage() {
           .contador {
             width: 100%;
             text-align: center;
+          }
+
+          .resumo-linha {
+            flex-direction: column;
+            align-items: flex-start;
+          }
+
+          .resumo-linha strong {
+            text-align: left;
+          }
+
+          .card-header {
+            flex-direction: column;
           }
         }
       `}</style>
