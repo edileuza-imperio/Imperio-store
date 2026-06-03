@@ -5,75 +5,15 @@ import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
-import api, { InicioApi } from "@/services/api/api";
 import styles from "./page.module.css";
-
-type Categoria = {
-  id_categoria?: number;
-  nome?: string;
-  slug?: string;
-  icone?: string;
-  descricao?: string;
-  imagem?: string;
-};
-
-type Produto = {
-  id_produto?: number;
-  nome?: string;
-  slug?: string;
-  descricao?: string;
-  preco?: number | string;
-  preco_promocional?: number | string;
-  imagem?: string;
-};
-
-type ApiResponse = {
-  status?: number;
-  mensagem?: string;
-  dados?: {
-    status?: number;
-    mensagem?: string;
-    categoria?: Categoria;
-    dados?: Produto[];
-  };
-};
-
-function resolverImagem(src?: string | null) {
-  if (!src) return "";
-
-  const valor = String(src).trim();
-  if (!valor) return "";
-
-  if (
-    valor.startsWith("http://") ||
-    valor.startsWith("https://") ||
-    valor.startsWith("data:image")
-  ) {
-    return valor;
-  }
-
-  const baseURL =
-    process.env.NEXT_PUBLIC_API_URL ||
-    (api as any)?.defaults?.baseURL ||
-    "";
-
-  if (!baseURL) return valor;
-
-  if (valor.startsWith("/")) {
-    return `${baseURL}${valor}`;
-  }
-
-  return `${baseURL}/${valor}`;
-}
+import { imagemFundo } from "@/components/Bibioteca/imagem";
+import { useCategoria } from "./useCategoria";
 
 export default function ViewCategoriaSlugPage() {
   const params = useParams();
   const slugParam = String(params?.slug || "").trim().toLowerCase();
 
-  const [categoria, setCategoria] = useState<Categoria | null>(null);
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [erro, setErro] = useState(false);
+  const { categoria, produtos, loading, erro } = useCategoria(slugParam);
 
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [ordenacao, setOrdenacao] = useState("recentes");
@@ -81,41 +21,8 @@ export default function ViewCategoriaSlugPage() {
   const produtosPorPagina = 10;
 
   useEffect(() => {
-    async function carregarDados() {
-      if (!slugParam) return;
-
-      try {
-        setLoading(true);
-        setErro(false);
-
-        const response = await InicioApi.get<ApiResponse>(
-          `/produtos/categoria/slug/${slugParam}`
-        );
-
-        const categoriaApi = response?.data?.dados?.categoria || null;
-
-        const produtosApi = Array.isArray(response?.data?.dados?.dados)
-          ? response.data.dados.dados
-          : [];
-
-        setCategoria(categoriaApi);
-        setProdutos(produtosApi);
-        setPaginaAtual(1);
-      } catch {
-        setErro(true);
-        setCategoria(null);
-        setProdutos([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    carregarDados();
-  }, [slugParam]);
-
-  useEffect(() => {
     setPaginaAtual(1);
-  }, [ordenacao]);
+  }, [ordenacao, produtos]);
 
   const formatarPreco = (valor?: number | string) => {
     if (valor === undefined || valor === null || valor === "") return "Sob consulta";
@@ -171,6 +78,8 @@ export default function ViewCategoriaSlugPage() {
     categoria?.descricao ||
     "Explore os produtos desta categoria com uma experiência visual mais refinada, leve e moderna.";
 
+  const imagemCategoria = imagemFundo(categoria?.imagem);
+
   return (
     <main className={styles.page}>
       <div className={styles.container}>
@@ -199,7 +108,7 @@ export default function ViewCategoriaSlugPage() {
         {!loading && erro && (
           <div className={styles.stateBox}>
             <h2>Não foi possível carregar</h2>
-            <p>Houve um problema ao buscar os dados da categoria.</p>
+            <p>{erro}</p>
             <Link href="/categorias" className={styles.backLink}>
               Voltar para categorias
             </Link>
@@ -211,6 +120,7 @@ export default function ViewCategoriaSlugPage() {
             <section className={styles.hero}>
               <div className={styles.heroBgOne} />
               <div className={styles.heroBgTwo} />
+
               <div className={styles.heroGrid}>
                 <div className={styles.heroMain}>
                   <span className={styles.badge}>Universo Império</span>
@@ -228,25 +138,32 @@ export default function ViewCategoriaSlugPage() {
                 </div>
 
                 <div className={styles.heroAside}>
+                  {imagemCategoria ? (
+                    <div className={styles.heroImageWrap}>
+                      <Image
+                        src={imagemCategoria}
+                        alt={categoria.nome || "Categoria"}
+                        fill
+                        className={styles.heroImage}
+                        unoptimized
+                        sizes="(max-width: 768px) 100vw, 320px"
+                      />
+                    </div>
+                  ) : null}
+
                   <div className={styles.statCard}>
                     <span className={styles.statValue}>{produtos.length}</span>
-                    <span className={styles.statLabel}>
-                      produtos encontrados
-                    </span>
+                    <span className={styles.statLabel}>produtos encontrados</span>
                   </div>
 
                   <div className={styles.statCard}>
                     <span className={styles.statValue}>{totalPaginas}</span>
-                    <span className={styles.statLabel}>
-                      páginas de navegação
-                    </span>
+                    <span className={styles.statLabel}>páginas de navegação</span>
                   </div>
 
                   <div className={styles.statCard}>
                     <span className={styles.statValue}>Premium</span>
-                    <span className={styles.statLabel}>
-                      apresentação visual
-                    </span>
+                    <span className={styles.statLabel}>apresentação visual</span>
                   </div>
                 </div>
               </div>
@@ -278,7 +195,7 @@ export default function ViewCategoriaSlugPage() {
 
             <section className={styles.grid}>
               {produtosPaginados.map((produto, index) => {
-                const imagemResolvida = resolverImagem(produto.imagem);
+                const imagemResolvida = produto.imagem_resolvida || imagemFundo(produto.imagem);
 
                 return (
                   <article
@@ -328,9 +245,7 @@ export default function ViewCategoriaSlugPage() {
                       </p>
 
                       <div className={styles.cardFooter}>
-                        <span className={styles.metaText}>
-                          Clique para ver detalhes
-                        </span>
+                        <span className={styles.metaText}>Clique para ver detalhes</span>
 
                         <Link
                           href={produto.slug ? `/produto/${produto.slug}` : "#"}
