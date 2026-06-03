@@ -1,6 +1,5 @@
 /* NavbarHeader.module.css */
 
-
 .header {
   position: sticky;
   top: 0;
@@ -12,7 +11,8 @@
   border-bottom: 1px solid #efe7e2;
   transition: 0.3s ease;
   color: #2b2b2b;
-  overflow-x: clip;
+  overflow: visible;
+  isolation: isolate;
 }
 
 .headerScrolled {
@@ -30,7 +30,7 @@
   gap: 16px;
   padding: 0 clamp(12px, 2vw, 32px);
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .brand {
@@ -152,6 +152,13 @@
   min-width: 0;
 }
 
+/* importante para o dropdown ficar por cima */
+.userDropdown,
+.mobileUserDropdown {
+  position: relative;
+  z-index: 2000;
+}
+
 .iconBtn {
   height: 48px;
   display: flex;
@@ -262,11 +269,6 @@
   white-space: nowrap;
 }
 
-.userDropdown {
-  position: relative;
-  min-width: 0;
-}
-
 .userBtn {
   height: 52px;
   display: flex;
@@ -324,18 +326,19 @@
   color: #222;
 }
 
+/* dropdown corrigido */
 .dropdownMenu {
   position: absolute;
-  top: 62px;
+  top: calc(100% + 12px);
   right: 0;
   width: 240px;
   background: #fff;
   border-radius: 18px;
   border: 1px solid #ece5df;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
   padding: 10px;
-  z-index: 999;
-  overflow: hidden;
+  z-index: 5000;
+  overflow: visible;
 }
 
 .dropdownItem {
@@ -363,6 +366,7 @@
 
 .mobileNavbar {
   display: none;
+  overflow: visible;
 }
 
 .mobileSearch {
@@ -609,7 +613,9 @@
     gap: 8px;
     padding: 0 12px;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: visible;
+    position: relative;
+    z-index: 1001;
   }
 
   .hamburger {
@@ -696,6 +702,7 @@
 
   .mobileUserDropdown {
     position: relative;
+    z-index: 2000;
     min-width: 0;
   }
 
@@ -736,17 +743,17 @@
 
   .mobileDropdown {
     position: absolute;
-    top: 52px;
+    top: calc(100% + 12px);
     right: 0;
     width: 220px;
     max-width: calc(100vw - 24px);
     background: #fff;
     border-radius: 16px;
     border: 1px solid #ece5df;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.12);
     padding: 10px;
-    z-index: 999;
-    overflow: hidden;
+    z-index: 5000;
+    overflow: visible;
   }
 
   .mobileDropdownItem {
@@ -773,6 +780,7 @@
   .mobileSearch {
     display: block;
     padding: 0 12px 14px 12px;
+    overflow: visible;
   }
 
   .mobileSearch .searchBar {

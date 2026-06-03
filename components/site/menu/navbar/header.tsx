@@ -40,7 +40,9 @@ function getIcon(name?: string | null, size = 16) {
   const iconName = (name ?? "").trim();
   if (!iconName) return null;
 
-  const Icon = (FiIcons as any)[iconName] || (BiIcons as any)[iconName];
+  const Icon =
+    (FiIcons as any)[iconName] || (BiIcons as any)[iconName];
+
   if (!Icon) return null;
 
   return <Icon size={size} aria-hidden="true" focusable="false" />;
