@@ -282,14 +282,7 @@ export default function PagamentoPage() {
           </div>
 
           <div className={styles.userBox}>
-            <div className={styles.avatar}>
-              <img
-                src="/img/user.png"
-                alt="Usuário"
-                width="70"
-                height="70"
-              />
-            </div>
+           
 
             <div className={styles.userData}>
               <strong>
