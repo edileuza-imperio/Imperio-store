@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import api from "@/Api/conectar";
 
 
+
 import { FiHeart } from "react-icons/fi";
 import { FiShoppingCart } from "react-icons/fi";
 import { FiCreditCard } from "react-icons/fi";
@@ -12,7 +13,8 @@ import { FiShield } from "react-icons/fi";
 import { FiTruck } from "react-icons/fi";
 import { FiRefreshCcw } from "react-icons/fi";
 import { FiStar } from "react-icons/fi";
-
+import { imagemFundo } from "@/components/Bibioteca/imagem";
+import { useCarrinho } from "./useCarrinho";
 
 type Produto = {
   id?: number | string;
@@ -39,35 +41,6 @@ function normalizarDados<T = any>(payload: any): T | null {
   return payload?.dados?.dados ?? payload?.dados ?? payload ?? null;
 }
 
-function resolverImagem(src?: string | null) {
-  if (!src) return "";
-
-  const valor = String(src).trim();
-  if (!valor) return "";
-
-  if (
-    valor.startsWith("http://") ||
-    valor.startsWith("https://") ||
-    valor.startsWith("data:image") ||
-    valor.startsWith("blob:")
-  ) {
-    return valor;
-  }
-
-  const baseURL =
-    typeof api === "string"
-      ? api
-      : (api as any)?.defaults?.baseURL || "";
-
-  if (!baseURL) return valor;
-
-  if (valor.startsWith("/")) {
-    return `${baseURL}${valor}`;
-  }
-
-  return `${baseURL}/${valor}`;
-}
-
 function montarGaleria(produto?: Produto | null) {
   const imagensBrutas = [
     produto?.miniatura,
@@ -78,9 +51,7 @@ function montarGaleria(produto?: Produto | null) {
     produto?.mobile,
   ];
 
-  const imagensResolvidas = imagensBrutas
-    .map((img) => resolverImagem(img))
-    .filter(Boolean);
+  const imagensResolvidas = imagensBrutas.map(imagemFundo).filter(Boolean);
 
   return [...new Set(imagensResolvidas)];
 }
@@ -105,8 +76,12 @@ function calcularDesconto(
   const promocional = Number(precoPromocional);
 
   if (
-    !preco ||
-    !precoPromocional ||
+    preco === null ||
+    preco === undefined ||
+    preco === "" ||
+    precoPromocional === null ||
+    precoPromocional === undefined ||
+    precoPromocional === "" ||
     Number.isNaN(original) ||
     Number.isNaN(promocional) ||
     original <= 0 ||
@@ -132,6 +107,9 @@ export default function VisualizarProdutoDaVitrine() {
   const [produto, setProduto] = useState<Produto | null>(null);
   const [favoritado, setFavoritado] = useState(false);
   const [imagemSelecionada, setImagemSelecionada] = useState("");
+  const [adicionandoCarrinho, setAdicionandoCarrinho] = useState(false);
+
+  const { adicionarProduto } = useCarrinho();
 
   useEffect(() => {
     let ativo = true;
@@ -186,8 +164,19 @@ export default function VisualizarProdutoDaVitrine() {
   const precoOriginal = produto?.preco_promocional ? produto?.preco : null;
   const desconto = calcularDesconto(produto?.preco, produto?.preco_promocional);
 
-  function handleAdicionarCarrinho() {
-    console.log("Adicionar ao carrinho:", produto);
+  async function handleAdicionarCarrinho() {
+    const produtoId = Number(produto?.id || produto?.id_produto);
+
+    if (!produtoId || Number.isNaN(produtoId)) return;
+
+    try {
+      setAdicionandoCarrinho(true);
+      await adicionarProduto(produtoId, 1);
+    } catch (error) {
+      console.error("Erro ao adicionar no carrinho:", error);
+    } finally {
+      setAdicionandoCarrinho(false);
+    }
   }
 
   function handleComprarAgora() {
@@ -201,8 +190,6 @@ export default function VisualizarProdutoDaVitrine() {
 
   return (
     <>
-      
-
       <section className="produto-visualizar-page">
         <div className="bg-decor bg-decor-top" />
         <div className="bg-decor bg-decor-bottom" />
@@ -229,8 +216,12 @@ export default function VisualizarProdutoDaVitrine() {
                   type="button"
                   className={`btn-favorito-flutuante ${favoritado ? "ativo" : ""}`}
                   onClick={handleFavoritar}
-                  aria-label={favoritado ? "Remover dos favoritos" : "Adicionar aos favoritos"}
-                  title={favoritado ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+                  aria-label={
+                    favoritado ? "Remover dos favoritos" : "Adicionar aos favoritos"
+                  }
+                  title={
+                    favoritado ? "Remover dos favoritos" : "Adicionar aos favoritos"
+                  }
                 >
                   <FiHeart />
                 </button>
@@ -249,7 +240,9 @@ export default function VisualizarProdutoDaVitrine() {
                         >
                           <img
                             src={imagem}
-                            alt={`${produto.nome || produto.titulo || "Produto"} ${index + 1}`}
+                            alt={`${produto.nome || produto.titulo || "Produto"} ${
+                              index + 1
+                            }`}
                             className="miniatura-imagem"
                           />
                         </button>
@@ -354,9 +347,12 @@ export default function VisualizarProdutoDaVitrine() {
                     type="button"
                     className="btn-principal"
                     onClick={handleAdicionarCarrinho}
+                    disabled={adicionandoCarrinho}
                   >
                     <FiShoppingCart className="btn-icon" />
-                    <span>Adicionar ao carrinho</span>
+                    <span>
+                      {adicionandoCarrinho ? "Adicionando..." : "Adicionar ao carrinho"}
+                    </span>
                   </button>
 
                   <button
@@ -527,7 +523,8 @@ export default function VisualizarProdutoDaVitrine() {
             0 14px 30px rgba(143, 82, 99, 0.16),
             inset 0 1px 0 rgba(255, 255, 255, 0.85);
           backdrop-filter: blur(10px);
-          transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease, color 0.25s ease;
+          transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease,
+            color 0.25s ease;
         }
 
         .btn-favorito-flutuante:hover {
@@ -820,6 +817,11 @@ export default function VisualizarProdutoDaVitrine() {
           font-size: 15px;
         }
 
+        .btn-principal:disabled {
+          opacity: 0.75;
+          cursor: not-allowed;
+        }
+
         .btn-icon {
           font-size: 18px;
         }
@@ -830,7 +832,7 @@ export default function VisualizarProdutoDaVitrine() {
           box-shadow: 0 16px 32px rgba(154, 84, 101, 0.22);
         }
 
-        .btn-principal:hover {
+        .btn-principal:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 18px 36px rgba(154, 84, 101, 0.28);
         }
