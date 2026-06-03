@@ -238,7 +238,7 @@ export default function VisualizarProdutoDaVitrine() {
       }
 
       timerRedirecionamento.current = window.setTimeout(() => {
-        router.push("/carrinho");
+        router.push("/Carrinho");
       }, 900);
     } catch (error) {
       console.error("Erro ao adicionar no carrinho:", error);
