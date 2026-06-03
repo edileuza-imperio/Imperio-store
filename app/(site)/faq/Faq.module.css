@@ -1,0 +1,91 @@
+.page {
+  min-height: 100vh;
+  background: #fff8f6;
+  padding: 80px 0;
+}
+
+.container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: rgba(200, 109, 125, 0.12);
+  color: #b45568;
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 16px;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(36px, 5vw, 58px);
+  color: #392525;
+  line-height: 1.1;
+}
+
+.subtitle {
+  margin-top: 16px;
+  color: #7b6666;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.faqList {
+  margin-top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.item {
+  background: white;
+  border-radius: 20px;
+  overflow: hidden;
+  border: 1px solid #f0e4e0;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+}
+
+.item summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 22px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #392525;
+}
+
+.item summary::-webkit-details-marker {
+  display: none;
+}
+
+.item p {
+  margin: 0;
+  padding: 0 22px 22px;
+  color: #6f5c5c;
+  line-height: 1.8;
+}
+
+.item[open] {
+  border-color: #d7a5b0;
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: 60px 0;
+  }
+
+  .title {
+    font-size: 38px;
+  }
+
+  .item summary {
+    font-size: 16px;
+  }
+}
