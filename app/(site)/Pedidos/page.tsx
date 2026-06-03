@@ -17,6 +17,7 @@ import {
   TimerReset,
 } from "lucide-react";
 import api from "@/Api/conectar";
+import "./PedidosPage.css";
 
 type Pedido = {
   id_pedido?: number;
@@ -200,8 +201,17 @@ export default function PedidosPage() {
 
   const pedidosCancelados = pedidosFiltrados.filter((pedido) => {
     const status = (pedido.status_pagamento || "").toLowerCase();
-    return status === "rejected" || status === "recusado" || status === "cancelled" || status === "cancelado";
+    return (
+      status === "rejected" ||
+      status === "recusado" ||
+      status === "cancelled" ||
+      status === "cancelado"
+    );
   }).length;
+
+  const valorTotalFiltrado = pedidosFiltrados.reduce((total, pedido) => {
+    return total + toNumber(pedido.valor_total);
+  }, 0);
 
   return (
     <div className="layout">
@@ -220,9 +230,10 @@ export default function PedidosPage() {
             type="button"
             className="btn-atualizar"
             onClick={carregarPedidos}
+            disabled={loading}
           >
-            <RefreshCw size={18} />
-            Atualizar
+            <RefreshCw size={18} className={loading ? "icone-girando" : ""} />
+            {loading ? "Atualizando" : "Atualizar"}
           </button>
         </section>
 
@@ -264,6 +275,16 @@ export default function PedidosPage() {
             <div>
               <span>Cancelados</span>
               <strong>{pedidosCancelados}</strong>
+            </div>
+          </article>
+
+          <article className="card-resumo card-resumo-total">
+            <div className="icone-wrap">
+              <CreditCard size={20} />
+            </div>
+            <div>
+              <span>Total em compras</span>
+              <strong>{formatarMoeda(valorTotalFiltrado)}</strong>
             </div>
           </article>
         </section>
@@ -427,531 +448,6 @@ export default function PedidosPage() {
         )}
       </main>
 
-      <style jsx>{`
-        .layout {
-          min-height: 100vh;
-          background: #f4f6f8;
-        }
-
-        .pagina-pedidos {
-          width: 100%;
-          max-width: 1240px;
-          margin: 0 auto;
-          padding: 28px 20px 52px;
-        }
-
-        .cabecalho {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 20px;
-          flex-wrap: wrap;
-          padding: 26px;
-          margin-bottom: 20px;
-          border: 1px solid #e5e7eb;
-          border-radius: 22px;
-          background: #ffffff;
-          box-shadow: 0 12px 30px rgba(15, 23, 42, 0.04);
-        }
-
-        .cabecalho-texto {
-          max-width: 760px;
-        }
-
-        .tag {
-          display: inline-flex;
-          align-items: center;
-          margin-bottom: 10px;
-          padding: 6px 10px;
-          border-radius: 999px;
-          background: #f1f5f9;
-          color: #475569;
-          font-size: 12px;
-          font-weight: 700;
-          letter-spacing: 0.4px;
-          text-transform: uppercase;
-        }
-
-        .cabecalho h1 {
-          margin: 0 0 8px;
-          font-size: clamp(28px, 3vw, 40px);
-          line-height: 1.05;
-          color: #0f172a;
-        }
-
-        .cabecalho p {
-          margin: 0;
-          color: #64748b;
-          font-size: 15px;
-          line-height: 1.7;
-        }
-
-        .btn-atualizar {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          border: 1px solid #dbe3ea;
-          border-radius: 14px;
-          padding: 13px 18px;
-          background: #ffffff;
-          color: #0f172a;
-          font-weight: 700;
-          cursor: pointer;
-          box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
-          transition: transform 0.2s ease, box-shadow 0.2s ease,
-            border-color 0.2s ease;
-        }
-
-        .btn-atualizar:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 12px 24px rgba(15, 23, 42, 0.07);
-          border-color: #cbd5e1;
-        }
-
-        .resumo-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 16px;
-          margin-bottom: 20px;
-        }
-
-        .card-resumo {
-          display: flex;
-          align-items: center;
-          gap: 14px;
-          padding: 20px;
-          border: 1px solid #e5e7eb;
-          border-radius: 18px;
-          background: #ffffff;
-          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
-        }
-
-        .icone-wrap {
-          width: 46px;
-          height: 46px;
-          border-radius: 14px;
-          background: #0f172a;
-          color: #ffffff;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-        }
-
-        .card-resumo span {
-          display: block;
-          margin-bottom: 4px;
-          color: #64748b;
-          font-size: 13px;
-          font-weight: 600;
-        }
-
-        .card-resumo strong {
-          font-size: 22px;
-          color: #0f172a;
-          line-height: 1.1;
-        }
-
-        .filtros-box {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 14px;
-          flex-wrap: wrap;
-          margin-bottom: 20px;
-          padding: 16px;
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 18px;
-          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.03);
-        }
-
-        .campo-busca {
-          flex: 1;
-          min-width: 260px;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          padding: 0 14px;
-          border: 1px solid #dbe3ea;
-          border-radius: 14px;
-          background: #f8fafc;
-          color: #64748b;
-        }
-
-        .campo-busca input {
-          width: 100%;
-          border: none;
-          outline: none;
-          padding: 14px 0;
-          background: transparent;
-          font-size: 14px;
-          color: #0f172a;
-        }
-
-        .contador {
-          padding: 12px 14px;
-          border-radius: 14px;
-          background: #f8fafc;
-          color: #334155;
-          font-size: 13px;
-          font-weight: 700;
-          border: 1px solid #e2e8f0;
-          white-space: nowrap;
-        }
-
-        .estado {
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 20px;
-          padding: 46px 20px;
-          text-align: center;
-          color: #64748b;
-          box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
-        }
-
-        .estado h3 {
-          margin: 12px 0 8px;
-          color: #0f172a;
-        }
-
-        .estado.erro {
-          background: #fff7f7;
-          border-color: #fecaca;
-          color: #b91c1c;
-        }
-
-        .loading .loader {
-          width: 42px;
-          height: 42px;
-          margin: 0 auto 14px;
-          border-radius: 50%;
-          border: 4px solid #e2e8f0;
-          border-top-color: #0f172a;
-          animation: girar 0.8s linear infinite;
-        }
-
-        .grid-pedidos {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
-          gap: 18px;
-        }
-
-        .card-pedido {
-          display: flex;
-          flex-direction: column;
-          background: #ffffff;
-          border: 1px solid #e5e7eb;
-          border-radius: 22px;
-          padding: 22px;
-          box-shadow: 0 12px 28px rgba(15, 23, 42, 0.04);
-          transition: transform 0.2s ease, box-shadow 0.2s ease,
-            border-color 0.2s ease;
-        }
-
-        .card-pedido:hover {
-          transform: translateY(-2px);
-          border-color: #d1d5db;
-          box-shadow: 0 16px 34px rgba(15, 23, 42, 0.07);
-        }
-
-        .card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 12px;
-          margin-bottom: 18px;
-        }
-
-        .pedido-label {
-          display: inline-block;
-          margin-bottom: 6px;
-          font-size: 12px;
-          font-weight: 700;
-          color: #64748b;
-          text-transform: uppercase;
-          letter-spacing: 0.4px;
-        }
-
-        .card-header h2 {
-          margin: 0;
-          font-size: 24px;
-          color: #0f172a;
-          line-height: 1.15;
-        }
-
-        .status {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          padding: 8px 12px;
-          border-radius: 999px;
-          font-size: 12px;
-          font-weight: 700;
-          white-space: nowrap;
-          border: 1px solid transparent;
-        }
-
-        .status.pendente {
-          background: #fef3c7;
-          color: #92400e;
-          border-color: #fde68a;
-        }
-
-        .status.aprovado {
-          background: #dcfce7;
-          color: #166534;
-          border-color: #bbf7d0;
-        }
-
-        .status.recusado {
-          background: #fee2e2;
-          color: #991b1b;
-          border-color: #fecaca;
-        }
-
-        .status.cancelado {
-          background: #e2e8f0;
-          color: #334155;
-          border-color: #cbd5e1;
-        }
-
-        .status.analise {
-          background: #dbeafe;
-          color: #1d4ed8;
-          border-color: #bfdbfe;
-        }
-
-        .timeline {
-          display: grid;
-          gap: 10px;
-          margin-bottom: 18px;
-          padding: 16px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-          border-radius: 18px;
-        }
-
-        .step {
-          display: flex;
-          gap: 12px;
-          align-items: flex-start;
-          opacity: 0.55;
-        }
-
-        .step.ativo {
-          opacity: 1;
-        }
-
-        .step-icone {
-          width: 34px;
-          height: 34px;
-          border-radius: 12px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          flex-shrink: 0;
-          background: #e2e8f0;
-          color: #475569;
-        }
-
-        .step.ativo .step-icone {
-          background: #0f172a;
-          color: #ffffff;
-        }
-
-        .step strong {
-          display: block;
-          font-size: 14px;
-          color: #0f172a;
-          margin-bottom: 2px;
-        }
-
-        .step small {
-          display: block;
-          color: #64748b;
-          font-size: 12px;
-          line-height: 1.5;
-        }
-
-        .linha {
-          height: 14px;
-          width: 2px;
-          margin-left: 16px;
-          background: #cbd5e1;
-          border-radius: 999px;
-          opacity: 0.75;
-        }
-
-        .linha.ativo {
-          background: #0f172a;
-          opacity: 1;
-        }
-
-        .resumo-pedido {
-          display: grid;
-          gap: 10px;
-          margin-bottom: 18px;
-        }
-
-        .resumo-linha {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 12px;
-          padding: 12px 14px;
-          background: #ffffff;
-          border: 1px solid #eef2f7;
-          border-radius: 14px;
-          color: #475569;
-          font-size: 13px;
-        }
-
-        .resumo-linha span {
-          color: #64748b;
-          white-space: nowrap;
-        }
-
-        .resumo-linha strong {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          color: #0f172a;
-          font-size: 13px;
-          text-align: right;
-          word-break: break-word;
-        }
-
-        .valores {
-          display: grid;
-          grid-template-columns: repeat(2, minmax(0, 1fr));
-          gap: 12px;
-          margin-bottom: 16px;
-        }
-
-        .valor-item {
-          padding: 14px;
-          border-radius: 16px;
-          background: #f8fafc;
-          border: 1px solid #e2e8f0;
-        }
-
-        .valor-item span {
-          display: block;
-          margin-bottom: 5px;
-          color: #64748b;
-          font-size: 12px;
-          font-weight: 600;
-        }
-
-        .valor-item strong {
-          color: #0f172a;
-          font-size: 17px;
-          line-height: 1.1;
-        }
-
-        .valor-item.destaque-total {
-          background: #0f172a;
-          border-color: #0f172a;
-        }
-
-        .valor-item.destaque-total span,
-        .valor-item.destaque-total strong {
-          color: #ffffff;
-        }
-
-        .rodape-card {
-          display: flex;
-          justify-content: flex-end;
-          align-items: center;
-          margin-top: auto;
-        }
-
-        .btn-detalhes {
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          gap: 8px;
-          text-decoration: none;
-          background: #0f172a;
-          color: #ffffff;
-          border-radius: 14px;
-          padding: 12px 16px;
-          font-weight: 700;
-          transition: transform 0.2s ease, box-shadow 0.2s ease,
-            background 0.2s ease;
-          box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
-        }
-
-        .btn-detalhes:hover {
-          transform: translateY(-1px);
-          background: #111827;
-          box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16);
-        }
-
-        @keyframes girar {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        @media (max-width: 768px) {
-          .pagina-pedidos {
-            padding: 18px 12px 36px;
-          }
-
-          .cabecalho {
-            padding: 20px;
-          }
-
-          .cabecalho h1 {
-            font-size: 28px;
-          }
-
-          .grid-pedidos {
-            grid-template-columns: 1fr;
-          }
-
-          .valores {
-            grid-template-columns: 1fr;
-          }
-
-          .rodape-card {
-            justify-content: stretch;
-          }
-
-          .btn-detalhes {
-            width: 100%;
-          }
-
-          .filtros-box {
-            padding: 14px;
-          }
-
-          .campo-busca {
-            min-width: 100%;
-          }
-
-          .contador {
-            width: 100%;
-            text-align: center;
-          }
-
-          .resumo-linha {
-            flex-direction: column;
-            align-items: flex-start;
-          }
-
-          .resumo-linha strong {
-            text-align: left;
-          }
-
-          .card-header {
-            flex-direction: column;
-          }
-        }
-      `}</style>
     </div>
   );
 }
