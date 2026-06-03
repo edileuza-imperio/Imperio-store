@@ -1,7 +1,7 @@
 "use client";
 
 import { use, useEffect, useMemo, useState } from "react";
-
+import Image from "next/image";
 import Link from "next/link";
 
 import api from "@/Api/conectar";
@@ -51,8 +51,7 @@ type VitrinePageProps = {
   }>;
 };
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ;
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "";
 
 function resolverImagem(src?: string) {
   if (!src) return "";
@@ -70,6 +69,8 @@ function resolverImagem(src?: string) {
     return valor;
   }
 
+  if (!API_BASE) return valor;
+
   if (valor.startsWith("/")) {
     return `${API_BASE}${valor}`;
   }
@@ -78,11 +79,7 @@ function resolverImagem(src?: string) {
 }
 
 function formatarPreco(valor?: number | string) {
-  if (
-    valor === null ||
-    valor === undefined ||
-    valor === ""
-  ) {
+  if (valor === null || valor === undefined || valor === "") {
     return null;
   }
 
@@ -101,240 +98,141 @@ function formatarPreco(valor?: number | string) {
 function formatarTitulo(slug: string) {
   return slug
     .split("-")
-    .map(
-      (palavra) =>
-        palavra.charAt(0).toUpperCase() +
-        palavra.slice(1)
-    )
+    .map((palavra) => palavra.charAt(0).toUpperCase() + palavra.slice(1))
     .join(" ");
 }
 
 function obterPrecoNumero(produto: Produto) {
-  const valor =
-    produto.preco_promocional ||
-    produto.preco;
-
+  const valor = produto.preco_promocional || produto.preco;
   const numero = Number(valor);
 
-  return Number.isNaN(numero)
-    ? 0
-    : numero;
+  return Number.isNaN(numero) ? 0 : numero;
 }
 
-export default function VitrinePage({
-  params,
-}: VitrinePageProps) {
+export default function VitrinePage({ params }: VitrinePageProps) {
   const { slug } = use(params);
 
-  const [produtos, setProdutos] =
-    useState<Produto[]>([]);
-
-  const [vitrine, setVitrine] =
-    useState<Vitrine | null>(null);
-
-  const [loading, setLoading] =
-    useState(true);
-
-  const [porPagina, setPorPagina] =
-    useState(12);
-
-  const [paginaAtual, setPaginaAtual] =
-    useState(1);
-
-  const [ordenacao, setOrdenacao] =
-    useState("relevancia");
+  const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [vitrine, setVitrine] = useState<Vitrine | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [porPagina, setPorPagina] = useState(12);
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [ordenacao, setOrdenacao] = useState("relevancia");
 
   useEffect(() => {
+    let ativo = true;
+
     async function carregar() {
       try {
         setLoading(true);
 
-        const vitrineRes =
-          await api.get(
-            `/vitrine/slug/${slug}`
-          );
+        const vitrineRes = await api.get(`/vitrine/slug/${slug}`);
 
         const vitrineData: Vitrine | null =
-          vitrineRes?.data?.dados
-            ?.dados ??
+          vitrineRes?.data?.dados?.dados ??
           vitrineRes?.data?.dados ??
           vitrineRes?.data ??
           null;
 
+        if (!ativo) return;
         setVitrine(vitrineData);
 
-        if (
-          !vitrineData?.id_vitrine
-        ) {
+        if (!vitrineData?.id_vitrine) {
           setProdutos([]);
           return;
         }
 
-        const itensRes =
-          await api.get(
-            `/vitrine/${vitrineData.id_vitrine}/itens`
-          );
+        const itensRes = await api.get(`/vitrine/${vitrineData.id_vitrine}/itens`);
 
         const itens: Item[] =
-          itensRes?.data?.dados
-            ?.dados ??
-          itensRes?.data?.dados ??
-          itensRes?.data ??
-          [];
+          itensRes?.data?.dados?.dados ?? itensRes?.data?.dados ?? itensRes?.data ?? [];
 
-        const lista =
-          await Promise.all(
-            itens.map(async (item) => {
-              if (
-                !item.produto_id
-              ) {
-                return null;
-              }
+        const lista = await Promise.all(
+          itens.map(async (item) => {
+            if (!item.produto_id) return null;
 
-              const res =
-                await api.get(
-                  `/produto/${item.produto_id}`
-                );
+            const res = await api.get(`/produto/${item.produto_id}`);
 
-              const produto: Produto | null =
-                res?.data?.dados
-                  ?.dados ??
-                res?.data?.dados ??
-                res?.data ??
-                null;
+            const produto: Produto | null =
+              res?.data?.dados?.dados ?? res?.data?.dados ?? res?.data ?? null;
 
-              if (!produto) {
-                return null;
-              }
+            if (!produto) return null;
 
-              return {
-                ...produto,
-
-                nome:
-                  item.titulo_personalizado ||
-                  produto.nome,
-
-                descricao:
-                  item.subtitulo_personalizado ||
-                  produto.descricao_curta ||
-                  produto.descricao ||
-                  "",
-
-                imagem:
-                  item.imagem_personalizada ||
-                  produto.imagem ||
-                  produto.miniatura ||
-                  produto.banner ||
-                  produto.foto ||
-                  "",
-              };
-            })
-          );
-
-        setProdutos(
-          lista.filter(
-            Boolean
-          ) as Produto[]
+            return {
+              ...produto,
+              nome: item.titulo_personalizado || produto.nome,
+              descricao:
+                item.subtitulo_personalizado ||
+                produto.descricao_curta ||
+                produto.descricao ||
+                "",
+              imagem:
+                item.imagem_personalizada ||
+                produto.imagem ||
+                produto.miniatura ||
+                produto.banner ||
+                produto.foto ||
+                "",
+            };
+          })
         );
+
+        if (!ativo) return;
+        setProdutos(lista.filter(Boolean) as Produto[]);
       } catch (error) {
-        console.error(
-          "Erro ao carregar vitrine:",
-          error
-        );
-
+        console.error("Erro ao carregar vitrine:", error);
+        if (!ativo) return;
         setProdutos([]);
       } finally {
-        setLoading(false);
+        if (ativo) setLoading(false);
       }
     }
 
     carregar();
+
+    return () => {
+      ativo = false;
+    };
   }, [slug]);
 
   useEffect(() => {
     setPaginaAtual(1);
   }, [porPagina, ordenacao]);
 
-  const produtosOrdenados =
-    useMemo(() => {
-      const lista = [...produtos];
+  const produtosOrdenados = useMemo(() => {
+    const lista = [...produtos];
 
-      switch (ordenacao) {
-        case "menor-preco":
-          return lista.sort(
-            (a, b) =>
-              obterPrecoNumero(a) -
-              obterPrecoNumero(b)
-          );
+    switch (ordenacao) {
+      case "menor-preco":
+        return lista.sort((a, b) => obterPrecoNumero(a) - obterPrecoNumero(b));
 
-        case "maior-preco":
-          return lista.sort(
-            (a, b) =>
-              obterPrecoNumero(b) -
-              obterPrecoNumero(a)
-          );
+      case "maior-preco":
+        return lista.sort((a, b) => obterPrecoNumero(b) - obterPrecoNumero(a));
 
-        case "nome-az":
-          return lista.sort(
-            (a, b) =>
-              a.nome.localeCompare(
-                b.nome
-              )
-          );
+      case "nome-az":
+        return lista.sort((a, b) => a.nome.localeCompare(b.nome));
 
-        case "nome-za":
-          return lista.sort(
-            (a, b) =>
-              b.nome.localeCompare(
-                a.nome
-              )
-          );
+      case "nome-za":
+        return lista.sort((a, b) => b.nome.localeCompare(a.nome));
 
-        default:
-          return lista;
-      }
-    }, [produtos, ordenacao]);
+      default:
+        return lista;
+    }
+  }, [produtos, ordenacao]);
 
-  const totalProdutos =
-    produtosOrdenados.length;
+  const totalProdutos = produtosOrdenados.length;
 
-  const totalPaginas = Math.max(
-    1,
-    Math.ceil(
-      totalProdutos / porPagina
-    )
-  );
+  const totalPaginas = Math.max(1, Math.ceil(totalProdutos / porPagina));
 
-  const produtosPaginados =
-    useMemo(() => {
-      const inicio =
-        (paginaAtual - 1) *
-        porPagina;
+  const produtosPaginados = useMemo(() => {
+    const inicio = (paginaAtual - 1) * porPagina;
+    const fim = inicio + porPagina;
 
-      const fim =
-        inicio + porPagina;
+    return produtosOrdenados.slice(inicio, fim);
+  }, [produtosOrdenados, paginaAtual, porPagina]);
 
-      return produtosOrdenados.slice(
-        inicio,
-        fim
-      );
-    }, [
-      produtosOrdenados,
-      paginaAtual,
-      porPagina,
-    ]);
-
-  const inicioResultado =
-    totalProdutos === 0
-      ? 0
-      : (paginaAtual - 1) *
-          porPagina +
-        1;
-
-  const fimResultado = Math.min(
-    paginaAtual * porPagina,
-    totalProdutos
-  );
+  const inicioResultado = totalProdutos === 0 ? 0 : (paginaAtual - 1) * porPagina + 1;
+  const fimResultado = Math.min(paginaAtual * porPagina, totalProdutos);
 
   return (
     <main className={styles.page}>
@@ -342,50 +240,18 @@ export default function VitrinePage({
         <div className={styles.heroGlow} />
 
         <div className={styles.container}>
-          <nav
-            className={styles.breadcrumb}
-          >
-            <Link href="/">
-              Início
-            </Link>
-
+          <nav className={styles.breadcrumb}>
+            <Link href="/">Início</Link>
             <FiChevronRight />
-
-            <Link href="/vitrine">
-              Vitrines
-            </Link>
-
+            <Link href="/vitrine">Vitrines</Link>
             <FiChevronRight />
-
-            <span>
-              {vitrine?.titulo ||
-                vitrine?.nome ||
-                formatarTitulo(
-                  slug
-                )}
-            </span>
+            <span>{vitrine?.titulo || vitrine?.nome || formatarTitulo(slug)}</span>
           </nav>
 
-          <div
-            className={
-              styles.heroContent
-            }
-          >
-            <span
-              className={
-                styles.badge
-              }
-            >
-              Coleção Especial
-            </span>
+          <div className={styles.heroContent}>
+            <span className={styles.badge}>Coleção Especial</span>
 
-            <h1>
-              {vitrine?.titulo ||
-                vitrine?.nome ||
-                formatarTitulo(
-                  slug
-                )}
-            </h1>
+            <h1>{vitrine?.titulo || vitrine?.nome || formatarTitulo(slug)}</h1>
 
             <p>
               {vitrine?.subtitulo ||
@@ -395,392 +261,141 @@ export default function VitrinePage({
         </div>
       </section>
 
-      <section
-        className={styles.catalogo}
-      >
-        <div
-          className={styles.container}
-        >
+      <section className={styles.catalogo}>
+        <div className={styles.container}>
           {loading ? (
-            <div
-              className={
-                styles.loading
-              }
-            >
-              <div
-                className={
-                  styles.spinner
-                }
-              />
-
-              <span>
-                Carregando
-                produtos...
-              </span>
+            <div className={styles.loading}>
+              <div className={styles.spinner} />
+              <span>Carregando produtos...</span>
             </div>
-          ) : produtos.length ===
-            0 ? (
-            <div
-              className={
-                styles.empty
-              }
-            >
-              <h2>
-                Nenhum produto
-              </h2>
-
-              <p>
-                Essa vitrine
-                ainda não possui
-                produtos.
-              </p>
+          ) : produtos.length === 0 ? (
+            <div className={styles.empty}>
+              <h2>Nenhum produto</h2>
+              <p>Essa vitrine ainda não possui produtos.</p>
             </div>
           ) : (
             <>
-              <div
-                className={
-                  styles.topbar
-                }
-              >
-                <div
-                  className={
-                    styles.results
-                  }
-                >
-                  <strong>
-                    {
-                      totalProdutos
-                    }
-                  </strong>
-
-                  <span>
-                    produtos
-                    encontrados
-                  </span>
-
+              <div className={styles.topbar}>
+                <div className={styles.results}>
+                  <strong>{totalProdutos}</strong>
+                  <span>produtos encontrados</span>
                   <small>
-                    Mostrando{" "}
-                    {
-                      inicioResultado
-                    }{" "}
-                    -{" "}
-                    {
-                      fimResultado
-                    }
+                    Mostrando {inicioResultado} - {fimResultado}
                   </small>
                 </div>
 
-                <div
-                  className={
-                    styles.controls
-                  }
-                >
-                  <div
-                    className={
-                      styles.selectBox
-                    }
-                  >
+                <div className={styles.controls}>
+                  <div className={styles.selectBox}>
                     <FiFilter />
 
                     <select
-                      value={
-                        ordenacao
-                      }
-                      onChange={(
-                        e
-                      ) =>
-                        setOrdenacao(
-                          e.target
-                            .value
-                        )
-                      }
+                      value={ordenacao}
+                      onChange={(e) => setOrdenacao(e.target.value)}
+                      aria-label="Ordenar produtos"
                     >
-                      <option value="relevancia">
-                        Relevância
-                      </option>
-
-                      <option value="menor-preco">
-                        Menor preço
-                      </option>
-
-                      <option value="maior-preco">
-                        Maior preço
-                      </option>
-
-                      <option value="nome-az">
-                        Nome A-Z
-                      </option>
-
-                      <option value="nome-za">
-                        Nome Z-A
-                      </option>
+                      <option value="relevancia">Relevância</option>
+                      <option value="menor-preco">Menor preço</option>
+                      <option value="maior-preco">Maior preço</option>
+                      <option value="nome-az">Nome A-Z</option>
+                      <option value="nome-za">Nome Z-A</option>
                     </select>
                   </div>
 
-                  <div
-                    className={
-                      styles.selectBox
-                    }
-                  >
+                  <div className={styles.selectBox}>
                     <select
-                      value={
-                        porPagina
-                      }
-                      onChange={(
-                        e
-                      ) =>
-                        setPorPagina(
-                          Number(
-                            e.target
-                              .value
-                          )
-                        )
-                      }
+                      value={porPagina}
+                      onChange={(e) => setPorPagina(Number(e.target.value))}
+                      aria-label="Produtos por página"
                     >
-                      <option value={8}>
-                        8
-                      </option>
-
-                      <option value={12}>
-                        12
-                      </option>
-
-                      <option value={16}>
-                        16
-                      </option>
-
-                      <option value={24}>
-                        24
-                      </option>
+                      <option value={8}>8</option>
+                      <option value={12}>12</option>
+                      <option value={16}>16</option>
+                      <option value={24}>24</option>
                     </select>
                   </div>
                 </div>
               </div>
 
-              <div
-                className={
-                  styles.grid
-                }
-              >
-                {produtosPaginados.map(
-                  (produto) => {
-                    const precoFinal =
-                      formatarPreco(
-                        produto.preco_promocional ||
-                          produto.preco
-                      );
+              <div className={styles.grid}>
+                {produtosPaginados.map((produto, index) => {
+                  const precoFinal = formatarPreco(produto.preco_promocional || produto.preco);
 
-                    const precoOriginal =
-                      produto.preco_promocional &&
-                      produto.preco
-                        ? formatarPreco(
-                            produto.preco
-                          )
-                        : null;
+                  const precoOriginal =
+                    produto.preco_promocional && produto.preco
+                      ? formatarPreco(produto.preco)
+                      : null;
 
-                    return (
-                      <article
-                        key={
-                          produto.id_produto
-                        }
-                        className={
-                          styles.card
-                        }
-                      >
-                        <Link
-                          href={`/produto/${
-                            produto.slug ||
-                            produto.id_produto
-                          }`}
-                          className={
-                            styles.imageWrapper
-                          }
-                        >
-                          {resolverImagem(
-                            produto.imagem
-                          ) ? (
-                            <img
-                              src={resolverImagem(
-                                produto.imagem
-                              )}
-                              alt={
-                                produto.nome
-                              }
-                              className={
-                                styles.image
-                              }
-                            />
-                          ) : (
-                            <div
-                              className={
-                                styles.noImage
-                              }
-                            >
-                              Sem
-                              imagem
-                            </div>
-                          )}
+                  const produtoHref = `/produto/${produto.slug || produto.id_produto}`;
+                  const imagemProduto = resolverImagem(produto.imagem);
 
-                          {produto.marca && (
-                            <span
-                              className={
-                                styles.tag
-                              }
-                            >
-                              {
-                                produto.marca
-                              }
-                            </span>
-                          )}
+                  return (
+                    <article key={produto.id_produto} className={styles.card}>
+                      <Link href={produtoHref} className={styles.imageWrapper}>
+                        {imagemProduto ? (
+                          <Image
+                            src={imagemProduto}
+                            alt={produto.nome || "Produto"}
+                            fill
+                            sizes="(max-width: 600px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                            className={styles.image}
+                            priority={index < 2}
+                          />
+                        ) : (
+                          <div className={styles.noImage}>Sem imagem</div>
+                        )}
+
+                        {produto.marca && <span className={styles.tag}>{produto.marca}</span>}
+                      </Link>
+
+                      <div className={styles.info}>
+                        <Link href={produtoHref} className={styles.titleLink}>
+                          <h3 className={styles.title}>{produto.nome}</h3>
                         </Link>
 
-                        <div
-                          className={
-                            styles.info
-                          }
-                        >
-                          <Link
-                            href={`/produto/${
-                              produto.slug ||
-                              produto.id_produto
-                            }`}
-                            className={
-                              styles.titleLink
-                            }
-                          >
-                            <h3
-                              className={
-                                styles.title
-                              }
-                            >
-                              {
-                                produto.nome
-                              }
-                            </h3>
-                          </Link>
+                        <p className={styles.description}>
+                          {produto.descricao || "Produto premium disponível nesta vitrine."}
+                        </p>
 
-                          <p
-                            className={
-                              styles.description
-                            }
-                          >
-                            {produto.descricao ||
-                              "Produto premium disponível nesta vitrine."}
-                          </p>
-
-                          <div
-                            className={
-                              styles.priceArea
-                            }
-                          >
-                            {precoOriginal && (
-                              <span
-                                className={
-                                  styles.oldPrice
-                                }
-                              >
-                                {
-                                  precoOriginal
-                                }
-                              </span>
-                            )}
-
-                            {precoFinal && (
-                              <strong
-                                className={
-                                  styles.price
-                                }
-                              >
-                                {
-                                  precoFinal
-                                }
-                              </strong>
-                            )}
-                          </div>
-
-                          <div
-                            className={
-                              styles.actions
-                            }
-                          >
-                            <button
-                              type="button"
-                              className={
-                                styles.cartButton
-                              }
-                            >
-                              <FiShoppingCart />
-                              Carrinho
-                            </button>
-
-                            <Link
-                              href={`/produto/${
-                                produto.slug ||
-                                produto.id_produto
-                              }`}
-                              className={
-                                styles.viewButton
-                              }
-                            >
-                              <FiEye />
-                              Ver
-                            </Link>
-                          </div>
+                        <div className={styles.priceArea}>
+                          {precoOriginal && <span className={styles.oldPrice}>{precoOriginal}</span>}
+                          {precoFinal && <strong className={styles.price}>{precoFinal}</strong>}
                         </div>
-                      </article>
-                    );
-                  }
-                )}
+
+                        <div className={styles.actions}>
+                          <button type="button" className={styles.cartButton}>
+                            <FiShoppingCart />
+                            Carrinho
+                          </button>
+
+                          <Link href={produtoHref} className={styles.viewButton}>
+                            <FiEye />
+                            Ver
+                          </Link>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
 
-              {totalPaginas >
-                1 && (
-                <div
-                  className={
-                    styles.pagination
-                  }
-                >
+              {totalPaginas > 1 && (
+                <div className={styles.pagination}>
                   <button
-                    onClick={() =>
-                      setPaginaAtual(
-                        (prev) =>
-                          Math.max(
-                            1,
-                            prev - 1
-                          )
-                      )
-                    }
-                    disabled={
-                      paginaAtual ===
-                      1
-                    }
-                    className={
-                      styles.pageButton
-                    }
+                    type="button"
+                    onClick={() => setPaginaAtual((prev) => Math.max(1, prev - 1))}
+                    disabled={paginaAtual === 1}
+                    className={styles.pageButton}
                   >
                     Anterior
                   </button>
 
-                  {Array.from(
-                    {
-                      length:
-                        totalPaginas,
-                    },
-                    (_, i) =>
-                      i + 1
-                  ).map((pagina) => (
+                  {Array.from({ length: totalPaginas }, (_, i) => i + 1).map((pagina) => (
                     <button
+                      type="button"
                       key={pagina}
-                      onClick={() =>
-                        setPaginaAtual(
-                          pagina
-                        )
-                      }
+                      onClick={() => setPaginaAtual(pagina)}
                       className={`${styles.pageButton} ${
-                        paginaAtual ===
-                        pagina
-                          ? styles.activePage
-                          : ""
+                        paginaAtual === pagina ? styles.activePage : ""
                       }`}
                     >
                       {pagina}
@@ -788,22 +403,10 @@ export default function VitrinePage({
                   ))}
 
                   <button
-                    onClick={() =>
-                      setPaginaAtual(
-                        (prev) =>
-                          Math.min(
-                            totalPaginas,
-                            prev + 1
-                          )
-                      )
-                    }
-                    disabled={
-                      paginaAtual ===
-                      totalPaginas
-                    }
-                    className={
-                      styles.pageButton
-                    }
+                    type="button"
+                    onClick={() => setPaginaAtual((prev) => Math.min(totalPaginas, prev + 1))}
+                    disabled={paginaAtual === totalPaginas}
+                    className={styles.pageButton}
                   >
                     Próxima
                   </button>
