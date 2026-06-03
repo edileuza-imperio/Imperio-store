@@ -1,10 +1,9 @@
 /* NavbarHeader.module.css */
 
-
 .header {
   position: sticky;
   top: 0;
-  z-index: 999;
+  z-index: 4000;
   width: 100%;
   max-width: 100vw;
   background: rgba(255, 255, 255, 0.98);
@@ -12,7 +11,7 @@
   border-bottom: 1px solid #efe7e2;
   transition: 0.3s ease;
   color: #2b2b2b;
-  overflow-x: clip;
+  overflow: visible;
 }
 
 .headerScrolled {
@@ -20,6 +19,8 @@
 }
 
 .desktopNavbar {
+  position: relative;
+  z-index: 2;
   width: 98%;
   max-width: 1440px;
   margin: 0 auto;
@@ -30,7 +31,7 @@
   gap: 16px;
   padding: 0 clamp(12px, 2vw, 32px);
   min-width: 0;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .brand {
@@ -80,6 +81,8 @@
 }
 
 .searchWrapper {
+  position: relative;
+  z-index: 1;
   flex: 1 1 0;
   min-width: 0;
   display: flex;
@@ -145,11 +148,20 @@
 }
 
 .right {
+  position: relative;
+  z-index: 9999;
   display: flex;
   align-items: center;
   gap: clamp(6px, 1vw, 14px);
   flex-shrink: 0;
   min-width: 0;
+}
+
+.userDropdown,
+.mobileUserDropdown {
+  position: relative;
+  z-index: 9999;
+  overflow: visible;
 }
 
 .iconBtn {
@@ -262,11 +274,6 @@
   white-space: nowrap;
 }
 
-.userDropdown {
-  position: relative;
-  min-width: 0;
-}
-
 .userBtn {
   height: 52px;
   display: flex;
@@ -324,21 +331,17 @@
   color: #222;
 }
 
-.dropdownMenu {
-  position: absolute;
-  top: 62px;
-  right: 0;
-  width: 240px;
+/* dropdown agora fora do header */
+.floatingDropdown {
   background: #fff;
   border-radius: 18px;
   border: 1px solid #ece5df;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.12);
   padding: 10px;
-  z-index: 999;
-  overflow: hidden;
+  overflow: visible;
 }
 
-.dropdownItem {
+.floatingDropdownItem {
   width: 100%;
   display: flex;
   align-items: center;
@@ -357,12 +360,13 @@
   min-width: 0;
 }
 
-.dropdownItem:hover {
+.floatingDropdownItem:hover {
   background: #f7f4f2;
 }
 
 .mobileNavbar {
   display: none;
+  overflow: visible;
 }
 
 .mobileSearch {
@@ -590,7 +594,8 @@
 .mobileUserBtn:focus-visible,
 .clearBtn:focus-visible,
 .quickAction:focus-visible,
-.closeBtn:focus-visible {
+.closeBtn:focus-visible,
+.floatingDropdownItem:focus-visible {
   outline: 3px solid rgba(181, 111, 90, 0.25);
   outline-offset: 2px;
 }
@@ -601,6 +606,8 @@
   }
 
   .mobileNavbar {
+    position: relative;
+    z-index: 9999;
     width: 100%;
     min-height: 74px;
     display: flex;
@@ -609,7 +616,7 @@
     gap: 8px;
     padding: 0 12px;
     box-sizing: border-box;
-    overflow: hidden;
+    overflow: visible;
   }
 
   .hamburger {
@@ -658,11 +665,14 @@
   }
 
   .mobileRight {
+    position: relative;
+    z-index: 9999;
     display: flex;
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
     min-width: 0;
+    overflow: visible;
   }
 
   .mobileBtn {
@@ -696,7 +706,9 @@
 
   .mobileUserDropdown {
     position: relative;
+    z-index: 10000;
     min-width: 0;
+    overflow: visible;
   }
 
   .mobileUserBtn {
@@ -734,45 +746,10 @@
     color: #222;
   }
 
-  .mobileDropdown {
-    position: absolute;
-    top: 52px;
-    right: 0;
-    width: 220px;
-    max-width: calc(100vw - 24px);
-    background: #fff;
-    border-radius: 16px;
-    border: 1px solid #ece5df;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
-    padding: 10px;
-    z-index: 999;
-    overflow: hidden;
-  }
-
-  .mobileDropdownItem {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    border: none;
-    background: transparent;
-    border-radius: 12px;
-    text-decoration: none;
-    color: #2c2c2c;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    min-width: 0;
-  }
-
-  .mobileDropdownItem:hover {
-    background: #f7f4f2;
-  }
-
   .mobileSearch {
     display: block;
     padding: 0 12px 14px 12px;
+    overflow: visible;
   }
 
   .mobileSearch .searchBar {
@@ -792,6 +769,10 @@
 
   .sidebar {
     width: min(92vw, 340px);
+  }
+
+  .floatingDropdown {
+    border-radius: 16px;
   }
 }
 

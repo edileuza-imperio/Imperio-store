@@ -1,6 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { FiSearch } from "react-icons/fi";
 import { FiShoppingCart } from "react-icons/fi";
@@ -36,13 +43,17 @@ type Props = {
   logout: () => void;
 };
 
+type FloatingStyle = {
+  top: number;
+  left: number;
+  width: number;
+};
+
 function getIcon(name?: string | null, size = 16) {
   const iconName = (name ?? "").trim();
   if (!iconName) return null;
 
-  const Icon =
-    (FiIcons as any)[iconName] || (BiIcons as any)[iconName];
-
+  const Icon = (FiIcons as any)[iconName] || (BiIcons as any)[iconName];
   if (!Icon) return null;
 
   return <Icon size={size} aria-hidden="true" focusable="false" />;
@@ -64,6 +75,11 @@ export default function NavbarHeader({
   logout,
 }: Props) {
   const [openMenu, setOpenMenu] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [floatingStyle, setFloatingStyle] = useState<FloatingStyle | null>(null);
+
+  const userBtnRef = useRef<HTMLButtonElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   const closeMenu = () => setOpenMenu(false);
 
@@ -98,6 +114,118 @@ export default function NavbarHeader({
       badge: quantidadeCarrinho > 0 ? quantidadeCarrinho : 0,
     },
   ];
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!dropdown) return;
+
+    const updatePosition = () => {
+      const btn = userBtnRef.current;
+      if (!btn) return;
+
+      const rect = btn.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const menuWidth = viewportWidth <= 480 ? 220 : 240;
+      const gap = 12;
+
+      let left = rect.right - menuWidth;
+      left = Math.max(12, Math.min(left, viewportWidth - menuWidth - 12));
+
+      const top = rect.bottom + gap;
+
+      setFloatingStyle({
+        top,
+        left,
+        width: menuWidth,
+      });
+    };
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [dropdown]);
+
+  useEffect(() => {
+    if (!dropdown) return;
+
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node;
+
+      if (userBtnRef.current?.contains(target)) return;
+      if (dropdownRef.current?.contains(target)) return;
+
+      setDropdown(false);
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+    };
+  }, [dropdown, setDropdown]);
+
+  const renderDropdownMenu = () => {
+    if (!dropdown || !floatingStyle) return null;
+
+    return createPortal(
+      <div
+        ref={dropdownRef}
+        className="floatingDropdown"
+        role="menu"
+        style={{
+          position: "fixed",
+          top: floatingStyle.top,
+          left: floatingStyle.left,
+          width: floatingStyle.width,
+          zIndex: 10050,
+        }}
+      >
+        {loginItems.map((item) => {
+          const nome = (item.nome ?? "").toLowerCase().trim();
+          const sair = nome === "sair";
+
+          if (sair) {
+            return (
+              <button
+                key={item.id_item}
+                onClick={logout}
+                className="floatingDropdownItem"
+                type="button"
+                role="menuitem"
+              >
+                {getIcon(item.icone, 16)}
+                <span>{item.nome ?? "Sair"}</span>
+              </button>
+            );
+          }
+
+          return (
+            <Link
+              key={item.id_item}
+              href={item.rota || "#"}
+              className="floatingDropdownItem"
+              onClick={() => setDropdown(false)}
+              role="menuitem"
+            >
+              {getIcon(item.icone, 16)}
+              <span>{item.nome ?? "Item"}</span>
+            </Link>
+          );
+        })}
+      </div>,
+      document.body
+    );
+  };
 
   return (
     <>
@@ -146,6 +274,7 @@ export default function NavbarHeader({
             {usuario ? (
               <div className="userDropdown">
                 <button
+                  ref={userBtnRef}
                   className="userBtn"
                   onClick={() => setDropdown(!dropdown)}
                   type="button"
@@ -162,43 +291,6 @@ export default function NavbarHeader({
                     <strong>{usuario?.nome ?? "Usuário"}</strong>
                   </div>
                 </button>
-
-                {dropdown && (
-                  <div className="dropdownMenu" role="menu">
-                    {loginItems.map((item) => {
-                      const nome = (item.nome ?? "").toLowerCase().trim();
-                      const sair = nome === "sair";
-
-                      if (sair) {
-                        return (
-                          <button
-                            key={item.id_item}
-                            onClick={logout}
-                            className="dropdownItem"
-                            type="button"
-                            role="menuitem"
-                          >
-                            {getIcon(item.icone, 16)}
-                            <span>{item.nome ?? "Sair"}</span>
-                          </button>
-                        );
-                      }
-
-                      return (
-                        <Link
-                          key={item.id_item}
-                          href={item.rota || "#"}
-                          className="dropdownItem"
-                          onClick={() => setDropdown(false)}
-                          role="menuitem"
-                        >
-                          {getIcon(item.icone, 16)}
-                          <span>{item.nome ?? "Item"}</span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             ) : (
               login && (
@@ -276,6 +368,7 @@ export default function NavbarHeader({
             {usuario ? (
               <div className="mobileUserDropdown">
                 <button
+                  ref={userBtnRef}
                   className="mobileUserBtn"
                   onClick={() => setDropdown(!dropdown)}
                   type="button"
@@ -291,43 +384,6 @@ export default function NavbarHeader({
                     {usuario?.nome ?? "Usuário"}
                   </span>
                 </button>
-
-                {dropdown && (
-                  <div className="mobileDropdown" role="menu">
-                    {loginItems.map((item) => {
-                      const nome = (item.nome ?? "").toLowerCase().trim();
-                      const sair = nome === "sair";
-
-                      if (sair) {
-                        return (
-                          <button
-                            key={item.id_item}
-                            className="mobileDropdownItem"
-                            onClick={logout}
-                            type="button"
-                            role="menuitem"
-                          >
-                            {getIcon(item.icone, 16)}
-                            <span>{item.nome ?? "Sair"}</span>
-                          </button>
-                        );
-                      }
-
-                      return (
-                        <Link
-                          key={item.id_item}
-                          href={item.rota || "#"}
-                          className="mobileDropdownItem"
-                          onClick={() => setDropdown(false)}
-                          role="menuitem"
-                        >
-                          {getIcon(item.icone, 16)}
-                          <span>{item.nome ?? "Item"}</span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                )}
               </div>
             ) : (
               login && (
@@ -473,6 +529,8 @@ export default function NavbarHeader({
           </div>
         </div>
       </aside>
+
+      {mounted && renderDropdownMenu()}
     </>
   );
 }
