@@ -81,8 +81,6 @@ export default function NavbarHeader({
   const userBtnRef = useRef<HTMLButtonElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
-  const closeMenu = () => setOpenMenu(false);
-
   const safePesquisa = (pesquisa ?? "").trim();
 
   const loginItems = useMemo(() => {
@@ -115,6 +113,18 @@ export default function NavbarHeader({
     },
   ];
 
+  const closeMenu = () => setOpenMenu(false);
+
+  const openSidebar = () => {
+    setDropdown(false);
+    setOpenMenu(true);
+  };
+
+  const toggleUserDropdown = () => {
+    setOpenMenu(false);
+    setDropdown(!dropdown);
+  };
+
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -134,10 +144,8 @@ export default function NavbarHeader({
       let left = rect.right - menuWidth;
       left = Math.max(12, Math.min(left, viewportWidth - menuWidth - 12));
 
-      const top = rect.bottom + gap;
-
       setFloatingStyle({
-        top,
+        top: rect.bottom + gap,
         left,
         width: menuWidth,
       });
@@ -175,7 +183,7 @@ export default function NavbarHeader({
   }, [dropdown, setDropdown]);
 
   const renderDropdownMenu = () => {
-    if (!dropdown || !floatingStyle) return null;
+    if (!dropdown || !mounted || !floatingStyle) return null;
 
     return createPortal(
       <div
@@ -187,7 +195,7 @@ export default function NavbarHeader({
           top: floatingStyle.top,
           left: floatingStyle.left,
           width: floatingStyle.width,
-          zIndex: 10050,
+          zIndex: 11000,
         }}
       >
         {loginItems.map((item) => {
@@ -276,7 +284,7 @@ export default function NavbarHeader({
                 <button
                   ref={userBtnRef}
                   className="userBtn"
-                  onClick={() => setDropdown(!dropdown)}
+                  onClick={toggleUserDropdown}
                   type="button"
                   aria-haspopup="menu"
                   aria-expanded={dropdown}
@@ -341,7 +349,7 @@ export default function NavbarHeader({
         <div className="mobileNavbar">
           <button
             className="hamburger"
-            onClick={() => setOpenMenu(true)}
+            onClick={openSidebar}
             type="button"
             aria-label="Abrir menu"
             title="Abrir menu"
@@ -370,7 +378,7 @@ export default function NavbarHeader({
                 <button
                   ref={userBtnRef}
                   className="mobileUserBtn"
-                  onClick={() => setDropdown(!dropdown)}
+                  onClick={toggleUserDropdown}
                   type="button"
                   aria-haspopup="menu"
                   aria-expanded={dropdown}
@@ -530,7 +538,7 @@ export default function NavbarHeader({
         </div>
       </aside>
 
-      {mounted && renderDropdownMenu()}
+      {renderDropdownMenu()}
     </>
   );
 }
