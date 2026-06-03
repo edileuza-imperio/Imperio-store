@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Image from "next/image";
 import api from "@/Api/conectar";
 
 import { imagemFundo } from "@/components/Bibioteca/imagem";
@@ -352,11 +353,13 @@ export default function VisualizarProdutoDaVitrine() {
                           onClick={() => setImagemSelecionada(imagem)}
                           aria-label={`Ver imagem ${index + 1}`}
                         >
-                          <img
+                          <Image
                             src={imagem}
                             alt={`${produto.nome || produto.titulo || "Produto"} ${
                               index + 1
                             }`}
+                            fill
+                            sizes="92px"
                             className="miniatura-imagem"
                           />
                         </button>
@@ -370,9 +373,12 @@ export default function VisualizarProdutoDaVitrine() {
                     <div className="imagem-overlay" />
 
                     {imagemSelecionada ? (
-                      <img
+                      <Image
                         src={imagemSelecionada}
                         alt={produto.nome || produto.titulo || "Produto"}
+                        fill
+                        priority
+                        sizes="(max-width: 768px) 100vw, (max-width: 1180px) 90vw, 520px"
                         className="imagem-principal"
                       />
                     ) : (
@@ -762,6 +768,7 @@ export default function VisualizarProdutoDaVitrine() {
         }
 
         .miniatura-item {
+          position: relative;
           width: 100%;
           height: 92px;
           border: 1px solid rgba(201, 122, 141, 0.14);
@@ -788,10 +795,8 @@ export default function VisualizarProdutoDaVitrine() {
         }
 
         .miniatura-imagem {
-          width: 100%;
-          height: 100%;
           object-fit: cover;
-          display: block;
+          object-position: center;
         }
 
         .miniatura-vazia {
@@ -811,7 +816,8 @@ export default function VisualizarProdutoDaVitrine() {
         .imagem-principal-wrap {
           position: relative;
           width: 100%;
-          min-height: 620px;
+          aspect-ratio: 1 / 1;
+          min-height: 520px;
           border-radius: 30px;
           overflow: hidden;
           background: linear-gradient(180deg, #fff6f0 0%, #f8e3d7 100%);
@@ -832,18 +838,14 @@ export default function VisualizarProdutoDaVitrine() {
         }
 
         .imagem-principal {
-          position: relative;
           z-index: 0;
-          width: 100%;
-          height: 100%;
-          min-height: 620px;
           object-fit: cover;
-          display: block;
+          object-position: center;
           animation: imagemEntrar 0.55s ease both;
         }
 
         .sem-imagem {
-          min-height: 620px;
+          min-height: 520px;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -1171,6 +1173,27 @@ export default function VisualizarProdutoDaVitrine() {
           }
         }
 
+
+
+        @media (prefers-reduced-motion: reduce) {
+          .bg-decor-top,
+          .bg-decor-bottom,
+          .produto-hero-card,
+          .toast-notificacao,
+          .estado-animado,
+          .imagem-principal,
+          .tag-desconto {
+            animation: none !important;
+          }
+
+          .btn-favorito-flutuante,
+          .miniatura-item,
+          .btn-principal,
+          .btn-comprar {
+            transition: none !important;
+          }
+        }
+
         @media (max-width: 1180px) {
           .produto-hero-card {
             grid-template-columns: 1fr;
@@ -1182,7 +1205,6 @@ export default function VisualizarProdutoDaVitrine() {
           }
 
           .imagem-principal-wrap,
-          .imagem-principal,
           .sem-imagem {
             min-height: 460px;
           }
@@ -1252,7 +1274,6 @@ export default function VisualizarProdutoDaVitrine() {
           }
 
           .imagem-principal-wrap,
-          .imagem-principal,
           .sem-imagem {
             min-height: 290px;
             border-radius: 18px;
@@ -1331,7 +1352,6 @@ export default function VisualizarProdutoDaVitrine() {
           }
 
           .imagem-principal-wrap,
-          .imagem-principal,
           .sem-imagem {
             min-height: 250px;
           }
