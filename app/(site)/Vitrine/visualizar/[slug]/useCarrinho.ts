@@ -54,6 +54,8 @@ export function useCarrinho() {
       setLoading(true);
       const res = await api.get("/carrinho");
       setCarrinho(res.data ?? null);
+    } catch (error) {
+      console.error("Erro ao buscar carrinho:", error);
     } finally {
       setLoading(false);
     }
@@ -64,6 +66,8 @@ export function useCarrinho() {
       setLoading(true);
       const res = await api.get("/carrinho/itens");
       setItens(Array.isArray(res.data) ? res.data : []);
+    } catch (error) {
+      console.error("Erro ao listar itens do carrinho:", error);
     } finally {
       setLoading(false);
     }

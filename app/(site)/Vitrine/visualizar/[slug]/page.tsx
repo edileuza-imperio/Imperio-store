@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import api from "@/Api/conectar";
 
 import { imagemFundo } from "@/components/Bibioteca/imagem";
@@ -117,6 +117,7 @@ function extrairMensagemErro(error: unknown, fallback = "Ocorreu um erro.") {
 
 export default function VisualizarProdutoDaVitrine() {
   const params = useParams();
+  const router = useRouter();
 
   const slug = useMemo(() => {
     const valor = params?.slug;
@@ -132,9 +133,14 @@ export default function VisualizarProdutoDaVitrine() {
   const [notificacao, setNotificacao] = useState<Notificacao | null>(null);
 
   const timerNotificacao = useRef<number | null>(null);
+  const timerRedirecionamento = useRef<number | null>(null);
+
   const { adicionarProduto } = useCarrinho();
 
-  function mostrarNotificacao(texto: string, tipo: Notificacao["tipo"] = "sucesso") {
+  function mostrarNotificacao(
+    texto: string,
+    tipo: Notificacao["tipo"] = "sucesso"
+  ) {
     setNotificacao({ texto, tipo });
 
     if (timerNotificacao.current) {
@@ -178,12 +184,19 @@ export default function VisualizarProdutoDaVitrine() {
 
     if (slug) {
       carregar();
+    } else {
+      setLoading(false);
     }
 
     return () => {
       ativo = false;
+
       if (timerNotificacao.current) {
         window.clearTimeout(timerNotificacao.current);
+      }
+
+      if (timerRedirecionamento.current) {
+        window.clearTimeout(timerRedirecionamento.current);
       }
     };
   }, [slug]);
@@ -212,12 +225,28 @@ export default function VisualizarProdutoDaVitrine() {
 
     try {
       setAdicionandoCarrinho(true);
+
       const resultado = await adicionarProduto(produtoId, 1);
-      mostrarNotificacao(resultado?.mensagem || "Produto adicionado ao carrinho.", "sucesso");
+
+      mostrarNotificacao(
+        resultado?.mensagem || "Produto adicionado ao carrinho. Redirecionando...",
+        "sucesso"
+      );
+
+      if (timerRedirecionamento.current) {
+        window.clearTimeout(timerRedirecionamento.current);
+      }
+
+      timerRedirecionamento.current = window.setTimeout(() => {
+        router.push("/carrinho");
+      }, 900);
     } catch (error) {
       console.error("Erro ao adicionar no carrinho:", error);
       mostrarNotificacao(
-        extrairMensagemErro(error, "Não foi possível adicionar o produto ao carrinho."),
+        extrairMensagemErro(
+          error,
+          "Não foi possível adicionar o produto ao carrinho."
+        ),
         "erro"
       );
     } finally {
@@ -231,11 +260,16 @@ export default function VisualizarProdutoDaVitrine() {
   }
 
   function handleFavoritar() {
-    setFavoritado((prev) => !prev);
-    mostrarNotificacao(
-      favoritado ? "Removido dos favoritos." : "Adicionado aos favoritos.",
-      "sucesso"
-    );
+    setFavoritado((prev) => {
+      const novoEstado = !prev;
+
+      mostrarNotificacao(
+        novoEstado ? "Adicionado aos favoritos." : "Removido dos favoritos.",
+        "sucesso"
+      );
+
+      return novoEstado;
+    });
   }
 
   return (
@@ -430,7 +464,11 @@ export default function VisualizarProdutoDaVitrine() {
                     disabled={adicionandoCarrinho}
                   >
                     <FiShoppingCart className="btn-icon" />
-                    <span>{adicionandoCarrinho ? "Adicionando..." : "Adicionar ao carrinho"}</span>
+                    <span>
+                      {adicionandoCarrinho
+                        ? "Adicionando..."
+                        : "Adicionar ao carrinho"}
+                    </span>
                   </button>
 
                   <button type="button" className="btn-comprar" onClick={handleComprarAgora}>
