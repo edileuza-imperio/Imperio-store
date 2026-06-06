@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "lightgrey-cattle-160990.hostingersite.com",
       },
+      {
+        protocol: "https",
+        hostname: "universoimperio.com.br",
+      },
     ],
   },
 
@@ -20,7 +24,6 @@ const nextConfig: NextConfig = {
     scrollRestoration: true,
   },
 
-  // 🔥 ISSO AQUI AJUDA MUITO NO CSS CHUNKING
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },
