@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
-import "./../styles/variables.css";
+
+import MercadoPagoProvider from "@/components/MercadoPagoProvider";
+
 import "./../styles/variables.css";
 import "./../styles/layout.css";
 import "./globals.css";
-
-
 
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -38,6 +38,7 @@ export default function RootLayout({
   return (
     <html lang="pt-br">
       <body className="antialiased">
+        <MercadoPagoProvider />
         {children}
 
         <ToastProvider />

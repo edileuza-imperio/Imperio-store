@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
+import { CardPayment } from "@mercadopago/sdk-react";
 
 import {
   FiArrowLeft,
@@ -21,6 +22,7 @@ import {
   FiUser,
 } from "react-icons/fi";
 
+import api from "@/Api/conectar";
 import { formatarMoeda } from "@/components/Bibioteca/carrinho";
 import { usePagamento } from "./usePagamento";
 import styles from "./pagamento.module.css";
@@ -32,6 +34,7 @@ export default function PagamentoPage() {
   const router = useRouter();
 
   const [metodo, setMetodo] = useState<MetodoPagamento>("pix");
+  const [loadingCartao, setLoadingCartao] = useState(false);
 
   const pedidoId = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
@@ -61,6 +64,71 @@ export default function PagamentoPage() {
 
     if (statusPagamento.aprovado && pedidoId) {
       router.push(`/pedido-confirmado/${pedidoId}`);
+    }
+  }
+
+  async function pagarComCartao(formData: any) {
+    try {
+      setLoadingCartao(true);
+
+      if (!pedido?.id_pedido || !usuario?.id_usuario) {
+        toast.error("Dados do pedido ou usuário não encontrados.");
+        return;
+      }
+
+      const response = await api.post(
+        "/mercado/pagamento/cartao",
+        {
+          id_pedido: Number(pedido.id_pedido),
+          usuario_id: Number(usuario.id_usuario),
+          valor: Number(pedido.valor_total ?? 0),
+          token: formData.token,
+          payment_method_id: formData.payment_method_id,
+          parcelas: formData.installments,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+
+      const dados = response.data?.dados ?? response.data;
+      const status = String(dados?.status ?? "").toLowerCase();
+      const statusDetail = dados?.status_detail;
+
+      if (status === "approved") {
+        toast.success("Pagamento aprovado!");
+        router.push(`/pedido-confirmado/${pedido.id_pedido}`);
+        return;
+      }
+
+      if (status === "in_process" || status === "pending") {
+        toast.info("Pagamento em análise. Aguarde a confirmação.");
+        await verificarPagamento();
+        return;
+      }
+
+      if (status === "rejected") {
+        toast.error(
+          statusDetail
+            ? `Pagamento recusado: ${statusDetail}`
+            : "Pagamento recusado. Tente outro cartão."
+        );
+        return;
+      }
+
+      toast.info("Pagamento enviado. Verifique o status do pedido.");
+      await verificarPagamento();
+    } catch (error: any) {
+      console.error(error);
+
+      const mensagem =
+        error?.response?.data?.mensagem ||
+        error?.response?.data?.erro ||
+        "Erro ao processar pagamento com cartão.";
+
+      toast.error(mensagem);
+    } finally {
+      setLoadingCartao(false);
     }
   }
 
@@ -256,54 +324,35 @@ export default function PagamentoPage() {
 
                 <h2>Pagamento com cartão</h2>
 
-                <p>Preencha os dados do cartão para finalizar sua compra.</p>
+                <p>
+                  Preencha os dados do cartão no ambiente seguro do Mercado Pago.
+                </p>
               </div>
 
-              <form className={styles.cardForm}>
-                <label>
-                  Nome impresso no cartão
-                  <input type="text" placeholder="Ex: Rhaian Alvarado" />
-                </label>
-
-                <label>
-                  Número do cartão
-                  <input type="text" placeholder="0000 0000 0000 0000" />
-                </label>
-
-                <div className={styles.formGrid}>
-                  <label>
-                    Validade
-                    <input type="text" placeholder="MM/AA" />
-                  </label>
-
-                  <label>
-                    CVV
-                    <input type="text" placeholder="123" />
-                  </label>
-                </div>
-
-                <label>
-                  Parcelamento
-                  <select defaultValue="1">
-                    <option value="1">
-                      1x de {formatarMoeda(Number(pedido?.valor_total ?? 0))}
-                    </option>
-                    <option value="2">
-                      2x de{" "}
-                      {formatarMoeda(Number(pedido?.valor_total ?? 0) / 2)}
-                    </option>
-                    <option value="3">
-                      3x de{" "}
-                      {formatarMoeda(Number(pedido?.valor_total ?? 0) / 3)}
-                    </option>
-                  </select>
-                </label>
-
-                <button type="button" className={styles.primaryBtn}>
-                  <FiShield />
-                  Pagar com cartão
+              {loadingCartao ? (
+                <button type="button" disabled className={styles.primaryBtn}>
+                  <FiRefreshCw className={styles.spin} />
+                  Processando cartão...
                 </button>
-              </form>
+              ) : (
+                <CardPayment
+                  initialization={{
+                    amount: Number(pedido?.valor_total ?? 0),
+                  }}
+                  customization={{
+                    paymentMethods: {
+                      maxInstallments: 3,
+                    },
+                  }}
+                  onSubmit={async (formData) => {
+                    await pagarComCartao(formData);
+                  }}
+                  onError={(error) => {
+                    console.error(error);
+                    toast.error("Erro ao carregar pagamento com cartão.");
+                  }}
+                />
+              )}
             </div>
           )}
         </section>
