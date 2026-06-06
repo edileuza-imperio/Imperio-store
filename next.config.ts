@@ -10,11 +10,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "lightgrey-cattle-160990.hostingersite.com",
-      },
-      {
-        protocol: "https",
-        hostname: "universoimperio.com.br",
+        hostname: "api.universoimperio.com.br",
       },
     ],
   },

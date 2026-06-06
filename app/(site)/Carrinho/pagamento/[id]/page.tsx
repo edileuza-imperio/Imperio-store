@@ -1,12 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
-import { toast, ToastContainer } from "react-toastify";
-
-import { InicioApi } from "@/services/api/api";
+import { ToastContainer } from "react-toastify";
 
 import {
   FiArrowLeft,
@@ -23,206 +21,46 @@ import {
   FiUser,
 } from "react-icons/fi";
 
-import {
-  ApiPedidoResponse,
-  ApiPixResponse,
-  ApiVerificarPagamentoResponse,
-  formatarMoeda,
-  Pedido,
-  Usuario,
-} from "@/components/Bibioteca/carrinho";
-
+import { formatarMoeda } from "@/components/Bibioteca/carrinho";
+import { usePagamento } from "./usePagamento";
 import styles from "./pagamento.module.css";
 
-type StatusPagamento = {
-  label: string;
-  className: string;
-  descricao: string;
-};
+type MetodoPagamento = "pix" | "cartao";
 
 export default function PagamentoPage() {
   const params = useParams();
   const router = useRouter();
 
-  const pedidoId = Array.isArray(params?.id)
-    ? params.id[0]
-    : params?.id;
+  const [metodo, setMetodo] = useState<MetodoPagamento>("pix");
 
-  const [pedido, setPedido] = useState<Pedido | null>(null);
-  const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const pedidoId = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
-  const [loading, setLoading] = useState(true);
-  const [pixCode, setPixCode] = useState("");
-  const [copiado, setCopiado] = useState(false);
-  const [loadingPix, setLoadingPix] = useState(false);
-
-  const statusPagamento = useMemo<StatusPagamento>(() => {
-    const status = String(
-      pedido?.status_pagamento ?? pedido?.status ?? ""
-    ).toLowerCase();
-
-    if (
-      status.includes("approved") ||
-      status.includes("aprovado") ||
-      status.includes("paid") ||
-      status.includes("pago")
-    ) {
-      return {
-        label: "Pagamento aprovado",
-        className: styles.ok,
-        descricao: "Seu pagamento foi confirmado.",
-      };
-    }
-
-    return {
-      label: "Pagamento pendente",
-      className: styles.pending,
-      descricao: "Aguardando confirmação do pagamento.",
-    };
-  }, [pedido]);
-
-  async function carregarPedido() {
-    try {
-      setLoading(true);
-
-      const [pedidoRes, meRes] = await Promise.all([
-        InicioApi.get<ApiPedidoResponse>(`/pedido/${pedidoId}`, {
-          withCredentials: true,
-        }),
-
-        InicioApi.get<ApiPedidoResponse>("/me", {
-          withCredentials: true,
-        }),
-      ]);
-
-      const pedidoAtual: Pedido | null =
-        pedidoRes.data?.dados?.pedido ??
-        pedidoRes.data?.pedido ??
-        null;
-
-      const usuarioAtual: Usuario | null =
-        meRes.data?.dados?.usuario ??
-        meRes.data?.usuario ??
-        null;
-
-      setPedido(pedidoAtual);
-      setUsuario(usuarioAtual);
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao carregar pedido");
-    } finally {
-      setLoading(false);
-    }
-  }
+  const {
+    pedido,
+    usuario,
+    loading,
+    pixCode,
+    copiado,
+    loadingPix,
+    statusPagamento,
+    gerarPix,
+    copiarPix,
+    verificarPagamento,
+  } = usePagamento({
+    pedidoId: String(pedidoId ?? ""),
+  });
 
   useEffect(() => {
-    if (pedidoId) carregarPedido();
-  }, [pedidoId]);
-
-  async function gerarPix() {
-    try {
-      if (!pedido || !usuario) {
-        toast.warning("Dados ainda carregando");
-        return;
-      }
-
-      const payload = {
-        id_pedido: Number(pedido.id_pedido),
-        usuario_id: Number(usuario.id_usuario),
-        valor: Number(pedido.valor_total ?? 0),
-        email: usuario.email,
-        nome: usuario.nome,
-        cpf: String(usuario.cpf ?? "").replace(/\D/g, ""),
-      };
-
-      setLoadingPix(true);
-
-      const res = await InicioApi.post<ApiPixResponse>(
-        "/mercado/pagamento/pix",
-        payload,
-        { withCredentials: true }
-      );
-
-      const qr =
-        res.data?.dados?.pix?.qr_code ??
-        res.data?.pix?.qr_code ??
-        "";
-
-      if (!qr) {
-        toast.error("PIX inválido");
-        return;
-      }
-
-      setPixCode(qr);
-
-      toast.success("PIX gerado com sucesso");
-    } catch (err: any) {
-      console.error(err);
-
-      toast.error(
-        err?.response?.data?.message ||
-          "Erro ao gerar PIX"
-      );
-    } finally {
-      setLoadingPix(false);
+    if (statusPagamento.aprovado && pedidoId) {
+      router.push(`/pedido-confirmado/${pedidoId}`);
     }
-  }
+  }, [statusPagamento.aprovado, pedidoId, router]);
 
-  async function copiarPix() {
-    if (!pixCode) return;
+  async function confirmarPagamento() {
+    await verificarPagamento();
 
-    await navigator.clipboard.writeText(pixCode);
-
-    setCopiado(true);
-
-    toast.success("Código copiado");
-
-    setTimeout(() => {
-      setCopiado(false);
-    }, 1600);
-  }
-
-  async function verificarPagamento() {
-    try {
-      const res =
-        await InicioApi.post<ApiVerificarPagamentoResponse>(
-          "/mercado/pagamento/verificar",
-          {
-            id_pedido: Number(pedidoId),
-          },
-          {
-            withCredentials: true,
-          }
-        );
-
-      const pedidoAtual: Pedido | null =
-        res.data?.dados?.pedido ??
-        res.data?.pedido ??
-        null;
-
-      setPedido(pedidoAtual);
-
-      const status = String(
-        pedidoAtual?.status_pagamento ??
-          pedidoAtual?.status ??
-          ""
-      ).toLowerCase();
-
-      if (
-        status.includes("approved") ||
-        status.includes("aprovado") ||
-        status.includes("paid")
-      ) {
-        toast.success("Pagamento confirmado!");
-
-        router.push("/Pedidos");
-      } else {
-        toast.info("Pagamento ainda pendente");
-      }
-    } catch (err) {
-      console.error(err);
-
-      toast.error("Erro ao verificar pagamento");
+    if (statusPagamento.aprovado && pedidoId) {
+      router.push(`/pedido-confirmado/${pedidoId}`);
     }
   }
 
@@ -230,13 +68,9 @@ export default function PagamentoPage() {
     return (
       <main className={styles.loadingPage}>
         <div className={styles.loadingCard}>
-          <FiClock size={42} />
-
+          <FiClock />
           <h2>Carregando pagamento...</h2>
-
-          <p>
-            Estamos preparando os dados do seu pedido.
-          </p>
+          <p>Estamos preparando os dados do seu pedido.</p>
         </div>
       </main>
     );
@@ -246,227 +80,269 @@ export default function PagamentoPage() {
     <main className={styles.checkout}>
       <ToastContainer />
 
-      <div
-        className={`${styles.bgBlur} ${styles.blur1}`}
-      />
+      <div className={`${styles.bgBlur} ${styles.blur1}`} />
+      <div className={`${styles.bgBlur} ${styles.blur2}`} />
 
-      <div
-        className={`${styles.bgBlur} ${styles.blur2}`}
-      />
-
-      <section className={styles.topHero}>
+      <section className={styles.hero}>
         <div className={styles.heroTag}>
           <FiShield />
           Ambiente seguro e criptografado
         </div>
 
-        <h1>Pagamento via PIX</h1>
+        <h1>Finalize seu pagamento</h1>
 
         <p>
-          Finalize seu pedido em segundos usando PIX
-          com aprovação rápida e segura.
+          Escolha a melhor forma de pagamento para concluir seu pedido com
+          segurança.
         </p>
+
+        <div
+          className={`${styles.statusBadge} ${
+            statusPagamento.aprovado ? styles.ok : styles.pending
+          }`}
+        >
+          {statusPagamento.label}
+        </div>
       </section>
 
-      <div
-        className={`${styles.statusBadge} ${statusPagamento.className}`}
-      >
-        {statusPagamento.label}
-      </div>
-
       <section className={styles.layout}>
-        <aside className={styles.glass}>
+        <aside className={styles.card}>
           <div className={styles.cardTitle}>
             <FiUser />
-            Dados do cliente
+            <span>Dados do cliente</span>
           </div>
 
           <div className={styles.userBox}>
-           
+            <div className={styles.avatar}>
+              {(usuario?.nome ?? "C").charAt(0).toUpperCase()}
+            </div>
 
             <div className={styles.userData}>
-              <strong>
-                {usuario?.nome ?? "Cliente"}
-              </strong>
-
-              <span>
-                {usuario?.email ??
-                  "email@email.com"}
-              </span>
+              <strong>{usuario?.nome ?? "Cliente"}</strong>
+              <span>{usuario?.email ?? "email@email.com"}</span>
             </div>
           </div>
 
           <div className={styles.infoList}>
             <div className={styles.infoItem}>
-              <div className={styles.infoLeft}>
+              <div>
                 <FiPackage />
                 <span>Pedido</span>
               </div>
-
-              <strong>
-                #{pedido?.id_pedido ?? pedidoId}
-              </strong>
+              <strong>#{pedido?.id_pedido ?? pedidoId}</strong>
             </div>
 
             <div className={styles.infoItem}>
-              <div className={styles.infoLeft}>
+              <div>
                 <FiTruck />
                 <span>Status</span>
               </div>
-
-              <strong>
-                {pedido?.status_pagamento ??
-                  "Pendente"}
-              </strong>
+              <strong>{pedido?.status_pagamento ?? "Pendente"}</strong>
             </div>
 
             <div className={styles.infoItem}>
-              <div className={styles.infoLeft}>
+              <div>
                 <FiTag />
                 <span>Total</span>
               </div>
-
               <strong>
-                {formatarMoeda(
-                  Number(
-                    pedido?.valor_total ?? 0
-                  )
-                )}
+                {formatarMoeda(Number(pedido?.valor_total ?? 0))}
               </strong>
             </div>
           </div>
 
           <div className={styles.totalBox}>
             <span>Total geral</span>
-
-            <strong>
-              {formatarMoeda(
-                Number(pedido?.valor_total ?? 0)
-              )}
-            </strong>
+            <strong>{formatarMoeda(Number(pedido?.valor_total ?? 0))}</strong>
           </div>
 
-          <Link
-            href="/Carrinho"
-            className={styles.backBtn}
-          >
+          <Link href="/Carrinho" className={styles.backBtn}>
             <FiArrowLeft />
             Voltar ao carrinho
           </Link>
         </aside>
 
-        <section
-          className={`${styles.glass} ${styles.centerSide}`}
-        >
-          <div className={styles.pixHeader}>
-            <div className={styles.pixIcon}>
+        <section className={`${styles.card} ${styles.paymentCard}`}>
+          <div className={styles.paymentTabs}>
+            <button
+              type="button"
+              onClick={() => setMetodo("pix")}
+              className={`${styles.paymentTab} ${
+                metodo === "pix" ? styles.activeTab : ""
+              }`}
+            >
               <FiSmartphone />
-            </div>
+              PIX
+            </button>
 
-            <h2>PIX Instantâneo</h2>
-
-            <p>
-              Escaneie o QR Code ou copie o código
-              PIX.
-            </p>
+            <button
+              type="button"
+              onClick={() => setMetodo("cartao")}
+              className={`${styles.paymentTab} ${
+                metodo === "cartao" ? styles.activeTab : ""
+              }`}
+            >
+              <FiCreditCard />
+              Cartão
+            </button>
           </div>
 
-          {!pixCode ? (
-            <button
-              onClick={gerarPix}
-              disabled={loadingPix}
-              className={styles.primaryBtn}
-            >
-              <FiRefreshCw />
-              {loadingPix
-                ? "Gerando PIX..."
-                : "Gerar PIX"}
-            </button>
-          ) : (
-            <>
-              <div className={styles.qrWrapper}>
-                <div className={styles.qrCard}>
-                  <QRCodeCanvas
-                    value={pixCode}
-                    size={240}
-                  />
+          {metodo === "pix" && (
+            <div className={styles.paymentPanel}>
+              <div className={styles.pixHeader}>
+                <div className={styles.pixIcon}>
+                  <FiSmartphone />
                 </div>
+
+                <h2>PIX Instantâneo</h2>
+
+                <p>Escaneie o QR Code ou copie o código PIX abaixo.</p>
               </div>
 
-              <textarea
-                className={styles.textarea}
-                value={pixCode}
-                readOnly
-              />
-
-              <div className={styles.pixActions}>
+              {!pixCode ? (
                 <button
-                  onClick={copiarPix}
-                  className={styles.softBtn}
+                  type="button"
+                  onClick={gerarPix}
+                  disabled={loadingPix}
+                  className={styles.primaryBtn}
                 >
-                  <FiCopy />
-                  {copiado
-                    ? "Copiado"
-                    : "Copiar PIX"}
+                  <FiRefreshCw className={loadingPix ? styles.spin : ""} />
+                  {loadingPix ? "Preparando pagamento..." : "Gerar QR Code PIX"}
                 </button>
+              ) : (
+                <div className={styles.pixContent}>
+                  <div className={styles.qrWrapper}>
+                    <div className={styles.qrCard}>
+                      <QRCodeCanvas value={pixCode} size={220} />
+                    </div>
+                  </div>
 
-                <button
-                  onClick={verificarPagamento}
-                  className={styles.successBtn}
-                >
-                  <FiCheckCircle />
-                  Já paguei
-                </button>
+                  <textarea
+                    className={styles.textarea}
+                    value={pixCode}
+                    readOnly
+                  />
+
+                  <div className={styles.pixActions}>
+                    <button
+                      type="button"
+                      onClick={copiarPix}
+                      className={styles.softBtn}
+                    >
+                      <FiCopy />
+                      {copiado ? "Copiado" : "Copiar PIX"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={confirmarPagamento}
+                      className={styles.successBtn}
+                    >
+                      <FiCheckCircle />
+                      Já paguei
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {metodo === "cartao" && (
+            <div className={styles.paymentPanel}>
+              <div className={styles.pixHeader}>
+                <div className={styles.pixIcon}>
+                  <FiCreditCard />
+                </div>
+
+                <h2>Pagamento com cartão</h2>
+
+                <p>Preencha os dados do cartão para finalizar sua compra.</p>
               </div>
-            </>
+
+              <form className={styles.cardForm}>
+                <label>
+                  Nome impresso no cartão
+                  <input type="text" placeholder="Ex: Rhaian Alvarado" />
+                </label>
+
+                <label>
+                  Número do cartão
+                  <input type="text" placeholder="0000 0000 0000 0000" />
+                </label>
+
+                <div className={styles.formGrid}>
+                  <label>
+                    Validade
+                    <input type="text" placeholder="MM/AA" />
+                  </label>
+
+                  <label>
+                    CVV
+                    <input type="text" placeholder="123" />
+                  </label>
+                </div>
+
+                <label>
+                  Parcelamento
+                  <select defaultValue="1">
+                    <option value="1">
+                      1x de {formatarMoeda(Number(pedido?.valor_total ?? 0))}
+                    </option>
+                    <option value="2">
+                      2x de{" "}
+                      {formatarMoeda(Number(pedido?.valor_total ?? 0) / 2)}
+                    </option>
+                    <option value="3">
+                      3x de{" "}
+                      {formatarMoeda(Number(pedido?.valor_total ?? 0) / 3)}
+                    </option>
+                  </select>
+                </label>
+
+                <button type="button" className={styles.primaryBtn}>
+                  <FiShield />
+                  Pagar com cartão
+                </button>
+              </form>
+            </div>
           )}
         </section>
 
-        <aside className={styles.glass}>
+        <aside className={styles.card}>
           <div className={styles.cardTitle}>
             <FiCreditCard />
-            Informações
+            <span>Resumo seguro</span>
           </div>
 
           <div className={styles.infoList}>
             <div className={styles.infoItem}>
-              <div className={styles.infoLeft}>
+              <div>
                 <FiShield />
                 <span>Segurança</span>
               </div>
-
               <strong>100% Seguro</strong>
             </div>
 
             <div className={styles.infoItem}>
-              <div className={styles.infoLeft}>
+              <div>
                 <FiClock />
                 <span>Aprovação</span>
               </div>
-
-              <strong>Instantânea</strong>
+              <strong>{metodo === "pix" ? "Instantânea" : "Rápida"}</strong>
             </div>
 
             <div className={styles.infoItem}>
-              <div className={styles.infoLeft}>
+              <div>
                 <FiSmartphone />
-                <span>Pagamento</span>
+                <span>Método</span>
               </div>
-
-              <strong>PIX QR Code</strong>
+              <strong>{metodo === "pix" ? "PIX" : "Cartão"}</strong>
             </div>
           </div>
 
-          <div className={styles.totalBox}>
+          <div className={styles.statusBox}>
             <span>Status atual</span>
-
-            <strong
-              style={{
-                fontSize: 18,
-              }}
-            >
-              {statusPagamento.descricao}
-            </strong>
+            <strong>{statusPagamento.descricao}</strong>
           </div>
         </aside>
       </section>
