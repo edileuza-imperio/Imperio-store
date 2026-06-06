@@ -22,7 +22,6 @@ import {
   FiUser,
 } from "react-icons/fi";
 
-import api from "@/Api/conectar";
 import { formatarMoeda } from "@/components/Bibioteca/carrinho";
 import { usePagamento } from "./usePagamento";
 import styles from "./pagamento.module.css";
@@ -34,7 +33,6 @@ export default function PagamentoPage() {
   const router = useRouter();
 
   const [metodo, setMetodo] = useState<MetodoPagamento>("pix");
-  const [loadingCartao, setLoadingCartao] = useState(false);
 
   const pedidoId = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
@@ -45,10 +43,12 @@ export default function PagamentoPage() {
     pixCode,
     copiado,
     loadingPix,
+    loadingCartao,
     statusPagamento,
     gerarPix,
     copiarPix,
     verificarPagamento,
+    pagarComCartao,
   } = usePagamento({
     pedidoId: String(pedidoId ?? ""),
   });
@@ -61,75 +61,6 @@ export default function PagamentoPage() {
 
   async function confirmarPagamento() {
     await verificarPagamento();
-
-    if (statusPagamento.aprovado && pedidoId) {
-      router.push(`/pedido-confirmado/${pedidoId}`);
-    }
-  }
-
-  async function pagarComCartao(formData: any) {
-    try {
-      setLoadingCartao(true);
-
-      if (!pedido?.id_pedido || !usuario?.id_usuario) {
-        toast.error("Dados do pedido ou usuário não encontrados.");
-        return;
-      }
-
-      const response = await api.post(
-        "/mercado/pagamento/cartao",
-        {
-          id_pedido: Number(pedido.id_pedido),
-          usuario_id: Number(usuario.id_usuario),
-          valor: Number(pedido.valor_total ?? 0),
-          token: formData.token,
-          payment_method_id: formData.payment_method_id,
-          parcelas: formData.installments,
-        },
-        {
-          withCredentials: true,
-        }
-      );
-
-      const dados = response.data?.dados ?? response.data;
-      const status = String(dados?.status ?? "").toLowerCase();
-      const statusDetail = dados?.status_detail;
-
-      if (status === "approved") {
-        toast.success("Pagamento aprovado!");
-        router.push(`/pedido-confirmado/${pedido.id_pedido}`);
-        return;
-      }
-
-      if (status === "in_process" || status === "pending") {
-        toast.info("Pagamento em análise. Aguarde a confirmação.");
-        await verificarPagamento();
-        return;
-      }
-
-      if (status === "rejected") {
-        toast.error(
-          statusDetail
-            ? `Pagamento recusado: ${statusDetail}`
-            : "Pagamento recusado. Tente outro cartão."
-        );
-        return;
-      }
-
-      toast.info("Pagamento enviado. Verifique o status do pedido.");
-      await verificarPagamento();
-    } catch (error: any) {
-      console.error(error);
-
-      const mensagem =
-        error?.response?.data?.mensagem ||
-        error?.response?.data?.erro ||
-        "Erro ao processar pagamento com cartão.";
-
-      toast.error(mensagem);
-    } finally {
-      setLoadingCartao(false);
-    }
   }
 
   if (loading) {
@@ -345,6 +276,7 @@ export default function PagamentoPage() {
                     },
                   }}
                   onSubmit={async (formData) => {
+                    console.log("FORM DATA MERCADO PAGO:", formData);
                     await pagarComCartao(formData);
                   }}
                   onError={(error) => {
