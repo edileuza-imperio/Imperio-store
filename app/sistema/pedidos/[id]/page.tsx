@@ -68,13 +68,15 @@ export default function PedidoDetalhePage() {
     try {
       setLoading(true);
 
-      const [pedidoRes, rastreioRes] = await Promise.all([
+      const [pedidoRes, rastreioRes, todosRastreiosRes] = await Promise.all([
         api.get(`/pedido/${pedidoId}/com-itens`),
         api.get(`/pedido/${pedidoId}/rastreamento`).catch(() => null),
+        api.get(`/pedido-rastreamentos`).catch(() => null),
       ]);
 
       const pedidoData = pedidoRes.data;
       const rastreioData = rastreioRes?.data;
+      const todosRastreiosData = todosRastreiosRes?.data;
 
       const pedidoEncontrado =
         pedidoData?.dados?.pedido ??
@@ -87,7 +89,9 @@ export default function PedidoDetalhePage() {
           ? pedidoData.itens
           : [];
 
-      const listaRastreamento = Array.isArray(rastreioData?.dados?.rastreamentos)
+      let listaRastreamento: Rastreamento[] = Array.isArray(
+        rastreioData?.dados?.rastreamentos
+      )
         ? rastreioData.dados.rastreamentos
         : Array.isArray(rastreioData?.dados?.rastreamento)
           ? rastreioData.dados.rastreamento
@@ -100,6 +104,31 @@ export default function PedidoDetalhePage() {
                 : Array.isArray(rastreioData)
                   ? rastreioData
                   : [];
+
+      if (listaRastreamento.length === 0) {
+        const todos: Rastreamento[] = Array.isArray(
+          todosRastreiosData?.dados?.rastreamentos
+        )
+          ? todosRastreiosData.dados.rastreamentos
+          : Array.isArray(todosRastreiosData?.dados)
+            ? todosRastreiosData.dados
+            : Array.isArray(todosRastreiosData?.rastreamentos)
+              ? todosRastreiosData.rastreamentos
+              : Array.isArray(todosRastreiosData)
+                ? todosRastreiosData
+                : [];
+
+        listaRastreamento = todos.filter(
+          (r) => Number(r.pedido_id) === Number(pedidoId)
+        );
+      }
+
+      listaRastreamento = listaRastreamento.sort((a, b) => {
+        const dataA = new Date((a.criado_em ?? "").replace(" ", "T")).getTime();
+        const dataB = new Date((b.criado_em ?? "").replace(" ", "T")).getTime();
+
+        return dataA - dataB;
+      });
 
       setPedido(pedidoEncontrado);
       setItens(listaItens);
@@ -123,6 +152,7 @@ export default function PedidoDetalhePage() {
       setSalvando(true);
 
       await api.post(`/pedido/${pedidoId}/rastreamento`, {
+        pedido_id: Number(pedidoId),
         status_id: statusId,
         descricao,
         codigo_rastreio: codigoRastreio || null,
@@ -140,7 +170,9 @@ export default function PedidoDetalhePage() {
   }
 
   useEffect(() => {
-    if (pedidoId) carregarPedido();
+    if (pedidoId) {
+      carregarPedido();
+    }
   }, [pedidoId]);
 
   function proximoPasso() {
@@ -167,16 +199,18 @@ export default function PedidoDetalhePage() {
   }
 
   function nomeStatus(statusId: number) {
-    if (statusId === 6) return "Pedido criado";
-    if (statusId === 7) return "Pedido pendente";
-    if (statusId === 8) return "Pedido pago";
-    if (statusId === 12) return "Pedido cancelado";
-    if (statusId === 14) return "Pagamento aprovado";
-    if (statusId === 15) return "Pagamento recusado";
-    if (statusId === 16) return "Pedido enviado";
-    if (statusId === 17) return "Pedido entregue";
+    const status: Record<number, string> = {
+      6: "Pedido criado",
+      7: "Pedido pendente",
+      8: "Pedido pago",
+      12: "Pedido cancelado",
+      14: "Pagamento aprovado",
+      15: "Pagamento recusado",
+      16: "Pedido enviado",
+      17: "Pedido entregue",
+    };
 
-    return `Status #${statusId}`;
+    return status[statusId] ?? `Status #${statusId}`;
   }
 
   function statusTexto(p?: Pedido | null) {
@@ -300,7 +334,9 @@ export default function PedidoDetalhePage() {
 
             <div>
               <small>Total</small>
-              <strong className={styles.valor}>{moeda(pedido.valor_total)}</strong>
+              <strong className={styles.valor}>
+                {moeda(pedido.valor_total)}
+              </strong>
             </div>
 
             <div>
@@ -405,7 +441,7 @@ export default function PedidoDetalhePage() {
               className={styles.btnAzul}
             >
               <FiTruck />
-              Marcar como enviado
+              {salvando ? "Salvando..." : "Marcar como enviado"}
             </button>
 
             <button
@@ -416,7 +452,7 @@ export default function PedidoDetalhePage() {
               className={styles.btnVerde}
             >
               <FiCheckCircle />
-              Marcar como entregue
+              {salvando ? "Salvando..." : "Marcar como entregue"}
             </button>
           </div>
 
@@ -426,7 +462,7 @@ export default function PedidoDetalhePage() {
             ) : (
               rastreamento.map((r) => (
                 <div key={r.id_rastreamento} className={styles.timelineItem}>
-                  <strong>{nomeStatus(r.status_id)}</strong>
+                  <strong>{nomeStatus(Number(r.status_id))}</strong>
 
                   <p>{r.descricao ?? "—"}</p>
 
