@@ -7,9 +7,16 @@ export default function MercadoPagoProvider() {
   useEffect(() => {
     const publicKey = process.env.NEXT_PUBLIC_MP_PUBLIC_KEY;
 
-    if (publicKey) {
-      initMercadoPago(publicKey);
+    console.log("MP PUBLIC KEY:", publicKey);
+
+    if (!publicKey) {
+      console.error("NEXT_PUBLIC_MP_PUBLIC_KEY não configurada.");
+      return;
     }
+
+    initMercadoPago(publicKey, {
+      locale: "pt-BR",
+    });
   }, []);
 
   return null;

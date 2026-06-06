@@ -11,6 +11,7 @@ import {
   FiArrowRight,
   FiShoppingBag,
   FiLock,
+  FiSearch,
 } from "react-icons/fi";
 
 import { useCheckout } from "./useCheckout";
@@ -21,6 +22,9 @@ export default function CheckoutPage() {
     loading,
     processando,
     salvandoEndereco,
+    buscandoCep,
+    erroEndereco,
+    sucessoEndereco,
 
     enderecos,
     enderecoSelecionado,
@@ -28,6 +32,7 @@ export default function CheckoutPage() {
 
     formEndereco,
     alterarCampoEndereco,
+    buscarCep,
     cadastrarEndereco,
 
     itens,
@@ -127,20 +132,34 @@ export default function CheckoutPage() {
                       <div className={styles.addressForm}>
                         <h3>Cadastrar endereço</h3>
                         <p>
-                          Informe seu endereço de entrega. Na próxima compra,
-                          ele será carregado automaticamente.
+                          Digite o CEP para preencher rua, bairro, cidade e
+                          estado automaticamente.
                         </p>
 
                         <div className={styles.formGrid}>
                           <label>
                             <span>CEP</span>
-                            <input
-                              placeholder="Ex: 13000-000"
-                              value={formEndereco.cep}
-                              onChange={(e) =>
-                                alterarCampoEndereco("cep", e.target.value)
-                              }
-                            />
+                            <div className={styles.cepRow}>
+                              <input
+                                placeholder="Ex: 13000-000"
+                                value={formEndereco.cep}
+                                onChange={(e) =>
+                                  alterarCampoEndereco("cep", e.target.value)
+                                }
+                                onBlur={() => buscarCep()}
+                                maxLength={9}
+                              />
+
+                              <button
+                                type="button"
+                                className={styles.cepButton}
+                                onClick={() => buscarCep()}
+                                disabled={buscandoCep}
+                              >
+                                <FiSearch />
+                                {buscandoCep ? "Buscando..." : "Buscar"}
+                              </button>
+                            </div>
                           </label>
 
                           <label>
@@ -161,6 +180,20 @@ export default function CheckoutPage() {
                               value={formEndereco.numero}
                               onChange={(e) =>
                                 alterarCampoEndereco("numero", e.target.value)
+                              }
+                            />
+                          </label>
+
+                          <label>
+                            <span>Complemento</span>
+                            <input
+                              placeholder="Apto, bloco, referência..."
+                              value={formEndereco.complemento}
+                              onChange={(e) =>
+                                alterarCampoEndereco(
+                                  "complemento",
+                                  e.target.value
+                                )
                               }
                             />
                           </label>
@@ -195,15 +228,26 @@ export default function CheckoutPage() {
                               onChange={(e) =>
                                 alterarCampoEndereco("estado", e.target.value)
                               }
+                              maxLength={2}
                             />
                           </label>
                         </div>
+
+                        {erroEndereco && (
+                          <p className={styles.formError}>{erroEndereco}</p>
+                        )}
+
+                        {sucessoEndereco && (
+                          <p className={styles.formSuccess}>
+                            {sucessoEndereco}
+                          </p>
+                        )}
 
                         <button
                           type="button"
                           className={`${styles.btnPrimary} ${styles.full}`}
                           onClick={cadastrarEndereco}
-                          disabled={salvandoEndereco}
+                          disabled={salvandoEndereco || buscandoCep}
                         >
                           {salvandoEndereco
                             ? "Salvando endereço..."
@@ -238,6 +282,10 @@ export default function CheckoutPage() {
                                   , {endereco.numero || "S/N"}
                                 </strong>
 
+                                {endereco.complemento && (
+                                  <span>{endereco.complemento}</span>
+                                )}
+
                                 <span>
                                   {endereco.bairro || "Bairro não informado"}
                                 </span>
@@ -246,6 +294,8 @@ export default function CheckoutPage() {
                                   {endereco.cidade || "Cidade"} -{" "}
                                   {endereco.estado || "UF"}
                                 </span>
+
+                                {endereco.cep && <span>CEP {endereco.cep}</span>}
                               </div>
 
                               {ativo && (

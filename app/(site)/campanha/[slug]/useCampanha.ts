@@ -52,6 +52,44 @@ function formatDateBR(value?: string | null) {
   return d.toLocaleDateString("pt-BR");
 }
 
+function normalizarCampanha(campanhaDados: any): Campanha | null {
+  if (!campanhaDados) return null;
+
+  return {
+    id_campanha: Number(campanhaDados.id_campanha),
+    titulo: campanhaDados.titulo || "",
+    slug: campanhaDados.slug || "",
+    descricao: campanhaDados.descricao ?? null,
+    banner: campanhaDados.banner ?? null,
+    imagem: campanhaDados.imagem ?? null,
+    desktop: campanhaDados.desktop ?? null,
+    mobile: campanhaDados.mobile ?? null,
+    foto: campanhaDados.foto ?? null,
+    inicio: campanhaDados.inicio ?? null,
+    fim: campanhaDados.fim ?? null,
+  };
+}
+
+function normalizarProduto(item: any): Produto {
+  const produto = item?.produto || item || {};
+
+  return {
+    id_produto: Number(produto.id_produto ?? item?.produto_id ?? 0),
+    nome: produto.nome || "",
+    descricao: produto.descricao || produto.descricao_curta || null,
+    imagem:
+      produto.imagem ||
+      produto.foto ||
+      produto.capa ||
+      produto.imagem_principal ||
+      null,
+    preco: Number(
+      String(produto.preco || produto["preço"] || 0).replace(",", ".")
+    ),
+    slug: produto.slug || produto.lesma || "",
+  };
+}
+
 export function useCampanha(slug?: string) {
   const [campanha, setCampanha] = useState<Campanha | null>(null);
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -59,6 +97,8 @@ export function useCampanha(slug?: string) {
 
   async function carregar() {
     if (!slug) {
+      setCampanha(null);
+      setProdutos([]);
       setLoading(false);
       return;
     }
@@ -66,64 +106,19 @@ export function useCampanha(slug?: string) {
     try {
       setLoading(true);
 
-      const campanhaResponse = await api.get(`/campanha/slug/${slug}`, {
+      const response = await api.get(`/campanha/slug/${slug}/com-produtos`, {
         withCredentials: true,
       });
 
-      const campanhaDados = extrairDados(campanhaResponse.data);
+      const dados = extrairDados(response.data);
 
-      const campanhaNormalizada: Campanha | null = campanhaDados
-        ? {
-            id_campanha: campanhaDados.id_campanha,
-            titulo: campanhaDados.titulo,
-            slug: campanhaDados.slug,
-            descricao: campanhaDados.descricao ?? null,
-            banner: campanhaDados.banner ?? null,
-            imagem: campanhaDados.imagem ?? null,
-            desktop: campanhaDados.desktop ?? null,
-            mobile: campanhaDados.mobile ?? null,
-            foto: campanhaDados.foto ?? null,
-            inicio: campanhaDados.inicio ?? null,
-            fim: campanhaDados.fim ?? null,
-          }
-        : null;
+      const campanhaNormalizada = normalizarCampanha(dados?.campanha);
 
-      setCampanha(campanhaNormalizada);
-
-      if (!campanhaNormalizada?.id_campanha) {
-        setProdutos([]);
-        return;
-      }
-
-      const produtosResponse = await api.get(
-        `/campanha/${campanhaNormalizada.id_campanha}/produtos`,
-        {
-          withCredentials: true,
-        }
-      );
-
-      const produtosDados = extrairDados(produtosResponse.data);
-
-      const listaProdutos: Produto[] = Array.isArray(produtosDados)
-        ? produtosDados.map((item: any) => {
-            const produto = item?.produto || item || {};
-
-            return {
-              id_produto: produto.id_produto ?? item.produto_id,
-              nome: produto.nome || "",
-              descricao: produto.descricao || null,
-              imagem: produto.imagem || null,
-              preco: Number(
-                String(produto.preco || produto["preço"] || 0).replace(
-                  ",",
-                  "."
-                )
-              ),
-              slug: produto.slug || produto.lesma || "",
-            };
-          })
+      const listaProdutos = Array.isArray(dados?.produtos)
+        ? dados.produtos.map(normalizarProduto)
         : [];
 
+      setCampanha(campanhaNormalizada);
       setProdutos(listaProdutos);
     } catch (error) {
       console.error("Erro ao carregar campanha:", error);
