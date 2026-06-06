@@ -1,91 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
-import api from "@/Api/conectar";
 import styles from "./Campanha.module.css";
-
 import { ShoppingBag, Calendar, Package, ArrowRight } from "lucide-react";
-
-type Campanha = {
-  id_campanha: number;
-  titulo: string;
-  slug: string;
-  descricao?: string | null;
-  banner?: string | null;
-  imagem?: string | null;
-  desktop?: string | null;
-  mobile?: string | null;
-  foto?: string | null;
-  inicio?: string | null;
-  fim?: string | null;
-};
-
-type Produto = {
-  id_produto: number;
-  nome: string;
-  descricao?: string | null;
-  imagem?: string | null;
-  preco?: number;
-  slug?: string;
-};
-
-function extrairDados(payload: any) {
-  return payload?.dados?.dados ?? payload?.dados ?? payload ?? null;
-}
-
-function resolverImagem(src?: string | null) {
-  if (!src) return "";
-
-  const valor = String(src).trim();
-  if (!valor) return "";
-
-  if (
-    valor.startsWith("http://") ||
-    valor.startsWith("https://") ||
-    valor.startsWith("data:image") ||
-    valor.startsWith("blob:")
-  ) {
-    return valor;
-  }
-
-  const baseURL =
-    typeof api === "string" ? api : (api as any)?.defaults?.baseURL || "";
-
-  if (!baseURL) return valor;
-
-  if (valor.startsWith("/")) {
-    return `${baseURL}${valor}`;
-  }
-
-  return `${baseURL}/${valor}`;
-}
-
-function obterImagemCampanha(campanha?: Campanha | null) {
-  return resolverImagem(
-    campanha?.banner ||
-      campanha?.imagem ||
-      campanha?.desktop ||
-      campanha?.mobile ||
-      campanha?.foto ||
-      ""
-  );
-}
-
-function formatDateBR(value?: string | null) {
-  if (!value) return "";
-
-  const d = new Date(value);
-
-  if (Number.isNaN(d.getTime())) {
-    return "";
-  }
-
-  return d.toLocaleDateString("pt-BR");
-}
+import { imagemFundo, useCampanha } from "./useCampanha";
 
 export default function CampanhaSlugPage() {
   const params = useParams();
@@ -95,93 +16,8 @@ export default function CampanhaSlugPage() {
       ? ((params as any).slug as string)
       : ((params as any)?.slug?.[0] as string | undefined);
 
-  const [campanha, setCampanha] = useState<Campanha | null>(null);
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  async function carregar() {
-    try {
-      setLoading(true);
-
-      const campanhaResponse = await api.get(`/campanha/slug/${slug}`, {
-        withCredentials: true,
-      });
-
-      const campanhaDados = extrairDados(campanhaResponse.data);
-
-      const campanhaNormalizada: Campanha | null = campanhaDados
-        ? {
-            id_campanha: campanhaDados.id_campanha,
-            titulo: campanhaDados.titulo,
-            slug: campanhaDados.slug,
-            descricao: campanhaDados.descricao ?? null,
-            banner: campanhaDados.banner ?? null,
-            imagem: campanhaDados.imagem ?? null,
-            desktop: campanhaDados.desktop ?? null,
-            mobile: campanhaDados.mobile ?? null,
-            foto: campanhaDados.foto ?? null,
-            inicio: campanhaDados.inicio ?? null,
-            fim: campanhaDados.fim ?? null,
-          }
-        : null;
-
-      setCampanha(campanhaNormalizada);
-
-      if (campanhaNormalizada?.id_campanha) {
-        const produtosResponse = await api.get(
-          `/campanha/${campanhaNormalizada.id_campanha}/produtos`
-        );
-
-        const produtosDados = extrairDados(produtosResponse.data);
-
-        const listaProdutos = Array.isArray(produtosDados)
-          ? produtosDados.map((item: any) => {
-              const produto = item?.produto || {};
-
-              return {
-                id_produto: produto.id_produto ?? item.produto_id,
-                nome: produto.nome || "",
-                descricao: produto.descricao || null,
-                imagem: produto.imagem || null,
-                preco: Number(
-                  String(produto.preco || produto["preço"] || 0).replace(
-                    ",",
-                    "."
-                  )
-                ),
-                slug: produto.slug || produto.lesma || "",
-              };
-            })
-          : [];
-
-        setProdutos(listaProdutos);
-      }
-    } catch (error) {
-      console.error("Erro ao carregar campanha:", error);
-      setCampanha(null);
-      setProdutos([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    if (slug) {
-      carregar();
-    } else {
-      setLoading(false);
-    }
-  }, [slug]);
-
-  const bannerImg = useMemo(() => obterImagemCampanha(campanha), [campanha]);
-
-  const inicio = formatDateBR(campanha?.inicio);
-  const fim = formatDateBR(campanha?.fim);
-
-  const periodo =
-    inicio && fim
-      ? `${inicio} até ${fim}`
-      : inicio || fim || "Sem período definido";
+  const { campanha, produtos, loading, bannerImg, periodo } =
+    useCampanha(slug);
 
   if (loading) {
     return (
@@ -266,7 +102,7 @@ export default function CampanhaSlugPage() {
             <div className={styles.grid}>
               {produtos.map((produto) => {
                 const produtoImg =
-                  resolverImagem(produto.imagem) || "/sem-imagem.png";
+                  imagemFundo(produto.imagem) || "/sem-imagem.png";
 
                 return (
                   <Link
