@@ -1,0 +1,303 @@
+.container {
+  min-height: 100vh;
+  padding: 24px;
+  background: #f9fafb;
+  color: #111827;
+}
+
+.voltar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  color: #111827;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.header h1,
+.card h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.header p {
+  margin-top: 6px;
+  color: #6b7280;
+}
+
+.passos {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.passo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px;
+  background: #fff;
+  color: #111827;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: 0.2s ease;
+}
+
+.passo:hover {
+  transform: translateY(-1px);
+  border-color: #111827;
+}
+
+.passo span {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  font-weight: 800;
+}
+
+.passoAtivo {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.passoAtivo span {
+  background: #2563eb;
+}
+
+.card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.04);
+}
+
+.resumoGrid,
+.infoGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.resumoGrid div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.resumoGrid small {
+  color: #6b7280;
+  font-weight: 700;
+}
+
+.resumoGrid p {
+  margin: 0;
+  color: #6b7280;
+}
+
+.valor {
+  font-size: 26px;
+}
+
+.badge {
+  width: fit-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.pago,
+.entregue {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.enviado {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.reembolsado {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+
+.recusado {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.pendente {
+  background: #fef3c7;
+  color: #ca8a04;
+}
+
+.tabelaBox {
+  overflow-x: auto;
+  margin-top: 18px;
+}
+
+.tabelaBox table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 650px;
+}
+
+.tabelaBox th,
+.tabelaBox td {
+  padding: 13px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.tabelaBox th {
+  background: #f3f4f6;
+  color: #374151;
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 18px 0;
+}
+
+.btnClaro,
+.btnAzul,
+.btnVerde,
+.btnVerdeLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 15px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 800;
+  border: none;
+  text-decoration: none;
+}
+
+.btnClaro {
+  background: #fff;
+  border: 1px solid #d1d5db;
+  color: #111827;
+}
+
+.btnAzul {
+  background: #2563eb;
+  color: #fff;
+}
+
+.btnVerde,
+.btnVerdeLink {
+  background: #16a34a;
+  color: #fff;
+}
+
+.btnClaro:disabled,
+.btnAzul:disabled,
+.btnVerde:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.timelineItem {
+  border-left: 4px solid #2563eb;
+  padding: 8px 0 8px 14px;
+  background: #f9fafb;
+  border-radius: 10px;
+}
+
+.timelineItem p {
+  margin: 5px 0;
+}
+
+.timelineItem small {
+  color: #6b7280;
+}
+
+.navegacaoPassos {
+  position: sticky;
+  bottom: 16px;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 14px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+.navegacaoPassos span {
+  color: #6b7280;
+  font-weight: 800;
+}
+
+.info {
+  padding: 18px;
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 16px;
+  }
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .passos {
+    grid-template-columns: 1fr;
+  }
+
+  .navegacaoPassos {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .btnClaro,
+  .btnAzul,
+  .btnVerde,
+  .btnVerdeLink {
+    width: 100%;
+  }
+}
