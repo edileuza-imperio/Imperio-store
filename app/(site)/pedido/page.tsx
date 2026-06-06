@@ -491,7 +491,7 @@ export default function PedidosPage() {
 
                   <div className={styles.rodapeCard}>
                     <Link href={`/Pedidos/${id}`} className={styles.btnDetalhes}>
-                      Ver detalhes
+                      Ver detalhess
                       <ArrowRight size={16} />
                     </Link>
                   </div>
