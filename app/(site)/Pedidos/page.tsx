@@ -15,9 +15,11 @@ import {
   Truck,
   XCircle,
   TimerReset,
+  RotateCcw,
 } from "lucide-react";
+
 import api from "@/Api/conectar";
-import "./PedidosPage.css";
+import styles from "./PedidosPage.module.css";
 
 type Pedido = {
   id_pedido?: number;
@@ -28,7 +30,6 @@ type Pedido = {
   valor_desconto?: number | string;
   valor_frete?: number | string;
   valor_total?: number | string;
-  preference_id?: string | null;
   payment_id?: string | null;
   external_reference?: string | null;
   metodo_pagamento?: string | null;
@@ -81,52 +82,72 @@ function formatarData(data?: string | null): string {
 }
 
 function getStatusPagamentoTexto(status?: string | null): string {
-  if (!status) return "Pendente";
-
-  const valor = status.toLowerCase();
+  const valor = String(status || "").toLowerCase();
 
   if (valor === "approved" || valor === "aprovado") return "Aprovado";
   if (valor === "pending" || valor === "pendente") return "Pendente";
   if (valor === "rejected" || valor === "recusado") return "Recusado";
   if (valor === "cancelled" || valor === "cancelado") return "Cancelado";
   if (valor === "in_process") return "Em análise";
+  if (valor === "refunded" || valor === "reembolsado") return "Reembolsado";
 
-  return status;
+  return status || "Pendente";
 }
 
 function getStatusClass(status?: string | null): string {
-  const valor = (status || "").toLowerCase();
+  const valor = String(status || "").toLowerCase();
 
-  if (valor === "approved" || valor === "aprovado") return "aprovado";
-  if (valor === "rejected" || valor === "recusado") return "recusado";
-  if (valor === "cancelled" || valor === "cancelado") return "cancelado";
-  if (valor === "in_process") return "analise";
+  if (valor === "approved" || valor === "aprovado") return styles.aprovado;
+  if (valor === "rejected" || valor === "recusado") return styles.recusado;
+  if (valor === "cancelled" || valor === "cancelado") return styles.cancelado;
+  if (valor === "in_process") return styles.analise;
+  if (valor === "refunded" || valor === "reembolsado") return styles.reembolsado;
 
-  return "pendente";
+  return styles.pendente;
 }
 
 function getEtapaPedido(status?: string | null): number {
-  const valor = (status || "").toLowerCase();
+  const valor = String(status || "").toLowerCase();
 
   if (valor === "approved" || valor === "aprovado") return 2;
   if (valor === "in_process") return 1;
-  if (valor === "rejected" || valor === "recusado" || valor === "cancelled" || valor === "cancelado")
+
+  if (
+    valor === "rejected" ||
+    valor === "recusado" ||
+    valor === "cancelled" ||
+    valor === "cancelado" ||
+    valor === "refunded" ||
+    valor === "reembolsado"
+  ) {
     return 0;
+  }
 
   return 1;
 }
 
-function getEtapaTexto(etapa: number): string {
-  if (etapa === 0) return "Pedido recebido";
-  if (etapa === 1) return "Pagamento em análise";
-  if (etapa === 2) return "Pagamento aprovado";
-  return "Pedido recebido";
+function getEtapaTexto(status?: string | null): string {
+  const valor = String(status || "").toLowerCase();
+
+  if (valor === "refunded" || valor === "reembolsado") return "Pagamento reembolsado";
+  if (valor === "rejected" || valor === "recusado") return "Pagamento recusado";
+  if (valor === "cancelled" || valor === "cancelado") return "Pedido cancelado";
+  if (valor === "approved" || valor === "aprovado") return "Pagamento aprovado";
+  if (valor === "in_process") return "Pagamento em análise";
+
+  return "Aguardando pagamento";
 }
 
-function getEtapaIcone(etapa: number) {
-  if (etapa === 0) return <Clock3 size={16} />;
-  if (etapa === 1) return <TimerReset size={16} />;
-  return <CheckCircle2 size={16} />;
+function getEtapaIcone(status?: string | null) {
+  const valor = String(status || "").toLowerCase();
+
+  if (valor === "approved" || valor === "aprovado") return <CheckCircle2 size={16} />;
+  if (valor === "refunded" || valor === "reembolsado") return <RotateCcw size={16} />;
+  if (valor === "rejected" || valor === "recusado") return <XCircle size={16} />;
+  if (valor === "cancelled" || valor === "cancelado") return <XCircle size={16} />;
+  if (valor === "in_process") return <TimerReset size={16} />;
+
+  return <Clock3 size={16} />;
 }
 
 export default function PedidosPage() {
@@ -140,19 +161,28 @@ export default function PedidosPage() {
       setLoading(true);
       setErro("");
 
-      const response = await api.get("/pedidos");
+      const response = await api.get("/pedidos", {
+        withCredentials: true,
+      });
 
       const lista = Array.isArray(response.data?.dados?.pedidos)
         ? response.data.dados.pedidos
-        : [];
+        : Array.isArray(response.data?.dados)
+          ? response.data.dados
+          : Array.isArray(response.data)
+            ? response.data
+            : [];
 
       setPedidos(lista);
     } catch (error: any) {
       console.error("Erro ao carregar pedidos:", error);
+
       setErro(
         error?.response?.data?.mensagem ||
+          error?.response?.data?.erro ||
           "Não foi possível carregar os pedidos."
       );
+
       setPedidos([]);
     } finally {
       setLoading(false);
@@ -190,22 +220,24 @@ export default function PedidosPage() {
   const totalPedidos = pedidosFiltrados.length;
 
   const pedidosAprovados = pedidosFiltrados.filter((pedido) => {
-    const status = (pedido.status_pagamento || "").toLowerCase();
+    const status = String(pedido.status_pagamento || "").toLowerCase();
     return status === "approved" || status === "aprovado";
   }).length;
 
   const pedidosPendentes = pedidosFiltrados.filter((pedido) => {
-    const status = (pedido.status_pagamento || "").toLowerCase();
+    const status = String(pedido.status_pagamento || "").toLowerCase();
     return status === "pending" || status === "pendente" || status === "in_process";
   }).length;
 
-  const pedidosCancelados = pedidosFiltrados.filter((pedido) => {
-    const status = (pedido.status_pagamento || "").toLowerCase();
+  const pedidosFinalizados = pedidosFiltrados.filter((pedido) => {
+    const status = String(pedido.status_pagamento || "").toLowerCase();
     return (
       status === "rejected" ||
       status === "recusado" ||
       status === "cancelled" ||
-      status === "cancelado"
+      status === "cancelado" ||
+      status === "refunded" ||
+      status === "reembolsado"
     );
   }).length;
 
@@ -214,32 +246,35 @@ export default function PedidosPage() {
   }, 0);
 
   return (
-    <div className="layout">
-      <main className="pagina-pedidos">
-        <section className="cabecalho">
-          <div className="cabecalho-texto">
-            <span className="tag">Minha conta</span>
+    <div className={styles.layout}>
+      <main className={styles.paginaPedidos}>
+        <section className={styles.cabecalho}>
+          <div className={styles.cabecalhoTexto}>
+            <span className={styles.tag}>Minha conta</span>
             <h1>Meus pedidos</h1>
             <p>
-              Acompanhe suas compras, veja o andamento do pagamento e acesse
-              os detalhes de cada pedido com facilidade.
+              Acompanhe suas compras, pagamentos, reembolsos e detalhes de cada
+              pedido em um só lugar.
             </p>
           </div>
 
           <button
             type="button"
-            className="btn-atualizar"
+            className={styles.btnAtualizar}
             onClick={carregarPedidos}
             disabled={loading}
           >
-            <RefreshCw size={18} className={loading ? "icone-girando" : ""} />
+            <RefreshCw
+              size={18}
+              className={loading ? styles.iconeGirando : ""}
+            />
             {loading ? "Atualizando" : "Atualizar"}
           </button>
         </section>
 
-        <section className="resumo-grid">
-          <article className="card-resumo">
-            <div className="icone-wrap">
+        <section className={styles.resumoGrid}>
+          <article className={styles.cardResumo}>
+            <div className={styles.iconeWrap}>
               <ShoppingBag size={20} />
             </div>
             <div>
@@ -248,18 +283,18 @@ export default function PedidosPage() {
             </div>
           </article>
 
-          <article className="card-resumo">
-            <div className="icone-wrap">
+          <article className={styles.cardResumo}>
+            <div className={styles.iconeWrap}>
               <CheckCircle2 size={20} />
             </div>
             <div>
-              <span>Pagamentos aprovados</span>
+              <span>Aprovados</span>
               <strong>{pedidosAprovados}</strong>
             </div>
           </article>
 
-          <article className="card-resumo">
-            <div className="icone-wrap">
+          <article className={styles.cardResumo}>
+            <div className={styles.iconeWrap}>
               <Clock3 size={20} />
             </div>
             <div>
@@ -268,18 +303,18 @@ export default function PedidosPage() {
             </div>
           </article>
 
-          <article className="card-resumo">
-            <div className="icone-wrap">
+          <article className={styles.cardResumo}>
+            <div className={styles.iconeWrap}>
               <XCircle size={20} />
             </div>
             <div>
-              <span>Cancelados</span>
-              <strong>{pedidosCancelados}</strong>
+              <span>Finalizados</span>
+              <strong>{pedidosFinalizados}</strong>
             </div>
           </article>
 
-          <article className="card-resumo card-resumo-total">
-            <div className="icone-wrap">
+          <article className={`${styles.cardResumo} ${styles.cardResumoTotal}`}>
+            <div className={styles.iconeWrap}>
               <CreditCard size={20} />
             </div>
             <div>
@@ -289,45 +324,50 @@ export default function PedidosPage() {
           </article>
         </section>
 
-        <section className="filtros-box">
-          <div className="campo-busca">
+        <section className={styles.filtrosBox}>
+          <div className={styles.campoBusca}>
             <Search size={18} />
             <input
               type="text"
-              placeholder="Buscar pedido, forma de pagamento, status ou data..."
+              placeholder="Buscar por pedido, pagamento, status ou data..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
           </div>
 
-          <div className="contador">{pedidosFiltrados.length} pedido(s)</div>
+          <div className={styles.contador}>{pedidosFiltrados.length} pedido(s)</div>
         </section>
 
         {loading && (
-          <section className="estado loading">
-            <div className="loader" />
+          <section className={`${styles.estado} ${styles.loading}`}>
+            <div className={styles.loader} />
             <h3>Carregando seus pedidos</h3>
             <p>Estamos buscando o histórico das suas compras.</p>
           </section>
         )}
 
         {!loading && erro && (
-          <section className="estado erro">
+          <section className={`${styles.estado} ${styles.erro}`}>
+            <XCircle size={42} />
             <h3>Não foi possível carregar</h3>
             <p>{erro}</p>
+            <button type="button" onClick={carregarPedidos}>
+              Tentar novamente
+            </button>
           </section>
         )}
 
         {!loading && !erro && pedidosFiltrados.length === 0 && (
-          <section className="estado vazio">
+          <section className={`${styles.estado} ${styles.vazio}`}>
             <Package size={42} />
             <h3>Nenhum pedido encontrado</h3>
             <p>Quando você fizer uma compra, ela vai aparecer aqui.</p>
+            <Link href="/">Voltar para a loja</Link>
           </section>
         )}
 
         {!loading && !erro && pedidosFiltrados.length > 0 && (
-          <section className="grid-pedidos">
+          <section className={styles.gridPedidos}>
             {pedidosFiltrados.map((pedido) => {
               const id = getPedidoId(pedido);
               const codigo = getCodigoPedido(pedido);
@@ -341,15 +381,15 @@ export default function PedidosPage() {
               const etapa = getEtapaPedido(pedido.status_pagamento);
 
               return (
-                <article key={id} className="card-pedido">
-                  <div className="card-header">
+                <article key={id} className={styles.cardPedido}>
+                  <div className={styles.cardHeader}>
                     <div>
-                      <span className="pedido-label">Pedido</span>
+                      <span className={styles.pedidoLabel}>Pedido</span>
                       <h2>{codigo}</h2>
                     </div>
 
                     <span
-                      className={`status ${getStatusClass(
+                      className={`${styles.status} ${getStatusClass(
                         pedido.status_pagamento
                       )}`}
                     >
@@ -357,9 +397,9 @@ export default function PedidosPage() {
                     </span>
                   </div>
 
-                  <div className="timeline">
-                    <div className={`step ${etapa >= 0 ? "ativo" : ""}`}>
-                      <span className="step-icone">
+                  <div className={styles.timeline}>
+                    <div className={`${styles.step} ${styles.ativo}`}>
+                      <span className={styles.stepIcone}>
                         <ShoppingBag size={16} />
                       </span>
                       <div>
@@ -368,44 +408,58 @@ export default function PedidosPage() {
                       </div>
                     </div>
 
-                    <div className={`linha ${etapa >= 1 ? "ativo" : ""}`} />
+                    <div
+                      className={`${styles.linha} ${
+                        etapa >= 1 ? styles.ativo : ""
+                      }`}
+                    />
 
-                    <div className={`step ${etapa >= 1 ? "ativo" : ""}`}>
-                      <span className="step-icone">
-                        {getEtapaIcone(etapa)}
+                    <div
+                      className={`${styles.step} ${
+                        etapa >= 1 ? styles.ativo : ""
+                      }`}
+                    >
+                      <span className={styles.stepIcone}>
+                        {getEtapaIcone(pedido.status_pagamento)}
                       </span>
                       <div>
-                        <strong>{getEtapaTexto(etapa)}</strong>
-                        <small>
-                          {pedido.status_detail || "Aguardando atualização"}
-                        </small>
+                        <strong>{getEtapaTexto(pedido.status_pagamento)}</strong>
+                        <small>{pedido.status_detail || "Aguardando atualização"}</small>
                       </div>
                     </div>
 
-                    <div className={`linha ${etapa >= 2 ? "ativo" : ""}`} />
+                    <div
+                      className={`${styles.linha} ${
+                        etapa >= 2 ? styles.ativo : ""
+                      }`}
+                    />
 
-                    <div className={`step ${etapa >= 2 ? "ativo" : ""}`}>
-                      <span className="step-icone">
+                    <div
+                      className={`${styles.step} ${
+                        etapa >= 2 ? styles.ativo : ""
+                      }`}
+                    >
+                      <span className={styles.stepIcone}>
                         <Truck size={16} />
                       </span>
                       <div>
-                        <strong>Próxima etapa</strong>
-                        <small>Envio e entrega</small>
+                        <strong>Envio</strong>
+                        <small>Separação e entrega</small>
                       </div>
                     </div>
                   </div>
 
-                  <div className="resumo-pedido">
-                    <div className="resumo-linha">
-                      <span>Forma de pagamento</span>
+                  <div className={styles.resumoPedido}>
+                    <div className={styles.resumoLinha}>
+                      <span>Pagamento</span>
                       <strong>
                         <CreditCard size={15} />
-                        {pedido.metodo_pagamento || "Não informado"}
+                        {pedido.metodo_pagamento || "Cartão/PIX"}
                       </strong>
                     </div>
 
-                    <div className="resumo-linha">
-                      <span>Data do pedido</span>
+                    <div className={styles.resumoLinha}>
+                      <span>Data</span>
                       <strong>
                         <CalendarDays size={15} />
                         {formatarData(pedido.criado_em)}
@@ -413,30 +467,30 @@ export default function PedidosPage() {
                     </div>
                   </div>
 
-                  <div className="valores">
-                    <div className="valor-item">
+                  <div className={styles.valores}>
+                    <div className={styles.valorItem}>
                       <span>Produtos</span>
                       <strong>{formatarMoeda(valorProdutos)}</strong>
                     </div>
 
-                    <div className="valor-item">
+                    <div className={styles.valorItem}>
                       <span>Desconto</span>
                       <strong>{formatarMoeda(valorDesconto)}</strong>
                     </div>
 
-                    <div className="valor-item">
+                    <div className={styles.valorItem}>
                       <span>Frete</span>
                       <strong>{formatarMoeda(valorFrete)}</strong>
                     </div>
 
-                    <div className="valor-item destaque-total">
+                    <div className={`${styles.valorItem} ${styles.destaqueTotal}`}>
                       <span>Total</span>
                       <strong>{formatarMoeda(valorTotal)}</strong>
                     </div>
                   </div>
 
-                  <div className="rodape-card">
-                    <Link href={`/Pedidos/${id}`} className="btn-detalhes">
+                  <div className={styles.rodapeCard}>
+                    <Link href={`/Pedidos/${id}`} className={styles.btnDetalhes}>
                       Ver detalhes
                       <ArrowRight size={16} />
                     </Link>
@@ -447,7 +501,6 @@ export default function PedidosPage() {
           </section>
         )}
       </main>
-
     </div>
   );
 }
