@@ -5,19 +5,10 @@ import api from "@/Api/conectar";
 
 import Banner from "@/components/site/Banner/Banner";
 import CategoriasDestaque from "@/components/site/categoria/Categoria";
-
 import Destaques from "@/components/Vitrine/Destaques";
 import Campanhas from "../campanha/page";
 
-type Vitrine = {
-  id_vitrine: number | string;
-  nome?: string;
-  slug?: string;
-  titulo?: string;
-  subtitulo?: string | null;
-  tipo?: string;
-  itens?: any[];
-};
+import type { Vitrine } from "@/components/Vitrine/Destaques/useVitrine";
 
 function extrairLista(payload: any): any[] {
   if (Array.isArray(payload?.dados?.dados)) return payload.dados.dados;

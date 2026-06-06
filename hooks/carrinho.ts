@@ -1,5 +1,6 @@
 import api from "@/Api/conectar";
-import type { ItemResolvido } from "@/components/Bibioteca/Bibiotecas";
+import { ItemResolvido } from "@/components/Vitrine/Destaques/useVitrine";
+
 import { temValor } from "@/hooks/destaque/functions";
 
 /**

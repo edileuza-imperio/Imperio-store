@@ -1,5 +1,3 @@
-import "@/lib/mercadopago";
-
 import Navbar from "@/components/site/menu/navbar";
 import FooterProfissional from "@/components/site/Rodape/Footer";
 

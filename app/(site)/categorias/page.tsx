@@ -2,10 +2,11 @@
 
 
 
-import useCategoria from "@/hooks/categoria/useCategoria";
+
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import './categoria.css';
+import useCategoria from "@/components/site/categoria/useCategoria";
 type Categoria = {
   id_categoria?: number | string;
   nome?: string;

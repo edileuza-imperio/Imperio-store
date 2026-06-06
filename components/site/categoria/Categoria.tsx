@@ -1,9 +1,10 @@
 "use client";
 
-import useCategoria from "@/hooks/categoria/useCategoria";
+
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { IconType } from "react-icons";
+
 import {
   FiGrid,
   FiArrowRight,
@@ -23,6 +24,7 @@ import {
   FiCoffee,
   FiShoppingCart,
 } from "react-icons/fi";
+
 import {
   BiCategory,
   BiStore,
@@ -33,13 +35,7 @@ import {
 } from "react-icons/bi";
 
 import styles from "./CategoriasDestaque.module.css";
-
-type Categoria = {
-  id_categoria?: number | string;
-  nome?: string;
-  slug?: string;
-  icone?: string | null;
-};
+import useCategoria, { Categoria } from "./useCategoria";
 
 const ICONS: Record<string, IconType> = {
   FiGrid,
@@ -56,7 +52,6 @@ const ICONS: Record<string, IconType> = {
   FiBook,
   FiCoffee,
   FiShoppingCart,
-
   BiCategory,
   BiStore,
   BiCloset,
@@ -68,10 +63,8 @@ const ICONS: Record<string, IconType> = {
 function normalizeIconName(name?: string | null) {
   if (!name) return "";
 
-  const value = String(name).trim();
-  if (!value) return "";
-
-  return value
+  return String(name)
+    .trim()
     .replace(/[_-]+/g, " ")
     .split(/\s+/)
     .filter(Boolean)
@@ -106,11 +99,10 @@ export default function CategoriasDestaque() {
 
   const railRef = useRef<HTMLDivElement | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(true);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
-  const top = useMemo(() => {
-    const lista = Array.isArray(categorias) ? categorias : [];
-    return lista.slice(0, 20) as Categoria[];
+  const top = useMemo<Categoria[]>(() => {
+    return Array.isArray(categorias) ? categorias.slice(0, 20) : [];
   }, [categorias]);
 
   const updateArrows = () => {
@@ -118,6 +110,7 @@ export default function CategoriasDestaque() {
     if (!el) return;
 
     const hasOverflow = el.scrollWidth > el.clientWidth + 2;
+
     setCanScrollLeft(hasOverflow && el.scrollLeft > 8);
     setCanScrollRight(
       hasOverflow && el.scrollLeft + el.clientWidth < el.scrollWidth - 8
@@ -159,8 +152,7 @@ export default function CategoriasDestaque() {
     ) as HTMLElement | null;
 
     const cardWidth = firstCard?.offsetWidth ?? 200;
-    const gap = 16;
-    const amount = cardWidth + gap;
+    const amount = cardWidth + 16;
 
     el.scrollBy({
       left: direction === "next" ? amount : -amount,
@@ -210,13 +202,13 @@ export default function CategoriasDestaque() {
 
         <div ref={railRef} className={styles.rail}>
           {top.map((categoria, index) => {
-            const nome = categoria?.nome || "Categoria";
+            const nome = categoria?.nome || categoria?.titulo || "Categoria";
             const slug = String(categoria?.slug || "").trim();
             const href = slug ? `/categorias/${slug}` : "/categorias";
 
             return (
               <Link
-                key={categoria?.id_categoria || `${nome}-${index}`}
+                key={categoria?.id_categoria || categoria?.id || `${nome}-${index}`}
                 href={href}
                 className={styles.card}
               >

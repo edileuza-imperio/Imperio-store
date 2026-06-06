@@ -1,5 +1,6 @@
-import { EntidadeGenerica, ItemResolvido, VitrineItem } from "@/components/Bibioteca/Bibiotecas";
+
 import { imagemFundo } from "@/components/Bibioteca/imagem";
+import { EntidadeGenerica, ItemResolvido, VitrineItem } from "@/components/Vitrine/Destaques/useVitrine";
 
 export function normalizarDados<T = any>(payload: any): T | null {
   return payload?.dados?.dados ?? payload?.dados ?? payload ?? null;
