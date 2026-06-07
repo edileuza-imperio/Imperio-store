@@ -285,7 +285,9 @@ export function usePagamento({ pedidoId }: UsePagamentoProps) {
       }
 
       if (!formData?.token || !formData?.payment_method_id) {
-        toast.error("Dados do cartão incompletos.");
+        toast.error(
+          "Dados do cartão incompletos. Confira nome, CPF, validade e CVV."
+        );
         return;
       }
 
@@ -342,8 +344,6 @@ export function usePagamento({ pedidoId }: UsePagamentoProps) {
       toast.info("Pagamento enviado. Verifique o status do pedido.");
       await carregarPedido();
     } catch (error: any) {
-      console.error(error);
-
       const mpErro =
         error?.response?.data?.mercadopago?.message ||
         error?.response?.data?.mercadopago?.error;
@@ -352,7 +352,7 @@ export function usePagamento({ pedidoId }: UsePagamentoProps) {
         error?.response?.data?.mensagem ||
         error?.response?.data?.erro ||
         mpErro ||
-        "Erro ao processar pagamento com cartão.";
+        "Não foi possível processar o pagamento. Tente novamente ou use PIX.";
 
       toast.error(mensagem);
     } finally {
