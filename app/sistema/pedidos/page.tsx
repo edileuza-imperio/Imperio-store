@@ -11,6 +11,8 @@ import {
   FiRefreshCw,
   FiTruck,
   FiXCircle,
+  FiRotateCcw,
+  FiDollarSign,
 } from "react-icons/fi";
 
 import styles from "./Pedidos.module.css";
@@ -40,6 +42,7 @@ type Pedido = {
 export default function SistemaPedidosPage() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reembolsando, setReembolsando] = useState<number | null>(null);
 
   async function carregarPedidos() {
     try {
@@ -75,8 +78,14 @@ export default function SistemaPedidosPage() {
     return {
       total: pedidos.length,
       pagos: pedidos.filter((p) => p.status_pagamento === "approved").length,
-      pendentes: pedidos.filter((p) => p.status_pagamento === "pendente").length,
-      enviados: pedidos.filter((p) => p.status_id === 16).length,
+      pendentes: pedidos.filter(
+        (p) =>
+          p.status_pagamento === "pendente" ||
+          p.status_pagamento === "pending" ||
+          !p.status_pagamento
+      ).length,
+      recusados: pedidos.filter((p) => p.status_pagamento === "rejected").length,
+      reembolsados: pedidos.filter((p) => p.status_pagamento === "refunded").length,
     };
   }, [pedidos]);
 
@@ -100,29 +109,73 @@ export default function SistemaPedidosPage() {
   }
 
   function statusTexto(pedido: Pedido) {
+    if (pedido.status_pagamento === "refunded") return "Reembolsado";
+    if (pedido.status_pagamento === "rejected") return "Recusado";
     if (pedido.status_id === 16) return "Enviado";
     if (pedido.status_id === 17) return "Entregue";
     if (pedido.status_pagamento === "approved") return "Pago";
-    if (pedido.status_pagamento === "refunded") return "Reembolsado";
-    if (pedido.status_pagamento === "rejected") return "Recusado";
     return "Pendente";
   }
 
   function statusIcone(pedido: Pedido) {
+    if (pedido.status_pagamento === "refunded") return <FiRotateCcw />;
+    if (pedido.status_pagamento === "rejected") return <FiXCircle />;
     if (pedido.status_id === 16) return <FiTruck />;
     if (pedido.status_id === 17) return <FiCheckCircle />;
     if (pedido.status_pagamento === "approved") return <FiCheckCircle />;
-    if (pedido.status_pagamento === "rejected") return <FiXCircle />;
     return <FiClock />;
   }
 
   function statusClasse(pedido: Pedido) {
+    if (pedido.status_pagamento === "refunded") return styles.statusReembolsado;
+    if (pedido.status_pagamento === "rejected") return styles.statusRecusado;
     if (pedido.status_id === 16) return styles.statusEnviado;
     if (pedido.status_id === 17) return styles.statusEntregue;
     if (pedido.status_pagamento === "approved") return styles.statusPago;
-    if (pedido.status_pagamento === "refunded") return styles.statusReembolsado;
-    if (pedido.status_pagamento === "rejected") return styles.statusRecusado;
     return styles.statusPendente;
+  }
+
+  function podeReembolsar(pedido: Pedido) {
+    return (
+      pedido.status_pagamento === "approved" &&
+      !!pedido.payment_id &&
+      reembolsando !== pedido.id_pedido
+    );
+  }
+
+  async function reembolsarPedido(pedido: Pedido) {
+    if (!pedido.payment_id) {
+      alert("Este pedido não possui Payment ID.");
+      return;
+    }
+
+    const confirmar = window.confirm(
+      `Deseja reembolsar o pedido #${pedido.id_pedido} no valor de ${formatarMoeda(
+        pedido.valor_total
+      )}?`
+    );
+
+    if (!confirmar) return;
+
+    try {
+      setReembolsando(pedido.id_pedido);
+
+      await api.post(`/mercado/pagamento/${pedido.payment_id}/reembolso`);
+
+      alert("Reembolso solicitado com sucesso.");
+      await carregarPedidos();
+    } catch (error: any) {
+      console.error("Erro ao reembolsar:", error);
+
+      const mensagem =
+        error?.response?.data?.mensagem ||
+        error?.response?.data?.erro ||
+        "Erro ao solicitar reembolso.";
+
+      alert(mensagem);
+    } finally {
+      setReembolsando(null);
+    }
   }
 
   return (
@@ -133,7 +186,7 @@ export default function SistemaPedidosPage() {
             <FiPackage />
             Pedidos
           </h1>
-          <p className={styles.subtitle}>Gerencie todos os pedidos da loja.</p>
+          <p className={styles.subtitle}>Gerencie pagamentos, pedidos e reembolsos.</p>
         </div>
 
         <button onClick={carregarPedidos} className={styles.refreshButton}>
@@ -144,23 +197,43 @@ export default function SistemaPedidosPage() {
 
       <section className={styles.cards}>
         <div className={styles.card}>
-          <strong>{resumo.total}</strong>
-          <span>Total de pedidos</span>
+          <FiPackage />
+          <div>
+            <strong>{resumo.total}</strong>
+            <span>Total de pedidos</span>
+          </div>
         </div>
 
         <div className={styles.card}>
-          <strong>{resumo.pagos}</strong>
-          <span>Pagos</span>
+          <FiCheckCircle />
+          <div>
+            <strong>{resumo.pagos}</strong>
+            <span>Pagos</span>
+          </div>
         </div>
 
         <div className={styles.card}>
-          <strong>{resumo.pendentes}</strong>
-          <span>Pendentes</span>
+          <FiClock />
+          <div>
+            <strong>{resumo.pendentes}</strong>
+            <span>Pendentes</span>
+          </div>
         </div>
 
         <div className={styles.card}>
-          <strong>{resumo.enviados}</strong>
-          <span>Enviados</span>
+          <FiRotateCcw />
+          <div>
+            <strong>{resumo.reembolsados}</strong>
+            <span>Reembolsados</span>
+          </div>
+        </div>
+
+        <div className={styles.card}>
+          <FiXCircle />
+          <div>
+            <strong>{resumo.recusados}</strong>
+            <span>Recusados</span>
+          </div>
         </div>
       </section>
 
@@ -193,14 +266,16 @@ export default function SistemaPedidosPage() {
 
                   <td>
                     <div className={styles.cliente}>
-                      <strong>
-                        {pedido.usuario_nome ?? `Usuário #${pedido.usuario_id}`}
-                      </strong>
+                      <strong>{pedido.usuario_nome ?? `Usuário #${pedido.usuario_id}`}</strong>
                       <span>{pedido.usuario_email ?? "Sem e-mail"}</span>
                     </div>
                   </td>
 
-                  <td>{formatarMoeda(pedido.valor_total)}</td>
+                  <td>
+                    <strong className={styles.valor}>
+                      {formatarMoeda(pedido.valor_total)}
+                    </strong>
+                  </td>
 
                   <td>
                     <span className={styles.pagamento}>
@@ -208,7 +283,11 @@ export default function SistemaPedidosPage() {
                     </span>
                   </td>
 
-                  <td>{pedido.payment_id ?? "—"}</td>
+                  <td>
+                    <span className={styles.paymentId}>
+                      {pedido.payment_id ?? "—"}
+                    </span>
+                  </td>
 
                   <td>
                     <span className={`${styles.badge} ${statusClasse(pedido)}`}>
@@ -220,13 +299,33 @@ export default function SistemaPedidosPage() {
                   <td>{formatarData(pedido.criado_em)}</td>
 
                   <td>
-                    <Link
-                      href={`/sistema/pedidos/${pedido.id_pedido}`}
-                      className={styles.link}
-                    >
-                      <FiEye />
-                      Ver
-                    </Link>
+                    <div className={styles.actions}>
+                      <Link
+                        href={`/sistema/pedidos/${pedido.id_pedido}`}
+                        className={styles.link}
+                      >
+                        <FiEye />
+                        Ver
+                      </Link>
+
+                      {podeReembolsar(pedido) && (
+                        <button
+                          type="button"
+                          onClick={() => reembolsarPedido(pedido)}
+                          className={styles.refundButton}
+                        >
+                          <FiRotateCcw />
+                          Reembolso
+                        </button>
+                      )}
+
+                      {reembolsando === pedido.id_pedido && (
+                        <button type="button" disabled className={styles.refundLoading}>
+                          <FiRefreshCw />
+                          Reembolsando...
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
