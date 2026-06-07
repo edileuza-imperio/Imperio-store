@@ -28,18 +28,6 @@ import styles from "./pagamento.module.css";
 
 type MetodoPagamento = "pix" | "cartao";
 
-function mostrarDebug(valor: unknown) {
-  try {
-    alert(
-      typeof valor === "string"
-        ? valor
-        : JSON.stringify(valor, null, 2)
-    );
-  } catch {
-    alert(String(valor));
-  }
-}
-
 export default function PagamentoPage() {
   const params = useParams();
   const router = useRouter();
@@ -292,21 +280,13 @@ export default function PagamentoPage() {
                     },
                   }}
                   onSubmit={async (formData) => {
-                    mostrarDebug({
-                      tipo: "FORM DATA MERCADO PAGO",
-                      dados: formData,
-                    });
-
                     await pagarComCartao(formData);
                   }}
                   onError={(error) => {
-                    mostrarDebug({
-                      tipo: "ERRO MERCADO PAGO",
-                      erro: error,
-                    });
+                    console.error(error);
 
                     toast.error(
-                      "Erro ao processar cartão. Tire um print desta mensagem e envie para o suporte."
+                      "Não foi possível processar o pagamento com cartão. Tente outro cartão ou use PIX."
                     );
                   }}
                 />
