@@ -28,6 +28,18 @@ import styles from "./pagamento.module.css";
 
 type MetodoPagamento = "pix" | "cartao";
 
+function mostrarDebug(valor: unknown) {
+  try {
+    alert(
+      typeof valor === "string"
+        ? valor
+        : JSON.stringify(valor, null, 2)
+    );
+  } catch {
+    alert(String(valor));
+  }
+}
+
 export default function PagamentoPage() {
   const params = useParams();
   const router = useRouter();
@@ -280,14 +292,21 @@ export default function PagamentoPage() {
                     },
                   }}
                   onSubmit={async (formData) => {
-                    alert(JSON.stringify(formData, null, 2));
+                    mostrarDebug({
+                      tipo: "FORM DATA MERCADO PAGO",
+                      dados: formData,
+                    });
+
                     await pagarComCartao(formData);
                   }}
                   onError={(error) => {
-                    alert(JSON.stringify(error, null, 2));
+                    mostrarDebug({
+                      tipo: "ERRO MERCADO PAGO",
+                      erro: error,
+                    });
 
                     toast.error(
-                      "Erro no formulário do cartão. Veja o alerta para detalhes."
+                      "Erro ao processar cartão. Tire um print desta mensagem e envie para o suporte."
                     );
                   }}
                 />
