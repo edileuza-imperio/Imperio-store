@@ -1,3 +1,4 @@
+import ProtegePainel from "@/components/pages/auth/ProtegePainel";
 import DashboardLayout from "@/components/pages/painel/layout";
 
 export default function Layout({
@@ -6,8 +7,8 @@ export default function Layout({
   children: React.ReactNode;
 }) {
   return (
-    <DashboardLayout>
-      {children}
-    </DashboardLayout>
+    <ProtegePainel>
+      <DashboardLayout>{children}</DashboardLayout>
+    </ProtegePainel>
   );
 }
