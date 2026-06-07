@@ -2,41 +2,47 @@
 
 import api from "@/Api/conectar";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   FiCheckCircle,
   FiClock,
   FiEye,
   FiPackage,
   FiRefreshCw,
+  FiRotateCcw,
   FiTruck,
   FiXCircle,
-  FiRotateCcw,
-  FiDollarSign,
 } from "react-icons/fi";
 
 import styles from "./Pedidos.module.css";
 
+type PedidoItem = {
+  id_pedido_item?: number;
+  produto_id?: number;
+  produto_nome?: string | null;
+  nome_produto?: string | null;
+  nome?: string | null;
+  quantidade?: number;
+  preco_unitario?: number;
+  preco?: number;
+  subtotal?: number;
+};
+
 type Pedido = {
   id_pedido: number;
-  carrinho_id: number;
   usuario_id: number;
   usuario_nome?: string | null;
   usuario_email?: string | null;
   status_id: number;
-  valor_produtos: number;
-  valor_desconto: number;
-  valor_frete: number;
   valor_total: number;
-  preference_id?: string | null;
   payment_id?: string | null;
   external_reference?: string | null;
   metodo_pagamento?: string | null;
   status_pagamento?: string | null;
   status_detail?: string | null;
-  data_aprovacao?: string | null;
   criado_em?: string | null;
-  atualizado_em?: string | null;
+  itens?: PedidoItem[];
+  produtos?: PedidoItem[];
 };
 
 export default function SistemaPedidosPage() {
@@ -74,22 +80,7 @@ export default function SistemaPedidosPage() {
     carregarPedidos();
   }, []);
 
-  const resumo = useMemo(() => {
-    return {
-      total: pedidos.length,
-      pagos: pedidos.filter((p) => p.status_pagamento === "approved").length,
-      pendentes: pedidos.filter(
-        (p) =>
-          p.status_pagamento === "pendente" ||
-          p.status_pagamento === "pending" ||
-          !p.status_pagamento
-      ).length,
-      recusados: pedidos.filter((p) => p.status_pagamento === "rejected").length,
-      reembolsados: pedidos.filter((p) => p.status_pagamento === "refunded").length,
-    };
-  }, [pedidos]);
-
-  function formatarMoeda(valor: number) {
+  function formatarMoeda(valor?: number | null) {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
@@ -101,11 +92,33 @@ export default function SistemaPedidosPage() {
 
     const dataConvertida = new Date(data.replace(" ", "T"));
 
-    if (Number.isNaN(dataConvertida.getTime())) {
-      return data;
-    }
+    if (Number.isNaN(dataConvertida.getTime())) return data;
 
     return dataConvertida.toLocaleString("pt-BR");
+  }
+
+  function getItens(pedido: Pedido) {
+    return pedido.itens ?? pedido.produtos ?? [];
+  }
+
+  function nomeItem(item: PedidoItem) {
+    return (
+      item.produto_nome ??
+      item.nome_produto ??
+      item.nome ??
+      `Produto #${item.produto_id ?? "?"}`
+    );
+  }
+
+  function precoItem(item: PedidoItem) {
+    return Number(item.preco_unitario ?? item.preco ?? 0);
+  }
+
+  function subtotalItem(item: PedidoItem) {
+    return Number(
+      item.subtotal ??
+        Number(item.quantidade ?? 1) * Number(item.preco_unitario ?? item.preco ?? 0)
+    );
   }
 
   function statusTexto(pedido: Pedido) {
@@ -136,11 +149,7 @@ export default function SistemaPedidosPage() {
   }
 
   function podeReembolsar(pedido: Pedido) {
-    return (
-      pedido.status_pagamento === "approved" &&
-      !!pedido.payment_id &&
-      reembolsando !== pedido.id_pedido
-    );
+    return pedido.status_pagamento === "approved" && !!pedido.payment_id;
   }
 
   async function reembolsarPedido(pedido: Pedido) {
@@ -165,8 +174,6 @@ export default function SistemaPedidosPage() {
       alert("Reembolso solicitado com sucesso.");
       await carregarPedidos();
     } catch (error: any) {
-      console.error("Erro ao reembolsar:", error);
-
       const mensagem =
         error?.response?.data?.mensagem ||
         error?.response?.data?.erro ||
@@ -186,7 +193,9 @@ export default function SistemaPedidosPage() {
             <FiPackage />
             Pedidos
           </h1>
-          <p className={styles.subtitle}>Gerencie pagamentos, pedidos e reembolsos.</p>
+          <p className={styles.subtitle}>
+            Veja os produtos pedidos, pagamentos e ações rápidas.
+          </p>
         </div>
 
         <button onClick={carregarPedidos} className={styles.refreshButton}>
@@ -195,143 +204,121 @@ export default function SistemaPedidosPage() {
         </button>
       </div>
 
-      <section className={styles.cards}>
-        <div className={styles.card}>
-          <FiPackage />
-          <div>
-            <strong>{resumo.total}</strong>
-            <span>Total de pedidos</span>
-          </div>
-        </div>
-
-        <div className={styles.card}>
-          <FiCheckCircle />
-          <div>
-            <strong>{resumo.pagos}</strong>
-            <span>Pagos</span>
-          </div>
-        </div>
-
-        <div className={styles.card}>
-          <FiClock />
-          <div>
-            <strong>{resumo.pendentes}</strong>
-            <span>Pendentes</span>
-          </div>
-        </div>
-
-        <div className={styles.card}>
-          <FiRotateCcw />
-          <div>
-            <strong>{resumo.reembolsados}</strong>
-            <span>Reembolsados</span>
-          </div>
-        </div>
-
-        <div className={styles.card}>
-          <FiXCircle />
-          <div>
-            <strong>{resumo.recusados}</strong>
-            <span>Recusados</span>
-          </div>
-        </div>
-      </section>
-
       {loading ? (
         <p className={styles.info}>Carregando pedidos...</p>
       ) : pedidos.length === 0 ? (
         <p className={styles.info}>Nenhum pedido encontrado.</p>
       ) : (
-        <div className={styles.tableWrapper}>
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Pedido</th>
-                <th>Cliente</th>
-                <th>Valor</th>
-                <th>Pagamento</th>
-                <th>Payment ID</th>
-                <th>Status</th>
-                <th>Criado em</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
+        <section className={styles.orders}>
+          {pedidos.map((pedido) => {
+            const itens = getItens(pedido);
 
-            <tbody>
-              {pedidos.map((pedido) => (
-                <tr key={pedido.id_pedido}>
-                  <td>
-                    <strong>#{pedido.id_pedido}</strong>
-                  </td>
-
-                  <td>
-                    <div className={styles.cliente}>
-                      <strong>{pedido.usuario_nome ?? `Usuário #${pedido.usuario_id}`}</strong>
-                      <span>{pedido.usuario_email ?? "Sem e-mail"}</span>
-                    </div>
-                  </td>
-
-                  <td>
-                    <strong className={styles.valor}>
-                      {formatarMoeda(pedido.valor_total)}
+            return (
+              <article key={pedido.id_pedido} className={styles.orderCard}>
+                <div className={styles.orderTop}>
+                  <div>
+                    <strong className={styles.orderNumber}>
+                      Pedido #{pedido.id_pedido}
                     </strong>
-                  </td>
+                    <p className={styles.orderDate}>
+                      Criado em {formatarData(pedido.criado_em)}
+                    </p>
+                  </div>
 
-                  <td>
-                    <span className={styles.pagamento}>
-                      {pedido.metodo_pagamento ?? "—"}
-                    </span>
-                  </td>
+                  <span className={`${styles.badge} ${statusClasse(pedido)}`}>
+                    {statusIcone(pedido)}
+                    {statusTexto(pedido)}
+                  </span>
+                </div>
 
-                  <td>
-                    <span className={styles.paymentId}>
-                      {pedido.payment_id ?? "—"}
-                    </span>
-                  </td>
+                <div className={styles.customer}>
+                  <strong>
+                    {pedido.usuario_nome ?? `Usuário #${pedido.usuario_id}`}
+                  </strong>
+                  <span>{pedido.usuario_email ?? "Sem e-mail"}</span>
+                </div>
 
-                  <td>
-                    <span className={`${styles.badge} ${statusClasse(pedido)}`}>
-                      {statusIcone(pedido)}
-                      {statusTexto(pedido)}
-                    </span>
-                  </td>
+                <div className={styles.paymentBox}>
+                  <div>
+                    <span>Método</span>
+                    <strong>{pedido.metodo_pagamento ?? "—"}</strong>
+                  </div>
 
-                  <td>{formatarData(pedido.criado_em)}</td>
+                  <div>
+                    <span>Payment ID</span>
+                    <strong>{pedido.payment_id ?? "—"}</strong>
+                  </div>
 
-                  <td>
-                    <div className={styles.actions}>
-                      <Link
-                        href={`/sistema/pedidos/${pedido.id_pedido}`}
-                        className={styles.link}
+                  <div>
+                    <span>Total</span>
+                    <strong>{formatarMoeda(pedido.valor_total)}</strong>
+                  </div>
+                </div>
+
+                <div className={styles.products}>
+                  <div className={styles.productsTitle}>
+                    <FiPackage />
+                    Produtos do pedido
+                  </div>
+
+                  {itens.length === 0 ? (
+                    <p className={styles.emptyProducts}>
+                      Nenhum produto carregado neste pedido.
+                    </p>
+                  ) : (
+                    itens.map((item, index) => (
+                      <div
+                        key={item.id_pedido_item ?? index}
+                        className={styles.productItem}
                       >
-                        <FiEye />
-                        Ver
-                      </Link>
+                        <div>
+                          <strong>{nomeItem(item)}</strong>
+                          <span>Qtd: {item.quantidade ?? 1}</span>
+                        </div>
 
-                      {podeReembolsar(pedido) && (
-                        <button
-                          type="button"
-                          onClick={() => reembolsarPedido(pedido)}
-                          className={styles.refundButton}
-                        >
-                          <FiRotateCcw />
-                          Reembolso
-                        </button>
-                      )}
+                        <div className={styles.productPrice}>
+                          <span>{formatarMoeda(precoItem(item))}</span>
+                          <strong>{formatarMoeda(subtotalItem(item))}</strong>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
 
-                      {reembolsando === pedido.id_pedido && (
-                        <button type="button" disabled className={styles.refundLoading}>
+                <div className={styles.actions}>
+                  <Link
+                    href={`/sistema/pedidos/${pedido.id_pedido}`}
+                    className={styles.viewButton}
+                  >
+                    <FiEye />
+                    Ver pedido
+                  </Link>
+
+                  {podeReembolsar(pedido) && (
+                    <button
+                      type="button"
+                      onClick={() => reembolsarPedido(pedido)}
+                      className={styles.refundButton}
+                      disabled={reembolsando === pedido.id_pedido}
+                    >
+                      {reembolsando === pedido.id_pedido ? (
+                        <>
                           <FiRefreshCw />
                           Reembolsando...
-                        </button>
+                        </>
+                      ) : (
+                        <>
+                          <FiRotateCcw />
+                          Reembolso
+                        </>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    </button>
+                  )}
+                </div>
+              </article>
+            );
+          })}
+        </section>
       )}
     </main>
   );
