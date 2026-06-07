@@ -194,7 +194,6 @@ export default function PagamentoPage() {
                 </div>
 
                 <h2>PIX Instantâneo</h2>
-
                 <p>Escaneie o QR Code ou copie o código PIX abaixo.</p>
               </div>
 
@@ -267,29 +266,31 @@ export default function PagamentoPage() {
                   Processando cartão...
                 </button>
               ) : (
-                <CardPayment
-                  initialization={{
-                    amount: Number(pedido?.valor_total ?? 0),
-                    payer: {
-                      email: usuario?.email ?? "",
-                    },
-                  }}
-                  customization={{
-                    paymentMethods: {
-                      maxInstallments: 3,
-                    },
-                  }}
-                  onSubmit={async (formData) => {
-                    await pagarComCartao(formData);
-                  }}
-                  onError={(error) => {
-                    console.error(error);
+                <div className={styles.mpWrapper}>
+                  <CardPayment
+                    initialization={{
+                      amount: Number(pedido?.valor_total ?? 0),
+                      payer: {
+                        email: usuario?.email ?? "",
+                      },
+                    }}
+                    customization={{
+                      paymentMethods: {
+                        maxInstallments: 3,
+                      },
+                    }}
+                    onSubmit={async (formData) => {
+                      await pagarComCartao(formData);
+                    }}
+                    onError={(error) => {
+                      console.error(error);
 
-                    toast.error(
-                      "Não foi possível processar o pagamento com cartão. Tente outro cartão ou use PIX."
-                    );
-                  }}
-                />
+                      toast.error(
+                        "Não foi possível processar o pagamento com cartão. Tente outro cartão ou use PIX."
+                      );
+                    }}
+                  />
+                </div>
               )}
             </div>
           )}

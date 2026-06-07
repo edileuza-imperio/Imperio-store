@@ -1,7 +1,7 @@
 .checkout {
   min-height: 100vh;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
   padding: 36px 18px 70px;
   background:
     radial-gradient(circle at top left, rgba(183, 93, 112, 0.22), transparent 32%),
@@ -114,18 +114,7 @@
     0 30px 80px rgba(66, 21, 33, 0.11),
     inset 0 1px 0 rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(18px);
-}
-
-.card::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  padding: 1px;
-  background: linear-gradient(135deg, rgba(183, 93, 112, 0.28), transparent 40%);
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask-composite: exclude;
-  pointer-events: none;
+  min-width: 0;
 }
 
 .paymentCard {
@@ -159,6 +148,7 @@
   border: 1px solid rgba(183, 93, 112, 0.12);
   box-shadow: 0 14px 35px rgba(66, 21, 33, 0.07);
   margin-bottom: 18px;
+  min-width: 0;
 }
 
 .avatar {
@@ -179,23 +169,23 @@
   min-width: 0;
 }
 
-.userData strong {
+.userData strong,
+.userData span {
   display: block;
-  color: #35151d;
-  font-size: 16px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.userData strong {
+  color: #35151d;
+  font-size: 16px;
+}
+
 .userData span {
-  display: block;
   margin-top: 5px;
   color: #8a6770;
   font-size: 13px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .infoList {
@@ -298,6 +288,49 @@
 .primaryBtn:hover,
 .successBtn:hover {
   transform: translateY(-2px);
+}
+
+.paymentTabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 8px;
+  margin-bottom: 28px;
+  border-radius: 22px;
+  background: rgba(255, 247, 248, 0.95);
+  border: 1px solid rgba(183, 93, 112, 0.14);
+}
+
+.paymentTab {
+  border: 0;
+  min-height: 54px;
+  border-radius: 17px;
+  cursor: pointer;
+  color: #8d3449;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 950;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  transition: 0.25s ease;
+}
+
+.paymentTab:hover {
+  background: #fff;
+}
+
+.activeTab {
+  color: #fff;
+  background: linear-gradient(135deg, #c96d80, #803348);
+  box-shadow: 0 14px 30px rgba(183, 93, 112, 0.25);
+}
+
+.paymentPanel {
+  animation: fadeUp 0.28s ease;
+  width: 100%;
+  min-width: 0;
 }
 
 .pixHeader {
@@ -413,6 +446,27 @@
   box-shadow: 0 18px 36px rgba(31, 155, 95, 0.24);
 }
 
+.mpWrapper {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow: visible;
+}
+
+.mpWrapper iframe,
+.mpWrapper form,
+.mpWrapper div {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.mpWrapper input,
+.mpWrapper select,
+.mpWrapper textarea,
+.mpWrapper button {
+  font-size: 16px !important;
+}
+
 .loadingPage {
   min-height: 100vh;
   display: grid;
@@ -457,162 +511,6 @@
   }
 }
 
-@media (max-width: 1100px) {
-  .layout {
-    grid-template-columns: 1fr;
-    max-width: 780px;
-  }
-
-  .paymentCard {
-    min-height: auto;
-    order: -1;
-  }
-}
-
-@media (max-width: 640px) {
-  .checkout {
-    padding: 24px 12px 44px;
-  }
-
-  .hero {
-    margin-bottom: 22px;
-  }
-
-  .heroTag {
-    font-size: 12px;
-    padding: 8px 12px;
-  }
-
-  .hero h1 {
-    letter-spacing: -1.2px;
-  }
-
-  .hero p {
-    font-size: 15px;
-    line-height: 1.6;
-  }
-
-  .card {
-    padding: 18px;
-    border-radius: 24px;
-  }
-
-  .pixHeader h2 {
-    font-size: 25px;
-  }
-
-  .pixIcon {
-    width: 68px;
-    height: 68px;
-    border-radius: 22px;
-  }
-
-  .qrCard {
-    padding: 14px;
-    border-radius: 24px;
-  }
-
-  .qrCard canvas {
-    width: 188px !important;
-    height: 188px !important;
-  }
-
-  .pixActions {
-    grid-template-columns: 1fr;
-  }
-
-  .infoItem {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .infoItem strong {
-    text-align: left;
-  }
-
-  .totalBox strong {
-    font-size: 25px;
-  }
-}
-.paymentTabs {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  padding: 8px;
-  margin-bottom: 28px;
-  border-radius: 22px;
-  background: rgba(255, 247, 248, 0.95);
-  border: 1px solid rgba(183, 93, 112, 0.14);
-}
-
-.paymentTab {
-  border: 0;
-  min-height: 54px;
-  border-radius: 17px;
-  cursor: pointer;
-  color: #8d3449;
-  background: transparent;
-  font-size: 15px;
-  font-weight: 950;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 9px;
-  transition: 0.25s ease;
-}
-
-.paymentTab:hover {
-  background: #fff;
-}
-
-.activeTab {
-  color: #fff;
-  background: linear-gradient(135deg, #c96d80, #803348);
-  box-shadow: 0 14px 30px rgba(183, 93, 112, 0.25);
-}
-
-.paymentPanel {
-  animation: fadeUp 0.28s ease;
-}
-
-.cardForm {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.cardForm label {
-  color: #4a202a;
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.cardForm input,
-.cardForm select {
-  width: 100%;
-  height: 52px;
-  margin-top: 7px;
-  padding: 0 15px;
-  border-radius: 16px;
-  border: 1px solid rgba(183, 93, 112, 0.2);
-  background: #fffafb;
-  color: #35151d;
-  font-size: 14px;
-  outline: none;
-}
-
-.cardForm input:focus,
-.cardForm select:focus {
-  border-color: #b75d70;
-  box-shadow: 0 0 0 4px rgba(183, 93, 112, 0.12);
-}
-
-.formGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
 @keyframes fadeUp {
   from {
     opacity: 0;
@@ -625,18 +523,179 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 1100px) {
+  .layout {
+    grid-template-columns: 1fr;
+    max-width: 780px;
+  }
+
+  .paymentCard {
+    min-height: auto;
+    order: -1;
+  }
+}
+
+@media (max-width: 768px) {
+  .checkout {
+    padding: 18px 10px 36px;
+    overflow-x: hidden;
+  }
+
+  .hero {
+    display: none;
+  }
+
+  .layout {
+    width: 100%;
+    max-width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .paymentCard {
+    order: -1;
+    width: 100%;
+    min-height: auto;
+  }
+
+  .card {
+    width: 100%;
+    padding: 14px;
+    border-radius: 20px;
+  }
+
   .paymentTabs {
-    gap: 8px;
-    padding: 6px;
+    margin-bottom: 16px;
+    padding: 5px;
+    gap: 6px;
+    border-radius: 16px;
   }
 
   .paymentTab {
-    min-height: 50px;
+    min-height: 44px;
+    font-size: 13px;
+    border-radius: 13px;
+  }
+
+  .pixHeader {
+    margin-bottom: 16px;
+  }
+
+  .pixHeader h2 {
+    font-size: 22px;
+  }
+
+  .pixHeader p {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .pixIcon {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    margin-bottom: 12px;
+  }
+
+  .pixIcon svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .mpWrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow: visible;
+    padding-bottom: 12px;
+  }
+
+  .mpWrapper button {
+    min-height: 48px !important;
+  }
+
+  .userBox {
+    padding: 12px;
+    border-radius: 18px;
+  }
+
+  .avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 15px;
+    font-size: 18px;
+  }
+
+  .cardTitle {
+    font-size: 15px;
+    margin-bottom: 14px;
+  }
+
+  .infoItem {
+    padding: 12px;
+    border-radius: 16px;
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .infoItem strong {
+    text-align: left;
+  }
+
+  .totalBox,
+  .statusBox {
+    padding: 15px;
+    border-radius: 18px;
+  }
+
+  .totalBox strong {
+    font-size: 22px;
+  }
+
+  .backBtn,
+  .primaryBtn,
+  .softBtn,
+  .successBtn {
+    min-height: 48px;
+    border-radius: 15px;
     font-size: 14px;
   }
 
-  .formGrid {
+  .pixActions {
     grid-template-columns: 1fr;
+  }
+
+  .qrCard {
+    padding: 14px;
+    border-radius: 24px;
+  }
+
+  .qrCard canvas {
+    width: 170px !important;
+    height: 170px !important;
+  }
+
+  .textarea {
+    min-height: 90px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 430px) {
+  .checkout {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .card {
+    padding: 12px;
+  }
+
+  .paymentTab {
+    font-size: 12px;
+  }
+
+  .pixHeader h2 {
+    font-size: 20px;
   }
 }
