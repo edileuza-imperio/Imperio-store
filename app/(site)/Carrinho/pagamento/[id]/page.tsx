@@ -155,7 +155,7 @@ export default function PagamentoPage() {
             <strong>{formatarMoeda(Number(pedido?.valor_total ?? 0))}</strong>
           </div>
 
-          <Link href="/Carrinho" className={styles.backBtn}>
+          <Link href="/carrinho" className={styles.backBtn}>
             <FiArrowLeft />
             Voltar ao carrinho
           </Link>
@@ -256,7 +256,8 @@ export default function PagamentoPage() {
                 <h2>Pagamento com cartão</h2>
 
                 <p>
-                  Preencha os dados do cartão no ambiente seguro do Mercado Pago.
+                  Preencha todos os dados do cartão. O CPF e o e-mail são
+                  obrigatórios.
                 </p>
               </div>
 
@@ -269,6 +270,9 @@ export default function PagamentoPage() {
                 <CardPayment
                   initialization={{
                     amount: Number(pedido?.valor_total ?? 0),
+                    payer: {
+                      email: usuario?.email ?? "",
+                    },
                   }}
                   customization={{
                     paymentMethods: {
@@ -276,12 +280,15 @@ export default function PagamentoPage() {
                     },
                   }}
                   onSubmit={async (formData) => {
-                    console.log("FORM DATA MERCADO PAGO:", formData);
+                    alert(JSON.stringify(formData, null, 2));
                     await pagarComCartao(formData);
                   }}
                   onError={(error) => {
-                    console.error(error);
-                    toast.error("Erro ao carregar pagamento com cartão.");
+                    alert(JSON.stringify(error, null, 2));
+
+                    toast.error(
+                      "Erro no formulário do cartão. Veja o alerta para detalhes."
+                    );
                   }}
                 />
               )}
