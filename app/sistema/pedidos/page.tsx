@@ -36,7 +36,6 @@ type Pedido = {
   status_id: number;
   valor_total: number;
   payment_id?: string | null;
-  external_reference?: string | null;
   metodo_pagamento?: string | null;
   status_pagamento?: string | null;
   status_detail?: string | null;
@@ -60,12 +59,12 @@ export default function SistemaPedidosPage() {
       const lista = Array.isArray(data?.dados?.pedidos)
         ? data.dados.pedidos
         : Array.isArray(data?.pedidos)
-          ? data.pedidos
-          : Array.isArray(data?.dados)
-            ? data.dados
-            : Array.isArray(data)
-              ? data
-              : [];
+        ? data.pedidos
+        : Array.isArray(data?.dados)
+        ? data.dados
+        : Array.isArray(data)
+        ? data
+        : [];
 
       setPedidos(lista);
     } catch (error) {
@@ -117,7 +116,8 @@ export default function SistemaPedidosPage() {
   function subtotalItem(item: PedidoItem) {
     return Number(
       item.subtotal ??
-        Number(item.quantidade ?? 1) * Number(item.preco_unitario ?? item.preco ?? 0)
+        Number(item.quantidade ?? 1) *
+          Number(item.preco_unitario ?? item.preco ?? 0)
     );
   }
 
@@ -194,7 +194,7 @@ export default function SistemaPedidosPage() {
             Pedidos
           </h1>
           <p className={styles.subtitle}>
-            Veja os produtos pedidos, pagamentos e ações rápidas.
+            Gerencie pedidos, produtos comprados e reembolsos.
           </p>
         </div>
 
@@ -221,7 +221,7 @@ export default function SistemaPedidosPage() {
                       Pedido #{pedido.id_pedido}
                     </strong>
                     <p className={styles.orderDate}>
-                      Criado em {formatarData(pedido.criado_em)}
+                      {formatarData(pedido.criado_em)}
                     </p>
                   </div>
 
@@ -258,7 +258,7 @@ export default function SistemaPedidosPage() {
                 <div className={styles.products}>
                   <div className={styles.productsTitle}>
                     <FiPackage />
-                    Produtos do pedido
+                    Produtos pedidos
                   </div>
 
                   {itens.length === 0 ? (
@@ -273,7 +273,7 @@ export default function SistemaPedidosPage() {
                       >
                         <div>
                           <strong>{nomeItem(item)}</strong>
-                          <span>Qtd: {item.quantidade ?? 1}</span>
+                          <span>Quantidade: {item.quantidade ?? 1}</span>
                         </div>
 
                         <div className={styles.productPrice}>
