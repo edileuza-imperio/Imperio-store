@@ -18,11 +18,23 @@ type UsePagamentoProps = {
   pedidoId?: string;
 };
 
+type PaymentTypeId = "credit_card" | "debit_card" | string;
+
 type FormDataCartao = {
   token?: string;
+
   payment_method_id?: string;
+  paymentMethodId?: string;
+
+  payment_type_id?: PaymentTypeId;
+  paymentTypeId?: PaymentTypeId;
+
   issuer_id?: string | number;
+  issuerId?: string | number;
+
   installments?: number;
+  parcelas?: number;
+
   payer?: {
     email?: string;
     identification?: {
@@ -58,14 +70,45 @@ function limparCpf(cpf?: string | number | null) {
   return String(cpf ?? "").replace(/\D/g, "");
 }
 
+function normalizarStatus(status?: string | null) {
+  return String(status ?? "").toLowerCase().trim();
+}
+
 function isPagamentoAprovado(status?: string | null) {
-  const statusNormalizado = String(status ?? "").toLowerCase();
+  const statusNormalizado = normalizarStatus(status);
 
   return (
-    statusNormalizado.includes("approved") ||
-    statusNormalizado.includes("aprovado") ||
-    statusNormalizado.includes("paid") ||
-    statusNormalizado.includes("pago")
+    statusNormalizado === "approved" ||
+    statusNormalizado === "aprovado" ||
+    statusNormalizado === "paid" ||
+    statusNormalizado === "pago"
+  );
+}
+
+function isPagamentoPendente(status?: string | null) {
+  const statusNormalizado = normalizarStatus(status);
+
+  return (
+    statusNormalizado === "pending" ||
+    statusNormalizado === "pendente"
+  );
+}
+
+function isPagamentoAnalise(status?: string | null) {
+  const statusNormalizado = normalizarStatus(status);
+
+  return (
+    statusNormalizado === "in_process" ||
+    statusNormalizado === "em_analise"
+  );
+}
+
+function isPagamentoRecusado(status?: string | null) {
+  const statusNormalizado = normalizarStatus(status);
+
+  return (
+    statusNormalizado === "rejected" ||
+    statusNormalizado === "recusado"
   );
 }
 
@@ -73,23 +116,73 @@ function traduzirStatusDetail(statusDetail?: string | null) {
   const status = String(statusDetail ?? "");
 
   const mensagens: Record<string, string> = {
+    pending_review_manual:
+      "Pagamento em análise manual pelo Mercado Pago.",
+
     cc_rejected_high_risk:
-      "Pagamento recusado por alto risco. Tente outro cartão ou use PIX.",
+      "Pagamento recusado por segurança do Mercado Pago. Tente outro cartão ou use PIX.",
+
     cc_rejected_bad_filled_card_number:
       "Número do cartão inválido.",
+
     cc_rejected_bad_filled_date:
       "Data de validade inválida.",
+
     cc_rejected_bad_filled_security_code:
       "Código de segurança inválido.",
+
+    cc_rejected_bad_filled_other:
+      "Algum dado do cartão está incorreto.",
+
     cc_rejected_insufficient_amount:
-      "Saldo insuficiente.",
+      "Cartão sem limite ou saldo suficiente.",
+
     cc_rejected_call_for_authorize:
       "O banco recusou. Autorize com o banco ou tente outro cartão.",
+
+    cc_rejected_card_disabled:
+      "Cartão desabilitado. Entre em contato com o banco.",
+
+    cc_rejected_duplicated_payment:
+      "Pagamento duplicado detectado.",
+
+    cc_rejected_max_attempts:
+      "Limite de tentativas excedido.",
+
     cc_rejected_other_reason:
       "Pagamento recusado. Tente outro cartão ou use PIX.",
   };
 
-  return mensagens[status] ?? `Pagamento recusado: ${status}`;
+  return mensagens[status] ?? `Pagamento não aprovado: ${status || "motivo não informado"}`;
+}
+
+function traduzirTipoPagamento(paymentTypeId?: string | null) {
+  const tipo = String(paymentTypeId ?? "").toLowerCase();
+
+  if (tipo === "debit_card") return "Cartão de débito";
+  if (tipo === "credit_card") return "Cartão de crédito";
+
+  return "Cartão";
+}
+
+function getPaymentMethodId(formData: FormDataCartao) {
+  return formData.payment_method_id ?? formData.paymentMethodId ?? "";
+}
+
+function getPaymentTypeId(formData: FormDataCartao): PaymentTypeId {
+  return (
+    formData.payment_type_id ??
+    formData.paymentTypeId ??
+    "credit_card"
+  );
+}
+
+function getIssuerId(formData: FormDataCartao) {
+  return formData.issuer_id ?? formData.issuerId ?? null;
+}
+
+function getInstallments(formData: FormDataCartao) {
+  return Number(formData.installments ?? formData.parcelas ?? 1);
 }
 
 export function usePagamento({ pedidoId }: UsePagamentoProps) {
@@ -106,19 +199,40 @@ export function usePagamento({ pedidoId }: UsePagamentoProps) {
   const [loadingCartao, setLoadingCartao] = useState(false);
 
   const statusPagamento = useMemo(() => {
-    const status = String(
+    const status = normalizarStatus(
       pedido?.status_pagamento ?? pedido?.status ?? ""
-    ).toLowerCase();
+    );
 
     const aprovado = isPagamentoAprovado(status);
+    const analise = isPagamentoAnalise(status);
+    const recusado = isPagamentoRecusado(status);
+    const pendente = isPagamentoPendente(status);
+
+    let label = "Pagamento pendente";
+    let descricao = "Aguardando confirmação do pagamento.";
+
+    if (aprovado) {
+      label = "Pagamento aprovado";
+      descricao = "Seu pagamento foi confirmado.";
+    } else if (analise) {
+      label = "Pagamento em análise";
+      descricao = "O Mercado Pago está analisando o pagamento.";
+    } else if (recusado) {
+      label = "Pagamento recusado";
+      descricao = "O pagamento foi recusado. Tente outro cartão ou use PIX.";
+    } else if (pendente) {
+      label = "Pagamento pendente";
+      descricao = "Aguardando confirmação do pagamento.";
+    }
 
     return {
       aprovado,
+      analise,
+      recusado,
+      pendente,
       status,
-      label: aprovado ? "Pagamento aprovado" : "Pagamento pendente",
-      descricao: aprovado
-        ? "Seu pagamento foi confirmado."
-        : "Aguardando confirmação do pagamento.",
+      label,
+      descricao,
     };
   }, [pedido]);
 
@@ -242,13 +356,17 @@ export function usePagamento({ pedidoId }: UsePagamentoProps) {
       if (pedidoAtual) {
         setPedido(pedidoAtual);
 
-        const status = String(
+        const status = normalizarStatus(
           pedidoAtual?.status_pagamento ?? pedidoAtual?.status ?? ""
-        ).toLowerCase();
+        );
 
         if (isPagamentoAprovado(status)) {
           toast.success("Pagamento confirmado!");
           router.push(`/pedido-confirmado/${pedidoId}`);
+        } else if (isPagamentoAnalise(status)) {
+          toast.info("Pagamento em análise pelo Mercado Pago.");
+        } else if (isPagamentoRecusado(status)) {
+          toast.error("Pagamento recusado. Tente outro cartão ou use PIX.");
         } else {
           toast.info("Pagamento ainda pendente");
         }
@@ -256,12 +374,19 @@ export function usePagamento({ pedidoId }: UsePagamentoProps) {
         return pedidoAtual;
       }
 
-      const status = String(dados?.status ?? "").toLowerCase();
+      const status = normalizarStatus(dados?.status);
+      const statusDetail = dados?.status_detail;
 
       if (isPagamentoAprovado(status)) {
         toast.success("Pagamento confirmado!");
         await carregarPedido();
         router.push(`/pedido-confirmado/${pedidoId}`);
+      } else if (isPagamentoAnalise(status)) {
+        toast.info("Pagamento em análise pelo Mercado Pago.");
+        await carregarPedido();
+      } else if (isPagamentoRecusado(status)) {
+        toast.error(traduzirStatusDetail(statusDetail));
+        await carregarPedido();
       } else {
         toast.info("Pagamento ainda pendente");
         await carregarPedido();
@@ -284,7 +409,25 @@ export function usePagamento({ pedidoId }: UsePagamentoProps) {
         return;
       }
 
-      if (!formData?.token || !formData?.payment_method_id) {
+      const paymentMethodId = getPaymentMethodId(formData);
+      const paymentTypeId = getPaymentTypeId(formData);
+      const issuerId = getIssuerId(formData);
+
+      const installments =
+        paymentTypeId === "debit_card"
+          ? 1
+          : getInstallments(formData);
+
+      console.log("DADOS MERCADO PAGO CARD:", {
+        token: !!formData?.token,
+        payment_method_id: paymentMethodId,
+        payment_type_id: paymentTypeId,
+        issuer_id: issuerId,
+        installments,
+        payer: formData?.payer,
+      });
+
+      if (!formData?.token || !paymentMethodId) {
         toast.error(
           "Dados do cartão incompletos. Confira nome, CPF, validade e CVV."
         );
@@ -299,9 +442,10 @@ export function usePagamento({ pedidoId }: UsePagamentoProps) {
           valor: Number(pedido.valor_total ?? 0),
 
           token: formData.token,
-          payment_method_id: formData.payment_method_id,
-          issuer_id: formData.issuer_id,
-          parcelas: Number(formData.installments ?? 1),
+          payment_method_id: paymentMethodId,
+          payment_type_id: paymentTypeId,
+          issuer_id: issuerId,
+          parcelas: installments,
 
           payer: {
             email: formData.payer?.email ?? usuario.email,
@@ -320,23 +464,29 @@ export function usePagamento({ pedidoId }: UsePagamentoProps) {
 
       const dados = extrairDados<any>(response.data);
 
-      const status = String(dados?.status ?? "").toLowerCase();
+      const status = normalizarStatus(dados?.status);
       const statusDetail = dados?.status_detail;
+      const tipoCartao =
+        dados?.tipo_cartao ??
+        traduzirTipoPagamento(dados?.payment_type_id ?? paymentTypeId);
 
-      if (status === "approved") {
-        toast.success("Pagamento aprovado!");
+      if (isPagamentoAprovado(status)) {
+        toast.success(`${tipoCartao} aprovado!`);
         router.push(`/pedido-confirmado/${pedido.id_pedido}`);
         return;
       }
 
-      if (status === "in_process" || status === "pending") {
-        toast.info("Pagamento em análise. Aguarde a confirmação.");
+      if (isPagamentoAnalise(status) || isPagamentoPendente(status)) {
+        toast.info(`${tipoCartao} em análise. Aguarde a confirmação.`);
         await carregarPedido();
         return;
       }
 
-      if (status === "rejected") {
-        toast.error(traduzirStatusDetail(statusDetail));
+      if (isPagamentoRecusado(status)) {
+        toast.error(
+          dados?.motivo ??
+            traduzirStatusDetail(statusDetail)
+        );
         await carregarPedido();
         return;
       }
@@ -344,12 +494,15 @@ export function usePagamento({ pedidoId }: UsePagamentoProps) {
       toast.info("Pagamento enviado. Verifique o status do pedido.");
       await carregarPedido();
     } catch (error: any) {
+      console.error(error);
+
       const mpErro =
         error?.response?.data?.mercadopago?.message ||
         error?.response?.data?.mercadopago?.error;
 
       const mensagem =
         error?.response?.data?.mensagem ||
+        error?.response?.data?.motivo ||
         error?.response?.data?.erro ||
         mpErro ||
         "Não foi possível processar o pagamento. Tente novamente ou use PIX.";
