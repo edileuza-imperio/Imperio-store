@@ -21,12 +21,9 @@ import { formatarPreco } from "@/hooks/destaque/functions";
 import { moverCarousel } from "@/hooks/carrinho";
 import { useAutoplayRef, useCarouselRef } from "@/hooks/vitrine.service";
 
-
 import ModalCarrinho from "@/app/(site)/Vitrine/Destaques/modal/modal";
 import SkeletonDestaques from "@/app/(site)/Vitrine/Destaques/destaque/SkeletonDestaques";
 import { ItemResolvido, useVitrine, Vitrine } from "./useVitrine";
-
-
 
 type Props = {
   slug?: string;
@@ -130,9 +127,15 @@ export default function Destaques({
       const maxScroll = scrollWidth - clientWidth;
 
       if (scrollLeft >= maxScroll - 8) {
-        carousel.scrollTo({ left: 0, behavior: "smooth" });
+        carousel.scrollTo({
+          left: 0,
+          behavior: "smooth",
+        });
       } else {
-        carousel.scrollBy({ left: distancia, behavior: "smooth" });
+        carousel.scrollBy({
+          left: distancia,
+          behavior: "smooth",
+        });
       }
     }, 3200);
 
@@ -254,18 +257,15 @@ export default function Destaques({
                   className={`${styles.card} destaque-card`}
                 >
                   <div className={styles.media}>
-                    <Link
-                      href={item.link_final || "#"}
-                      className={styles.imageLink}
-                    >
+                    <Link href={linkVisualizarCard} className={styles.imageLink}>
                       {item.imagem_final ? (
                         <Image
                           src={item.imagem_final}
                           alt={item.titulo_final}
                           fill
-                          sizes="(max-width: 480px) 86vw, (max-width: 768px) 78vw, (max-width: 1100px) 280px, 290px"
+                          sizes="(max-width: 480px) 88vw, (max-width: 640px) 82vw, (max-width: 900px) 42vw, 296px"
                           className={styles.image}
-                          quality={75}
+                          quality={80}
                           priority={index < 2}
                         />
                       ) : (
@@ -297,10 +297,7 @@ export default function Destaques({
                       )}
                     </div>
 
-                    <Link
-                      href={item.link_final || "#"}
-                      className={styles.cardLink}
-                    >
+                    <Link href={linkVisualizarCard} className={styles.cardLink}>
                       <h3 className={styles.cardTitle}>
                         {item.titulo_final}
                       </h3>
@@ -362,7 +359,7 @@ export default function Destaques({
                         </button>
                       ) : (
                         <Link
-                          href={item.link_final || "#"}
+                          href={item.link_final || linkVisualizarCard}
                           className={styles.cartButton}
                         >
                           <FiArrowRight className={styles.inlineIcon} />
