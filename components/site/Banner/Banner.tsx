@@ -11,69 +11,58 @@ import styles from "./Banner.module.css";
 export default function Banner() {
   const router = useRouter();
 
-  const {
-    banners,
-    banner,
-    index,
-    setIndex,
-    loading,
-  } = useBanner();
+  const { banners, banner, index, setIndex, loading } = useBanner();
+
+  const linkBanner = banner?.link?.trim();
+  const temLink = Boolean(linkBanner);
 
   function goLink() {
-    if (!banner?.link) return;
+    if (!linkBanner) return;
 
-    if (banner.link.startsWith("http")) {
-      window.open(
-        banner.link,
-        "_blank",
-        "noopener,noreferrer"
-      );
+    if (linkBanner.startsWith("http")) {
+      window.open(linkBanner, "_blank", "noopener,noreferrer");
       return;
     }
 
-    router.push(banner.link);
+    router.push(linkBanner);
   }
 
   if (loading) {
-    return (
-      <section className={styles.skeleton} />
-    );
+    return <section className={styles.skeleton} />;
   }
 
   if (!banner) return null;
 
-  const imagemBanner = imagemFundo(
-    banner.imagem
-  );
+  const imagemBanner = imagemFundo(banner.imagem);
 
   return (
     <section className={styles.banner}>
       <div className={styles.inner}>
         <div className={styles.text}>
-          <span className={styles.tag}>
-            Universo Império
-          </span>
+          <span className={styles.tag}>Universo Império</span>
 
-          <h1 className={styles.title}>
-            {banner.titulo}
-          </h1>
+          <h1 className={styles.title}>{banner.titulo}</h1>
 
           <p className={styles.desc}>
             {banner.descricao ??
               "Promoções, lançamentos e ofertas especiais."}
           </p>
 
-          <button
-            className={styles.btn}
-            onClick={goLink}
-          >
-            Comprar agora
-          </button>
+          {temLink && (
+            <button
+              type="button"
+              className={styles.btn}
+              onClick={goLink}
+            >
+              Comprar agora
+              <span>→</span>
+            </button>
+          )}
         </div>
 
         <div
-          className={styles.media}
-          onClick={goLink}
+          className={`${styles.media} ${temLink ? styles.clickable : ""}`}
+          onClick={temLink ? goLink : undefined}
         >
           <div className={styles.imageWrap}>
             <Image
@@ -82,7 +71,8 @@ export default function Banner() {
               fill
               priority
               fetchPriority="high"
-              sizes="(max-width:980px) 100vw, 50vw"
+              sizes="(max-width: 980px) 100vw, 50vw"
+              className={styles.image}
             />
           </div>
         </div>
@@ -94,11 +84,8 @@ export default function Banner() {
             <button
               key={i}
               type="button"
-              className={`${styles.dot} ${
-                i === index
-                  ? styles.active
-                  : ""
-              }`}
+              aria-label={`Ir para o banner ${i + 1}`}
+              className={`${styles.dot} ${i === index ? styles.active : ""}`}
               onClick={() => setIndex(i)}
             />
           ))}

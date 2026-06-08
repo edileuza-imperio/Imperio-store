@@ -34,7 +34,7 @@ import {
   BiGift,
 } from "react-icons/bi";
 
-import styles from "./CategoriasDestaque.module.css";
+import styles from "./Categorias.module.css";
 import useCategoria, { Categoria } from "./useCategoria";
 
 const ICONS: Record<string, IconType> = {
