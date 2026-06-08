@@ -42,47 +42,92 @@
 
 .toastNotificacao {
   position: fixed;
-  top: 18px;
-  right: 18px;
-  z-index: 50;
-  width: min(430px, calc(100vw - 28px));
-  padding: 15px 16px;
-  border-radius: 18px;
+  top: 22px;
+  right: 22px;
+  z-index: 9999;
+  width: min(460px, calc(100vw - 28px));
+  min-height: 64px;
+  padding: 16px 18px;
+  border-radius: 22px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  box-shadow: 0 22px 55px rgba(95, 51, 64, 0.18);
-  backdrop-filter: blur(14px);
+  gap: 14px;
+  box-shadow:
+    0 24px 70px rgba(95, 51, 64, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(18px);
+  animation: toastEntrada 0.28s ease both;
 }
 
 .toastSucesso {
-  background: rgba(238, 250, 242, 0.96);
-  border: 1px solid rgba(45, 145, 82, 0.18);
+  background: linear-gradient(
+    135deg,
+    rgba(238, 250, 242, 0.98),
+    rgba(220, 245, 229, 0.98)
+  );
+  border: 1px solid rgba(45, 145, 82, 0.2);
   color: #27663d;
 }
 
 .toastErro {
-  background: rgba(255, 239, 241, 0.96);
-  border: 1px solid rgba(180, 57, 76, 0.18);
+  background: linear-gradient(
+    135deg,
+    rgba(255, 240, 243, 0.98),
+    rgba(255, 226, 232, 0.98)
+  );
+  border: 1px solid rgba(180, 57, 76, 0.2);
   color: #943145;
 }
 
 .toastConteudo {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  min-width: 0;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 900;
+  line-height: 1.35;
+}
+
+.toastConteudo svg {
+  flex-shrink: 0;
+  font-size: 22px;
+}
+
+.toastConteudo span {
+  display: block;
 }
 
 .toastNotificacao button {
+  width: 34px;
+  height: 34px;
   border: 0;
-  background: transparent;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
   color: inherit;
   cursor: pointer;
-  font-size: 19px;
-  display: flex;
+  font-size: 18px;
+  display: grid;
+  place-items: center;
+  transition: 0.2s ease;
+}
+
+.toastNotificacao button:hover {
+  background: rgba(255, 255, 255, 0.85);
+  transform: scale(1.04);
+}
+
+@keyframes toastEntrada {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .estadoBox {
@@ -343,44 +388,71 @@
 
 .acoes {
   display: flex;
-  gap: 12px;
+  gap: 14px;
 }
 
 .acoes button {
   flex: 1;
-  min-height: 58px;
+  min-height: 62px;
   border: 0;
-  border-radius: 18px;
+  border-radius: 20px;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: 11px;
   font-size: 15px;
-  font-weight: 900;
-  transition: 0.25s ease;
+  font-weight: 950;
+  letter-spacing: -0.01em;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    opacity 0.25s ease;
+}
+
+.acoes button svg {
+  font-size: 21px;
 }
 
 .acoes button:disabled {
-  opacity: 0.65;
+  opacity: 0.68;
   cursor: not-allowed;
+  transform: none;
 }
 
 .btnCarrinho {
   color: #fff;
-  background: linear-gradient(135deg, #b85d73, #86475a);
-  box-shadow: 0 18px 34px rgba(184, 93, 115, 0.26);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 35%),
+    linear-gradient(135deg, #bd6178 0%, #88475a 100%);
+  box-shadow:
+    0 18px 38px rgba(184, 93, 115, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .btnComprar {
   color: #7a4053;
-  background: #fffaf5;
-  border: 1px solid rgba(184, 93, 115, 0.18) !important;
-  box-shadow: 0 14px 28px rgba(95, 51, 64, 0.09);
+  background: linear-gradient(180deg, #ffffff 0%, #fff6f1 100%);
+  border: 1px solid rgba(184, 93, 115, 0.2) !important;
+  box-shadow:
+    0 14px 30px rgba(95, 51, 64, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .acoes button:hover:not(:disabled) {
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+}
+
+.btnCarrinho:hover:not(:disabled) {
+  box-shadow:
+    0 24px 48px rgba(184, 93, 115, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.btnComprar:hover:not(:disabled) {
+  box-shadow:
+    0 20px 42px rgba(95, 51, 64, 0.16),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 
 .descricao {
@@ -514,10 +586,11 @@
   }
 
   .toastNotificacao {
-    top: 10px;
-    right: 10px;
-    left: 10px;
+    top: 12px;
+    right: 12px;
+    left: 12px;
     width: auto;
+    border-radius: 18px;
   }
 }
 

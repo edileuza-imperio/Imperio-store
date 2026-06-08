@@ -128,6 +128,7 @@ export default function VisualizarProdutoDaVitrine() {
     adicionarAoCarrinho,
     comprarAgora,
     irParaLogin,
+    irParaCarrinho,
   } = useVitrine();
 
   const [loading, setLoading] = useState(true);
@@ -138,7 +139,7 @@ export default function VisualizarProdutoDaVitrine() {
   const [notificacao, setNotificacao] = useState<Notificacao | null>(null);
 
   const timerNotificacao = useRef<number | null>(null);
-  const timerLogin = useRef<number | null>(null);
+  const timerRedirecionamento = useRef<number | null>(null);
 
   function mostrarNotificacao(
     texto: string,
@@ -152,7 +153,34 @@ export default function VisualizarProdutoDaVitrine() {
 
     timerNotificacao.current = window.setTimeout(() => {
       setNotificacao(null);
-    }, 3200);
+    }, 3500);
+  }
+
+  function redirecionarDepois(callback: () => void, tempo = 1600) {
+    if (timerRedirecionamento.current) {
+      window.clearTimeout(timerRedirecionamento.current);
+    }
+
+    timerRedirecionamento.current = window.setTimeout(() => {
+      callback();
+    }, tempo);
+  }
+
+  function verificarLoginMensagem(mensagem: string) {
+    if (mensagem.toLowerCase().includes("login")) {
+      mostrarNotificacao(
+        "Você precisa entrar na sua conta. Redirecionando...",
+        "erro"
+      );
+
+      redirecionarDepois(() => {
+        irParaLogin();
+      });
+
+      return true;
+    }
+
+    return false;
   }
 
   useEffect(() => {
@@ -198,8 +226,8 @@ export default function VisualizarProdutoDaVitrine() {
         window.clearTimeout(timerNotificacao.current);
       }
 
-      if (timerLogin.current) {
-        window.clearTimeout(timerLogin.current);
+      if (timerRedirecionamento.current) {
+        window.clearTimeout(timerRedirecionamento.current);
       }
     };
   }, [slug]);
@@ -215,20 +243,12 @@ export default function VisualizarProdutoDaVitrine() {
   const precoOriginal = produto?.preco_promocional ? produto?.preco : null;
   const desconto = calcularDesconto(produto?.preco, produto?.preco_promocional);
 
-  function verificarLoginMensagem(mensagem: string) {
-    if (mensagem.toLowerCase().includes("login")) {
-      timerLogin.current = window.setTimeout(() => {
-        irParaLogin();
-      }, 1400);
-    }
-  }
-
   async function handleAdicionarCarrinho() {
     try {
       const resultado = await adicionarAoCarrinho(produtoId, 1);
 
       mostrarNotificacao(
-        resultado?.mensagem || "Produto adicionado ao carrinho.",
+        resultado?.mensagem || "Produto adicionado ao carrinho com sucesso.",
         "sucesso"
       );
     } catch (error) {
@@ -237,22 +257,33 @@ export default function VisualizarProdutoDaVitrine() {
         "Não foi possível adicionar ao carrinho."
       );
 
-      mostrarNotificacao(mensagem, "erro");
-      verificarLoginMensagem(mensagem);
+      if (!verificarLoginMensagem(mensagem)) {
+        mostrarNotificacao(mensagem, "erro");
+      }
     }
   }
 
   async function handleComprarAgora() {
     try {
       await comprarAgora(produtoId, 1);
+
+      mostrarNotificacao(
+        "Produto adicionado. Redirecionando para o carrinho...",
+        "sucesso"
+      );
+
+      redirecionarDepois(() => {
+        irParaCarrinho();
+      });
     } catch (error) {
       const mensagem = extrairMensagemErro(
         error,
         "Não foi possível comprar agora."
       );
 
-      mostrarNotificacao(mensagem, "erro");
-      verificarLoginMensagem(mensagem);
+      if (!verificarLoginMensagem(mensagem)) {
+        mostrarNotificacao(mensagem, "erro");
+      }
     }
   }
 
@@ -292,7 +323,11 @@ export default function VisualizarProdutoDaVitrine() {
             <span>{notificacao.texto}</span>
           </div>
 
-          <button type="button" onClick={() => setNotificacao(null)}>
+          <button
+            type="button"
+            onClick={() => setNotificacao(null)}
+            aria-label="Fechar mensagem"
+          >
             <FiX />
           </button>
         </div>

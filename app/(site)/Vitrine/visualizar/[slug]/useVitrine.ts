@@ -15,10 +15,9 @@ function extrairMensagemErro(error: unknown, fallback = "Erro inesperado.") {
 
   if (error && typeof error === "object") {
     const anyError = error as any;
-    const status = anyError?.response?.status;
 
-    if (status === 401) {
-      return "Você precisa fazer login para adicionar produtos ao carrinho.";
+    if (anyError?.response?.status === 401) {
+      return "Você precisa fazer login para continuar.";
     }
 
     return (
@@ -86,8 +85,6 @@ export function useVitrine() {
         }
       );
 
-      router.push("/Carrinho");
-
       return response.data;
     } catch (error) {
       throw new Error(
@@ -102,11 +99,16 @@ export function useVitrine() {
     router.push("/login");
   }
 
+  function irParaCarrinho() {
+    router.push("/Carrinho");
+  }
+
   return {
     loadingCarrinho,
     loadingComprar,
     adicionarAoCarrinho,
     comprarAgora,
     irParaLogin,
+    irParaCarrinho,
   };
 }
