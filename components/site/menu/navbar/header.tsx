@@ -89,7 +89,6 @@ const ICONS: Record<string, IconType> = {
   FiCreditCard,
   FiMapPin,
   FiTruck,
-
   BiUserCircle,
   BiLogOut,
   BiShoppingBag,
@@ -106,6 +105,16 @@ function getIcon(name?: string | null, size = 16) {
   if (!Icon) return null;
 
   return <Icon size={size} aria-hidden="true" focusable="false" />;
+}
+
+function corrigirRota(rota?: string | null, fallback = "#") {
+  const valor = (rota || fallback).trim();
+
+  if (valor === "/carrinho") return "/Carrinho";
+  if (valor === "/pedidos") return "/pedido";
+  if (valor === "/Pedido") return "/pedido";
+
+  return valor;
 }
 
 export default function NavbarHeader({
@@ -132,6 +141,7 @@ export default function NavbarHeader({
   const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   const safePesquisa = (pesquisa ?? "").trim();
+  const rotaCarrinho = corrigirRota(carrinho?.rota, "/Carrinho");
 
   const loginItems = useMemo(() => {
     return Array.isArray(login?.itens)
@@ -147,7 +157,7 @@ export default function NavbarHeader({
     },
     {
       label: "Pedidos",
-      href: "/pedidos",
+      href: "/pedido",
       icon: <FiShoppingBag size={18} aria-hidden="true" focusable="false" />,
     },
     {
@@ -157,7 +167,7 @@ export default function NavbarHeader({
     },
     {
       label: "Carrinho",
-      href: carrinho?.rota || "/carrinho",
+      href: rotaCarrinho,
       icon: <FiShoppingCart size={18} aria-hidden="true" focusable="false" />,
       badge: quantidadeCarrinho > 0 ? quantidadeCarrinho : 0,
     },
@@ -216,7 +226,6 @@ export default function NavbarHeader({
       if (!btn) return;
 
       const rect = btn.getBoundingClientRect();
-
       const menuWidth = isMobile ? 220 : 240;
       const gap = isMobile ? 10 : 6;
       const margin = 12;
@@ -326,7 +335,7 @@ export default function NavbarHeader({
           return (
             <Link
               key={item.id_item}
-              href={item.rota || "#"}
+              href={corrigirRota(item.rota, "#")}
               className="floatingDropdownItem"
               onClick={() => setDropdown(false)}
               role="menuitem"
@@ -405,7 +414,7 @@ export default function NavbarHeader({
             ) : (
               login && (
                 <Link
-                  href={login.rota || "#"}
+                  href={corrigirRota(login.rota, "#")}
                   className="iconBtn"
                   aria-label="Entrar na conta"
                   title="Entrar"
@@ -418,7 +427,7 @@ export default function NavbarHeader({
 
             {carrinho && (
               <Link
-                href={carrinho.rota || "/carrinho"}
+                href={rotaCarrinho}
                 className="cartButton"
                 aria-label={
                   quantidadeCarrinho > 0
@@ -490,7 +499,7 @@ export default function NavbarHeader({
             ) : (
               login && (
                 <Link
-                  href={login.rota || "#"}
+                  href={corrigirRota(login.rota, "#")}
                   className="mobileBtn"
                   aria-label="Entrar na conta"
                   title="Entrar"
@@ -502,7 +511,7 @@ export default function NavbarHeader({
 
             {carrinho && (
               <Link
-                href={carrinho.rota || "/carrinho"}
+                href={rotaCarrinho}
                 className="mobileCartBtn"
                 aria-label={
                   quantidadeCarrinho > 0
