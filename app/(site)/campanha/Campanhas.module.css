@@ -1,14 +1,18 @@
 .section {
-  padding: 32px 0;
   width: 100%;
   max-width: 100%;
+  min-height: 624px;
+  padding: 32px 0;
   overflow-x: clip;
   background: linear-gradient(180deg, #fffdfc 0%, #fff8f6 100%);
+  box-sizing: border-box;
+  contain: layout paint;
 }
 
 .container {
   width: 100%;
   max-width: 1440px;
+  min-height: 560px;
   margin: 0 auto;
   padding: 0 18px;
   box-sizing: border-box;
@@ -22,7 +26,8 @@
   min-width: 0;
 }
 
-.card {
+.card,
+.cardSkeleton {
   width: 100%;
   display: block;
   text-decoration: none;
@@ -35,6 +40,7 @@
   position: relative;
   width: 100%;
   height: 560px;
+  min-height: 560px;
   overflow: hidden;
   border-radius: 34px;
   background: #f8efeb;
@@ -61,12 +67,33 @@
   object-position: center;
 }
 
-.imageFallback {
+.imageFallback,
+.loadingBanner {
   position: absolute;
   inset: 0;
+}
+
+.imageFallback {
   background:
     radial-gradient(circle at top left, rgba(255, 255, 255, 0.45), transparent 35%),
     linear-gradient(135deg, #d9a7b0 0%, #f7d9cf 45%, #f5efe9 100%);
+}
+
+.loadingBanner {
+  background: linear-gradient(
+    90deg,
+    #f4ece8 25%,
+    #ffffff 50%,
+    #f4ece8 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s infinite;
+}
+
+.emptySpace {
+  width: 100%;
+  height: 560px;
+  min-height: 560px;
 }
 
 .overlay {
@@ -95,6 +122,7 @@
   flex-direction: column;
   justify-content: center;
   max-width: 780px;
+  min-height: 560px;
   padding: 56px;
   box-sizing: border-box;
   min-width: 0;
@@ -102,6 +130,7 @@
 
 .badge {
   width: fit-content;
+  min-height: 31px;
   padding: 9px 16px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.14);
@@ -113,32 +142,41 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   margin-bottom: 18px;
+  box-sizing: border-box;
 }
 
 .title {
   margin: 0;
   color: white;
+  min-height: 124px;
   font-size: clamp(30px, 4.2vw, 58px);
   line-height: 1.06;
   font-weight: 900;
   letter-spacing: -0.04em;
   word-break: break-word;
   max-width: 680px;
+  text-wrap: balance;
 }
 
 .description {
-  margin-top: 18px;
+  margin: 18px 0 0;
   color: rgba(255, 255, 255, 0.92);
+  min-height: 58px;
   font-size: 16px;
   line-height: 1.8;
   max-width: 620px;
   word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .button {
   margin-top: 28px;
   width: fit-content;
   height: 50px;
+  min-height: 50px;
   padding: 0 20px;
   border-radius: 16px;
   background: rgba(255, 247, 244, 0.96);
@@ -164,27 +202,6 @@
   line-height: 1;
 }
 
-.loadingSection {
-  padding: 32px 0;
-  width: 100%;
-  overflow-x: clip;
-}
-
-.loadingBanner {
-  width: 100%;
-  height: 560px;
-  border-radius: 34px;
-  background: linear-gradient(
-    90deg,
-    #f4ece8 25%,
-    #ffffff 50%,
-    #f4ece8 75%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.4s infinite;
-  box-sizing: border-box;
-}
-
 @keyframes shimmer {
   0% {
     background-position: 200% 0;
@@ -196,45 +213,68 @@
 }
 
 @media (max-width: 1024px) {
-  .banner {
+  .section {
+    min-height: 544px;
+  }
+
+  .container {
+    min-height: 480px;
+  }
+
+  .banner,
+  .emptySpace {
     height: 480px;
+    min-height: 480px;
   }
 
   .content {
+    min-height: 480px;
     padding: 42px;
   }
 
   .title {
     max-width: 620px;
+    min-height: 104px;
   }
 }
 
 @media (max-width: 768px) {
   .section {
+    min-height: 434px;
     padding: 22px 0;
   }
 
   .container {
+    min-height: 390px;
     padding: 0 14px;
   }
 
-  .banner {
+  .banner,
+  .emptySpace {
     height: 390px;
+    min-height: 390px;
     border-radius: 26px;
   }
 
   .content {
+    min-height: 390px;
     padding: 26px;
+  }
+
+  .title {
+    min-height: 78px;
   }
 
   .description {
     margin-top: 14px;
+    min-height: 46px;
     font-size: 14px;
     line-height: 1.65;
   }
 
   .button {
     height: 44px;
+    min-height: 44px;
     padding: 0 16px;
     font-size: 13px;
     border-radius: 14px;
@@ -243,17 +283,27 @@
 }
 
 @media (max-width: 480px) {
+  .section {
+    min-height: 364px;
+  }
+
+  .container {
+    min-height: 320px;
+  }
+
   .grid {
     gap: 18px;
   }
 
   .banner,
-  .loadingBanner {
+  .emptySpace {
     height: 320px;
+    min-height: 320px;
     border-radius: 22px;
   }
 
   .content {
+    min-height: 320px;
     padding: 20px;
   }
 
@@ -265,9 +315,11 @@
 
   .title {
     font-size: 24px;
+    min-height: 52px;
   }
 
   .description {
     font-size: 13px;
+    min-height: 42px;
   }
 }
