@@ -9,6 +9,10 @@ import {
   Shield,
   CheckCircle2,
   XCircle,
+  Phone,
+  BadgeCheck,
+  CalendarDays,
+  IdCard,
 } from "lucide-react";
 
 import api from "@/Api/conectar";
@@ -38,6 +42,33 @@ function normalizarUsuarios(data: any): Usuario[] {
   return [];
 }
 
+function formatarData(data?: string | null) {
+  if (!data) return "Sem data";
+
+  const normalizada = data.replace(" ", "T");
+  const dt = new Date(normalizada);
+
+  if (Number.isNaN(dt.getTime())) return data;
+
+  return dt.toLocaleDateString("pt-BR");
+}
+
+function getIniciais(nome?: string) {
+  const valor = nome?.trim();
+
+  if (!valor) return "U";
+
+  const partes = valor.split(" ").filter(Boolean);
+
+  if (partes.length === 1) {
+    return partes[0].charAt(0).toUpperCase();
+  }
+
+  return `${partes[0].charAt(0)}${partes[partes.length - 1].charAt(
+    0
+  )}`.toUpperCase();
+}
+
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,7 +88,7 @@ export default function UsuariosPage() {
     try {
       setLoading(true);
 
-      const response = await api.get("/usuarios", {
+      const response = await api.get("/painel/usuarios", {
         withCredentials: true,
       });
 
@@ -75,7 +106,7 @@ export default function UsuariosPage() {
       setEnviandoId(usuario.id_usuario);
 
       const response = await api.post(
-        `/usuario/${usuario.id_usuario}/email-teste`,
+        `/painel/usuario/${usuario.id_usuario}/email-teste`,
         {},
         {
           withCredentials: true,
@@ -117,6 +148,12 @@ export default function UsuariosPage() {
     });
   }, [usuarios, busca]);
 
+  const totalAtivos = usuarios.filter(
+    (usuario) => Number(usuario.status_id) === 1
+  ).length;
+
+  const totalComEmail = usuarios.filter((usuario) => usuario.email).length;
+
   return (
     <div className={styles.page}>
       {toast && (
@@ -154,31 +191,32 @@ export default function UsuariosPage() {
       </section>
 
       <section className={styles.resumo}>
-        <div className={styles.cardResumo}>
+        <article className={styles.cardResumo}>
           <User size={22} />
+
           <div>
             <span>Total de usuários</span>
             <strong>{usuarios.length}</strong>
           </div>
-        </div>
+        </article>
 
-        <div className={styles.cardResumo}>
+        <article className={styles.cardResumo}>
           <Shield size={22} />
+
           <div>
             <span>Ativos</span>
-            <strong>
-              {usuarios.filter((usuario) => Number(usuario.status_id) === 1).length}
-            </strong>
+            <strong>{totalAtivos}</strong>
           </div>
-        </div>
+        </article>
 
-        <div className={styles.cardResumo}>
+        <article className={styles.cardResumo}>
           <Mail size={22} />
+
           <div>
             <span>Com e-mail</span>
-            <strong>{usuarios.filter((usuario) => usuario.email).length}</strong>
+            <strong>{totalComEmail}</strong>
           </div>
-        </div>
+        </article>
       </section>
 
       <section className={styles.filtro}>
@@ -198,73 +236,88 @@ export default function UsuariosPage() {
         ) : usuariosFiltrados.length === 0 ? (
           <div className={styles.estado}>Nenhum usuário encontrado.</div>
         ) : (
-          <div className={styles.tabelaWrap}>
-            <table className={styles.tabela}>
-              <thead>
-                <tr>
-                  <th>Usuário</th>
-                  <th>E-mail</th>
-                  <th>Nível</th>
-                  <th>Status</th>
-                  <th>Ação</th>
-                </tr>
-              </thead>
+          <div className={styles.cardsGrid}>
+            {usuariosFiltrados.map((usuario) => {
+              const ativo = Number(usuario.status_id) === 1;
+              const enviando = enviandoId === usuario.id_usuario;
 
-              <tbody>
-                {usuariosFiltrados.map((usuario) => (
-                  <tr key={usuario.id_usuario}>
-                    <td>
-                      <div className={styles.usuarioInfo}>
-                        <div className={styles.avatar}>
-                          {usuario.nome?.charAt(0)?.toUpperCase() || "U"}
-                        </div>
+              return (
+                <article key={usuario.id_usuario} className={styles.cardUsuario}>
+                  <div className={styles.cardTopo}>
+                    <div className={styles.avatar}>
+                      {getIniciais(usuario.nome)}
+                    </div>
 
-                        <div>
-                          <strong>{usuario.nome || "Sem nome"}</strong>
-                          <span>{usuario.telefone || "Sem telefone"}</span>
-                        </div>
+                    <div className={styles.usuarioNome}>
+                      <h2>{usuario.nome || "Sem nome"}</h2>
+                      <span>ID #{usuario.id_usuario}</span>
+                    </div>
+
+                    <span
+                      className={`${styles.status} ${
+                        ativo ? styles.ativo : styles.inativo
+                      }`}
+                    >
+                      {ativo ? "Ativo" : "Inativo"}
+                    </span>
+                  </div>
+
+                  <div className={styles.infoLista}>
+                    <div className={styles.infoItem}>
+                      <Mail size={17} />
+                      <div>
+                        <span>E-mail</span>
+                        <strong>{usuario.email || "Sem e-mail"}</strong>
                       </div>
-                    </td>
+                    </div>
 
-                    <td>{usuario.email || "Sem e-mail"}</td>
+                    <div className={styles.infoItem}>
+                      <Phone size={17} />
+                      <div>
+                        <span>Telefone</span>
+                        <strong>{usuario.telefone || "Sem telefone"}</strong>
+                      </div>
+                    </div>
 
-                    <td>
-                      <span className={styles.badgeNivel}>
-                        Nível {usuario.nivel_id || "-"}
-                      </span>
-                    </td>
+                    <div className={styles.infoItem}>
+                      <IdCard size={17} />
+                      <div>
+                        <span>CPF</span>
+                        <strong>{usuario.cpf || "Não informado"}</strong>
+                      </div>
+                    </div>
 
-                    <td>
-                      <span
-                        className={`${styles.status} ${
-                          Number(usuario.status_id) === 1
-                            ? styles.ativo
-                            : styles.inativo
-                        }`}
-                      >
-                        {Number(usuario.status_id) === 1 ? "Ativo" : "Inativo"}
-                      </span>
-                    </td>
+                    <div className={styles.infoItem}>
+                      <BadgeCheck size={17} />
+                      <div>
+                        <span>Nível</span>
+                        <strong>Nível {usuario.nivel_id || "-"}</strong>
+                      </div>
+                    </div>
 
-                    <td>
-                      <button
-                        type="button"
-                        className={styles.btnEmail}
-                        onClick={() => enviarEmailTeste(usuario)}
-                        disabled={
-                          enviandoId === usuario.id_usuario || !usuario.email
-                        }
-                      >
-                        <Mail size={16} />
-                        {enviandoId === usuario.id_usuario
-                          ? "Enviando..."
-                          : "Enviar e-mail"}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    <div className={styles.infoItem}>
+                      <CalendarDays size={17} />
+                      <div>
+                        <span>Criado em</span>
+                        <strong>{formatarData(usuario.criado)}</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.cardRodape}>
+                    <button
+                      type="button"
+                      className={styles.btnEmail}
+                      onClick={() => enviarEmailTeste(usuario)}
+                      disabled={enviando || !usuario.email}
+                    >
+                      <Mail size={16} />
+                      {enviando ? "Enviando..." : "Enviar e-mail"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         )}
       </section>

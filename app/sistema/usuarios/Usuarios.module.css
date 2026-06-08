@@ -146,10 +146,10 @@
 
 .content {
   border-radius: 26px;
-  background: rgba(255, 250, 245, 0.94);
-  border: 1px solid rgba(184, 93, 115, 0.14);
-  box-shadow: 0 20px 55px rgba(95, 51, 64, 0.1);
-  overflow: hidden;
+  background: rgba(255, 250, 245, 0.6);
+  border: 1px solid rgba(184, 93, 115, 0.1);
+  box-shadow: 0 20px 55px rgba(95, 51, 64, 0.08);
+  padding: 18px;
 }
 
 .estado {
@@ -159,66 +159,82 @@
   font-weight: 900;
 }
 
-.tabelaWrap {
-  width: 100%;
-  overflow-x: auto;
+.cardsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
 }
 
-.tabela {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 860px;
+.cardUsuario {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  padding: 20px;
+  background:
+    radial-gradient(circle at top right, rgba(184, 93, 115, 0.13), transparent 32%),
+    rgba(255, 250, 245, 0.95);
+  border: 1px solid rgba(184, 93, 115, 0.14);
+  box-shadow:
+    0 18px 44px rgba(95, 51, 64, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
-.tabela th {
-  padding: 18px;
-  text-align: left;
-  color: #8f5a64;
-  background: #fff3ec;
-  font-size: 12px;
-  font-weight: 950;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+.cardUsuario:hover {
+  transform: translateY(-3px);
+  box-shadow:
+    0 26px 58px rgba(95, 51, 64, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
-.tabela td {
-  padding: 18px;
-  border-top: 1px solid rgba(184, 93, 115, 0.1);
-  color: #5f3340;
-  font-weight: 700;
-}
-
-.usuarioInfo {
+.cardTopo {
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-bottom: 18px;
 }
 
 .avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 16px;
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  flex-shrink: 0;
   display: grid;
   place-items: center;
   color: #fff;
   background: linear-gradient(135deg, #b85d73, #86475a);
+  box-shadow: 0 14px 30px rgba(184, 93, 115, 0.28);
   font-weight: 950;
+  letter-spacing: -0.04em;
 }
 
-.usuarioInfo strong {
-  display: block;
+.usuarioNome {
+  min-width: 0;
+  flex: 1;
+}
+
+.usuarioNome h2 {
+  margin: 0;
   color: #4b2834;
+  font-size: 1.02rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.usuarioInfo span {
+.usuarioNome span {
   display: block;
   margin-top: 4px;
   color: #9b7480;
   font-size: 12px;
+  font-weight: 800;
 }
 
-.badgeNivel,
 .status {
+  flex-shrink: 0;
   display: inline-flex;
   padding: 7px 11px;
   border-radius: 999px;
@@ -226,28 +242,70 @@
   font-weight: 900;
 }
 
-.badgeNivel {
-  background: rgba(184, 93, 115, 0.1);
-  color: #8f4f62;
-}
-
-.status.ativo {
+.ativo {
   background: rgba(45, 145, 82, 0.12);
   color: #27663d;
 }
 
-.status.inativo {
+.inativo {
   background: rgba(180, 57, 76, 0.12);
   color: #943145;
 }
 
+.infoLista {
+  display: grid;
+  gap: 10px;
+}
+
+.infoItem {
+  min-width: 0;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.58);
+  border: 1px solid rgba(184, 93, 115, 0.09);
+}
+
+.infoItem svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #a9576c;
+}
+
+.infoItem span {
+  display: block;
+  color: #9b7480;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.infoItem strong {
+  display: block;
+  color: #5f3340;
+  font-size: 13px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.cardRodape {
+  margin-top: 16px;
+  display: flex;
+}
+
 .btnEmail {
-  min-height: 40px;
+  width: 100%;
+  min-height: 46px;
   padding: 0 14px;
-  border-radius: 14px;
+  border-radius: 16px;
   color: #fff;
-  background: linear-gradient(135deg, #bd6178, #88475a);
-  box-shadow: 0 12px 24px rgba(184, 93, 115, 0.22);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.16), transparent 35%),
+    linear-gradient(135deg, #bd6178, #88475a);
+  box-shadow: 0 14px 28px rgba(184, 93, 115, 0.24);
 }
 
 .toast {
@@ -291,6 +349,12 @@
   }
 }
 
+@media (max-width: 1180px) {
+  .cardsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 900px) {
   .page {
     padding: 20px 12px;
@@ -301,6 +365,10 @@
   }
 
   .resumo {
+    grid-template-columns: 1fr;
+  }
+
+  .cardsGrid {
     grid-template-columns: 1fr;
   }
 
