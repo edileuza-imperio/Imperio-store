@@ -58,30 +58,24 @@ export default function Destaques({
   const carouselRef = useCarouselRef();
   const autoplayRef = useAutoplayRef();
 
-  const {
-    loading,
-    erro,
-    vitrine,
-    itens,
-    adicionandoId,
-    adicionarCarrinho,
-  } = useVitrine({
-    slug,
-    vitrineProp,
-    limite,
-    onAdicionarCarrinho,
-    onAbrirCarrinho: () => {
-      setAbrindoCarrinho(true);
+  const { loading, erro, vitrine, itens, adicionandoId, adicionarCarrinho } =
+    useVitrine({
+      slug,
+      vitrineProp,
+      limite,
+      onAdicionarCarrinho,
+      onAbrirCarrinho: () => {
+        setAbrindoCarrinho(true);
 
-      window.setTimeout(() => {
-        router.push("/Carrinho");
-      }, 700);
+        window.setTimeout(() => {
+          router.push("/Carrinho");
+        }, 700);
 
-      window.setTimeout(() => {
-        setAbrindoCarrinho(false);
-      }, 1200);
-    },
-  });
+        window.setTimeout(() => {
+          setAbrindoCarrinho(false);
+        }, 1200);
+      },
+    });
 
   useEffect(() => {
     const carousel = carouselRef.current;
@@ -127,15 +121,9 @@ export default function Destaques({
       const maxScroll = scrollWidth - clientWidth;
 
       if (scrollLeft >= maxScroll - 8) {
-        carousel.scrollTo({
-          left: 0,
-          behavior: "smooth",
-        });
+        carousel.scrollTo({ left: 0, behavior: "smooth" });
       } else {
-        carousel.scrollBy({
-          left: distancia,
-          behavior: "smooth",
-        });
+        carousel.scrollBy({ left: distancia, behavior: "smooth" });
       }
     }, 3200);
 
@@ -172,11 +160,7 @@ export default function Destaques({
 
   const linkVerMais =
     verMaisHref ||
-    (vitrine.slug
-      ? `/Vitrine/${vitrine.slug}`
-      : slug
-        ? `/Vitrine/${slug}`
-        : "#");
+    (vitrine.slug ? `/Vitrine/${vitrine.slug}` : slug ? `/Vitrine/${slug}` : "#");
 
   return (
     <section
@@ -263,7 +247,7 @@ export default function Destaques({
                           src={item.imagem_final}
                           alt={item.titulo_final}
                           fill
-                          sizes="(max-width: 480px) 88vw, (max-width: 640px) 82vw, (max-width: 900px) 42vw, 296px"
+                          sizes="(max-width: 480px) 88vw, (max-width: 768px) 82vw, (max-width: 1100px) 42vw, 296px"
                           className={styles.image}
                           quality={80}
                           priority={index < 2}
@@ -285,15 +269,11 @@ export default function Destaques({
                   <div className={styles.content}>
                     <div className={styles.meta}>
                       {item.marca_final && (
-                        <span className={styles.chip}>
-                          {item.marca_final}
-                        </span>
+                        <span className={styles.chip}>{item.marca_final}</span>
                       )}
 
                       {item.sku_final && (
-                        <span className={styles.chip}>
-                          SKU {item.sku_final}
-                        </span>
+                        <span className={styles.chip}>SKU {item.sku_final}</span>
                       )}
                     </div>
 
@@ -310,9 +290,7 @@ export default function Destaques({
                     )}
 
                     {item.descricao_final && (
-                      <p className={styles.text}>
-                        {item.descricao_final}
-                      </p>
+                      <p className={styles.text}>{item.descricao_final}</p>
                     )}
 
                     {(precoFormatado || precoOriginalFormatado) && (

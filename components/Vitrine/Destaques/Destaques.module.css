@@ -4,7 +4,6 @@
   overflow-x: clip;
   background:
     radial-gradient(circle at 8% 0%, rgba(183, 110, 121, 0.14), transparent 30%),
-    radial-gradient(circle at 92% 10%, rgba(244, 228, 223, 0.95), transparent 32%),
     linear-gradient(180deg, #fffaf7 0%, #f8efec 100%);
 }
 
@@ -12,7 +11,6 @@
   width: min(1280px, 100%);
   margin: 0 auto;
   padding: 0 18px;
-  min-width: 0;
 }
 
 .header {
@@ -21,18 +19,15 @@
   justify-content: space-between;
   gap: 20px;
   margin-bottom: 24px;
-  min-width: 0;
 }
 
 .headerText {
-  flex: 1;
   min-width: 0;
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   padding: 8px 14px;
   border-radius: 999px;
   background: rgba(183, 110, 121, 0.13);
@@ -42,7 +37,6 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
   margin-bottom: 12px;
-  box-shadow: inset 0 0 0 1px rgba(183, 110, 121, 0.08);
 }
 
 .title {
@@ -52,7 +46,6 @@
   line-height: 1.08;
   font-weight: 950;
   letter-spacing: -0.045em;
-  min-width: 0;
 }
 
 .description {
@@ -61,7 +54,6 @@
   color: #8b6b70;
   font-size: 15px;
   line-height: 1.7;
-  min-width: 0;
 }
 
 .headerActions {
@@ -69,7 +61,6 @@
   align-items: center;
   gap: 10px;
   flex-shrink: 0;
-  min-width: 0;
 }
 
 .navButton,
@@ -97,8 +88,8 @@
 
 .navButton:hover {
   transform: translateY(-2px);
-  background: #fff;
   box-shadow: 0 20px 42px rgba(109, 76, 82, 0.13);
+  background: #fffaf7;
 }
 
 .navButton:disabled {
@@ -114,7 +105,7 @@
   justify-content: center;
   gap: 9px;
   padding: 0 18px;
-  background: linear-gradient(135deg, #b76e79 0%, #8f4f5b 100%);
+  background: linear-gradient(135deg, #b76e79, #8f4f5b);
   color: #fffaf7;
   font-size: 14px;
   font-weight: 900;
@@ -123,20 +114,16 @@
   box-shadow: 0 16px 34px rgba(183, 110, 121, 0.22);
   transition:
     transform 0.2s ease,
-    box-shadow 0.2s ease,
-    filter 0.2s ease;
+    box-shadow 0.2s ease;
 }
 
 .verMaisButton:hover {
   transform: translateY(-2px);
-  filter: brightness(1.02);
   box-shadow: 0 22px 44px rgba(183, 110, 121, 0.28);
 }
 
 .carouselShell {
   position: relative;
-  width: 100%;
-  max-width: 100%;
   overflow: hidden;
 }
 
@@ -152,13 +139,16 @@
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  -ms-overflow-style: none;
-  min-width: 0;
-  max-width: 100%;
+  cursor: grab;
+  user-select: none;
 }
 
 .carousel::-webkit-scrollbar {
   display: none;
+}
+
+.carousel:active {
+  cursor: grabbing;
 }
 
 .card {
@@ -166,6 +156,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-width: 0;
   border-radius: 28px;
   background: rgba(255, 250, 247, 0.96);
   border: 1px solid rgba(183, 110, 121, 0.12);
@@ -174,8 +165,6 @@
     transform 0.25s ease,
     box-shadow 0.25s ease,
     border-color 0.25s ease;
-  min-width: 0;
-  width: 100%;
 }
 
 .card:hover {
@@ -191,7 +180,6 @@
   background:
     radial-gradient(circle at top, rgba(183, 110, 121, 0.12), transparent 46%),
     #f5ebe7;
-  min-width: 0;
 }
 
 .imageLink {
@@ -199,7 +187,6 @@
   display: block;
   width: 100%;
   height: 100%;
-  overflow: hidden;
   text-decoration: none;
 }
 
@@ -220,8 +207,8 @@
   color: #8b6b70;
   font-size: 14px;
   background:
-    radial-gradient(circle at top, rgba(183, 110, 121, 0.1), transparent 46%),
-    #f7efeb;
+    radial-gradient(circle at top, rgba(183, 110, 121, 0.1), transparent 48%),
+    #f5ebe7;
 }
 
 .economyBadge {
@@ -258,7 +245,6 @@
 .chip {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   max-width: 100%;
   height: 25px;
   padding: 0 10px;
@@ -290,11 +276,6 @@
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  min-width: 0;
-}
-
-.cardLink:hover .cardTitle {
-  color: #8f4f5b;
 }
 
 .subtitle,
@@ -306,7 +287,6 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  min-width: 0;
 }
 
 .subtitle {
@@ -325,7 +305,6 @@
   align-items: baseline;
   flex-wrap: wrap;
   gap: 9px;
-  min-width: 0;
 }
 
 .oldPrice {
@@ -345,8 +324,6 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 10px;
-  margin-top: 2px;
-  min-width: 0;
 }
 
 .cartButton,
@@ -365,14 +342,12 @@
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease,
-    background 0.2s ease,
-    border-color 0.2s ease;
-  min-width: 0;
+    background 0.2s ease;
 }
 
 .cartButton {
   border: 0;
-  background: linear-gradient(135deg, #b76e79 0%, #8f4f5b 100%);
+  background: linear-gradient(135deg, #b76e79, #8f4f5b);
   color: #fffaf7;
   cursor: pointer;
   box-shadow: 0 14px 28px rgba(183, 110, 121, 0.2);
@@ -389,13 +364,8 @@
   transform: translateY(-2px);
 }
 
-.cartButton:hover {
-  box-shadow: 0 18px 34px rgba(183, 110, 121, 0.26);
-}
-
 .viewButton:hover {
-  border-color: rgba(183, 110, 121, 0.35);
-  background: #fffaf7;
+  background: #fff7f4;
 }
 
 .cartButton:disabled {
@@ -438,12 +408,6 @@
   }
 }
 
-@media (max-width: 1100px) {
-  .carousel {
-    grid-auto-columns: minmax(252px, 280px);
-  }
-}
-
 @media (max-width: 900px) {
   .section {
     padding: 36px 0;
@@ -452,7 +416,6 @@
   .header {
     align-items: flex-start;
     flex-direction: column;
-    gap: 16px;
   }
 
   .headerActions {
@@ -484,10 +447,6 @@
 
   .description {
     font-size: 14px;
-  }
-
-  .headerActions {
-    gap: 8px;
   }
 
   .navButton {
@@ -534,9 +493,8 @@
     padding: 0 12px;
   }
 
-  .badge {
-    font-size: 10px;
-    padding: 7px 12px;
+  .headerActions {
+    gap: 8px;
   }
 
   .carousel {
@@ -552,13 +510,7 @@
     height: 44px;
   }
 
-  .navButton {
-    width: 40px;
-    height: 40px;
-  }
-
-  .verMaisButton {
-    height: 40px;
-    padding: 0 12px;
+  .badge {
+    font-size: 10px;
   }
 }
