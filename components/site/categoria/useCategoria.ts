@@ -13,20 +13,12 @@ export type Categoria = {
   status_id?: number | string;
 };
 
-type ApiCategoriaResponse = {
-  status?: number;
-  mensagem?: string;
-  dados?: Categoria[] | { categorias?: Categoria[] };
-  categorias?: Categoria[];
-  data?: Categoria[];
-};
-
-function extrairCategorias(payload: ApiCategoriaResponse | any): Categoria[] {
+function extrairCategorias(payload: any): Categoria[] {
   if (Array.isArray(payload)) return payload;
   if (Array.isArray(payload?.dados)) return payload.dados;
-  if (Array.isArray(payload?.dados?.categorias)) return payload.dados.categorias;
-  if (Array.isArray(payload?.categorias)) return payload.categorias;
   if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.categorias)) return payload.categorias;
+  if (Array.isArray(payload?.dados?.categorias)) return payload.dados.categorias;
 
   return [];
 }
@@ -41,18 +33,13 @@ export default function useCategoria() {
       setLoading(true);
       setErro(null);
 
-      const response = await InicioApi.get<ApiCategoriaResponse>(
-        "/categorias-publicas",
-        {
-          withCredentials: true,
-        }
-      );
+      const response = await InicioApi.get("/categorias");
 
       const lista = extrairCategorias(response.data);
 
       setCategorias(lista);
     } catch (error) {
-      console.error(error);
+      console.error("Erro ao carregar categorias:", error);
       setErro("Erro ao carregar categorias");
       setCategorias([]);
     } finally {
