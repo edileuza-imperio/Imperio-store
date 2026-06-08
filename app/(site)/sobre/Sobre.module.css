@@ -1,0 +1,249 @@
+.page {
+  min-height: 100vh;
+  padding: 48px 18px 80px;
+  background:
+    radial-gradient(circle at top left, rgba(184, 93, 115, 0.18), transparent 30%),
+    radial-gradient(circle at bottom right, rgba(232, 201, 187, 0.35), transparent 32%),
+    linear-gradient(180deg, #fffaf4 0%, #fff3ec 50%, #fbe9df 100%);
+}
+
+.hero {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 28px;
+  align-items: stretch;
+}
+
+.heroContent,
+.heroCard,
+.card,
+.story,
+.highlight {
+  border: 1px solid rgba(184, 93, 115, 0.16);
+  background: rgba(255, 248, 241, 0.88);
+  box-shadow: 0 22px 60px rgba(95, 51, 64, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+.heroContent {
+  border-radius: 34px;
+  padding: clamp(28px, 5vw, 58px);
+}
+
+.tag {
+  display: inline-flex;
+  width: fit-content;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(184, 93, 115, 0.12);
+  color: #9f5d71;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.heroContent h1 {
+  margin: 18px 0 14px;
+  color: #5f3340;
+  font-size: clamp(2.4rem, 6vw, 5rem);
+  line-height: 0.95;
+  letter-spacing: -0.06em;
+}
+
+.heroContent p {
+  max-width: 720px;
+  margin: 0;
+  color: #7d5864;
+  font-size: 1.08rem;
+  line-height: 1.8;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.primaryButton,
+.secondaryButton,
+.highlight a {
+  min-height: 48px;
+  padding: 0 18px;
+  border-radius: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  text-decoration: none;
+  font-weight: 900;
+  transition: 0.25s ease;
+}
+
+.primaryButton {
+  color: #fff;
+  background: linear-gradient(135deg, #b85d73, #86475a);
+  box-shadow: 0 16px 34px rgba(184, 93, 115, 0.28);
+}
+
+.secondaryButton {
+  color: #7a4053;
+  background: #fffaf5;
+  border: 1px solid rgba(184, 93, 115, 0.18);
+}
+
+.primaryButton:hover,
+.secondaryButton:hover,
+.highlight a:hover {
+  transform: translateY(-2px);
+}
+
+.heroCard {
+  border-radius: 34px;
+  padding: 34px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.iconCircle {
+  width: 86px;
+  height: 86px;
+  border-radius: 28px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(135deg, #b85d73, #86475a);
+  box-shadow: 0 18px 38px rgba(184, 93, 115, 0.25);
+}
+
+.heroCard h2 {
+  margin: 22px 0 10px;
+  color: #5f3340;
+  font-size: 1.8rem;
+}
+
+.heroCard p {
+  margin: 0;
+  color: #7d5864;
+  line-height: 1.7;
+}
+
+.grid {
+  width: min(1180px, 100%);
+  margin: 26px auto 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.card {
+  border-radius: 26px;
+  padding: 24px;
+}
+
+.card svg {
+  color: #a9576c;
+  margin-bottom: 14px;
+}
+
+.card h3 {
+  margin: 0 0 8px;
+  color: #5f3340;
+  font-size: 1.08rem;
+}
+
+.card p {
+  margin: 0;
+  color: #86606d;
+  line-height: 1.65;
+  font-size: 0.95rem;
+}
+
+.story {
+  width: min(1180px, 100%);
+  margin: 26px auto 0;
+  border-radius: 34px;
+  padding: clamp(24px, 4vw, 42px);
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+  align-items: center;
+}
+
+.story h2 {
+  margin: 16px 0 14px;
+  color: #5f3340;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  letter-spacing: -0.04em;
+}
+
+.story p {
+  margin: 0 0 12px;
+  color: #7d5864;
+  line-height: 1.8;
+}
+
+.highlight {
+  border-radius: 28px;
+  padding: 28px;
+  background: linear-gradient(180deg, #fffaf6, #f7e5dc);
+}
+
+.highlight svg {
+  color: #a9576c;
+}
+
+.highlight h3 {
+  margin: 14px 0 8px;
+  color: #5f3340;
+  font-size: 1.4rem;
+}
+
+.highlight p {
+  margin-bottom: 18px;
+}
+
+.highlight a {
+  color: #fff;
+  background: linear-gradient(135deg, #b85d73, #86475a);
+}
+
+@media (max-width: 980px) {
+  .hero,
+  .story {
+    grid-template-columns: 1fr;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 620px) {
+  .page {
+    padding: 24px 12px 56px;
+  }
+
+  .heroContent,
+  .heroCard,
+  .story {
+    border-radius: 24px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-direction: column;
+  }
+
+  .primaryButton,
+  .secondaryButton {
+    width: 100%;
+  }
+}
