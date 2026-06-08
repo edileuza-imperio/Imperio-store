@@ -213,14 +213,8 @@ export default function PedidosPage() {
       setErro("");
       setPedidos([]);
 
-      const cacheBust = Date.now();
-
-      const meResponse = await api.get(`/me?_=${cacheBust}`, {
+      const meResponse = await api.get("/me", {
         withCredentials: true,
-        headers: {
-          "Cache-Control": "no-cache",
-          Pragma: "no-cache",
-        },
       });
 
       const usuarioId = extrairUsuarioId(meResponse.data);
@@ -229,26 +223,14 @@ export default function PedidosPage() {
         throw new Error("Usuário não encontrado. Faça login novamente.");
       }
 
-      const response = await api.get(
-        `/pedidos/usuario/${usuarioId}?_=${cacheBust}`,
-        {
-          withCredentials: true,
-          headers: {
-            "Cache-Control": "no-cache",
-            Pragma: "no-cache",
-          },
-        }
-      );
+      const response = await api.get(`/pedidos/usuario/${usuarioId}`, {
+        withCredentials: true,
+      });
 
       const lista = normalizarPedidos(response.data);
 
-      console.log("USUARIO LOGADO:", usuarioId);
-      console.log("PEDIDOS DO USUARIO:", lista);
-
       setPedidos(lista);
     } catch (error: any) {
-      console.error("Erro ao carregar pedidos:", error);
-
       setErro(
         error?.response?.data?.mensagem ||
           error?.response?.data?.erro ||
