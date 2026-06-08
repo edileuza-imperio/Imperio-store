@@ -13,4 +13,16 @@
   --shadow-sm: 0 4px 10px rgba(0, 0, 0, 0.06);
   --shadow-md: 0 6px 14px rgba(0, 0, 0, 0.08);
   --shadow-accent: 0 6px 14px rgba(143, 48, 72, 0.18);
+
+  --rose-dark: #9f5f6f;
+  --rose: #c88796;
+  --rose-light: #e8c5ce;
+
+  --cream: #fffaf5;
+  --cream-soft: #fff5ee;
+
+  --text: #3f2e34;
+  --text-soft: #7a6670;
+
+  --border: #ecd9df;
 }
