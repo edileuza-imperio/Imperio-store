@@ -32,25 +32,19 @@ export default function VisualizarSitePage() {
 
   async function carregarSite() {
     try {
-      const response = await api.get(
-        "/painel/site/visualizar"
-      );
+      setLoading(true);
 
-      console.log(
-        "CONFIG SITE:",
-        response.data
-      );
+      const response = await api.get("/painel/site/visualizar");
 
       const dados =
         response.data?.dados?.dados?.sites?.[0] ||
+        response.data?.dados?.sites?.[0] ||
+        response.data?.dados?.[0] ||
         null;
 
       setSite(dados);
-    } catch (error) {
-      console.error(
-        "Erro ao carregar site:",
-        error
-      );
+    } catch {
+      setSite(null);
     } finally {
       setLoading(false);
     }
@@ -82,9 +76,7 @@ export default function VisualizarSitePage() {
         <div>
           <h1>{site.nome_site}</h1>
 
-          <p>
-            Configurações gerais do site
-          </p>
+          <p>Configurações gerais do site</p>
         </div>
       </div>
 
@@ -96,9 +88,7 @@ export default function VisualizarSitePage() {
 
           <div>
             <span>Nome do Site</span>
-            <strong>
-              {site.nome_site}
-            </strong>
+            <strong>{site.nome_site}</strong>
           </div>
         </div>
 
@@ -109,9 +99,7 @@ export default function VisualizarSitePage() {
 
           <div>
             <span>Título</span>
-            <strong>
-              {site.titulo}
-            </strong>
+            <strong>{site.titulo}</strong>
           </div>
         </div>
 
@@ -122,9 +110,7 @@ export default function VisualizarSitePage() {
 
           <div>
             <span>Subtítulo</span>
-            <strong>
-              {site.subtitulo}
-            </strong>
+            <strong>{site.subtitulo}</strong>
           </div>
         </div>
 
@@ -135,12 +121,7 @@ export default function VisualizarSitePage() {
 
           <div>
             <span>Logo</span>
-
-            <strong>
-              {site.logo
-                ? "Configurada"
-                : "Não enviada"}
-            </strong>
+            <strong>{site.logo ? "Configurada" : "Não enviada"}</strong>
           </div>
         </div>
 
@@ -151,12 +132,7 @@ export default function VisualizarSitePage() {
 
           <div>
             <span>Favicon</span>
-
-            <strong>
-              {site.favicon
-                ? "Configurado"
-                : "Não enviado"}
-            </strong>
+            <strong>{site.favicon ? "Configurado" : "Não enviado"}</strong>
           </div>
         </div>
       </div>
@@ -165,19 +141,9 @@ export default function VisualizarSitePage() {
         <h2>Resumo</h2>
 
         <p>
-          Este site está configurado como{" "}
-          <strong>
-            {site.nome_site}
-          </strong>
-          , exibindo o título{" "}
-          <strong>
-            {site.titulo}
-          </strong>{" "}
-          e subtítulo{" "}
-          <strong>
-            {site.subtitulo}
-          </strong>
-          .
+          Este site está configurado como <strong>{site.nome_site}</strong>,
+          exibindo o título <strong>{site.titulo}</strong> e subtítulo{" "}
+          <strong>{site.subtitulo}</strong>.
         </p>
       </section>
     </div>

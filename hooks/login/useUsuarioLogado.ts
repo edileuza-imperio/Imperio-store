@@ -1,49 +1,76 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Cookies from "js-cookie";
 import api from "@/Api/conectar";
 
+type UsuarioLogado = {
+  id_usuario?: number;
+  id?: number;
+  nome?: string;
+  email?: string;
+  telefone?: string;
+  cpf?: string;
+  nivel_id?: number;
+  status_id?: number;
+};
+
 export default function useUsuarioLogado() {
-  const [usuario, setUsuario] = useState<any>(null);
+  const [usuario, setUsuario] = useState<UsuarioLogado | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchUsuario = async () => {
-    setLoading(true);
-    const token = Cookies.get("imperio_session");
-    console.log(Cookies.get("imperio_session")); // verifica se o token existe
-    
-    if (!token) {
-      setUsuario(null);
-      setLoading(false);
-      return;
-    }
+  const logout = useCallback(() => {
+    Cookies.remove("imperio_session");
+    setUsuario(null);
 
+    if (typeof window !== "undefined") {
+      window.location.href = "/login";
+    }
+  }, []);
+
+  const fetchUsuario = useCallback(async () => {
     try {
-      const res = await api.get("/me", { withCredentials: true });
-      setUsuario(res.data.dados?.usuario ?? null);
-    } catch (err: any) {
-      console.warn(
-        "[useUsuarioLogado] Erro ao buscar usuário:",
-        err?.response?.status
-      );
-      if (err?.response?.status === 401) logout();
+      setLoading(true);
+
+      const token = Cookies.get("imperio_session");
+
+      if (!token) {
+        setUsuario(null);
+        return;
+      }
+
+      const response = await api.get("/me", {
+        withCredentials: true,
+      });
+
+      const usuarioAPI =
+        response.data?.dados?.usuario ||
+        response.data?.usuario ||
+        response.data?.dados ||
+        null;
+
+      setUsuario(usuarioAPI);
+    } catch (error: any) {
+      if (error?.response?.status === 401) {
+        logout();
+        return;
+      }
+
       setUsuario(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [logout]);
 
   useEffect(() => {
     fetchUsuario();
-  }, []);
+  }, [fetchUsuario]);
 
-  const logout = () => {
-    Cookies.remove("imperio_session");
-    setUsuario(null);
-    // Redireciona para login
-    window.location.href = "/login";
+  return {
+    usuario,
+    setUsuario,
+    fetchUsuario,
+    logout,
+    loading,
   };
-
-  return { usuario, setUsuario, fetchUsuario, logout, loading };
 }

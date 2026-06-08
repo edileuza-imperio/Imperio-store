@@ -75,34 +75,26 @@ export default function DashboardLayout({
   async function carregarSidebar() {
     try {
       const response = await api.get("/painel/dados");
-      console.log("SIDEBAR:", response.data);
 
       setSidebar(response.data?.dados?.dados?.sidebar || []);
-    } catch (error) {
-      console.error("Erro ao carregar sidebar:", error);
+    } catch {
+      setSidebar([]);
     }
   }
 
   async function carregarUsuario() {
     try {
-      console.log("Iniciando carregamento do usuário...");
-
       const response = await api.get("/me");
-
-      console.log("Resposta completa /me:", response);
-      console.log("Dados /me:", response.data);
-      console.log("Usuário recebido:", response.data?.dados?.usuario);
 
       const usuarioAPI = response.data?.dados?.usuario;
 
       if (usuarioAPI) {
         setUsuario(usuarioAPI);
-        console.log("Usuário salvo:", usuarioAPI);
       } else {
-        console.warn("Usuário não encontrado na resposta");
+        setUsuario(null);
       }
-    } catch (error) {
-      console.error("Erro ao carregar usuário:", error);
+    } catch {
+      setUsuario(null);
     }
   }
 
@@ -121,7 +113,9 @@ export default function DashboardLayout({
       return partes[0].charAt(0).toUpperCase();
     }
 
-    return `${partes[0].charAt(0)}${partes[partes.length - 1].charAt(0)}`.toUpperCase();
+    return `${partes[0].charAt(0)}${partes[
+      partes.length - 1
+    ].charAt(0)}`.toUpperCase();
   }, [usuario?.nome]);
 
   return (
@@ -169,7 +163,7 @@ export default function DashboardLayout({
             if (!hasChildren && item.url) {
               return (
                 <Link
-                  key={index}
+                  key={`${item.label}-${index}`}
                   href={item.url}
                   className={`${styles.menuLink} ${
                     isParentActive ? styles.active : ""
@@ -184,7 +178,7 @@ export default function DashboardLayout({
             }
 
             return (
-              <div key={index} className={styles.menuGroup}>
+              <div key={`${item.label}-${index}`} className={styles.menuGroup}>
                 <button
                   type="button"
                   className={`${styles.menuButton} ${
@@ -209,7 +203,7 @@ export default function DashboardLayout({
                   <div className={styles.submenu}>
                     {item.children?.map((child, childIndex) => (
                       <Link
-                        key={childIndex}
+                        key={`${child.label}-${childIndex}`}
                         href={child.url}
                         className={`${styles.submenuItem} ${
                           pathname === child.url ? styles.activeSubmenu : ""
