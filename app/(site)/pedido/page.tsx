@@ -179,15 +179,6 @@ function getEtapaIcone(status?: string | null) {
   return <Clock3 size={16} />;
 }
 
-function normalizarListaPedidos(data: any): Pedido[] {
-  if (Array.isArray(data?.dados?.pedidos)) return data.dados.pedidos;
-  if (Array.isArray(data?.dados)) return data.dados;
-  if (Array.isArray(data?.pedidos)) return data.pedidos;
-  if (Array.isArray(data)) return data;
-
-  return [];
-}
-
 function extrairUsuarioId(data: any): number {
   const usuarioId =
     data?.dados?.usuario?.id_usuario ||
@@ -202,6 +193,14 @@ function extrairUsuarioId(data: any): number {
   return Number(usuarioId || 0);
 }
 
+function normalizarPedidos(data: any): Pedido[] {
+  if (Array.isArray(data?.dados?.pedidos)) {
+    return data.dados.pedidos;
+  }
+
+  return [];
+}
+
 export default function PedidosPage() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -212,9 +211,16 @@ export default function PedidosPage() {
     try {
       setLoading(true);
       setErro("");
+      setPedidos([]);
 
-      const meResponse = await api.get("/me", {
+      const cacheBust = Date.now();
+
+      const meResponse = await api.get(`/me?_=${cacheBust}`, {
         withCredentials: true,
+        headers: {
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        },
       });
 
       const usuarioId = extrairUsuarioId(meResponse.data);
@@ -223,11 +229,21 @@ export default function PedidosPage() {
         throw new Error("Usuário não encontrado. Faça login novamente.");
       }
 
-      const response = await api.get(`/pedidos/usuario/${usuarioId}`, {
-        withCredentials: true,
-      });
+      const response = await api.get(
+        `/pedidos/usuario/${usuarioId}?_=${cacheBust}`,
+        {
+          withCredentials: true,
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+          },
+        }
+      );
 
-      const lista = normalizarListaPedidos(response.data);
+      const lista = normalizarPedidos(response.data);
+
+      console.log("USUARIO LOGADO:", usuarioId);
+      console.log("PEDIDOS DO USUARIO:", lista);
 
       setPedidos(lista);
     } catch (error: any) {
