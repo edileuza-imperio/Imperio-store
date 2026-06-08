@@ -1,21 +1,25 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Image from "next/image";
+
 import api from "@/Api/conectar";
-
 import { imagemFundo } from "@/components/Bibioteca/imagem";
-import { useCarrinho } from "./useCarrinho";
+import { useVitrine } from "./useVitrine";
 
-import { FiHeart } from "react-icons/fi";
-import { FiShoppingCart } from "react-icons/fi";
-import { FiCreditCard } from "react-icons/fi";
-import { FiShield } from "react-icons/fi";
-import { FiTruck } from "react-icons/fi";
-import { FiRefreshCcw } from "react-icons/fi";
-import { FiStar } from "react-icons/fi";
-import { FiCheckCircle, FiAlertCircle, FiX } from "react-icons/fi";
+import {
+  FiAlertCircle,
+  FiCheckCircle,
+  FiCreditCard,
+  FiHeart,
+  FiRefreshCcw,
+  FiShield,
+  FiShoppingCart,
+  FiStar,
+  FiTruck,
+  FiX,
+} from "react-icons/fi";
 
 type Produto = {
   id?: number | string;
@@ -48,7 +52,7 @@ function normalizarDados<T = any>(payload: any): T | null {
 }
 
 function montarGaleria(produto?: Produto | null) {
-  const imagensBrutas = [
+  const imagens = [
     produto?.miniatura,
     produto?.imagem,
     produto?.foto,
@@ -57,9 +61,7 @@ function montarGaleria(produto?: Produto | null) {
     produto?.mobile,
   ];
 
-  const imagensResolvidas = imagensBrutas.map(imagemFundo).filter(Boolean);
-
-  return [...new Set(imagensResolvidas)];
+  return [...new Set(imagens.map(imagemFundo).filter(Boolean))];
 }
 
 function formatarPreco(valor?: number | string | null) {
@@ -82,16 +84,10 @@ function calcularDesconto(
   const promocional = Number(precoPromocional);
 
   if (
-    preco === null ||
-    preco === undefined ||
-    preco === "" ||
-    precoPromocional === null ||
-    precoPromocional === undefined ||
-    precoPromocional === "" ||
+    !original ||
+    !promocional ||
     Number.isNaN(original) ||
     Number.isNaN(promocional) ||
-    original <= 0 ||
-    promocional <= 0 ||
     promocional >= original
   ) {
     return null;
@@ -105,6 +101,7 @@ function extrairMensagemErro(error: unknown, fallback = "Ocorreu um erro.") {
 
   if (error && typeof error === "object") {
     const anyError = error as any;
+
     return (
       anyError?.response?.data?.erro ||
       anyError?.response?.data?.mensagem ||
@@ -118,25 +115,27 @@ function extrairMensagemErro(error: unknown, fallback = "Ocorreu um erro.") {
 
 export default function VisualizarProdutoDaVitrine() {
   const params = useParams();
-  const router = useRouter();
 
   const slug = useMemo(() => {
     const valor = params?.slug;
     return Array.isArray(valor) ? valor[0] : valor;
   }, [params]);
 
+  const {
+    loadingCarrinho,
+    loadingComprar,
+    adicionarAoCarrinho,
+    comprarAgora,
+  } = useVitrine();
+
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
   const [produto, setProduto] = useState<Produto | null>(null);
   const [favoritado, setFavoritado] = useState(false);
   const [imagemSelecionada, setImagemSelecionada] = useState("");
-  const [adicionandoCarrinho, setAdicionandoCarrinho] = useState(false);
   const [notificacao, setNotificacao] = useState<Notificacao | null>(null);
 
   const timerNotificacao = useRef<number | null>(null);
-  const timerRedirecionamento = useRef<number | null>(null);
-
-  const { adicionarProduto } = useCarrinho();
 
   function mostrarNotificacao(
     texto: string,
@@ -175,6 +174,7 @@ export default function VisualizarProdutoDaVitrine() {
         setProduto(produtoData);
       } catch (error) {
         console.error("Erro ao carregar produto:", error);
+
         if (!ativo) return;
         setErro("Não foi possível carregar o produto.");
         setProduto(null);
@@ -187,6 +187,7 @@ export default function VisualizarProdutoDaVitrine() {
       carregar();
     } else {
       setLoading(false);
+      setErro("Slug do produto não encontrado.");
     }
 
     return () => {
@@ -195,69 +196,45 @@ export default function VisualizarProdutoDaVitrine() {
       if (timerNotificacao.current) {
         window.clearTimeout(timerNotificacao.current);
       }
-
-      if (timerRedirecionamento.current) {
-        window.clearTimeout(timerRedirecionamento.current);
-      }
     };
   }, [slug]);
 
   const galeria = useMemo(() => montarGaleria(produto), [produto]);
 
   useEffect(() => {
-    if (galeria.length > 0) {
-      setImagemSelecionada(galeria[0]);
-    } else {
-      setImagemSelecionada("");
-    }
+    setImagemSelecionada(galeria[0] || "");
   }, [galeria]);
 
+  const produtoId = Number(produto?.id || produto?.id_produto);
   const precoFinal = produto?.preco_promocional || produto?.preco || null;
   const precoOriginal = produto?.preco_promocional ? produto?.preco : null;
   const desconto = calcularDesconto(produto?.preco, produto?.preco_promocional);
 
   async function handleAdicionarCarrinho() {
-    const produtoId = Number(produto?.id || produto?.id_produto);
-
-    if (!produtoId || Number.isNaN(produtoId)) {
-      mostrarNotificacao("Produto inválido para adicionar ao carrinho.", "erro");
-      return;
-    }
-
     try {
-      setAdicionandoCarrinho(true);
-
-      const resultado = await adicionarProduto(produtoId, 1);
+      const resultado = await adicionarAoCarrinho(produtoId, 1);
 
       mostrarNotificacao(
-        resultado?.mensagem || "Produto adicionado ao carrinho. Redirecionando...",
+        resultado?.mensagem || "Produto adicionado ao carrinho.",
         "sucesso"
       );
-
-      if (timerRedirecionamento.current) {
-        window.clearTimeout(timerRedirecionamento.current);
-      }
-
-      timerRedirecionamento.current = window.setTimeout(() => {
-        router.push("/Carrinho");
-      }, 900);
     } catch (error) {
-      console.error("Erro ao adicionar no carrinho:", error);
       mostrarNotificacao(
-        extrairMensagemErro(
-          error,
-          "Não foi possível adicionar o produto ao carrinho."
-        ),
+        extrairMensagemErro(error, "Não foi possível adicionar ao carrinho."),
         "erro"
       );
-    } finally {
-      setAdicionandoCarrinho(false);
     }
   }
 
-  function handleComprarAgora() {
-    mostrarNotificacao("Função de comprar agora ainda não foi ligada.", "sucesso");
-    console.log("Comprar agora:", produto);
+  async function handleComprarAgora() {
+    try {
+      await comprarAgora(produtoId, 1);
+    } catch (error) {
+      mostrarNotificacao(
+        extrairMensagemErro(error, "Não foi possível comprar agora."),
+        "erro"
+      );
+    }
   }
 
   function handleFavoritar() {
@@ -284,25 +261,17 @@ export default function VisualizarProdutoDaVitrine() {
             className={`toast-notificacao ${
               notificacao.tipo === "sucesso" ? "toast-sucesso" : "toast-erro"
             }`}
-            role="status"
-            aria-live="polite"
           >
             <div className="toast-conteudo">
               {notificacao.tipo === "sucesso" ? (
-                <FiCheckCircle className="toast-icon" />
+                <FiCheckCircle />
               ) : (
-                <FiAlertCircle className="toast-icon" />
+                <FiAlertCircle />
               )}
-
               <span>{notificacao.texto}</span>
             </div>
 
-            <button
-              type="button"
-              className="toast-fechar"
-              onClick={() => setNotificacao(null)}
-              aria-label="Fechar mensagem"
-            >
+            <button type="button" onClick={() => setNotificacao(null)}>
               <FiX />
             </button>
           </div>
@@ -311,47 +280,40 @@ export default function VisualizarProdutoDaVitrine() {
         <div className="container-produto">
           {loading ? (
             <div className="estado-box">
-              <div className="estado-card estado-animado">Carregando produto...</div>
+              <div className="estado-card">Carregando produto...</div>
             </div>
           ) : erro ? (
             <div className="estado-box">
-              <div className="estado-card estado-erro">{erro}</div>
+              <div className="estado-card erro">{erro}</div>
             </div>
           ) : !produto ? (
             <div className="estado-box">
               <div className="estado-card">Produto não encontrado.</div>
             </div>
           ) : (
-            <div className="produto-hero-card">
+            <div className="produto-card">
               <div className="produto-galeria">
                 {desconto && <span className="tag-desconto">-{desconto}% OFF</span>}
 
                 <button
                   type="button"
-                  className={`btn-favorito-flutuante ${favoritado ? "ativo" : ""}`}
+                  className={`btn-favorito ${favoritado ? "ativo" : ""}`}
                   onClick={handleFavoritar}
-                  aria-label={
-                    favoritado ? "Remover dos favoritos" : "Adicionar aos favoritos"
-                  }
-                  title={
-                    favoritado ? "Remover dos favoritos" : "Adicionar aos favoritos"
-                  }
                 >
                   <FiHeart />
                 </button>
 
                 <div className="galeria-layout">
-                  <div className="miniaturas-lateral">
+                  <div className="miniaturas">
                     {galeria.length > 0 ? (
                       galeria.map((imagem, index) => (
                         <button
                           type="button"
                           key={`${imagem}-${index}`}
-                          className={`miniatura-item ${
+                          className={`miniatura ${
                             imagemSelecionada === imagem ? "ativa" : ""
                           }`}
                           onClick={() => setImagemSelecionada(imagem)}
-                          aria-label={`Ver imagem ${index + 1}`}
                         >
                           <Image
                             src={imagem}
@@ -359,161 +321,125 @@ export default function VisualizarProdutoDaVitrine() {
                               index + 1
                             }`}
                             fill
-                            sizes="92px"
-                            className="miniatura-imagem"
+                            sizes="90px"
                           />
                         </button>
                       ))
                     ) : (
-                      <div className="miniatura-vazia">Sem miniaturas</div>
+                      <div className="miniatura-vazia">Sem imagem</div>
                     )}
                   </div>
 
-                  <div className="imagem-principal-wrap">
-                    <div className="imagem-overlay" />
-
+                  <div className="imagem-principal">
                     {imagemSelecionada ? (
                       <Image
                         src={imagemSelecionada}
                         alt={produto.nome || produto.titulo || "Produto"}
                         fill
                         priority
-                        sizes="(max-width: 768px) 100vw, (max-width: 1180px) 90vw, 520px"
-                        className="imagem-principal"
+                        sizes="(max-width: 768px) 100vw, 560px"
                       />
                     ) : (
                       <div className="sem-imagem">Sem imagem disponível</div>
                     )}
                   </div>
                 </div>
-
-                <div className="mini-info-imagem">
-                  <div className="mini-info-pill">
-                    <FiStar />
-                    <span>Destaque da vitrine</span>
-                  </div>
-
-                  {produto?.marca && (
-                    <div className="mini-info-pill mini-info-soft">
-                      <span>{produto.marca}</span>
-                    </div>
-                  )}
-
-                  {produto?.miniatura && (
-                    <div className="mini-info-pill mini-info-soft">
-                      <span>Miniatura carregada</span>
-                    </div>
-                  )}
-                </div>
               </div>
 
-              <div className="produto-detalhes">
-                <span className="selo-vitrine">Produto em destaque</span>
+              <div className="produto-info">
+                <span className="selo">Produto em destaque</span>
 
-                <h1 className="produto-titulo">
-                  {produto.nome || produto.titulo || "Produto sem nome"}
-                </h1>
+                <h1>{produto.nome || produto.titulo || "Produto sem nome"}</h1>
 
-                {produto.subtitulo && (
-                  <p className="produto-subtitulo">{produto.subtitulo}</p>
-                )}
+                {produto.subtitulo && <p className="subtitulo">{produto.subtitulo}</p>}
 
-                <div className="linha-info">
+                <div className="info-grid">
                   {produto.marca && (
-                    <div className="info-pill">
-                      <span className="label">Marca</span>
+                    <div>
+                      <span>Marca</span>
                       <strong>{produto.marca}</strong>
                     </div>
                   )}
 
                   {produto.sku && (
-                    <div className="info-pill">
-                      <span className="label">SKU</span>
+                    <div>
+                      <span>SKU</span>
                       <strong>{produto.sku}</strong>
                     </div>
                   )}
 
-                  <div className="info-pill">
-                    <span className="label">Galeria</span>
+                  <div>
+                    <span>Galeria</span>
                     <strong>{galeria.length} imagem(ns)</strong>
                   </div>
                 </div>
 
-                {(precoOriginal || precoFinal) && (
-                  <div className="bloco-preco">
-                    {precoOriginal && (
-                      <span className="preco-original">
-                        De {formatarPreco(precoOriginal)}
-                      </span>
-                    )}
-
-                    {precoFinal && (
-                      <div className="preco-linha">
-                        <span className="preco-label">Por</span>
-                        <strong className="preco-final">
-                          {formatarPreco(precoFinal)}
-                        </strong>
-                      </div>
-                    )}
-
-                    <span className="texto-pagamento">
-                      Aproveite esta oferta especial disponível na vitrine.
+                <div className="preco-box">
+                  {precoOriginal && (
+                    <span className="preco-original">
+                      De {formatarPreco(precoOriginal)}
                     </span>
-                  </div>
-                )}
+                  )}
 
-                <div className="acoes-produto">
+                  {precoFinal && (
+                    <strong className="preco-final">{formatarPreco(precoFinal)}</strong>
+                  )}
+
+                  <p>Oferta especial disponível na vitrine.</p>
+                </div>
+
+                <div className="acoes">
                   <button
                     type="button"
-                    className="btn-principal"
+                    className="btn-carrinho"
                     onClick={handleAdicionarCarrinho}
-                    disabled={adicionandoCarrinho}
+                    disabled={loadingCarrinho || loadingComprar}
                   >
-                    <FiShoppingCart className="btn-icon" />
-                    <span>
-                      {adicionandoCarrinho
-                        ? "Adicionando..."
-                        : "Adicionar ao carrinho"}
-                    </span>
+                    <FiShoppingCart />
+                    {loadingCarrinho ? "Adicionando..." : "Adicionar ao carrinho"}
                   </button>
 
-                  <button type="button" className="btn-comprar" onClick={handleComprarAgora}>
-                    <FiCreditCard className="btn-icon" />
-                    <span>Comprar agora</span>
+                  <button
+                    type="button"
+                    className="btn-comprar"
+                    onClick={handleComprarAgora}
+                    disabled={loadingComprar || loadingCarrinho}
+                  >
+                    <FiCreditCard />
+                    {loadingComprar ? "Processando..." : "Comprar agora"}
                   </button>
                 </div>
 
                 {(produto.descricao_curta || produto.descricao) && (
-                  <div className="bloco-descricao">
+                  <div className="descricao">
                     <h2>Descrição do produto</h2>
                     <p>{produto.descricao_curta || produto.descricao}</p>
                   </div>
                 )}
 
-                <div className="beneficios-grid">
-                  <div className="beneficio-card">
-                    <FiTruck className="beneficio-icon" />
-                    <div>
-                      <strong>Entrega rápida</strong>
-                      <p>Envio com agilidade e acompanhamento do pedido.</p>
-                    </div>
+                <div className="beneficios">
+                  <div>
+                    <FiTruck />
+                    <strong>Entrega rápida</strong>
+                    <p>Envio com acompanhamento do pedido.</p>
                   </div>
 
-                  <div className="beneficio-card">
-                    <FiShield className="beneficio-icon" />
-                    <div>
-                      <strong>Compra segura</strong>
-                      <p>Seus dados protegidos em todo o processo.</p>
-                    </div>
+                  <div>
+                    <FiShield />
+                    <strong>Compra segura</strong>
+                    <p>Seus dados protegidos durante a compra.</p>
                   </div>
 
-                  <div className="beneficio-card">
-                    <FiRefreshCcw className="beneficio-icon" />
-                    <div>
-                      <strong>Suporte e troca</strong>
-                      <p>Atendimento para dúvidas, suporte e pós-venda.</p>
-                    </div>
+                  <div>
+                    <FiRefreshCcw />
+                    <strong>Suporte</strong>
+                    <p>Atendimento para dúvidas e pós-venda.</p>
                   </div>
+                </div>
+
+                <div className="destaque">
+                  <FiStar />
+                  <span>Produto selecionado com carinho para você.</span>
                 </div>
               </div>
             </div>
@@ -525,38 +451,36 @@ export default function VisualizarProdutoDaVitrine() {
         .produto-visualizar-page {
           position: relative;
           min-height: 100vh;
-          padding: 28px 16px 64px;
+          padding: 32px 16px 70px;
           background:
-            radial-gradient(circle at top left, rgba(201, 122, 141, 0.12), transparent 30%),
-            radial-gradient(circle at bottom right, rgba(232, 201, 187, 0.18), transparent 30%),
-            linear-gradient(180deg, #fffaf4 0%, #fff4ec 48%, #fdf0e8 100%);
+            radial-gradient(circle at 12% 0%, rgba(184, 93, 115, 0.18), transparent 32%),
+            radial-gradient(circle at 90% 100%, rgba(232, 201, 187, 0.38), transparent 35%),
+            linear-gradient(180deg, #fffaf4 0%, #fff3ec 50%, #fbe9df 100%);
           overflow: hidden;
         }
 
         .bg-decor {
           position: absolute;
           border-radius: 999px;
-          filter: blur(12px);
-          opacity: 0.5;
+          filter: blur(18px);
           pointer-events: none;
+          opacity: 0.55;
         }
 
         .bg-decor-top {
-          width: 320px;
-          height: 320px;
-          top: -100px;
-          right: -100px;
-          background: radial-gradient(circle, rgba(201, 122, 141, 0.55) 0%, transparent 72%);
-          animation: flutuar 12s ease-in-out infinite;
+          width: 340px;
+          height: 340px;
+          top: -130px;
+          right: -120px;
+          background: #c97a8d;
         }
 
         .bg-decor-bottom {
-          width: 360px;
-          height: 360px;
-          bottom: -140px;
-          left: -120px;
-          background: radial-gradient(circle, rgba(232, 201, 187, 0.7) 0%, transparent 72%);
-          animation: flutuar 14s ease-in-out infinite reverse;
+          width: 380px;
+          height: 380px;
+          bottom: -150px;
+          left: -140px;
+          background: #e8c9bb;
         }
 
         .container-produto {
@@ -568,187 +492,140 @@ export default function VisualizarProdutoDaVitrine() {
 
         .toast-notificacao {
           position: fixed;
-          right: 18px;
           top: 18px;
+          right: 18px;
           z-index: 50;
+          width: min(430px, calc(100vw - 28px));
+          padding: 15px 16px;
+          border-radius: 18px;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 18px;
-          width: min(420px, calc(100vw - 24px));
-          padding: 14px 16px;
-          border-radius: 18px;
-          backdrop-filter: blur(12px);
-          box-shadow: 0 18px 40px rgba(120, 78, 91, 0.16);
-          animation: toastEntrar 0.28s ease-out;
+          gap: 12px;
+          box-shadow: 0 22px 55px rgba(95, 51, 64, 0.18);
+          backdrop-filter: blur(14px);
         }
 
         .toast-sucesso {
-          background: rgba(236, 248, 240, 0.95);
-          border: 1px solid rgba(62, 150, 86, 0.18);
-          color: #2f6a41;
+          background: rgba(238, 250, 242, 0.96);
+          border: 1px solid rgba(45, 145, 82, 0.18);
+          color: #27663d;
         }
 
         .toast-erro {
-          background: rgba(255, 240, 241, 0.95);
-          border: 1px solid rgba(203, 84, 96, 0.18);
-          color: #9c3140;
+          background: rgba(255, 239, 241, 0.96);
+          border: 1px solid rgba(180, 57, 76, 0.18);
+          color: #943145;
         }
 
         .toast-conteudo {
           display: flex;
           align-items: center;
           gap: 10px;
-          min-width: 0;
           font-size: 14px;
-          font-weight: 700;
+          font-weight: 800;
         }
 
-        .toast-conteudo span {
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
-
-        .toast-icon {
-          flex-shrink: 0;
-          font-size: 18px;
-        }
-
-        .toast-fechar {
-          border: none;
+        .toast-notificacao button {
+          border: 0;
           background: transparent;
-          cursor: pointer;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 18px;
           color: inherit;
-          opacity: 0.75;
-        }
-
-        .toast-fechar:hover {
-          opacity: 1;
+          cursor: pointer;
+          font-size: 19px;
+          display: flex;
         }
 
         .estado-box {
+          min-height: 65vh;
           display: flex;
-          justify-content: center;
           align-items: center;
-          min-height: 60vh;
+          justify-content: center;
         }
 
         .estado-card {
           width: 100%;
           max-width: 520px;
-          padding: 22px 20px;
+          padding: 24px;
+          border-radius: 24px;
           text-align: center;
-          border-radius: 22px;
-          background: rgba(255, 250, 244, 0.88);
-          border: 1px solid rgba(201, 122, 141, 0.18);
-          box-shadow: 0 18px 45px rgba(137, 78, 93, 0.12);
+          background: rgba(255, 250, 244, 0.92);
+          border: 1px solid rgba(184, 93, 115, 0.18);
           color: #6f4250;
-          font-size: 16px;
-          font-weight: 600;
+          font-weight: 800;
+          box-shadow: 0 20px 50px rgba(95, 51, 64, 0.12);
         }
 
-        .estado-animado {
-          animation: pulseCard 1.2s ease-in-out infinite;
+        .estado-card.erro {
+          color: #943145;
         }
 
-        .estado-erro {
-          color: #8a3248;
-        }
-
-        .produto-hero-card {
+        .produto-card {
           display: grid;
-          grid-template-columns: minmax(340px, 620px) 1fr;
-          gap: 36px;
-          padding: 26px;
-          border-radius: 34px;
+          grid-template-columns: minmax(360px, 620px) 1fr;
+          gap: 38px;
+          padding: 28px;
+          border-radius: 36px;
           background: rgba(255, 248, 241, 0.94);
-          border: 1px solid rgba(201, 122, 141, 0.18);
+          border: 1px solid rgba(184, 93, 115, 0.16);
           box-shadow:
-            0 18px 60px rgba(123, 78, 92, 0.14),
-            inset 0 1px 0 rgba(255, 255, 255, 0.7);
-          backdrop-filter: blur(10px);
-          animation: aparecer 0.45s ease both;
+            0 24px 70px rgba(95, 51, 64, 0.15),
+            inset 0 1px 0 rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(12px);
         }
 
         .produto-galeria {
           position: relative;
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
         }
 
         .tag-desconto {
           position: absolute;
           top: 18px;
           left: 18px;
-          z-index: 4;
-          padding: 8px 14px;
+          z-index: 5;
+          padding: 9px 14px;
           border-radius: 999px;
-          background: linear-gradient(135deg, #b85d73 0%, #945060 100%);
-          color: #fffaf7;
+          background: linear-gradient(135deg, #b85d73, #86475a);
+          color: #fff;
           font-size: 12px;
-          font-weight: 800;
-          letter-spacing: 0.4px;
-          box-shadow: 0 12px 25px rgba(148, 80, 96, 0.28);
-          animation: badgePulse 1.8s ease-in-out infinite;
+          font-weight: 900;
+          box-shadow: 0 16px 32px rgba(184, 93, 115, 0.28);
         }
 
-        .btn-favorito-flutuante {
+        .btn-favorito {
           position: absolute;
           top: 18px;
           right: 18px;
           z-index: 5;
-          width: 54px;
-          height: 54px;
-          border: none;
+          width: 52px;
+          height: 52px;
           border-radius: 50%;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
+          border: 0;
           cursor: pointer;
-          background: rgba(255, 250, 245, 0.94);
+          display: grid;
+          place-items: center;
+          background: rgba(255, 250, 245, 0.95);
           color: #9a5c70;
-          box-shadow:
-            0 14px 30px rgba(143, 82, 99, 0.16),
-            inset 0 1px 0 rgba(255, 255, 255, 0.85);
-          backdrop-filter: blur(10px);
-          transition:
-            transform 0.25s ease,
-            box-shadow 0.25s ease,
-            background 0.25s ease,
-            color 0.25s ease;
-        }
-
-        .btn-favorito-flutuante:hover {
-          transform: translateY(-2px) scale(1.03);
-          box-shadow:
-            0 18px 34px rgba(143, 82, 99, 0.2),
-            inset 0 1px 0 rgba(255, 255, 255, 0.85);
-        }
-
-        .btn-favorito-flutuante svg {
           font-size: 22px;
+          box-shadow: 0 15px 32px rgba(95, 51, 64, 0.14);
+          transition: 0.25s ease;
         }
 
-        .btn-favorito-flutuante.ativo {
-          background: linear-gradient(135deg, #b85d73 0%, #955163 100%);
+        .btn-favorito:hover {
+          transform: translateY(-2px) scale(1.04);
+        }
+
+        .btn-favorito.ativo {
+          background: linear-gradient(135deg, #b85d73, #86475a);
           color: #fff;
-          box-shadow: 0 18px 36px rgba(154, 84, 101, 0.28);
         }
 
         .galeria-layout {
           display: grid;
           grid-template-columns: 92px 1fr;
           gap: 16px;
-          align-items: stretch;
         }
 
-        .miniaturas-lateral {
+        .miniaturas {
           display: flex;
           flex-direction: column;
           gap: 12px;
@@ -757,466 +634,333 @@ export default function VisualizarProdutoDaVitrine() {
           padding-right: 4px;
         }
 
-        .miniaturas-lateral::-webkit-scrollbar {
-          width: 6px;
-          height: 6px;
-        }
-
-        .miniaturas-lateral::-webkit-scrollbar-thumb {
-          background: rgba(184, 93, 115, 0.28);
-          border-radius: 999px;
-        }
-
-        .miniatura-item {
+        .miniatura {
           position: relative;
-          width: 100%;
+          width: 92px;
           height: 92px;
-          border: 1px solid rgba(201, 122, 141, 0.14);
           border-radius: 18px;
-          padding: 0;
           overflow: hidden;
+          border: 1px solid rgba(184, 93, 115, 0.16);
+          background: #fffaf5;
           cursor: pointer;
-          background: rgba(255, 250, 245, 0.95);
-          box-shadow: 0 10px 20px rgba(158, 106, 120, 0.08);
-          transition:
-            transform 0.22s ease,
-            border-color 0.22s ease,
-            box-shadow 0.22s ease;
+          box-shadow: 0 10px 22px rgba(95, 51, 64, 0.08);
+          transition: 0.22s ease;
         }
 
-        .miniatura-item:hover {
-          transform: translateY(-2px) scale(1.02);
-          border-color: rgba(184, 93, 115, 0.35);
+        .miniatura:hover {
+          transform: translateY(-2px);
         }
 
-        .miniatura-item.ativa {
+        .miniatura.ativa {
           border: 2px solid #b85d73;
-          box-shadow: 0 14px 28px rgba(154, 84, 101, 0.18);
+          box-shadow: 0 16px 30px rgba(184, 93, 115, 0.2);
         }
 
-        .miniatura-imagem {
+        .miniatura img,
+        .imagem-principal img {
           object-fit: cover;
           object-position: center;
         }
 
         .miniatura-vazia {
-          min-height: 92px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          width: 92px;
+          height: 92px;
+          border-radius: 18px;
+          display: grid;
+          place-items: center;
           text-align: center;
           font-size: 12px;
           color: #8f6572;
-          border-radius: 18px;
-          background: rgba(255, 250, 245, 0.92);
-          border: 1px dashed rgba(201, 122, 141, 0.2);
-          padding: 10px;
-        }
-
-        .imagem-principal-wrap {
-          position: relative;
-          width: 100%;
-          aspect-ratio: 1 / 1;
-          min-height: 520px;
-          border-radius: 30px;
-          overflow: hidden;
-          background: linear-gradient(180deg, #fff6f0 0%, #f8e3d7 100%);
-          border: 1px solid rgba(201, 122, 141, 0.15);
-          box-shadow:
-            inset 0 1px 0 rgba(255, 255, 255, 0.85),
-            0 18px 34px rgba(175, 121, 136, 0.13);
-        }
-
-        .imagem-overlay {
-          position: absolute;
-          inset: 0;
-          background:
-            radial-gradient(circle at top right, rgba(255, 255, 255, 0.45), transparent 30%),
-            linear-gradient(to top, rgba(84, 42, 54, 0.08), transparent 30%);
-          z-index: 1;
-          pointer-events: none;
+          background: #fffaf5;
+          border: 1px dashed rgba(184, 93, 115, 0.22);
         }
 
         .imagem-principal {
-          z-index: 0;
-          object-fit: cover;
-          object-position: center;
-          animation: imagemEntrar 0.55s ease both;
+          position: relative;
+          width: 100%;
+          min-height: 540px;
+          aspect-ratio: 1 / 1;
+          border-radius: 32px;
+          overflow: hidden;
+          background: linear-gradient(180deg, #fff7f0, #f4d9cc);
+          border: 1px solid rgba(184, 93, 115, 0.15);
+          box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.8),
+            0 20px 42px rgba(95, 51, 64, 0.12);
         }
 
         .sem-imagem {
-          min-height: 520px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 24px;
-          text-align: center;
-          color: #8d6170;
-          font-weight: 600;
+          height: 100%;
+          min-height: 540px;
+          display: grid;
+          place-items: center;
+          color: #8f6572;
+          font-weight: 800;
         }
 
-        .mini-info-imagem {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 10px;
-        }
-
-        .mini-info-pill {
-          display: inline-flex;
-          align-items: center;
-          gap: 8px;
-          min-height: 40px;
-          padding: 0 14px;
-          border-radius: 999px;
-          background: rgba(255, 250, 245, 0.92);
-          border: 1px solid rgba(201, 122, 141, 0.14);
-          color: #8b5767;
-          font-size: 13px;
-          font-weight: 700;
-          box-shadow: 0 10px 22px rgba(158, 106, 120, 0.08);
-        }
-
-        .mini-info-soft {
-          background: rgba(248, 228, 218, 0.75);
-        }
-
-        .produto-detalhes {
+        .produto-info {
           display: flex;
           flex-direction: column;
           justify-content: center;
           gap: 18px;
-          padding: 10px 4px;
         }
 
-        .selo-vitrine {
-          display: inline-flex;
-          align-items: center;
+        .selo {
           width: fit-content;
-          padding: 8px 14px;
+          padding: 9px 15px;
           border-radius: 999px;
-          background: rgba(201, 122, 141, 0.12);
+          background: rgba(184, 93, 115, 0.12);
           color: #9f5d71;
           font-size: 12px;
-          font-weight: 800;
-          letter-spacing: 0.5px;
+          font-weight: 900;
           text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
-        .produto-titulo {
+        .produto-info h1 {
           margin: 0;
           color: #5f3340;
-          font-size: clamp(2rem, 4vw, 3.35rem);
-          line-height: 1.06;
-          letter-spacing: -0.03em;
+          font-size: clamp(2rem, 4vw, 3.4rem);
+          line-height: 1.04;
+          letter-spacing: -0.04em;
         }
 
-        .produto-subtitulo {
+        .subtitulo {
           margin: 0;
           color: #87606d;
           font-size: 1.05rem;
           line-height: 1.75;
-          max-width: 720px;
         }
 
-        .linha-info {
+        .info-grid {
           display: flex;
           flex-wrap: wrap;
           gap: 12px;
         }
 
-        .info-pill {
-          display: flex;
-          flex-direction: column;
-          gap: 4px;
-          min-width: 150px;
+        .info-grid div {
+          min-width: 145px;
           padding: 14px 16px;
           border-radius: 18px;
-          background: rgba(255, 250, 245, 0.95);
-          border: 1px solid rgba(201, 122, 141, 0.12);
-          box-shadow: 0 10px 24px rgba(158, 106, 120, 0.08);
+          background: rgba(255, 250, 245, 0.92);
+          border: 1px solid rgba(184, 93, 115, 0.12);
+          box-shadow: 0 10px 24px rgba(95, 51, 64, 0.07);
         }
 
-        .info-pill .label {
-          font-size: 12px;
-          color: #b07a89;
+        .info-grid span {
+          display: block;
+          margin-bottom: 5px;
+          font-size: 11px;
+          font-weight: 900;
           text-transform: uppercase;
-          letter-spacing: 0.5px;
-          font-weight: 700;
+          color: #b07a89;
         }
 
-        .info-pill strong {
+        .info-grid strong {
           color: #6d4050;
           font-size: 15px;
         }
 
-        .bloco-preco {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-          padding: 22px;
-          border-radius: 24px;
-          background: linear-gradient(180deg, #fffaf6 0%, #f9ece2 100%);
-          border: 1px solid rgba(201, 122, 141, 0.14);
-          box-shadow: 0 14px 30px rgba(167, 112, 127, 0.1);
+        .preco-box {
+          padding: 24px;
+          border-radius: 26px;
+          background: linear-gradient(180deg, #fffaf6, #f8e8dd);
+          border: 1px solid rgba(184, 93, 115, 0.14);
+          box-shadow: 0 16px 34px rgba(95, 51, 64, 0.08);
         }
 
         .preco-original {
-          color: #b38b97;
+          display: block;
+          margin-bottom: 6px;
+          color: #a87a86;
           text-decoration: line-through;
-          font-size: 15px;
-          font-weight: 600;
-        }
-
-        .preco-linha {
-          display: flex;
-          align-items: baseline;
-          gap: 10px;
-          flex-wrap: wrap;
-        }
-
-        .preco-label {
-          color: #8d6170;
-          font-size: 15px;
           font-weight: 700;
         }
 
         .preco-final {
-          color: #a54f67;
-          font-size: clamp(2rem, 5vw, 3rem);
-          font-weight: 800;
+          display: block;
+          color: #803f52;
+          font-size: clamp(2.1rem, 4vw, 3.1rem);
           line-height: 1;
           letter-spacing: -0.04em;
         }
 
-        .texto-pagamento {
-          color: #8a6572;
-          font-size: 14px;
+        .preco-box p {
+          margin: 10px 0 0;
+          color: #8f6572;
+          font-weight: 700;
         }
 
-        .acoes-produto {
+        .acoes {
           display: flex;
-          flex-wrap: wrap;
-          gap: 14px;
+          gap: 12px;
         }
 
-        .btn-principal,
-        .btn-comprar {
+        .acoes button {
+          flex: 1;
+          min-height: 58px;
+          border: 0;
+          border-radius: 18px;
+          cursor: pointer;
           display: inline-flex;
           align-items: center;
           justify-content: center;
           gap: 10px;
-          min-height: 54px;
-          padding: 0 22px;
-          border-radius: 18px;
-          border: none;
-          cursor: pointer;
-          font-weight: 700;
-          transition:
-            transform 0.25s ease,
-            box-shadow 0.25s ease,
-            background 0.25s ease,
-            opacity 0.25s ease;
           font-size: 15px;
+          font-weight: 900;
+          transition: 0.25s ease;
         }
 
-        .btn-principal:disabled {
-          opacity: 0.75;
+        .acoes button:disabled {
+          opacity: 0.65;
           cursor: not-allowed;
         }
 
-        .btn-icon {
-          font-size: 18px;
-        }
-
-        .btn-principal {
-          background: linear-gradient(135deg, #b85d73 0%, #955163 100%);
-          color: #fffaf7;
-          box-shadow: 0 16px 32px rgba(154, 84, 101, 0.22);
-        }
-
-        .btn-principal:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 18px 36px rgba(154, 84, 101, 0.28);
+        .btn-carrinho {
+          color: #fff;
+          background: linear-gradient(135deg, #b85d73, #86475a);
+          box-shadow: 0 18px 34px rgba(184, 93, 115, 0.26);
         }
 
         .btn-comprar {
-          background: #f7e3d8;
-          color: #8a4d61;
-          border: 1px solid rgba(184, 93, 115, 0.18);
+          color: #7a4053;
+          background: #fffaf5;
+          border: 1px solid rgba(184, 93, 115, 0.18) !important;
+          box-shadow: 0 14px 28px rgba(95, 51, 64, 0.09);
         }
 
-        .btn-comprar:hover {
+        .acoes button:hover:not(:disabled) {
           transform: translateY(-2px);
-          background: #f3dbcf;
         }
 
-        .bloco-descricao {
+        .descricao {
           padding: 22px;
-          border-radius: 22px;
-          background: rgba(255, 251, 247, 0.92);
-          border: 1px solid rgba(201, 122, 141, 0.12);
+          border-radius: 24px;
+          background: rgba(255, 250, 245, 0.78);
+          border: 1px solid rgba(184, 93, 115, 0.12);
         }
 
-        .bloco-descricao h2 {
-          margin: 0 0 10px;
-          color: #6b3e4d;
-          font-size: 1.2rem;
+        .descricao h2 {
+          margin: 0 0 8px;
+          color: #5f3340;
+          font-size: 1.1rem;
         }
 
-        .bloco-descricao p {
+        .descricao p {
           margin: 0;
-          color: #755260;
+          color: #82606a;
           line-height: 1.8;
-          font-size: 15px;
         }
 
-        .beneficios-grid {
+        .beneficios {
           display: grid;
           grid-template-columns: repeat(3, 1fr);
-          gap: 14px;
-        }
-
-        .beneficio-card {
-          display: flex;
-          align-items: flex-start;
           gap: 12px;
-          padding: 18px;
+        }
+
+        .beneficios div {
+          padding: 16px;
           border-radius: 20px;
-          background: rgba(255, 251, 247, 0.95);
-          border: 1px solid rgba(201, 122, 141, 0.12);
-          box-shadow: 0 10px 22px rgba(158, 106, 120, 0.06);
+          background: rgba(255, 250, 245, 0.82);
+          border: 1px solid rgba(184, 93, 115, 0.12);
         }
 
-        .beneficio-icon {
-          flex-shrink: 0;
-          margin-top: 2px;
-          font-size: 20px;
-          color: #a55c70;
+        .beneficios svg {
+          color: #a9576c;
+          font-size: 22px;
+          margin-bottom: 8px;
         }
 
-        .beneficio-card strong {
+        .beneficios strong {
           display: block;
+          color: #653747;
+          font-size: 14px;
           margin-bottom: 4px;
-          color: #6c4050;
-          font-size: 15px;
         }
 
-        .beneficio-card p {
+        .beneficios p {
           margin: 0;
-          color: #83626d;
-          font-size: 13px;
-          line-height: 1.6;
+          color: #8f6572;
+          font-size: 12px;
+          line-height: 1.5;
         }
 
-        @keyframes aparecer {
-          from {
-            opacity: 0;
-            transform: translateY(18px) scale(0.985);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        @keyframes toastEntrar {
-          from {
-            opacity: 0;
-            transform: translateY(-12px) scale(0.98);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
-        }
-
-        @keyframes pulseCard {
-          0%,
-          100% {
-            transform: scale(1);
-            opacity: 0.9;
-          }
-          50% {
-            transform: scale(1.01);
-            opacity: 1;
-          }
-        }
-
-        @keyframes flutuar {
-          0%,
-          100% {
-            transform: translate3d(0, 0, 0);
-          }
-          50% {
-            transform: translate3d(0, 14px, 0);
-          }
-        }
-
-        @keyframes imagemEntrar {
-          from {
-            opacity: 0;
-            transform: scale(1.02);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        @keyframes badgePulse {
-          0%,
-          100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-1px);
-          }
-        }
-
-
-
-        @media (prefers-reduced-motion: reduce) {
-          .bg-decor-top,
-          .bg-decor-bottom,
-          .produto-hero-card,
-          .toast-notificacao,
-          .estado-animado,
-          .imagem-principal,
-          .tag-desconto {
-            animation: none !important;
-          }
-
-          .btn-favorito-flutuante,
-          .miniatura-item,
-          .btn-principal,
-          .btn-comprar {
-            transition: none !important;
-          }
+        .destaque {
+          display: inline-flex;
+          align-items: center;
+          gap: 9px;
+          color: #8b5767;
+          font-weight: 800;
+          font-size: 14px;
         }
 
         @media (max-width: 1180px) {
-          .produto-hero-card {
+          .produto-card {
             grid-template-columns: 1fr;
-            gap: 28px;
           }
 
-          .galeria-layout {
-            grid-template-columns: 82px 1fr;
-          }
-
-          .imagem-principal-wrap,
-          .sem-imagem {
+          .imagem-principal {
             min-height: 460px;
           }
 
-          .beneficios-grid {
-            grid-template-columns: 1fr;
+          .sem-imagem {
+            min-height: 460px;
           }
         }
 
         @media (max-width: 768px) {
           .produto-visualizar-page {
-            padding: 14px 10px 40px;
+            padding: 14px 10px 42px;
+          }
+
+          .produto-card {
+            padding: 14px;
+            border-radius: 24px;
+            gap: 22px;
+          }
+
+          .galeria-layout {
+            grid-template-columns: 1fr;
+          }
+
+          .miniaturas {
+            order: 2;
+            flex-direction: row;
+            overflow-x: auto;
+            overflow-y: hidden;
+            max-height: unset;
+            padding-right: 0;
+            padding-bottom: 5px;
+          }
+
+          .miniatura,
+          .miniatura-vazia {
+            min-width: 74px;
+            width: 74px;
+            height: 74px;
+            border-radius: 14px;
+          }
+
+          .imagem-principal,
+          .sem-imagem {
+            min-height: 300px;
+            border-radius: 20px;
+          }
+
+          .produto-info h1 {
+            font-size: 1.9rem;
+          }
+
+          .info-grid div {
+            width: 100%;
+          }
+
+          .acoes {
+            flex-direction: column;
+          }
+
+          .beneficios {
+            grid-template-columns: 1fr;
           }
 
           .toast-notificacao {
@@ -1224,141 +968,22 @@ export default function VisualizarProdutoDaVitrine() {
             right: 10px;
             left: 10px;
             width: auto;
-            border-radius: 16px;
-          }
-
-          .produto-hero-card {
-            padding: 14px;
-            border-radius: 22px;
-            gap: 20px;
-          }
-
-          .produto-titulo {
-            font-size: 1.9rem;
-            line-height: 1.05;
-          }
-
-          .produto-subtitulo {
-            font-size: 0.98rem;
-            line-height: 1.7;
-          }
-
-          .btn-favorito-flutuante {
-            top: 12px;
-            right: 12px;
-            width: 46px;
-            height: 46px;
-          }
-
-          .galeria-layout {
-            grid-template-columns: 1fr;
-            gap: 12px;
-          }
-
-          .miniaturas-lateral {
-            flex-direction: row;
-            overflow-x: auto;
-            overflow-y: hidden;
-            max-height: unset;
-            padding-right: 0;
-            padding-bottom: 4px;
-            order: 2;
-          }
-
-          .miniatura-item {
-            min-width: 74px;
-            width: 74px;
-            height: 74px;
-            flex-shrink: 0;
-            border-radius: 14px;
-          }
-
-          .imagem-principal-wrap,
-          .sem-imagem {
-            min-height: 290px;
-            border-radius: 18px;
-          }
-
-          .imagem-principal {
-            object-fit: cover;
-          }
-
-          .mini-info-imagem {
-            gap: 8px;
-          }
-
-          .mini-info-pill {
-            width: 100%;
-            justify-content: center;
-            font-size: 12px;
-          }
-
-          .linha-info {
-            gap: 10px;
-          }
-
-          .info-pill {
-            width: 100%;
-            min-width: 0;
-          }
-
-          .bloco-preco {
-            padding: 18px;
-            border-radius: 20px;
-          }
-
-          .preco-final {
-            font-size: 2rem;
-          }
-
-          .acoes-produto {
-            flex-direction: column;
-            gap: 10px;
-          }
-
-          .btn-principal,
-          .btn-comprar {
-            width: 100%;
-            min-height: 52px;
-          }
-
-          .bloco-descricao {
-            padding: 18px;
-          }
-
-          .beneficio-card {
-            padding: 16px;
-            border-radius: 18px;
           }
         }
 
         @media (max-width: 420px) {
-          .produto-hero-card {
-            padding: 12px;
-          }
-
-          .produto-titulo {
-            font-size: 1.7rem;
-          }
-
-          .preco-final {
-            font-size: 1.85rem;
-          }
-
-          .miniatura-item {
-            min-width: 68px;
-            width: 68px;
-            height: 68px;
-          }
-
-          .imagem-principal-wrap,
+          .imagem-principal,
           .sem-imagem {
             min-height: 250px;
           }
 
-          .selo-vitrine,
-          .tag-desconto {
-            font-size: 11px;
+          .preco-final {
+            font-size: 1.9rem;
+          }
+
+          .btn-favorito {
+            width: 46px;
+            height: 46px;
           }
         }
       `}</style>
