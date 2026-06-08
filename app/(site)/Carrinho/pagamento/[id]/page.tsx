@@ -27,7 +27,7 @@ import { usePagamento } from "./usePagamento";
 import styles from "./pagamento.module.css";
 
 type MetodoPagamento = "pix" | "cartao";
-type TipoCartao = "credito" | "debito";
+type TipoCartao = "debito" | "credito";
 
 export default function PagamentoPage() {
   const params = useParams();
@@ -73,10 +73,6 @@ export default function PagamentoPage() {
     await verificarPagamento();
   }
 
-  function mudarTipoCartao(tipo: TipoCartao) {
-    setTipoCartao(tipo);
-  }
-
   function montarDadosCartao(formData: any) {
     const paymentTypeId =
       tipoCartao === "debito" ? "debit_card" : "credit_card";
@@ -88,10 +84,8 @@ export default function PagamentoPage() {
 
     return {
       ...formData,
-
       payment_type_id: paymentTypeId,
       paymentTypeId: paymentTypeId,
-
       installments,
       parcelas: installments,
     };
@@ -130,8 +124,9 @@ export default function PagamentoPage() {
         </p>
 
         <div
-          className={`${styles.statusBadge} ${statusPagamento.aprovado ? styles.ok : styles.pending
-            }`}
+          className={`${styles.statusBadge} ${
+            statusPagamento.aprovado ? styles.ok : styles.pending
+          }`}
         >
           {statusPagamento.label}
         </div>
@@ -197,8 +192,9 @@ export default function PagamentoPage() {
             <button
               type="button"
               onClick={() => setMetodo("pix")}
-              className={`${styles.paymentTab} ${metodo === "pix" ? styles.activeTab : ""
-                }`}
+              className={`${styles.paymentTab} ${
+                metodo === "pix" ? styles.activeTab : ""
+              }`}
             >
               <FiSmartphone />
               PIX
@@ -207,8 +203,9 @@ export default function PagamentoPage() {
             <button
               type="button"
               onClick={() => setMetodo("cartao")}
-              className={`${styles.paymentTab} ${metodo === "cartao" ? styles.activeTab : ""
-                }`}
+              className={`${styles.paymentTab} ${
+                metodo === "cartao" ? styles.activeTab : ""
+              }`}
             >
               <FiCreditCard />
               Cartão
@@ -284,17 +281,18 @@ export default function PagamentoPage() {
                 <h2>Pagamento com cartão</h2>
 
                 <p>
-                  Escolha crédito ou débito e preencha todos os dados do cartão.
-                  O CPF e o e-mail são obrigatórios.
+                  Escolha crédito ou débito. No débito, o pagamento será enviado
+                  em 1x.
                 </p>
               </div>
 
               <div className={styles.paymentTabs}>
                 <button
                   type="button"
-                  onClick={() => mudarTipoCartao("debito")}
-                  className={`${styles.paymentTab} ${tipoCartao === "debito" ? styles.activeTab : ""
-                    }`}
+                  onClick={() => setTipoCartao("debito")}
+                  className={`${styles.paymentTab} ${
+                    tipoCartao === "debito" ? styles.activeTab : ""
+                  }`}
                 >
                   <FiCreditCard />
                   Débito
@@ -302,32 +300,29 @@ export default function PagamentoPage() {
 
                 <button
                   type="button"
-                  onClick={() => mudarTipoCartao("credito")}
-                  className={`${styles.paymentTab} ${tipoCartao === "credito" ? styles.activeTab : ""
-                    }`}
+                  onClick={() => setTipoCartao("credito")}
+                  className={`${styles.paymentTab} ${
+                    tipoCartao === "credito" ? styles.activeTab : ""
+                  }`}
                 >
                   <FiCreditCard />
                   Crédito
                 </button>
               </div>
 
-              {tipoCartao === "debito" && (
-                <div className={styles.statusBox}>
-                  <span>Cartão de débito</span>
-                  <strong>
-                    Débito será enviado em 1x e sem parcelamento.
-                  </strong>
-                </div>
-              )}
+              <div className={styles.statusBox}>
+                <span>
+                  {tipoCartao === "debito"
+                    ? "Cartão de débito"
+                    : "Cartão de crédito"}
+                </span>
 
-              {tipoCartao === "credito" && (
-                <div className={styles.statusBox}>
-                  <span>Cartão de crédito</span>
-                  <strong>
-                    Crédito pode ser parcelado conforme liberação do Mercado Pago.
-                  </strong>
-                </div>
-              )}
+                <strong>
+                  {tipoCartao === "debito"
+                    ? "Débito será enviado sem parcelamento."
+                    : "Crédito pode parcelar conforme liberação do Mercado Pago."}
+                </strong>
+              </div>
 
               {loadingCartao ? (
                 <button type="button" disabled className={styles.primaryBtn}>
@@ -348,12 +343,6 @@ export default function PagamentoPage() {
                       paymentMethods: {
                         minInstallments: 1,
                         maxInstallments: tipoCartao === "debito" ? 1 : 3,
-                        types: {
-                          included:
-                            tipoCartao === "debito"
-                              ? ["debit_card"]
-                              : ["credit_card"],
-                        },
                       },
                     }}
                     onSubmit={async (formData) => {
@@ -365,10 +354,10 @@ export default function PagamentoPage() {
                       await pagarComCartao(dadosCartao);
                     }}
                     onError={(error) => {
-                      console.error(error);
+                      console.error("ERRO MERCADO PAGO CARD:", error);
 
                       toast.error(
-                        "Não foi possível processar o pagamento com cartão. Tente outro cartão ou use PIX."
+                        "Não foi possível obter os dados do cartão. Confira os dados ou tente PIX."
                       );
                     }}
                   />
@@ -410,8 +399,8 @@ export default function PagamentoPage() {
                 {metodo === "pix"
                   ? "PIX"
                   : tipoCartao === "debito"
-                    ? "Cartão de débito"
-                    : "Cartão de crédito"}
+                  ? "Cartão de débito"
+                  : "Cartão de crédito"}
               </strong>
             </div>
           </div>
