@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { QRCodeCanvas } from "qrcode.react";
 import { ToastContainer, toast } from "react-toastify";
@@ -27,12 +27,14 @@ import { usePagamento } from "./usePagamento";
 import styles from "./pagamento.module.css";
 
 type MetodoPagamento = "pix" | "cartao";
+type TipoCartao = "credito" | "debito";
 
 export default function PagamentoPage() {
   const params = useParams();
   const router = useRouter();
 
   const [metodo, setMetodo] = useState<MetodoPagamento>("pix");
+  const [tipoCartao, setTipoCartao] = useState<TipoCartao>("debito");
 
   const pedidoId = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
@@ -53,6 +55,14 @@ export default function PagamentoPage() {
     pedidoId: String(pedidoId ?? ""),
   });
 
+  const valorPedido = useMemo(() => {
+    return Number(pedido?.valor_total ?? 0);
+  }, [pedido]);
+
+  const cardPaymentKey = useMemo(() => {
+    return `${tipoCartao}-${pedido?.id_pedido ?? pedidoId ?? "pedido"}`;
+  }, [tipoCartao, pedido?.id_pedido, pedidoId]);
+
   useEffect(() => {
     if (statusPagamento.aprovado && pedidoId) {
       router.push(`/pedido-confirmado/${pedidoId}`);
@@ -61,6 +71,30 @@ export default function PagamentoPage() {
 
   async function confirmarPagamento() {
     await verificarPagamento();
+  }
+
+  function mudarTipoCartao(tipo: TipoCartao) {
+    setTipoCartao(tipo);
+  }
+
+  function montarDadosCartao(formData: any) {
+    const paymentTypeId =
+      tipoCartao === "debito" ? "debit_card" : "credit_card";
+
+    const installments =
+      tipoCartao === "debito"
+        ? 1
+        : Number(formData?.installments ?? formData?.parcelas ?? 1);
+
+    return {
+      ...formData,
+
+      payment_type_id: paymentTypeId,
+      paymentTypeId: paymentTypeId,
+
+      installments,
+      parcelas: installments,
+    };
   }
 
   if (loading) {
@@ -96,9 +130,8 @@ export default function PagamentoPage() {
         </p>
 
         <div
-          className={`${styles.statusBadge} ${
-            statusPagamento.aprovado ? styles.ok : styles.pending
-          }`}
+          className={`${styles.statusBadge} ${statusPagamento.aprovado ? styles.ok : styles.pending
+            }`}
         >
           {statusPagamento.label}
         </div>
@@ -144,15 +177,13 @@ export default function PagamentoPage() {
                 <FiTag />
                 <span>Total</span>
               </div>
-              <strong>
-                {formatarMoeda(Number(pedido?.valor_total ?? 0))}
-              </strong>
+              <strong>{formatarMoeda(valorPedido)}</strong>
             </div>
           </div>
 
           <div className={styles.totalBox}>
             <span>Total geral</span>
-            <strong>{formatarMoeda(Number(pedido?.valor_total ?? 0))}</strong>
+            <strong>{formatarMoeda(valorPedido)}</strong>
           </div>
 
           <Link href="/carrinho" className={styles.backBtn}>
@@ -166,9 +197,8 @@ export default function PagamentoPage() {
             <button
               type="button"
               onClick={() => setMetodo("pix")}
-              className={`${styles.paymentTab} ${
-                metodo === "pix" ? styles.activeTab : ""
-              }`}
+              className={`${styles.paymentTab} ${metodo === "pix" ? styles.activeTab : ""
+                }`}
             >
               <FiSmartphone />
               PIX
@@ -177,9 +207,8 @@ export default function PagamentoPage() {
             <button
               type="button"
               onClick={() => setMetodo("cartao")}
-              className={`${styles.paymentTab} ${
-                metodo === "cartao" ? styles.activeTab : ""
-              }`}
+              className={`${styles.paymentTab} ${metodo === "cartao" ? styles.activeTab : ""
+                }`}
             >
               <FiCreditCard />
               Cartão
@@ -255,10 +284,50 @@ export default function PagamentoPage() {
                 <h2>Pagamento com cartão</h2>
 
                 <p>
-                  Preencha todos os dados do cartão. O CPF e o e-mail são
-                  obrigatórios.
+                  Escolha crédito ou débito e preencha todos os dados do cartão.
+                  O CPF e o e-mail são obrigatórios.
                 </p>
               </div>
+
+              <div className={styles.paymentTabs}>
+                <button
+                  type="button"
+                  onClick={() => mudarTipoCartao("debito")}
+                  className={`${styles.paymentTab} ${tipoCartao === "debito" ? styles.activeTab : ""
+                    }`}
+                >
+                  <FiCreditCard />
+                  Débito
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => mudarTipoCartao("credito")}
+                  className={`${styles.paymentTab} ${tipoCartao === "credito" ? styles.activeTab : ""
+                    }`}
+                >
+                  <FiCreditCard />
+                  Crédito
+                </button>
+              </div>
+
+              {tipoCartao === "debito" && (
+                <div className={styles.statusBox}>
+                  <span>Cartão de débito</span>
+                  <strong>
+                    Débito será enviado em 1x e sem parcelamento.
+                  </strong>
+                </div>
+              )}
+
+              {tipoCartao === "credito" && (
+                <div className={styles.statusBox}>
+                  <span>Cartão de crédito</span>
+                  <strong>
+                    Crédito pode ser parcelado conforme liberação do Mercado Pago.
+                  </strong>
+                </div>
+              )}
 
               {loadingCartao ? (
                 <button type="button" disabled className={styles.primaryBtn}>
@@ -268,19 +337,32 @@ export default function PagamentoPage() {
               ) : (
                 <div className={styles.mpWrapper}>
                   <CardPayment
+                    key={cardPaymentKey}
                     initialization={{
-                      amount: Number(pedido?.valor_total ?? 0),
+                      amount: valorPedido,
                       payer: {
                         email: usuario?.email ?? "",
                       },
                     }}
                     customization={{
                       paymentMethods: {
-                        maxInstallments: 3,
+                        minInstallments: 1,
+                        maxInstallments: tipoCartao === "debito" ? 1 : 3,
+                        types: {
+                          included:
+                            tipoCartao === "debito"
+                              ? ["debit_card"]
+                              : ["credit_card"],
+                        },
                       },
                     }}
                     onSubmit={async (formData) => {
-                      await pagarComCartao(formData);
+                      const dadosCartao = montarDadosCartao(formData);
+
+                      console.log("FORM MERCADO PAGO ORIGINAL:", formData);
+                      console.log("FORM MERCADO PAGO ENVIADO:", dadosCartao);
+
+                      await pagarComCartao(dadosCartao);
                     }}
                     onError={(error) => {
                       console.error(error);
@@ -324,7 +406,13 @@ export default function PagamentoPage() {
                 <FiSmartphone />
                 <span>Método</span>
               </div>
-              <strong>{metodo === "pix" ? "PIX" : "Cartão"}</strong>
+              <strong>
+                {metodo === "pix"
+                  ? "PIX"
+                  : tipoCartao === "debito"
+                    ? "Cartão de débito"
+                    : "Cartão de crédito"}
+              </strong>
             </div>
           </div>
 
