@@ -15,6 +15,11 @@ function extrairMensagemErro(error: unknown, fallback = "Erro inesperado.") {
 
   if (error && typeof error === "object") {
     const anyError = error as any;
+    const status = anyError?.response?.status;
+
+    if (status === 401) {
+      return "Você precisa fazer login para adicionar produtos ao carrinho.";
+    }
 
     return (
       anyError?.response?.data?.erro ||
@@ -41,10 +46,16 @@ export function useVitrine() {
     try {
       setLoadingCarrinho(true);
 
-      const response = await api.post<RespostaCarrinho>("/carrinho/adicionar", {
-        produto_id: produtoId,
-        quantidade,
-      });
+      const response = await api.post<RespostaCarrinho>(
+        "/carrinho/adicionar",
+        {
+          produto_id: produtoId,
+          quantidade,
+        },
+        {
+          withCredentials: true,
+        }
+      );
 
       return response.data;
     } catch (error) {
@@ -64,10 +75,16 @@ export function useVitrine() {
     try {
       setLoadingComprar(true);
 
-      const response = await api.post<RespostaCarrinho>("/carrinho/adicionar", {
-        produto_id: produtoId,
-        quantidade,
-      });
+      const response = await api.post<RespostaCarrinho>(
+        "/carrinho/adicionar",
+        {
+          produto_id: produtoId,
+          quantidade,
+        },
+        {
+          withCredentials: true,
+        }
+      );
 
       router.push("/Carrinho");
 
@@ -81,10 +98,15 @@ export function useVitrine() {
     }
   }
 
+  function irParaLogin() {
+    router.push("/login");
+  }
+
   return {
     loadingCarrinho,
     loadingComprar,
     adicionarAoCarrinho,
     comprarAgora,
+    irParaLogin,
   };
 }
