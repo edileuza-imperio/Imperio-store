@@ -2,7 +2,7 @@
 
 import api from "@/Api/conectar";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FiCheckCircle,
   FiClock,
@@ -12,6 +12,9 @@ import {
   FiRotateCcw,
   FiTruck,
   FiXCircle,
+  FiSearch,
+  FiCreditCard,
+  FiUser,
 } from "react-icons/fi";
 
 import styles from "./Pedidos.module.css";
@@ -48,15 +51,19 @@ export default function SistemaPedidosPage() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [reembolsando, setReembolsando] = useState<number | null>(null);
+  const [busca, setBusca] = useState("");
 
   async function carregarPedidos() {
     try {
       setLoading(true);
 
-      const response = await api.get("/pedidos");
+      const response = await api.get("/pedidos", {
+        withCredentials: true,
+      });
+
       const data = response.data;
 
-      const lista = Array.isArray(data?.dados?.pedidos)
+      const listaBase: Pedido[] = Array.isArray(data?.dados?.pedidos)
         ? data.dados.pedidos
         : Array.isArray(data?.pedidos)
         ? data.pedidos
@@ -66,7 +73,33 @@ export default function SistemaPedidosPage() {
         ? data
         : [];
 
-      setPedidos(lista);
+      const listaComItens = await Promise.all(
+        listaBase.map(async (pedido) => {
+          try {
+            const detalhes = await api.get(
+              `/pedido/${pedido.id_pedido}/com-itens`,
+              {
+                withCredentials: true,
+              }
+            );
+
+            const dados = detalhes.data?.dados ?? detalhes.data;
+
+            return {
+              ...pedido,
+              ...(dados?.pedido ?? {}),
+              itens: Array.isArray(dados?.itens) ? dados.itens : [],
+            };
+          } catch {
+            return {
+              ...pedido,
+              itens: pedido.itens ?? pedido.produtos ?? [],
+            };
+          }
+        })
+      );
+
+      setPedidos(listaComItens);
     } catch (error) {
       console.error("Erro ao carregar pedidos:", error);
       setPedidos([]);
@@ -78,6 +111,23 @@ export default function SistemaPedidosPage() {
   useEffect(() => {
     carregarPedidos();
   }, []);
+
+  const pedidosFiltrados = useMemo(() => {
+    const termo = busca.trim().toLowerCase();
+
+    if (!termo) return pedidos;
+
+    return pedidos.filter((pedido) => {
+      return (
+        String(pedido.id_pedido).includes(termo) ||
+        String(pedido.usuario_nome ?? "").toLowerCase().includes(termo) ||
+        String(pedido.usuario_email ?? "").toLowerCase().includes(termo) ||
+        String(pedido.status_pagamento ?? "").toLowerCase().includes(termo) ||
+        String(pedido.metodo_pagamento ?? "").toLowerCase().includes(termo) ||
+        String(pedido.payment_id ?? "").toLowerCase().includes(termo)
+      );
+    });
+  }, [pedidos, busca]);
 
   function formatarMoeda(valor?: number | null) {
     return new Intl.NumberFormat("pt-BR", {
@@ -98,6 +148,81 @@ export default function SistemaPedidosPage() {
 
   function getItens(pedido: Pedido) {
     return pedido.itens ?? pedido.produtos ?? [];
+  }
+
+  function normalizarStatus(pedido: Pedido) {
+    return String(pedido.status_pagamento ?? "").toLowerCase();
+  }
+
+  function pedidoPagoOuVendido(pedido: Pedido) {
+    const status = normalizarStatus(pedido);
+
+    return (
+      status === "approved" ||
+      status === "aprovado" ||
+      status === "vendido" ||
+      status === "pago" ||
+      pedido.status_id === 8 ||
+      pedido.status_id === 9 ||
+      pedido.status_id === 14
+    );
+  }
+
+  function pedidoReembolsado(pedido: Pedido) {
+    const status = normalizarStatus(pedido);
+
+    return (
+      status === "refunded" ||
+      status === "reembolsado" ||
+      pedido.status_id === 13
+    );
+  }
+
+  function pedidoRecusado(pedido: Pedido) {
+    const status = normalizarStatus(pedido);
+
+    return (
+      status === "rejected" ||
+      status === "recusado" ||
+      pedido.status_id === 15
+    );
+  }
+
+  function statusTexto(pedido: Pedido) {
+    if (pedidoReembolsado(pedido)) return "Reembolsado";
+    if (pedidoRecusado(pedido)) return "Recusado";
+    if (pedido.status_id === 16) return "Enviado";
+    if (pedido.status_id === 17) return "Entregue";
+    if (pedidoPagoOuVendido(pedido)) return "Vendido";
+    return "Pendente";
+  }
+
+  function statusIcone(pedido: Pedido) {
+    if (pedidoReembolsado(pedido)) return <FiRotateCcw />;
+    if (pedidoRecusado(pedido)) return <FiXCircle />;
+    if (pedido.status_id === 16) return <FiTruck />;
+    if (pedido.status_id === 17) return <FiCheckCircle />;
+    if (pedidoPagoOuVendido(pedido)) return <FiCheckCircle />;
+    return <FiClock />;
+  }
+
+  function statusClasse(pedido: Pedido) {
+    if (pedidoReembolsado(pedido)) return styles.statusReembolsado;
+    if (pedidoRecusado(pedido)) return styles.statusRecusado;
+    if (pedido.status_id === 16) return styles.statusEnviado;
+    if (pedido.status_id === 17) return styles.statusEntregue;
+    if (pedidoPagoOuVendido(pedido)) return styles.statusPago;
+    return styles.statusPendente;
+  }
+
+  function metodoPagamento(pedido: Pedido) {
+    const metodo = String(pedido.metodo_pagamento ?? "").toLowerCase();
+
+    if (metodo === "pix") return "PIX";
+    if (metodo.includes("credit")) return "Cartão de crédito";
+    if (metodo.includes("debit")) return "Cartão de débito";
+
+    return pedido.metodo_pagamento || "—";
   }
 
   function nomeItem(item: PedidoItem) {
@@ -121,35 +246,8 @@ export default function SistemaPedidosPage() {
     );
   }
 
-  function statusTexto(pedido: Pedido) {
-    if (pedido.status_pagamento === "refunded") return "Reembolsado";
-    if (pedido.status_pagamento === "rejected") return "Recusado";
-    if (pedido.status_id === 16) return "Enviado";
-    if (pedido.status_id === 17) return "Entregue";
-    if (pedido.status_pagamento === "approved") return "Pago";
-    return "Pendente";
-  }
-
-  function statusIcone(pedido: Pedido) {
-    if (pedido.status_pagamento === "refunded") return <FiRotateCcw />;
-    if (pedido.status_pagamento === "rejected") return <FiXCircle />;
-    if (pedido.status_id === 16) return <FiTruck />;
-    if (pedido.status_id === 17) return <FiCheckCircle />;
-    if (pedido.status_pagamento === "approved") return <FiCheckCircle />;
-    return <FiClock />;
-  }
-
-  function statusClasse(pedido: Pedido) {
-    if (pedido.status_pagamento === "refunded") return styles.statusReembolsado;
-    if (pedido.status_pagamento === "rejected") return styles.statusRecusado;
-    if (pedido.status_id === 16) return styles.statusEnviado;
-    if (pedido.status_id === 17) return styles.statusEntregue;
-    if (pedido.status_pagamento === "approved") return styles.statusPago;
-    return styles.statusPendente;
-  }
-
   function podeReembolsar(pedido: Pedido) {
-    return pedido.status_pagamento === "approved" && !!pedido.payment_id;
+    return pedidoPagoOuVendido(pedido) && !!pedido.payment_id;
   }
 
   async function reembolsarPedido(pedido: Pedido) {
@@ -169,12 +267,15 @@ export default function SistemaPedidosPage() {
     try {
       setReembolsando(pedido.id_pedido);
 
-      await api.post(`/mercado/pagamento/${pedido.payment_id}/reembolso`);
+      await api.post(`/mercado/pagamento/${pedido.payment_id}/reembolso`, null, {
+        withCredentials: true,
+      });
 
       alert("Reembolso solicitado com sucesso.");
       await carregarPedidos();
     } catch (error: any) {
       const mensagem =
+        error?.response?.data?.dados?.mercadopago?.message ||
         error?.response?.data?.mensagem ||
         error?.response?.data?.erro ||
         "Erro ao solicitar reembolso.";
@@ -193,131 +294,174 @@ export default function SistemaPedidosPage() {
             <FiPackage />
             Pedidos
           </h1>
+
           <p className={styles.subtitle}>
-            Gerencie pedidos, produtos comprados e reembolsos.
+            Gerencie vendas, pagamentos, produtos comprados e reembolsos.
           </p>
         </div>
 
         <button onClick={carregarPedidos} className={styles.refreshButton}>
-          <FiRefreshCw />
+          <FiRefreshCw className={loading ? styles.spin : ""} />
           Atualizar
         </button>
       </div>
 
+      <section className={styles.filterBox}>
+        <div className={styles.searchBox}>
+          <FiSearch />
+          <input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar por pedido, cliente, e-mail, status ou pagamento..."
+          />
+        </div>
+
+        <span>{pedidosFiltrados.length} pedido(s)</span>
+      </section>
+
       {loading ? (
         <p className={styles.info}>Carregando pedidos...</p>
-      ) : pedidos.length === 0 ? (
+      ) : pedidosFiltrados.length === 0 ? (
         <p className={styles.info}>Nenhum pedido encontrado.</p>
       ) : (
-        <section className={styles.orders}>
-          {pedidos.map((pedido) => {
-            const itens = getItens(pedido);
+        <section className={styles.tableCard}>
+          <div className={styles.tableScroll}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th>Pedido</th>
+                  <th>Cliente</th>
+                  <th>Status</th>
+                  <th>Pagamento</th>
+                  <th>Produtos</th>
+                  <th>Total</th>
+                  <th>Data</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
 
-            return (
-              <article key={pedido.id_pedido} className={styles.orderCard}>
-                <div className={styles.orderTop}>
-                  <div>
-                    <strong className={styles.orderNumber}>
-                      Pedido #{pedido.id_pedido}
-                    </strong>
-                    <p className={styles.orderDate}>
-                      {formatarData(pedido.criado_em)}
-                    </p>
-                  </div>
+              <tbody>
+                {pedidosFiltrados.map((pedido) => {
+                  const itens = getItens(pedido);
 
-                  <span className={`${styles.badge} ${statusClasse(pedido)}`}>
-                    {statusIcone(pedido)}
-                    {statusTexto(pedido)}
-                  </span>
-                </div>
+                  return (
+                    <tr key={pedido.id_pedido}>
+                      <td>
+                        <strong className={styles.orderNumber}>
+                          #{pedido.id_pedido}
+                        </strong>
 
-                <div className={styles.customer}>
-                  <strong>
-                    {pedido.usuario_nome ?? `Usuário #${pedido.usuario_id}`}
-                  </strong>
-                  <span>{pedido.usuario_email ?? "Sem e-mail"}</span>
-                </div>
+                        {pedido.payment_id && (
+                          <span className={styles.smallText}>
+                            ID: {pedido.payment_id}
+                          </span>
+                        )}
+                      </td>
 
-                <div className={styles.paymentBox}>
-                  <div>
-                    <span>Método</span>
-                    <strong>{pedido.metodo_pagamento ?? "—"}</strong>
-                  </div>
-
-                  <div>
-                    <span>Payment ID</span>
-                    <strong>{pedido.payment_id ?? "—"}</strong>
-                  </div>
-
-                  <div>
-                    <span>Total</span>
-                    <strong>{formatarMoeda(pedido.valor_total)}</strong>
-                  </div>
-                </div>
-
-                <div className={styles.products}>
-                  <div className={styles.productsTitle}>
-                    <FiPackage />
-                    Produtos pedidos
-                  </div>
-
-                  {itens.length === 0 ? (
-                    <p className={styles.emptyProducts}>
-                      Nenhum produto carregado neste pedido.
-                    </p>
-                  ) : (
-                    itens.map((item, index) => (
-                      <div
-                        key={item.id_pedido_item ?? index}
-                        className={styles.productItem}
-                      >
-                        <div>
-                          <strong>{nomeItem(item)}</strong>
-                          <span>Quantidade: {item.quantidade ?? 1}</span>
+                      <td>
+                        <div className={styles.customer}>
+                          <FiUser />
+                          <div>
+                            <strong>
+                              {pedido.usuario_nome ??
+                                `Usuário #${pedido.usuario_id}`}
+                            </strong>
+                            <span>{pedido.usuario_email ?? "Sem e-mail"}</span>
+                          </div>
                         </div>
+                      </td>
 
-                        <div className={styles.productPrice}>
-                          <span>{formatarMoeda(precoItem(item))}</span>
-                          <strong>{formatarMoeda(subtotalItem(item))}</strong>
+                      <td>
+                        <span
+                          className={`${styles.badge} ${statusClasse(pedido)}`}
+                        >
+                          {statusIcone(pedido)}
+                          {statusTexto(pedido)}
+                        </span>
+                      </td>
+
+                      <td>
+                        <div className={styles.payment}>
+                          <FiCreditCard />
+                          <strong>{metodoPagamento(pedido)}</strong>
                         </div>
-                      </div>
-                    ))
-                  )}
-                </div>
+                      </td>
 
-                <div className={styles.actions}>
-                  <Link
-                    href={`/sistema/pedidos/${pedido.id_pedido}`}
-                    className={styles.viewButton}
-                  >
-                    <FiEye />
-                    Ver pedido
-                  </Link>
+                      <td>
+                        {itens.length === 0 ? (
+                          <span className={styles.emptyProducts}>
+                            Sem itens
+                          </span>
+                        ) : (
+                          <div className={styles.productsList}>
+                            {itens.slice(0, 3).map((item, index) => (
+                              <div
+                                key={item.id_pedido_item ?? index}
+                                className={styles.productMini}
+                              >
+                                <strong>{nomeItem(item)}</strong>
+                                <span>
+                                  {item.quantidade ?? 1}x{" "}
+                                  {formatarMoeda(precoItem(item))} ={" "}
+                                  {formatarMoeda(subtotalItem(item))}
+                                </span>
+                              </div>
+                            ))}
 
-                  {podeReembolsar(pedido) && (
-                    <button
-                      type="button"
-                      onClick={() => reembolsarPedido(pedido)}
-                      className={styles.refundButton}
-                      disabled={reembolsando === pedido.id_pedido}
-                    >
-                      {reembolsando === pedido.id_pedido ? (
-                        <>
-                          <FiRefreshCw />
-                          Reembolsando...
-                        </>
-                      ) : (
-                        <>
-                          <FiRotateCcw />
-                          Reembolso
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-              </article>
-            );
-          })}
+                            {itens.length > 3 && (
+                              <span className={styles.moreProducts}>
+                                +{itens.length - 3} produto(s)
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </td>
+
+                      <td>
+                        <strong className={styles.total}>
+                          {formatarMoeda(pedido.valor_total)}
+                        </strong>
+                      </td>
+
+                      <td>
+                        <span className={styles.date}>
+                          {formatarData(pedido.criado_em)}
+                        </span>
+                      </td>
+
+                      <td>
+                        <div className={styles.actions}>
+                          <Link
+                            href={`/sistema/pedidos/${pedido.id_pedido}`}
+                            className={styles.viewButton}
+                          >
+                            <FiEye />
+                            Ver
+                          </Link>
+
+                          {podeReembolsar(pedido) && (
+                            <button
+                              type="button"
+                              onClick={() => reembolsarPedido(pedido)}
+                              className={styles.refundButton}
+                              disabled={reembolsando === pedido.id_pedido}
+                            >
+                              {reembolsando === pedido.id_pedido ? (
+                                <FiRefreshCw className={styles.spin} />
+                              ) : (
+                                <FiRotateCcw />
+                              )}
+                              Reembolso
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
     </main>

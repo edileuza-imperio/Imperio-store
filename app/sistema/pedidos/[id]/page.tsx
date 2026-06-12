@@ -3,7 +3,7 @@
 import api from "@/Api/conectar";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FiArrowLeft,
   FiCheckCircle,
@@ -13,6 +13,13 @@ import {
   FiRefreshCw,
   FiTruck,
   FiXCircle,
+  FiUser,
+  FiCalendar,
+  FiDollarSign,
+  FiMapPin,
+  FiMail,
+  FiEdit3,
+  FiHash,
 } from "react-icons/fi";
 
 import styles from "./PedidoDetalhe.module.css";
@@ -38,6 +45,8 @@ type Pedido = {
 type Item = {
   id_pedido_item: number;
   produto_id: number;
+  produto_nome?: string | null;
+  nome?: string | null;
   quantidade: number;
   preco_unitario: number;
   subtotal: number;
@@ -62,48 +71,59 @@ export default function PedidoDetalhePage() {
   const [rastreamento, setRastreamento] = useState<Rastreamento[]>([]);
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
-  const [passoAtual, setPassoAtual] = useState(1);
+
+  const [codigoRastreio, setCodigoRastreio] = useState("");
+  const [localizacao, setLocalizacao] = useState("São Paulo/SP");
+  const [descricaoEntrega, setDescricaoEntrega] = useState("");
+  const [enviarEmail, setEnviarEmail] = useState(true);
+
+  const [modalEntrega, setModalEntrega] = useState(false);
+  const [statusSelecionado, setStatusSelecionado] = useState<16 | 17>(16);
 
   async function carregarPedido() {
     try {
       setLoading(true);
 
+      console.log("Carregando pedido ID:", pedidoId);
+
       const [pedidoRes, rastreioRes, todosRastreiosRes] = await Promise.all([
         api.get(`/pedido/${pedidoId}/com-itens`),
-        api.get(`/pedido/${pedidoId}/rastreamento`).catch(() => null),
-        api.get(`/pedido-rastreamentos`).catch(() => null),
+        api.get(`/pedido/${pedidoId}/rastreamento`).catch((error) => {
+          console.error("Erro ao buscar rastreamento por pedido:", error);
+          return null;
+        }),
+        api.get(`/pedido-rastreamentos`).catch((error) => {
+          console.error("Erro ao buscar todos rastreamentos:", error);
+          return null;
+        }),
       ]);
+
+      console.log("Resposta pedido:", pedidoRes.data);
+      console.log("Resposta rastreio:", rastreioRes?.data);
+      console.log("Resposta todos rastreios:", todosRastreiosRes?.data);
 
       const pedidoData = pedidoRes.data;
       const rastreioData = rastreioRes?.data;
       const todosRastreiosData = todosRastreiosRes?.data;
 
       const pedidoEncontrado =
-        pedidoData?.dados?.pedido ??
-        pedidoData?.pedido ??
-        null;
+        pedidoData?.dados?.pedido ?? pedidoData?.pedido ?? null;
 
       const listaItens = Array.isArray(pedidoData?.dados?.itens)
         ? pedidoData.dados.itens
         : Array.isArray(pedidoData?.itens)
-          ? pedidoData.itens
-          : [];
+        ? pedidoData.itens
+        : [];
 
       let listaRastreamento: Rastreamento[] = Array.isArray(
         rastreioData?.dados?.rastreamentos
       )
         ? rastreioData.dados.rastreamentos
-        : Array.isArray(rastreioData?.dados?.rastreamento)
-          ? rastreioData.dados.rastreamento
-          : Array.isArray(rastreioData?.dados)
-            ? rastreioData.dados
-            : Array.isArray(rastreioData?.rastreamentos)
-              ? rastreioData.rastreamentos
-              : Array.isArray(rastreioData?.rastreamento)
-                ? rastreioData.rastreamento
-                : Array.isArray(rastreioData)
-                  ? rastreioData
-                  : [];
+        : Array.isArray(rastreioData?.dados)
+        ? rastreioData.dados
+        : Array.isArray(rastreioData?.rastreamentos)
+        ? rastreioData.rastreamentos
+        : [];
 
       if (listaRastreamento.length === 0) {
         const todos: Rastreamento[] = Array.isArray(
@@ -111,12 +131,8 @@ export default function PedidoDetalhePage() {
         )
           ? todosRastreiosData.dados.rastreamentos
           : Array.isArray(todosRastreiosData?.dados)
-            ? todosRastreiosData.dados
-            : Array.isArray(todosRastreiosData?.rastreamentos)
-              ? todosRastreiosData.rastreamentos
-              : Array.isArray(todosRastreiosData)
-                ? todosRastreiosData
-                : [];
+          ? todosRastreiosData.dados
+          : [];
 
         listaRastreamento = todos.filter(
           (r) => Number(r.pedido_id) === Number(pedidoId)
@@ -126,15 +142,21 @@ export default function PedidoDetalhePage() {
       listaRastreamento = listaRastreamento.sort((a, b) => {
         const dataA = new Date((a.criado_em ?? "").replace(" ", "T")).getTime();
         const dataB = new Date((b.criado_em ?? "").replace(" ", "T")).getTime();
-
-        return dataA - dataB;
+        return dataB - dataA;
       });
+
+      console.log("Pedido encontrado:", pedidoEncontrado);
+      console.log("Itens encontrados:", listaItens);
+      console.log("Rastreamentos encontrados:", listaRastreamento);
 
       setPedido(pedidoEncontrado);
       setItens(listaItens);
       setRastreamento(listaRastreamento);
-    } catch (error) {
-      console.error("Erro ao carregar pedido:", error);
+    } catch (error: any) {
+      console.error("Erro geral ao carregar pedido:", error);
+      console.error("Response error:", error?.response?.data);
+      console.error("Status error:", error?.response?.status);
+
       setPedido(null);
       setItens([]);
       setRastreamento([]);
@@ -143,45 +165,82 @@ export default function PedidoDetalhePage() {
     }
   }
 
-  async function atualizarEntrega(
-    statusId: number,
-    descricao: string,
-    codigoRastreio?: string
-  ) {
+  async function atualizarEntrega(statusId: 16 | 17) {
     try {
       setSalvando(true);
 
-      await api.post(`/pedido/${pedidoId}/rastreamento`, {
+      const descricaoPadrao =
+        statusId === 16
+          ? "Pedido enviado para entrega"
+          : "Pedido entregue ao cliente";
+
+      const payload = {
         pedido_id: Number(pedidoId),
         status_id: statusId,
-        descricao,
-        codigo_rastreio: codigoRastreio || null,
-        localizacao: "São Paulo/SP",
-      });
+        descricao: descricaoEntrega || descricaoPadrao,
+        codigo_rastreio: codigoRastreio.trim() || null,
+        localizacao: localizacao.trim() || "São Paulo/SP",
+        enviar_email: enviarEmail,
+      };
+
+      console.log("Enviando atualização de entrega:", payload);
+
+      const response = await api.post(`/pedido/${pedidoId}/rastreamento`, payload);
+
+      console.log("Resposta atualização entrega:", response.data);
+
+      setDescricaoEntrega("");
+      setCodigoRastreio("");
+      setModalEntrega(false);
 
       await carregarPedido();
-      setPassoAtual(3);
-    } catch (error) {
+
+      const emailEnviado = response.data?.email_enviado;
+
+      alert(
+        enviarEmail
+          ? emailEnviado
+            ? "Histórico salvo e e-mail enviado ao cliente."
+            : "Histórico salvo, mas o e-mail pode não ter sido enviado. Veja o console/log do backend."
+          : "Histórico salvo com sucesso."
+      );
+    } catch (error: any) {
       console.error("Erro ao atualizar entrega:", error);
-      alert("Erro ao atualizar entrega.");
+      console.error("Erro response data:", error?.response?.data);
+      console.error("Erro status:", error?.response?.status);
+      console.error("Erro headers:", error?.response?.headers);
+
+      alert(
+        error?.response?.data?.mensagem ??
+          error?.response?.data?.erro ??
+          "Erro ao atualizar entrega. Veja o console."
+      );
     } finally {
       setSalvando(false);
     }
   }
 
-  useEffect(() => {
-    if (pedidoId) {
-      carregarPedido();
+  function abrirModalEntrega(statusId: 16 | 17) {
+    setStatusSelecionado(statusId);
+
+    if (statusId === 16) {
+      setDescricaoEntrega("Seu pedido foi enviado para entrega.");
     }
+
+    if (statusId === 17) {
+      setDescricaoEntrega("Seu pedido foi entregue ao cliente.");
+    }
+
+    setModalEntrega(true);
+  }
+
+  useEffect(() => {
+    if (pedidoId) carregarPedido();
   }, [pedidoId]);
 
-  function proximoPasso() {
-    setPassoAtual((passo) => Math.min(passo + 1, 3));
-  }
-
-  function voltarPasso() {
-    setPassoAtual((passo) => Math.max(passo - 1, 1));
-  }
+  const totalItens = useMemo(() => {
+    return itens.reduce((total, item) => total + Number(item.quantidade ?? 0), 0);
+  }, [itens]);
 
   function moeda(valor?: number | null) {
     return new Intl.NumberFormat("pt-BR", {
@@ -192,10 +251,55 @@ export default function PedidoDetalhePage() {
 
   function data(valor?: string | null) {
     if (!valor) return "—";
-
     const d = new Date(valor.replace(" ", "T"));
-
     return Number.isNaN(d.getTime()) ? valor : d.toLocaleString("pt-BR");
+  }
+
+  function normalizarStatus(p?: Pedido | null) {
+    return String(p?.status_pagamento ?? "").toLowerCase();
+  }
+
+  function statusPago(p?: Pedido | null) {
+    const status = normalizarStatus(p);
+
+    return (
+      status === "approved" ||
+      status === "aprovado" ||
+      status === "vendido" ||
+      status === "pago" ||
+      p?.status_id === 8 ||
+      p?.status_id === 9 ||
+      p?.status_id === 14
+    );
+  }
+
+  function statusTexto(p?: Pedido | null) {
+    if (!p) return "—";
+    if (p.status_id === 16) return "Enviado";
+    if (p.status_id === 17) return "Entregue";
+    if (normalizarStatus(p) === "refunded") return "Reembolsado";
+    if (normalizarStatus(p) === "rejected") return "Recusado";
+    if (statusPago(p)) return "Vendido";
+    return "Pendente";
+  }
+
+  function statusIcone(p?: Pedido | null) {
+    if (!p) return <FiClock />;
+    if (p.status_id === 16) return <FiTruck />;
+    if (p.status_id === 17) return <FiCheckCircle />;
+    if (statusPago(p)) return <FiCheckCircle />;
+    if (normalizarStatus(p) === "rejected") return <FiXCircle />;
+    return <FiClock />;
+  }
+
+  function statusClasse(p?: Pedido | null) {
+    if (!p) return styles.pendente;
+    if (p.status_id === 16) return styles.enviado;
+    if (p.status_id === 17) return styles.entregue;
+    if (normalizarStatus(p) === "refunded") return styles.reembolsado;
+    if (normalizarStatus(p) === "rejected") return styles.recusado;
+    if (statusPago(p)) return styles.pago;
+    return styles.pendente;
   }
 
   function nomeStatus(statusId: number) {
@@ -213,40 +317,26 @@ export default function PedidoDetalhePage() {
     return status[statusId] ?? `Status #${statusId}`;
   }
 
-  function statusTexto(p?: Pedido | null) {
-    if (!p) return "—";
-    if (p.status_id === 16) return "Enviado";
-    if (p.status_id === 17) return "Entregue";
-    if (p.status_pagamento === "approved") return "Pago";
-    if (p.status_pagamento === "refunded") return "Reembolsado";
-    if (p.status_pagamento === "rejected") return "Recusado";
+  function metodoPagamento(p?: Pedido | null) {
+    const metodo = String(p?.metodo_pagamento ?? "").toLowerCase();
 
-    return "Pendente";
-  }
+    if (metodo === "pix") return "PIX";
+    if (metodo.includes("credit")) return "Cartão de crédito";
+    if (metodo.includes("debit")) return "Cartão de débito";
 
-  function statusIcone(p?: Pedido | null) {
-    if (!p) return <FiClock />;
-    if (p.status_id === 16) return <FiTruck />;
-    if (p.status_id === 17) return <FiCheckCircle />;
-    if (p.status_pagamento === "approved") return <FiCheckCircle />;
-    if (p.status_pagamento === "rejected") return <FiXCircle />;
-
-    return <FiClock />;
-  }
-
-  function statusClasse(p?: Pedido | null) {
-    if (!p) return styles.pendente;
-    if (p.status_id === 16) return styles.enviado;
-    if (p.status_id === 17) return styles.entregue;
-    if (p.status_pagamento === "approved") return styles.pago;
-    if (p.status_pagamento === "refunded") return styles.reembolsado;
-    if (p.status_pagamento === "rejected") return styles.recusado;
-
-    return styles.pendente;
+    return p?.metodo_pagamento || "—";
   }
 
   if (loading) {
-    return <main className={styles.container}>Carregando pedido...</main>;
+    return (
+      <main className={styles.container}>
+        <div className={styles.loadingBox}>
+          <FiRefreshCw className={styles.spin} />
+          <strong>Carregando pedido...</strong>
+          <span>Buscando detalhes, itens e histórico.</span>
+        </div>
+      </main>
+    );
   }
 
   if (!pedido) {
@@ -256,141 +346,132 @@ export default function PedidoDetalhePage() {
           <FiArrowLeft /> Voltar
         </Link>
 
-        <p className={styles.info}>Pedido não encontrado.</p>
+        <div className={styles.emptyBox}>
+          <FiXCircle />
+          <strong>Pedido não encontrado.</strong>
+        </div>
       </main>
     );
   }
 
   return (
     <main className={styles.container}>
-      <Link href="/sistema/pedidos" className={styles.voltar}>
-        <FiArrowLeft /> Voltar para pedidos
-      </Link>
+      <section className={styles.hero}>
+        <Link href="/sistema/pedidos" className={styles.voltar}>
+          <FiArrowLeft /> Voltar para pedidos
+        </Link>
 
-      <header className={styles.header}>
-        <div>
-          <h1>
-            <FiPackage />
-            Pedido #{pedido.id_pedido}
-          </h1>
+        <div className={styles.heroContent}>
+          <div>
+            <span className={styles.tag}>Painel Administrativo</span>
+            <h1>Pedido #{pedido.id_pedido}</h1>
+            <p>Resumo da venda, pagamento, produtos e entrega.</p>
+          </div>
 
-          <p>Detalhes completos do pedido.</p>
+          <button onClick={carregarPedido} className={styles.btnClaro}>
+            <FiRefreshCw />
+            Atualizar
+          </button>
         </div>
-
-        <button onClick={carregarPedido} className={styles.btnClaro}>
-          <FiRefreshCw />
-          Atualizar
-        </button>
-      </header>
-
-      <section className={styles.passos}>
-        <button
-          type="button"
-          onClick={() => setPassoAtual(1)}
-          className={`${styles.passo} ${
-            passoAtual === 1 ? styles.passoAtivo : ""
-          }`}
-        >
-          <span>1</span>
-          <strong>Resumo</strong>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setPassoAtual(2)}
-          className={`${styles.passo} ${
-            passoAtual === 2 ? styles.passoAtivo : ""
-          }`}
-        >
-          <span>2</span>
-          <strong>Pagamento e Itens</strong>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setPassoAtual(3)}
-          className={`${styles.passo} ${
-            passoAtual === 3 ? styles.passoAtivo : ""
-          }`}
-        >
-          <span>3</span>
-          <strong>Entrega</strong>
-        </button>
       </section>
 
-      {passoAtual === 1 && (
-        <section className={styles.card}>
-          <h2>1. Resumo</h2>
+      <section className={styles.metricas}>
+        <article className={styles.metricaCard}>
+          <FiDollarSign />
+          <span>Total do pedido</span>
+          <strong>{moeda(pedido.valor_total)}</strong>
+        </article>
 
-          <div className={styles.resumoGrid}>
-            <div>
-              <small>Status</small>
+        <article className={styles.metricaCard}>
+          <FiUser />
+          <span>Cliente</span>
+          <strong>{pedido.usuario_nome ?? `Usuário #${pedido.usuario_id}`}</strong>
+          <small>{pedido.usuario_email ?? "Sem e-mail"}</small>
+        </article>
 
-              <span className={`${styles.badge} ${statusClasse(pedido)}`}>
-                {statusIcone(pedido)}
-                {statusTexto(pedido)}
-              </span>
-            </div>
+        <article className={styles.metricaCard}>
+          <FiCreditCard />
+          <span>Pagamento</span>
+          <strong>{metodoPagamento(pedido)}</strong>
+          <small>{pedido.status_detail ?? "Sem detalhe"}</small>
+        </article>
 
-            <div>
-              <small>Total</small>
-              <strong className={styles.valor}>
-                {moeda(pedido.valor_total)}
-              </strong>
-            </div>
+        <article className={styles.metricaCard}>
+          <FiPackage />
+          <span>Itens</span>
+          <strong>{totalItens}</strong>
+          <small>{itens.length} produto(s)</small>
+        </article>
+      </section>
 
-            <div>
-              <small>Cliente</small>
-              <strong>
-                {pedido.usuario_nome ?? `Usuário #${pedido.usuario_id}`}
-              </strong>
-              <p>{pedido.usuario_email ?? "Sem e-mail"}</p>
-            </div>
-
-            <div>
-              <small>Carrinho</small>
-              <strong>#{pedido.carrinho_id}</strong>
-            </div>
-
-            <div>
-              <small>Criado em</small>
-              <strong>{data(pedido.criado_em)}</strong>
-            </div>
-
-            <div>
-              <small>Atualizado em</small>
-              <strong>{data(pedido.atualizado_em)}</strong>
-            </div>
+      <section className={styles.statusPanel}>
+        <div className={styles.statusHeader}>
+          <div>
+            <span className={styles.miniTag}>Status do pedido</span>
+            <h2>Acompanhamento</h2>
           </div>
-        </section>
-      )}
 
-      {passoAtual === 2 && (
-        <section className={styles.card}>
-          <h2>
+          <span className={`${styles.badge} ${statusClasse(pedido)}`}>
+            {statusIcone(pedido)}
+            {statusTexto(pedido)}
+          </span>
+        </div>
+
+        <div className={styles.etapas}>
+          <article className={`${styles.etapa} ${styles.etapaOk}`}>
+            <span>1</span>
+            <FiPackage />
+            <strong>Pedido recebido</strong>
+            <small>{data(pedido.criado_em)}</small>
+          </article>
+
+          <article
+            className={`${styles.etapa} ${
+              statusPago(pedido) ? styles.etapaOk : styles.etapaAtual
+            }`}
+          >
+            <span>2</span>
             <FiCreditCard />
-            2. Pagamento e Itens
-          </h2>
+            <strong>
+              {statusPago(pedido) ? "Pagamento aprovado" : "Aguardando pagamento"}
+            </strong>
+            <small>
+              {pedido.data_aprovacao
+                ? data(pedido.data_aprovacao)
+                : pedido.status_detail ?? "—"}
+            </small>
+          </article>
 
-          <div className={styles.infoGrid}>
-            <p>
-              <b>Método:</b> {pedido.metodo_pagamento ?? "—"}
-            </p>
-            <p>
-              <b>Status:</b> {pedido.status_pagamento ?? "—"}
-            </p>
-            <p>
-              <b>Payment ID:</b> {pedido.payment_id ?? "—"}
-            </p>
-            <p>
-              <b>Referência:</b> {pedido.external_reference ?? "—"}
-            </p>
-            <p>
-              <b>Detalhe:</b> {pedido.status_detail ?? "—"}
-            </p>
-            <p>
-              <b>Aprovado em:</b> {data(pedido.data_aprovacao)}
-            </p>
+          <article
+            className={`${styles.etapa} ${
+              pedido.status_id === 17
+                ? styles.etapaOk
+                : pedido.status_id === 16
+                ? styles.etapaAtual
+                : styles.etapaPendente
+            }`}
+          >
+            <span>3</span>
+            <FiTruck />
+            <strong>
+              {pedido.status_id === 17
+                ? "Entregue"
+                : pedido.status_id === 16
+                ? "Enviado"
+                : "Preparando envio"}
+            </strong>
+            <small>Atualizado em {data(pedido.atualizado_em)}</small>
+          </article>
+        </div>
+      </section>
+
+      <section className={styles.gridPrincipal}>
+        <article className={styles.card}>
+          <div className={styles.cardHeader}>
+            <div>
+              <span className={styles.miniTag}>Produtos</span>
+              <h2>Itens comprados</h2>
+            </div>
           </div>
 
           <div className={styles.tabelaBox}>
@@ -412,60 +493,83 @@ export default function PedidoDetalhePage() {
                 ) : (
                   itens.map((item) => (
                     <tr key={item.id_pedido_item}>
-                      <td>Produto #{item.produto_id}</td>
+                      <td>
+                        <strong>
+                          {item.produto_nome ??
+                            item.nome ??
+                            `Produto #${item.produto_id}`}
+                        </strong>
+                        <small>#{item.produto_id}</small>
+                      </td>
                       <td>{item.quantidade}</td>
                       <td>{moeda(item.preco_unitario)}</td>
-                      <td>{moeda(item.subtotal)}</td>
+                      <td>
+                        <strong>{moeda(item.subtotal)}</strong>
+                      </td>
                     </tr>
                   ))
                 )}
               </tbody>
             </table>
           </div>
-        </section>
-      )}
+        </article>
 
-      {passoAtual === 3 && (
-        <section className={styles.card}>
-          <h2>
-            <FiTruck />
-            3. Entrega e Histórico
-          </h2>
+        <aside className={styles.cardLateral}>
+          <div className={styles.cardHeader}>
+            <div>
+              <span className={styles.miniTag}>Entrega</span>
+              <h2>Atualizar entrega</h2>
+            </div>
+          </div>
+
+          <p className={styles.info}>
+            Clique em uma ação para abrir o modal, adicionar o código de rastreio
+            e enviar o e-mail ao cliente.
+          </p>
 
           <div className={styles.actions}>
             <button
               disabled={salvando}
-              onClick={() =>
-                atualizarEntrega(16, "Pedido enviado para entrega")
-              }
+              onClick={() => abrirModalEntrega(16)}
               className={styles.btnAzul}
             >
               <FiTruck />
-              {salvando ? "Salvando..." : "Marcar como enviado"}
+              Marcar como enviado
             </button>
 
             <button
               disabled={salvando}
-              onClick={() =>
-                atualizarEntrega(17, "Pedido entregue ao cliente")
-              }
+              onClick={() => abrirModalEntrega(17)}
               className={styles.btnVerde}
             >
               <FiCheckCircle />
-              {salvando ? "Salvando..." : "Marcar como entregue"}
+              Marcar como entregue
             </button>
           </div>
+        </aside>
+      </section>
 
-          <div className={styles.timeline}>
-            {rastreamento.length === 0 ? (
-              <p>Nenhum rastreamento cadastrado.</p>
-            ) : (
-              rastreamento.map((r) => (
-                <div key={r.id_rastreamento} className={styles.timelineItem}>
+      <section className={styles.card}>
+        <div className={styles.cardHeader}>
+          <div>
+            <span className={styles.miniTag}>Histórico</span>
+            <h2>Linha do tempo</h2>
+          </div>
+        </div>
+
+        <div className={styles.timeline}>
+          {rastreamento.length === 0 ? (
+            <p className={styles.info}>Nenhum rastreamento cadastrado.</p>
+          ) : (
+            rastreamento.map((r) => (
+              <div key={r.id_rastreamento} className={styles.timelineItem}>
+                <div className={styles.timelineIcon}>
+                  <FiCalendar />
+                </div>
+
+                <div>
                   <strong>{nomeStatus(Number(r.status_id))}</strong>
-
                   <p>{r.descricao ?? "—"}</p>
-
                   <small>
                     {r.codigo_rastreio
                       ? `Rastreio: ${r.codigo_rastreio} • `
@@ -473,38 +577,103 @@ export default function PedidoDetalhePage() {
                     {r.localizacao ?? "—"} • {data(r.criado_em)}
                   </small>
                 </div>
-              ))
-            )}
+              </div>
+            ))
+          )}
+        </div>
+      </section>
+
+      {modalEntrega && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <button
+              type="button"
+              className={styles.modalClose}
+              onClick={() => setModalEntrega(false)}
+            >
+              ×
+            </button>
+
+            <span className={styles.miniTag}>
+              {statusSelecionado === 16 ? "Enviar pedido" : "Entregar pedido"}
+            </span>
+
+            <h2>
+              {statusSelecionado === 16
+                ? "Adicionar código de rastreio"
+                : "Confirmar entrega"}
+            </h2>
+
+            <p>
+              Preencha as informações abaixo. Se a opção estiver marcada, o
+              cliente receberá um e-mail automaticamente.
+            </p>
+
+            <div className={styles.formEntrega}>
+              <label>
+                <span>
+                  <FiHash />
+                  Código de rastreio
+                </span>
+                <input
+                  type="text"
+                  value={codigoRastreio}
+                  onChange={(e) => setCodigoRastreio(e.target.value)}
+                  placeholder="Ex: AB123456789BR"
+                />
+              </label>
+
+              <label>
+                <span>
+                  <FiMapPin />
+                  Localização
+                </span>
+                <input
+                  type="text"
+                  value={localizacao}
+                  onChange={(e) => setLocalizacao(e.target.value)}
+                  placeholder="Ex: São Paulo/SP"
+                />
+              </label>
+
+              <label>
+                <span>
+                  <FiEdit3 />
+                  Mensagem para o cliente
+                </span>
+                <textarea
+                  value={descricaoEntrega}
+                  onChange={(e) => setDescricaoEntrega(e.target.value)}
+                  rows={4}
+                />
+              </label>
+
+              <label className={styles.checkEmail}>
+                <input
+                  type="checkbox"
+                  checked={enviarEmail}
+                  onChange={(e) => setEnviarEmail(e.target.checked)}
+                />
+                <span>
+                  <FiMail />
+                  Enviar e-mail para o cliente
+                </span>
+              </label>
+            </div>
+
+            <button
+              disabled={salvando}
+              className={
+                statusSelecionado === 16 ? styles.btnAzul : styles.btnVerde
+              }
+              onClick={() => atualizarEntrega(statusSelecionado)}
+            >
+              {statusSelecionado === 16 ? <FiTruck /> : <FiCheckCircle />}
+              {salvando ? "Salvando..." : "Confirmar atualização"}
+            </button>
           </div>
-        </section>
+        </div>
       )}
-
-      <div className={styles.navegacaoPassos}>
-        <button
-          type="button"
-          onClick={voltarPasso}
-          disabled={passoAtual === 1}
-          className={styles.btnClaro}
-        >
-          Voltar
-        </button>
-
-        <span>Passo {passoAtual} de 3</span>
-
-        {passoAtual < 3 ? (
-          <button
-            type="button"
-            onClick={proximoPasso}
-            className={styles.btnAzul}
-          >
-            Próximo passo
-          </button>
-        ) : (
-          <Link href="/sistema/pedidos" className={styles.btnVerdeLink}>
-            Finalizar
-          </Link>
-        )}
-      </div>
     </main>
   );
 }
