@@ -537,17 +537,10 @@
 }
 
 .modal h2 {
-  margin: 12px 0 8px;
+  margin: 12px 0 18px;
   color: #342829;
   font-size: 26px;
   letter-spacing: -0.04em;
-}
-
-.modal p {
-  margin: 0 0 18px;
-  color: #836b6d;
-  font-weight: 700;
-  line-height: 1.5;
 }
 
 .modalClose {

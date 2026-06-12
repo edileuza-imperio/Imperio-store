@@ -17,7 +17,6 @@ import {
   FiCalendar,
   FiDollarSign,
   FiMapPin,
-  FiMail,
   FiEdit3,
   FiHash,
 } from "react-icons/fi";
@@ -75,7 +74,6 @@ export default function PedidoDetalhePage() {
   const [codigoRastreio, setCodigoRastreio] = useState("");
   const [localizacao, setLocalizacao] = useState("São Paulo/SP");
   const [descricaoEntrega, setDescricaoEntrega] = useState("");
-  const [enviarEmail, setEnviarEmail] = useState(true);
 
   const [modalEntrega, setModalEntrega] = useState(false);
   const [statusSelecionado, setStatusSelecionado] = useState<16 | 17>(16);
@@ -84,23 +82,23 @@ export default function PedidoDetalhePage() {
     try {
       setLoading(true);
 
-      console.log("Carregando pedido ID:", pedidoId);
+      console.log("Carregando pedido:", pedidoId);
 
       const [pedidoRes, rastreioRes, todosRastreiosRes] = await Promise.all([
         api.get(`/pedido/${pedidoId}/com-itens`),
         api.get(`/pedido/${pedidoId}/rastreamento`).catch((error) => {
-          console.error("Erro ao buscar rastreamento por pedido:", error);
+          console.error("Erro ao buscar rastreamento do pedido:", error);
           return null;
         }),
         api.get(`/pedido-rastreamentos`).catch((error) => {
-          console.error("Erro ao buscar todos rastreamentos:", error);
+          console.error("Erro ao buscar todos os rastreamentos:", error);
           return null;
         }),
       ]);
 
-      console.log("Resposta pedido:", pedidoRes.data);
-      console.log("Resposta rastreio:", rastreioRes?.data);
-      console.log("Resposta todos rastreios:", todosRastreiosRes?.data);
+      console.log("Pedido response:", pedidoRes.data);
+      console.log("Rastreio response:", rastreioRes?.data);
+      console.log("Todos rastreios response:", todosRastreiosRes?.data);
 
       const pedidoData = pedidoRes.data;
       const rastreioData = rastreioRes?.data;
@@ -145,17 +143,13 @@ export default function PedidoDetalhePage() {
         return dataB - dataA;
       });
 
-      console.log("Pedido encontrado:", pedidoEncontrado);
-      console.log("Itens encontrados:", listaItens);
-      console.log("Rastreamentos encontrados:", listaRastreamento);
-
       setPedido(pedidoEncontrado);
       setItens(listaItens);
       setRastreamento(listaRastreamento);
     } catch (error: any) {
       console.error("Erro geral ao carregar pedido:", error);
-      console.error("Response error:", error?.response?.data);
-      console.error("Status error:", error?.response?.status);
+      console.error("Response:", error?.response?.data);
+      console.error("Status:", error?.response?.status);
 
       setPedido(null);
       setItens([]);
@@ -177,43 +171,34 @@ export default function PedidoDetalhePage() {
       const payload = {
         pedido_id: Number(pedidoId),
         status_id: statusId,
-        descricao: descricaoEntrega || descricaoPadrao,
+        descricao: descricaoEntrega.trim() || descricaoPadrao,
         codigo_rastreio: codigoRastreio.trim() || null,
         localizacao: localizacao.trim() || "São Paulo/SP",
-        enviar_email: enviarEmail,
       };
 
-      console.log("Enviando atualização de entrega:", payload);
+      console.log("Payload enviado:", payload);
 
       const response = await api.post(`/pedido/${pedidoId}/rastreamento`, payload);
 
-      console.log("Resposta atualização entrega:", response.data);
+      console.log("Resposta da API:", response.data);
 
       setDescricaoEntrega("");
       setCodigoRastreio("");
+      setLocalizacao("São Paulo/SP");
       setModalEntrega(false);
 
       await carregarPedido();
 
-      const emailEnviado = response.data?.email_enviado;
-
-      alert(
-        enviarEmail
-          ? emailEnviado
-            ? "Histórico salvo e e-mail enviado ao cliente."
-            : "Histórico salvo, mas o e-mail pode não ter sido enviado. Veja o console/log do backend."
-          : "Histórico salvo com sucesso."
-      );
+      alert("Histórico de rastreamento salvo com sucesso.");
     } catch (error: any) {
-      console.error("Erro ao atualizar entrega:", error);
-      console.error("Erro response data:", error?.response?.data);
+      console.error("Erro ao salvar rastreamento:", error);
+      console.error("Erro response:", error?.response?.data);
       console.error("Erro status:", error?.response?.status);
-      console.error("Erro headers:", error?.response?.headers);
 
       alert(
         error?.response?.data?.mensagem ??
           error?.response?.data?.erro ??
-          "Erro ao atualizar entrega. Veja o console."
+          "Erro ao salvar rastreamento. Veja o console."
       );
     } finally {
       setSalvando(false);
@@ -222,13 +207,13 @@ export default function PedidoDetalhePage() {
 
   function abrirModalEntrega(statusId: 16 | 17) {
     setStatusSelecionado(statusId);
+    setCodigoRastreio("");
+    setLocalizacao("São Paulo/SP");
 
     if (statusId === 16) {
-      setDescricaoEntrega("Seu pedido foi enviado para entrega.");
-    }
-
-    if (statusId === 17) {
-      setDescricaoEntrega("Seu pedido foi entregue ao cliente.");
+      setDescricaoEntrega("Pedido enviado para entrega");
+    } else {
+      setDescricaoEntrega("Pedido entregue ao cliente");
     }
 
     setModalEntrega(true);
@@ -523,8 +508,8 @@ export default function PedidoDetalhePage() {
           </div>
 
           <p className={styles.info}>
-            Clique em uma ação para abrir o modal, adicionar o código de rastreio
-            e enviar o e-mail ao cliente.
+            Clique em uma ação para adicionar o código de rastreio e salvar no
+            histórico do pedido.
           </p>
 
           <div className={styles.actions}>
@@ -604,11 +589,6 @@ export default function PedidoDetalhePage() {
                 : "Confirmar entrega"}
             </h2>
 
-            <p>
-              Preencha as informações abaixo. Se a opção estiver marcada, o
-              cliente receberá um e-mail automaticamente.
-            </p>
-
             <div className={styles.formEntrega}>
               <label>
                 <span>
@@ -639,25 +619,13 @@ export default function PedidoDetalhePage() {
               <label>
                 <span>
                   <FiEdit3 />
-                  Mensagem para o cliente
+                  Descrição
                 </span>
                 <textarea
                   value={descricaoEntrega}
                   onChange={(e) => setDescricaoEntrega(e.target.value)}
                   rows={4}
                 />
-              </label>
-
-              <label className={styles.checkEmail}>
-                <input
-                  type="checkbox"
-                  checked={enviarEmail}
-                  onChange={(e) => setEnviarEmail(e.target.checked)}
-                />
-                <span>
-                  <FiMail />
-                  Enviar e-mail para o cliente
-                </span>
               </label>
             </div>
 
@@ -669,7 +637,7 @@ export default function PedidoDetalhePage() {
               onClick={() => atualizarEntrega(statusSelecionado)}
             >
               {statusSelecionado === 16 ? <FiTruck /> : <FiCheckCircle />}
-              {salvando ? "Salvando..." : "Confirmar atualização"}
+              {salvando ? "Salvando..." : "Salvar rastreamento"}
             </button>
           </div>
         </div>
