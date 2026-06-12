@@ -16,6 +16,8 @@ import {
   XCircle,
   TimerReset,
   RotateCcw,
+  ShieldCheck,
+  ReceiptText,
 } from "lucide-react";
 
 import api from "@/Api/conectar";
@@ -81,8 +83,35 @@ function formatarData(data?: string | null): string {
   });
 }
 
+function normalizarStatus(status?: string | null): string {
+  return String(status || "").toLowerCase();
+}
+
+function isAprovado(status?: string | null): boolean {
+  const valor = normalizarStatus(status);
+  return valor === "approved" || valor === "aprovado";
+}
+
+function isPendente(status?: string | null): boolean {
+  const valor = normalizarStatus(status);
+  return valor === "pending" || valor === "pendente" || valor === "in_process";
+}
+
+function isFinalizadoRuim(status?: string | null): boolean {
+  const valor = normalizarStatus(status);
+
+  return (
+    valor === "rejected" ||
+    valor === "recusado" ||
+    valor === "cancelled" ||
+    valor === "cancelado" ||
+    valor === "refunded" ||
+    valor === "reembolsado"
+  );
+}
+
 function getStatusPagamentoTexto(status?: string | null): string {
-  const valor = String(status || "").toLowerCase();
+  const valor = normalizarStatus(status);
 
   if (valor === "approved" || valor === "aprovado") return "Aprovado";
   if (valor === "pending" || valor === "pendente") return "Pendente";
@@ -95,7 +124,7 @@ function getStatusPagamentoTexto(status?: string | null): string {
 }
 
 function getStatusClass(status?: string | null): string {
-  const valor = String(status || "").toLowerCase();
+  const valor = normalizarStatus(status);
 
   if (valor === "approved" || valor === "aprovado") return styles.aprovado;
   if (valor === "rejected" || valor === "recusado") return styles.recusado;
@@ -106,62 +135,23 @@ function getStatusClass(status?: string | null): string {
   return styles.pendente;
 }
 
-function getEtapaPedido(status?: string | null): number {
-  const valor = String(status || "").toLowerCase();
-
-  if (valor === "approved" || valor === "aprovado") return 2;
-  if (valor === "in_process") return 1;
-
-  if (
-    valor === "rejected" ||
-    valor === "recusado" ||
-    valor === "cancelled" ||
-    valor === "cancelado" ||
-    valor === "refunded" ||
-    valor === "reembolsado"
-  ) {
-    return 0;
-  }
-
-  return 1;
-}
-
 function getEtapaTexto(status?: string | null): string {
-  const valor = String(status || "").toLowerCase();
+  const valor = normalizarStatus(status);
 
-  if (valor === "refunded" || valor === "reembolsado") {
-    return "Pagamento reembolsado";
-  }
-
-  if (valor === "rejected" || valor === "recusado") {
-    return "Pagamento recusado";
-  }
-
-  if (valor === "cancelled" || valor === "cancelado") {
-    return "Pedido cancelado";
-  }
-
-  if (valor === "approved" || valor === "aprovado") {
-    return "Pagamento aprovado";
-  }
-
-  if (valor === "in_process") {
-    return "Pagamento em análise";
-  }
+  if (valor === "refunded" || valor === "reembolsado") return "Pagamento reembolsado";
+  if (valor === "rejected" || valor === "recusado") return "Pagamento recusado";
+  if (valor === "cancelled" || valor === "cancelado") return "Pedido cancelado";
+  if (valor === "approved" || valor === "aprovado") return "Pagamento aprovado";
+  if (valor === "in_process") return "Pagamento em análise";
 
   return "Aguardando pagamento";
 }
 
-function getEtapaIcone(status?: string | null) {
-  const valor = String(status || "").toLowerCase();
+function getPaymentIcon(status?: string | null) {
+  const valor = normalizarStatus(status);
 
-  if (valor === "approved" || valor === "aprovado") {
-    return <CheckCircle2 size={16} />;
-  }
-
-  if (valor === "refunded" || valor === "reembolsado") {
-    return <RotateCcw size={16} />;
-  }
+  if (valor === "approved" || valor === "aprovado") return <CheckCircle2 size={18} />;
+  if (valor === "refunded" || valor === "reembolsado") return <RotateCcw size={18} />;
 
   if (
     valor === "rejected" ||
@@ -169,14 +159,22 @@ function getEtapaIcone(status?: string | null) {
     valor === "cancelled" ||
     valor === "cancelado"
   ) {
-    return <XCircle size={16} />;
+    return <XCircle size={18} />;
   }
 
-  if (valor === "in_process") {
-    return <TimerReset size={16} />;
-  }
+  if (valor === "in_process") return <TimerReset size={18} />;
 
-  return <Clock3 size={16} />;
+  return <Clock3 size={18} />;
+}
+
+function getMetodoTexto(metodo?: string | null): string {
+  const valor = String(metodo || "").toLowerCase();
+
+  if (valor === "pix") return "PIX";
+  if (valor.includes("credit")) return "Cartão de crédito";
+  if (valor.includes("debit")) return "Cartão de débito";
+
+  return metodo || "Cartão/PIX";
 }
 
 function extrairUsuarioId(data: any): number {
@@ -227,9 +225,7 @@ export default function PedidosPage() {
         withCredentials: true,
       });
 
-      const lista = normalizarPedidos(response.data);
-
-      setPedidos(lista);
+      setPedidos(normalizarPedidos(response.data));
     } catch (error: any) {
       setErro(
         error?.response?.data?.mensagem ||
@@ -274,33 +270,17 @@ export default function PedidosPage() {
 
   const totalPedidos = pedidosFiltrados.length;
 
-  const pedidosAprovados = pedidosFiltrados.filter((pedido) => {
-    const status = String(pedido.status_pagamento || "").toLowerCase();
-    return status === "approved" || status === "aprovado";
-  }).length;
+  const pedidosAprovados = pedidosFiltrados.filter((pedido) =>
+    isAprovado(pedido.status_pagamento)
+  ).length;
 
-  const pedidosPendentes = pedidosFiltrados.filter((pedido) => {
-    const status = String(pedido.status_pagamento || "").toLowerCase();
+  const pedidosPendentes = pedidosFiltrados.filter((pedido) =>
+    isPendente(pedido.status_pagamento)
+  ).length;
 
-    return (
-      status === "pending" ||
-      status === "pendente" ||
-      status === "in_process"
-    );
-  }).length;
-
-  const pedidosFinalizados = pedidosFiltrados.filter((pedido) => {
-    const status = String(pedido.status_pagamento || "").toLowerCase();
-
-    return (
-      status === "rejected" ||
-      status === "recusado" ||
-      status === "cancelled" ||
-      status === "cancelado" ||
-      status === "refunded" ||
-      status === "reembolsado"
-    );
-  }).length;
+  const pedidosFinalizados = pedidosFiltrados.filter((pedido) =>
+    isFinalizadoRuim(pedido.status_pagamento)
+  ).length;
 
   const valorTotalFiltrado = pedidosFiltrados.reduce((total, pedido) => {
     return total + toNumber(pedido.valor_total);
@@ -316,8 +296,8 @@ export default function PedidosPage() {
             <h1>Meus pedidos</h1>
 
             <p>
-              Acompanhe suas compras, pagamentos, reembolsos e detalhes de cada
-              pedido em um só lugar.
+              Acompanhe suas compras em 3 etapas: pedido realizado, pagamento e
+              envio.
             </p>
           </div>
 
@@ -458,7 +438,8 @@ export default function PedidosPage() {
               const statusPagamento = getStatusPagamentoTexto(
                 pedido.status_pagamento
               );
-              const etapa = getEtapaPedido(pedido.status_pagamento);
+              const aprovado = isAprovado(pedido.status_pagamento);
+              const problema = isFinalizadoRuim(pedido.status_pagamento);
 
               return (
                 <article key={id} className={styles.cardPedido}>
@@ -477,61 +458,62 @@ export default function PedidosPage() {
                     </span>
                   </div>
 
-                  <div className={styles.timeline}>
-                    <div className={`${styles.step} ${styles.ativo}`}>
-                      <span className={styles.stepIcone}>
-                        <ShoppingBag size={16} />
-                      </span>
+                  <div className={styles.etapasGrid}>
+                    <div className={`${styles.etapaCard} ${styles.etapaOk}`}>
+                      <div className={styles.etapaTopo}>
+                        <span className={styles.etapaIcone}>
+                          <ReceiptText size={18} />
+                        </span>
 
-                      <div>
-                        <strong>Pedido feito</strong>
-                        <small>{formatarData(pedido.criado_em)}</small>
+                        <span className={styles.etapaNumero}>1</span>
                       </div>
+
+                      <strong>Pedido feito</strong>
+                      <small>{formatarData(pedido.criado_em)}</small>
                     </div>
 
                     <div
-                      className={`${styles.linha} ${
-                        etapa >= 1 ? styles.ativo : ""
-                      }`}
-                    />
-
-                    <div
-                      className={`${styles.step} ${
-                        etapa >= 1 ? styles.ativo : ""
+                      className={`${styles.etapaCard} ${
+                        aprovado
+                          ? styles.etapaOk
+                          : problema
+                          ? styles.etapaErro
+                          : styles.etapaAtual
                       }`}
                     >
-                      <span className={styles.stepIcone}>
-                        {getEtapaIcone(pedido.status_pagamento)}
-                      </span>
+                      <div className={styles.etapaTopo}>
+                        <span className={styles.etapaIcone}>
+                          {getPaymentIcon(pedido.status_pagamento)}
+                        </span>
 
-                      <div>
-                        <strong>{getEtapaTexto(pedido.status_pagamento)}</strong>
-
-                        <small>
-                          {pedido.status_detail || "Aguardando atualização"}
-                        </small>
+                        <span className={styles.etapaNumero}>2</span>
                       </div>
+
+                      <strong>{getEtapaTexto(pedido.status_pagamento)}</strong>
+                      <small>
+                        {pedido.status_detail || "Aguardando atualização"}
+                      </small>
                     </div>
 
                     <div
-                      className={`${styles.linha} ${
-                        etapa >= 2 ? styles.ativo : ""
-                      }`}
-                    />
-
-                    <div
-                      className={`${styles.step} ${
-                        etapa >= 2 ? styles.ativo : ""
+                      className={`${styles.etapaCard} ${
+                        aprovado ? styles.etapaAtual : styles.etapaPendente
                       }`}
                     >
-                      <span className={styles.stepIcone}>
-                        <Truck size={16} />
-                      </span>
+                      <div className={styles.etapaTopo}>
+                        <span className={styles.etapaIcone}>
+                          <Truck size={18} />
+                        </span>
 
-                      <div>
-                        <strong>Envio</strong>
-                        <small>Separação e entrega</small>
+                        <span className={styles.etapaNumero}>3</span>
                       </div>
+
+                      <strong>{aprovado ? "Preparando envio" : "Envio"}</strong>
+                      <small>
+                        {aprovado
+                          ? "Seu pedido será separado para entrega"
+                          : "Liberado após pagamento"}
+                      </small>
                     </div>
                   </div>
 
@@ -541,16 +523,25 @@ export default function PedidosPage() {
 
                       <strong>
                         <CreditCard size={15} />
-                        {pedido.metodo_pagamento || "Cartão/PIX"}
+                        {getMetodoTexto(pedido.metodo_pagamento)}
                       </strong>
                     </div>
 
                     <div className={styles.resumoLinha}>
-                      <span>Data</span>
+                      <span>Compra realizada</span>
 
                       <strong>
                         <CalendarDays size={15} />
                         {formatarData(pedido.criado_em)}
+                      </strong>
+                    </div>
+
+                    <div className={styles.resumoLinha}>
+                      <span>Segurança</span>
+
+                      <strong>
+                        <ShieldCheck size={15} />
+                        Mercado Pago
                       </strong>
                     </div>
                   </div>

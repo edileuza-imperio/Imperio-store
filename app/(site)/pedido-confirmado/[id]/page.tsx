@@ -167,7 +167,7 @@ export default function PedidoConfirmadoPage() {
             Continuar comprando
           </Link>
 
-          <Link href="/pedidos" className={styles.secondaryBtn}>
+          <Link href="/pedido" className={styles.secondaryBtn}>
             <FiShoppingBag />
             Acompanhar pedido
           </Link>
