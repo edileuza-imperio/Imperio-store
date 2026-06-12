@@ -35,7 +35,6 @@ export default function PagamentoPage() {
 
   const [metodo, setMetodo] = useState<MetodoPagamento>("pix");
   const [tipoCartao, setTipoCartao] = useState<TipoCartao>("debito");
-  const [redirecionando, setRedirecionando] = useState(false);
 
   const pedidoId = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
@@ -65,55 +64,13 @@ export default function PagamentoPage() {
   }, [tipoCartao, pedido?.id_pedido, pedidoId]);
 
   useEffect(() => {
-    if (!statusPagamento.aprovado || !pedidoId || redirecionando) {
-      return;
+    if (statusPagamento.aprovado && pedidoId) {
+      router.push(`/pedido-confirmado/${pedidoId}`);
     }
-
-    setRedirecionando(true);
-
-    toast.dismiss();
-
-    toast.success("Pagamento aprovado! Finalizando pedido...", {
-      autoClose: 1500,
-      closeOnClick: true,
-      pauseOnHover: false,
-      draggable: true,
-    });
-
-    router.refresh();
-
-    const timer = setTimeout(() => {
-      toast.dismiss();
-      router.replace(`/pedido-confirmado/${pedidoId}`);
-    }, 1500);
-
-    return () => clearTimeout(timer);
-  }, [statusPagamento.aprovado, pedidoId, router, redirecionando]);
+  }, [statusPagamento.aprovado, pedidoId, router]);
 
   async function confirmarPagamento() {
-    try {
-      toast.dismiss();
-
-      toast.info("Verificando pagamento...", {
-        autoClose: 1200,
-        closeOnClick: true,
-        pauseOnHover: false,
-      });
-
-      await verificarPagamento();
-
-      router.refresh();
-    } catch (error) {
-      console.error("ERRO AO VERIFICAR PAGAMENTO:", error);
-
-      toast.dismiss();
-
-      toast.error("Não foi possível verificar o pagamento agora.", {
-        autoClose: 2500,
-        closeOnClick: true,
-        pauseOnHover: false,
-      });
-    }
+    await verificarPagamento();
   }
 
   function montarDadosCartao(formData: any) {
@@ -128,7 +85,7 @@ export default function PagamentoPage() {
     return {
       ...formData,
       payment_type_id: paymentTypeId,
-      paymentTypeId,
+      paymentTypeId: paymentTypeId,
       installments,
       parcelas: installments,
     };
@@ -148,13 +105,7 @@ export default function PagamentoPage() {
 
   return (
     <main className={styles.checkout}>
-      <ToastContainer
-        autoClose={1500}
-        closeOnClick
-        pauseOnHover={false}
-        newestOnTop
-        limit={1}
-      />
+      <ToastContainer />
 
       <div className={`${styles.bgBlur} ${styles.blur1}`} />
       <div className={`${styles.bgBlur} ${styles.blur2}`} />
@@ -177,7 +128,7 @@ export default function PagamentoPage() {
             statusPagamento.aprovado ? styles.ok : styles.pending
           }`}
         >
-          {redirecionando ? "Pagamento aprovado" : statusPagamento.label}
+          {statusPagamento.label}
         </div>
       </section>
 
@@ -213,11 +164,7 @@ export default function PagamentoPage() {
                 <FiTruck />
                 <span>Status</span>
               </div>
-              <strong>
-                {statusPagamento.aprovado
-                  ? "aprovado"
-                  : pedido?.status_pagamento ?? "Pendente"}
-              </strong>
+              <strong>{pedido?.status_pagamento ?? "Pendente"}</strong>
             </div>
 
             <div className={styles.infoItem}>
@@ -234,266 +181,189 @@ export default function PagamentoPage() {
             <strong>{formatarMoeda(valorPedido)}</strong>
           </div>
 
-          {!statusPagamento.aprovado && !redirecionando && (
-            <Link href="/carrinho" className={styles.backBtn}>
-              <FiArrowLeft />
-              Voltar ao carrinho
-            </Link>
-          )}
+          <Link href="/carrinho" className={styles.backBtn}>
+            <FiArrowLeft />
+            Voltar ao carrinho
+          </Link>
         </aside>
 
         <section className={`${styles.card} ${styles.paymentCard}`}>
-          {redirecionando ? (
+          <div className={styles.paymentTabs}>
+            <button
+              type="button"
+              onClick={() => setMetodo("pix")}
+              className={`${styles.paymentTab} ${
+                metodo === "pix" ? styles.activeTab : ""
+              }`}
+            >
+              <FiSmartphone />
+              PIX
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMetodo("cartao")}
+              className={`${styles.paymentTab} ${
+                metodo === "cartao" ? styles.activeTab : ""
+              }`}
+            >
+              <FiCreditCard />
+              Cartão
+            </button>
+          </div>
+
+          {metodo === "pix" && (
             <div className={styles.paymentPanel}>
               <div className={styles.pixHeader}>
                 <div className={styles.pixIcon}>
-                  <FiCheckCircle />
+                  <FiSmartphone />
                 </div>
 
-                <h2>Pagamento aprovado!</h2>
+                <h2>PIX Instantâneo</h2>
+                <p>Escaneie o QR Code ou copie o código PIX abaixo.</p>
+              </div>
+
+              {!pixCode ? (
+                <button
+                  type="button"
+                  onClick={gerarPix}
+                  disabled={loadingPix}
+                  className={styles.primaryBtn}
+                >
+                  <FiRefreshCw className={loadingPix ? styles.spin : ""} />
+                  {loadingPix ? "Preparando pagamento..." : "Gerar QR Code PIX"}
+                </button>
+              ) : (
+                <div className={styles.pixContent}>
+                  <div className={styles.qrWrapper}>
+                    <div className={styles.qrCard}>
+                      <QRCodeCanvas value={pixCode} size={220} />
+                    </div>
+                  </div>
+
+                  <textarea
+                    className={styles.textarea}
+                    value={pixCode}
+                    readOnly
+                  />
+
+                  <div className={styles.pixActions}>
+                    <button
+                      type="button"
+                      onClick={copiarPix}
+                      className={styles.softBtn}
+                    >
+                      <FiCopy />
+                      {copiado ? "Copiado" : "Copiar PIX"}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={confirmarPagamento}
+                      className={styles.successBtn}
+                    >
+                      <FiCheckCircle />
+                      Já paguei
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {metodo === "cartao" && (
+            <div className={styles.paymentPanel}>
+              <div className={styles.pixHeader}>
+                <div className={styles.pixIcon}>
+                  <FiCreditCard />
+                </div>
+
+                <h2>Pagamento com cartão</h2>
 
                 <p>
-                  Estamos finalizando seu pedido, limpando o carrinho e
-                  carregando a página de confirmação.
+                  Escolha crédito ou débito. No débito, o pagamento será enviado
+                  em 1x.
                 </p>
               </div>
 
-              <button type="button" disabled className={styles.successBtn}>
-                <FiRefreshCw className={styles.spin} />
-                Finalizando pedido...
-              </button>
-            </div>
-          ) : (
-            <>
               <div className={styles.paymentTabs}>
                 <button
                   type="button"
-                  onClick={() => setMetodo("pix")}
+                  onClick={() => setTipoCartao("debito")}
                   className={`${styles.paymentTab} ${
-                    metodo === "pix" ? styles.activeTab : ""
+                    tipoCartao === "debito" ? styles.activeTab : ""
                   }`}
                 >
-                  <FiSmartphone />
-                  PIX
+                  <FiCreditCard />
+                  Débito
                 </button>
 
                 <button
                   type="button"
-                  onClick={() => setMetodo("cartao")}
+                  onClick={() => setTipoCartao("credito")}
                   className={`${styles.paymentTab} ${
-                    metodo === "cartao" ? styles.activeTab : ""
+                    tipoCartao === "credito" ? styles.activeTab : ""
                   }`}
                 >
                   <FiCreditCard />
-                  Cartão
+                  Crédito
                 </button>
               </div>
 
-              {metodo === "pix" && (
-                <div className={styles.paymentPanel}>
-                  <div className={styles.pixHeader}>
-                    <div className={styles.pixIcon}>
-                      <FiSmartphone />
-                    </div>
+              <div className={styles.statusBox}>
+                <span>
+                  {tipoCartao === "debito"
+                    ? "Cartão de débito"
+                    : "Cartão de crédito"}
+                </span>
 
-                    <h2>PIX Instantâneo</h2>
-                    <p>Escaneie o QR Code ou copie o código PIX abaixo.</p>
-                  </div>
+                <strong>
+                  {tipoCartao === "debito"
+                    ? "Débito será enviado sem parcelamento."
+                    : "Crédito pode parcelar conforme liberação do Mercado Pago."}
+                </strong>
+              </div>
 
-                  {!pixCode ? (
-                    <button
-                      type="button"
-                      onClick={gerarPix}
-                      disabled={loadingPix}
-                      className={styles.primaryBtn}
-                    >
-                      <FiRefreshCw
-                        className={loadingPix ? styles.spin : ""}
-                      />
-                      {loadingPix
-                        ? "Preparando pagamento..."
-                        : "Gerar QR Code PIX"}
-                    </button>
-                  ) : (
-                    <div className={styles.pixContent}>
-                      <div className={styles.qrWrapper}>
-                        <div className={styles.qrCard}>
-                          <QRCodeCanvas value={pixCode} size={220} />
-                        </div>
-                      </div>
+              {loadingCartao ? (
+                <button type="button" disabled className={styles.primaryBtn}>
+                  <FiRefreshCw className={styles.spin} />
+                  Processando cartão...
+                </button>
+              ) : (
+                <div className={styles.mpWrapper}>
+                  <CardPayment
+                    key={cardPaymentKey}
+                    initialization={{
+                      amount: valorPedido,
+                      payer: {
+                        email: usuario?.email ?? "",
+                      },
+                    }}
+                    customization={{
+                      paymentMethods: {
+                        minInstallments: 1,
+                        maxInstallments: tipoCartao === "debito" ? 1 : 3,
+                      },
+                    }}
+                    onSubmit={async (formData) => {
+                      const dadosCartao = montarDadosCartao(formData);
 
-                      <textarea
-                        className={styles.textarea}
-                        value={pixCode}
-                        readOnly
-                      />
+                      console.log("FORM MERCADO PAGO ORIGINAL:", formData);
+                      console.log("FORM MERCADO PAGO ENVIADO:", dadosCartao);
 
-                      <div className={styles.pixActions}>
-                        <button
-                          type="button"
-                          onClick={copiarPix}
-                          className={styles.softBtn}
-                        >
-                          <FiCopy />
-                          {copiado ? "Copiado" : "Copiar PIX"}
-                        </button>
+                      await pagarComCartao(dadosCartao);
+                    }}
+                    onError={(error) => {
+                      console.error("ERRO MERCADO PAGO CARD:", error);
 
-                        <button
-                          type="button"
-                          onClick={confirmarPagamento}
-                          className={styles.successBtn}
-                        >
-                          <FiCheckCircle />
-                          Já paguei
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                      toast.error(
+                        "Não foi possível obter os dados do cartão. Confira os dados ou tente PIX."
+                      );
+                    }}
+                  />
                 </div>
               )}
-
-              {metodo === "cartao" && (
-                <div className={styles.paymentPanel}>
-                  <div className={styles.pixHeader}>
-                    <div className={styles.pixIcon}>
-                      <FiCreditCard />
-                    </div>
-
-                    <h2>Pagamento com cartão</h2>
-
-                    <p>
-                      Escolha crédito ou débito. No débito, o pagamento será
-                      enviado em 1x.
-                    </p>
-                  </div>
-
-                  <div className={styles.paymentTabs}>
-                    <button
-                      type="button"
-                      onClick={() => setTipoCartao("debito")}
-                      className={`${styles.paymentTab} ${
-                        tipoCartao === "debito" ? styles.activeTab : ""
-                      }`}
-                    >
-                      <FiCreditCard />
-                      Débito
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setTipoCartao("credito")}
-                      className={`${styles.paymentTab} ${
-                        tipoCartao === "credito" ? styles.activeTab : ""
-                      }`}
-                    >
-                      <FiCreditCard />
-                      Crédito
-                    </button>
-                  </div>
-
-                  <div className={styles.statusBox}>
-                    <span>
-                      {tipoCartao === "debito"
-                        ? "Cartão de débito"
-                        : "Cartão de crédito"}
-                    </span>
-
-                    <strong>
-                      {tipoCartao === "debito"
-                        ? "Débito será enviado sem parcelamento."
-                        : "Crédito pode parcelar conforme liberação do Mercado Pago."}
-                    </strong>
-                  </div>
-
-                  {loadingCartao ? (
-                    <button
-                      type="button"
-                      disabled
-                      className={styles.primaryBtn}
-                    >
-                      <FiRefreshCw className={styles.spin} />
-                      Processando cartão...
-                    </button>
-                  ) : (
-                    <div className={styles.mpWrapper}>
-                      <CardPayment
-                        key={cardPaymentKey}
-                        initialization={{
-                          amount: valorPedido,
-                          payer: {
-                            email: usuario?.email ?? "",
-                          },
-                        }}
-                        customization={{
-                          paymentMethods: {
-                            minInstallments: 1,
-                            maxInstallments:
-                              tipoCartao === "debito" ? 1 : 3,
-                          },
-                        }}
-                        onSubmit={async (formData) => {
-                          try {
-                            toast.dismiss();
-
-                            toast.info("Processando pagamento...", {
-                              autoClose: 1500,
-                              closeOnClick: true,
-                              pauseOnHover: false,
-                            });
-
-                            const dadosCartao = montarDadosCartao(formData);
-
-                            console.log(
-                              "FORM MERCADO PAGO ORIGINAL:",
-                              formData
-                            );
-
-                            console.log(
-                              "FORM MERCADO PAGO ENVIADO:",
-                              dadosCartao
-                            );
-
-                            await pagarComCartao(dadosCartao);
-
-                            router.refresh();
-                          } catch (error) {
-                            console.error(
-                              "ERRO AO PAGAR COM CARTAO:",
-                              error
-                            );
-
-                            toast.dismiss();
-
-                            toast.error(
-                              "Não foi possível concluir o pagamento com cartão.",
-                              {
-                                autoClose: 2500,
-                                closeOnClick: true,
-                                pauseOnHover: false,
-                              }
-                            );
-                          }
-                        }}
-                        onError={(error) => {
-                          console.error("ERRO MERCADO PAGO CARD:", error);
-
-                          toast.dismiss();
-
-                          toast.error(
-                            "Não foi possível obter os dados do cartão. Confira os dados ou tente PIX.",
-                            {
-                              autoClose: 2500,
-                              closeOnClick: true,
-                              pauseOnHover: false,
-                            }
-                          );
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
-            </>
+            </div>
           )}
         </section>
 
@@ -525,7 +395,6 @@ export default function PagamentoPage() {
                 <FiSmartphone />
                 <span>Método</span>
               </div>
-
               <strong>
                 {metodo === "pix"
                   ? "PIX"
@@ -538,12 +407,7 @@ export default function PagamentoPage() {
 
           <div className={styles.statusBox}>
             <span>Status atual</span>
-
-            <strong>
-              {redirecionando
-                ? "Pagamento aprovado. Finalizando pedido..."
-                : statusPagamento.descricao}
-            </strong>
+            <strong>{statusPagamento.descricao}</strong>
           </div>
         </aside>
       </section>
