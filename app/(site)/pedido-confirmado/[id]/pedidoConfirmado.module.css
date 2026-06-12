@@ -1,219 +1,346 @@
 .page {
   min-height: 100vh;
+  width: 100%;
+  padding: 48px 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  position: relative;
+  overflow: hidden;
   background:
-    radial-gradient(circle at top left, rgba(183, 93, 112, 0.18), transparent 30%),
-    radial-gradient(circle at bottom right, rgba(183, 93, 112, 0.12), transparent 30%),
-    linear-gradient(135deg, #fff8f9 0%, #ffffff 50%, #f7edf0 100%);
+    radial-gradient(circle at top left, rgba(244, 114, 182, 0.18), transparent 34%),
+    radial-gradient(circle at bottom right, rgba(251, 191, 36, 0.16), transparent 34%),
+    linear-gradient(135deg, #fff7f2 0%, #fff 42%, #fff8fb 100%);
+}
+
+.bgGlowOne,
+.bgGlowTwo {
+  position: absolute;
+  border-radius: 999px;
+  filter: blur(12px);
+  opacity: 0.65;
+  pointer-events: none;
+}
+
+.bgGlowOne {
+  width: 260px;
+  height: 260px;
+  top: 8%;
+  left: 8%;
+  background: rgba(244, 114, 182, 0.18);
+}
+
+.bgGlowTwo {
+  width: 320px;
+  height: 320px;
+  right: 6%;
+  bottom: 8%;
+  background: rgba(251, 191, 36, 0.16);
 }
 
 .card {
-  width: 100%;
-  max-width: 650px;
-  padding: 40px;
+  width: min(760px, 100%);
+  position: relative;
+  z-index: 2;
+  padding: 42px;
   border-radius: 32px;
-  text-align: center;
-
-  background: rgba(255, 255, 255, 0.95);
-
-  border: 1px solid rgba(183, 93, 112, 0.12);
-
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.9);
   box-shadow:
-    0 30px 80px rgba(66, 21, 33, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-
-  backdrop-filter: blur(16px);
+    0 30px 80px rgba(91, 33, 68, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(18px);
+  text-align: center;
 }
 
-.iconBox {
-  width: 120px;
-  height: 120px;
-
-  margin: 0 auto 24px;
-
+.successCircle {
+  width: 92px;
+  height: 92px;
+  margin: 0 auto 18px;
   border-radius: 999px;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
-  color: #fff;
-
-  background: linear-gradient(
-    135deg,
-    #22a363,
-    #137044
-  );
-
-  box-shadow: 0 20px 50px rgba(34, 163, 99, 0.35);
+  background:
+    linear-gradient(135deg, #22c55e, #16a34a);
+  color: #ffffff;
+  box-shadow: 0 18px 35px rgba(34, 197, 94, 0.28);
 }
 
-.iconBox svg {
-  width: 58px;
-  height: 58px;
+.successCircle svg {
+  width: 46px;
+  height: 46px;
 }
 
 .tag {
   display: inline-flex;
-
-  padding: 10px 18px;
-
+  align-items: center;
+  justify-content: center;
+  padding: 9px 16px;
   border-radius: 999px;
-
-  background: #e8fff1;
-
-  color: #137044;
-
+  background: #dcfce7;
+  color: #166534;
   font-size: 13px;
-  font-weight: 900;
-
-  border: 1px solid #bdeecf;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  margin-bottom: 16px;
 }
 
 .card h1 {
-  margin-top: 20px;
-  margin-bottom: 14px;
-
-  color: #35151d;
-
-  font-size: clamp(32px, 5vw, 50px);
-
-  line-height: 1;
+  margin: 0;
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 1.05;
+  color: #2f1728;
+  letter-spacing: -0.04em;
 }
 
-.card p {
-  max-width: 520px;
-
-  margin: 0 auto;
-
-  color: #73545d;
-
+.description {
+  max-width: 560px;
+  margin: 16px auto 0;
+  color: #7c5d6f;
   font-size: 16px;
-
   line-height: 1.7;
 }
 
-.infoBox {
-  margin-top: 30px;
-
+.orderBox {
+  margin-top: 28px;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-
-  gap: 16px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
 }
 
-.infoBox div {
+.orderItem {
   padding: 18px;
-
   border-radius: 22px;
+  background: #fff8fb;
+  border: 1px solid #f8dce9;
+  text-align: left;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
 
-  background: #fff7f8;
+.orderIcon {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #be185d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 22px rgba(190, 24, 93, 0.08);
+}
 
-  border: 1px solid rgba(183, 93, 112, 0.12);
+.orderIcon svg {
+  width: 20px;
+  height: 20px;
+}
 
+.orderItem span {
+  display: block;
+  color: #9b7288;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.orderItem strong {
+  display: block;
+  color: #3b1d32;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.steps {
+  margin: 30px auto 0;
+  width: min(560px, 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stepActive,
+.stepPending {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  min-width: 86px;
 }
 
-.infoBox svg {
-  width: 24px;
-  height: 24px;
-
-  color: #b75d70;
+.stepActive div,
+.stepPending div {
+  width: 46px;
+  height: 46px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-.infoBox span {
-  color: #8a6770;
-  font-size: 13px;
+.stepActive div {
+  background: #22c55e;
+  color: #ffffff;
+  box-shadow: 0 12px 24px rgba(34, 197, 94, 0.24);
+}
+
+.stepPending div {
+  background: #fff1f2;
+  color: #be185d;
+  border: 1px solid #f9c6d8;
+}
+
+.stepActive span,
+.stepPending span {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.stepActive span {
+  color: #166534;
+}
+
+.stepPending span {
+  color: #9f5275;
+}
+
+.line {
+  flex: 1;
+  height: 2px;
+  max-width: 80px;
+  background: linear-gradient(90deg, #22c55e, #f9a8d4);
+  margin-bottom: 26px;
+}
+
+.notice,
+.security {
+  margin: 20px auto 0;
+  width: min(560px, 100%);
+  padding: 14px 16px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 14px;
   font-weight: 700;
 }
 
-.infoBox strong {
-  color: #35151d;
-  font-size: 18px;
-  font-weight: 900;
+.notice {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.security {
+  margin-top: 12px;
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.notice svg,
+.security svg {
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
 }
 
 .actions {
-  margin-top: 32px;
-
+  margin-top: 30px;
   display: flex;
   justify-content: center;
-  gap: 14px;
-
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .primaryBtn,
 .secondaryBtn {
-  min-height: 56px;
-
-  padding: 0 24px;
-
-  border-radius: 18px;
-
+  min-height: 52px;
+  padding: 0 22px;
+  border-radius: 999px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
-
   text-decoration: none;
-
+  font-size: 14px;
   font-weight: 900;
-
-  transition: all 0.25s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
 }
 
 .primaryBtn {
-  color: #fff;
-
-  background: linear-gradient(
-    135deg,
-    #c96d80,
-    #803348
-  );
-
-  box-shadow: 0 18px 40px rgba(183, 93, 112, 0.28);
+  background: linear-gradient(135deg, #be185d, #e11d48);
+  color: #ffffff;
+  box-shadow: 0 16px 32px rgba(225, 29, 72, 0.24);
 }
 
 .secondaryBtn {
-  color: #8d3449;
-
-  background: #fff;
-
-  border: 1px solid rgba(183, 93, 112, 0.18);
-
-  box-shadow: 0 12px 30px rgba(66, 21, 33, 0.08);
+  background: #ffffff;
+  color: #be185d;
+  border: 1px solid #f9c6d8;
+  box-shadow: 0 12px 26px rgba(190, 24, 93, 0.08);
 }
 
 .primaryBtn:hover,
 .secondaryBtn:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
 }
 
-@media (max-width: 768px) {
+.primaryBtn svg,
+.secondaryBtn svg {
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 760px) {
+  .page {
+    padding: 28px 14px;
+    align-items: flex-start;
+  }
+
   .card {
-    padding: 28px 20px;
-    border-radius: 24px;
+    padding: 30px 18px;
+    border-radius: 26px;
   }
 
-  .iconBox {
-    width: 95px;
-    height: 95px;
+  .successCircle {
+    width: 78px;
+    height: 78px;
   }
 
-  .iconBox svg {
-    width: 48px;
-    height: 48px;
+  .successCircle svg {
+    width: 38px;
+    height: 38px;
   }
 
-  .infoBox {
+  .orderBox {
     grid-template-columns: 1fr;
+  }
+
+  .steps {
+    gap: 4px;
+  }
+
+  .stepActive,
+  .stepPending {
+    min-width: 70px;
+  }
+
+  .line {
+    max-width: 36px;
+  }
+
+  .notice,
+  .security {
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-align: left;
   }
 
   .actions {

@@ -71,24 +71,48 @@ export default function PagamentoPage() {
 
     setRedirecionando(true);
 
-    toast.success("Pagamento aprovado! Finalizando pedido...");
+    toast.dismiss();
+
+    toast.success("Pagamento aprovado! Finalizando pedido...", {
+      autoClose: 1500,
+      closeOnClick: true,
+      pauseOnHover: false,
+      draggable: true,
+    });
 
     router.refresh();
 
     const timer = setTimeout(() => {
+      toast.dismiss();
       router.replace(`/pedido-confirmado/${pedidoId}`);
-    }, 900);
+    }, 1500);
 
     return () => clearTimeout(timer);
   }, [statusPagamento.aprovado, pedidoId, router, redirecionando]);
 
   async function confirmarPagamento() {
     try {
+      toast.dismiss();
+
+      toast.info("Verificando pagamento...", {
+        autoClose: 1200,
+        closeOnClick: true,
+        pauseOnHover: false,
+      });
+
       await verificarPagamento();
+
       router.refresh();
     } catch (error) {
       console.error("ERRO AO VERIFICAR PAGAMENTO:", error);
-      toast.error("Não foi possível verificar o pagamento agora.");
+
+      toast.dismiss();
+
+      toast.error("Não foi possível verificar o pagamento agora.", {
+        autoClose: 2500,
+        closeOnClick: true,
+        pauseOnHover: false,
+      });
     }
   }
 
@@ -124,7 +148,13 @@ export default function PagamentoPage() {
 
   return (
     <main className={styles.checkout}>
-      <ToastContainer />
+      <ToastContainer
+        autoClose={1500}
+        closeOnClick
+        pauseOnHover={false}
+        newestOnTop
+        limit={1}
+      />
 
       <div className={`${styles.bgBlur} ${styles.blur1}`} />
       <div className={`${styles.bgBlur} ${styles.blur2}`} />
@@ -376,7 +406,11 @@ export default function PagamentoPage() {
                   </div>
 
                   {loadingCartao ? (
-                    <button type="button" disabled className={styles.primaryBtn}>
+                    <button
+                      type="button"
+                      disabled
+                      className={styles.primaryBtn}
+                    >
                       <FiRefreshCw className={styles.spin} />
                       Processando cartão...
                     </button>
@@ -399,12 +433,21 @@ export default function PagamentoPage() {
                         }}
                         onSubmit={async (formData) => {
                           try {
+                            toast.dismiss();
+
+                            toast.info("Processando pagamento...", {
+                              autoClose: 1500,
+                              closeOnClick: true,
+                              pauseOnHover: false,
+                            });
+
                             const dadosCartao = montarDadosCartao(formData);
 
                             console.log(
                               "FORM MERCADO PAGO ORIGINAL:",
                               formData
                             );
+
                             console.log(
                               "FORM MERCADO PAGO ENVIADO:",
                               dadosCartao
@@ -419,16 +462,30 @@ export default function PagamentoPage() {
                               error
                             );
 
+                            toast.dismiss();
+
                             toast.error(
-                              "Não foi possível concluir o pagamento com cartão."
+                              "Não foi possível concluir o pagamento com cartão.",
+                              {
+                                autoClose: 2500,
+                                closeOnClick: true,
+                                pauseOnHover: false,
+                              }
                             );
                           }
                         }}
                         onError={(error) => {
                           console.error("ERRO MERCADO PAGO CARD:", error);
 
+                          toast.dismiss();
+
                           toast.error(
-                            "Não foi possível obter os dados do cartão. Confira os dados ou tente PIX."
+                            "Não foi possível obter os dados do cartão. Confira os dados ou tente PIX.",
+                            {
+                              autoClose: 2500,
+                              closeOnClick: true,
+                              pauseOnHover: false,
+                            }
                           );
                         }}
                       />
@@ -468,6 +525,7 @@ export default function PagamentoPage() {
                 <FiSmartphone />
                 <span>Método</span>
               </div>
+
               <strong>
                 {metodo === "pix"
                   ? "PIX"
@@ -480,6 +538,7 @@ export default function PagamentoPage() {
 
           <div className={styles.statusBox}>
             <span>Status atual</span>
+
             <strong>
               {redirecionando
                 ? "Pagamento aprovado. Finalizando pedido..."
