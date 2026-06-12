@@ -31,8 +31,6 @@ type Pedido = {
   usuario_email?: string | null;
   status_id: number;
   valor_total: number;
-  payment_id?: string | null;
-  external_reference?: string | null;
   metodo_pagamento?: string | null;
   status_pagamento?: string | null;
   status_detail?: string | null;
@@ -91,7 +89,7 @@ export default function PedidoDetalhePage() {
           return null;
         }),
         api.get(`/pedido-rastreamentos`).catch((error) => {
-          console.error("Erro ao buscar todos os rastreamentos:", error);
+          console.error("Erro ao buscar todos rastreamentos:", error);
           return null;
         }),
       ]);
@@ -105,7 +103,7 @@ export default function PedidoDetalhePage() {
       const todosRastreiosData = todosRastreiosRes?.data;
 
       const pedidoEncontrado =
-        pedidoData?.dados?.pedido ?? pedidoData?.pedido ?? null;
+        pedidoData?.dados?.pedido ?? pedidoData?.pedido ?? pedidoData?.dados ?? null;
 
       const listaItens = Array.isArray(pedidoData?.dados?.itens)
         ? pedidoData.dados.itens
@@ -142,6 +140,10 @@ export default function PedidoDetalhePage() {
         const dataB = new Date((b.criado_em ?? "").replace(" ", "T")).getTime();
         return dataB - dataA;
       });
+
+      console.log("Pedido encontrado:", pedidoEncontrado);
+      console.log("Itens:", listaItens);
+      console.log("Rastreamento ordenado:", listaRastreamento);
 
       setPedido(pedidoEncontrado);
       setItens(listaItens);
@@ -180,7 +182,7 @@ export default function PedidoDetalhePage() {
 
       const response = await api.post(`/pedido/${pedidoId}/rastreamento`, payload);
 
-      console.log("Resposta da API:", response.data);
+      console.log("Resposta ao salvar rastreamento:", response.data);
 
       setDescricaoEntrega("");
       setCodigoRastreio("");
@@ -209,13 +211,11 @@ export default function PedidoDetalhePage() {
     setStatusSelecionado(statusId);
     setCodigoRastreio("");
     setLocalizacao("São Paulo/SP");
-
-    if (statusId === 16) {
-      setDescricaoEntrega("Pedido enviado para entrega");
-    } else {
-      setDescricaoEntrega("Pedido entregue ao cliente");
-    }
-
+    setDescricaoEntrega(
+      statusId === 16
+        ? "Pedido enviado para entrega"
+        : "Pedido entregue ao cliente"
+    );
     setModalEntrega(true);
   }
 
@@ -226,6 +226,16 @@ export default function PedidoDetalhePage() {
   const totalItens = useMemo(() => {
     return itens.reduce((total, item) => total + Number(item.quantidade ?? 0), 0);
   }, [itens]);
+
+  const statusAtualId = useMemo(() => {
+    const ultimoRastreamento = rastreamento[0];
+
+    if (ultimoRastreamento?.status_id) {
+      return Number(ultimoRastreamento.status_id);
+    }
+
+    return Number(pedido?.status_id ?? 0);
+  }, [rastreamento, pedido]);
 
   function moeda(valor?: number | null) {
     return new Intl.NumberFormat("pt-BR", {
@@ -260,30 +270,39 @@ export default function PedidoDetalhePage() {
 
   function statusTexto(p?: Pedido | null) {
     if (!p) return "—";
-    if (p.status_id === 16) return "Enviado";
-    if (p.status_id === 17) return "Entregue";
+
+    if (statusAtualId === 16) return "Enviado";
+    if (statusAtualId === 17) return "Entregue";
+
     if (normalizarStatus(p) === "refunded") return "Reembolsado";
     if (normalizarStatus(p) === "rejected") return "Recusado";
     if (statusPago(p)) return "Vendido";
+
     return "Pendente";
   }
 
   function statusIcone(p?: Pedido | null) {
     if (!p) return <FiClock />;
-    if (p.status_id === 16) return <FiTruck />;
-    if (p.status_id === 17) return <FiCheckCircle />;
+
+    if (statusAtualId === 16) return <FiTruck />;
+    if (statusAtualId === 17) return <FiCheckCircle />;
+
     if (statusPago(p)) return <FiCheckCircle />;
     if (normalizarStatus(p) === "rejected") return <FiXCircle />;
+
     return <FiClock />;
   }
 
   function statusClasse(p?: Pedido | null) {
     if (!p) return styles.pendente;
-    if (p.status_id === 16) return styles.enviado;
-    if (p.status_id === 17) return styles.entregue;
+
+    if (statusAtualId === 16) return styles.enviado;
+    if (statusAtualId === 17) return styles.entregue;
+
     if (normalizarStatus(p) === "refunded") return styles.reembolsado;
     if (normalizarStatus(p) === "rejected") return styles.recusado;
     if (statusPago(p)) return styles.pago;
+
     return styles.pendente;
   }
 
@@ -429,9 +448,9 @@ export default function PedidoDetalhePage() {
 
           <article
             className={`${styles.etapa} ${
-              pedido.status_id === 17
+              statusAtualId === 17
                 ? styles.etapaOk
-                : pedido.status_id === 16
+                : statusAtualId === 16
                 ? styles.etapaAtual
                 : styles.etapaPendente
             }`}
@@ -439,13 +458,17 @@ export default function PedidoDetalhePage() {
             <span>3</span>
             <FiTruck />
             <strong>
-              {pedido.status_id === 17
+              {statusAtualId === 17
                 ? "Entregue"
-                : pedido.status_id === 16
+                : statusAtualId === 16
                 ? "Enviado"
                 : "Preparando envio"}
             </strong>
-            <small>Atualizado em {data(pedido.atualizado_em)}</small>
+            <small>
+              {rastreamento[0]?.criado_em
+                ? data(rastreamento[0].criado_em)
+                : data(pedido.atualizado_em)}
+            </small>
           </article>
         </div>
       </section>
