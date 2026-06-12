@@ -1,0 +1,521 @@
+.page {
+  min-height: 100vh;
+  padding: 34px 18px 70px;
+  background:
+    radial-gradient(circle at top left, rgba(190, 24, 93, 0.13), transparent 34rem),
+    radial-gradient(circle at bottom right, rgba(251, 191, 36, 0.13), transparent 32rem),
+    linear-gradient(180deg, #fffafa 0%, #ffffff 45%, #fff7f9 100%);
+}
+
+.hero,
+.gridTopo,
+.cardPrincipal,
+.conteudoGrid {
+  width: min(1180px, 100%);
+  margin-inline: auto;
+}
+
+.voltar {
+  width: fit-content;
+  min-height: 42px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1px solid rgba(159, 52, 93, 0.14);
+  color: #7f1d3f;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-weight: 900;
+  box-shadow: 0 12px 28px rgba(53, 21, 32, 0.06);
+}
+
+.heroContent {
+  margin-top: 22px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+}
+
+.tag,
+.miniTag {
+  display: inline-flex;
+  width: fit-content;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(190, 24, 93, 0.1);
+  color: #9f1239;
+  font-size: 12px;
+  font-weight: 950;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.miniTag {
+  padding: 7px 12px;
+  font-size: 11px;
+}
+
+.hero h1 {
+  margin: 14px 0 8px;
+  color: #351520;
+  font-size: clamp(34px, 5vw, 58px);
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+}
+
+.hero p {
+  margin: 0;
+  max-width: 650px;
+  color: #7b5a64;
+  font-size: 16px;
+  line-height: 1.7;
+}
+
+.atualizar,
+.botaoPrimario {
+  min-height: 48px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 16px;
+  background: #a34362;
+  color: #ffffff;
+  font-weight: 950;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 16px 32px rgba(163, 67, 98, 0.22);
+}
+
+.gridTopo {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.cardInfo {
+  min-height: 120px;
+  padding: 18px;
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(159, 52, 93, 0.12);
+  box-shadow: 0 18px 46px rgba(53, 21, 32, 0.07);
+}
+
+.cardInfo svg {
+  color: #a34362;
+  margin-bottom: 12px;
+}
+
+.cardInfo span {
+  display: block;
+  color: #8a6871;
+  font-size: 12px;
+  font-weight: 850;
+  margin-bottom: 6px;
+}
+
+.cardInfo strong {
+  color: #351520;
+  font-size: 18px;
+}
+
+.cardTotal {
+  background: linear-gradient(135deg, #441927, #a34362);
+}
+
+.cardTotal svg,
+.cardTotal span,
+.cardTotal strong {
+  color: #ffffff;
+}
+
+.cardPrincipal,
+.cardResumo {
+  margin-top: 22px;
+  padding: 24px;
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(159, 52, 93, 0.12);
+  box-shadow: 0 22px 58px rgba(53, 21, 32, 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.tituloLinha {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.tituloLinha h2,
+.cardResumo h2 {
+  margin: 9px 0 0;
+  color: #351520;
+  font-size: 26px;
+  letter-spacing: -0.04em;
+}
+
+.status,
+.contador {
+  min-height: 34px;
+  padding: 0 13px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 950;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.aprovado {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.pendente {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.analise {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.recusado,
+.cancelado {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.reembolsado {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.contador {
+  background: #fff5f7;
+  color: #9f345d;
+}
+
+.etapasGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.etapaCard {
+  min-height: 160px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid rgba(159, 52, 93, 0.1);
+  background: #fff7f9;
+}
+
+.etapaTopo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.etapaTopo span {
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  color: #a34362;
+  box-shadow: 0 10px 24px rgba(53, 21, 32, 0.08);
+}
+
+.etapaTopo strong {
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.75);
+  color: #8a4059;
+  font-size: 13px;
+}
+
+.etapaCard h3 {
+  margin: 0;
+  color: #351520;
+  font-size: 16px;
+}
+
+.etapaCard p {
+  margin: 8px 0 0;
+  color: #7b5a64;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.etapaOk {
+  background: linear-gradient(135deg, #ecfdf5, #ffffff);
+  border-color: #bbf7d0;
+}
+
+.etapaOk .etapaTopo span {
+  color: #15803d;
+}
+
+.etapaAtual {
+  background: linear-gradient(135deg, #fff7ed, #ffffff);
+  border-color: #fed7aa;
+}
+
+.etapaAtual .etapaTopo span {
+  color: #c2410c;
+}
+
+.etapaErro {
+  background: linear-gradient(135deg, #fef2f2, #ffffff);
+  border-color: #fecaca;
+}
+
+.etapaErro .etapaTopo span {
+  color: #b91c1c;
+}
+
+.etapaPendente {
+  background: linear-gradient(135deg, #f8fafc, #ffffff);
+  border-color: #e2e8f0;
+  opacity: 0.78;
+}
+
+.etapaPendente .etapaTopo span {
+  color: #64748b;
+}
+
+.conteudoGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 22px;
+  align-items: flex-start;
+}
+
+.listaItens {
+  display: grid;
+  gap: 12px;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr) 80px 110px 110px;
+  gap: 12px;
+  align-items: center;
+  padding: 14px;
+  border-radius: 22px;
+  background: #fff7f9;
+  border: 1px solid rgba(159, 52, 93, 0.1);
+}
+
+.imagemBox {
+  width: 68px;
+  height: 68px;
+  border-radius: 18px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  background: #ffffff;
+  color: #a34362;
+}
+
+.imagemBox img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.itemInfo strong,
+.itemQtd strong,
+.itemValor strong {
+  display: block;
+  color: #351520;
+  font-size: 14px;
+}
+
+.itemInfo span,
+.itemQtd span,
+.itemValor span {
+  display: block;
+  color: #9a747e;
+  font-size: 12px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.linhaResumo,
+.infoPagamento {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(159, 52, 93, 0.12);
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.linhaResumo span,
+.infoPagamento span {
+  color: #8a6871;
+  font-weight: 800;
+}
+
+.linhaResumo strong,
+.infoPagamento strong {
+  color: #351520;
+  text-align: right;
+  word-break: break-word;
+}
+
+.totalResumo {
+  margin: 18px 0;
+  padding: 18px;
+  border-radius: 22px;
+  background: linear-gradient(135deg, #441927, #a34362);
+  color: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.totalResumo strong {
+  font-size: 22px;
+}
+
+.estado {
+  min-height: 70vh;
+  width: min(680px, 100%);
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  color: #6d4b55;
+}
+
+.estado h2 {
+  margin: 14px 0 6px;
+  color: #351520;
+}
+
+.estado p {
+  margin: 0 0 18px;
+}
+
+.loader {
+  width: 44px;
+  height: 44px;
+  border: 4px solid rgba(159, 52, 93, 0.14);
+  border-top-color: #a34362;
+  border-radius: 999px;
+  animation: girar 0.85s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 980px) {
+  .heroContent,
+  .tituloLinha {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .gridTopo,
+  .etapasGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .conteudoGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .item {
+    grid-template-columns: 68px minmax(0, 1fr);
+  }
+
+  .itemQtd,
+  .itemValor {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 620px) {
+  .gridTopo,
+  .etapasGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .cardPrincipal,
+  .cardResumo {
+    padding: 18px;
+    border-radius: 24px;
+  }
+
+  .item {
+    grid-template-columns: 1fr;
+  }
+
+  .imagemBox {
+    width: 100%;
+    height: 180px;
+  }
+
+  .itemQtd,
+  .itemValor {
+    grid-column: auto;
+  }
+}.resumoHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.resumoHeader h2 {
+  margin: 0;
+  color: #351520;
+}
+
+.resumoBadge {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  color: #059669;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.avisoCompra {
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.avisoCompra svg {
+  flex-shrink: 0;
+  color: #10b981;
+}
