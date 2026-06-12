@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { toast, ToastContainer } from "react-toastify";
 
 import {
@@ -14,18 +14,49 @@ import {
   FiTruck,
   FiShield,
   FiMail,
+  FiRefreshCw,
 } from "react-icons/fi";
 
 import styles from "./pedidoConfirmado.module.css";
 
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "https://api.universoimperio.com.br";
+
 export default function PedidoConfirmadoPage() {
   const params = useParams();
+  const router = useRouter();
+
+  const [limpandoCarrinho, setLimpandoCarrinho] = useState(true);
 
   const pedidoId = Array.isArray(params?.id) ? params.id[0] : params?.id;
 
   useEffect(() => {
-    toast.dismiss();
-  }, []);
+    async function finalizarCarrinho() {
+      try {
+        toast.dismiss();
+
+        await fetch(`${API_URL}/carrinho/finalizar`, {
+          method: "PUT",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        localStorage.removeItem("carrinho");
+        localStorage.removeItem("cart");
+        localStorage.removeItem("itens_carrinho");
+
+        router.refresh();
+      } catch (error) {
+        console.error("Erro ao finalizar carrinho:", error);
+      } finally {
+        setLimpandoCarrinho(false);
+      }
+    }
+
+    finalizarCarrinho();
+  }, [router]);
 
   return (
     <main className={styles.page}>
@@ -34,6 +65,7 @@ export default function PedidoConfirmadoPage() {
         closeOnClick
         pauseOnHover={false}
         newestOnTop
+        limit={1}
       />
 
       <div className={styles.bgGlowOne} />
@@ -41,10 +73,14 @@ export default function PedidoConfirmadoPage() {
 
       <section className={styles.card}>
         <div className={styles.successCircle}>
-          <FiCheckCircle />
+          {limpandoCarrinho ? <FiRefreshCw /> : <FiCheckCircle />}
         </div>
 
-        <span className={styles.tag}>Pagamento aprovado com sucesso</span>
+        <span className={styles.tag}>
+          {limpandoCarrinho
+            ? "Finalizando pedido..."
+            : "Pagamento aprovado com sucesso"}
+        </span>
 
         <h1>Pedido confirmado! 🎉</h1>
 
