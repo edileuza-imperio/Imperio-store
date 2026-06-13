@@ -147,16 +147,6 @@ export default function ProdutosPage() {
           <option value="12">Mostrar 12</option>
           <option value="todos">Mostrar todos</option>
         </select>
-
-        <button
-          type="button"
-          className={styles.zeroStockButton}
-          onClick={zerarEstoque}
-          disabled={zerando}
-        >
-          <RotateCcw size={17} />
-          {zerando ? "Zerando..." : "Zerar estoque"}
-        </button>
       </div>
 
       <div className={styles.grid}>
@@ -250,10 +240,22 @@ export default function ProdutosPage() {
         })}
       </div>
 
+      <button
+        type="button"
+        className={styles.floatingZeroButton}
+        onClick={zerarEstoque}
+        disabled={zerando}
+        aria-label="Zerar estoque"
+        title="Zerar estoque"
+      >
+        <RotateCcw size={28} />
+      </button>
+
       <Link
         href="/painel/sistema/produtos/cadastrar"
         className={styles.floatingButton}
         aria-label="Adicionar produto"
+        title="Adicionar produto"
       >
         <Plus size={28} />
       </Link>
