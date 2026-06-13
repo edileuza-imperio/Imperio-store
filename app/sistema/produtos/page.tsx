@@ -13,6 +13,7 @@ import {
   Search,
   Plus,
   Boxes,
+  RotateCcw,
 } from "lucide-react";
 
 import { useEffect, useMemo, useState } from "react";
@@ -26,11 +27,15 @@ interface Produto {
   preco: string;
   sku: string;
   marca: string;
+  quantidade?: number;
+  reservado?: number;
+  disponivel?: number;
 }
 
 export default function ProdutosPage() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [zerando, setZerando] = useState(false);
   const [busca, setBusca] = useState("");
   const [limite, setLimite] = useState("6");
 
@@ -40,9 +45,10 @@ export default function ProdutosPage() {
 
   async function carregarProdutos() {
     try {
-      const response = await api.get("/painel/produtos");
+      setLoading(true);
 
-      const lista = response.data?.dados?.dados || [];
+      const response = await api.get("/painel/produtos");
+      const lista = response.data?.dados?.dados || response.data?.dados || [];
 
       setProdutos(Array.isArray(lista) ? lista : []);
     } catch (error) {
@@ -67,13 +73,37 @@ export default function ProdutosPage() {
     }
   }
 
+  async function zerarEstoque() {
+    const confirmar = confirm(
+      "Tem certeza que deseja zerar o estoque de TODOS os produtos?\n\nOs produtos não serão apagados, apenas ficarão com estoque 0."
+    );
+
+    if (!confirmar) return;
+
+    try {
+      setZerando(true);
+
+      await api.put("/painel/produtos/zerar-estoque");
+
+      alert("Estoque zerado com sucesso.");
+
+      await carregarProdutos();
+    } catch (error) {
+      console.error("Erro ao zerar estoque:", error);
+      alert("Erro ao zerar estoque.");
+    } finally {
+      setZerando(false);
+    }
+  }
+
   const produtosFiltrados = useMemo(() => {
     const filtro = busca.toLowerCase();
 
     return produtos.filter((p) => {
       return (
         (p.nome || "").toLowerCase().includes(filtro) ||
-        (p.marca || "").toLowerCase().includes(filtro)
+        (p.marca || "").toLowerCase().includes(filtro) ||
+        (p.sku || "").toLowerCase().includes(filtro)
       );
     });
   }, [produtos, busca]);
@@ -89,7 +119,6 @@ export default function ProdutosPage() {
 
   return (
     <div className={styles.container}>
-      {/* HEADER */}
       <div className={styles.header}>
         <div>
           <h1>Sistema de Produtos</h1>
@@ -102,7 +131,6 @@ export default function ProdutosPage() {
         </div>
       </div>
 
-      {/* TOOLBAR */}
       <div className={styles.toolbar}>
         <div className={styles.searchBox}>
           <Search size={18} />
@@ -119,9 +147,18 @@ export default function ProdutosPage() {
           <option value="12">Mostrar 12</option>
           <option value="todos">Mostrar todos</option>
         </select>
+
+        <button
+          type="button"
+          className={styles.zeroStockButton}
+          onClick={zerarEstoque}
+          disabled={zerando}
+        >
+          <RotateCcw size={17} />
+          {zerando ? "Zerando..." : "Zerar estoque"}
+        </button>
       </div>
 
-      {/* GRID */}
       <div className={styles.grid}>
         {produtosExibidos.map((produto) => {
           const descricao =
@@ -133,6 +170,14 @@ export default function ProdutosPage() {
           const imagem = imgPath
             ? `${api.defaults.baseURL}/${imgPath}`
             : "/placeholder.png";
+
+          const disponivel = Number(
+            produto.disponivel ??
+              Number(produto.quantidade || 0) -
+                Number(produto.reservado || 0)
+          );
+
+          const esgotado = disponivel <= 0;
 
           return (
             <article key={produto.id_produto} className={styles.card}>
@@ -148,6 +193,12 @@ export default function ProdutosPage() {
                 <span className={styles.price}>
                   R$ {Number(produto.preco || 0).toFixed(2)}
                 </span>
+
+                {esgotado && (
+                  <span className={styles.soldOutBadge}>
+                    ESGOTADO
+                  </span>
+                )}
               </div>
 
               <div className={styles.content}>
@@ -168,6 +219,11 @@ export default function ProdutosPage() {
                   <span>
                     <Package size={14} />
                     {produto.sku || "Sem SKU"}
+                  </span>
+
+                  <span>
+                    <Boxes size={14} />
+                    Estoque: {Math.max(disponivel, 0)}
                   </span>
                 </div>
 
@@ -194,9 +250,8 @@ export default function ProdutosPage() {
         })}
       </div>
 
-      {/* BOTÃO FLUTUANTE (AGORA FUNCIONANDO) */}
       <Link
-        href="sistema/produtos/cadastrar"
+        href="/painel/sistema/produtos/cadastrar"
         className={styles.floatingButton}
         aria-label="Adicionar produto"
       >

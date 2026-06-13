@@ -329,3 +329,38 @@
     gap: 20px;
   }
 }
+.zeroStockButton {
+  min-height: 44px;
+  padding: 0 16px;
+  border: none;
+  border-radius: 14px;
+  background: #7f1d1d;
+  color: #fff;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.zeroStockButton:hover {
+  filter: brightness(1.08);
+}
+
+.zeroStockButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.soldOutBadge {
+  position: absolute;
+  left: 14px;
+  top: 14px;
+  padding: 7px 11px;
+  border-radius: 999px;
+  background: #111827;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+}
