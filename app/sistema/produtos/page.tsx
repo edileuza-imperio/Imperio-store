@@ -16,6 +16,8 @@ import {
   RotateCcw,
   CheckCircle,
   XCircle,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 import { useEffect, useMemo, useState } from "react";
@@ -39,11 +41,16 @@ export default function ProdutosPage() {
   const [loading, setLoading] = useState(true);
   const [atualizandoId, setAtualizandoId] = useState<number | null>(null);
   const [busca, setBusca] = useState("");
-  const [limite, setLimite] = useState("6");
+  const [porPagina, setPorPagina] = useState("8");
+  const [paginaAtual, setPaginaAtual] = useState(1);
 
   useEffect(() => {
     carregarProdutos();
   }, []);
+
+  useEffect(() => {
+    setPaginaAtual(1);
+  }, [busca, porPagina]);
 
   async function carregarProdutos() {
     try {
@@ -113,11 +120,7 @@ export default function ProdutosPage() {
   }
 
   async function colocarComoEsgotado(produto: Produto) {
-    const confirmar = confirm(
-      `Deseja deixar "${produto.nome}" como ESGOTADO?`
-    );
-
-    if (!confirmar) return;
+    if (!confirm(`Deseja deixar "${produto.nome}" como ESGOTADO?`)) return;
 
     await atualizarEstoqueProduto(produto, 0);
   }
@@ -152,10 +155,23 @@ export default function ProdutosPage() {
     });
   }, [produtos, busca]);
 
-  const produtosExibidos =
-    limite === "todos"
-      ? produtosFiltrados
-      : produtosFiltrados.slice(0, Number(limite));
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(produtosFiltrados.length / Number(porPagina))
+  );
+
+  const inicio = (paginaAtual - 1) * Number(porPagina);
+  const fim = inicio + Number(porPagina);
+
+  const produtosExibidos = produtosFiltrados.slice(inicio, fim);
+
+  function voltarPagina() {
+    setPaginaAtual((pagina) => Math.max(1, pagina - 1));
+  }
+
+  function avancarPagina() {
+    setPaginaAtual((pagina) => Math.min(totalPaginas, pagina + 1));
+  }
 
   if (loading) {
     return <div className={styles.loading}>Carregando produtos...</div>;
@@ -176,21 +192,12 @@ export default function ProdutosPage() {
       </div>
 
       <div className={styles.toolbar}>
-        <div className={styles.searchBox}>
-          <Search size={18} />
-
-          <input
-            placeholder="Pesquisar produto..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
-        </div>
-
-        <select value={limite} onChange={(e) => setLimite(e.target.value)}>
-          <option value="6">Mostrar 6</option>
-          <option value="9">Mostrar 9</option>
-          <option value="12">Mostrar 12</option>
-          <option value="todos">Mostrar todos</option>
+      
+        <select value={porPagina} onChange={(e) => setPorPagina(e.target.value)}>
+          <option value="3">3 por página</option>
+          <option value="8">8 por página</option>
+          <option value="12">12 por página</option>
+          <option value="16">16 por página</option>
         </select>
       </div>
 
@@ -222,7 +229,7 @@ export default function ProdutosPage() {
                   alt={produto.nome}
                   fill
                   className={styles.image}
-                  sizes="(max-width: 768px) 100vw, 33vw"
+                  sizes="(max-width: 768px) 100vw, 25vw"
                 />
 
                 <span className={styles.price}>
@@ -240,24 +247,24 @@ export default function ProdutosPage() {
                 <h3>{produto.nome}</h3>
 
                 <p>
-                  {descricao.length > 160
-                    ? descricao.substring(0, 160) + "..."
+                  {descricao.length > 90
+                    ? descricao.substring(0, 90) + "..."
                     : descricao}
                 </p>
 
                 <div className={styles.info}>
                   <span>
-                    <Tag size={14} />
+                    <Tag size={13} />
                     {produto.marca || "Sem marca"}
                   </span>
 
                   <span>
-                    <Package size={14} />
+                    <Package size={13} />
                     {produto.sku || "Sem SKU"}
                   </span>
 
                   <span>
-                    <Boxes size={14} />
+                    <Boxes size={13} />
                     Estoque: {Math.max(disponivel, 0)}
                   </span>
                 </div>
@@ -270,8 +277,8 @@ export default function ProdutosPage() {
                       onClick={() => retirarDoEsgotado(produto)}
                       disabled={atualizando}
                     >
-                      <CheckCircle size={16} />
-                      {atualizando ? "Atualizando..." : "Tirar do esgotado"}
+                      <CheckCircle size={15} />
+                      {atualizando ? "Atualizando..." : "Ativar"}
                     </button>
                   ) : (
                     <button
@@ -280,8 +287,8 @@ export default function ProdutosPage() {
                       onClick={() => colocarComoEsgotado(produto)}
                       disabled={atualizando}
                     >
-                      <XCircle size={16} />
-                      {atualizando ? "Atualizando..." : "Marcar esgotado"}
+                      <XCircle size={15} />
+                      {atualizando ? "Atualizando..." : "Esgotar"}
                     </button>
                   )}
 
@@ -291,8 +298,8 @@ export default function ProdutosPage() {
                     onClick={() => retirarDoEsgotado(produto)}
                     disabled={atualizando}
                   >
-                    <RotateCcw size={16} />
-                    Alterar estoque
+                    <RotateCcw size={15} />
+                    Estoque
                   </button>
                 </div>
 
@@ -301,7 +308,7 @@ export default function ProdutosPage() {
                     href={`/painel/sistema/produtos/editar/${produto.id_produto}`}
                     className={styles.editButton}
                   >
-                    <Pencil size={16} />
+                    <Pencil size={15} />
                     Editar
                   </Link>
 
@@ -310,7 +317,7 @@ export default function ProdutosPage() {
                     className={styles.deleteButton}
                     onClick={() => excluirProduto(produto.id_produto)}
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={15} />
                     Excluir
                   </button>
                 </div>
@@ -318,6 +325,30 @@ export default function ProdutosPage() {
             </article>
           );
         })}
+      </div>
+
+      <div className={styles.pagination}>
+        <button
+          type="button"
+          onClick={voltarPagina}
+          disabled={paginaAtual === 1}
+        >
+          <ChevronLeft size={18} />
+          Voltar
+        </button>
+
+        <span>
+          Página {paginaAtual} de {totalPaginas}
+        </span>
+
+        <button
+          type="button"
+          onClick={avancarPagina}
+          disabled={paginaAtual === totalPaginas}
+        >
+          Próxima
+          <ChevronRight size={18} />
+        </button>
       </div>
 
       <Link
