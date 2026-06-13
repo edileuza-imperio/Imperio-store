@@ -41,7 +41,7 @@ export default function ProdutosPage() {
   const [loading, setLoading] = useState(true);
   const [atualizandoId, setAtualizandoId] = useState<number | null>(null);
   const [busca, setBusca] = useState("");
-  const [porPagina, setPorPagina] = useState("8");
+  const [porPagina, setPorPagina] = useState("3");
   const [paginaAtual, setPaginaAtual] = useState(1);
 
   useEffect(() => {
