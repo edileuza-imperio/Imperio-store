@@ -21,10 +21,18 @@ export type Produto = {
   preco?: number | string;
   preco_promocional?: number | string;
   imagem?: string;
+  miniatura?: string;
+
+  quantidade?: number | string;
+  reservado?: number | string;
+  disponivel?: number | string;
+  estoque?: number | string;
 };
 
 export type ProdutoComImagem = Produto & {
   imagem_resolvida?: string;
+  estoque_disponivel: number;
+  esgotado: boolean;
 };
 
 type ApiResponse = {
@@ -37,6 +45,22 @@ type ApiResponse = {
     dados?: Produto[];
   };
 };
+
+function numero(valor: unknown): number {
+  const n = Number(valor ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function calcularDisponivel(produto: Produto): number {
+  if (produto.disponivel !== undefined && produto.disponivel !== null) {
+    return Math.max(numero(produto.disponivel), 0);
+  }
+
+  const quantidade = numero(produto.quantidade ?? produto.estoque ?? 0);
+  const reservado = numero(produto.reservado ?? 0);
+
+  return Math.max(quantidade - reservado, 0);
+}
 
 export function useCategoria(slugParam: string) {
   const [categoria, setCategoria] = useState<Categoria | null>(null);
@@ -67,10 +91,16 @@ export function useCategoria(slugParam: string) {
         ? response.data.dados.dados
         : [];
 
-      const produtosTratados: ProdutoComImagem[] = produtosApi.map((produto) => ({
-        ...produto,
-        imagem_resolvida: imagemFundo(produto.imagem),
-      }));
+      const produtosTratados: ProdutoComImagem[] = produtosApi.map((produto) => {
+        const estoqueDisponivel = calcularDisponivel(produto);
+
+        return {
+          ...produto,
+          imagem_resolvida: imagemFundo(produto.imagem || produto.miniatura || ""),
+          estoque_disponivel: estoqueDisponivel,
+          esgotado: estoqueDisponivel <= 0,
+        };
+      });
 
       setCategoria(categoriaApi);
       setProdutos(produtosTratados);
