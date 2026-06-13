@@ -21,9 +21,10 @@ import { formatarPreco } from "@/hooks/destaque/functions";
 import { moverCarousel } from "@/hooks/carrinho";
 import { useAutoplayRef, useCarouselRef } from "@/hooks/vitrine.service";
 
-import ModalCarrinho from "@/app/(site)/Vitrine/Destaques/modal/modal";
-import SkeletonDestaques from "@/app/(site)/Vitrine/Destaques/destaque/SkeletonDestaques";
+
 import { ItemResolvido, useVitrine, Vitrine } from "./useVitrine";
+import SkeletonDestaques from "./destaque/SkeletonDestaques";
+import ModalCarrinho from "./modal/modal";
 
 type Props = {
   slug?: string;
