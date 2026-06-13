@@ -2,8 +2,9 @@
 
 import api from "@/Api/conectar";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { ReactNode, useEffect, useMemo, useState } from "react";
+
 import {
   LayoutDashboard,
   Box,
@@ -15,6 +16,8 @@ import {
   ChevronRight,
   Menu,
   X,
+  LogOut,
+  Settings,
 } from "lucide-react";
 
 import styles from "./DashboardLayout.module.css";
@@ -49,19 +52,69 @@ const icons = {
   menu: MenuSquare,
   imagem: Image,
   "credit-card": CreditCard,
+  settings: Settings,
 };
+
+const sidebarPadrao: MenuItem[] = [
+  {
+    label: "Dashboard",
+    icon: "dashboard",
+    url: "/painel/sistema",
+  },
+  {
+    label: "Produtos",
+    icon: "box",
+    children: [
+      {
+        label: "Todos os produtos",
+        url: "/painel/sistema/produtos",
+      },
+      {
+        label: "Cadastrar produto",
+        url: "/painel/sistema/produtos/cadastrar",
+      },
+    ],
+  },
+  {
+    label: "Categorias",
+    icon: "tags",
+    url: "/painel/sistema/categorias",
+  },
+  {
+    label: "Usuários",
+    icon: "users",
+    url: "/painel/sistema/usuarios",
+  },
+  {
+    label: "Pedidos",
+    icon: "credit-card",
+    url: "/painel/sistema/pedidos",
+  },
+  {
+    label: "Banners",
+    icon: "imagem",
+    url: "/painel/sistema/banners",
+  },
+  {
+    label: "Configurações",
+    icon: "settings",
+    url: "/painel/sistema/site",
+  },
+];
 
 export default function DashboardLayout({
   children,
 }: {
-  children?: React.ReactNode;
+  children?: ReactNode;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
 
-  const [sidebar, setSidebar] = useState<MenuItem[]>([]);
+  const [sidebar, setSidebar] = useState<MenuItem[]>(sidebarPadrao);
   const [openMenu, setOpenMenu] = useState<number | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [usuario, setUsuario] = useState<Usuario | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
   useEffect(() => {
     carregarSidebar();
@@ -70,36 +123,80 @@ export default function DashboardLayout({
 
   useEffect(() => {
     setSidebarOpen(false);
-  }, [pathname]);
+
+    const indexAtivo = sidebar.findIndex((item) =>
+      item.children?.some((child) => pathname.startsWith(child.url))
+    );
+
+    if (indexAtivo >= 0) {
+      setOpenMenu(indexAtivo);
+    }
+  }, [pathname, sidebar]);
 
   async function carregarSidebar() {
     try {
       const response = await api.get("/painel/dados");
 
-      setSidebar(response.data?.dados?.dados?.sidebar || []);
-    } catch {
-      setSidebar([]);
+      const menuApi = response.data?.dados?.dados?.sidebar;
+
+      if (Array.isArray(menuApi) && menuApi.length > 0) {
+        setSidebar(menuApi);
+      } else {
+        setSidebar(sidebarPadrao);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar sidebar:", error);
+      setSidebar(sidebarPadrao);
     }
   }
 
   async function carregarUsuario() {
     try {
-      const response = await api.get("/me");
+      setLoadingUser(true);
 
-      const usuarioAPI = response.data?.dados?.usuario;
+      const response = await api.get("/me", {
+        withCredentials: true,
+      });
 
-      if (usuarioAPI) {
-        setUsuario(usuarioAPI);
-      } else {
-        setUsuario(null);
-      }
-    } catch {
+      const usuarioAPI =
+        response.data?.dados?.usuario ||
+        response.data?.dados?.dados?.usuario ||
+        response.data?.usuario ||
+        null;
+
+      setUsuario(usuarioAPI);
+    } catch (error) {
+      console.error("Erro ao carregar usuário:", error);
       setUsuario(null);
+    } finally {
+      setLoadingUser(false);
+    }
+  }
+
+  async function sair() {
+    try {
+      await api.post(
+        "/logout",
+        {},
+        {
+          withCredentials: true,
+        }
+      );
+    } catch {
+      // mesmo se falhar, manda para login
+    } finally {
+      router.push("/login");
     }
   }
 
   function toggleMenu(index: number) {
     setOpenMenu((current) => (current === index ? null : index));
+  }
+
+  function rotaAtiva(url?: string) {
+    if (!url) return false;
+
+    return pathname === url || pathname.startsWith(`${url}/`);
   }
 
   const iniciais = useMemo(() => {
@@ -113,17 +210,23 @@ export default function DashboardLayout({
       return partes[0].charAt(0).toUpperCase();
     }
 
-    return `${partes[0].charAt(0)}${partes[
-      partes.length - 1
-    ].charAt(0)}`.toUpperCase();
+    return `${partes[0].charAt(0)}${partes[partes.length - 1].charAt(
+      0
+    )}`.toUpperCase();
   }, [usuario?.nome]);
+
+  const nomeUsuario = usuario?.nome || (loadingUser ? "Carregando..." : "Usuário");
+  const emailUsuario =
+    usuario?.email || (loadingUser ? "Buscando usuário..." : "Sem e-mail");
 
   return (
     <div className={styles.layout}>
       {sidebarOpen && (
-        <div
+        <button
+          type="button"
           className={styles.overlay}
           onClick={() => setSidebarOpen(false)}
+          aria-label="Fechar menu lateral"
         />
       )}
 
@@ -141,24 +244,24 @@ export default function DashboardLayout({
           <X size={22} />
         </button>
 
-        <div className={styles.brand}>
+        <Link href="/painel/sistema" className={styles.brand}>
           <div className={styles.brandLogo}>I</div>
 
           <div>
             <h1>Império</h1>
             <span>Painel Administrativo</span>
           </div>
-        </div>
+        </Link>
 
         <nav className={styles.menu}>
           {sidebar.map((item, index) => {
-            const hasChildren = !!item.children?.length;
+            const hasChildren = Boolean(item.children?.length);
             const Icon =
               icons[item.icon as keyof typeof icons] || LayoutDashboard;
 
             const isParentActive =
-              item.url === pathname ||
-              item.children?.some((child) => child.url === pathname);
+              rotaAtiva(item.url) ||
+              Boolean(item.children?.some((child) => rotaAtiva(child.url)));
 
             if (!hasChildren && item.url) {
               return (
@@ -206,7 +309,7 @@ export default function DashboardLayout({
                         key={`${child.label}-${childIndex}`}
                         href={child.url}
                         className={`${styles.submenuItem} ${
-                          pathname === child.url ? styles.activeSubmenu : ""
+                          rotaAtiva(child.url) ? styles.activeSubmenu : ""
                         }`}
                       >
                         {child.label}
@@ -218,6 +321,13 @@ export default function DashboardLayout({
             );
           })}
         </nav>
+
+        <div className={styles.sidebarFooter}>
+          <button type="button" className={styles.logoutButton} onClick={sair}>
+            <LogOut size={18} />
+            <span>Sair</span>
+          </button>
+        </div>
       </aside>
 
       <div className={styles.content}>
@@ -240,8 +350,8 @@ export default function DashboardLayout({
 
           <div className={styles.user}>
             <div className={styles.userInfo}>
-              <strong>{usuario?.nome || "Carregando..."}</strong>
-              <small>{usuario?.email || "Buscando usuário..."}</small>
+              <strong>{nomeUsuario}</strong>
+              <small>{emailUsuario}</small>
             </div>
 
             <div className={styles.avatar}>{iniciais}</div>
