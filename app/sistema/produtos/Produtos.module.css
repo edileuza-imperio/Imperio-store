@@ -271,4 +271,69 @@
   .floatingZeroButton {
     bottom: 96px;
   }
+}.stockBadge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  z-index: 2;
+}
+
+.stockActions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.restoreButton,
+.soldOutButton,
+.changeStockButton {
+  border: none;
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.restoreButton {
+  background: #16a34a;
+  color: #fff;
+}
+
+.soldOutButton {
+  background: #dc2626;
+  color: #fff;
+}
+
+.changeStockButton {
+  background: #2563eb;
+  color: #fff;
+}
+
+.restoreButton:disabled,
+.soldOutButton:disabled,
+.changeStockButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.restoreButton:hover {
+  background: #15803d;
+}
+
+.soldOutButton:hover {
+  background: #b91c1c;
+}
+
+.changeStockButton:hover {
+  background: #1d4ed8;
 }

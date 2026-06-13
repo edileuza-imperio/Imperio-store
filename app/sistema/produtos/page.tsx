@@ -14,6 +14,8 @@ import {
   Plus,
   Boxes,
   RotateCcw,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 
 import { useEffect, useMemo, useState } from "react";
@@ -35,7 +37,7 @@ interface Produto {
 export default function ProdutosPage() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [zerando, setZerando] = useState(false);
+  const [atualizandoId, setAtualizandoId] = useState<number | null>(null);
   const [busca, setBusca] = useState("");
   const [limite, setLimite] = useState("6");
 
@@ -46,10 +48,8 @@ export default function ProdutosPage() {
   async function carregarProdutos() {
     try {
       setLoading(true);
-
       const response = await api.get("/painel/produtos");
       const lista = response.data?.dados?.dados || response.data?.dados || [];
-
       setProdutos(Array.isArray(lista) ? lista : []);
     } catch (error) {
       console.error("Erro ao carregar produtos:", error);
@@ -64,36 +64,55 @@ export default function ProdutosPage() {
 
     try {
       await api.delete(`/painel/produto/${id}`);
-
-      setProdutos((prev) =>
-        prev.filter((item) => item.id_produto !== id)
-      );
+      setProdutos((prev) => prev.filter((item) => item.id_produto !== id));
     } catch {
       alert("Erro ao excluir produto.");
     }
   }
 
-  async function zerarEstoque() {
-    const confirmar = confirm(
-      "Tem certeza que deseja zerar o estoque de TODOS os produtos?\n\nOs produtos não serão apagados, apenas ficarão com estoque 0."
-    );
-
-    if (!confirmar) return;
-
+  async function atualizarEstoqueProduto(
+    produto: Produto,
+    quantidade: number
+  ) {
     try {
-      setZerando(true);
+      setAtualizandoId(produto.id_produto);
 
-      await api.put("/painel/produtos/zerar-estoque");
-
-      alert("Estoque zerado com sucesso.");
+      await api.put(`/painel/produto/${produto.id_produto}/estoque`, {
+        quantidade,
+        reservado: 0,
+      });
 
       await carregarProdutos();
     } catch (error) {
-      console.error("Erro ao zerar estoque:", error);
-      alert("Erro ao zerar estoque.");
+      console.error("Erro ao atualizar estoque:", error);
+      alert("Erro ao atualizar estoque.");
     } finally {
-      setZerando(false);
+      setAtualizandoId(null);
     }
+  }
+
+  async function colocarComoEsgotado(produto: Produto) {
+    if (!confirm(`Deseja deixar "${produto.nome}" como ESGOTADO?`)) return;
+
+    await atualizarEstoqueProduto(produto, 0);
+  }
+
+  async function retirarDoEsgotado(produto: Produto) {
+    const valor = prompt(
+      `Informe a quantidade em estoque para "${produto.nome}":`,
+      "1"
+    );
+
+    if (valor === null) return;
+
+    const quantidade = Number(valor);
+
+    if (!Number.isFinite(quantidade) || quantidade < 1) {
+      alert("Informe uma quantidade válida maior que zero.");
+      return;
+    }
+
+    await atualizarEstoqueProduto(produto, quantidade);
   }
 
   const produtosFiltrados = useMemo(() => {
@@ -122,7 +141,7 @@ export default function ProdutosPage() {
       <div className={styles.header}>
         <div>
           <h1>Sistema de Produtos</h1>
-          <p>Controle todos os produtos cadastrados</p>
+          <p>Escolha quais produtos têm estoque ou ficam esgotados</p>
         </div>
 
         <div className={styles.stats}>
@@ -151,23 +170,23 @@ export default function ProdutosPage() {
 
       <div className={styles.grid}>
         {produtosExibidos.map((produto) => {
-          const descricao =
-            produto.descricao || "Sem descrição disponível";
+          const descricao = produto.descricao || "Sem descrição disponível";
 
-          const imgPath =
-            produto.imagem || produto.miniatura || "";
+          const imgPath = produto.imagem || produto.miniatura || "";
 
           const imagem = imgPath
             ? `${api.defaults.baseURL}/${imgPath}`
             : "/placeholder.png";
 
+          const quantidadeAtual = Number(produto.quantidade || 0);
+          const reservadoAtual = Number(produto.reservado || 0);
+
           const disponivel = Number(
-            produto.disponivel ??
-              Number(produto.quantidade || 0) -
-                Number(produto.reservado || 0)
+            produto.disponivel ?? quantidadeAtual - reservadoAtual
           );
 
           const esgotado = disponivel <= 0;
+          const atualizando = atualizandoId === produto.id_produto;
 
           return (
             <article key={produto.id_produto} className={styles.card}>
@@ -184,10 +203,10 @@ export default function ProdutosPage() {
                   R$ {Number(produto.preco || 0).toFixed(2)}
                 </span>
 
-                {esgotado && (
-                  <span className={styles.soldOutBadge}>
-                    ESGOTADO
-                  </span>
+                {esgotado ? (
+                  <span className={styles.soldOutBadge}>ESGOTADO</span>
+                ) : (
+                  <span className={styles.stockBadge}>COM ESTOQUE</span>
                 )}
               </div>
 
@@ -217,6 +236,40 @@ export default function ProdutosPage() {
                   </span>
                 </div>
 
+                <div className={styles.stockActions}>
+                  {esgotado ? (
+                    <button
+                      type="button"
+                      className={styles.restoreButton}
+                      onClick={() => retirarDoEsgotado(produto)}
+                      disabled={atualizando}
+                    >
+                      <CheckCircle size={16} />
+                      Tirar do esgotado
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      className={styles.soldOutButton}
+                      onClick={() => colocarComoEsgotado(produto)}
+                      disabled={atualizando}
+                    >
+                      <XCircle size={16} />
+                      Marcar esgotado
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    className={styles.changeStockButton}
+                    onClick={() => retirarDoEsgotado(produto)}
+                    disabled={atualizando}
+                  >
+                    <RotateCcw size={16} />
+                    Alterar estoque
+                  </button>
+                </div>
+
                 <div className={styles.actions}>
                   <Link
                     href={`/painel/sistema/produtos/editar/${produto.id_produto}`}
@@ -239,17 +292,6 @@ export default function ProdutosPage() {
           );
         })}
       </div>
-
-      <button
-        type="button"
-        className={styles.floatingZeroButton}
-        onClick={zerarEstoque}
-        disabled={zerando}
-        aria-label="Zerar estoque"
-        title="Zerar estoque"
-      >
-        <RotateCcw size={28} />
-      </button>
 
       <Link
         href="/painel/sistema/produtos/cadastrar"
