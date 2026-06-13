@@ -48,8 +48,10 @@ export default function ProdutosPage() {
   async function carregarProdutos() {
     try {
       setLoading(true);
+
       const response = await api.get("/painel/produtos");
       const lista = response.data?.dados?.dados || response.data?.dados || [];
+
       setProdutos(Array.isArray(lista) ? lista : []);
     } catch (error) {
       console.error("Erro ao carregar produtos:", error);
@@ -65,22 +67,41 @@ export default function ProdutosPage() {
     try {
       await api.delete(`/painel/produto/${id}`);
       setProdutos((prev) => prev.filter((item) => item.id_produto !== id));
-    } catch {
+    } catch (error) {
+      console.error("Erro ao excluir produto:", error);
       alert("Erro ao excluir produto.");
     }
   }
 
-  async function atualizarEstoqueProduto(
-    produto: Produto,
-    quantidade: number
-  ) {
+  async function atualizarEstoqueProduto(produto: Produto, quantidade: number) {
     try {
       setAtualizandoId(produto.id_produto);
 
-      await api.put(`/painel/produto/${produto.id_produto}/estoque`, {
-        quantidade,
-        reservado: 0,
-      });
+      await api.put(
+        `/painel/produto/${produto.id_produto}/estoque`,
+        {
+          quantidade,
+          reservado: 0,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      setProdutos((prev) =>
+        prev.map((item) =>
+          item.id_produto === produto.id_produto
+            ? {
+                ...item,
+                quantidade,
+                reservado: 0,
+                disponivel: quantidade,
+              }
+            : item
+        )
+      );
 
       await carregarProdutos();
     } catch (error) {
@@ -92,7 +113,11 @@ export default function ProdutosPage() {
   }
 
   async function colocarComoEsgotado(produto: Produto) {
-    if (!confirm(`Deseja deixar "${produto.nome}" como ESGOTADO?`)) return;
+    const confirmar = confirm(
+      `Deseja deixar "${produto.nome}" como ESGOTADO?`
+    );
+
+    if (!confirmar) return;
 
     await atualizarEstoqueProduto(produto, 0);
   }
@@ -116,13 +141,13 @@ export default function ProdutosPage() {
   }
 
   const produtosFiltrados = useMemo(() => {
-    const filtro = busca.toLowerCase();
+    const filtro = busca.toLowerCase().trim();
 
-    return produtos.filter((p) => {
+    return produtos.filter((produto) => {
       return (
-        (p.nome || "").toLowerCase().includes(filtro) ||
-        (p.marca || "").toLowerCase().includes(filtro) ||
-        (p.sku || "").toLowerCase().includes(filtro)
+        (produto.nome || "").toLowerCase().includes(filtro) ||
+        (produto.marca || "").toLowerCase().includes(filtro) ||
+        (produto.sku || "").toLowerCase().includes(filtro)
       );
     });
   }, [produtos, busca]);
@@ -153,6 +178,7 @@ export default function ProdutosPage() {
       <div className={styles.toolbar}>
         <div className={styles.searchBox}>
           <Search size={18} />
+
           <input
             placeholder="Pesquisar produto..."
             value={busca}
@@ -245,7 +271,7 @@ export default function ProdutosPage() {
                       disabled={atualizando}
                     >
                       <CheckCircle size={16} />
-                      Tirar do esgotado
+                      {atualizando ? "Atualizando..." : "Tirar do esgotado"}
                     </button>
                   ) : (
                     <button
@@ -255,7 +281,7 @@ export default function ProdutosPage() {
                       disabled={atualizando}
                     >
                       <XCircle size={16} />
-                      Marcar esgotado
+                      {atualizando ? "Atualizando..." : "Marcar esgotado"}
                     </button>
                   )}
 
@@ -280,6 +306,7 @@ export default function ProdutosPage() {
                   </Link>
 
                   <button
+                    type="button"
                     className={styles.deleteButton}
                     onClick={() => excluirProduto(produto.id_produto)}
                   >
