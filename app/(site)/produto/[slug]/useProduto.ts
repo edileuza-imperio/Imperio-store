@@ -12,6 +12,7 @@ export interface Produto {
   slug?: string;
   descricao?: string;
   descricao_curta?: string;
+
   imagem?: string;
   miniatura?: string;
   banner?: string;
@@ -20,9 +21,15 @@ export interface Produto {
   foto?: string;
   fotos?: string[];
   imagens?: string[];
-  preco?: number;
-  preco_promocional?: number;
-  estoque?: number;
+
+  preco?: number | string;
+  preco_promocional?: number | string | null;
+
+  estoque?: number | string;
+  quantidade?: number | string;
+  reservado?: number | string;
+  disponivel?: number | string;
+
   categoria_nome?: string;
   marca?: string;
 }
@@ -40,13 +47,31 @@ function extrairMensagemErro(error: any) {
   );
 }
 
-function formatarPreco(valor?: number | null) {
-  if (valor === undefined || valor === null) return null;
+function numero(valor: unknown): number {
+  const n = Number(valor ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
 
-  return Number(valor).toLocaleString("pt-BR", {
+function formatarPreco(valor?: number | string | null) {
+  if (valor === undefined || valor === null || valor === "") return null;
+
+  return numero(valor).toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });
+}
+
+function calcularDisponivel(produto: Produto | null): number {
+  if (!produto) return 0;
+
+  if (produto.disponivel !== undefined && produto.disponivel !== null) {
+    return Math.max(numero(produto.disponivel), 0);
+  }
+
+  const quantidade = numero(produto.quantidade ?? produto.estoque ?? 0);
+  const reservado = numero(produto.reservado ?? 0);
+
+  return Math.max(quantidade - reservado, 0);
 }
 
 export function useProduto(slug: string) {
@@ -56,6 +81,9 @@ export function useProduto(slug: string) {
   const [produto, setProduto] = useState<Produto | null>(null);
   const [adicionando, setAdicionando] = useState(false);
   const [imagemAtiva, setImagemAtiva] = useState("");
+
+  const disponivel = useMemo(() => calcularDisponivel(produto), [produto]);
+  const emEstoque = disponivel > 0;
 
   useEffect(() => {
     let ativo = true;
@@ -77,6 +105,7 @@ export function useProduto(slug: string) {
         const dados = normalizar(response?.data);
 
         if (!ativo) return;
+
         setProduto(dados);
       } catch (error: any) {
         const status = error?.response?.status;
@@ -94,9 +123,14 @@ export function useProduto(slug: string) {
         }
 
         toast.error(mensagem);
-        if (ativo) setProduto(null);
+
+        if (ativo) {
+          setProduto(null);
+        }
       } finally {
-        if (ativo) setLoading(false);
+        if (ativo) {
+          setLoading(false);
+        }
       }
     }
 
@@ -139,6 +173,11 @@ export function useProduto(slug: string) {
   async function adicionarCarrinho() {
     if (!produto?.id_produto) {
       toast.error("Produto inválido.");
+      return;
+    }
+
+    if (!emEstoque) {
+      toast.error("Produto esgotado.");
       return;
     }
 
@@ -185,5 +224,8 @@ export function useProduto(slug: string) {
     setImagemAtiva,
     adicionarCarrinho,
     formatarPreco,
+
+    disponivel,
+    emEstoque,
   };
 }

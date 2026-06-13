@@ -46,8 +46,16 @@ export default function ViewProdutoSlugPage() {
   const precoOriginal = produto.preco || null;
   const precoFinal = precoPromocional || precoOriginal || 0;
   const temDesconto = Boolean(precoPromocional && precoOriginal);
-  const emEstoque =
-    typeof produto.estoque === "number" ? produto.estoque > 0 : null;
+
+  const quantidade = Number(produto.quantidade ?? produto.estoque ?? 0);
+  const reservado = Number(produto.reservado ?? 0);
+
+  const disponivel = Number(
+    produto.disponivel ?? Math.max(quantidade - reservado, 0)
+  );
+
+  const emEstoque = disponivel > 0;
+  const podeComprar = emEstoque && !adicionando;
 
   return (
     <section className={styles.page}>
@@ -94,7 +102,11 @@ export default function ViewProdutoSlugPage() {
             )}
 
             <div className={styles.imagemContainer}>
-              <div className={styles.badge}>Destaque</div>
+              {emEstoque ? (
+                <div className={styles.badge}>Destaque</div>
+              ) : (
+                <div className={styles.badgeEsgotado}>Esgotado</div>
+              )}
 
               <div className={styles.imagem}>
                 {imagemAtiva ? (
@@ -104,7 +116,9 @@ export default function ViewProdutoSlugPage() {
                     fill
                     priority
                     sizes="(max-width: 1100px) 100vw, 52vw"
-                    className={styles.imagemPrincipal}
+                    className={`${styles.imagemPrincipal} ${
+                      !emEstoque ? styles.imagemEsgotada : ""
+                    }`}
                   />
                 ) : (
                   <div className={styles.semImagem}>
@@ -163,13 +177,9 @@ export default function ViewProdutoSlugPage() {
               </div>
 
               <div className={styles.precoInfo}>
-                {emEstoque === null ? (
-                  <span className={styles.estoqueNeutro}>
-                    Estoque não informado
-                  </span>
-                ) : emEstoque ? (
+                {emEstoque ? (
                   <span className={styles.estoqueOk}>
-                    {produto.estoque} em estoque
+                    {disponivel} em estoque
                   </span>
                 ) : (
                   <span className={styles.estoqueRuim}>
@@ -177,11 +187,18 @@ export default function ViewProdutoSlugPage() {
                   </span>
                 )}
 
-                {temDesconto && (
+                {temDesconto && emEstoque && (
                   <span className={styles.desconto}>Oferta ativa</span>
                 )}
               </div>
             </div>
+
+            {!emEstoque && (
+              <div className={styles.avisoEsgotado}>
+                Este produto está esgotado no momento. A compra foi bloqueada
+                até o estoque ser atualizado.
+              </div>
+            )}
 
             <div className={styles.beneficios}>
               <div className={styles.beneficio}>
@@ -208,12 +225,20 @@ export default function ViewProdutoSlugPage() {
             <div className={styles.actions}>
               <button
                 type="button"
-                className={styles.btnComprar}
+                className={`${styles.btnComprar} ${
+                  !emEstoque ? styles.btnComprarDesativado : ""
+                }`}
                 onClick={adicionarCarrinho}
-                disabled={adicionando}
+                disabled={!podeComprar}
               >
                 <FiShoppingCart aria-hidden="true" />
-                <span>{adicionando ? "Adicionando..." : "Comprar agora"}</span>
+                <span>
+                  {!emEstoque
+                    ? "Produto esgotado"
+                    : adicionando
+                    ? "Adicionando..."
+                    : "Comprar agora"}
+                </span>
               </button>
 
               <button
@@ -228,7 +253,11 @@ export default function ViewProdutoSlugPage() {
             <div className={styles.cardsExtras}>
               <div className={styles.extraCard}>
                 <strong>Frete</strong>
-                <span>Simule na finalização da compra</span>
+                <span>
+                  {emEstoque
+                    ? "Simule na finalização da compra"
+                    : "Disponível quando voltar ao estoque"}
+                </span>
               </div>
 
               <div className={styles.extraCard}>

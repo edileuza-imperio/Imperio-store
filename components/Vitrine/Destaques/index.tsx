@@ -37,6 +37,41 @@ type Props = {
   onAdicionarCarrinho?: (item: ItemResolvido) => void;
 };
 
+function numero(valor: unknown): number {
+  const n = Number(valor ?? 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function calcularDisponivel(item: any): number {
+  const disponivel =
+    item?.disponivel ??
+    item?.estoque_disponivel ??
+    item?.quantidade_disponivel ??
+    item?.entidade?.disponivel ??
+    item?.entidade?.estoque_disponivel ??
+    item?.entidade?.quantidade_disponivel;
+
+  if (disponivel !== undefined && disponivel !== null) {
+    return Math.max(numero(disponivel), 0);
+  }
+
+  const quantidade = numero(
+    item?.quantidade ??
+      item?.estoque ??
+      item?.entidade?.quantidade ??
+      item?.entidade?.estoque ??
+      0
+  );
+
+  const reservado = numero(
+    item?.reservado ??
+      item?.entidade?.reservado ??
+      0
+  );
+
+  return Math.max(quantidade - reservado, 0);
+}
+
 export default function Destaques({
   slug,
   vitrine: vitrineProp,
@@ -114,8 +149,7 @@ export default function Destaques({
 
       const card = carousel.querySelector<HTMLElement>(".destaque-card");
       const larguraCard = card?.offsetWidth || 280;
-      const gap = 18;
-      const distancia = larguraCard + gap;
+      const distancia = larguraCard + 18;
 
       const { scrollLeft, scrollWidth, clientWidth } = carousel;
       const maxScroll = scrollWidth - clientWidth;
@@ -218,9 +252,7 @@ export default function Destaques({
           <div ref={carouselRef} className={styles.carousel}>
             {itens.map((item, index) => {
               const precoFormatado = formatarPreco(item.preco_final);
-              const precoOriginalFormatado = formatarPreco(
-                item.preco_original
-              );
+              const precoOriginalFormatado = formatarPreco(item.preco_original);
 
               const slugVisualizacao =
                 item.entidade?.slug ||
@@ -235,6 +267,9 @@ export default function Destaques({
               const estaAdicionando =
                 adicionandoId === String(item.id_vitrine_item);
 
+              const disponivel = calcularDisponivel(item);
+              const esgotado = item.tipo_item === "produto" && disponivel <= 0;
+
               return (
                 <article
                   key={String(item.id_vitrine_item)}
@@ -248,7 +283,9 @@ export default function Destaques({
                           alt={item.titulo_final}
                           fill
                           sizes="(max-width: 480px) 88vw, (max-width: 768px) 82vw, (max-width: 1100px) 42vw, 296px"
-                          className={styles.image}
+                          className={`${styles.image} ${
+                            esgotado ? styles.imageSoldOut : ""
+                          }`}
                           quality={80}
                           priority={index < 2}
                         />
@@ -259,9 +296,15 @@ export default function Destaques({
                       )}
                     </Link>
 
-                    {item.economia_final && (
+                    {item.economia_final && !esgotado && (
                       <span className={styles.economyBadge}>
                         {item.economia_final}
+                      </span>
+                    )}
+
+                    {esgotado && (
+                      <span className={styles.soldOutBadge}>
+                        Esgotado
                       </span>
                     )}
                   </div>
@@ -309,13 +352,30 @@ export default function Destaques({
                       </div>
                     )}
 
+                    {item.tipo_item === "produto" && (
+                      <div
+                        className={`${styles.stockInfo} ${
+                          esgotado ? styles.stockBad : styles.stockOk
+                        }`}
+                      >
+                        {esgotado
+                          ? "Produto indisponível"
+                          : `${disponivel} em estoque`}
+                      </div>
+                    )}
+
                     <div className={styles.actions}>
                       {item.tipo_item === "produto" ? (
                         <button
                           type="button"
-                          className={styles.cartButton}
-                          onClick={() => adicionarCarrinho(item)}
-                          disabled={estaAdicionando || abrindoCarrinho}
+                          className={`${styles.cartButton} ${
+                            esgotado ? styles.cartButtonDisabled : ""
+                          }`}
+                          onClick={() => {
+                            if (esgotado) return;
+                            adicionarCarrinho(item);
+                          }}
+                          disabled={estaAdicionando || abrindoCarrinho || esgotado}
                         >
                           {estaAdicionando ? (
                             <FiLoader
@@ -328,11 +388,13 @@ export default function Destaques({
                           )}
 
                           <span>
-                            {estaAdicionando
+                            {esgotado
+                              ? "Esgotado"
+                              : estaAdicionando
                               ? "Adicionando..."
                               : abrindoCarrinho
-                                ? "Abrindo..."
-                                : "Carrinho"}
+                              ? "Abrindo..."
+                              : "Carrinho"}
                           </span>
                         </button>
                       ) : (
