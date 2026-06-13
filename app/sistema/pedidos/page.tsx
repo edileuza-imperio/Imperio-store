@@ -2,7 +2,7 @@
 
 import api from "@/Api/conectar";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   FiCheckCircle,
   FiClock,
@@ -12,9 +12,10 @@ import {
   FiRotateCcw,
   FiTruck,
   FiXCircle,
-  FiSearch,
   FiCreditCard,
   FiUser,
+  FiShoppingBag,
+  FiCalendar,
 } from "react-icons/fi";
 
 import styles from "./Pedidos.module.css";
@@ -41,7 +42,6 @@ type Pedido = {
   payment_id?: string | null;
   metodo_pagamento?: string | null;
   status_pagamento?: string | null;
-  status_detail?: string | null;
   criado_em?: string | null;
   itens?: PedidoItem[];
   produtos?: PedidoItem[];
@@ -51,7 +51,6 @@ export default function SistemaPedidosPage() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [reembolsando, setReembolsando] = useState<number | null>(null);
-  const [busca, setBusca] = useState("");
 
   async function carregarPedidos() {
     try {
@@ -111,23 +110,6 @@ export default function SistemaPedidosPage() {
   useEffect(() => {
     carregarPedidos();
   }, []);
-
-  const pedidosFiltrados = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-
-    if (!termo) return pedidos;
-
-    return pedidos.filter((pedido) => {
-      return (
-        String(pedido.id_pedido).includes(termo) ||
-        String(pedido.usuario_nome ?? "").toLowerCase().includes(termo) ||
-        String(pedido.usuario_email ?? "").toLowerCase().includes(termo) ||
-        String(pedido.status_pagamento ?? "").toLowerCase().includes(termo) ||
-        String(pedido.metodo_pagamento ?? "").toLowerCase().includes(termo) ||
-        String(pedido.payment_id ?? "").toLowerCase().includes(termo)
-      );
-    });
-  }, [pedidos, busca]);
 
   function formatarMoeda(valor?: number | null) {
     return new Intl.NumberFormat("pt-BR", {
@@ -219,8 +201,8 @@ export default function SistemaPedidosPage() {
     const metodo = String(pedido.metodo_pagamento ?? "").toLowerCase();
 
     if (metodo === "pix") return "PIX";
-    if (metodo.includes("credit")) return "Cartão de crédito";
-    if (metodo.includes("debit")) return "Cartão de débito";
+    if (metodo.includes("credit")) return "Cartão";
+    if (metodo.includes("debit")) return "Débito";
 
     return pedido.metodo_pagamento || "—";
   }
@@ -306,162 +288,141 @@ export default function SistemaPedidosPage() {
         </button>
       </div>
 
-      <section className={styles.filterBox}>
-        <div className={styles.searchBox}>
-          <FiSearch />
-          <input
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar por pedido, cliente, e-mail, status ou pagamento..."
-          />
+      <section className={styles.summary}>
+        <div className={styles.summaryCard}>
+          <span>Total de pedidos</span>
+          <strong>{pedidos.length}</strong>
         </div>
 
-        <span>{pedidosFiltrados.length} pedido(s)</span>
+        <div className={styles.summaryCard}>
+          <span>Pedidos vendidos</span>
+          <strong>{pedidos.filter(pedidoPagoOuVendido).length}</strong>
+        </div>
+
+        <div className={styles.summaryCard}>
+          <span>Valor total</span>
+          <strong>
+            {formatarMoeda(
+              pedidos.reduce(
+                (total, pedido) => total + Number(pedido.valor_total ?? 0),
+                0
+              )
+            )}
+          </strong>
+        </div>
       </section>
 
       {loading ? (
         <p className={styles.info}>Carregando pedidos...</p>
-      ) : pedidosFiltrados.length === 0 ? (
+      ) : pedidos.length === 0 ? (
         <p className={styles.info}>Nenhum pedido encontrado.</p>
       ) : (
-        <section className={styles.tableCard}>
-          <div className={styles.tableScroll}>
-            <table className={styles.table}>
-              <thead>
-                <tr>
-                  <th>Pedido</th>
-                  <th>Cliente</th>
-                  <th>Status</th>
-                  <th>Pagamento</th>
-                  <th>Produtos</th>
-                  <th>Total</th>
-                  <th>Data</th>
-                  <th>Ações</th>
-                </tr>
-              </thead>
+        <section className={styles.ordersGrid}>
+          {pedidos.map((pedido) => {
+            const itens = getItens(pedido);
 
-              <tbody>
-                {pedidosFiltrados.map((pedido) => {
-                  const itens = getItens(pedido);
+            return (
+              <article key={pedido.id_pedido} className={styles.orderCard}>
+                <div className={styles.orderTop}>
+                  <div className={styles.orderMain}>
+                    <span className={styles.orderId}>
+                      Pedido #{pedido.id_pedido}
+                    </span>
 
-                  return (
-                    <tr key={pedido.id_pedido}>
-                      <td>
-                        <strong className={styles.orderNumber}>
-                          #{pedido.id_pedido}
-                        </strong>
+                    <h3>
+                      {pedido.usuario_nome ?? `Usuário #${pedido.usuario_id}`}
+                    </h3>
 
-                        {pedido.payment_id && (
-                          <span className={styles.smallText}>
-                            ID: {pedido.payment_id}
-                          </span>
-                        )}
-                      </td>
+                    <small>{pedido.usuario_email ?? "Sem e-mail"}</small>
 
-                      <td>
-                        <div className={styles.customer}>
-                          <FiUser />
-                          <div>
-                            <strong>
-                              {pedido.usuario_nome ??
-                                `Usuário #${pedido.usuario_id}`}
-                            </strong>
-                            <span>{pedido.usuario_email ?? "Sem e-mail"}</span>
-                          </div>
-                        </div>
-                      </td>
+                    {pedido.payment_id && (
+                      <small className={styles.paymentId}>
+                        ID: {pedido.payment_id}
+                      </small>
+                    )}
+                  </div>
 
-                      <td>
-                        <span
-                          className={`${styles.badge} ${statusClasse(pedido)}`}
-                        >
-                          {statusIcone(pedido)}
-                          {statusTexto(pedido)}
+                  <strong className={styles.orderTotal}>
+                    {formatarMoeda(pedido.valor_total)}
+                  </strong>
+                </div>
+
+                <div className={styles.orderMeta}>
+                  <span className={`${styles.badge} ${statusClasse(pedido)}`}>
+                    {statusIcone(pedido)}
+                    {statusTexto(pedido)}
+                  </span>
+
+                  <span className={styles.metaItem}>
+                    <FiCreditCard />
+                    {metodoPagamento(pedido)}
+                  </span>
+
+                  <span className={styles.metaItem}>
+                    <FiCalendar />
+                    {formatarData(pedido.criado_em)}
+                  </span>
+
+                  <span className={styles.metaItem}>
+                    <FiShoppingBag />
+                    {itens.length} produto(s)
+                  </span>
+                </div>
+
+                <div className={styles.productsBox}>
+                  {itens.length === 0 ? (
+                    <span className={styles.emptyProducts}>Sem itens</span>
+                  ) : (
+                    itens.slice(0, 3).map((item, index) => (
+                      <div
+                        key={item.id_pedido_item ?? index}
+                        className={styles.productItem}
+                      >
+                        <strong>{nomeItem(item)}</strong>
+
+                        <span>
+                          {item.quantidade ?? 1}x {formatarMoeda(precoItem(item))} ={" "}
+                          {formatarMoeda(subtotalItem(item))}
                         </span>
-                      </td>
+                      </div>
+                    ))
+                  )}
 
-                      <td>
-                        <div className={styles.payment}>
-                          <FiCreditCard />
-                          <strong>{metodoPagamento(pedido)}</strong>
-                        </div>
-                      </td>
+                  {itens.length > 3 && (
+                    <span className={styles.moreProducts}>
+                      +{itens.length - 3} produto(s)
+                    </span>
+                  )}
+                </div>
 
-                      <td>
-                        {itens.length === 0 ? (
-                          <span className={styles.emptyProducts}>
-                            Sem itens
-                          </span>
-                        ) : (
-                          <div className={styles.productsList}>
-                            {itens.slice(0, 3).map((item, index) => (
-                              <div
-                                key={item.id_pedido_item ?? index}
-                                className={styles.productMini}
-                              >
-                                <strong>{nomeItem(item)}</strong>
-                                <span>
-                                  {item.quantidade ?? 1}x{" "}
-                                  {formatarMoeda(precoItem(item))} ={" "}
-                                  {formatarMoeda(subtotalItem(item))}
-                                </span>
-                              </div>
-                            ))}
+                <div className={styles.actions}>
+                  <Link
+                    href={`/sistema/pedidos/${pedido.id_pedido}`}
+                    className={styles.viewButton}
+                  >
+                    <FiEye />
+                    Ver pedido
+                  </Link>
 
-                            {itens.length > 3 && (
-                              <span className={styles.moreProducts}>
-                                +{itens.length - 3} produto(s)
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </td>
-
-                      <td>
-                        <strong className={styles.total}>
-                          {formatarMoeda(pedido.valor_total)}
-                        </strong>
-                      </td>
-
-                      <td>
-                        <span className={styles.date}>
-                          {formatarData(pedido.criado_em)}
-                        </span>
-                      </td>
-
-                      <td>
-                        <div className={styles.actions}>
-                          <Link
-                            href={`/sistema/pedidos/${pedido.id_pedido}`}
-                            className={styles.viewButton}
-                          >
-                            <FiEye />
-                            Ver
-                          </Link>
-
-                          {podeReembolsar(pedido) && (
-                            <button
-                              type="button"
-                              onClick={() => reembolsarPedido(pedido)}
-                              className={styles.refundButton}
-                              disabled={reembolsando === pedido.id_pedido}
-                            >
-                              {reembolsando === pedido.id_pedido ? (
-                                <FiRefreshCw className={styles.spin} />
-                              ) : (
-                                <FiRotateCcw />
-                              )}
-                              Reembolso
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                  {podeReembolsar(pedido) && (
+                    <button
+                      type="button"
+                      onClick={() => reembolsarPedido(pedido)}
+                      className={styles.refundButton}
+                      disabled={reembolsando === pedido.id_pedido}
+                    >
+                      {reembolsando === pedido.id_pedido ? (
+                        <FiRefreshCw className={styles.spin} />
+                      ) : (
+                        <FiRotateCcw />
+                      )}
+                      Reembolso
+                    </button>
+                  )}
+                </div>
+              </article>
+            );
+          })}
         </section>
       )}
     </main>
