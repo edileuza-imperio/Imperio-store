@@ -1,21 +1,5 @@
-:root {
-  --dash-bg: #fffafa;
-  --dash-bg-soft: #fff6f8;
 
-  --dash-primary: #a85d6a;
-  --dash-primary-light: #d88b99;
-
-  --dash-text: #2f2427;
-  --dash-title: #3f2a30;
-  --dash-muted: #8f6d74;
-
-  --dash-border: rgba(168, 93, 106, 0.11);
-  --dash-border-hover: rgba(168, 93, 106, 0.22);
-
-  --dash-shadow: 0 8px 24px rgba(80, 45, 54, 0.055);
-  --dash-shadow-hover: 0 14px 32px rgba(80, 45, 54, 0.09);
-}
-
+@import "../../styles/variables.css";
 .dashboard {
   width: 100%;
   min-height: 100%;
