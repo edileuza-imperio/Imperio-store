@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import api from "@/Api/conectar";
-import styles from "./Categorias.module.css";
+import "../../../components/styles/sistema/categoria.css";
 
 import {
   FolderOpen,
@@ -12,7 +12,6 @@ import {
   Search,
   Plus,
   Boxes,
-  RefreshCcw,
   ArrowRight,
   AlertCircle,
   Trash2,
@@ -143,6 +142,7 @@ export default function CategoriasPage() {
 
       setForm((prev) => {
         if (prev.status_id) return prev;
+
         const primeiroStatus = Array.isArray(lista) && lista.length > 0 ? lista[0] : null;
 
         return {
@@ -172,6 +172,7 @@ export default function CategoriasPage() {
 
   function fecharModal() {
     if (salvando) return;
+
     setModalAberto(false);
     setPassoModal(1);
     setForm(formInicial);
@@ -202,11 +203,15 @@ export default function CategoriasPage() {
   }
 
   function proximoPasso() {
-    if (passoModal < 3) setPassoModal((prev) => (prev + 1) as 1 | 2 | 3);
+    if (passoModal < 3) {
+      setPassoModal((prev) => (prev + 1) as 1 | 2 | 3);
+    }
   }
 
   function passoAnterior() {
-    if (passoModal > 1) setPassoModal((prev) => (prev - 1) as 1 | 2 | 3);
+    if (passoModal > 1) {
+      setPassoModal((prev) => (prev - 1) as 1 | 2 | 3);
+    }
   }
 
   async function salvarCategoria(e: React.FormEvent<HTMLFormElement>) {
@@ -248,9 +253,11 @@ export default function CategoriasPage() {
       await api.post("/painel/categoria", payload);
 
       await carregarCategorias();
+
       setModalAberto(false);
       setPassoModal(1);
       setForm(formInicial);
+
       alert("Categoria cadastrada com sucesso!");
     } catch (error) {
       console.error(error);
@@ -261,9 +268,7 @@ export default function CategoriasPage() {
   }
 
   async function excluirCategoria(id: number) {
-    const confirmar = window.confirm(
-      "Tem certeza que deseja excluir esta categoria?"
-    );
+    const confirmar = window.confirm("Tem certeza que deseja excluir esta categoria?");
 
     if (!confirmar) return;
 
@@ -297,243 +302,248 @@ export default function CategoriasPage() {
       : categoriasFiltradas.slice(0, Number(limite));
 
   const statusSelecionado =
-    statusDisponiveis.find((item) => String(getStatusId(item)) === form.status_id) ||
-    null;
+    statusDisponiveis.find((item) => String(getStatusId(item)) === form.status_id) || null;
 
-  const modal = mounted && modalAberto
-    ? createPortal(
-        <div className={styles.modalOverlay} onClick={fecharModal}>
-          <div
-            className={styles.modal}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className={styles.modalHeader}>
-              <div>
-                <h2>Nova categoria</h2>
-                <p>Cadastro em 3 etapas para ficar mais organizado.</p>
-              </div>
-
-              <button
-                type="button"
-                className={styles.modalClose}
-                onClick={fecharModal}
-                aria-label="Fechar modal"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <div className={styles.stepper}>
-              <div className={`${styles.stepItem} ${passoModal >= 1 ? styles.stepActive : ""}`}>
-                <FileText size={16} />
-                <span>Dados</span>
-              </div>
-              <div className={`${styles.stepItem} ${passoModal >= 2 ? styles.stepActive : ""}`}>
-                <Sparkles size={16} />
-                <span>Visual</span>
-              </div>
-              <div className={`${styles.stepItem} ${passoModal >= 3 ? styles.stepActive : ""}`}>
-                <Settings2 size={16} />
-                <span>Status</span>
-              </div>
-            </div>
-
-            <form onSubmit={salvarCategoria} className={styles.form}>
-              {passoModal === 1 && (
-                <div className={styles.stepContent}>
-                  <div className={styles.sectionTitle}>
-                    <h3>Informações principais</h3>
-                    <p>Comece com o nome, slug e descrição.</p>
-                  </div>
-
-                  <div className={styles.formGrid}>
-                    <label className={styles.field}>
-                      <span>Nome *</span>
-                      <input
-                        type="text"
-                        value={form.nome}
-                        onChange={(e) => atualizarCampo("nome", e.target.value)}
-                        placeholder="Ex: Moda Feminina"
-                      />
-                    </label>
-
-                    <label className={styles.field}>
-                      <span>Slug *</span>
-                      <input
-                        type="text"
-                        value={form.slug}
-                        onChange={(e) => atualizarCampo("slug", e.target.value)}
-                        placeholder="Ex: moda-feminina"
-                      />
-                    </label>
-
-                    <label className={`${styles.field} ${styles.fieldFull}`}>
-                      <span>Descrição</span>
-                      <textarea
-                        value={form.descricao}
-                        onChange={(e) => atualizarCampo("descricao", e.target.value)}
-                        placeholder="Descreva a categoria"
-                        rows={4}
-                      />
-                    </label>
-                  </div>
+  const modal =
+    mounted && modalAberto
+      ? createPortal(
+          <div className="categorias-modal-overlay" onClick={fecharModal}>
+            <div className="categorias-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="categorias-modal-header">
+                <div>
+                  <h2>Nova categoria</h2>
+                  <p>Cadastro em 3 etapas para ficar mais organizado.</p>
                 </div>
-              )}
 
-              {passoModal === 2 && (
-                <div className={styles.stepContent}>
-                  <div className={styles.sectionTitle}>
-                    <h3>Visual e organização</h3>
-                    <p>Opcional: ícone, imagem e ordem de exibição.</p>
-                  </div>
-
-                  <div className={styles.formGrid}>
-                    <label className={styles.field}>
-                      <span>Ícone</span>
-                      <input
-                        type="text"
-                        value={form.icone}
-                        onChange={(e) => atualizarCampo("icone", e.target.value)}
-                        placeholder="Ex: folder-open"
-                      />
-                    </label>
-
-                    <label className={styles.field}>
-                      <span>Imagem</span>
-                      <input
-                        type="text"
-                        value={form.imagem}
-                        onChange={(e) => atualizarCampo("imagem", e.target.value)}
-                        placeholder="URL da imagem"
-                      />
-                    </label>
-
-                    <label className={styles.field}>
-                      <span>Ordem</span>
-                      <input
-                        type="number"
-                        value={form.ordem}
-                        onChange={(e) => atualizarCampo("ordem", e.target.value)}
-                        placeholder="Ex: 1"
-                      />
-                    </label>
-                  </div>
-                </div>
-              )}
-
-              {passoModal === 3 && (
-                <div className={styles.stepContent}>
-                  <div className={styles.sectionTitle}>
-                    <h3>Status e revisão final</h3>
-                    <p>Escolha o status correto antes de salvar.</p>
-                  </div>
-
-                  <div className={styles.formGrid}>
-                    <label className={styles.field}>
-                      <span>Status *</span>
-                      <select
-                        value={form.status_id}
-                        onChange={(e) => atualizarCampo("status_id", e.target.value)}
-                        disabled={loadingStatus}
-                      >
-                        <option value="">
-                          {loadingStatus ? "Carregando status..." : "Selecione um status"}
-                        </option>
-
-                        {statusDisponiveis.map((item) => {
-                          const id = getStatusId(item);
-                          return (
-                            <option key={id} value={String(id)}>
-                              {getStatusLabel(item)}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </label>
-
-                    <label className={styles.field}>
-                      <span>Site Config ID</span>
-                      <input
-                        type="number"
-                        value={form.site_config_id}
-                        onChange={(e) =>
-                          atualizarCampo("site_config_id", e.target.value)
-                        }
-                        placeholder="Ex: 1"
-                      />
-                    </label>
-                  </div>
-
-                  <div className={styles.resumeBox}>
-                    <h4>Resumo</h4>
-                    <p><strong>Nome:</strong> {form.nome || "-"}</p>
-                    <p><strong>Slug:</strong> {form.slug || "-"}</p>
-                    <p><strong>Status:</strong> {statusSelecionado ? getStatusLabel(statusSelecionado) : "-"}</p>
-                  </div>
-                </div>
-              )}
-
-              <div className={styles.modalActions}>
                 <button
                   type="button"
+                  className="categorias-modal-close"
                   onClick={fecharModal}
-                  className={styles.secondaryButton}
-                  disabled={salvando}
+                  aria-label="Fechar modal"
                 >
-                  Cancelar
+                  <X size={18} />
                 </button>
+              </div>
 
-                <div className={styles.navButtons}>
-                  {passoModal > 1 && (
-                    <button
-                      type="button"
-                      onClick={passoAnterior}
-                      className={styles.backButton}
-                      disabled={salvando}
-                    >
-                      <ChevronLeft size={16} />
-                      Voltar
-                    </button>
-                  )}
+              <div className="categorias-stepper">
+                <div className={`categorias-step-item ${passoModal >= 1 ? "categorias-step-active" : ""}`}>
+                  <FileText size={16} />
+                  <span>Dados</span>
+                </div>
 
-                  {passoModal < 3 ? (
-                    <button
-                      type="button"
-                      onClick={proximoPasso}
-                      className={styles.nextButton}
-                      disabled={salvando}
-                    >
-                      Próximo
-                      <ChevronRight size={16} />
-                    </button>
-                  ) : (
-                    <button
-                      type="submit"
-                      className={styles.submitButton}
-                      disabled={salvando}
-                    >
-                      <CheckCircle2 size={16} />
-                      {salvando ? "Salvando..." : "Salvar categoria"}
-                    </button>
-                  )}
+                <div className={`categorias-step-item ${passoModal >= 2 ? "categorias-step-active" : ""}`}>
+                  <Sparkles size={16} />
+                  <span>Visual</span>
+                </div>
+
+                <div className={`categorias-step-item ${passoModal >= 3 ? "categorias-step-active" : ""}`}>
+                  <Settings2 size={16} />
+                  <span>Status</span>
                 </div>
               </div>
-            </form>
-          </div>
-        </div>,
-        document.body
-      )
-    : null;
+
+              <form onSubmit={salvarCategoria} className="categorias-form">
+                {passoModal === 1 && (
+                  <div className="categorias-step-content">
+                    <div className="categorias-section-title">
+                      <h3>Informações principais</h3>
+                      <p>Comece com o nome, slug e descrição.</p>
+                    </div>
+
+                    <div className="categorias-form-grid">
+                      <label className="categorias-field">
+                        <span>Nome *</span>
+                        <input
+                          type="text"
+                          value={form.nome}
+                          onChange={(e) => atualizarCampo("nome", e.target.value)}
+                          placeholder="Ex: Moda Feminina"
+                        />
+                      </label>
+
+                      <label className="categorias-field">
+                        <span>Slug *</span>
+                        <input
+                          type="text"
+                          value={form.slug}
+                          onChange={(e) => atualizarCampo("slug", e.target.value)}
+                          placeholder="Ex: moda-feminina"
+                        />
+                      </label>
+
+                      <label className="categorias-field categorias-field-full">
+                        <span>Descrição</span>
+                        <textarea
+                          value={form.descricao}
+                          onChange={(e) => atualizarCampo("descricao", e.target.value)}
+                          placeholder="Descreva a categoria"
+                          rows={4}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {passoModal === 2 && (
+                  <div className="categorias-step-content">
+                    <div className="categorias-section-title">
+                      <h3>Visual e organização</h3>
+                      <p>Opcional: ícone, imagem e ordem de exibição.</p>
+                    </div>
+
+                    <div className="categorias-form-grid">
+                      <label className="categorias-field">
+                        <span>Ícone</span>
+                        <input
+                          type="text"
+                          value={form.icone}
+                          onChange={(e) => atualizarCampo("icone", e.target.value)}
+                          placeholder="Ex: folder-open"
+                        />
+                      </label>
+
+                      <label className="categorias-field">
+                        <span>Imagem</span>
+                        <input
+                          type="text"
+                          value={form.imagem}
+                          onChange={(e) => atualizarCampo("imagem", e.target.value)}
+                          placeholder="URL da imagem"
+                        />
+                      </label>
+
+                      <label className="categorias-field">
+                        <span>Ordem</span>
+                        <input
+                          type="number"
+                          value={form.ordem}
+                          onChange={(e) => atualizarCampo("ordem", e.target.value)}
+                          placeholder="Ex: 1"
+                        />
+                      </label>
+                    </div>
+                  </div>
+                )}
+
+                {passoModal === 3 && (
+                  <div className="categorias-step-content">
+                    <div className="categorias-section-title">
+                      <h3>Status e revisão final</h3>
+                      <p>Escolha o status correto antes de salvar.</p>
+                    </div>
+
+                    <div className="categorias-form-grid">
+                      <label className="categorias-field">
+                        <span>Status *</span>
+                        <select
+                          value={form.status_id}
+                          onChange={(e) => atualizarCampo("status_id", e.target.value)}
+                          disabled={loadingStatus}
+                        >
+                          <option value="">
+                            {loadingStatus ? "Carregando status..." : "Selecione um status"}
+                          </option>
+
+                          {statusDisponiveis.map((item) => {
+                            const id = getStatusId(item);
+
+                            return (
+                              <option key={id} value={String(id)}>
+                                {getStatusLabel(item)}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </label>
+
+                      <label className="categorias-field">
+                        <span>Site Config ID</span>
+                        <input
+                          type="number"
+                          value={form.site_config_id}
+                          onChange={(e) => atualizarCampo("site_config_id", e.target.value)}
+                          placeholder="Ex: 1"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="categorias-resume-box">
+                      <h4>Resumo</h4>
+                      <p>
+                        <strong>Nome:</strong> {form.nome || "-"}
+                      </p>
+                      <p>
+                        <strong>Slug:</strong> {form.slug || "-"}
+                      </p>
+                      <p>
+                        <strong>Status:</strong>{" "}
+                        {statusSelecionado ? getStatusLabel(statusSelecionado) : "-"}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                <div className="categorias-modal-actions">
+                  <button
+                    type="button"
+                    onClick={fecharModal}
+                    className="categorias-secondary-button"
+                    disabled={salvando}
+                  >
+                    Cancelar
+                  </button>
+
+                  <div className="categorias-nav-buttons">
+                    {passoModal > 1 && (
+                      <button
+                        type="button"
+                        onClick={passoAnterior}
+                        className="categorias-back-button"
+                        disabled={salvando}
+                      >
+                        <ChevronLeft size={16} />
+                        Voltar
+                      </button>
+                    )}
+
+                    {passoModal < 3 ? (
+                      <button
+                        type="button"
+                        onClick={proximoPasso}
+                        className="categorias-next-button"
+                        disabled={salvando}
+                      >
+                        Próximo
+                        <ChevronRight size={16} />
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        className="categorias-submit-button"
+                        disabled={salvando}
+                      >
+                        <CheckCircle2 size={16} />
+                        {salvando ? "Salvando..." : "Salvar categoria"}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
 
   if (loading) {
-    return <div className={styles.loading}>Carregando categorias...</div>;
+    return <div className="categorias-loading">Carregando categorias...</div>;
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
+    <div className="categorias-container">
+      <div className="categorias-header">
         <div>
-          <div className={styles.badge}>
+          <div className="categorias-badge">
             <Tag size={15} />
             Gerenciamento
           </div>
@@ -541,27 +551,10 @@ export default function CategoriasPage() {
           <h1>Sistema de Categorias</h1>
           <p>Controle todas as categorias cadastradas</p>
         </div>
-
-        <div className={styles.headerActions}>
-          <button onClick={carregarCategorias} className={styles.refreshButton}>
-            <RefreshCcw size={18} />
-            Atualizar
-          </button>
-
-          <button onClick={abrirModal} className={styles.primaryButton}>
-            <Plus size={18} />
-            Cadastrar
-          </button>
-
-          <div className={styles.stats}>
-            <Boxes size={18} />
-            {categorias.length} categorias
-          </div>
-        </div>
       </div>
 
-      <div className={styles.toolbar}>
-        <div className={styles.searchBox}>
+      <div className="categorias-toolbar">
+        <div className="categorias-search">
           <Search size={18} />
 
           <input
@@ -575,7 +568,7 @@ export default function CategoriasPage() {
         <select
           value={limite}
           onChange={(e) => setLimite(e.target.value)}
-          className={styles.select}
+          className="categorias-select"
         >
           <option value="6">Mostrar 6</option>
           <option value="9">Mostrar 9</option>
@@ -585,7 +578,7 @@ export default function CategoriasPage() {
       </div>
 
       {erro && (
-        <div className={styles.error}>
+        <div className="categorias-error">
           <AlertCircle size={42} />
           <h3>Algo deu errado</h3>
           <p>{erro}</p>
@@ -593,38 +586,38 @@ export default function CategoriasPage() {
       )}
 
       {!erro && categoriasExibidas.length === 0 ? (
-        <div className={styles.empty}>
+        <div className="categorias-empty">
           <FolderOpen size={42} />
           <h3>Nenhuma categoria encontrada</h3>
           <p>Cadastre a primeira categoria.</p>
         </div>
       ) : (
-        <div className={styles.grid}>
+        <div className="categorias-grid">
           {categoriasExibidas.map((categoria) => (
-            <div key={categoria.id_categoria} className={styles.card}>
-              <div className={styles.cardHeader}>
-                <div className={styles.icon}>
+            <div key={categoria.id_categoria} className="categorias-card">
+              <div className="categorias-card-header">
+                <div className="categorias-icon">
                   <FolderOpen size={20} />
                 </div>
 
-                <div className={styles.cardTitle}>
+                <div className="categorias-title">
                   <h3>{categoria.nome}</h3>
                   <span>{categoria.slug}</span>
                 </div>
 
                 <Link
                   href={`/sistema/categorias/${categoria.id_categoria}`}
-                  className={styles.arrow}
+                  className="categorias-arrow"
                 >
                   <ArrowRight size={18} />
                 </Link>
               </div>
 
-              <p className={styles.description}>
+              <p className="categorias-description">
                 {categoria.descricao || "Sem descrição disponível"}
               </p>
 
-              <div className={styles.info}>
+              <div className="categorias-info">
                 <span>
                   <Tag size={14} />
                   {categoria.slug}
@@ -636,10 +629,10 @@ export default function CategoriasPage() {
                 </span>
               </div>
 
-              <div className={styles.actions}>
+              <div className="categorias-actions">
                 <Link
                   href={`/sistema/categorias/${categoria.id_categoria}`}
-                  className={styles.edit}
+                  className="categorias-edit"
                 >
                   <Pencil size={16} />
                   Editar
@@ -647,7 +640,7 @@ export default function CategoriasPage() {
 
                 <button
                   onClick={() => excluirCategoria(categoria.id_categoria)}
-                  className={styles.delete}
+                  className="categorias-delete"
                 >
                   <Trash2 size={16} />
                   Excluir
@@ -661,7 +654,7 @@ export default function CategoriasPage() {
       <button
         type="button"
         onClick={abrirModal}
-        className={styles.floating}
+        className="categorias-floating"
         aria-label="Cadastrar categoria"
       >
         <Plus size={28} />
