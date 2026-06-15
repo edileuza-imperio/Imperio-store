@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
         hostname: "api.universoimperio.com.br",
       },
     ],
+    qualities: [75, 80],
   },
 
   experimental: {

@@ -1,6 +1,4 @@
-import api from "@/Api/conectar";
-
-const BASE_URL = api.defaults.baseURL || "";
+const UPLOAD_URL = process.env.NEXT_PUBLIC_UPLOAD_URL || "";
 
 export function imagemFundo(src?: string | null) {
   if (!src) return "";
@@ -9,7 +7,6 @@ export function imagemFundo(src?: string | null) {
 
   if (!valor) return "";
 
-  // já é url absoluta
   if (
     valor.startsWith("http://") ||
     valor.startsWith("https://") ||
@@ -19,8 +16,8 @@ export function imagemFundo(src?: string | null) {
     return valor;
   }
 
-  // garante sem duplicar barras
+  const base = UPLOAD_URL.replace(/\/+$/, "");
   const caminho = valor.replace(/^\/+/, "");
 
-  return `${BASE_URL}/${caminho}`;
+  return `${base}/${caminho}`;
 }
