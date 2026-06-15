@@ -12,10 +12,9 @@ import {
   Image,
   ShoppingCart,
   Upload,
-  Plus,
-  Eye,
   Activity,
   LucideIcon,
+  ArrowUpRight,
 } from "lucide-react";
 
 import styles from "./Dashboard.module.css";
@@ -44,11 +43,6 @@ const icones: Record<string, LucideIcon> = {
   upload: Upload,
 };
 
-const actionIcons: Record<string, LucideIcon> = {
-  plus: Plus,
-  eye: Eye,
-};
-
 export default function DashboardPage() {
   const [cards, setCards] = useState<CardItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -59,122 +53,70 @@ export default function DashboardPage() {
 
   async function carregarCards() {
     try {
-      console.log("Buscando cards...");
-
-      const response = await api.get(
-        "/painel/dados/cards"
-      );
-
-      console.log(
-        "Resposta completa:",
-        response.data
-      );
-
-      const cardsAPI =
-        response.data?.dados?.dados?.cards || [];
-
-      console.log(
-        "Cards encontrados:",
-        cardsAPI
-      );
-
+      const response = await api.get("/painel/dados/cards");
+      const cardsAPI = response.data?.dados?.dados?.cards || [];
       setCards(cardsAPI);
     } catch (error) {
-      console.error(
-        "Erro ao carregar cards:",
-        error
-      );
+      console.error("Erro ao carregar cards:", error);
     } finally {
       setLoading(false);
     }
   }
 
+  function pegarUrl(card: CardItem) {
+    if (card.rotaMobile) return card.rotaMobile;
+
+    const visualizar = card.acoes?.find(
+      (acao) => acao.tipo !== "cadastrar"
+    );
+
+    const cadastrar = card.acoes?.find(
+      (acao) => acao.tipo === "cadastrar"
+    );
+
+    return visualizar?.url || cadastrar?.url || "#";
+  }
+
   if (loading) {
     return (
       <div className={styles.loading}>
-        Carregando dashboard...
+        <span />
+        <p>Carregando dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className={styles.dashboard}>
+    <section className={styles.dashboard}>
       <div className={styles.grid}>
         {cards.map((card, index) => {
-          const Icon =
-            icones[card.icone || ""] ||
-            Activity;
+          const Icon = icones[card.icone || ""] || Activity;
+          const url = pegarUrl(card);
 
           return (
-            <div
-              key={index}
-              className={styles.card}
-            >
-              <div className={styles.cardTop}>
-                <div
-                  className={styles.iconWrap}
-                >
-                  <Icon size={24} />
+            <Link key={index} href={url} className={styles.card}>
+              <div className={styles.cardHeader}>
+                <div className={styles.iconWrap}>
+                  <Icon size={19} />
                 </div>
 
-                <div
-                  className={styles.cardInfo}
-                >
-                  <span
-                    className={styles.label}
-                  >
-                    {card.titulo}
-                  </span>
-
-                  <h3
-                    className={styles.value}
-                  >
-                    {card.valor}
-                  </h3>
+                <div className={styles.openIcon}>
+                  <ArrowUpRight size={15} />
                 </div>
               </div>
 
-              <div
-                className={styles.actions}
-              >
-                {card.acoes?.map(
-                  (acao, actionIndex) => {
-                    const ActionIcon =
-                      actionIcons[
-                        acao.icone || ""
-                      ] || Eye;
-
-                    return (
-                      <Link
-                        key={actionIndex}
-                        href={acao.url}
-                        className={`${styles.actionButton}
-                        ${
-                          acao.tipo ===
-                          "cadastrar"
-                            ? styles.actionPrimary
-                            : styles.actionSecondary
-                        }`}
-                      >
-                        <ActionIcon
-                          size={16}
-                        />
-
-                        <span>
-                          {acao.tipo ===
-                          "cadastrar"
-                            ? "Cadastrar"
-                            : "Visualizar"}
-                        </span>
-                      </Link>
-                    );
-                  }
-                )}
+              <div className={styles.cardInfo}>
+                <span className={styles.label}>{card.titulo}</span>
+                <h3 className={styles.value}>{card.valor}</h3>
               </div>
-            </div>
+
+              <div className={styles.cardFooter}>
+                Acessar módulo
+              </div>
+            </Link>
           );
         })}
       </div>
-    </div>
+    </section>
   );
 }
