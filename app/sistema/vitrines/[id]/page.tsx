@@ -65,6 +65,7 @@ export default function VitrineDetalhePage() {
   const [loadingItens, setLoadingItens] = useState(false);
   const [removendoItem, setRemovendoItem] = useState<number | null>(null);
   const [itemSelecionado, setItemSelecionado] = useState<number | null>(null);
+  const [mostrarInfo, setMostrarInfo] = useState(false);
 
   useEffect(() => {
     carregarTudo();
@@ -270,11 +271,7 @@ export default function VitrineDetalhePage() {
           <p>Visualize os detalhes da vitrine e gerencie os itens exibidos nela.</p>
         </div>
 
-        <button
-          type="button"
-          onClick={carregarTudo}
-          className="vitrine-detalhe-refresh"
-        >
+        <button type="button" onClick={carregarTudo} className="vitrine-detalhe-refresh">
           <FiRefreshCw />
           Atualizar
         </button>
@@ -303,45 +300,6 @@ export default function VitrineDetalhePage() {
 
           <h2>{vitrine.titulo || "Sem título cadastrado"}</h2>
           <p>{vitrine.subtitulo || "Sem subtítulo cadastrado para esta vitrine."}</p>
-        </div>
-      </section>
-
-      <section className="vitrine-detalhe-stats">
-        <div>
-          <span>Tipo</span>
-          <strong>{vitrine.tipo || "—"}</strong>
-        </div>
-
-        <div>
-          <span>Ordem</span>
-          <strong>{vitrine.ordem ?? "—"}</strong>
-        </div>
-
-        <div>
-          <span>Nível</span>
-          <strong>{vitrine.nivel_id ?? "—"}</strong>
-        </div>
-
-        <div>
-          <span>Criada em</span>
-          <strong>{formatarData(vitrine.criado_em)}</strong>
-        </div>
-      </section>
-
-      <section className="vitrine-detalhe-item-summary">
-        <div>
-          <span>Total de itens</span>
-          <strong>{resumo.total}</strong>
-        </div>
-
-        <div>
-          <span>Itens ativos</span>
-          <strong>{resumo.ativos}</strong>
-        </div>
-
-        <div>
-          <span>Itens inativos</span>
-          <strong>{resumo.inativos}</strong>
         </div>
       </section>
 
@@ -458,7 +416,68 @@ export default function VitrineDetalhePage() {
         </section>
       )}
 
+      {mostrarInfo && (
+        <div className="vitrine-detalhe-info-popup">
+          <div className="vitrine-detalhe-info-popup-header">
+            <div>
+              <span>Resumo</span>
+              <h3>Informações da vitrine</h3>
+            </div>
+
+            <button type="button" onClick={() => setMostrarInfo(false)}>
+              <FiXCircle />
+            </button>
+          </div>
+
+          <div className="vitrine-detalhe-info-grid">
+            <div>
+              <span>Tipo</span>
+              <strong>{vitrine.tipo || "—"}</strong>
+            </div>
+
+            <div>
+              <span>Ordem</span>
+              <strong>{vitrine.ordem ?? "—"}</strong>
+            </div>
+
+            <div>
+              <span>Nível</span>
+              <strong>{vitrine.nivel_id ?? "—"}</strong>
+            </div>
+
+            <div>
+              <span>Criada em</span>
+              <strong>{formatarData(vitrine.criado_em)}</strong>
+            </div>
+
+            <div>
+              <span>Total de itens</span>
+              <strong>{resumo.total}</strong>
+            </div>
+
+            <div>
+              <span>Itens ativos</span>
+              <strong>{resumo.ativos}</strong>
+            </div>
+
+            <div>
+              <span>Itens inativos</span>
+              <strong>{resumo.inativos}</strong>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="vitrine-detalhe-floating-group">
+        <button
+          type="button"
+          onClick={() => setMostrarInfo((atual) => !atual)}
+          className="vitrine-detalhe-floating vitrine-detalhe-floating-info-button"
+          aria-label="Informações da vitrine"
+        >
+          <FiInfo />
+        </button>
+
         <button
           type="button"
           onClick={verItemSelecionado}

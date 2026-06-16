@@ -13,7 +13,7 @@
   display: flex;
   flex-direction: column;
   gap: 18px;
-  padding-bottom: 100px;
+  padding-bottom: 110px;
 }
 
 /* =========================
@@ -25,16 +25,13 @@
   justify-content: space-between;
   gap: 20px;
   align-items: center;
-
   padding: 24px;
   border-radius: 24px;
-
   background:
-    radial-gradient(circle at top right, rgba(255,255,255,.2), transparent),
-    linear-gradient(135deg,#a85d6a,#d88b99);
-
+    radial-gradient(circle at top right, rgba(255, 255, 255, 0.22), transparent 28rem),
+    linear-gradient(135deg, #a85d6a, #d88b99);
   color: #fff;
-  box-shadow: 0 20px 40px rgba(168,93,106,.25);
+  box-shadow: 0 20px 40px rgba(168, 93, 106, 0.25);
 }
 
 .vitrine-detalhe-header h1 {
@@ -48,14 +45,13 @@
 
 .vitrine-detalhe-header p {
   margin: 8px 0 0;
-  opacity: .95;
+  opacity: 0.95;
 }
 
 .vitrine-detalhe-back {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-
   color: #fff;
   text-decoration: none;
   font-weight: 800;
@@ -64,19 +60,21 @@
 .vitrine-detalhe-refresh {
   height: 48px;
   padding: 0 18px;
-
   border: none;
   border-radius: 14px;
-
-  background: rgba(255,255,255,.15);
+  background: rgba(255, 255, 255, 0.15);
   color: white;
-
   display: flex;
   align-items: center;
   gap: 8px;
-
   cursor: pointer;
   font-weight: 800;
+  transition: 0.2s ease;
+}
+
+.vitrine-detalhe-refresh:hover {
+  background: rgba(255, 255, 255, 0.24);
+  transform: translateY(-2px);
 }
 
 /* =========================
@@ -87,33 +85,22 @@
   background: white;
   border-radius: 24px;
   padding: 22px;
-
   display: flex;
   gap: 18px;
   align-items: center;
-
   border: 1px solid #ead9db;
-  box-shadow: 0 16px 34px rgba(80,45,54,.06);
+  box-shadow: 0 16px 34px rgba(80, 45, 54, 0.06);
 }
 
 .vitrine-detalhe-hero-icon {
   width: 72px;
   height: 72px;
-
   flex-shrink: 0;
-
   border-radius: 20px;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
-  background: linear-gradient(
-    135deg,
-    #a85d6a,
-    #d88b99
-  );
-
+  background: linear-gradient(135deg, #a85d6a, #d88b99);
   color: white;
 }
 
@@ -151,13 +138,10 @@
 .vitrine-detalhe-badge {
   height: 34px;
   padding: 0 14px;
-
   border-radius: 999px;
-
   display: inline-flex;
   align-items: center;
   gap: 6px;
-
   font-size: 12px;
   font-weight: 900;
 }
@@ -175,57 +159,14 @@
 .vitrine-detalhe-slug {
   height: 34px;
   padding: 0 14px;
-
   border-radius: 999px;
-
   display: inline-flex;
   align-items: center;
-
   background: #fff5f7;
   border: 1px solid #f2d8de;
-
   color: #9d5965;
   font-weight: 900;
   font-size: 12px;
-}
-
-/* =========================
-   STATS
-========================= */
-
-.vitrine-detalhe-stats,
-.vitrine-detalhe-item-summary {
-  display: grid;
-  grid-template-columns: repeat(4,1fr);
-  gap: 14px;
-}
-
-.vitrine-detalhe-stats div,
-.vitrine-detalhe-item-summary div {
-  background: white;
-  border-radius: 20px;
-  padding: 18px;
-
-  border: 1px solid #ead9db;
-  box-shadow: 0 12px 26px rgba(80,45,54,.05);
-}
-
-.vitrine-detalhe-stats span,
-.vitrine-detalhe-item-summary span {
-  display: block;
-  color: #8a6d73;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.vitrine-detalhe-stats strong,
-.vitrine-detalhe-item-summary strong {
-  display: block;
-  margin-top: 6px;
-
-  color: #342829;
-  font-size: 24px;
-  font-weight: 950;
 }
 
 /* =========================
@@ -243,7 +184,6 @@
   display: flex;
   align-items: center;
   gap: 10px;
-
   color: #342829;
 }
 
@@ -260,12 +200,9 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-
   width: fit-content;
-
   padding: 10px 14px;
   border-radius: 999px;
-
   background: #ecfdf3;
   color: #15803d;
   font-weight: 900;
@@ -277,7 +214,7 @@
 
 .vitrine-detalhe-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill,minmax(320px,1fr));
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
   gap: 18px;
 }
 
@@ -287,15 +224,12 @@
 
 .vitrine-detalhe-card {
   position: relative;
-
   background: white;
   border-radius: 24px;
   padding: 20px;
-
   border: 1px solid #ead9db;
-  box-shadow: 0 14px 30px rgba(80,45,54,.06);
-
-  transition: .25s;
+  box-shadow: 0 14px 30px rgba(80, 45, 54, 0.06);
+  transition: 0.25s ease;
   cursor: pointer;
 }
 
@@ -306,8 +240,8 @@
 .vitrine-detalhe-card-selected {
   border-color: #a85d6a;
   box-shadow:
-    0 0 0 3px rgba(168,93,106,.15),
-    0 14px 30px rgba(80,45,54,.08);
+    0 0 0 3px rgba(168, 93, 106, 0.15),
+    0 14px 30px rgba(80, 45, 54, 0.08);
 }
 
 .vitrine-detalhe-checkbox {
@@ -323,12 +257,9 @@
 .vitrine-detalhe-checkbox span {
   width: 22px;
   height: 22px;
-
   display: block;
-
   border-radius: 8px;
   border: 2px solid #d7c4c8;
-
   background: white;
 }
 
@@ -347,13 +278,10 @@
 .vitrine-detalhe-card-icon {
   width: 52px;
   height: 52px;
-
   border-radius: 16px;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   background: #fff1f4;
   color: #a85d6a;
 }
@@ -361,28 +289,22 @@
 .vitrine-detalhe-card-body strong {
   display: block;
   margin-top: 6px;
-
   color: #342829;
   font-size: 18px;
 }
 
 .vitrine-detalhe-card-body p {
   margin-top: 10px;
-
   color: #7d666a;
   line-height: 1.6;
 }
 
 .vitrine-detalhe-type {
   display: inline-flex;
-
   padding: 6px 10px;
-
   border-radius: 999px;
-
   background: #f6f7fb;
   color: #6b7280;
-
   font-size: 11px;
   font-weight: 900;
 }
@@ -393,7 +315,6 @@
 
 .vitrine-detalhe-meta {
   margin-top: 18px;
-
   display: grid;
   gap: 8px;
 }
@@ -401,10 +322,8 @@
 .vitrine-detalhe-meta div {
   display: flex;
   justify-content: space-between;
-
   padding: 12px;
   border-radius: 14px;
-
   background: #faf8f8;
 }
 
@@ -420,20 +339,26 @@
 }
 
 /* =========================
-   EMPTY
+   EMPTY / INFO
 ========================= */
+
+.vitrine-detalhe-info {
+  padding: 18px;
+  border-radius: 18px;
+  background: #fff;
+  border: 1px solid #ead9db;
+  color: #7d666a;
+  font-weight: 800;
+}
 
 .vitrine-detalhe-empty {
   min-height: 320px;
-
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-
   gap: 10px;
   text-align: center;
-
   background: white;
   border-radius: 24px;
   border: 1px dashed #dca4ae;
@@ -456,21 +381,99 @@
 
 .vitrine-detalhe-empty-button {
   margin-top: 10px;
-
   height: 46px;
   padding: 0 18px;
-
   border-radius: 999px;
-
   display: flex;
   align-items: center;
   gap: 8px;
-
   text-decoration: none;
-
-  background: linear-gradient(135deg,#a85d6a,#d88b99);
+  background: linear-gradient(135deg, #a85d6a, #d88b99);
   color: white;
   font-weight: 900;
+}
+
+/* =========================
+   POPUP DE INFORMAÇÕES
+========================= */
+
+.vitrine-detalhe-info-popup {
+  position: fixed;
+  right: 96px;
+  bottom: 24px;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #ead9db;
+  border-radius: 24px;
+  padding: 18px;
+  z-index: 998;
+  box-shadow: 0 22px 50px rgba(80, 45, 54, 0.16);
+  backdrop-filter: blur(12px);
+}
+
+.vitrine-detalhe-info-popup-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.vitrine-detalhe-info-popup-header span {
+  color: #a85d6a;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.vitrine-detalhe-info-popup-header h3 {
+  margin: 4px 0 0;
+  color: #342829;
+  font-size: 20px;
+  font-weight: 950;
+}
+
+.vitrine-detalhe-info-popup-header button {
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 12px;
+  background: #fff1f4;
+  color: #a85d6a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.vitrine-detalhe-info-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.vitrine-detalhe-info-grid div {
+  padding: 12px;
+  border-radius: 16px;
+  background: #faf8f8;
+  border: 1px solid rgba(234, 217, 219, 0.75);
+}
+
+.vitrine-detalhe-info-grid span {
+  display: block;
+  color: #8a6d73;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.vitrine-detalhe-info-grid strong {
+  display: block;
+  margin-top: 5px;
+  color: #342829;
+  font-size: 16px;
+  font-weight: 950;
+  word-break: break-word;
 }
 
 /* =========================
@@ -479,43 +482,46 @@
 
 .vitrine-detalhe-floating-group {
   position: fixed;
-
   right: 24px;
   bottom: 24px;
-
   display: flex;
   flex-direction: column;
   gap: 10px;
-
   z-index: 999;
 }
 
 .vitrine-detalhe-floating {
   width: 58px;
   height: 58px;
-
   border-radius: 50%;
   border: none;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   cursor: pointer;
   text-decoration: none;
-
-  box-shadow: 0 16px 36px rgba(80,45,54,.18);
-
-  transition: .2s;
+  box-shadow: 0 16px 36px rgba(80, 45, 54, 0.18);
+  transition: 0.2s ease;
 }
 
 .vitrine-detalhe-floating:hover {
   transform: scale(1.08);
 }
 
+.vitrine-detalhe-floating:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .vitrine-detalhe-floating svg {
   width: 22px;
   height: 22px;
+}
+
+.vitrine-detalhe-floating-info-button {
+  background: #fff8e8;
+  color: #ca8a04;
 }
 
 .vitrine-detalhe-floating-view {
@@ -534,12 +540,7 @@
 }
 
 .vitrine-detalhe-floating-add {
-  background: linear-gradient(
-    135deg,
-    #a85d6a,
-    #d88b99
-  );
-
+  background: linear-gradient(135deg, #a85d6a, #d88b99);
   color: white;
 }
 
@@ -548,15 +549,9 @@
 ========================= */
 
 @media (max-width: 900px) {
-
   .vitrine-detalhe-header {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  .vitrine-detalhe-stats,
-  .vitrine-detalhe-item-summary {
-    grid-template-columns: repeat(2,1fr);
   }
 
   .vitrine-detalhe-grid {
@@ -564,7 +559,22 @@
   }
 }
 
+@media (max-width: 768px) {
+  .vitrine-detalhe-info-popup {
+    right: 16px;
+    bottom: 96px;
+    width: calc(100vw - 32px);
+  }
+}
+
 @media (max-width: 600px) {
+  .vitrine-detalhe-header {
+    padding: 20px;
+  }
+
+  .vitrine-detalhe-header h1 {
+    font-size: 24px;
+  }
 
   .vitrine-detalhe-hero {
     flex-direction: column;
@@ -573,11 +583,6 @@
 
   .vitrine-detalhe-hero-tags {
     justify-content: center;
-  }
-
-  .vitrine-detalhe-stats,
-  .vitrine-detalhe-item-summary {
-    grid-template-columns: 1fr;
   }
 
   .vitrine-detalhe-floating {
