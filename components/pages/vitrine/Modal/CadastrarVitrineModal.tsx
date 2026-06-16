@@ -1,6 +1,5 @@
 "use client";
 
-import api from "@/Api/conectar";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   FiCheckCircle,
@@ -8,6 +7,7 @@ import {
   FiHash,
   FiInfo,
   FiLayers,
+  FiLock,
   FiSave,
   FiTag,
   FiType,
@@ -17,29 +17,25 @@ import {
 
 import "@/components/styles/sistema/vitrine-modal.css";
 
+
+
+import { Status, StatusFormulario } from "../types/vitrineTypes";
+
+import {
+  gerarSlug,
+  getStatusId,
+  getStatusLabel,
+} from "../types/vitrineUtils";
+import { carregarConfiguracoesModal, salvarNovaVitrine } from "../services/vitrineActions";
+
 type Props = {
   aberto: boolean;
   onFechar: () => void;
   onCadastrado: () => void | Promise<void>;
 };
 
-type StatusFormulario = "idle" | "salvando" | "sucesso" | "erro";
-
-type Nivel = {
-  id_nivel?: number;
-  idNivel?: number;
-  id?: number;
-  nome: string;
-  codigo?: string;
-};
-
-type Status = {
-  id_status?: number;
-  idStatus?: number;
-  id?: number;
-  nome: string;
-  codigo?: string;
-};
+const NIVEL_SISTEMA_ID = 1;
+const NIVEL_SISTEMA_LABEL = "Sistema";
 
 export default function CadastrarVitrineModal({
   aberto,
@@ -48,19 +44,23 @@ export default function CadastrarVitrineModal({
 }: Props) {
   const [nome, setNome] = useState("");
   const [slug, setSlug] = useState("");
+  const [slugManual, setSlugManual] = useState(false);
+
   const [titulo, setTitulo] = useState("");
   const [subtitulo, setSubtitulo] = useState("");
   const [tipo, setTipo] = useState("produto");
   const [ordem, setOrdem] = useState(0);
-  const [nivelId, setNivelId] = useState(1);
   const [statusId, setStatusId] = useState(1);
 
-  const [niveis, setNiveis] = useState<Nivel[]>([]);
+  const [nivelSistemaNome, setNivelSistemaNome] =
+    useState(NIVEL_SISTEMA_LABEL);
+
   const [statusLista, setStatusLista] = useState<Status[]>([]);
   const [loadingConfig, setLoadingConfig] = useState(false);
 
   const [statusFormulario, setStatusFormulario] =
     useState<StatusFormulario>("idle");
+
   const [mensagem, setMensagem] = useState("");
 
   useEffect(() => {
@@ -73,77 +73,52 @@ export default function CadastrarVitrineModal({
     return nome.trim().length >= 3 && slug.trim().length >= 3;
   }, [nome, slug]);
 
-  function getNivelId(nivel: Nivel) {
-    return Number(nivel.id_nivel ?? nivel.idNivel ?? nivel.id ?? 0);
-  }
-
-  function getStatusId(status: Status) {
-    return Number(status.id_status ?? status.idStatus ?? status.id ?? 0);
-  }
-
   async function carregarConfiguracoes() {
     try {
       setLoadingConfig(true);
 
-      const response = await api.get("/configuracoes");
-      const data = response.data;
+      const configuracoes = await carregarConfiguracoesModal();
 
-      const niveisApi = Array.isArray(data?.dados?.niveis)
-        ? data.dados.niveis
-        : [];
+      setNivelSistemaNome(
+        configuracoes.nivelSistema?.nome || NIVEL_SISTEMA_LABEL
+      );
 
-      const statusApi = Array.isArray(data?.dados?.status)
-        ? data.dados.status
-        : [];
-
-      setNiveis(niveisApi);
-      setStatusLista(statusApi);
-
-      const nivelPadrao = niveisApi[0];
-      const statusAtivo =
-        statusApi.find((item: Status) =>
-          String(item.codigo || item.nome).toLowerCase().includes("ativo")
-        ) || statusApi[0];
-
-      if (nivelPadrao) setNivelId(getNivelId(nivelPadrao));
-      if (statusAtivo) setStatusId(getStatusId(statusAtivo));
+      setStatusLista(configuracoes.statusLista);
+      setStatusId(configuracoes.statusPadrao);
     } catch (error) {
       console.error("Erro ao carregar configurações:", error);
-      setNiveis([]);
+
       setStatusLista([]);
+      setNivelSistemaNome(NIVEL_SISTEMA_LABEL);
+      setStatusId(1);
     } finally {
       setLoadingConfig(false);
     }
   }
 
-  function gerarSlug(texto: string) {
-    return texto
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9\s-]/g, "")
-      .trim()
-      .replace(/\s+/g, "-")
-      .replace(/-+/g, "-");
-  }
-
   function alterarNome(valor: string) {
     setNome(valor);
 
-    if (!slug.trim()) {
+    if (!slugManual) {
       setSlug(gerarSlug(valor));
     }
+  }
+
+  function alterarSlug(valor: string) {
+    setSlugManual(true);
+    setSlug(gerarSlug(valor));
   }
 
   function limparFormulario() {
     setNome("");
     setSlug("");
+    setSlugManual(false);
     setTitulo("");
     setSubtitulo("");
     setTipo("produto");
     setOrdem(0);
-    setNivelId(1);
     setStatusId(1);
+    setNivelSistemaNome(NIVEL_SISTEMA_LABEL);
     setStatusFormulario("idle");
     setMensagem("");
   }
@@ -168,14 +143,14 @@ export default function CadastrarVitrineModal({
       setStatusFormulario("salvando");
       setMensagem("");
 
-      await api.post("/vitrine", {
+      await salvarNovaVitrine({
         nome: nome.trim(),
         slug: gerarSlug(slug),
         titulo: titulo.trim() || nome.trim(),
         subtitulo: subtitulo.trim() || null,
         tipo,
         status_id: Number(statusId),
-        nivel_id: Number(nivelId),
+        nivel_id: NIVEL_SISTEMA_ID,
         ordem: Number(ordem),
       });
 
@@ -205,7 +180,7 @@ export default function CadastrarVitrineModal({
   return (
     <div className="vitrine-modal-overlay" onMouseDown={fecharModal}>
       <section
-        className="vitrine-modal"
+        className="vitrine-modal vitrine-modal-compact"
         onMouseDown={(event) => event.stopPropagation()}
       >
         <header className="vitrine-modal-header">
@@ -217,7 +192,9 @@ export default function CadastrarVitrineModal({
               Cadastrar vitrine
             </h2>
 
-            <p>Crie uma vitrine para organizar produtos, campanhas ou categorias.</p>
+            <p>
+              Crie uma vitrine para organizar produtos, campanhas ou categorias.
+            </p>
           </div>
 
           <button type="button" onClick={fecharModal} aria-label="Fechar modal">
@@ -239,6 +216,21 @@ export default function CadastrarVitrineModal({
         )}
 
         <form className="vitrine-modal-form" onSubmit={salvarVitrine}>
+          <div className="vitrine-modal-preview">
+            <div className="vitrine-modal-preview-icon">
+              <FiGrid />
+            </div>
+
+            <div>
+              <span>Prévia da vitrine</span>
+              <strong>{titulo || nome || "Nome da vitrine"}</strong>
+              <p>
+                {subtitulo ||
+                  "Subtítulo público da vitrine aparecerá aqui."}
+              </p>
+            </div>
+          </div>
+
           <div className="vitrine-modal-section-title">
             <FiInfo />
             <div>
@@ -256,7 +248,7 @@ export default function CadastrarVitrineModal({
                 <input
                   type="text"
                   value={nome}
-                  onChange={(e) => alterarNome(e.target.value)}
+                  onChange={(event) => alterarNome(event.target.value)}
                   placeholder="Ex: Vitrine Dia dos Namorados"
                 />
               </div>
@@ -270,7 +262,7 @@ export default function CadastrarVitrineModal({
                 <input
                   type="text"
                   value={slug}
-                  onChange={(e) => setSlug(gerarSlug(e.target.value))}
+                  onChange={(event) => alterarSlug(event.target.value)}
                   placeholder="vitrine-dia-dos-namorados"
                 />
               </div>
@@ -284,7 +276,7 @@ export default function CadastrarVitrineModal({
                 <input
                   type="text"
                   value={titulo}
-                  onChange={(e) => setTitulo(e.target.value)}
+                  onChange={(event) => setTitulo(event.target.value)}
                   placeholder="Especial Dia dos Namorados ❤️"
                 />
               </div>
@@ -295,7 +287,7 @@ export default function CadastrarVitrineModal({
 
               <textarea
                 value={subtitulo}
-                onChange={(e) => setSubtitulo(e.target.value)}
+                onChange={(event) => setSubtitulo(event.target.value)}
                 placeholder="Texto curto que aparece abaixo do título."
                 rows={3}
               />
@@ -308,8 +300,8 @@ export default function CadastrarVitrineModal({
               <strong>Configurações</strong>
               <span>
                 {loadingConfig
-                  ? "Carregando níveis e status..."
-                  : "Tipo, ordem, nível e status vindos da API."}
+                  ? "Carregando status..."
+                  : "O nível fica travado em Sistema."}
               </span>
             </div>
           </div>
@@ -332,7 +324,7 @@ export default function CadastrarVitrineModal({
               <input
                 type="number"
                 value={ordem}
-                onChange={(e) => setOrdem(Number(e.target.value))}
+                onChange={(event) => setOrdem(Number(event.target.value))}
                 min={0}
               />
             </label>
@@ -340,26 +332,15 @@ export default function CadastrarVitrineModal({
             <label className="vitrine-modal-field">
               <span>Nível</span>
 
-              <select
-                value={nivelId}
-                onChange={(e) => setNivelId(Number(e.target.value))}
-                disabled={loadingConfig}
-              >
-                {niveis.length === 0 ? (
-                  <option value={1}>Nível 1</option>
-                ) : (
-                  niveis.map((nivel) => {
-                    const id = getNivelId(nivel);
-
-                    return (
-                      <option key={id} value={id}>
-                        {nivel.nome}
-                        {nivel.codigo ? ` - ${nivel.codigo}` : ""}
-                      </option>
-                    );
-                  })
-                )}
-              </select>
+              <div className="vitrine-modal-locked-field">
+                <FiLock />
+                <input
+                  type="text"
+                  value={`${NIVEL_SISTEMA_ID} - ${nivelSistemaNome}`}
+                  disabled
+                  readOnly
+                />
+              </div>
             </label>
 
             <label className="vitrine-modal-field">
@@ -367,7 +348,7 @@ export default function CadastrarVitrineModal({
 
               <select
                 value={statusId}
-                onChange={(e) => setStatusId(Number(e.target.value))}
+                onChange={(event) => setStatusId(Number(event.target.value))}
                 disabled={loadingConfig}
               >
                 {statusLista.length === 0 ? (
@@ -381,8 +362,7 @@ export default function CadastrarVitrineModal({
 
                     return (
                       <option key={id} value={id}>
-                        {status.nome}
-                        {status.codigo ? ` - ${status.codigo}` : ""}
+                        {getStatusLabel(status)}
                       </option>
                     );
                   })
