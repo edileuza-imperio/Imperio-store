@@ -7,6 +7,8 @@ import { useEffect, useMemo, useState } from "react";
 import {
   FiArrowLeft,
   FiCheckCircle,
+  FiChevronLeft,
+  FiChevronRight,
   FiEdit,
   FiEye,
   FiGrid,
@@ -66,10 +68,18 @@ export default function VitrineDetalhePage() {
   const [removendoItem, setRemovendoItem] = useState<number | null>(null);
   const [itemSelecionado, setItemSelecionado] = useState<number | null>(null);
   const [mostrarInfo, setMostrarInfo] = useState(false);
+  const [paginaAtual, setPaginaAtual] = useState(1);
+
+  const itensPorPagina = 3;
 
   useEffect(() => {
     carregarTudo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  useEffect(() => {
+    setPaginaAtual(1);
+    setItemSelecionado(null);
   }, [id]);
 
   async function carregarVitrine() {
@@ -137,6 +147,23 @@ export default function VitrineDetalhePage() {
     };
   }, [itens]);
 
+  const totalPaginas = useMemo(() => {
+    return Math.max(1, Math.ceil(itens.length / itensPorPagina));
+  }, [itens.length]);
+
+  const itensPaginados = useMemo(() => {
+    const inicio = (paginaAtual - 1) * itensPorPagina;
+    const fim = inicio + itensPorPagina;
+
+    return itens.slice(inicio, fim);
+  }, [itens, paginaAtual]);
+
+  useEffect(() => {
+    if (paginaAtual > totalPaginas) {
+      setPaginaAtual(totalPaginas);
+    }
+  }, [paginaAtual, totalPaginas]);
+
   function formatarData(data?: string | null) {
     if (!data) return "—";
 
@@ -175,6 +202,13 @@ export default function VitrineDetalhePage() {
 
   function selecionarItem(idItem: number) {
     setItemSelecionado((atual) => (atual === idItem ? null : idItem));
+  }
+
+  function mudarPagina(novaPagina: number) {
+    if (novaPagina < 1 || novaPagina > totalPaginas) return;
+
+    setPaginaAtual(novaPagina);
+    setItemSelecionado(null);
   }
 
   function verItemSelecionado() {
@@ -268,7 +302,7 @@ export default function VitrineDetalhePage() {
             {vitrine.nome}
           </h1>
 
-          <p>Visualize os detalhes da vitrine e gerencie os itens exibidos nela.</p>
+          <p>Gerencie os itens exibidos nesta vitrine.</p>
         </div>
 
         <button type="button" onClick={carregarTudo} className="vitrine-detalhe-refresh">
@@ -310,8 +344,27 @@ export default function VitrineDetalhePage() {
             Itens da vitrine
           </h2>
 
-          <p>Selecione um item para visualizar, editar ou remover.</p>
+          <p>
+            Mostrando {itensPaginados.length} de {itens.length} itens cadastrados.
+          </p>
         </div>
+
+        {itens.length > itensPorPagina && (
+          <div className="vitrine-detalhe-page-select">
+            <span>Página</span>
+
+            <select
+              value={paginaAtual}
+              onChange={(e) => mudarPagina(Number(e.target.value))}
+            >
+              {Array.from({ length: totalPaginas }, (_, index) => (
+                <option key={index + 1} value={index + 1}>
+                  {index + 1} de {totalPaginas}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </section>
 
       {itemSelecionado && (
@@ -338,82 +391,123 @@ export default function VitrineDetalhePage() {
           </Link>
         </div>
       ) : (
-        <section className="vitrine-detalhe-grid">
-          {itens.map((item) => {
-            const selecionado = itemSelecionado === item.id_vitrine_item;
-            const ativo = Number(item.status_id) === 1;
+        <>
+          <section className="vitrine-detalhe-grid">
+            {itensPaginados.map((item) => {
+              const selecionado = itemSelecionado === item.id_vitrine_item;
+              const ativo = Number(item.status_id) === 1;
 
-            return (
-              <article
-                key={item.id_vitrine_item}
-                className={`vitrine-detalhe-card ${
-                  selecionado ? "vitrine-detalhe-card-selected" : ""
-                }`}
-                onClick={() => selecionarItem(item.id_vitrine_item)}
-              >
-                <label
-                  className="vitrine-detalhe-checkbox"
-                  onClick={(e) => e.stopPropagation()}
+              return (
+                <article
+                  key={item.id_vitrine_item}
+                  className={`vitrine-detalhe-card ${
+                    selecionado ? "vitrine-detalhe-card-selected" : ""
+                  }`}
+                  onClick={() => selecionarItem(item.id_vitrine_item)}
                 >
-                  <input
-                    type="checkbox"
-                    checked={selecionado}
-                    onChange={() => selecionarItem(item.id_vitrine_item)}
-                  />
-                  <span />
-                </label>
-
-                <div className="vitrine-detalhe-card-top">
-                  <div className="vitrine-detalhe-card-icon">
-                    <FiPackage />
-                  </div>
-
-                  <span
-                    className={`vitrine-detalhe-badge ${
-                      ativo
-                        ? "vitrine-detalhe-status-ativo"
-                        : "vitrine-detalhe-status-inativo"
-                    }`}
+                  <label
+                    className="vitrine-detalhe-checkbox"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    {ativo ? <FiCheckCircle /> : <FiXCircle />}
-                    {statusTexto(item.status_id)}
-                  </span>
-                </div>
+                    <input
+                      type="checkbox"
+                      checked={selecionado}
+                      onChange={() => selecionarItem(item.id_vitrine_item)}
+                    />
+                    <span />
+                  </label>
 
-                <div className="vitrine-detalhe-card-body">
-                  <span className="vitrine-detalhe-type">{tipoDoItem(item)}</span>
-                  <strong>{nomeDoItem(item)}</strong>
-                  <p>
-                    {item.subtitulo_personalizado ||
-                      "Sem descrição personalizada para este item."}
-                  </p>
-                </div>
+                  <div className="vitrine-detalhe-card-top">
+                    <div className="vitrine-detalhe-card-icon">
+                      <FiPackage />
+                    </div>
 
-                <div className="vitrine-detalhe-meta">
-                  <div>
-                    <span>ID</span>
-                    <strong>#{item.id_vitrine_item}</strong>
+                    <span
+                      className={`vitrine-detalhe-badge ${
+                        ativo
+                          ? "vitrine-detalhe-status-ativo"
+                          : "vitrine-detalhe-status-inativo"
+                      }`}
+                    >
+                      {ativo ? <FiCheckCircle /> : <FiXCircle />}
+                      {statusTexto(item.status_id)}
+                    </span>
                   </div>
 
-                  <div>
-                    <span>Produto</span>
-                    <strong>{item.produto_id ?? "—"}</strong>
+                  <div className="vitrine-detalhe-card-body">
+                    <span className="vitrine-detalhe-type">{tipoDoItem(item)}</span>
+                    <strong>{nomeDoItem(item)}</strong>
+                    <p>
+                      {item.subtitulo_personalizado ||
+                        "Sem descrição personalizada para este item."}
+                    </p>
                   </div>
 
-                  <div>
-                    <span>Campanha</span>
-                    <strong>{item.campanha_id ?? "—"}</strong>
-                  </div>
+                  <div className="vitrine-detalhe-meta">
+                    <div>
+                      <span>ID</span>
+                      <strong>#{item.id_vitrine_item}</strong>
+                    </div>
 
-                  <div>
-                    <span>Categoria</span>
-                    <strong>{item.categoria_id ?? "—"}</strong>
+                    <div>
+                      <span>Produto</span>
+                      <strong>{item.produto_id ?? "—"}</strong>
+                    </div>
+
+                    <div>
+                      <span>Campanha</span>
+                      <strong>{item.campanha_id ?? "—"}</strong>
+                    </div>
+
+                    <div>
+                      <span>Categoria</span>
+                      <strong>{item.categoria_id ?? "—"}</strong>
+                    </div>
                   </div>
-                </div>
-              </article>
-            );
-          })}
-        </section>
+                </article>
+              );
+            })}
+          </section>
+
+          {itens.length > itensPorPagina && (
+            <div className="vitrine-detalhe-pagination">
+              <button
+                type="button"
+                disabled={paginaAtual === 1}
+                onClick={() => mudarPagina(paginaAtual - 1)}
+              >
+                <FiChevronLeft />
+                Anterior
+              </button>
+
+              <div className="vitrine-detalhe-pagination-center">
+                <span>
+                  Página <strong>{paginaAtual}</strong> de <strong>{totalPaginas}</strong>
+                </span>
+
+                <select
+                  value={paginaAtual}
+                  onChange={(e) => mudarPagina(Number(e.target.value))}
+                >
+                  {Array.from({ length: totalPaginas }, (_, index) => (
+                    <option key={index + 1} value={index + 1}>
+                      Página {index + 1}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="button"
+                disabled={paginaAtual === totalPaginas}
+                onClick={() => mudarPagina(paginaAtual + 1)}
+              >
+                Próxima
+                <FiChevronRight />
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       {mostrarInfo && (
