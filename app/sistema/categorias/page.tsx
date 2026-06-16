@@ -2,17 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import api from "@/Api/conectar";
 import "../../../components/styles/sistema/categoria.css";
 
 import {
   FolderOpen,
   Tag,
-  Search,
   Plus,
   Boxes,
-  ArrowRight,
   AlertCircle,
   Trash2,
   Pencil,
@@ -44,7 +42,6 @@ type StatusItem = {
   nome?: string;
   codigo?: string;
   descricao?: string | null;
-  criado?: string;
 };
 
 type CategoriaForm = {
@@ -68,6 +65,8 @@ const formInicial: CategoriaForm = {
   status_id: "",
   site_config_id: "",
 };
+
+const LIMITE_POR_PAGINA = 3;
 
 function slugify(valor: string) {
   return valor
@@ -93,13 +92,16 @@ function getStatusLabel(item: StatusItem) {
 }
 
 export default function CategoriasPage() {
+  const router = useRouter();
+
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [statusDisponiveis, setStatusDisponiveis] = useState<StatusItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingStatus, setLoadingStatus] = useState(true);
-  const [busca, setBusca] = useState("");
-  const [limite, setLimite] = useState("6");
+  const [pagina, setPagina] = useState(1);
   const [erro, setErro] = useState<string | null>(null);
+
+  const [categoriaSelecionada, setCategoriaSelecionada] = useState<number | null>(null);
 
   const [modalAberto, setModalAberto] = useState(false);
   const [salvando, setSalvando] = useState(false);
@@ -107,11 +109,29 @@ export default function CategoriasPage() {
   const [form, setForm] = useState<CategoriaForm>(formInicial);
   const [mounted, setMounted] = useState(false);
 
+  const totalPaginas = Math.max(1, Math.ceil(categorias.length / LIMITE_POR_PAGINA));
+
+  const categoriasExibidas = useMemo(() => {
+    const inicio = (pagina - 1) * LIMITE_POR_PAGINA;
+    const fim = inicio + LIMITE_POR_PAGINA;
+
+    return categorias.slice(inicio, fim);
+  }, [categorias, pagina]);
+
+  const statusSelecionado =
+    statusDisponiveis.find((item) => String(getStatusId(item)) === form.status_id) || null;
+
   useEffect(() => {
     setMounted(true);
     carregarCategorias();
     carregarStatus();
   }, []);
+
+  useEffect(() => {
+    if (pagina > totalPaginas) {
+      setPagina(totalPaginas);
+    }
+  }, [pagina, totalPaginas]);
 
   async function carregarCategorias() {
     try {
@@ -176,6 +196,41 @@ export default function CategoriasPage() {
     setModalAberto(false);
     setPassoModal(1);
     setForm(formInicial);
+  }
+
+  function selecionarCategoria(id: number) {
+    setCategoriaSelecionada((atual) => (atual === id ? null : id));
+  }
+
+  function editarSelecionada() {
+    if (!categoriaSelecionada) {
+      alert("Selecione uma categoria para editar.");
+      return;
+    }
+
+    router.push(`/sistema/categorias/${categoriaSelecionada}`);
+  }
+
+  async function excluirSelecionada() {
+    if (!categoriaSelecionada) {
+      alert("Selecione uma categoria para excluir.");
+      return;
+    }
+
+    await excluirCategoria(categoriaSelecionada);
+    setCategoriaSelecionada(null);
+  }
+
+  function paginaAnterior() {
+    setPagina((atual) => Math.max(1, atual - 1));
+  }
+
+  function proximaPagina() {
+    setPagina((atual) => Math.min(totalPaginas, atual + 1));
+  }
+
+  function ultimaPagina() {
+    setPagina(totalPaginas);
   }
 
   function atualizarCampo(campo: keyof CategoriaForm, valor: string) {
@@ -251,9 +306,9 @@ export default function CategoriasPage() {
       };
 
       await api.post("/painel/categoria", payload);
-
       await carregarCategorias();
 
+      setPagina(1);
       setModalAberto(false);
       setPassoModal(1);
       setForm(formInicial);
@@ -281,28 +336,6 @@ export default function CategoriasPage() {
       alert("Erro ao excluir categoria.");
     }
   }
-
-  const categoriasFiltradas = useMemo(() => {
-    const filtro = busca.toLowerCase().trim();
-
-    if (!filtro) return categorias;
-
-    return categorias.filter((categoria) => {
-      return (
-        (categoria.nome ?? "").toLowerCase().includes(filtro) ||
-        (categoria.slug ?? "").toLowerCase().includes(filtro) ||
-        (categoria.descricao ?? "").toLowerCase().includes(filtro)
-      );
-    });
-  }, [categorias, busca]);
-
-  const categoriasExibidas =
-    limite === "todos"
-      ? categoriasFiltradas
-      : categoriasFiltradas.slice(0, Number(limite));
-
-  const statusSelecionado =
-    statusDisponiveis.find((item) => String(getStatusId(item)) === form.status_id) || null;
 
   const modal =
     mounted && modalAberto
@@ -549,33 +582,49 @@ export default function CategoriasPage() {
           </div>
 
           <h1>Sistema de Categorias</h1>
-          <p>Controle todas as categorias cadastradas</p>
+          <p>Selecione uma categoria para editar ou excluir.</p>
         </div>
       </div>
 
-      <div className="categorias-toolbar">
-        <div className="categorias-search">
-          <Search size={18} />
-
-          <input
-            type="text"
-            placeholder="Pesquisar categoria..."
-            value={busca}
-            onChange={(e) => setBusca(e.target.value)}
-          />
-        </div>
-
-        <select
-          value={limite}
-          onChange={(e) => setLimite(e.target.value)}
-          className="categorias-select"
+      <div className="categorias-toolbar categorias-pagination">
+        <button
+          type="button"
+          onClick={paginaAnterior}
+          disabled={pagina === 1}
+          className="categorias-page-button"
         >
-          <option value="6">Mostrar 6</option>
-          <option value="9">Mostrar 9</option>
-          <option value="12">Mostrar 12</option>
-          <option value="todos">Mostrar Todos</option>
-        </select>
+          Anterior
+        </button>
+
+        <span className="categorias-page-info">
+          Página {pagina} de {totalPaginas} · 3 categorias
+        </span>
+
+        <button
+          type="button"
+          onClick={proximaPagina}
+          disabled={pagina === totalPaginas}
+          className="categorias-page-button"
+        >
+          Próximo
+        </button>
+
+        <button
+          type="button"
+          onClick={ultimaPagina}
+          disabled={pagina === totalPaginas}
+          className="categorias-page-button"
+        >
+          Máximo
+        </button>
       </div>
+
+      {categoriaSelecionada && (
+        <div className="categorias-selected-alert">
+          <CheckCircle2 size={18} />
+          Categoria selecionada para ação.
+        </div>
+      )}
 
       {erro && (
         <div className="categorias-error">
@@ -593,72 +642,84 @@ export default function CategoriasPage() {
         </div>
       ) : (
         <div className="categorias-grid">
-          {categoriasExibidas.map((categoria) => (
-            <div key={categoria.id_categoria} className="categorias-card">
-              <div className="categorias-card-header">
-                <div className="categorias-icon">
-                  <FolderOpen size={20} />
+          {categoriasExibidas.map((categoria) => {
+            const selecionada = categoriaSelecionada === categoria.id_categoria;
+
+            return (
+              <div
+                key={categoria.id_categoria}
+                className={`categorias-card ${selecionada ? "categorias-card-selected" : ""}`}
+                onClick={() => selecionarCategoria(categoria.id_categoria)}
+              >
+                <label className="categorias-checkbox" onClick={(e) => e.stopPropagation()}>
+                  <input
+                    type="checkbox"
+                    checked={selecionada}
+                    onChange={() => selecionarCategoria(categoria.id_categoria)}
+                  />
+                  <span></span>
+                </label>
+
+                <div className="categorias-card-header">
+                  <div className="categorias-icon">
+                    <FolderOpen size={20} />
+                  </div>
+
+                  <div className="categorias-title">
+                    <h3>{categoria.nome}</h3>
+                    <span>{categoria.slug}</span>
+                  </div>
                 </div>
 
-                <div className="categorias-title">
-                  <h3>{categoria.nome}</h3>
-                  <span>{categoria.slug}</span>
+                <p className="categorias-description">
+                  {categoria.descricao || "Sem descrição disponível"}
+                </p>
+
+                <div className="categorias-info">
+                  <span>
+                    <Tag size={14} />
+                    {categoria.slug}
+                  </span>
+
+                  <span>
+                    <Boxes size={14} />
+                    Ordem: {categoria.ordem ?? "-"}
+                  </span>
                 </div>
-
-                <Link
-                  href={`/sistema/categorias/${categoria.id_categoria}`}
-                  className="categorias-arrow"
-                >
-                  <ArrowRight size={18} />
-                </Link>
               </div>
-
-              <p className="categorias-description">
-                {categoria.descricao || "Sem descrição disponível"}
-              </p>
-
-              <div className="categorias-info">
-                <span>
-                  <Tag size={14} />
-                  {categoria.slug}
-                </span>
-
-                <span>
-                  <Boxes size={14} />
-                  Ordem: {categoria.ordem ?? "-"}
-                </span>
-              </div>
-
-              <div className="categorias-actions">
-                <Link
-                  href={`/sistema/categorias/${categoria.id_categoria}`}
-                  className="categorias-edit"
-                >
-                  <Pencil size={16} />
-                  Editar
-                </Link>
-
-                <button
-                  onClick={() => excluirCategoria(categoria.id_categoria)}
-                  className="categorias-delete"
-                >
-                  <Trash2 size={16} />
-                  Excluir
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={abrirModal}
-        className="categorias-floating"
-        aria-label="Cadastrar categoria"
-      >
-        <Plus size={28} />
-      </button>
+      <div className="categorias-floating-group">
+        <button
+          type="button"
+          onClick={editarSelecionada}
+          className="categorias-floating categorias-floating-edit"
+          aria-label="Editar categoria"
+        >
+          <Pencil size={22} />
+        </button>
+
+        <button
+          type="button"
+          onClick={excluirSelecionada}
+          className="categorias-floating categorias-floating-delete"
+          aria-label="Excluir categoria"
+        >
+          <Trash2 size={22} />
+        </button>
+
+        <button
+          type="button"
+          onClick={abrirModal}
+          className="categorias-floating categorias-floating-add"
+          aria-label="Cadastrar categoria"
+        >
+          <Plus size={28} />
+        </button>
+      </div>
 
       {modal}
     </div>

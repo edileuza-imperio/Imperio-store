@@ -1,16 +1,16 @@
 "use client";
 
 import api from "@/Api/conectar";
-import styles from "./Produtos.module.css";
+
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   Package,
   Tag,
   Pencil,
   Trash2,
-  Search,
   Plus,
   Boxes,
   RotateCcw,
@@ -20,7 +20,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-import { useEffect, useMemo, useState } from "react";
+import "../../../components/styles/sistema/produtos.css";
+import { imagemFundo } from "@/components/Bibioteca/imagem";
 
 interface Produto {
   id_produto: number;
@@ -36,21 +37,18 @@ interface Produto {
   disponivel?: number;
 }
 
+const LIMITE_POR_PAGINA = 3;
+
 export default function ProdutosPage() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
   const [atualizandoId, setAtualizandoId] = useState<number | null>(null);
-  const [busca, setBusca] = useState("");
-  const [porPagina, setPorPagina] = useState("3");
   const [paginaAtual, setPaginaAtual] = useState(1);
+  const [produtoSelecionado, setProdutoSelecionado] = useState<number | null>(null);
 
   useEffect(() => {
     carregarProdutos();
   }, []);
-
-  useEffect(() => {
-    setPaginaAtual(1);
-  }, [busca, porPagina]);
 
   async function carregarProdutos() {
     try {
@@ -66,6 +64,38 @@ export default function ProdutosPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  const totalPaginas = Math.max(1, Math.ceil(produtos.length / LIMITE_POR_PAGINA));
+
+  const produtosExibidos = useMemo(() => {
+    const inicio = (paginaAtual - 1) * LIMITE_POR_PAGINA;
+    const fim = inicio + LIMITE_POR_PAGINA;
+
+    return produtos.slice(inicio, fim);
+  }, [produtos, paginaAtual]);
+
+  function selecionarProduto(id: number) {
+    setProdutoSelecionado((atual) => (atual === id ? null : id));
+  }
+
+  function editarSelecionado() {
+    if (!produtoSelecionado) {
+      alert("Selecione um produto para editar.");
+      return;
+    }
+
+    window.location.href = `/painel/sistema/produtos/editar/${produtoSelecionado}`;
+  }
+
+  async function excluirSelecionado() {
+    if (!produtoSelecionado) {
+      alert("Selecione um produto para excluir.");
+      return;
+    }
+
+    await excluirProduto(produtoSelecionado);
+    setProdutoSelecionado(null);
   }
 
   async function excluirProduto(id: number) {
@@ -84,18 +114,10 @@ export default function ProdutosPage() {
     try {
       setAtualizandoId(produto.id_produto);
 
-      await api.put(
-        `/painel/produto/${produto.id_produto}/estoque`,
-        {
-          quantidade,
-          reservado: 0,
-        },
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      await api.put(`/painel/produto/${produto.id_produto}/estoque`, {
+        quantidade,
+        reservado: 0,
+      });
 
       setProdutos((prev) =>
         prev.map((item) =>
@@ -121,7 +143,6 @@ export default function ProdutosPage() {
 
   async function colocarComoEsgotado(produto: Produto) {
     if (!confirm(`Deseja deixar "${produto.nome}" como ESGOTADO?`)) return;
-
     await atualizarEstoqueProduto(produto, 0);
   }
 
@@ -143,28 +164,6 @@ export default function ProdutosPage() {
     await atualizarEstoqueProduto(produto, quantidade);
   }
 
-  const produtosFiltrados = useMemo(() => {
-    const filtro = busca.toLowerCase().trim();
-
-    return produtos.filter((produto) => {
-      return (
-        (produto.nome || "").toLowerCase().includes(filtro) ||
-        (produto.marca || "").toLowerCase().includes(filtro) ||
-        (produto.sku || "").toLowerCase().includes(filtro)
-      );
-    });
-  }, [produtos, busca]);
-
-  const totalPaginas = Math.max(
-    1,
-    Math.ceil(produtosFiltrados.length / Number(porPagina))
-  );
-
-  const inicio = (paginaAtual - 1) * Number(porPagina);
-  const fim = inicio + Number(porPagina);
-
-  const produtosExibidos = produtosFiltrados.slice(inicio, fim);
-
   function voltarPagina() {
     setPaginaAtual((pagina) => Math.max(1, pagina - 1));
   }
@@ -174,42 +173,35 @@ export default function ProdutosPage() {
   }
 
   if (loading) {
-    return <div className={styles.loading}>Carregando produtos...</div>;
+    return <div className="produtos-loading">Carregando produtos...</div>;
   }
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
+    <div className="produtos-container">
+      <div className="produtos-header">
         <div>
           <h1>Sistema de Produtos</h1>
-          <p>Escolha quais produtos têm estoque ou ficam esgotados</p>
+          <p>Selecione um produto para editar ou excluir</p>
         </div>
 
-        <div className={styles.stats}>
+        <div className="produtos-stats">
           <Boxes size={20} />
           <span>{produtos.length} produtos</span>
         </div>
       </div>
 
-      <div className={styles.toolbar}>
-      
-        <select value={porPagina} onChange={(e) => setPorPagina(e.target.value)}>
-          <option value="3">3 por página</option>
-          <option value="8">8 por página</option>
-          <option value="12">12 por página</option>
-          <option value="16">16 por página</option>
-        </select>
-      </div>
+      {produtoSelecionado && (
+        <div className="produtos-selected-alert">
+          <CheckCircle size={18} />
+          Produto selecionado para ação.
+        </div>
+      )}
 
-      <div className={styles.grid}>
+      <div className="produtos-grid">
         {produtosExibidos.map((produto) => {
           const descricao = produto.descricao || "Sem descrição disponível";
-
           const imgPath = produto.imagem || produto.miniatura || "";
-
-          const imagem = imgPath
-            ? `${api.defaults.baseURL}/${imgPath}`
-            : "/placeholder.png";
+          const imagem = imgPath ? imagemFundo(imgPath) : "/placeholder.png";
 
           const quantidadeAtual = Number(produto.quantidade || 0);
           const reservadoAtual = Number(produto.reservado || 0);
@@ -220,39 +212,58 @@ export default function ProdutosPage() {
 
           const esgotado = disponivel <= 0;
           const atualizando = atualizandoId === produto.id_produto;
+          const selecionado = produtoSelecionado === produto.id_produto;
 
           return (
-            <article key={produto.id_produto} className={styles.card}>
-              <div className={styles.imageWrap}>
+            <article
+              key={produto.id_produto}
+              className={`produtos-card ${
+                selecionado ? "produtos-card-selected" : ""
+              }`}
+              onClick={() => selecionarProduto(produto.id_produto)}
+            >
+              <label
+                className="produtos-checkbox"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <input
+                  type="checkbox"
+                  checked={selecionado}
+                  onChange={() => selecionarProduto(produto.id_produto)}
+                />
+                <span />
+              </label>
+
+              <div className="produtos-image-wrap">
                 <Image
                   src={imagem}
                   alt={produto.nome}
                   fill
-                  className={styles.image}
-                  sizes="(max-width: 768px) 100vw, 25vw"
+                  className="produtos-image"
+                  sizes="(max-width: 768px) 100vw, 33vw"
                 />
 
-                <span className={styles.price}>
+                <span className="produtos-price">
                   R$ {Number(produto.preco || 0).toFixed(2)}
                 </span>
 
                 {esgotado ? (
-                  <span className={styles.soldOutBadge}>ESGOTADO</span>
+                  <span className="produtos-sold-out-badge">ESGOTADO</span>
                 ) : (
-                  <span className={styles.stockBadge}>COM ESTOQUE</span>
+                  <span className="produtos-stock-badge">COM ESTOQUE</span>
                 )}
               </div>
 
-              <div className={styles.content}>
+              <div className="produtos-content">
                 <h3>{produto.nome}</h3>
 
                 <p>
-                  {descricao.length > 90
-                    ? descricao.substring(0, 90) + "..."
+                  {descricao.length > 80
+                    ? `${descricao.substring(0, 80)}...`
                     : descricao}
                 </p>
 
-                <div className={styles.info}>
+                <div className="produtos-info">
                   <span>
                     <Tag size={13} />
                     {produto.marca || "Sem marca"}
@@ -269,12 +280,15 @@ export default function ProdutosPage() {
                   </span>
                 </div>
 
-                <div className={styles.stockActions}>
+                <div className="produtos-stock-actions">
                   {esgotado ? (
                     <button
                       type="button"
-                      className={styles.restoreButton}
-                      onClick={() => retirarDoEsgotado(produto)}
+                      className="produtos-restore-button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        retirarDoEsgotado(produto);
+                      }}
                       disabled={atualizando}
                     >
                       <CheckCircle size={15} />
@@ -283,8 +297,11 @@ export default function ProdutosPage() {
                   ) : (
                     <button
                       type="button"
-                      className={styles.soldOutButton}
-                      onClick={() => colocarComoEsgotado(produto)}
+                      className="produtos-sold-out-button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        colocarComoEsgotado(produto);
+                      }}
                       disabled={atualizando}
                     >
                       <XCircle size={15} />
@@ -294,31 +311,15 @@ export default function ProdutosPage() {
 
                   <button
                     type="button"
-                    className={styles.changeStockButton}
-                    onClick={() => retirarDoEsgotado(produto)}
+                    className="produtos-change-stock-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      retirarDoEsgotado(produto);
+                    }}
                     disabled={atualizando}
                   >
                     <RotateCcw size={15} />
                     Estoque
-                  </button>
-                </div>
-
-                <div className={styles.actions}>
-                  <Link
-                    href={`/painel/sistema/produtos/editar/${produto.id_produto}`}
-                    className={styles.editButton}
-                  >
-                    <Pencil size={15} />
-                    Editar
-                  </Link>
-
-                  <button
-                    type="button"
-                    className={styles.deleteButton}
-                    onClick={() => excluirProduto(produto.id_produto)}
-                  >
-                    <Trash2 size={15} />
-                    Excluir
                   </button>
                 </div>
               </div>
@@ -327,7 +328,7 @@ export default function ProdutosPage() {
         })}
       </div>
 
-      <div className={styles.pagination}>
+      <div className="produtos-pagination">
         <button
           type="button"
           onClick={voltarPagina}
@@ -351,14 +352,33 @@ export default function ProdutosPage() {
         </button>
       </div>
 
-      <Link
-        href="/painel/sistema/produtos/cadastrar"
-        className={styles.floatingButton}
-        aria-label="Adicionar produto"
-        title="Adicionar produto"
-      >
-        <Plus size={28} />
-      </Link>
+      <div className="produtos-floating-group">
+        <button
+          type="button"
+          onClick={editarSelecionado}
+          className="produtos-floating produtos-floating-edit"
+          aria-label="Editar produto"
+        >
+          <Pencil size={22} />
+        </button>
+
+        <button
+          type="button"
+          onClick={excluirSelecionado}
+          className="produtos-floating produtos-floating-delete"
+          aria-label="Excluir produto"
+        >
+          <Trash2 size={22} />
+        </button>
+
+        <Link
+          href="/painel/sistema/produtos/cadastrar"
+          className="produtos-floating produtos-floating-add"
+          aria-label="Adicionar produto"
+        >
+          <Plus size={28} />
+        </Link>
+      </div>
     </div>
   );
 }
