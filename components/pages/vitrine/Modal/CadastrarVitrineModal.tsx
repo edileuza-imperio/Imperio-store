@@ -1,7 +1,7 @@
 "use client";
 
 import api from "@/Api/conectar";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   FiCheckCircle,
   FiGrid,
@@ -25,6 +25,22 @@ type Props = {
 
 type StatusFormulario = "idle" | "salvando" | "sucesso" | "erro";
 
+type Nivel = {
+  id_nivel?: number;
+  idNivel?: number;
+  id?: number;
+  nome: string;
+  codigo?: string;
+};
+
+type Status = {
+  id_status?: number;
+  idStatus?: number;
+  id?: number;
+  nome: string;
+  codigo?: string;
+};
+
 export default function CadastrarVitrineModal({
   aberto,
   onFechar,
@@ -39,13 +55,66 @@ export default function CadastrarVitrineModal({
   const [nivelId, setNivelId] = useState(1);
   const [statusId, setStatusId] = useState(1);
 
+  const [niveis, setNiveis] = useState<Nivel[]>([]);
+  const [statusLista, setStatusLista] = useState<Status[]>([]);
+  const [loadingConfig, setLoadingConfig] = useState(false);
+
   const [statusFormulario, setStatusFormulario] =
     useState<StatusFormulario>("idle");
   const [mensagem, setMensagem] = useState("");
 
+  useEffect(() => {
+    if (aberto) {
+      carregarConfiguracoes();
+    }
+  }, [aberto]);
+
   const podeSalvar = useMemo(() => {
     return nome.trim().length >= 3 && slug.trim().length >= 3;
   }, [nome, slug]);
+
+  function getNivelId(nivel: Nivel) {
+    return Number(nivel.id_nivel ?? nivel.idNivel ?? nivel.id ?? 0);
+  }
+
+  function getStatusId(status: Status) {
+    return Number(status.id_status ?? status.idStatus ?? status.id ?? 0);
+  }
+
+  async function carregarConfiguracoes() {
+    try {
+      setLoadingConfig(true);
+
+      const response = await api.get("/configuracoes");
+      const data = response.data;
+
+      const niveisApi = Array.isArray(data?.dados?.niveis)
+        ? data.dados.niveis
+        : [];
+
+      const statusApi = Array.isArray(data?.dados?.status)
+        ? data.dados.status
+        : [];
+
+      setNiveis(niveisApi);
+      setStatusLista(statusApi);
+
+      const nivelPadrao = niveisApi[0];
+      const statusAtivo =
+        statusApi.find((item: Status) =>
+          String(item.codigo || item.nome).toLowerCase().includes("ativo")
+        ) || statusApi[0];
+
+      if (nivelPadrao) setNivelId(getNivelId(nivelPadrao));
+      if (statusAtivo) setStatusId(getStatusId(statusAtivo));
+    } catch (error) {
+      console.error("Erro ao carregar configurações:", error);
+      setNiveis([]);
+      setStatusLista([]);
+    } finally {
+      setLoadingConfig(false);
+    }
+  }
 
   function gerarSlug(texto: string) {
     return texto
@@ -118,7 +187,7 @@ export default function CadastrarVitrineModal({
       setTimeout(() => {
         limparFormulario();
         onFechar();
-      }, 500);
+      }, 550);
     } catch (error: any) {
       console.error("Erro ao cadastrar vitrine:", error);
 
@@ -148,7 +217,7 @@ export default function CadastrarVitrineModal({
               Cadastrar vitrine
             </h2>
 
-            <p>Crie uma vitrine para exibir produtos, campanhas ou categorias.</p>
+            <p>Crie uma vitrine para organizar produtos, campanhas ou categorias.</p>
           </div>
 
           <button type="button" onClick={fecharModal} aria-label="Fechar modal">
@@ -174,7 +243,7 @@ export default function CadastrarVitrineModal({
             <FiInfo />
             <div>
               <strong>Dados principais</strong>
-              <span>Informações públicas da vitrine.</span>
+              <span>Nome, slug e textos públicos da vitrine.</span>
             </div>
           </div>
 
@@ -237,7 +306,11 @@ export default function CadastrarVitrineModal({
             <FiLayers />
             <div>
               <strong>Configurações</strong>
-              <span>Tipo, ordem, nível e status.</span>
+              <span>
+                {loadingConfig
+                  ? "Carregando níveis e status..."
+                  : "Tipo, ordem, nível e status vindos da API."}
+              </span>
             </div>
           </div>
 
@@ -267,12 +340,26 @@ export default function CadastrarVitrineModal({
             <label className="vitrine-modal-field">
               <span>Nível</span>
 
-              <input
-                type="number"
+              <select
                 value={nivelId}
                 onChange={(e) => setNivelId(Number(e.target.value))}
-                min={1}
-              />
+                disabled={loadingConfig}
+              >
+                {niveis.length === 0 ? (
+                  <option value={1}>Nível 1</option>
+                ) : (
+                  niveis.map((nivel) => {
+                    const id = getNivelId(nivel);
+
+                    return (
+                      <option key={id} value={id}>
+                        {nivel.nome}
+                        {nivel.codigo ? ` - ${nivel.codigo}` : ""}
+                      </option>
+                    );
+                  })
+                )}
+              </select>
             </label>
 
             <label className="vitrine-modal-field">
@@ -281,9 +368,25 @@ export default function CadastrarVitrineModal({
               <select
                 value={statusId}
                 onChange={(e) => setStatusId(Number(e.target.value))}
+                disabled={loadingConfig}
               >
-                <option value={1}>Ativo</option>
-                <option value={2}>Inativo</option>
+                {statusLista.length === 0 ? (
+                  <>
+                    <option value={1}>Ativo</option>
+                    <option value={2}>Inativo</option>
+                  </>
+                ) : (
+                  statusLista.map((status) => {
+                    const id = getStatusId(status);
+
+                    return (
+                      <option key={id} value={id}>
+                        {status.nome}
+                        {status.codigo ? ` - ${status.codigo}` : ""}
+                      </option>
+                    );
+                  })
+                )}
               </select>
             </label>
           </div>
