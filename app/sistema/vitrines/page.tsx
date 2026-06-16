@@ -13,9 +13,8 @@ import {
   FiXCircle,
   FiChevronLeft,
   FiChevronRight,
+  FiTrash2,
 } from "react-icons/fi";
-
-
 
 import "../../../components/styles/sistema/vitrines.css";
 import CadastrarVitrineModal from "@/components/pages/vitrine/Modal/CadastrarVitrineModal";
@@ -41,7 +40,9 @@ export default function VitrinesPage() {
   const [vitrines, setVitrines] = useState<Vitrine[]>([]);
   const [loading, setLoading] = useState(true);
   const [paginaAtual, setPaginaAtual] = useState(1);
-  const [vitrineSelecionada, setVitrineSelecionada] = useState<number | null>(null);
+  const [vitrineSelecionada, setVitrineSelecionada] = useState<number | null>(
+    null
+  );
   const [modalCadastrarAberto, setModalCadastrarAberto] = useState(false);
 
   useEffect(() => {
@@ -115,6 +116,38 @@ export default function VitrinesPage() {
     }
 
     router.push(`/sistema/vitrines/${vitrineSelecionada}/editar`);
+  }
+
+  async function excluirSelecionada() {
+    if (!vitrineSelecionada) {
+      alert("Selecione uma vitrine para excluir.");
+      return;
+    }
+
+    const confirmar = confirm("Deseja realmente excluir esta vitrine?");
+
+    if (!confirmar) {
+      return;
+    }
+
+    try {
+      await api.delete(`/vitrine/${vitrineSelecionada}`);
+
+      await carregarVitrines();
+
+      setVitrineSelecionada(null);
+      setPaginaAtual(1);
+
+      alert("Vitrine excluída com sucesso.");
+    } catch (error: any) {
+      console.error("Erro ao excluir vitrine:", error);
+
+      alert(
+        error?.response?.data?.mensagem ||
+          error?.response?.data?.erro ||
+          "Erro ao excluir vitrine."
+      );
+    }
   }
 
   function voltarPagina() {
@@ -210,7 +243,7 @@ export default function VitrinesPage() {
                 >
                   <label
                     className="vitrines-checkbox"
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(event) => event.stopPropagation()}
                   >
                     <input
                       type="checkbox"
@@ -309,6 +342,15 @@ export default function VitrinesPage() {
           aria-label="Editar vitrine"
         >
           <FiEdit />
+        </button>
+
+        <button
+          type="button"
+          onClick={excluirSelecionada}
+          className="vitrines-floating vitrines-floating-delete"
+          aria-label="Excluir vitrine"
+        >
+          <FiTrash2 />
         </button>
 
         <button
