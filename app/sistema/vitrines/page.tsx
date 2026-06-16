@@ -1,7 +1,6 @@
 "use client";
 
 import api from "@/Api/conectar";
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -16,7 +15,10 @@ import {
   FiChevronRight,
 } from "react-icons/fi";
 
+
+
 import "../../../components/styles/sistema/vitrines.css";
+import CadastrarVitrineModal from "@/components/pages/vitrine/Modal/CadastrarVitrineModal";
 
 type Vitrine = {
   id_vitrine: number;
@@ -40,6 +42,7 @@ export default function VitrinesPage() {
   const [loading, setLoading] = useState(true);
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [vitrineSelecionada, setVitrineSelecionada] = useState<number | null>(null);
+  const [modalCadastrarAberto, setModalCadastrarAberto] = useState(false);
 
   useEffect(() => {
     carregarVitrines();
@@ -75,10 +78,9 @@ export default function VitrinesPage() {
     return vitrines.filter((vitrine) => Number(vitrine.status_id) === 1).length;
   }, [vitrines]);
 
-  const totalPaginas = Math.max(
-    1,
-    Math.ceil(vitrines.length / LIMITE_POR_PAGINA)
-  );
+  const totalPaginas = useMemo(() => {
+    return Math.max(1, Math.ceil(vitrines.length / LIMITE_POR_PAGINA));
+  }, [vitrines.length]);
 
   const vitrinesExibidas = useMemo(() => {
     const inicio = (paginaAtual - 1) * LIMITE_POR_PAGINA;
@@ -86,6 +88,12 @@ export default function VitrinesPage() {
 
     return vitrines.slice(inicio, fim);
   }, [vitrines, paginaAtual]);
+
+  useEffect(() => {
+    if (paginaAtual > totalPaginas) {
+      setPaginaAtual(totalPaginas);
+    }
+  }, [paginaAtual, totalPaginas]);
 
   function selecionarVitrine(id: number) {
     setVitrineSelecionada((atual) => (atual === id ? null : id));
@@ -111,10 +119,12 @@ export default function VitrinesPage() {
 
   function voltarPagina() {
     setPaginaAtual((pagina) => Math.max(1, pagina - 1));
+    setVitrineSelecionada(null);
   }
 
   function avancarPagina() {
     setPaginaAtual((pagina) => Math.min(totalPaginas, pagina + 1));
+    setVitrineSelecionada(null);
   }
 
   function formatarData(data?: string | null) {
@@ -131,6 +141,12 @@ export default function VitrinesPage() {
 
   function statusTexto(statusId: number) {
     return Number(statusId) === 1 ? "Ativa" : "Inativa";
+  }
+
+  async function aoCadastrarVitrine() {
+    await carregarVitrines();
+    setPaginaAtual(1);
+    setVitrineSelecionada(null);
   }
 
   if (loading) {
@@ -168,10 +184,14 @@ export default function VitrinesPage() {
           <strong>Nenhuma vitrine encontrada</strong>
           <span>Cadastre sua primeira vitrine para exibir produtos no site.</span>
 
-          <Link href="/sistema/vitrines/cadastrar" className="vitrines-empty-button">
+          <button
+            type="button"
+            onClick={() => setModalCadastrarAberto(true)}
+            className="vitrines-empty-button"
+          >
             <FiPlus />
             Cadastrar vitrine
-          </Link>
+          </button>
         </div>
       ) : (
         <>
@@ -183,7 +203,9 @@ export default function VitrinesPage() {
               return (
                 <article
                   key={vitrine.id_vitrine}
-                  className={`vitrines-card ${selecionada ? "vitrines-card-selected" : ""}`}
+                  className={`vitrines-card ${
+                    selecionada ? "vitrines-card-selected" : ""
+                  }`}
                   onClick={() => selecionarVitrine(vitrine.id_vitrine)}
                 >
                   <label
@@ -203,7 +225,13 @@ export default function VitrinesPage() {
                       <FiGrid />
                     </div>
 
-                    <span className={`vitrines-badge ${ativa ? "vitrines-status-ativo" : "vitrines-status-inativo"}`}>
+                    <span
+                      className={`vitrines-badge ${
+                        ativa
+                          ? "vitrines-status-ativo"
+                          : "vitrines-status-inativo"
+                      }`}
+                    >
                       {ativa ? <FiCheckCircle /> : <FiXCircle />}
                       {statusTexto(vitrine.status_id)}
                     </span>
@@ -283,14 +311,21 @@ export default function VitrinesPage() {
           <FiEdit />
         </button>
 
-        <Link
-          href="/sistema/vitrines/cadastrar"
+        <button
+          type="button"
+          onClick={() => setModalCadastrarAberto(true)}
           className="vitrines-floating vitrines-floating-add"
           aria-label="Cadastrar vitrine"
         >
           <FiPlus />
-        </Link>
+        </button>
       </div>
+
+      <CadastrarVitrineModal
+        aberto={modalCadastrarAberto}
+        onFechar={() => setModalCadastrarAberto(false)}
+        onCadastrado={aoCadastrarVitrine}
+      />
     </main>
   );
 }
