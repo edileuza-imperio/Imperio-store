@@ -80,6 +80,7 @@ export default function VitrineDetalhePage() {
   useEffect(() => {
     setPaginaAtual(1);
     setItemSelecionado(null);
+    setMostrarInfo(false);
   }, [id]);
 
   async function carregarVitrine() {
@@ -311,32 +312,6 @@ export default function VitrineDetalhePage() {
         </button>
       </header>
 
-      <section className="vitrine-detalhe-hero">
-        <div className="vitrine-detalhe-hero-icon">
-          <FiInfo />
-        </div>
-
-        <div className="vitrine-detalhe-hero-content">
-          <div className="vitrine-detalhe-hero-tags">
-            <span
-              className={`vitrine-detalhe-badge ${
-                Number(vitrine.status_id) === 1
-                  ? "vitrine-detalhe-status-ativo"
-                  : "vitrine-detalhe-status-inativo"
-              }`}
-            >
-              {Number(vitrine.status_id) === 1 ? <FiCheckCircle /> : <FiXCircle />}
-              {statusTexto(vitrine.status_id)}
-            </span>
-
-            <span className="vitrine-detalhe-slug">/{vitrine.slug}</span>
-          </div>
-
-          <h2>{vitrine.titulo || "Sem título cadastrado"}</h2>
-          <p>{vitrine.subtitulo || "Sem subtítulo cadastrado para esta vitrine."}</p>
-        </div>
-      </section>
-
       <section className="vitrine-detalhe-section-title">
         <div>
           <h2>
@@ -345,7 +320,7 @@ export default function VitrineDetalhePage() {
           </h2>
 
           <p>
-            Mostrando {itensPaginados.length} de {itens.length} itens cadastrados.
+            {itens.length} itens cadastrados • Página {paginaAtual} de {totalPaginas}
           </p>
         </div>
 
@@ -436,7 +411,9 @@ export default function VitrineDetalhePage() {
 
                   <div className="vitrine-detalhe-card-body">
                     <span className="vitrine-detalhe-type">{tipoDoItem(item)}</span>
+
                     <strong>{nomeDoItem(item)}</strong>
+
                     <p>
                       {item.subtitulo_personalizado ||
                         "Sem descrição personalizada para este item."}
@@ -523,6 +500,35 @@ export default function VitrineDetalhePage() {
             </button>
           </div>
 
+          <div className="vitrine-detalhe-info-cover">
+            <div className="vitrine-detalhe-info-cover-icon">
+              <FiGrid />
+            </div>
+
+            <div>
+              <div className="vitrine-detalhe-info-tags">
+                <span
+                  className={`vitrine-detalhe-badge ${
+                    Number(vitrine.status_id) === 1
+                      ? "vitrine-detalhe-status-ativo"
+                      : "vitrine-detalhe-status-inativo"
+                  }`}
+                >
+                  {Number(vitrine.status_id) === 1 ? <FiCheckCircle /> : <FiXCircle />}
+                  {statusTexto(vitrine.status_id)}
+                </span>
+
+                <span className="vitrine-detalhe-slug">/{vitrine.slug}</span>
+              </div>
+
+              <h4>{vitrine.titulo || vitrine.nome}</h4>
+
+              <p>
+                {vitrine.subtitulo || "Sem subtítulo cadastrado para esta vitrine."}
+              </p>
+            </div>
+          </div>
+
           <div className="vitrine-detalhe-info-grid">
             <div>
               <span>Tipo</span>
@@ -540,11 +546,6 @@ export default function VitrineDetalhePage() {
             </div>
 
             <div>
-              <span>Criada em</span>
-              <strong>{formatarData(vitrine.criado_em)}</strong>
-            </div>
-
-            <div>
               <span>Total de itens</span>
               <strong>{resumo.total}</strong>
             </div>
@@ -557,6 +558,11 @@ export default function VitrineDetalhePage() {
             <div>
               <span>Itens inativos</span>
               <strong>{resumo.inativos}</strong>
+            </div>
+
+            <div>
+              <span>Criada em</span>
+              <strong>{formatarData(vitrine.criado_em)}</strong>
             </div>
           </div>
         </div>
