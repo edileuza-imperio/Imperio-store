@@ -7,20 +7,19 @@ import { useEffect, useMemo, useState } from "react";
 import {
   FiArrowLeft,
   FiCheckCircle,
-  FiClock,
   FiEdit,
   FiEye,
   FiGrid,
+  FiInfo,
   FiLayers,
   FiPackage,
   FiPlus,
   FiRefreshCw,
-  FiTag,
   FiTrash2,
   FiXCircle,
 } from "react-icons/fi";
 
-import styles from "./VitrineDetalhe.module.css";
+import "../../../../components/styles/sistema/vitrine-detalhe.css";
 
 type Vitrine = {
   id_vitrine: number;
@@ -49,7 +48,6 @@ type VitrineItem = {
   nivel_id?: number;
   criado_em?: string | null;
   atualizado_em?: string | null;
-
   produto_nome?: string | null;
   campanha_nome?: string | null;
   categoria_nome?: string | null;
@@ -66,6 +64,12 @@ export default function VitrineDetalhePage() {
   const [loading, setLoading] = useState(true);
   const [loadingItens, setLoadingItens] = useState(false);
   const [removendoItem, setRemovendoItem] = useState<number | null>(null);
+  const [itemSelecionado, setItemSelecionado] = useState<number | null>(null);
+
+  useEffect(() => {
+    carregarTudo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   async function carregarVitrine() {
     if (!id) return;
@@ -124,11 +128,6 @@ export default function VitrineDetalhePage() {
     await Promise.all([carregarVitrine(), carregarItens()]);
   }
 
-  useEffect(() => {
-    carregarTudo();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
   const resumo = useMemo(() => {
     return {
       total: itens.length,
@@ -153,14 +152,6 @@ export default function VitrineDetalhePage() {
     return Number(statusId) === 1 ? "Ativo" : "Inativo";
   }
 
-  function statusClasse(statusId?: number) {
-    return Number(statusId) === 1 ? styles.statusAtivo : styles.statusInativo;
-  }
-
-  function statusIcone(statusId?: number) {
-    return Number(statusId) === 1 ? <FiCheckCircle /> : <FiXCircle />;
-  }
-
   function nomeDoItem(item: VitrineItem) {
     return (
       item.titulo_personalizado ||
@@ -181,6 +172,38 @@ export default function VitrineDetalhePage() {
     return "Personalizado";
   }
 
+  function selecionarItem(idItem: number) {
+    setItemSelecionado((atual) => (atual === idItem ? null : idItem));
+  }
+
+  function verItemSelecionado() {
+    if (!vitrine || !itemSelecionado) {
+      alert("Selecione um item para visualizar.");
+      return;
+    }
+
+    router.push(`/sistema/vitrines/${vitrine.id_vitrine}/itens/${itemSelecionado}`);
+  }
+
+  function editarItemSelecionado() {
+    if (!vitrine || !itemSelecionado) {
+      alert("Selecione um item para editar.");
+      return;
+    }
+
+    router.push(`/sistema/vitrines/${vitrine.id_vitrine}/itens/${itemSelecionado}/editar`);
+  }
+
+  async function excluirItemSelecionado() {
+    if (!itemSelecionado) {
+      alert("Selecione um item para remover.");
+      return;
+    }
+
+    await excluirItem(itemSelecionado);
+    setItemSelecionado(null);
+  }
+
   async function excluirItem(itemId: number) {
     const confirmar = window.confirm("Deseja remover este item da vitrine?");
 
@@ -190,7 +213,6 @@ export default function VitrineDetalhePage() {
       setRemovendoItem(itemId);
 
       await api.delete(`/vitrine/item/${itemId}`);
-
       await carregarItens();
     } catch (error: any) {
       console.error("Erro ao remover item:", error);
@@ -208,21 +230,21 @@ export default function VitrineDetalhePage() {
 
   if (loading) {
     return (
-      <main className={styles.container}>
-        <p className={styles.info}>Carregando vitrine...</p>
+      <main className="vitrine-detalhe-container">
+        <p className="vitrine-detalhe-info">Carregando vitrine...</p>
       </main>
     );
   }
 
   if (!vitrine) {
     return (
-      <main className={styles.container}>
-        <div className={styles.empty}>
+      <main className="vitrine-detalhe-container">
+        <div className="vitrine-detalhe-empty">
           <FiGrid />
           <strong>Vitrine não encontrada</strong>
           <span>Não conseguimos localizar essa vitrine.</span>
 
-          <Link href="/sistema/vitrines" className={styles.emptyButton}>
+          <Link href="/sistema/vitrines" className="vitrine-detalhe-empty-button">
             <FiArrowLeft />
             Voltar para vitrines
           </Link>
@@ -232,66 +254,59 @@ export default function VitrineDetalhePage() {
   }
 
   return (
-    <main className={styles.container}>
-      <header className={styles.header}>
+    <main className="vitrine-detalhe-container">
+      <header className="vitrine-detalhe-header">
         <div>
-          <Link href="/sistema/vitrines" className={styles.backLink}>
+          <Link href="/sistema/vitrines" className="vitrine-detalhe-back">
             <FiArrowLeft />
             Voltar para vitrines
           </Link>
 
-          <h1 className={styles.title}>
+          <h1>
             <FiGrid />
             {vitrine.nome}
           </h1>
 
-          <p className={styles.subtitle}>
-            Visualize os detalhes da vitrine e gerencie os itens exibidos nela.
-          </p>
+          <p>Visualize os detalhes da vitrine e gerencie os itens exibidos nela.</p>
         </div>
 
-        <div className={styles.headerActions}>
-          <button
-            type="button"
-            onClick={carregarTudo}
-            className={styles.refreshButton}
-          >
-            <FiRefreshCw />
-            Atualizar
-          </button>
-
-          <Link
-            href={`/sistema/vitrines/${vitrine.id_vitrine}/editar`}
-            className={styles.editHeaderButton}
-          >
-            <FiEdit />
-            Editar vitrine
-          </Link>
-        </div>
+        <button
+          type="button"
+          onClick={carregarTudo}
+          className="vitrine-detalhe-refresh"
+        >
+          <FiRefreshCw />
+          Atualizar
+        </button>
       </header>
 
-      <section className={styles.hero}>
-        <div className={styles.heroIcon}>
-          <FiGrid />
+      <section className="vitrine-detalhe-hero">
+        <div className="vitrine-detalhe-hero-icon">
+          <FiInfo />
         </div>
 
-        <div className={styles.heroContent}>
-          <div className={styles.heroTop}>
-            <span className={`${styles.badge} ${statusClasse(vitrine.status_id)}`}>
-              {statusIcone(vitrine.status_id)}
+        <div className="vitrine-detalhe-hero-content">
+          <div className="vitrine-detalhe-hero-tags">
+            <span
+              className={`vitrine-detalhe-badge ${
+                Number(vitrine.status_id) === 1
+                  ? "vitrine-detalhe-status-ativo"
+                  : "vitrine-detalhe-status-inativo"
+              }`}
+            >
+              {Number(vitrine.status_id) === 1 ? <FiCheckCircle /> : <FiXCircle />}
               {statusTexto(vitrine.status_id)}
             </span>
 
-            <span className={styles.slug}>/{vitrine.slug}</span>
+            <span className="vitrine-detalhe-slug">/{vitrine.slug}</span>
           </div>
 
           <h2>{vitrine.titulo || "Sem título cadastrado"}</h2>
-
           <p>{vitrine.subtitulo || "Sem subtítulo cadastrado para esta vitrine."}</p>
         </div>
       </section>
 
-      <section className={styles.stats}>
+      <section className="vitrine-detalhe-stats">
         <div>
           <span>Tipo</span>
           <strong>{vitrine.tipo || "—"}</strong>
@@ -313,7 +328,7 @@ export default function VitrineDetalhePage() {
         </div>
       </section>
 
-      <section className={styles.itemSummary}>
+      <section className="vitrine-detalhe-item-summary">
         <div>
           <span>Total de itens</span>
           <strong>{resumo.total}</strong>
@@ -330,136 +345,156 @@ export default function VitrineDetalhePage() {
         </div>
       </section>
 
-      <section className={styles.sectionHeader}>
+      <section className="vitrine-detalhe-section-title">
         <div>
           <h2>
             <FiLayers />
             Itens da vitrine
           </h2>
-          <p>Produtos, campanhas ou categorias vinculadas nesta vitrine.</p>
-        </div>
 
-        <Link
-          href={`/sistema/vitrines/${vitrine.id_vitrine}/itens/cadastrar`}
-          className={styles.addItemButton}
-        >
-          <FiPlus />
-          Adicionar item
-        </Link>
+          <p>Selecione um item para visualizar, editar ou remover.</p>
+        </div>
       </section>
 
+      {itemSelecionado && (
+        <div className="vitrine-detalhe-selected-alert">
+          <FiCheckCircle />
+          Item selecionado para ação.
+        </div>
+      )}
+
       {loadingItens ? (
-        <p className={styles.info}>Carregando itens...</p>
+        <p className="vitrine-detalhe-info">Carregando itens...</p>
       ) : itens.length === 0 ? (
-        <div className={styles.emptyItems}>
+        <div className="vitrine-detalhe-empty">
           <FiPackage />
           <strong>Nenhum item cadastrado</strong>
           <span>Adicione produtos, campanhas ou categorias nesta vitrine.</span>
 
           <Link
             href={`/sistema/vitrines/${vitrine.id_vitrine}/itens/cadastrar`}
-            className={styles.emptyButton}
+            className="vitrine-detalhe-empty-button"
           >
             <FiPlus />
             Adicionar primeiro item
           </Link>
         </div>
       ) : (
-        <section className={styles.itemsGrid}>
-          {itens.map((item) => (
-            <article key={item.id_vitrine_item} className={styles.itemCard}>
-              <div className={styles.itemTop}>
-                <div className={styles.itemIcon}>
-                  <FiPackage />
-                </div>
+        <section className="vitrine-detalhe-grid">
+          {itens.map((item) => {
+            const selecionado = itemSelecionado === item.id_vitrine_item;
+            const ativo = Number(item.status_id) === 1;
 
-                <span className={`${styles.badge} ${statusClasse(item.status_id)}`}>
-                  {statusIcone(item.status_id)}
-                  {statusTexto(item.status_id)}
-                </span>
-              </div>
-
-              <div className={styles.itemBody}>
-                <span className={styles.itemType}>{tipoDoItem(item)}</span>
-
-                <strong>{nomeDoItem(item)}</strong>
-
-                <p>
-                  {item.subtitulo_personalizado ||
-                    "Sem descrição personalizada para este item."}
-                </p>
-              </div>
-
-              <div className={styles.itemMeta}>
-                <div>
-                  <span>ID do item</span>
-                  <strong>#{item.id_vitrine_item}</strong>
-                </div>
-
-                <div>
-                  <span>Produto</span>
-                  <strong>{item.produto_id ?? "—"}</strong>
-                </div>
-
-                <div>
-                  <span>Campanha</span>
-                  <strong>{item.campanha_id ?? "—"}</strong>
-                </div>
-
-                <div>
-                  <span>Categoria</span>
-                  <strong>{item.categoria_id ?? "—"}</strong>
-                </div>
-              </div>
-
-              <div className={styles.itemActions}>
-                <Link
-                  href={`/sistema/vitrines/${vitrine.id_vitrine}/itens/${item.id_vitrine_item}`}
-                  className={styles.viewButton}
+            return (
+              <article
+                key={item.id_vitrine_item}
+                className={`vitrine-detalhe-card ${
+                  selecionado ? "vitrine-detalhe-card-selected" : ""
+                }`}
+                onClick={() => selecionarItem(item.id_vitrine_item)}
+              >
+                <label
+                  className="vitrine-detalhe-checkbox"
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <FiEye />
-                  Ver
-                </Link>
+                  <input
+                    type="checkbox"
+                    checked={selecionado}
+                    onChange={() => selecionarItem(item.id_vitrine_item)}
+                  />
+                  <span />
+                </label>
 
-                <Link
-                  href={`/sistema/vitrines/${vitrine.id_vitrine}/itens/${item.id_vitrine_item}/editar`}
-                  className={styles.editButton}
-                >
-                  <FiEdit />
-                  Editar
-                </Link>
+                <div className="vitrine-detalhe-card-top">
+                  <div className="vitrine-detalhe-card-icon">
+                    <FiPackage />
+                  </div>
 
-                <button
-                  type="button"
-                  onClick={() => excluirItem(item.id_vitrine_item)}
-                  className={styles.deleteButton}
-                  disabled={removendoItem === item.id_vitrine_item}
-                >
-                  {removendoItem === item.id_vitrine_item ? (
-                    <>
-                      <FiRefreshCw />
-                      Removendo...
-                    </>
-                  ) : (
-                    <>
-                      <FiTrash2 />
-                      Remover
-                    </>
-                  )}
-                </button>
-              </div>
-            </article>
-          ))}
+                  <span
+                    className={`vitrine-detalhe-badge ${
+                      ativo
+                        ? "vitrine-detalhe-status-ativo"
+                        : "vitrine-detalhe-status-inativo"
+                    }`}
+                  >
+                    {ativo ? <FiCheckCircle /> : <FiXCircle />}
+                    {statusTexto(item.status_id)}
+                  </span>
+                </div>
+
+                <div className="vitrine-detalhe-card-body">
+                  <span className="vitrine-detalhe-type">{tipoDoItem(item)}</span>
+                  <strong>{nomeDoItem(item)}</strong>
+                  <p>
+                    {item.subtitulo_personalizado ||
+                      "Sem descrição personalizada para este item."}
+                  </p>
+                </div>
+
+                <div className="vitrine-detalhe-meta">
+                  <div>
+                    <span>ID</span>
+                    <strong>#{item.id_vitrine_item}</strong>
+                  </div>
+
+                  <div>
+                    <span>Produto</span>
+                    <strong>{item.produto_id ?? "—"}</strong>
+                  </div>
+
+                  <div>
+                    <span>Campanha</span>
+                    <strong>{item.campanha_id ?? "—"}</strong>
+                  </div>
+
+                  <div>
+                    <span>Categoria</span>
+                    <strong>{item.categoria_id ?? "—"}</strong>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
         </section>
       )}
 
-      <Link
-        href={`/sistema/vitrines/${vitrine.id_vitrine}/itens/cadastrar`}
-        className={styles.floatButton}
-      >
-        <FiPlus />
-        <span>Adicionar item</span>
-      </Link>
+      <div className="vitrine-detalhe-floating-group">
+        <button
+          type="button"
+          onClick={verItemSelecionado}
+          className="vitrine-detalhe-floating vitrine-detalhe-floating-view"
+          aria-label="Ver item"
+        >
+          <FiEye />
+        </button>
+
+        <button
+          type="button"
+          onClick={editarItemSelecionado}
+          className="vitrine-detalhe-floating vitrine-detalhe-floating-edit"
+          aria-label="Editar item"
+        >
+          <FiEdit />
+        </button>
+
+        <button
+          type="button"
+          onClick={excluirItemSelecionado}
+          className="vitrine-detalhe-floating vitrine-detalhe-floating-delete"
+          aria-label="Remover item"
+          disabled={!!removendoItem}
+        >
+          <FiTrash2 />
+        </button>
+
+        <Link
+          href={`/sistema/vitrines/${vitrine.id_vitrine}/itens/cadastrar`}
+          className="vitrine-detalhe-floating vitrine-detalhe-floating-add"
+          aria-label="Adicionar item"
+        >
+          <FiPlus />
+        </Link>
+      </div>
     </main>
   );
 }

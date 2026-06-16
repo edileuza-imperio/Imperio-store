@@ -3,18 +3,20 @@
 import api from "@/Api/conectar";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   FiEye,
   FiGrid,
   FiPlus,
-  FiRefreshCw,
   FiEdit,
   FiLayers,
   FiCheckCircle,
   FiXCircle,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 
-import styles from "./Vitrines.module.css";
+import "../../../components/styles/sistema/vitrines.css";
 
 type Vitrine = {
   id_vitrine: number;
@@ -27,12 +29,21 @@ type Vitrine = {
   nivel_id?: number;
   ordem?: number;
   criado_em?: string | null;
-  atualizado_em?: string | null;
 };
 
+const LIMITE_POR_PAGINA = 3;
+
 export default function VitrinesPage() {
+  const router = useRouter();
+
   const [vitrines, setVitrines] = useState<Vitrine[]>([]);
   const [loading, setLoading] = useState(true);
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [vitrineSelecionada, setVitrineSelecionada] = useState<number | null>(null);
+
+  useEffect(() => {
+    carregarVitrines();
+  }, []);
 
   async function carregarVitrines() {
     try {
@@ -60,13 +71,51 @@ export default function VitrinesPage() {
     }
   }
 
-  useEffect(() => {
-    carregarVitrines();
-  }, []);
-
   const totalAtivas = useMemo(() => {
     return vitrines.filter((vitrine) => Number(vitrine.status_id) === 1).length;
   }, [vitrines]);
+
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(vitrines.length / LIMITE_POR_PAGINA)
+  );
+
+  const vitrinesExibidas = useMemo(() => {
+    const inicio = (paginaAtual - 1) * LIMITE_POR_PAGINA;
+    const fim = inicio + LIMITE_POR_PAGINA;
+
+    return vitrines.slice(inicio, fim);
+  }, [vitrines, paginaAtual]);
+
+  function selecionarVitrine(id: number) {
+    setVitrineSelecionada((atual) => (atual === id ? null : id));
+  }
+
+  function verSelecionada() {
+    if (!vitrineSelecionada) {
+      alert("Selecione uma vitrine para visualizar.");
+      return;
+    }
+
+    router.push(`/sistema/vitrines/${vitrineSelecionada}`);
+  }
+
+  function editarSelecionada() {
+    if (!vitrineSelecionada) {
+      alert("Selecione uma vitrine para editar.");
+      return;
+    }
+
+    router.push(`/sistema/vitrines/${vitrineSelecionada}/editar`);
+  }
+
+  function voltarPagina() {
+    setPaginaAtual((pagina) => Math.max(1, pagina - 1));
+  }
+
+  function avancarPagina() {
+    setPaginaAtual((pagina) => Math.min(totalPaginas, pagina + 1));
+  }
 
   function formatarData(data?: string | null) {
     if (!data) return "—";
@@ -84,131 +133,164 @@ export default function VitrinesPage() {
     return Number(statusId) === 1 ? "Ativa" : "Inativa";
   }
 
-  function statusClasse(statusId: number) {
-    return Number(statusId) === 1 ? styles.statusAtivo : styles.statusInativo;
-  }
-
-  function statusIcone(statusId: number) {
-    return Number(statusId) === 1 ? <FiCheckCircle /> : <FiXCircle />;
+  if (loading) {
+    return <div className="vitrines-loading">Carregando vitrines...</div>;
   }
 
   return (
-    <main className={styles.container}>
-      <header className={styles.header}>
+    <main className="vitrines-container">
+      <header className="vitrines-header">
         <div>
-          <h1 className={styles.title}>
+          <h1>
             <FiGrid />
             Vitrines
           </h1>
 
-          <p className={styles.subtitle}>
-            Visualize e gerencie as vitrines exibidas no site.
-          </p>
+          <p>Selecione uma vitrine para visualizar ou editar.</p>
         </div>
 
-        <button
-          type="button"
-          onClick={carregarVitrines}
-          className={styles.refreshButton}
-        >
-          <FiRefreshCw />
-          Atualizar
-        </button>
+        <div className="vitrines-stats">
+          <span>{vitrines.length} vitrines</span>
+          <span>{totalAtivas} ativas</span>
+        </div>
       </header>
 
-      <section className={styles.summary}>
-        <div>
-          <span>Total de vitrines</span>
-          <strong>{vitrines.length}</strong>
+      {vitrineSelecionada && (
+        <div className="vitrines-selected-alert">
+          <FiCheckCircle />
+          Vitrine selecionada para ação.
         </div>
+      )}
 
-        <div>
-          <span>Vitrines ativas</span>
-          <strong>{totalAtivas}</strong>
-        </div>
-      </section>
-
-      {loading ? (
-        <p className={styles.info}>Carregando vitrines...</p>
-      ) : vitrines.length === 0 ? (
-        <div className={styles.empty}>
+      {vitrines.length === 0 ? (
+        <div className="vitrines-empty">
           <FiLayers />
           <strong>Nenhuma vitrine encontrada</strong>
           <span>Cadastre sua primeira vitrine para exibir produtos no site.</span>
 
-          <Link href="/sistema/vitrines/cadastrar" className={styles.emptyButton}>
+          <Link href="/sistema/vitrines/cadastrar" className="vitrines-empty-button">
             <FiPlus />
             Cadastrar vitrine
           </Link>
         </div>
       ) : (
-        <section className={styles.grid}>
-          {vitrines.map((vitrine) => (
-            <article key={vitrine.id_vitrine} className={styles.card}>
-              <div className={styles.cardTop}>
-                <div className={styles.iconBox}>
-                  <FiGrid />
-                </div>
+        <>
+          <section className="vitrines-grid">
+            {vitrinesExibidas.map((vitrine) => {
+              const selecionada = vitrineSelecionada === vitrine.id_vitrine;
+              const ativa = Number(vitrine.status_id) === 1;
 
-                <span className={`${styles.badge} ${statusClasse(vitrine.status_id)}`}>
-                  {statusIcone(vitrine.status_id)}
-                  {statusTexto(vitrine.status_id)}
-                </span>
-              </div>
-
-              <div className={styles.cardBody}>
-                <strong className={styles.nome}>{vitrine.nome}</strong>
-
-                <span className={styles.slug}>/{vitrine.slug}</span>
-
-                <h2>{vitrine.titulo || "Sem título"}</h2>
-
-                <p>{vitrine.subtitulo || "Sem subtítulo cadastrado."}</p>
-              </div>
-
-              <div className={styles.meta}>
-                <div>
-                  <span>Tipo</span>
-                  <strong>{vitrine.tipo || "—"}</strong>
-                </div>
-
-                <div>
-                  <span>Ordem</span>
-                  <strong>{vitrine.ordem ?? "—"}</strong>
-                </div>
-
-                <div>
-                  <span>Criado em</span>
-                  <strong>{formatarData(vitrine.criado_em)}</strong>
-                </div>
-              </div>
-
-              <div className={styles.actions}>
-                <Link
-                  href={`/sistema/vitrines/${vitrine.id_vitrine}`}
-                  className={styles.viewButton}
+              return (
+                <article
+                  key={vitrine.id_vitrine}
+                  className={`vitrines-card ${selecionada ? "vitrines-card-selected" : ""}`}
+                  onClick={() => selecionarVitrine(vitrine.id_vitrine)}
                 >
-                  <FiEye />
-                  Ver
-                </Link>
+                  <label
+                    className="vitrines-checkbox"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selecionada}
+                      onChange={() => selecionarVitrine(vitrine.id_vitrine)}
+                    />
+                    <span />
+                  </label>
 
-                <Link
-                  href={`/sistema/vitrines/${vitrine.id_vitrine}/editar`}
-                  className={styles.editButton}
-                >
-                  <FiEdit />
-                  Editar
-                </Link>
-              </div>
-            </article>
-          ))}
-        </section>
+                  <div className="vitrines-card-top">
+                    <div className="vitrines-icon-box">
+                      <FiGrid />
+                    </div>
+
+                    <span className={`vitrines-badge ${ativa ? "vitrines-status-ativo" : "vitrines-status-inativo"}`}>
+                      {ativa ? <FiCheckCircle /> : <FiXCircle />}
+                      {statusTexto(vitrine.status_id)}
+                    </span>
+                  </div>
+
+                  <div className="vitrines-card-body">
+                    <strong>{vitrine.nome}</strong>
+                    <span className="vitrines-slug">/{vitrine.slug}</span>
+
+                    <h2>{vitrine.titulo || "Sem título"}</h2>
+                    <p>{vitrine.subtitulo || "Sem subtítulo cadastrado."}</p>
+                  </div>
+
+                  <div className="vitrines-meta">
+                    <div>
+                      <span>Tipo</span>
+                      <strong>{vitrine.tipo || "—"}</strong>
+                    </div>
+
+                    <div>
+                      <span>Ordem</span>
+                      <strong>{vitrine.ordem ?? "—"}</strong>
+                    </div>
+
+                    <div>
+                      <span>Criado em</span>
+                      <strong>{formatarData(vitrine.criado_em)}</strong>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+
+          <div className="vitrines-pagination">
+            <button
+              type="button"
+              onClick={voltarPagina}
+              disabled={paginaAtual === 1}
+            >
+              <FiChevronLeft />
+              Voltar
+            </button>
+
+            <span>
+              Página {paginaAtual} de {totalPaginas}
+            </span>
+
+            <button
+              type="button"
+              onClick={avancarPagina}
+              disabled={paginaAtual === totalPaginas}
+            >
+              Próxima
+              <FiChevronRight />
+            </button>
+          </div>
+        </>
       )}
 
-      <Link href="/sistema/vitrines/cadastrar" className={styles.floatButton}>
-        <FiPlus />
-        <span>Cadastrar</span>
-      </Link>
+      <div className="vitrines-floating-group">
+        <button
+          type="button"
+          onClick={verSelecionada}
+          className="vitrines-floating vitrines-floating-view"
+          aria-label="Ver vitrine"
+        >
+          <FiEye />
+        </button>
+
+        <button
+          type="button"
+          onClick={editarSelecionada}
+          className="vitrines-floating vitrines-floating-edit"
+          aria-label="Editar vitrine"
+        >
+          <FiEdit />
+        </button>
+
+        <Link
+          href="/sistema/vitrines/cadastrar"
+          className="vitrines-floating vitrines-floating-add"
+          aria-label="Cadastrar vitrine"
+        >
+          <FiPlus />
+        </Link>
+      </div>
     </main>
   );
 }
