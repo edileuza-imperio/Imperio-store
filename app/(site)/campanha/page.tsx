@@ -24,9 +24,27 @@ type CampanhaApi = {
   status_id?: number | string;
 };
 
+type CampanhaCard = {
+  id: number | string;
+  titulo: string;
+  descricao: string;
+  imagem: string;
+  link: string;
+};
+
 type Props = {
   vitrine?: Vitrine;
 };
+
+function extrairCampanha(payload: any): CampanhaApi | null {
+  return (
+    payload?.dados?.campanha ??
+    payload?.campanha ??
+    payload?.dados ??
+    payload ??
+    null
+  );
+}
 
 function extrairCampanhas(payload: any): CampanhaApi[] {
   const opcoes = [
@@ -49,6 +67,27 @@ function campanhaAtiva(campanha: CampanhaApi) {
   return status === 1;
 }
 
+function montarCardCampanha(campanha: CampanhaApi): CampanhaCard {
+  const id = campanha.id_campanha ?? "";
+  const titulo = campanha.titulo || campanha.nome || `Campanha #${id}`;
+  const descricao = campanha.descricao || "";
+  const imagem = imagemFundo(
+    campanha.banner ||
+      campanha.desktop ||
+      campanha.mobile ||
+      campanha.imagem ||
+      ""
+  );
+
+  return {
+    id,
+    titulo,
+    descricao,
+    imagem,
+    link: campanha.slug ? `/campanha/${campanha.slug}` : "#",
+  };
+}
+
 export default function Campanhas({ vitrine }: Props) {
   const usandoVitrine = Boolean(vitrine);
 
@@ -57,7 +96,9 @@ export default function Campanhas({ vitrine }: Props) {
   });
 
   const [campanhasApi, setCampanhasApi] = useState<CampanhaApi[]>([]);
+  const [campanhasDaVitrine, setCampanhasDaVitrine] = useState<CampanhaCard[]>([]);
   const [loadingApi, setLoadingApi] = useState(!usandoVitrine);
+  const [loadingVitrine, setLoadingVitrine] = useState(false);
   const [erroApi, setErroApi] = useState<string | null>(null);
 
   useEffect(() => {
@@ -86,36 +127,96 @@ export default function Campanhas({ vitrine }: Props) {
     carregarCampanhas();
   }, [usandoVitrine]);
 
-  const loading = usandoVitrine ? vitrineResolvida.loading : loadingApi;
-  const erro = usandoVitrine ? vitrineResolvida.erro : erroApi;
+  useEffect(() => {
+    if (!usandoVitrine) return;
+    if (vitrineResolvida.loading) return;
 
-  const campanhas = useMemo(() => {
-    if (usandoVitrine) {
-      return vitrineResolvida.itens
-        .filter((item) => item.tipo_item === "campanha")
-        .map((item) => ({
-          id: item.campanha_id || item.id_vitrine_item,
-          titulo: item.titulo_final,
-          descricao: item.descricao_final || item.subtitulo_final,
-          imagem: item.imagem_final,
-          link: item.link_final,
-        }));
+    async function carregarDadosDasCampanhas() {
+      try {
+        setLoadingVitrine(true);
+        setErroApi(null);
+
+        const itensCampanha = vitrineResolvida.itens.filter(
+          (item) => item.tipo_item === "campanha" && item.campanha_id
+        );
+
+        const cards = await Promise.all(
+          itensCampanha.map(async (item) => {
+            try {
+              const response = await api.get(`/campanha/${item.campanha_id}`, {
+                withCredentials: true,
+              });
+
+              const campanha = extrairCampanha(response.data);
+
+              if (!campanha) {
+                return {
+                  id: item.campanha_id || item.id_vitrine_item,
+                  titulo: item.titulo_final || `Campanha #${item.campanha_id}`,
+                  descricao: item.descricao_final || item.subtitulo_final || "",
+                  imagem: item.imagem_final || "",
+                  link: item.link_final || "#",
+                };
+              }
+
+              const card = montarCardCampanha(campanha);
+
+              return {
+                ...card,
+                titulo:
+                  item.titulo_personalizado ||
+                  card.titulo ||
+                  item.titulo_final ||
+                  `Campanha #${item.campanha_id}`,
+                descricao:
+                  item.subtitulo_personalizado ||
+                  card.descricao ||
+                  item.descricao_final ||
+                  item.subtitulo_final ||
+                  "",
+                imagem:
+                  imagemFundo(item.imagem_personalizada || "") ||
+                  card.imagem ||
+                  item.imagem_final ||
+                  "",
+              };
+            } catch {
+              return {
+                id: item.campanha_id || item.id_vitrine_item,
+                titulo: item.titulo_final || `Campanha #${item.campanha_id}`,
+                descricao: item.descricao_final || item.subtitulo_final || "",
+                imagem: item.imagem_final || "",
+                link: item.link_final || "#",
+              };
+            }
+          })
+        );
+
+        setCampanhasDaVitrine(cards);
+      } catch (error) {
+        console.error("Erro ao carregar campanhas da vitrine:", error);
+        setCampanhasDaVitrine([]);
+      } finally {
+        setLoadingVitrine(false);
+      }
     }
 
-    return campanhasApi.map((campanha) => ({
-      id: campanha.id_campanha,
-      titulo: campanha.titulo || campanha.nome || "Campanha Especial",
-      descricao: campanha.descricao || "",
-      imagem: imagemFundo(
-        campanha.banner ||
-          campanha.desktop ||
-          campanha.mobile ||
-          campanha.imagem ||
-          ""
-      ),
-      link: campanha.slug ? `/campanha/${campanha.slug}` : "#",
-    }));
-  }, [usandoVitrine, vitrineResolvida.itens, campanhasApi]);
+    carregarDadosDasCampanhas();
+  }, [usandoVitrine, vitrineResolvida.loading, vitrineResolvida.itens]);
+
+  const loading = usandoVitrine
+    ? vitrineResolvida.loading || loadingVitrine
+    : loadingApi;
+
+  const erro = usandoVitrine ? vitrineResolvida.erro || erroApi : erroApi;
+
+  const campanhas = useMemo<CampanhaCard[]>(() => {
+    if (usandoVitrine) {
+      return campanhasDaVitrine;
+    }
+
+    return campanhasApi.map(montarCardCampanha);
+  }, [usandoVitrine, campanhasDaVitrine, campanhasApi]);
 
   if (erro) return null;
 
