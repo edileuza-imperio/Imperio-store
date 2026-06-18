@@ -6,11 +6,12 @@ import Image from "next/image";
 
 import api from "@/Api/conectar";
 import { imagemFundo } from "@/components/Bibioteca/imagem";
+import { useVitrine } from "@/components/Vitrine/Destaques/useVitrine";
 
-type Campanha = {
+import type { Vitrine } from "@/components/Vitrine/Destaques/useVitrine";
+
+type CampanhaApi = {
   id_campanha?: number | string;
-  idCampanha?: number | string;
-  id?: number | string;
   titulo?: string;
   nome?: string;
   slug?: string;
@@ -23,33 +24,11 @@ type Campanha = {
   status_id?: number | string;
 };
 
-type VitrineItem = {
-  id_vitrine_item?: number | string;
-  campanha_id?: number | string | null;
-  campanha_nome?: string | null;
-  campanha_slug?: string | null;
-  titulo_personalizado?: string | null;
-  subtitulo_personalizado?: string | null;
-  imagem_personalizada?: string | null;
-  banner?: string | null;
-  imagem?: string | null;
-  campanha?: Campanha | null;
-};
-
-type Vitrine = {
-  id_vitrine?: number | string;
-  nome?: string;
-  titulo?: string | null;
-  subtitulo?: string | null;
-  tipo?: string | null;
-  itens?: VitrineItem[];
-};
-
 type Props = {
   vitrine?: Vitrine;
 };
 
-function extrairCampanhas(payload: any): Campanha[] {
+function extrairCampanhas(payload: any): CampanhaApi[] {
   const opcoes = [
     payload?.dados?.campanhas,
     payload?.dados?.dados?.campanhas,
@@ -65,89 +44,29 @@ function extrairCampanhas(payload: any): Campanha[] {
   return [];
 }
 
-function isVitrineItem(item: Campanha | VitrineItem): item is VitrineItem {
-  return (
-    "campanha_id" in item ||
-    "id_vitrine_item" in item ||
-    "campanha_nome" in item ||
-    "titulo_personalizado" in item
-  );
-}
-
-function getId(item: Campanha | VitrineItem): number | string {
-  if (isVitrineItem(item)) {
-    return item.campanha_id || item.id_vitrine_item || "";
-  }
-
-  return item.id_campanha || item.idCampanha || item.id || "";
-}
-
-function getTitulo(item: Campanha | VitrineItem): string {
-  if (isVitrineItem(item)) {
-    return (
-      item.titulo_personalizado ||
-      item.campanha?.titulo ||
-      item.campanha?.nome ||
-      item.campanha_nome ||
-      "Campanha"
-    );
-  }
-
-  return item.titulo || item.nome || "Campanha";
-}
-
-function getDescricao(item: Campanha | VitrineItem): string | null {
-  if (isVitrineItem(item)) {
-    return item.subtitulo_personalizado || item.campanha?.descricao || null;
-  }
-
-  return item.descricao || null;
-}
-
-function getSlug(item: Campanha | VitrineItem): string {
-  if (isVitrineItem(item)) {
-    return item.campanha?.slug || item.campanha_slug || "";
-  }
-
-  return item.slug || "";
-}
-
-function getImagem(item: Campanha | VitrineItem): string | null {
-  if (isVitrineItem(item)) {
-    return (
-      item.imagem_personalizada ||
-      item.campanha?.banner ||
-      item.campanha?.desktop ||
-      item.campanha?.mobile ||
-      item.campanha?.imagem ||
-      item.banner ||
-      item.imagem ||
-      null
-    );
-  }
-
-  return item.banner || item.desktop || item.mobile || item.imagem || null;
-}
-
-function campanhaAtiva(campanha: Campanha) {
+function campanhaAtiva(campanha: CampanhaApi) {
   const status = Number(campanha.statusid ?? campanha.status_id ?? 1);
   return status === 1;
 }
 
 export default function Campanhas({ vitrine }: Props) {
-  const [campanhasApi, setCampanhasApi] = useState<Campanha[]>([]);
-  const [loading, setLoading] = useState(!vitrine);
-  const [erro, setErro] = useState<string | null>(null);
-
   const usandoVitrine = Boolean(vitrine);
+
+  const vitrineResolvida = useVitrine({
+    vitrineProp: vitrine || null,
+  });
+
+  const [campanhasApi, setCampanhasApi] = useState<CampanhaApi[]>([]);
+  const [loadingApi, setLoadingApi] = useState(!usandoVitrine);
+  const [erroApi, setErroApi] = useState<string | null>(null);
 
   useEffect(() => {
     if (usandoVitrine) return;
 
     async function carregarCampanhas() {
       try {
-        setLoading(true);
-        setErro(null);
+        setLoadingApi(true);
+        setErroApi(null);
 
         const response = await api.get("/campanhas", {
           withCredentials: true,
@@ -157,23 +76,46 @@ export default function Campanhas({ vitrine }: Props) {
         setCampanhasApi(lista.filter(campanhaAtiva));
       } catch (error) {
         console.error("Erro ao carregar campanhas:", error);
-        setErro("Erro ao carregar campanhas.");
+        setErroApi("Erro ao carregar campanhas.");
         setCampanhasApi([]);
       } finally {
-        setLoading(false);
+        setLoadingApi(false);
       }
     }
 
     carregarCampanhas();
   }, [usandoVitrine]);
 
-  const campanhas = useMemo<Array<Campanha | VitrineItem>>(() => {
+  const loading = usandoVitrine ? vitrineResolvida.loading : loadingApi;
+  const erro = usandoVitrine ? vitrineResolvida.erro : erroApi;
+
+  const campanhas = useMemo(() => {
     if (usandoVitrine) {
-      return vitrine?.itens || [];
+      return vitrineResolvida.itens
+        .filter((item) => item.tipo_item === "campanha")
+        .map((item) => ({
+          id: item.campanha_id || item.id_vitrine_item,
+          titulo: item.titulo_final,
+          descricao: item.descricao_final || item.subtitulo_final,
+          imagem: item.imagem_final,
+          link: item.link_final,
+        }));
     }
 
-    return campanhasApi;
-  }, [usandoVitrine, vitrine, campanhasApi]);
+    return campanhasApi.map((campanha) => ({
+      id: campanha.id_campanha,
+      titulo: campanha.titulo || campanha.nome || "Campanha Especial",
+      descricao: campanha.descricao || "",
+      imagem: imagemFundo(
+        campanha.banner ||
+          campanha.desktop ||
+          campanha.mobile ||
+          campanha.imagem ||
+          ""
+      ),
+      link: campanha.slug ? `/campanha/${campanha.slug}` : "#",
+    }));
+  }, [usandoVitrine, vitrineResolvida.itens, campanhasApi]);
 
   if (erro) return null;
 
@@ -219,56 +161,43 @@ export default function Campanhas({ vitrine }: Props) {
         </div>
 
         <div className="campanhas-grid">
-          {campanhas.map((campanha, index) => {
-            const id = getId(campanha);
-            const tituloOriginal = getTitulo(campanha);
-            const titulo =
-              tituloOriginal === "Campanha"
-                ? "Campanha Especial"
-                : tituloOriginal;
+          {campanhas.map((campanha, index) => (
+            <Link
+              key={`${campanha.id}-${index}`}
+              href={campanha.link}
+              className="campanhas-card"
+              aria-label={`Ver campanha ${campanha.titulo}`}
+            >
+              <article className="campanhas-banner">
+                {campanha.imagem ? (
+                  <Image
+                    src={campanha.imagem}
+                    alt={campanha.titulo}
+                    fill
+                    className="campanhas-image"
+                    sizes="(max-width: 768px) 100vw, 420px"
+                    priority={index === 0}
+                  />
+                ) : (
+                  <div className="campanhas-fallback" />
+                )}
 
-            const descricao = getDescricao(campanha);
-            const slug = getSlug(campanha);
-            const imagem = imagemFundo(getImagem(campanha));
+                <div className="campanhas-overlay" />
 
-            return (
-              <Link
-                key={`${id}-${index}`}
-                href={slug ? `/campanha/${slug}` : "#"}
-                className="campanhas-card"
-                aria-label={`Ver campanha ${titulo}`}
-              >
-                <article className="campanhas-banner">
-                  {imagem ? (
-                    <Image
-                      src={imagem}
-                      alt={titulo}
-                      fill
-                      className="campanhas-image"
-                      sizes="(max-width: 768px) 100vw, 420px"
-                      priority={index === 0}
-                    />
-                  ) : (
-                    <div className="campanhas-fallback" />
-                  )}
+                <div className="campanhas-content">
+                  <span className="campanhas-badge">Campanha Especial</span>
 
-                  <div className="campanhas-overlay" />
+                  <h3>{campanha.titulo}</h3>
 
-                  <div className="campanhas-content">
-                    <span className="campanhas-badge">Campanha Especial</span>
+                  {campanha.descricao && <p>{campanha.descricao}</p>}
 
-                    <h3>{titulo}</h3>
-
-                    {descricao && <p>{descricao}</p>}
-
-                    <span className="campanhas-button">
-                      Ver campanha <b>→</b>
-                    </span>
-                  </div>
-                </article>
-              </Link>
-            );
-          })}
+                  <span className="campanhas-button">
+                    Ver campanha <b>→</b>
+                  </span>
+                </div>
+              </article>
+            </Link>
+          ))}
         </div>
       </div>
 
@@ -305,7 +234,7 @@ const css = `
   }
 
   .campanhas-header h2 {
-    margin: 8px auto 8px;
+    margin: 8px auto;
     max-width: 820px;
     font-size: clamp(1.7rem, 4vw, 2.6rem);
     color: #241b1f;
@@ -337,9 +266,7 @@ const css = `
     min-height: 360px;
     border-radius: 28px;
     overflow: hidden;
-    background:
-      radial-gradient(circle at 80% 20%, rgba(255,255,255,.2), transparent 28%),
-      linear-gradient(135deg, #3a171d 0%, #7d3948 52%, #b85d70 100%);
+    background: linear-gradient(135deg, #3a171d, #7d3948, #b85d70);
     box-shadow: 0 24px 58px rgba(80, 45, 54, 0.18);
     isolation: isolate;
   }
@@ -366,9 +293,7 @@ const css = `
   .campanhas-fallback {
     position: absolute;
     inset: 0;
-    background:
-      radial-gradient(circle at 78% 28%, rgba(255,255,255,.2), transparent 25%),
-      linear-gradient(135deg, #3a171d 0%, #7d3948 52%, #b85d70 100%);
+    background: linear-gradient(135deg, #3a171d, #7d3948, #b85d70);
   }
 
   .campanhas-overlay {
@@ -406,7 +331,6 @@ const css = `
     color: #fff;
     font-size: clamp(1.45rem, 3vw, 2.15rem);
     line-height: 1.05;
-    max-width: 94%;
   }
 
   .campanhas-content p {
@@ -429,10 +353,6 @@ const css = `
     box-shadow: 0 14px 30px rgba(0,0,0,.12);
   }
 
-  .campanhas-button b {
-    font-size: 1.1rem;
-  }
-
   .campanhas-skeleton {
     min-height: 360px;
     border-radius: 28px;
@@ -442,13 +362,8 @@ const css = `
   }
 
   @keyframes campanhas-loading {
-    from {
-      background-position: 200% 0;
-    }
-
-    to {
-      background-position: -200% 0;
-    }
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
   }
 
   @media (max-width: 980px) {
@@ -476,4 +391,4 @@ const css = `
       padding: 24px;
     }
   }
-`;
+`;a
