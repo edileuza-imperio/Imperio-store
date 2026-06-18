@@ -830,4 +830,4 @@ const styles: Record<string, React.CSSProperties> = {
     gap: "8px",
     boxShadow: "0 14px 28px rgba(195, 49, 98, 0.28)",
   },
-};a
+};
