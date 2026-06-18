@@ -32,7 +32,7 @@ type VitrineItem = {
   banner?: string | null;
   imagem?: string | null;
   campanha?: Campanha | null;
-};
+}; 
 
 type Vitrine = {
   id_vitrine?: number | string;
