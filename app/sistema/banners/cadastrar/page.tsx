@@ -14,7 +14,7 @@ import {
   FiXCircle,
 } from "react-icons/fi";
 
-import "../../../../../../components/styles/sistema/banner-form.css";
+import "../../../../components/styles/sistema/banner-form.css";
 
 export default function CadastrarBannerPage() {
   const router = useRouter();
