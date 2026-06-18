@@ -15,7 +15,7 @@ import {
   FiXCircle,
 } from "react-icons/fi";
 
-import "../../../../components/styles/sistema/vitrine-detalhe.css";
+import "../../../../../../components/styles/sistema/vitrine-detalhe.css";
 
 type Campanha = {
   id_campanha?: number;
