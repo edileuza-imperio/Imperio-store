@@ -2,14 +2,16 @@
 
 import api from "@/Api/conectar";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   FiCalendar,
   FiEdit,
   FiEye,
   FiPlus,
   FiRefreshCw,
+  FiSave,
   FiTrash2,
+  FiX,
 } from "react-icons/fi";
 
 type Campanha = {
@@ -26,6 +28,10 @@ type Campanha = {
 export default function CampanhasPage() {
   const [campanhas, setCampanhas] = useState<Campanha[]>([]);
   const [loading, setLoading] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+  const [campanhaEditando, setCampanhaEditando] = useState<Campanha | null>(
+    null
+  );
 
   useEffect(() => {
     carregarCampanhas();
@@ -64,6 +70,66 @@ export default function CampanhasPage() {
     }
   }
 
+  async function salvarEdicao(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!campanhaEditando) return;
+
+    try {
+      setSalvando(true);
+
+      await api.put(
+        `/painel/campanhas/${campanhaEditando.id_campanha}`,
+        {
+          titulo: campanhaEditando.titulo,
+          slug: campanhaEditando.slug,
+          descricao: campanhaEditando.descricao,
+          statusid: campanhaEditando.statusid,
+          inicio: campanhaEditando.inicio,
+          fim: campanhaEditando.fim,
+        }
+      );
+
+      setCampanhas((lista) =>
+        lista.map((campanha) =>
+          campanha.id_campanha === campanhaEditando.id_campanha
+            ? campanhaEditando
+            : campanha
+        )
+      );
+
+      setCampanhaEditando(null);
+    } catch (error) {
+      console.error("Erro ao atualizar campanha:", error);
+      alert("Erro ao atualizar campanha.");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  function abrirModalEdicao(campanha: Campanha) {
+    setCampanhaEditando({ ...campanha });
+  }
+
+  function fecharModal() {
+    if (salvando) return;
+    setCampanhaEditando(null);
+  }
+
+  function alterarCampo<K extends keyof Campanha>(
+    campo: K,
+    valor: Campanha[K]
+  ) {
+    setCampanhaEditando((campanha) =>
+      campanha
+        ? {
+            ...campanha,
+            [campo]: valor,
+          }
+        : campanha
+    );
+  }
+
   function imagemUrl(caminho?: string | null) {
     if (!caminho) return "";
 
@@ -78,6 +144,12 @@ export default function CampanhasPage() {
     if (!data) return "Sem data";
 
     return new Date(data.replace(" ", "T")).toLocaleDateString("pt-BR");
+  }
+
+  function dataInput(data?: string | null) {
+    if (!data) return "";
+
+    return data.replace(" ", "T").slice(0, 16);
   }
 
   if (loading) {
@@ -152,13 +224,13 @@ export default function CampanhasPage() {
                       <FiEye />
                     </Link>
 
-                    <Link
-                      href={`/sistema/campanhas/${campanha.id_campanha}/editar`}
-                      style={styles.floatIcon}
+                    <button
+                      onClick={() => abrirModalEdicao(campanha)}
+                      style={styles.floatIconButton}
                       title="Editar"
                     >
                       <FiEdit />
-                    </Link>
+                    </button>
 
                     <button
                       onClick={() => excluirCampanha(campanha.id_campanha)}
@@ -218,6 +290,110 @@ export default function CampanhasPage() {
           </section>
         )}
       </section>
+
+      {campanhaEditando && (
+        <div style={styles.modalOverlay}>
+          <form onSubmit={salvarEdicao} style={styles.modal}>
+            <header style={styles.modalHeader}>
+              <div>
+                <h2 style={styles.modalTitle}>Editar campanha</h2>
+                <p style={styles.modalSubtitle}>
+                  Atualize as informações principais da campanha.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={fecharModal}
+                style={styles.closeButton}
+              >
+                <FiX />
+              </button>
+            </header>
+
+            <div style={styles.formGrid}>
+              <label style={styles.field}>
+                <span>Título</span>
+                <input
+                  value={campanhaEditando.titulo}
+                  onChange={(e) => alterarCampo("titulo", e.target.value)}
+                  style={styles.input}
+                  required
+                />
+              </label>
+
+              <label style={styles.field}>
+                <span>Slug</span>
+                <input
+                  value={campanhaEditando.slug}
+                  onChange={(e) => alterarCampo("slug", e.target.value)}
+                  style={styles.input}
+                  required
+                />
+              </label>
+
+              <label style={{ ...styles.field, ...styles.fullField }}>
+                <span>Descrição</span>
+                <textarea
+                  value={campanhaEditando.descricao || ""}
+                  onChange={(e) => alterarCampo("descricao", e.target.value)}
+                  style={styles.textarea}
+                  rows={4}
+                />
+              </label>
+
+              <label style={styles.field}>
+                <span>Status</span>
+                <select
+                  value={campanhaEditando.statusid}
+                  onChange={(e) =>
+                    alterarCampo("statusid", Number(e.target.value))
+                  }
+                  style={styles.input}
+                >
+                  <option value={1}>Ativa</option>
+                  <option value={2}>Inativa</option>
+                </select>
+              </label>
+
+              <label style={styles.field}>
+                <span>Início</span>
+                <input
+                  type="datetime-local"
+                  value={dataInput(campanhaEditando.inicio)}
+                  onChange={(e) => alterarCampo("inicio", e.target.value)}
+                  style={styles.input}
+                />
+              </label>
+
+              <label style={styles.field}>
+                <span>Fim</span>
+                <input
+                  type="datetime-local"
+                  value={dataInput(campanhaEditando.fim)}
+                  onChange={(e) => alterarCampo("fim", e.target.value)}
+                  style={styles.input}
+                />
+              </label>
+            </div>
+
+            <footer style={styles.modalFooter}>
+              <button
+                type="button"
+                onClick={fecharModal}
+                style={styles.cancelButton}
+              >
+                Cancelar
+              </button>
+
+              <button type="submit" disabled={salvando} style={styles.saveButton}>
+                <FiSave />
+                {salvando ? "Salvando..." : "Salvar alterações"}
+              </button>
+            </footer>
+          </form>
+        </div>
+      )}
     </main>
   );
 }
@@ -382,6 +558,20 @@ const styles: Record<string, React.CSSProperties> = {
     boxShadow: "0 10px 25px rgba(0,0,0,0.16)",
   },
 
+  floatIconButton: {
+    width: "40px",
+    height: "40px",
+    borderRadius: "13px",
+    border: "none",
+    background: "rgba(255,255,255,0.95)",
+    color: "#2d2227",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    boxShadow: "0 10px 25px rgba(0,0,0,0.16)",
+  },
+
   floatDelete: {
     width: "40px",
     height: "40px",
@@ -507,4 +697,137 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 900,
     boxShadow: "0 18px 42px rgba(70, 38, 48, 0.08)",
   },
-};
+
+  modalOverlay: {
+    position: "fixed",
+    inset: 0,
+    zIndex: 999,
+    background: "rgba(20, 14, 17, 0.55)",
+    backdropFilter: "blur(6px)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "20px",
+  },
+
+  modal: {
+    width: "100%",
+    maxWidth: "760px",
+    maxHeight: "90vh",
+    overflow: "auto",
+    background: "#fff",
+    borderRadius: "28px",
+    boxShadow: "0 30px 80px rgba(0,0,0,0.28)",
+    padding: "26px",
+  },
+
+  modalHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: "16px",
+    marginBottom: "24px",
+  },
+
+  modalTitle: {
+    margin: 0,
+    fontSize: "26px",
+    fontWeight: 900,
+    color: "#261b20",
+  },
+
+  modalSubtitle: {
+    margin: "6px 0 0",
+    color: "#806c73",
+    fontSize: "14px",
+  },
+
+  closeButton: {
+    width: "42px",
+    height: "42px",
+    borderRadius: "14px",
+    border: "1px solid #eadde2",
+    background: "#fff",
+    color: "#3a2c31",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+  },
+
+  formGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "16px",
+  },
+
+  field: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "8px",
+    fontSize: "13px",
+    fontWeight: 800,
+    color: "#514047",
+  },
+
+  fullField: {
+    gridColumn: "1 / -1",
+  },
+
+  input: {
+    height: "46px",
+    borderRadius: "14px",
+    border: "1px solid #eadde2",
+    padding: "0 14px",
+    outline: "none",
+    fontSize: "14px",
+    color: "#2b2025",
+    background: "#fff",
+  },
+
+  textarea: {
+    borderRadius: "14px",
+    border: "1px solid #eadde2",
+    padding: "12px 14px",
+    outline: "none",
+    fontSize: "14px",
+    color: "#2b2025",
+    resize: "vertical",
+    background: "#fff",
+  },
+
+  modalFooter: {
+    marginTop: "24px",
+    paddingTop: "18px",
+    borderTop: "1px solid #f2e6ea",
+    display: "flex",
+    justifyContent: "flex-end",
+    gap: "12px",
+  },
+
+  cancelButton: {
+    height: "44px",
+    borderRadius: "14px",
+    border: "1px solid #eadde2",
+    background: "#fff",
+    color: "#3a2c31",
+    padding: "0 18px",
+    cursor: "pointer",
+    fontWeight: 800,
+  },
+
+  saveButton: {
+    height: "44px",
+    borderRadius: "14px",
+    border: "none",
+    background: "#c33162",
+    color: "#fff",
+    padding: "0 20px",
+    cursor: "pointer",
+    fontWeight: 900,
+    display: "flex",
+    alignItems: "center",
+    gap: "8px",
+    boxShadow: "0 14px 28px rgba(195, 49, 98, 0.28)",
+  },
+};a
