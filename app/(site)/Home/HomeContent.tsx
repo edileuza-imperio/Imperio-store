@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import api from "@/Api/conectar";
 
 import Banner from "@/components/site/Banner/Banner";
@@ -15,6 +15,24 @@ function extrairLista(payload: any): any[] {
   if (Array.isArray(payload?.dados)) return payload.dados;
   if (Array.isArray(payload)) return payload;
   return [];
+}
+
+function normalizarTexto(texto?: string | null) {
+  return String(texto || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function ehVitrineCampanha(vitrine: Vitrine) {
+  const texto = `
+    ${normalizarTexto(vitrine.tipo)}
+    ${normalizarTexto(vitrine.nome)}
+    ${normalizarTexto(vitrine.slug)}
+    ${normalizarTexto(vitrine.titulo)}
+  `;
+
+  return texto.includes("campanha");
 }
 
 export default function HomeContent() {
@@ -43,14 +61,29 @@ export default function HomeContent() {
     carregarVitrines();
   }, []);
 
+  const vitrinesCampanha = useMemo(() => {
+    return vitrines.filter(ehVitrineCampanha);
+  }, [vitrines]);
+
+  const vitrinesNormais = useMemo(() => {
+    return vitrines.filter((vitrine) => !ehVitrineCampanha(vitrine));
+  }, [vitrines]);
+
   return (
     <>
       <Banner />
       <CategoriasDestaque />
-      <Campanhas />
 
       {!loading &&
-        vitrines.map((vitrine) => (
+        vitrinesCampanha.map((vitrine) => (
+          <Campanhas
+            key={String(vitrine.id_vitrine)}
+            vitrine={vitrine}
+          />
+        ))}
+
+      {!loading &&
+        vitrinesNormais.map((vitrine) => (
           <Destaques
             key={String(vitrine.id_vitrine)}
             vitrine={vitrine}
