@@ -159,6 +159,35 @@ export default function VitrineDetalhePage() {
     return itens.slice(inicio, fim);
   }, [itens, paginaAtual]);
 
+  const ehVitrineDeCampanhas = useMemo(() => {
+    const texto = `${vitrine?.tipo || ""} ${vitrine?.nome || ""} ${vitrine?.slug || ""}`
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+
+    return texto.includes("campanha");
+  }, [vitrine]);
+
+  const linkAdicionarItem = useMemo(() => {
+    if (!vitrine) return "#";
+
+    const base = `/sistema/vitrines/${vitrine.id_vitrine}/itens/cadastrar`;
+
+    if (ehVitrineDeCampanhas) {
+      return `${base}?tipo=campanha`;
+    }
+
+    return base;
+  }, [vitrine, ehVitrineDeCampanhas]);
+
+  const textoBotaoAdicionar = ehVitrineDeCampanhas
+    ? "Selecionar campanhas"
+    : "Adicionar primeiro item";
+
+  const ariaBotaoAdicionar = ehVitrineDeCampanhas
+    ? "Selecionar campanhas"
+    : "Adicionar item";
+
   useEffect(() => {
     if (paginaAtual > totalPaginas) {
       setPaginaAtual(totalPaginas);
@@ -303,7 +332,11 @@ export default function VitrineDetalhePage() {
             {vitrine.nome}
           </h1>
 
-          <p>Gerencie os itens exibidos nesta vitrine.</p>
+          <p>
+            {ehVitrineDeCampanhas
+              ? "Gerencie as campanhas exibidas nesta vitrine."
+              : "Gerencie os itens exibidos nesta vitrine."}
+          </p>
         </div>
 
         <button type="button" onClick={carregarTudo} className="vitrine-detalhe-refresh">
@@ -316,11 +349,12 @@ export default function VitrineDetalhePage() {
         <div>
           <h2>
             <FiLayers />
-            Itens da vitrine
+            {ehVitrineDeCampanhas ? "Campanhas da vitrine" : "Itens da vitrine"}
           </h2>
 
           <p>
-            {itens.length} itens cadastrados • Página {paginaAtual} de {totalPaginas}
+            {itens.length} {ehVitrineDeCampanhas ? "campanhas" : "itens"} cadastrados •
+            Página {paginaAtual} de {totalPaginas}
           </p>
         </div>
 
@@ -354,15 +388,21 @@ export default function VitrineDetalhePage() {
       ) : itens.length === 0 ? (
         <div className="vitrine-detalhe-empty">
           <FiPackage />
-          <strong>Nenhum item cadastrado</strong>
-          <span>Adicione produtos, campanhas ou categorias nesta vitrine.</span>
+          <strong>
+            {ehVitrineDeCampanhas
+              ? "Nenhuma campanha adicionada"
+              : "Nenhum item cadastrado"}
+          </strong>
 
-          <Link
-            href={`/sistema/vitrines/${vitrine.id_vitrine}/itens/cadastrar`}
-            className="vitrine-detalhe-empty-button"
-          >
+          <span>
+            {ehVitrineDeCampanhas
+              ? "Selecione campanhas promocionais para aparecerem nesta vitrine."
+              : "Adicione produtos, campanhas ou categorias nesta vitrine."}
+          </span>
+
+          <Link href={linkAdicionarItem} className="vitrine-detalhe-empty-button">
             <FiPlus />
-            Adicionar primeiro item
+            {textoBotaoAdicionar}
           </Link>
         </div>
       ) : (
@@ -459,7 +499,8 @@ export default function VitrineDetalhePage() {
 
               <div className="vitrine-detalhe-pagination-center">
                 <span>
-                  Página <strong>{paginaAtual}</strong> de <strong>{totalPaginas}</strong>
+                  Página <strong>{paginaAtual}</strong> de{" "}
+                  <strong>{totalPaginas}</strong>
                 </span>
 
                 <select
@@ -607,9 +648,10 @@ export default function VitrineDetalhePage() {
         </button>
 
         <Link
-          href={`/sistema/vitrines/${vitrine.id_vitrine}/itens/cadastrar`}
+          href={linkAdicionarItem}
           className="vitrine-detalhe-floating vitrine-detalhe-floating-add"
-          aria-label="Adicionar item"
+          aria-label={ariaBotaoAdicionar}
+          title={ariaBotaoAdicionar}
         >
           <FiPlus />
         </Link>
