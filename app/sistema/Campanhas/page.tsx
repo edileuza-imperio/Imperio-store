@@ -59,14 +59,20 @@ export default function CampanhasPage() {
     if (!confirmar) return;
 
     try {
-      await api.delete(`/painel/campanhas/${id}`);
+      await api.delete(`/painel/campanha/${id}`);
 
       setCampanhas((lista) =>
         lista.filter((campanha) => campanha.id_campanha !== id)
       );
-    } catch (error) {
-      console.error("Erro ao excluir campanha:", error);
-      alert("Erro ao excluir campanha.");
+    } catch (error: any) {
+      console.error("STATUS:", error.response?.status);
+      console.error("DADOS:", error.response?.data);
+
+      alert(
+        error.response?.data?.dados?.mensagem ||
+          error.response?.data?.mensagem ||
+          "Erro ao excluir campanha."
+      );
     }
   }
 
@@ -78,17 +84,14 @@ export default function CampanhasPage() {
     try {
       setSalvando(true);
 
-      await api.put(
-        `/painel/campanhas/${campanhaEditando.id_campanha}`,
-        {
-          titulo: campanhaEditando.titulo,
-          slug: campanhaEditando.slug,
-          descricao: campanhaEditando.descricao,
-          statusid: campanhaEditando.statusid,
-          inicio: campanhaEditando.inicio,
-          fim: campanhaEditando.fim,
-        }
-      );
+      await api.post(`/painel/campanha/${campanhaEditando.id_campanha}`, {
+        titulo: campanhaEditando.titulo,
+        slug: campanhaEditando.slug,
+        descricao: campanhaEditando.descricao || null,
+        statusid: campanhaEditando.statusid,
+        inicio: campanhaEditando.inicio || null,
+        fim: campanhaEditando.fim || null,
+      });
 
       setCampanhas((lista) =>
         lista.map((campanha) =>
@@ -99,9 +102,16 @@ export default function CampanhasPage() {
       );
 
       setCampanhaEditando(null);
-    } catch (error) {
-      console.error("Erro ao atualizar campanha:", error);
-      alert("Erro ao atualizar campanha.");
+      alert("Campanha atualizada com sucesso.");
+    } catch (error: any) {
+      console.error("STATUS:", error.response?.status);
+      console.error("DADOS:", error.response?.data);
+
+      alert(
+        error.response?.data?.dados?.mensagem ||
+          error.response?.data?.mensagem ||
+          "Erro ao atualizar campanha."
+      );
     } finally {
       setSalvando(false);
     }
@@ -386,7 +396,15 @@ export default function CampanhasPage() {
                 Cancelar
               </button>
 
-              <button type="submit" disabled={salvando} style={styles.saveButton}>
+              <button
+                type="submit"
+                disabled={salvando}
+                style={{
+                  ...styles.saveButton,
+                  opacity: salvando ? 0.7 : 1,
+                  cursor: salvando ? "not-allowed" : "pointer",
+                }}
+              >
                 <FiSave />
                 {salvando ? "Salvando..." : "Salvar alterações"}
               </button>
@@ -823,7 +841,6 @@ const styles: Record<string, React.CSSProperties> = {
     background: "#c33162",
     color: "#fff",
     padding: "0 20px",
-    cursor: "pointer",
     fontWeight: 900,
     display: "flex",
     alignItems: "center",
