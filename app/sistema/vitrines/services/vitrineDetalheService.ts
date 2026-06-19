@@ -1,5 +1,7 @@
 import api from "@/Api/conectar";
 
+const PAINEL = "/painel";
+
 export type Vitrine = {
   id_vitrine: number;
   nome: string;
@@ -46,6 +48,10 @@ export type VitrineItem = {
   produto_slug?: string | null;
 
   campanha_nome?: string | null;
+  campanha_titulo?: string | null;
+  campanha_descricao?: string | null;
+  campanha_slug?: string | null;
+
   categoria_nome?: string | null;
 };
 
@@ -56,49 +62,31 @@ export function normalizarTexto(texto?: string | null) {
     .replace(/[\u0300-\u036f]/g, "");
 }
 
-export function extrairDados(response: any) {
-  return response?.data?.dados ?? response?.data ?? null;
-}
-
 export async function buscarVitrine(id: string | number): Promise<Vitrine | null> {
-  const response = await api.get(`/vitrine/${id}`);
-
+  const response = await api.get(`${PAINEL}/vitrine/${id}`);
   const data = response.data;
 
-  return (
-    data?.dados?.vitrine ??
-    data?.vitrine ??
-    data?.dados ??
-    data ??
-    null
-  );
+  return data?.dados?.vitrine ?? data?.vitrine ?? data?.dados ?? data ?? null;
 }
 
 export async function buscarItensVitrine(
   id: string | number
 ): Promise<VitrineItem[]> {
-  const response = await api.get(`/vitrine/${id}/itens`);
-
+  const response = await api.get(`${PAINEL}/vitrine/${id}/itens`);
   const data = response.data;
 
-  const lista = Array.isArray(data?.dados?.itens)
-    ? data.dados.itens
-    : Array.isArray(data?.itens)
-      ? data.itens
-      : Array.isArray(data?.dados)
-        ? data.dados
-        : Array.isArray(data)
-          ? data
-          : [];
+  if (Array.isArray(data?.dados?.itens)) return data.dados.itens;
+  if (Array.isArray(data?.itens)) return data.itens;
+  if (Array.isArray(data?.dados)) return data.dados;
+  if (Array.isArray(data)) return data;
 
-  return lista;
+  return [];
 }
 
 export async function buscarProdutoPorId(
   produtoId: number
 ): Promise<ProdutoResumo | null> {
-  const response = await api.get(`/produto/${produtoId}`);
-
+  const response = await api.get(`${PAINEL}/produto/${produtoId}`);
   const data = response.data?.dados ?? response.data;
 
   return data?.produto ?? data ?? null;
@@ -109,11 +97,9 @@ export async function buscarItensVitrineComProdutos(
 ): Promise<VitrineItem[]> {
   const itens = await buscarItensVitrine(id);
 
-  const itensComProdutos = await Promise.all(
+  return Promise.all(
     itens.map(async (item) => {
-      if (!item.produto_id) {
-        return item;
-      }
+      if (!item.produto_id) return item;
 
       try {
         const produto = await buscarProdutoPorId(Number(item.produto_id));
@@ -121,39 +107,38 @@ export async function buscarItensVitrineComProdutos(
         return {
           ...item,
           produto_nome: produto?.nome ?? item.produto_nome ?? null,
-          produto_descricao: produto?.descricao ?? null,
-          produto_preco: produto?.preco ?? null,
+          produto_descricao:
+            produto?.descricao ?? item.produto_descricao ?? null,
+          produto_preco: produto?.preco ?? item.produto_preco ?? null,
           produto_imagem:
             produto?.miniatura ??
             produto?.imagem ??
+            item.produto_imagem ??
             item.imagem_personalizada ??
             null,
-          produto_slug: produto?.slug ?? null,
+          produto_slug: produto?.slug ?? item.produto_slug ?? null,
           subtitulo_personalizado:
-            item.subtitulo_personalizado || produto?.descricao || null,
+            item.subtitulo_personalizado ||
+            produto?.descricao ||
+            item.produto_descricao ||
+            null,
         };
-      } catch {
+      } catch (error) {
+        console.error("Erro ao buscar produto da vitrine:", error);
         return item;
       }
     })
   );
-
-  return itensComProdutos;
 }
 
 export async function removerItemVitrine(itemId: number) {
-  return api.delete(`/vitrine/item/${itemId}`);
+  return api.delete(`${PAINEL}/vitrine/item/${itemId}`);
 }
 
 export function ehVitrineCampanha(vitrine?: Vitrine | null) {
-  const texto = `
-    ${normalizarTexto(vitrine?.tipo)}
-    ${normalizarTexto(vitrine?.nome)}
-    ${normalizarTexto(vitrine?.slug)}
-    ${normalizarTexto(vitrine?.titulo)}
-  `;
+  const tipo = normalizarTexto(vitrine?.tipo);
 
-  return texto.includes("campanha");
+  return tipo === "campanha" || tipo.includes("campanha");
 }
 
 export function formatarData(data?: string | null) {
@@ -161,23 +146,17 @@ export function formatarData(data?: string | null) {
 
   const dataConvertida = new Date(data.replace(" ", "T"));
 
-  if (Number.isNaN(dataConvertida.getTime())) {
-    return data;
-  }
+  if (Number.isNaN(dataConvertida.getTime())) return data;
 
   return dataConvertida.toLocaleString("pt-BR");
 }
 
 export function formatarPreco(valor?: number | string | null) {
-  if (valor === null || valor === undefined || valor === "") {
-    return null;
-  }
+  if (valor === null || valor === undefined || valor === "") return null;
 
   const numero = Number(String(valor).replace(",", "."));
 
-  if (Number.isNaN(numero)) {
-    return null;
-  }
+  if (Number.isNaN(numero)) return null;
 
   return numero.toLocaleString("pt-BR", {
     style: "currency",
@@ -193,6 +172,7 @@ export function nomeDoItem(item: VitrineItem) {
   return (
     item.titulo_personalizado ||
     item.produto_nome ||
+    item.campanha_titulo ||
     item.campanha_nome ||
     item.categoria_nome ||
     "Item da vitrine"
@@ -203,6 +183,7 @@ export function descricaoDoItem(item: VitrineItem, tipoSingular: string) {
   return (
     item.subtitulo_personalizado ||
     item.produto_descricao ||
+    item.campanha_descricao ||
     `Sem descrição personalizada para este ${tipoSingular}.`
   );
 }
@@ -211,5 +192,6 @@ export function tipoDoItem(item: VitrineItem) {
   if (item.produto_id) return "Produto";
   if (item.campanha_id) return "Campanha";
   if (item.categoria_id) return "Categoria";
+
   return "Item";
 }
