@@ -47,6 +47,7 @@ export default function CadastrarProdutoPage() {
     slug: "",
     descricao: "",
     preco: "",
+    quantidade: "",
     sku: "",
     marca: "",
     categoria_id: "",
@@ -96,8 +97,7 @@ export default function CadastrarProdutoPage() {
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
-      setCategorias([]);
-      setStatusList([]);
+      alert("Erro ao carregar categorias/status.");
     }
   }
 
@@ -108,7 +108,8 @@ export default function CadastrarProdutoPage() {
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z0-9\s-]/g, "")
       .replace(/\s+/g, "-")
-      .replace(/-+/g, "-");
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
   }
 
   function gerarSKU(nome: string) {
@@ -169,8 +170,39 @@ export default function CadastrarProdutoPage() {
     setEtapa((current) => Math.max(current - 1, 1));
   }
 
+  function validarFormulario() {
+    if (imagens.length === 0) {
+      alert("Envie pelo menos uma imagem.");
+      setEtapa(1);
+      return false;
+    }
+
+    if (
+      !form.nome ||
+      !form.slug ||
+      !form.preco ||
+      !form.marca ||
+      !form.categoria_id ||
+      !form.status_id
+    ) {
+      alert("Preencha todos os dados principais.");
+      setEtapa(2);
+      return false;
+    }
+
+    if (!form.descricao) {
+      alert("Preencha a descrição.");
+      setEtapa(3);
+      return false;
+    }
+
+    return true;
+  }
+
   async function salvar() {
     try {
+      if (!validarFormulario()) return;
+
       setLoading(true);
 
       const data = new FormData();
@@ -179,6 +211,7 @@ export default function CadastrarProdutoPage() {
       data.append("slug", form.slug);
       data.append("descricao", form.descricao);
       data.append("preco", form.preco);
+      data.append("quantidade", form.quantidade || "0");
       data.append("sku", form.sku);
       data.append("marca", form.marca);
       data.append("categoria_id", form.categoria_id);
@@ -188,17 +221,19 @@ export default function CadastrarProdutoPage() {
         data.append("imagens[]", arquivo);
       });
 
-      await api.post("/painel/produto", data, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      await api.post("/painel/produto", data);
 
       alert("Produto cadastrado com sucesso!");
       router.push("/painel/sistema/produtos");
-    } catch (error) {
-      console.error(error);
-      alert("Erro ao cadastrar produto.");
+    } catch (error: any) {
+      console.error("Erro ao cadastrar produto:", error);
+
+      const mensagem =
+        error?.response?.data?.mensagem ||
+        error?.response?.data?.dados?.mensagem ||
+        "Erro ao cadastrar produto.";
+
+      alert(mensagem);
     } finally {
       setLoading(false);
     }
@@ -232,7 +267,7 @@ export default function CadastrarProdutoPage() {
               Cadastrar Produto
             </h1>
 
-            <p>Sistema moderno de cadastro em etapas.</p>
+            <p>Cadastro com imagem, dados, estoque e descrição.</p>
           </div>
         </div>
 
@@ -274,7 +309,7 @@ export default function CadastrarProdutoPage() {
 
               <div>
                 <h2>Imagens do produto</h2>
-                <p>Faça upload das imagens.</p>
+                <p>Envie uma ou mais imagens.</p>
               </div>
             </div>
 
@@ -294,7 +329,7 @@ export default function CadastrarProdutoPage() {
                 </div>
 
                 <strong>Clique para enviar imagens</strong>
-                <span>PNG, JPG, JPEG, WEBP</span>
+                <span>PNG, JPG, JPEG ou WEBP</span>
               </label>
             </div>
 
@@ -302,7 +337,7 @@ export default function CadastrarProdutoPage() {
               <div className="cad-produto__preview-grid">
                 {previewUrls.map((url, index) => (
                   <div key={url} className="cad-produto__preview-card">
-                    <img src={url} alt={`Preview ${index}`} />
+                    <img src={url} alt={`Imagem ${index + 1}`} />
 
                     <button
                       type="button"
@@ -339,7 +374,7 @@ export default function CadastrarProdutoPage() {
 
               <div>
                 <h2>Dados principais</h2>
-                <p>Informações do produto.</p>
+                <p>Informações básicas do produto.</p>
               </div>
             </div>
 
@@ -371,7 +406,20 @@ export default function CadastrarProdutoPage() {
                   type="number"
                   step="0.01"
                   name="preco"
+                  placeholder="0.00"
                   value={form.preco}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="cad-produto__field">
+                <label>Quantidade em estoque</label>
+                <input
+                  type="number"
+                  min="0"
+                  name="quantidade"
+                  placeholder="0"
+                  value={form.quantidade}
                   onChange={handleChange}
                 />
               </div>
@@ -381,6 +429,7 @@ export default function CadastrarProdutoPage() {
                 <input
                   type="text"
                   name="marca"
+                  placeholder="Marca do produto"
                   value={form.marca}
                   onChange={handleChange}
                 />
@@ -455,7 +504,7 @@ export default function CadastrarProdutoPage() {
 
               <div>
                 <h2>Descrição</h2>
-                <p>Finalize o cadastro.</p>
+                <p>Finalize o cadastro do produto.</p>
               </div>
             </div>
 
@@ -465,7 +514,7 @@ export default function CadastrarProdutoPage() {
               <textarea
                 rows={8}
                 name="descricao"
-                placeholder="Digite a descrição..."
+                placeholder="Digite a descrição do produto..."
                 value={form.descricao}
                 onChange={handleChange}
               />
