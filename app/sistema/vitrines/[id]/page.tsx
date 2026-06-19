@@ -1,6 +1,5 @@
 "use client";
 
-import api from "@/Api/conectar";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -23,44 +22,20 @@ import {
 
 import "../../../../components/styles/sistema/vitrine-detalhe.css";
 
-type Vitrine = {
-  id_vitrine: number;
-  nome: string;
-  slug: string;
-  titulo?: string | null;
-  subtitulo?: string | null;
-  tipo?: string | null;
-  status_id: number;
-  nivel_id?: number;
-  ordem?: number;
-  criado_em?: string | null;
-  atualizado_em?: string | null;
-};
-
-type VitrineItem = {
-  id_vitrine_item: number;
-  vitrine_id: number;
-  produto_id?: number | null;
-  campanha_id?: number | null;
-  categoria_id?: number | null;
-  titulo_personalizado?: string | null;
-  subtitulo_personalizado?: string | null;
-  imagem_personalizada?: string | null;
-  status_id: number;
-  nivel_id?: number;
-  criado_em?: string | null;
-  atualizado_em?: string | null;
-  produto_nome?: string | null;
-  campanha_nome?: string | null;
-  categoria_nome?: string | null;
-};
-
-function normalizarTexto(texto?: string | null) {
-  return String(texto || "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
+import {
+  buscarItensVitrineComProdutos,
+  buscarVitrine,
+  descricaoDoItem,
+  ehVitrineCampanha,
+  formatarData,
+  formatarPreco,
+  nomeDoItem,
+  removerItemVitrine,
+  statusTexto,
+  tipoDoItem,
+  type Vitrine,
+  type VitrineItem,
+} from "../services/vitrineDetalheService";
 
 export default function VitrineDetalhePage() {
   const params = useParams();
@@ -95,15 +70,7 @@ export default function VitrineDetalhePage() {
     try {
       setLoading(true);
 
-      const response = await api.get(`/vitrine/${id}`);
-      const data = response.data;
-
-      const vitrineData =
-        data?.dados?.vitrine ??
-        data?.vitrine ??
-        data?.dados ??
-        data ??
-        null;
+      const vitrineData = await buscarVitrine(id);
 
       setVitrine(vitrineData);
     } catch (error) {
@@ -120,18 +87,7 @@ export default function VitrineDetalhePage() {
     try {
       setLoadingItens(true);
 
-      const response = await api.get(`/vitrine/${id}/itens`);
-      const data = response.data;
-
-      const lista = Array.isArray(data?.dados?.itens)
-        ? data.dados.itens
-        : Array.isArray(data?.itens)
-          ? data.itens
-          : Array.isArray(data?.dados)
-            ? data.dados
-            : Array.isArray(data)
-              ? data
-              : [];
+      const lista = await buscarItensVitrineComProdutos(id);
 
       setItens(lista);
     } catch (error) {
@@ -147,30 +103,21 @@ export default function VitrineDetalhePage() {
   }
 
   const ehVitrineDeCampanhas = useMemo(() => {
-    const texto = `
-      ${normalizarTexto(vitrine?.tipo)}
-      ${normalizarTexto(vitrine?.nome)}
-      ${normalizarTexto(vitrine?.slug)}
-      ${normalizarTexto(vitrine?.titulo)}
-    `;
-
-    return texto.includes("campanha");
+    return ehVitrineCampanha(vitrine);
   }, [vitrine]);
+
+  const textoItens = ehVitrineDeCampanhas ? "campanhas" : "produtos";
+  const textoItemSingular = ehVitrineDeCampanhas ? "campanha" : "produto";
 
   const linkAdicionarItem = useMemo(() => {
     if (!vitrine) return "#";
 
     const base = `/sistema/vitrines/${vitrine.id_vitrine}/itens/cadastrar`;
 
-    if (ehVitrineDeCampanhas) {
-      return `${base}?tipo=campanha`;
-    }
-
-    return `${base}?tipo=produto`;
+    return ehVitrineDeCampanhas
+      ? `${base}?tipo=campanha`
+      : `${base}?tipo=produto`;
   }, [vitrine, ehVitrineDeCampanhas]);
-
-  const textoItens = ehVitrineDeCampanhas ? "campanhas" : "produtos";
-  const textoItemSingular = ehVitrineDeCampanhas ? "campanha" : "produto";
 
   const resumo = useMemo(() => {
     return {
@@ -196,42 +143,6 @@ export default function VitrineDetalhePage() {
       setPaginaAtual(totalPaginas);
     }
   }, [paginaAtual, totalPaginas]);
-
-  function formatarData(data?: string | null) {
-    if (!data) return "—";
-
-    const dataConvertida = new Date(data.replace(" ", "T"));
-
-    if (Number.isNaN(dataConvertida.getTime())) {
-      return data;
-    }
-
-    return dataConvertida.toLocaleString("pt-BR");
-  }
-
-  function statusTexto(statusId?: number) {
-    return Number(statusId) === 1 ? "Ativo" : "Inativo";
-  }
-
-  function nomeDoItem(item: VitrineItem) {
-    return (
-      item.titulo_personalizado ||
-      item.produto_nome ||
-      item.campanha_nome ||
-      item.categoria_nome ||
-      (item.produto_id ? `Produto #${item.produto_id}` : null) ||
-      (item.campanha_id ? `Campanha #${item.campanha_id}` : null) ||
-      (item.categoria_id ? `Categoria #${item.categoria_id}` : null) ||
-      `Item #${item.id_vitrine_item}`
-    );
-  }
-
-  function tipoDoItem(item: VitrineItem) {
-    if (item.produto_id) return "Produto";
-    if (item.campanha_id) return "Campanha";
-    if (item.categoria_id) return "Categoria";
-    return "Item";
-  }
 
   function selecionarItem(idItem: number) {
     setItemSelecionado((atual) => (atual === idItem ? null : idItem));
@@ -282,7 +193,7 @@ export default function VitrineDetalhePage() {
     try {
       setRemovendoItem(itemId);
 
-      await api.delete(`/vitrine/item/${itemId}`);
+      await removerItemVitrine(itemId);
       await carregarItens();
     } catch (error: any) {
       console.error("Erro ao remover item:", error);
@@ -457,6 +368,7 @@ export default function VitrineDetalhePage() {
             {itensPaginados.map((item) => {
               const selecionado = itemSelecionado === item.id_vitrine_item;
               const ativo = Number(item.status_id) === 1;
+              const preco = formatarPreco(item.produto_preco);
 
               return (
                 <article
@@ -488,15 +400,28 @@ export default function VitrineDetalhePage() {
 
                     <strong>{nomeDoItem(item)}</strong>
 
-                    <p>
-                      {item.subtitulo_personalizado ||
-                        `Sem descrição personalizada para este ${textoItemSingular}.`}
-                    </p>
+                    <p>{descricaoDoItem(item, textoItemSingular)}</p>
                   </div>
 
                   <div className="vitrine-detalhe-clean-meta">
-                    <span>ID da vitrine</span>
-                    <strong>#{item.id_vitrine_item}</strong>
+                    <div>
+                      <span>ID da vitrine</span>
+                      <strong>#{item.id_vitrine_item}</strong>
+                    </div>
+
+                    {item.produto_id && (
+                      <div>
+                        <span>ID produto</span>
+                        <strong>#{item.produto_id}</strong>
+                      </div>
+                    )}
+
+                    {preco && (
+                      <div>
+                        <span>Preço</span>
+                        <strong>{preco}</strong>
+                      </div>
+                    )}
                   </div>
                 </article>
               );
