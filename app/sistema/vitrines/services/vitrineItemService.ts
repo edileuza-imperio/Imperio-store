@@ -24,25 +24,31 @@ export type Produto = {
   slug?: string;
   descricao?: string | null;
   imagem?: string | null;
+  miniatura?: string | null;
   status_id?: number;
   statusid?: number;
 };
 
 function normalizarLista(data: any, chave: string) {
-  if (Array.isArray(data?.dados?.[chave])) {
-    return data.dados[chave];
-  }
+  const possiveis = [
+    data?.dados?.[chave],
+    data?.dados?.[chave]?.dados,
+    data?.dados?.lista,
+    data?.dados?.itens,
+    data?.dados?.data,
+    data?.[chave],
+    data?.[chave]?.dados,
+    data?.lista,
+    data?.itens,
+    data?.data,
+    data?.dados,
+    data,
+  ];
 
-  if (Array.isArray(data?.[chave])) {
-    return data[chave];
-  }
-
-  if (Array.isArray(data?.dados)) {
-    return data.dados;
-  }
-
-  if (Array.isArray(data)) {
-    return data;
+  for (const item of possiveis) {
+    if (Array.isArray(item)) {
+      return item;
+    }
   }
 
   return [];
@@ -50,20 +56,28 @@ function normalizarLista(data: any, chave: string) {
 
 export async function buscarCampanhas(): Promise<Campanha[]> {
   const response = await api.get("/painel/campanhas");
-
-  return normalizarLista(
-    response.data,
-    "campanhas"
-  );
+  return normalizarLista(response.data, "campanhas");
 }
 
 export async function buscarProdutos(): Promise<Produto[]> {
-  const response = await api.get("/painel/produtos");
+  try {
+    const response = await api.get("/painel/produtos");
+    const produtos = normalizarLista(response.data, "produtos");
 
-  return normalizarLista(
-    response.data,
-    "produtos"
-  );
+    if (produtos.length > 0) {
+      return produtos;
+    }
+  } catch (error) {
+    console.warn("Erro ao buscar /painel/produtos", error);
+  }
+
+  try {
+    const response = await api.get("/produtos");
+    return normalizarLista(response.data, "produtos");
+  } catch (error) {
+    console.error("Erro ao buscar produtos", error);
+    return [];
+  }
 }
 
 export async function adicionarItemNaVitrine(params: {
@@ -71,30 +85,17 @@ export async function adicionarItemNaVitrine(params: {
   itemId: number;
   tipo: TipoItem;
 }) {
-  const {
-    vitrineId,
-    itemId,
-    tipo,
-  } = params;
+  const { vitrineId, itemId, tipo } = params;
 
-  return api.post(
-    `/painel/vitrine/${vitrineId}/item`,
-    {
-      produto_id:
-        tipo === "produto"
-          ? itemId
-          : null,
+  const payload = {
+    produto_id: tipo === "produto" ? itemId : null,
+    campanha_id: tipo === "campanha" ? itemId : null,
+    categoria_id: null,
+    status_id: 1,
+    nivel_id: 1,
+  };
 
-      campanha_id:
-        tipo === "campanha"
-          ? itemId
-          : null,
-
-      categoria_id: null,
-      status_id: 1,
-      nivel_id: 1,
-    }
-  );
+  return api.post(`/painel/vitrine/${vitrineId}/item`, payload);
 }
 
 export async function adicionarItensNaVitrine(params: {
@@ -102,11 +103,7 @@ export async function adicionarItensNaVitrine(params: {
   selecionadas: number[];
   tipo: TipoItem;
 }) {
-  const {
-    vitrineId,
-    selecionadas,
-    tipo,
-  } = params;
+  const { vitrineId, selecionadas, tipo } = params;
 
   await Promise.all(
     selecionadas.map((itemId) =>
@@ -119,110 +116,56 @@ export async function adicionarItensNaVitrine(params: {
   );
 }
 
-export function getCampanhaId(
-  campanha: Campanha
-) {
-  return Number(
-    campanha.id_campanha ??
-      campanha.idCampanha ??
-      campanha.id ??
-      0
-  );
+export function getCampanhaId(campanha: Campanha) {
+  return Number(campanha.id_campanha ?? campanha.idCampanha ?? campanha.id ?? 0);
 }
 
-export function getProdutoId(
-  produto: Produto
-) {
-  return Number(
-    produto.id_produto ??
-      produto.idProduto ??
-      produto.id ??
-      0
-  );
+export function getProdutoId(produto: Produto) {
+  return Number(produto.id_produto ?? produto.idProduto ?? produto.id ?? 0);
 }
 
-export function getCampanhaTitulo(
-  campanha: Campanha
-) {
-  return (
-    campanha.titulo ||
-    campanha.nome ||
-    "Campanha sem título"
-  );
+export function getCampanhaTitulo(campanha: Campanha) {
+  return campanha.titulo || campanha.nome || "Campanha sem título";
 }
 
-export function getProdutoTitulo(
-  produto: Produto
-) {
-  return (
-    produto.nome ||
-    produto.titulo ||
-    "Produto sem nome"
-  );
+export function getProdutoTitulo(produto: Produto) {
+  return produto.nome || produto.titulo || "Produto sem nome";
 }
 
-export function getStatusId(
-  item: Campanha | Produto
-) {
-  return Number(
-    item.status_id ??
-      item.statusid ??
-      1
-  );
+export function getStatusId(item: Campanha | Produto) {
+  return Number(item.status_id ?? item.statusid ?? 1);
 }
 
-export function filtrarCampanhas(
-  campanhas: Campanha[],
-  busca: string
-) {
-  const termo = busca
-    .trim()
-    .toLowerCase();
+export function filtrarCampanhas(campanhas: Campanha[], busca: string) {
+  const termo = busca.trim().toLowerCase();
 
-  if (!termo) {
-    return campanhas;
-  }
+  if (!termo) return campanhas;
 
-  return campanhas.filter(
-    (campanha) => {
-      const texto = `
-        ${campanha.titulo || ""}
-        ${campanha.nome || ""}
-        ${campanha.slug || ""}
-        ${campanha.descricao || ""}
-      `.toLowerCase();
+  return campanhas.filter((campanha) => {
+    const texto = `
+      ${campanha.titulo || ""}
+      ${campanha.nome || ""}
+      ${campanha.slug || ""}
+      ${campanha.descricao || ""}
+    `.toLowerCase();
 
-      return texto.includes(
-        termo
-      );
-    }
-  );
+    return texto.includes(termo);
+  });
 }
 
-export function filtrarProdutos(
-  produtos: Produto[],
-  busca: string
-) {
-  const termo = busca
-    .trim()
-    .toLowerCase();
+export function filtrarProdutos(produtos: Produto[], busca: string) {
+  const termo = busca.trim().toLowerCase();
 
-  if (!termo) {
-    return produtos;
-  }
+  if (!termo) return produtos;
 
-  return produtos.filter(
-    (produto) => {
-      const texto = `
-        ${produto.nome || ""}
-        ${produto.titulo || ""}
-        ${produto.slug || ""}
-        ${produto.descricao || ""}
-      `.toLowerCase();
+  return produtos.filter((produto) => {
+    const texto = `
+      ${produto.nome || ""}
+      ${produto.titulo || ""}
+      ${produto.slug || ""}
+      ${produto.descricao || ""}
+    `.toLowerCase();
 
-      return texto.includes(
-        termo
-      );
-    }
-  );
+    return texto.includes(termo);
+  });
 }
