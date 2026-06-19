@@ -55,6 +55,13 @@ type VitrineItem = {
   categoria_nome?: string | null;
 };
 
+function normalizarTexto(texto?: string | null) {
+  return String(texto || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
 export default function VitrineDetalhePage() {
   const params = useParams();
   const router = useRouter();
@@ -74,7 +81,6 @@ export default function VitrineDetalhePage() {
 
   useEffect(() => {
     carregarTudo();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
@@ -140,6 +146,37 @@ export default function VitrineDetalhePage() {
     await Promise.all([carregarVitrine(), carregarItens()]);
   }
 
+  const ehVitrineDeCampanhas = useMemo(() => {
+    const texto = `
+      ${normalizarTexto(vitrine?.tipo)}
+      ${normalizarTexto(vitrine?.nome)}
+      ${normalizarTexto(vitrine?.slug)}
+      ${normalizarTexto(vitrine?.titulo)}
+    `;
+
+    return texto.includes("campanha");
+  }, [vitrine]);
+
+  const linkAdicionarItem = useMemo(() => {
+    if (!vitrine) return "#";
+
+    const base = `/sistema/vitrines/${vitrine.id_vitrine}/itens/cadastrar`;
+
+    if (ehVitrineDeCampanhas) {
+      return `${base}?tipo=campanha`;
+    }
+
+    return `${base}?tipo=produto`;
+  }, [vitrine, ehVitrineDeCampanhas]);
+
+  const textoBotaoAdicionar = ehVitrineDeCampanhas
+    ? "Selecionar campanhas"
+    : "Selecionar produtos";
+
+  const ariaBotaoAdicionar = ehVitrineDeCampanhas
+    ? "Selecionar campanhas"
+    : "Selecionar produtos";
+
   const resumo = useMemo(() => {
     return {
       total: itens.length,
@@ -158,35 +195,6 @@ export default function VitrineDetalhePage() {
 
     return itens.slice(inicio, fim);
   }, [itens, paginaAtual]);
-
-  const ehVitrineDeCampanhas = useMemo(() => {
-    const texto = `${vitrine?.tipo || ""} ${vitrine?.nome || ""} ${vitrine?.slug || ""}`
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
-
-    return texto.includes("campanha");
-  }, [vitrine]);
-
-  const linkAdicionarItem = useMemo(() => {
-    if (!vitrine) return "#";
-
-    const base = `/sistema/vitrines/${vitrine.id_vitrine}/itens/cadastrar`;
-
-    if (ehVitrineDeCampanhas) {
-      return `${base}?tipo=campanha`;
-    }
-
-    return base;
-  }, [vitrine, ehVitrineDeCampanhas]);
-
-  const textoBotaoAdicionar = ehVitrineDeCampanhas
-    ? "Selecionar campanhas"
-    : "Adicionar primeiro item";
-
-  const ariaBotaoAdicionar = ehVitrineDeCampanhas
-    ? "Selecionar campanhas"
-    : "Adicionar item";
 
   useEffect(() => {
     if (paginaAtual > totalPaginas) {
@@ -256,7 +264,9 @@ export default function VitrineDetalhePage() {
       return;
     }
 
-    router.push(`/sistema/vitrines/${vitrine.id_vitrine}/itens/${itemSelecionado}/editar`);
+    router.push(
+      `/sistema/vitrines/${vitrine.id_vitrine}/itens/${itemSelecionado}/editar`
+    );
   }
 
   async function excluirItemSelecionado() {
@@ -335,11 +345,15 @@ export default function VitrineDetalhePage() {
           <p>
             {ehVitrineDeCampanhas
               ? "Gerencie as campanhas exibidas nesta vitrine."
-              : "Gerencie os itens exibidos nesta vitrine."}
+              : "Gerencie os produtos exibidos nesta vitrine."}
           </p>
         </div>
 
-        <button type="button" onClick={carregarTudo} className="vitrine-detalhe-refresh">
+        <button
+          type="button"
+          onClick={carregarTudo}
+          className="vitrine-detalhe-refresh"
+        >
           <FiRefreshCw />
           Atualizar
         </button>
@@ -349,12 +363,12 @@ export default function VitrineDetalhePage() {
         <div>
           <h2>
             <FiLayers />
-            {ehVitrineDeCampanhas ? "Campanhas da vitrine" : "Itens da vitrine"}
+            {ehVitrineDeCampanhas ? "Campanhas da vitrine" : "Produtos da vitrine"}
           </h2>
 
           <p>
-            {itens.length} {ehVitrineDeCampanhas ? "campanhas" : "itens"} cadastrados •
-            Página {paginaAtual} de {totalPaginas}
+            {itens.length} {ehVitrineDeCampanhas ? "campanhas" : "produtos"}{" "}
+            cadastrados • Página {paginaAtual} de {totalPaginas}
           </p>
         </div>
 
@@ -391,13 +405,13 @@ export default function VitrineDetalhePage() {
           <strong>
             {ehVitrineDeCampanhas
               ? "Nenhuma campanha adicionada"
-              : "Nenhum item cadastrado"}
+              : "Nenhum produto adicionado"}
           </strong>
 
           <span>
             {ehVitrineDeCampanhas
               ? "Selecione campanhas promocionais para aparecerem nesta vitrine."
-              : "Adicione produtos, campanhas ou categorias nesta vitrine."}
+              : "Selecione produtos para aparecerem nesta vitrine."}
           </span>
 
           <Link href={linkAdicionarItem} className="vitrine-detalhe-empty-button">
@@ -555,7 +569,11 @@ export default function VitrineDetalhePage() {
                       : "vitrine-detalhe-status-inativo"
                   }`}
                 >
-                  {Number(vitrine.status_id) === 1 ? <FiCheckCircle /> : <FiXCircle />}
+                  {Number(vitrine.status_id) === 1 ? (
+                    <FiCheckCircle />
+                  ) : (
+                    <FiXCircle />
+                  )}
                   {statusTexto(vitrine.status_id)}
                 </span>
 
@@ -565,7 +583,8 @@ export default function VitrineDetalhePage() {
               <h4>{vitrine.titulo || vitrine.nome}</h4>
 
               <p>
-                {vitrine.subtitulo || "Sem subtítulo cadastrado para esta vitrine."}
+                {vitrine.subtitulo ||
+                  "Sem subtítulo cadastrado para esta vitrine."}
               </p>
             </div>
           </div>
