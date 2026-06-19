@@ -75,6 +75,9 @@ export default function CadastrarProdutoPage() {
         api.get("/painel/status"),
       ]);
 
+      console.log("CATEGORIAS API:", categoriasRes.data);
+      console.log("STATUS API:", statusRes.data);
+
       const categoriasDados = Array.isArray(categoriasRes.data?.dados)
         ? categoriasRes.data.dados
         : [];
@@ -97,8 +100,10 @@ export default function CadastrarProdutoPage() {
         }));
       }
     } catch (error: any) {
-      console.error("Erro ao carregar dados:", error);
-      console.log("Resposta:", error?.response?.data);
+      console.error("ERRO AO CARREGAR DADOS:", error);
+      console.log("STATUS:", error?.response?.status);
+      console.log("RESPOSTA:", error?.response?.data);
+
       alert("Erro ao carregar categorias e status.");
     }
   }
