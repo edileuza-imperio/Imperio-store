@@ -35,6 +35,25 @@ function ehVitrineCampanha(vitrine: Vitrine) {
   return texto.includes("campanha");
 }
 
+function ehVitrineNovidade(vitrine: Vitrine) {
+  const texto = `
+    ${normalizarTexto(vitrine.nome)}
+    ${normalizarTexto(vitrine.slug)}
+    ${normalizarTexto(vitrine.titulo)}
+  `;
+
+  return (
+    texto.includes("novidade") ||
+    texto.includes("novidades") ||
+    texto.includes("lancamento") ||
+    texto.includes("lancamentos")
+  );
+}
+
+function ordenarPorOrdem(a: Vitrine, b: Vitrine) {
+  return Number(a.ordem ?? 0) - Number(b.ordem ?? 0);
+}
+
 export default function HomeContent() {
   const [vitrines, setVitrines] = useState<Vitrine[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,6 +68,7 @@ export default function HomeContent() {
         });
 
         const lista = extrairLista(response?.data) as Vitrine[];
+
         setVitrines(lista);
       } catch (error) {
         console.error("Erro ao carregar vitrines:", error);
@@ -61,33 +81,49 @@ export default function HomeContent() {
     carregarVitrines();
   }, []);
 
-  const vitrinesCampanha = useMemo(() => {
-    return vitrines.filter(ehVitrineCampanha);
+  const vitrinesProdutos = useMemo(() => {
+    return vitrines
+      .filter((vitrine) => !ehVitrineCampanha(vitrine))
+      .filter((vitrine) => !ehVitrineNovidade(vitrine))
+      .sort(ordenarPorOrdem);
   }, [vitrines]);
 
-  const vitrinesNormais = useMemo(() => {
-    return vitrines.filter((vitrine) => !ehVitrineCampanha(vitrine));
+  const vitrinesCampanha = useMemo(() => {
+    return vitrines
+      .filter(ehVitrineCampanha)
+      .sort(ordenarPorOrdem);
+  }, [vitrines]);
+
+  const vitrinesNovidades = useMemo(() => {
+    return vitrines
+      .filter(ehVitrineNovidade)
+      .sort(ordenarPorOrdem);
   }, [vitrines]);
 
   return (
     <>
+      {/* Banner Principal */}
       <Banner />
-      <CategoriasDestaque />
 
+      {/* Produtos em Destaque */}
       {!loading &&
-        vitrinesCampanha.map((vitrine) => (
-          <Campanhas
-            key={String(vitrine.id_vitrine)}
-            vitrine={vitrine}
-          />
+        vitrinesProdutos.map((vitrine) => (
+          <Destaques key={String(vitrine.id_vitrine)} vitrine={vitrine} />
         ))}
 
+      {/* Campanhas Especiais */}
       {!loading &&
-        vitrinesNormais.map((vitrine) => (
-          <Destaques
-            key={String(vitrine.id_vitrine)}
-            vitrine={vitrine}
-          />
+        vitrinesCampanha.map((vitrine) => (
+          <Campanhas key={String(vitrine.id_vitrine)} vitrine={vitrine} />
+        ))}
+
+      {/* Categorias */}
+      <CategoriasDestaque />
+
+      {/* Novidades */}
+      {!loading &&
+        vitrinesNovidades.map((vitrine) => (
+          <Destaques key={String(vitrine.id_vitrine)} vitrine={vitrine} />
         ))}
     </>
   );
