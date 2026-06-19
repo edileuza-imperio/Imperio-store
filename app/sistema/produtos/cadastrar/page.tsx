@@ -1,6 +1,5 @@
 "use client";
 
-import api from "@/Api/conectar";
 import "../../../../components/styles/sistema/cadastrar-produto.css";
 
 import { useEffect, useMemo, useState } from "react";
@@ -18,6 +17,36 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+
+const API_URL =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://api.universoimperio.com.br/api/v1";
+
+const UPLOAD_URL =
+  process.env.NEXT_PUBLIC_UPLOAD_URL ||
+  "https://api.universoimperio.com.br";
+
+export function imagemFundo(src?: string | null) {
+  if (!src) return "";
+
+  const valor = String(src).trim();
+
+  if (!valor) return "";
+
+  if (
+    valor.startsWith("http://") ||
+    valor.startsWith("https://") ||
+    valor.startsWith("blob:") ||
+    valor.startsWith("data:image")
+  ) {
+    return valor;
+  }
+
+  const base = UPLOAD_URL.replace(/\/+$/, "");
+  const caminho = valor.replace(/^\/+/, "");
+
+  return `${base}/${caminho}`;
+}
 
 interface Categoria {
   id_categoria: number;
@@ -60,7 +89,6 @@ export default function CadastrarProdutoPage() {
 
   useEffect(() => {
     const urls = imagens.map((file) => URL.createObjectURL(file));
-
     setPreviewUrls(urls);
 
     return () => {
@@ -71,19 +99,23 @@ export default function CadastrarProdutoPage() {
   async function carregarDados() {
     try {
       const [categoriasRes, statusRes] = await Promise.all([
-        api.get("/painel/categorias"),
-        api.get("/painel/status"),
+        fetch(`${API_URL}/painel/categorias`, {
+          credentials: "include",
+        }),
+        fetch(`${API_URL}/painel/status`, {
+          credentials: "include",
+        }),
       ]);
 
-      console.log("CATEGORIAS API:", categoriasRes.data);
-      console.log("STATUS API:", statusRes.data);
+      const categoriasJson = await categoriasRes.json();
+      const statusJson = await statusRes.json();
 
-      const categoriasDados = Array.isArray(categoriasRes.data?.dados)
-        ? categoriasRes.data.dados
+      const categoriasDados = Array.isArray(categoriasJson?.dados)
+        ? categoriasJson.dados
         : [];
 
-      const statusDados = Array.isArray(statusRes.data?.dados)
-        ? statusRes.data.dados
+      const statusDados = Array.isArray(statusJson?.dados)
+        ? statusJson.dados
         : [];
 
       setCategorias(categoriasDados);
@@ -99,11 +131,8 @@ export default function CadastrarProdutoPage() {
           status_id: String(statusAtivo.id_status),
         }));
       }
-    } catch (error: any) {
-      console.error("ERRO AO CARREGAR DADOS:", error);
-      console.log("STATUS:", error?.response?.status);
-      console.log("RESPOSTA:", error?.response?.data);
-
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
       alert("Erro ao carregar categorias e status.");
     }
   }
@@ -120,12 +149,7 @@ export default function CadastrarProdutoPage() {
   }
 
   function gerarSKU(nome: string) {
-    const prefixo = nome
-      .trim()
-      .substring(0, 3)
-      .toUpperCase()
-      .replace(/\s/g, "");
-
+    const prefixo = nome.trim().substring(0, 3).toUpperCase().replace(/\s/g, "");
     const numero = Math.floor(100000 + Math.random() * 900000);
 
     return `${prefixo || "PRO"}-${numero}`;
@@ -157,11 +181,7 @@ export default function CadastrarProdutoPage() {
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const arquivos = Array.from(e.target.files || []);
 
-    console.log("ARQUIVOS SELECIONADOS:", arquivos);
-
-    if (arquivos.length === 0) {
-      return;
-    }
+    if (arquivos.length === 0) return;
 
     setImagens((prev) => [...prev, ...arquivos]);
 
@@ -170,14 +190,6 @@ export default function CadastrarProdutoPage() {
 
   function removerImagem(index: number) {
     setImagens((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  function proximaEtapa() {
-    setEtapa((current) => Math.min(current + 1, 3));
-  }
-
-  function etapaAnterior() {
-    setEtapa((current) => Math.max(current - 1, 1));
   }
 
   function validarFormulario() {
@@ -189,12 +201,6 @@ export default function CadastrarProdutoPage() {
 
     if (!form.nome.trim()) {
       alert("Preencha o nome.");
-      setEtapa(2);
-      return false;
-    }
-
-    if (!form.slug.trim()) {
-      alert("Slug inválido.");
       setEtapa(2);
       return false;
     }
@@ -251,27 +257,34 @@ export default function CadastrarProdutoPage() {
       data.append("status_id", form.status_id);
 
       imagens.forEach((arquivo) => {
-        data.append("imagens", arquivo);
+        data.append("imagens[]", arquivo);
       });
 
-      const response = await api.post("/painel/produto", data);
+      const response = await fetch(`${API_URL}/painel/produto`, {
+        method: "POST",
+        body: data,
+        credentials: "include",
+      });
+
+      const resultado = await response.json();
+
+      if (!response.ok) {
+        throw resultado;
+      }
 
       alert(
-        response.data?.dados?.mensagem ||
-        response.data?.mensagem ||
-        "Produto cadastrado com sucesso!"
+        resultado?.dados?.mensagem ||
+          resultado?.mensagem ||
+          "Produto cadastrado com sucesso!"
       );
 
       router.push("/painel/sistema/produtos");
     } catch (error: any) {
-      console.error("ERRO COMPLETO:", error);
-      console.log("RESPOSTA ERRO:", error?.response?.data);
-
-      const resposta = error?.response?.data;
+      console.error("Erro ao cadastrar:", error);
 
       const mensagem =
-        resposta?.dados?.mensagem ||
-        resposta?.mensagem ||
+        error?.dados?.mensagem ||
+        error?.mensagem ||
         "Erro ao cadastrar produto.";
 
       alert(mensagem);
@@ -280,9 +293,7 @@ export default function CadastrarProdutoPage() {
     }
   }
 
-  const progresso = useMemo(() => {
-    return ((etapa - 1) / 2) * 100;
-  }, [etapa]);
+  const progresso = useMemo(() => ((etapa - 1) / 2) * 100, [etapa]);
 
   return (
     <div className="cad-produto">
@@ -317,15 +328,11 @@ export default function CadastrarProdutoPage() {
             <span className={etapa >= 1 ? "cad-produto__step-active" : ""}>
               1
             </span>
-
             <div className="cad-produto__step-line" />
-
             <span className={etapa >= 2 ? "cad-produto__step-active" : ""}>
               2
             </span>
-
             <div className="cad-produto__step-line" />
-
             <span className={etapa >= 3 ? "cad-produto__step-active" : ""}>
               3
             </span>
@@ -378,7 +385,7 @@ export default function CadastrarProdutoPage() {
               <div className="cad-produto__preview-grid">
                 {previewUrls.map((url, index) => (
                   <div key={url} className="cad-produto__preview-card">
-                    <img src={url} alt={`Imagem ${index + 1}`} />
+                    <img src={imagemFundo(url)} alt={`Imagem ${index + 1}`} />
 
                     <button
                       type="button"
@@ -396,7 +403,7 @@ export default function CadastrarProdutoPage() {
               <button
                 type="button"
                 className="cad-produto__primary-button"
-                onClick={proximaEtapa}
+                onClick={() => setEtapa(2)}
               >
                 Próxima etapa
                 <ChevronRight size={18} />
@@ -517,7 +524,7 @@ export default function CadastrarProdutoPage() {
               <button
                 type="button"
                 className="cad-produto__secondary-button"
-                onClick={etapaAnterior}
+                onClick={() => setEtapa(1)}
               >
                 <ChevronLeft size={18} />
                 Voltar
@@ -526,7 +533,7 @@ export default function CadastrarProdutoPage() {
               <button
                 type="button"
                 className="cad-produto__primary-button"
-                onClick={proximaEtapa}
+                onClick={() => setEtapa(3)}
               >
                 Próxima etapa
                 <ChevronRight size={18} />
@@ -564,7 +571,7 @@ export default function CadastrarProdutoPage() {
               <button
                 type="button"
                 className="cad-produto__secondary-button"
-                onClick={etapaAnterior}
+                onClick={() => setEtapa(2)}
               >
                 <ChevronLeft size={18} />
                 Voltar
