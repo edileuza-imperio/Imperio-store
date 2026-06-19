@@ -18,24 +18,33 @@ import {
 
 import "../../../../../components/styles/sistema/vitrine-editar.css";
 
+type Status = {
+  id_status?: number;
+  idStatus?: number;
+  id?: number;
+  nome: string;
+  codigo?: string;
+};
 
-type Vitrine = {
+type Nivel = {
+  id_nivel?: number;
+  idNivel?: number;
+  id?: number;
+  nome: string;
+  codigo?: string;
+};
+
+type VitrineForm = {
   id_vitrine: number;
   nome: string;
   slug: string;
-  titulo?: string | null;
-  subtitulo?: string | null;
-  tipo?: string | null;
+  titulo: string;
+  subtitulo: string;
+  tipo: string;
   status_id: number;
-  nivel_id?: number;
-  ordem?: number;
-  criado_em?: string | null;
-};
-
-type Status = {
-  id_status: number;
-  nome: string;
-  codigo?: string;
+  nivel_id: number;
+  ordem: number;
+  criado_em: string | null;
 };
 
 type Estado = "carregando" | "idle" | "salvando" | "sucesso" | "erro";
@@ -49,6 +58,14 @@ function gerarSlug(texto: string) {
     .replace(/^-+|-+$/g, "");
 }
 
+function getNivelId(nivel?: Nivel | null) {
+  return Number(nivel?.id_nivel ?? nivel?.idNivel ?? nivel?.id ?? 1);
+}
+
+function getStatusId(status?: Status | null) {
+  return Number(status?.id_status ?? status?.idStatus ?? status?.id ?? 1);
+}
+
 export default function EditarVitrinePage() {
   const params = useParams();
   const router = useRouter();
@@ -58,8 +75,9 @@ export default function EditarVitrinePage() {
   const [estado, setEstado] = useState<Estado>("carregando");
   const [mensagem, setMensagem] = useState("");
   const [statusLista, setStatusLista] = useState<Status[]>([]);
+  const [nivelSistema, setNivelSistema] = useState<Nivel | null>(null);
 
-  const [form, setForm] = useState<Vitrine>({
+  const [form, setForm] = useState<VitrineForm>({
     id_vitrine: Number(id),
     nome: "",
     slug: "",
@@ -80,14 +98,42 @@ export default function EditarVitrinePage() {
     async function carregar() {
       try {
         setEstado("carregando");
+        setMensagem("");
 
-        const [vitrineResp, statusResp] = await Promise.all([
+        const [vitrineResp, configResp] = await Promise.all([
           api.get(`/painel/vitrine/${id}`),
-          api.get("/painel/status"),
+          api.get("/painel/configuracoes"),
         ]);
 
         const vitrineDados = vitrineResp.data?.dados ?? vitrineResp.data;
-        const statusDados = statusResp.data?.dados ?? statusResp.data ?? [];
+        const configDados = configResp.data?.dados ?? configResp.data ?? {};
+
+        const niveis: Nivel[] = Array.isArray(configDados.niveis)
+          ? configDados.niveis
+          : [];
+
+        const statusDados: Status[] = Array.isArray(configDados.status)
+          ? configDados.status
+          : [];
+
+        const sistema =
+          niveis.find((nivel) => {
+            const texto = `${nivel.nome || ""} ${nivel.codigo || ""}`.toLowerCase();
+
+            return getNivelId(nivel) === 1 || texto.includes("sistema");
+          }) ?? null;
+
+        const statusAtivo =
+          statusDados.find((status) => {
+            const texto = `${status.nome || ""} ${status.codigo || ""}`.toLowerCase();
+
+            return getStatusId(status) === 1 || texto.includes("ativo");
+          }) ?? null;
+
+        const nivelSistemaId = sistema ? getNivelId(sistema) : 1;
+
+        setNivelSistema(sistema);
+        setStatusLista(statusDados);
 
         setForm({
           id_vitrine: Number(vitrineDados.id_vitrine ?? id),
@@ -96,13 +142,16 @@ export default function EditarVitrinePage() {
           titulo: vitrineDados.titulo ?? "",
           subtitulo: vitrineDados.subtitulo ?? "",
           tipo: vitrineDados.tipo ?? "produto",
-          status_id: Number(vitrineDados.status_id ?? vitrineDados.statusid ?? 1),
-          nivel_id: Number(vitrineDados.nivel_id ?? vitrineDados.nivelid ?? 1),
+          status_id: Number(
+            vitrineDados.status_id ??
+              vitrineDados.statusid ??
+              getStatusId(statusAtivo)
+          ),
+          nivel_id: nivelSistemaId,
           ordem: Number(vitrineDados.ordem ?? 0),
           criado_em: vitrineDados.criado_em ?? vitrineDados.criado ?? null,
         });
 
-        setStatusLista(Array.isArray(statusDados) ? statusDados : []);
         setEstado("idle");
       } catch {
         setMensagem("Não foi possível carregar a vitrine.");
@@ -113,7 +162,7 @@ export default function EditarVitrinePage() {
     if (id) carregar();
   }, [id]);
 
-  function alterar(campo: keyof Vitrine, valor: string | number) {
+  function alterar(campo: keyof VitrineForm, valor: string | number) {
     setForm((atual) => ({
       ...atual,
       [campo]: valor,
@@ -135,6 +184,8 @@ export default function EditarVitrinePage() {
       setEstado("salvando");
       setMensagem("");
 
+      const nivelSistemaId = nivelSistema ? getNivelId(nivelSistema) : 1;
+
       await api.put(`/painel/vitrine/${id}`, {
         nome: form.nome,
         slug: form.slug,
@@ -142,7 +193,7 @@ export default function EditarVitrinePage() {
         subtitulo: form.subtitulo,
         tipo: form.tipo,
         status_id: Number(form.status_id),
-        nivel_id: Number(form.nivel_id ?? 1),
+        nivel_id: nivelSistemaId,
         ordem: Number(form.ordem ?? 0),
         criado_em: form.criado_em,
       });
@@ -173,7 +224,7 @@ export default function EditarVitrinePage() {
   return (
     <main className="vitrineEditPage">
       <section className="editHero card">
-        <div>
+        <div className="heroInfo">
           <span className="label">Vitrine</span>
           <h1>{tituloPagina}</h1>
           <p>Atualize os dados principais da vitrine no painel.</p>
@@ -193,6 +244,13 @@ export default function EditarVitrinePage() {
       )}
 
       <form className="editForm card" onSubmit={salvar}>
+        <div className="formHeader">
+          <div>
+            <span className="label">Informações</span>
+            <h2>Dados da vitrine</h2>
+          </div>
+        </div>
+
         <div className="formGrid">
           <label className="field">
             <span>
@@ -226,7 +284,7 @@ export default function EditarVitrinePage() {
               Título público
             </span>
             <input
-              value={form.titulo ?? ""}
+              value={form.titulo}
               onChange={(e) => alterar("titulo", e.target.value)}
               placeholder="Título que aparece no site"
             />
@@ -238,7 +296,7 @@ export default function EditarVitrinePage() {
               Subtítulo
             </span>
             <input
-              value={form.subtitulo ?? ""}
+              value={form.subtitulo}
               onChange={(e) => alterar("subtitulo", e.target.value)}
               placeholder="Descrição curta da vitrine"
             />
@@ -250,7 +308,7 @@ export default function EditarVitrinePage() {
               Tipo
             </span>
             <select
-              value={form.tipo ?? "produto"}
+              value={form.tipo}
               onChange={(e) => alterar("tipo", e.target.value)}
             >
               <option value="produto">Produto</option>
@@ -271,25 +329,24 @@ export default function EditarVitrinePage() {
               {statusLista.length === 0 && <option value={1}>Ativo</option>}
 
               {statusLista.map((status) => (
-                <option key={status.id_status} value={status.id_status}>
+                <option key={getStatusId(status)} value={getStatusId(status)}>
                   {status.nome}
                 </option>
               ))}
             </select>
           </label>
 
-          <label className="field">
-            <span>
+          <div className="nivelCard">
+            <div className="nivelIcon">
               <FiLayers />
-              Nível
-            </span>
-            <input
-              type="number"
-              value={form.nivel_id ?? 1}
-              onChange={(e) => alterar("nivel_id", Number(e.target.value))}
-              min={1}
-            />
-          </label>
+            </div>
+
+            <div>
+              <span>Nível da vitrine</span>
+              <strong>{nivelSistema?.nome ?? "Sistema"}</strong>
+              <p>Essa vitrine pertence ao painel do sistema.</p>
+            </div>
+          </div>
 
           <label className="field">
             <span>
@@ -298,7 +355,7 @@ export default function EditarVitrinePage() {
             </span>
             <input
               type="number"
-              value={form.ordem ?? 0}
+              value={form.ordem}
               onChange={(e) => alterar("ordem", Number(e.target.value))}
               min={0}
             />

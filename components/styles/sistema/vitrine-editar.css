@@ -30,8 +30,21 @@
   background: rgba(168, 93, 106, 0.09);
 }
 
+.vitrineEditPage .card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(168, 93, 106, 0.07),
+      transparent 52%
+    );
+  pointer-events: none;
+}
+
 .editHero {
-  min-height: 120px;
+  min-height: 124px;
   padding: 18px;
   display: flex;
   align-items: center;
@@ -39,18 +52,27 @@
   gap: 18px;
 }
 
-.editHero h1 {
+.heroInfo,
+.formHeader,
+.formGrid,
+.actions {
   position: relative;
   z-index: 1;
+}
+
+.editHero h1,
+.formHeader h2 {
   margin: 4px 0;
   color: var(--dash-title);
   font-size: clamp(1.35rem, 2.3vw, 2rem);
   font-weight: 950;
 }
 
+.formHeader h2 {
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+}
+
 .editHero p {
-  position: relative;
-  z-index: 1;
   margin: 0;
   color: #9b737b;
   font-size: 13px;
@@ -58,8 +80,6 @@
 }
 
 .label {
-  position: relative;
-  z-index: 1;
   display: block;
   color: var(--dash-muted);
   font-size: 11px;
@@ -71,8 +91,6 @@
 .backButton,
 .cancelButton,
 .saveButton {
-  position: relative;
-  z-index: 1;
   height: 42px;
   border-radius: 14px;
   padding: 0 14px;
@@ -106,9 +124,11 @@
   padding: 18px;
 }
 
+.formHeader {
+  margin-bottom: 16px;
+}
+
 .formGrid {
-  position: relative;
-  z-index: 1;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 13px;
@@ -150,9 +170,64 @@
   box-shadow: 0 0 0 4px rgba(168, 93, 106, 0.11);
 }
 
+.nivelCard {
+  min-height: 86px;
+  border-radius: 18px;
+  padding: 14px;
+  border: 1px solid #f0d4da;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 241, 244, 0.95),
+      rgba(255, 255, 255, 0.82)
+    );
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nivelIcon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  color: #ffffff;
+  background:
+    linear-gradient(
+      135deg,
+      var(--dash-primary),
+      var(--dash-primary-light)
+    );
+  box-shadow: 0 8px 18px rgba(168, 93, 106, 0.2);
+}
+
+.nivelCard span {
+  display: block;
+  color: var(--dash-muted);
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.nivelCard strong {
+  display: block;
+  margin-top: 3px;
+  color: var(--dash-title);
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.nivelCard p {
+  margin: 3px 0 0;
+  color: #9b737b;
+  font-size: 12px;
+  font-weight: 750;
+}
+
 .actions {
-  position: relative;
-  z-index: 1;
   margin-top: 18px;
   display: flex;
   justify-content: flex-end;
