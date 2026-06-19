@@ -99,7 +99,6 @@ export default function CadastrarProdutoPage() {
     } catch (error: any) {
       console.error("Erro ao carregar dados:", error);
       console.log("Resposta:", error?.response?.data);
-
       alert("Erro ao carregar categorias e status.");
     }
   }
@@ -151,14 +150,17 @@ export default function CadastrarProdutoPage() {
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const arquivos = e.target.files;
+    const arquivos = Array.from(e.target.files || []);
 
-    if (!arquivos) {
-      setImagens([]);
+    console.log("ARQUIVOS SELECIONADOS:", arquivos);
+
+    if (arquivos.length === 0) {
       return;
     }
 
-    setImagens(Array.from(arquivos));
+    setImagens((prev) => [...prev, ...arquivos]);
+
+    e.target.value = "";
   }
 
   function removerImagem(index: number) {
@@ -174,7 +176,7 @@ export default function CadastrarProdutoPage() {
   }
 
   function validarFormulario() {
-    if (imagens.length === 0) {
+    if (imagens.length < 1) {
       alert("Envie pelo menos uma imagem.");
       setEtapa(1);
       return false;
@@ -362,7 +364,7 @@ export default function CadastrarProdutoPage() {
                 id="imagens"
                 type="file"
                 multiple
-                accept="image/*"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
                 onChange={handleFileChange}
                 className="cad-produto__upload-input"
               />
@@ -400,7 +402,6 @@ export default function CadastrarProdutoPage() {
                 type="button"
                 className="cad-produto__primary-button"
                 onClick={proximaEtapa}
-                disabled={imagens.length === 0}
               >
                 Próxima etapa
                 <ChevronRight size={18} />
