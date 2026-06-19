@@ -13,7 +13,7 @@ import {
   FiType,
   FiXCircle,
 } from "react-icons/fi";
-import "../../../../components/styles/sistema/campanha-form.css";
+import "../../../../components/styles/sistema/editar.css";
 
 import { imagemFundo } from "@/components/Bibioteca/imagem";
 
