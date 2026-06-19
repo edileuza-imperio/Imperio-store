@@ -16,7 +16,7 @@ import {
   FiXCircle,
 } from "react-icons/fi";
 
-import "../../../../../../components/styles/sistema/vitrine-editar.css";
+import "../../../../../components/styles/sistema/vitrine-editar.css";
 
 
 type Vitrine = {
