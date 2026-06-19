@@ -60,6 +60,7 @@ export default function CadastrarProdutoPage() {
 
   useEffect(() => {
     const urls = imagens.map((file) => URL.createObjectURL(file));
+
     setPreviewUrls(urls);
 
     return () => {
@@ -95,9 +96,11 @@ export default function CadastrarProdutoPage() {
           status_id: String(statusAtivo.id_status),
         }));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao carregar dados:", error);
-      alert("Erro ao carregar categorias/status.");
+      console.log("Resposta:", error?.response?.data);
+
+      alert("Erro ao carregar categorias e status.");
     }
   }
 
@@ -177,20 +180,43 @@ export default function CadastrarProdutoPage() {
       return false;
     }
 
-    if (
-      !form.nome ||
-      !form.slug ||
-      !form.preco ||
-      !form.marca ||
-      !form.categoria_id ||
-      !form.status_id
-    ) {
-      alert("Preencha todos os dados principais.");
+    if (!form.nome.trim()) {
+      alert("Preencha o nome.");
       setEtapa(2);
       return false;
     }
 
-    if (!form.descricao) {
+    if (!form.slug.trim()) {
+      alert("Slug inválido.");
+      setEtapa(2);
+      return false;
+    }
+
+    if (!form.preco || Number(form.preco) <= 0) {
+      alert("Preencha um preço válido.");
+      setEtapa(2);
+      return false;
+    }
+
+    if (!form.marca.trim()) {
+      alert("Preencha a marca.");
+      setEtapa(2);
+      return false;
+    }
+
+    if (!form.categoria_id) {
+      alert("Selecione uma categoria.");
+      setEtapa(2);
+      return false;
+    }
+
+    if (!form.status_id) {
+      alert("Selecione um status.");
+      setEtapa(2);
+      return false;
+    }
+
+    if (!form.descricao.trim()) {
       alert("Preencha a descrição.");
       setEtapa(3);
       return false;
@@ -207,13 +233,13 @@ export default function CadastrarProdutoPage() {
 
       const data = new FormData();
 
-      data.append("nome", form.nome);
-      data.append("slug", form.slug);
-      data.append("descricao", form.descricao);
-      data.append("preco", form.preco);
+      data.append("nome", form.nome.trim());
+      data.append("slug", form.slug.trim());
+      data.append("descricao", form.descricao.trim());
+      data.append("preco", String(form.preco).replace(",", "."));
       data.append("quantidade", form.quantidade || "0");
-      data.append("sku", form.sku);
-      data.append("marca", form.marca);
+      data.append("sku", form.sku.trim());
+      data.append("marca", form.marca.trim());
       data.append("categoria_id", form.categoria_id);
       data.append("status_id", form.status_id);
 
@@ -221,16 +247,34 @@ export default function CadastrarProdutoPage() {
         data.append("imagens[]", arquivo);
       });
 
-      await api.post("/painel/produto", data);
+      console.group("ENVIANDO PRODUTO");
+      for (const item of data.entries()) {
+        console.log(item[0], item[1]);
+      }
+      console.groupEnd();
 
-      alert("Produto cadastrado com sucesso!");
+      const response = await api.post("/painel/produto", data);
+
+      console.log("RESPOSTA API:", response.data);
+
+      alert(
+        response.data?.dados?.mensagem ||
+          response.data?.mensagem ||
+          "Produto cadastrado com sucesso!"
+      );
+
       router.push("/painel/sistema/produtos");
     } catch (error: any) {
-      console.error("Erro ao cadastrar produto:", error);
+      console.error("ERRO COMPLETO:", error);
+      console.log("STATUS:", error?.response?.status);
+      console.log("RESPOSTA ERRO:", error?.response?.data);
+
+      const resposta = error?.response?.data;
 
       const mensagem =
-        error?.response?.data?.mensagem ||
-        error?.response?.data?.dados?.mensagem ||
+        resposta?.dados?.mensagem ||
+        resposta?.mensagem ||
+        resposta?.dados?.dados?.mensagem ||
         "Erro ao cadastrar produto.";
 
       alert(mensagem);
