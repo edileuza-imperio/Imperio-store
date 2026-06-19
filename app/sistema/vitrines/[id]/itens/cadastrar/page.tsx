@@ -1,9 +1,8 @@
 "use client";
 
-import api from "@/Api/conectar";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect } from "react";
 import {
   FiArrowLeft,
   FiCheckCircle,
@@ -17,34 +16,11 @@ import {
 } from "react-icons/fi";
 
 import "../../../../../../components/styles/sistema/vitrine-detalhe.css";
+import { getCampanhaId, getCampanhaTitulo, getProdutoId, getProdutoTitulo, getStatusId, TipoItem } from "../../../services/vitrineItemService";
+import { useVitrineItens } from "../../../services/Hooks/useVitrineItens";
 
-type Campanha = {
-  id_campanha?: number;
-  idCampanha?: number;
-  id?: number;
-  titulo?: string;
-  nome?: string;
-  slug?: string;
-  descricao?: string | null;
-  banner?: string | null;
-  status_id?: number;
-  statusid?: number;
-};
 
-type Produto = {
-  id_produto?: number;
-  idProduto?: number;
-  id?: number;
-  nome?: string;
-  titulo?: string;
-  slug?: string;
-  descricao?: string | null;
-  imagem?: string | null;
-  status_id?: number;
-  statusid?: number;
-};
 
-type TipoItem = "produto" | "campanha";
 
 export default function CadastrarItemVitrinePage() {
   const params = useParams();
@@ -54,209 +30,36 @@ export default function CadastrarItemVitrinePage() {
   const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
   const tipo = (searchParams.get("tipo") || "campanha") as TipoItem;
 
-  const ehCampanha = tipo === "campanha";
-  const ehProduto = tipo === "produto";
+  const {
+    vitrineId,
+    ehCampanha,
+    ehProduto,
 
-  const [campanhas, setCampanhas] = useState<Campanha[]>([]);
-  const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [selecionadas, setSelecionadas] = useState<number[]>([]);
-  const [busca, setBusca] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [salvando, setSalvando] = useState(false);
+    campanhasFiltradas,
+    produtosFiltrados,
+    totalEncontrados,
+
+    selecionadas,
+    busca,
+    loading,
+    salvando,
+
+    setBusca,
+    carregarItens,
+    atualizarLista,
+    alternarSelecao,
+    salvarItens,
+  } = useVitrineItens({
+    id,
+    tipo,
+    onSucesso: () => {
+      router.push(`/sistema/vitrines/${id}`);
+    },
+  });
 
   useEffect(() => {
-    setSelecionadas([]);
-    setBusca("");
-
-    if (ehCampanha) {
-      carregarCampanhas();
-      return;
-    }
-
-    if (ehProduto) {
-      carregarProdutos();
-      return;
-    }
-
-    setLoading(false);
+    carregarItens();
   }, [tipo]);
-
-  async function carregarCampanhas() {
-    try {
-      setLoading(true);
-
-      const response = await api.get("/campanhas");
-      const data = response.data;
-
-      const lista = Array.isArray(data?.dados?.campanhas)
-        ? data.dados.campanhas
-        : Array.isArray(data?.campanhas)
-          ? data.campanhas
-          : Array.isArray(data?.dados)
-            ? data.dados
-            : Array.isArray(data)
-              ? data
-              : [];
-
-      setCampanhas(lista);
-    } catch (error) {
-      console.error("Erro ao carregar campanhas:", error);
-      setCampanhas([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function carregarProdutos() {
-    try {
-      setLoading(true);
-
-      const response = await api.get("/produtos");
-      const data = response.data;
-
-      const lista = Array.isArray(data?.dados?.produtos)
-        ? data.dados.produtos
-        : Array.isArray(data?.produtos)
-          ? data.produtos
-          : Array.isArray(data?.dados)
-            ? data.dados
-            : Array.isArray(data)
-              ? data
-              : [];
-
-      setProdutos(lista);
-    } catch (error) {
-      console.error("Erro ao carregar produtos:", error);
-      setProdutos([]);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function atualizarLista() {
-    if (ehCampanha) {
-      carregarCampanhas();
-      return;
-    }
-
-    carregarProdutos();
-  }
-
-  function getCampanhaId(campanha: Campanha) {
-    return Number(campanha.id_campanha ?? campanha.idCampanha ?? campanha.id ?? 0);
-  }
-
-  function getProdutoId(produto: Produto) {
-    return Number(produto.id_produto ?? produto.idProduto ?? produto.id ?? 0);
-  }
-
-  function getCampanhaTitulo(campanha: Campanha) {
-    return campanha.titulo || campanha.nome || "Campanha sem título";
-  }
-
-  function getProdutoTitulo(produto: Produto) {
-    return produto.nome || produto.titulo || "Produto sem nome";
-  }
-
-  function getStatusId(item: Campanha | Produto) {
-    return Number(item.status_id ?? item.statusid ?? 1);
-  }
-
-  const campanhasFiltradas = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-
-    if (!termo) return campanhas;
-
-    return campanhas.filter((campanha) => {
-      const texto = `
-        ${campanha.titulo || ""}
-        ${campanha.nome || ""}
-        ${campanha.slug || ""}
-        ${campanha.descricao || ""}
-      `.toLowerCase();
-
-      return texto.includes(termo);
-    });
-  }, [campanhas, busca]);
-
-  const produtosFiltrados = useMemo(() => {
-    const termo = busca.trim().toLowerCase();
-
-    if (!termo) return produtos;
-
-    return produtos.filter((produto) => {
-      const texto = `
-        ${produto.nome || ""}
-        ${produto.titulo || ""}
-        ${produto.slug || ""}
-        ${produto.descricao || ""}
-      `.toLowerCase();
-
-      return texto.includes(termo);
-    });
-  }, [produtos, busca]);
-
-  function alternarSelecao(idItem: number) {
-    if (!idItem) return;
-
-    setSelecionadas((atual) => {
-      if (atual.includes(idItem)) {
-        return atual.filter((item) => item !== idItem);
-      }
-
-      return [...atual, idItem];
-    });
-  }
-
-  async function salvarItens() {
-    if (!id) return;
-
-    if (selecionadas.length === 0) {
-      alert(
-        ehCampanha
-          ? "Selecione pelo menos uma campanha."
-          : "Selecione pelo menos um produto."
-      );
-      return;
-    }
-
-    try {
-      setSalvando(true);
-
-      for (const itemId of selecionadas) {
-        await api.post(`/vitrine/${id}/item`, {
-          produto_id: ehProduto ? itemId : null,
-          campanha_id: ehCampanha ? itemId : null,
-          categoria_id: null,
-          status_id: 1,
-          nivel_id: 1,
-        });
-      }
-
-      alert(
-        ehCampanha
-          ? "Campanhas adicionadas com sucesso."
-          : "Produtos adicionados com sucesso."
-      );
-
-      router.push(`/sistema/vitrines/${id}`);
-    } catch (error: any) {
-      console.error("Erro ao adicionar itens:", error);
-
-      const mensagem =
-        error?.response?.data?.mensagem ||
-        error?.response?.data?.erro ||
-        "Erro ao adicionar itens na vitrine.";
-
-      alert(mensagem);
-    } finally {
-      setSalvando(false);
-    }
-  }
-
-  const totalEncontrados = ehCampanha
-    ? campanhasFiltradas.length
-    : produtosFiltrados.length;
 
   if (!ehCampanha && !ehProduto) {
     return (
@@ -267,7 +70,7 @@ export default function CadastrarItemVitrinePage() {
           <span>Use ?tipo=campanha ou ?tipo=produto na URL.</span>
 
           <Link
-            href={`/sistema/vitrines/${id}`}
+            href={`/sistema/vitrines/${vitrineId}`}
             className="vitrine-detalhe-empty-button"
           >
             <FiArrowLeft />
@@ -283,7 +86,7 @@ export default function CadastrarItemVitrinePage() {
       <header className="vitrine-detalhe-header">
         <div>
           <Link
-            href={`/sistema/vitrines/${id}`}
+            href={`/sistema/vitrines/${vitrineId}`}
             className="vitrine-detalhe-back"
           >
             <FiArrowLeft />
@@ -512,10 +315,14 @@ export default function CadastrarItemVitrinePage() {
           onClick={salvarItens}
           className="vitrine-detalhe-floating vitrine-detalhe-floating-add"
           aria-label={
-            ehCampanha ? "Adicionar campanhas selecionadas" : "Adicionar produtos selecionados"
+            ehCampanha
+              ? "Adicionar campanhas selecionadas"
+              : "Adicionar produtos selecionados"
           }
           title={
-            ehCampanha ? "Adicionar campanhas selecionadas" : "Adicionar produtos selecionados"
+            ehCampanha
+              ? "Adicionar campanhas selecionadas"
+              : "Adicionar produtos selecionados"
           }
           disabled={salvando || selecionadas.length === 0}
         >
