@@ -25,12 +25,22 @@ export type Produto = {
   descricao?: string | null;
   imagem?: string | null;
   miniatura?: string | null;
+  preco?: string | number;
+  preco_promocional?: string | number | null;
+  sku?: string;
+  modelo?: string | null;
+  marca?: string | null;
+  categoria_id?: number;
   status_id?: number;
   statusid?: number;
+  quantidade?: number;
+  reservado?: number;
+  disponivel?: number;
 };
 
 function normalizarLista(data: any, chave: string) {
   const possiveis = [
+    data?.dados?.dados,
     data?.dados?.[chave],
     data?.dados?.[chave]?.dados,
     data?.dados?.lista,
@@ -56,28 +66,20 @@ function normalizarLista(data: any, chave: string) {
 
 export async function buscarCampanhas(): Promise<Campanha[]> {
   const response = await api.get("/painel/campanhas");
+
   return normalizarLista(response.data, "campanhas");
 }
 
 export async function buscarProdutos(): Promise<Produto[]> {
-  try {
-    const response = await api.get("/painel/produtos");
-    const produtos = normalizarLista(response.data, "produtos");
+  const response = await api.get("/painel/produtos");
 
-    if (produtos.length > 0) {
-      return produtos;
-    }
-  } catch (error) {
-    console.warn("Erro ao buscar /painel/produtos", error);
-  }
+  console.log("RESPOSTA PRODUTOS:", response.data);
 
-  try {
-    const response = await api.get("/produtos");
-    return normalizarLista(response.data, "produtos");
-  } catch (error) {
-    console.error("Erro ao buscar produtos", error);
-    return [];
-  }
+  const produtos = normalizarLista(response.data, "produtos");
+
+  console.log("PRODUTOS NORMALIZADOS:", produtos);
+
+  return produtos;
 }
 
 export async function adicionarItemNaVitrine(params: {
@@ -87,15 +89,13 @@ export async function adicionarItemNaVitrine(params: {
 }) {
   const { vitrineId, itemId, tipo } = params;
 
-  const payload = {
+  return api.post(`/painel/vitrine/${vitrineId}/item`, {
     produto_id: tipo === "produto" ? itemId : null,
     campanha_id: tipo === "campanha" ? itemId : null,
     categoria_id: null,
     status_id: 1,
     nivel_id: 1,
-  };
-
-  return api.post(`/painel/vitrine/${vitrineId}/item`, payload);
+  });
 }
 
 export async function adicionarItensNaVitrine(params: {
@@ -117,11 +117,21 @@ export async function adicionarItensNaVitrine(params: {
 }
 
 export function getCampanhaId(campanha: Campanha) {
-  return Number(campanha.id_campanha ?? campanha.idCampanha ?? campanha.id ?? 0);
+  return Number(
+    campanha.id_campanha ??
+      campanha.idCampanha ??
+      campanha.id ??
+      0
+  );
 }
 
 export function getProdutoId(produto: Produto) {
-  return Number(produto.id_produto ?? produto.idProduto ?? produto.id ?? 0);
+  return Number(
+    produto.id_produto ??
+      produto.idProduto ??
+      produto.id ??
+      0
+  );
 }
 
 export function getCampanhaTitulo(campanha: Campanha) {
@@ -133,13 +143,19 @@ export function getProdutoTitulo(produto: Produto) {
 }
 
 export function getStatusId(item: Campanha | Produto) {
-  return Number(item.status_id ?? item.statusid ?? 1);
+  return Number(
+    item.status_id ??
+      item.statusid ??
+      1
+  );
 }
 
 export function filtrarCampanhas(campanhas: Campanha[], busca: string) {
   const termo = busca.trim().toLowerCase();
 
-  if (!termo) return campanhas;
+  if (!termo) {
+    return campanhas;
+  }
 
   return campanhas.filter((campanha) => {
     const texto = `
@@ -156,7 +172,9 @@ export function filtrarCampanhas(campanhas: Campanha[], busca: string) {
 export function filtrarProdutos(produtos: Produto[], busca: string) {
   const termo = busca.trim().toLowerCase();
 
-  if (!termo) return produtos;
+  if (!termo) {
+    return produtos;
+  }
 
   return produtos.filter((produto) => {
     const texto = `
@@ -164,6 +182,8 @@ export function filtrarProdutos(produtos: Produto[], busca: string) {
       ${produto.titulo || ""}
       ${produto.slug || ""}
       ${produto.descricao || ""}
+      ${produto.sku || ""}
+      ${produto.marca || ""}
     `.toLowerCase();
 
     return texto.includes(termo);

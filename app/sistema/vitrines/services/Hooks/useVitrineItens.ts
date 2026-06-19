@@ -1,6 +1,15 @@
 import { useMemo, useState } from "react";
-import { adicionarItensNaVitrine, buscarCampanhas, buscarProdutos, Campanha, filtrarCampanhas, filtrarProdutos, Produto, TipoItem } from "../vitrineItemService";
 
+import {
+  adicionarItensNaVitrine,
+  buscarCampanhas,
+  buscarProdutos,
+  Campanha,
+  filtrarCampanhas,
+  filtrarProdutos,
+  Produto,
+  TipoItem,
+} from "../vitrineItemService";
 
 type Params = {
   id?: string | string[];
@@ -59,6 +68,8 @@ export function useVitrineItens({ id, tipo, onSucesso }: Params) {
 
       const lista = await buscarProdutos();
 
+      console.log("LISTA FINAL DE PRODUTOS:", lista);
+
       setProdutos(lista);
     } catch (error) {
       console.error("Erro ao carregar produtos:", error);
@@ -85,6 +96,8 @@ export function useVitrineItens({ id, tipo, onSucesso }: Params) {
   }
 
   async function atualizarLista() {
+    limparSelecaoEBusca();
+
     if (ehCampanha) {
       await carregarCampanhas();
       return;
@@ -92,7 +105,10 @@ export function useVitrineItens({ id, tipo, onSucesso }: Params) {
 
     if (ehProduto) {
       await carregarProdutos();
+      return;
     }
+
+    setLoading(false);
   }
 
   function alternarSelecao(idItem: number) {
