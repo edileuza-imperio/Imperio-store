@@ -251,29 +251,20 @@ export default function CadastrarProdutoPage() {
       data.append("status_id", form.status_id);
 
       imagens.forEach((arquivo) => {
-        data.append("imagens[]", arquivo);
+        data.append("imagens", arquivo);
       });
-
-      console.group("ENVIANDO PRODUTO");
-      for (const item of data.entries()) {
-        console.log(item[0], item[1]);
-      }
-      console.groupEnd();
 
       const response = await api.post("/painel/produto", data);
 
-      console.log("RESPOSTA API:", response.data);
-
       alert(
         response.data?.dados?.mensagem ||
-          response.data?.mensagem ||
-          "Produto cadastrado com sucesso!"
+        response.data?.mensagem ||
+        "Produto cadastrado com sucesso!"
       );
 
       router.push("/painel/sistema/produtos");
     } catch (error: any) {
       console.error("ERRO COMPLETO:", error);
-      console.log("STATUS:", error?.response?.status);
       console.log("RESPOSTA ERRO:", error?.response?.data);
 
       const resposta = error?.response?.data;
@@ -281,7 +272,6 @@ export default function CadastrarProdutoPage() {
       const mensagem =
         resposta?.dados?.mensagem ||
         resposta?.mensagem ||
-        resposta?.dados?.dados?.mensagem ||
         "Erro ao cadastrar produto.";
 
       alert(mensagem);
