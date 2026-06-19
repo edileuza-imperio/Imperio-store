@@ -1,7 +1,7 @@
 "use client";
 
 import api from "@/Api/conectar";
-import "../../../../../../components/styles/sistema/cadastrar-produto.css";
+import "../../../../components/styles/sistema/cadastrar-produto.css";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
