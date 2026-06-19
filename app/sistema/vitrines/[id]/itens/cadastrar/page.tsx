@@ -16,11 +16,17 @@ import {
 } from "react-icons/fi";
 
 import "../../../../../../components/styles/sistema/vitrine-detalhe.css";
-import { getCampanhaId, getCampanhaTitulo, getProdutoId, getProdutoTitulo, getStatusId, TipoItem } from "../../../services/vitrineItemService";
+
+import {
+  getCampanhaId,
+  getCampanhaTitulo,
+  getProdutoId,
+  getProdutoTitulo,
+  getStatusId,
+  TipoItem,
+} from "../../../services/vitrineItemService";
+
 import { useVitrineItens } from "../../../services/Hooks/useVitrineItens";
-
-
-
 
 export default function CadastrarItemVitrinePage() {
   const params = useParams();
@@ -28,22 +34,24 @@ export default function CadastrarItemVitrinePage() {
   const searchParams = useSearchParams();
 
   const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
-  const tipo = (searchParams.get("tipo") || "campanha") as TipoItem;
+  const tipoParam = searchParams.get("tipo");
+
+  const tipo: TipoItem =
+    tipoParam === "produto" || tipoParam === "campanha"
+      ? tipoParam
+      : "produto";
 
   const {
     vitrineId,
     ehCampanha,
     ehProduto,
-
     campanhasFiltradas,
     produtosFiltrados,
     totalEncontrados,
-
     selecionadas,
     busca,
     loading,
     salvando,
-
     setBusca,
     carregarItens,
     atualizarLista,
@@ -53,13 +61,15 @@ export default function CadastrarItemVitrinePage() {
     id,
     tipo,
     onSucesso: () => {
-      router.push(`/sistema/vitrines/${id}`);
+      router.push(`/sistema/vitrines/${vitrineId}`);
     },
   });
 
   useEffect(() => {
+    if (!id) return;
+
     carregarItens();
-  }, [tipo]);
+  }, [id, tipo]);
 
   if (!ehCampanha && !ehProduto) {
     return (
@@ -314,16 +324,6 @@ export default function CadastrarItemVitrinePage() {
           type="button"
           onClick={salvarItens}
           className="vitrine-detalhe-floating vitrine-detalhe-floating-add"
-          aria-label={
-            ehCampanha
-              ? "Adicionar campanhas selecionadas"
-              : "Adicionar produtos selecionados"
-          }
-          title={
-            ehCampanha
-              ? "Adicionar campanhas selecionadas"
-              : "Adicionar produtos selecionados"
-          }
           disabled={salvando || selecionadas.length === 0}
         >
           <FiSave />
