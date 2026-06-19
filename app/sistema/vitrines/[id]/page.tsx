@@ -169,13 +169,8 @@ export default function VitrineDetalhePage() {
     return `${base}?tipo=produto`;
   }, [vitrine, ehVitrineDeCampanhas]);
 
-  const textoBotaoAdicionar = ehVitrineDeCampanhas
-    ? "Selecionar campanhas"
-    : "Selecionar produtos";
-
-  const ariaBotaoAdicionar = ehVitrineDeCampanhas
-    ? "Selecionar campanhas"
-    : "Selecionar produtos";
+  const textoItens = ehVitrineDeCampanhas ? "campanhas" : "produtos";
+  const textoItemSingular = ehVitrineDeCampanhas ? "campanha" : "produto";
 
   const resumo = useMemo(() => {
     return {
@@ -235,7 +230,7 @@ export default function VitrineDetalhePage() {
     if (item.produto_id) return "Produto";
     if (item.campanha_id) return "Campanha";
     if (item.categoria_id) return "Categoria";
-    return "Personalizado";
+    return "Item";
   }
 
   function selecionarItem(idItem: number) {
@@ -306,7 +301,10 @@ export default function VitrineDetalhePage() {
   if (loading) {
     return (
       <main className="vitrine-detalhe-container">
-        <p className="vitrine-detalhe-info">Carregando vitrine...</p>
+        <div className="vitrine-detalhe-loading">
+          <span />
+          <p>Carregando vitrine...</p>
+        </div>
       </main>
     );
   }
@@ -330,34 +328,76 @@ export default function VitrineDetalhePage() {
 
   return (
     <main className="vitrine-detalhe-container">
-      <header className="vitrine-detalhe-header">
-        <div>
+      <header className="vitrine-detalhe-hero">
+        <div className="vitrine-detalhe-hero-content">
           <Link href="/sistema/vitrines" className="vitrine-detalhe-back">
             <FiArrowLeft />
             Voltar para vitrines
           </Link>
 
-          <h1>
-            <FiGrid />
-            {vitrine.nome}
-          </h1>
+          <div className="vitrine-detalhe-title-row">
+            <div className="vitrine-detalhe-hero-icon">
+              <FiGrid />
+            </div>
 
-          <p>
-            {ehVitrineDeCampanhas
-              ? "Gerencie as campanhas exibidas nesta vitrine."
-              : "Gerencie os produtos exibidos nesta vitrine."}
-          </p>
+            <div>
+              <span className="vitrine-detalhe-label">Vitrine</span>
+
+              <h1>{vitrine.titulo || vitrine.nome}</h1>
+
+              <p>
+                {vitrine.subtitulo ||
+                  `Organize e destaque seus ${textoItens} no site.`}
+              </p>
+            </div>
+          </div>
         </div>
 
-        <button
-          type="button"
-          onClick={carregarTudo}
-          className="vitrine-detalhe-refresh"
-        >
-          <FiRefreshCw />
-          Atualizar
-        </button>
+        <div className="vitrine-detalhe-hero-actions">
+          <button
+            type="button"
+            onClick={carregarTudo}
+            className="vitrine-detalhe-action-secondary"
+          >
+            <FiRefreshCw />
+            Atualizar
+          </button>
+
+          <Link
+            href={`/sistema/vitrines/${vitrine.id_vitrine}/editar`}
+            className="vitrine-detalhe-action-primary"
+          >
+            <FiEdit />
+            Editar vitrine
+          </Link>
+        </div>
       </header>
+
+      <section className="vitrine-detalhe-resumo-grid">
+        <div className="vitrine-detalhe-resumo-card">
+          <span>Total de {textoItens}</span>
+          <strong>{resumo.total}</strong>
+          <small>Cadastrados na vitrine</small>
+        </div>
+
+        <div className="vitrine-detalhe-resumo-card">
+          <span>Ativos</span>
+          <strong>{resumo.ativos}</strong>
+          <small>Aparecendo no site</small>
+        </div>
+
+        <div className="vitrine-detalhe-resumo-card">
+          <span>Inativos</span>
+          <strong>{resumo.inativos}</strong>
+          <small>Ocultos da vitrine</small>
+        </div>
+
+        <div className="vitrine-detalhe-resumo-card">
+          <span>Tipo</span>
+          <strong>{vitrine.tipo || "Produto"}</strong>
+          <small>Formato da vitrine</small>
+        </div>
+      </section>
 
       <section className="vitrine-detalhe-section-title">
         <div>
@@ -367,27 +407,15 @@ export default function VitrineDetalhePage() {
           </h2>
 
           <p>
-            {itens.length} {ehVitrineDeCampanhas ? "campanhas" : "produtos"}{" "}
-            cadastrados • Página {paginaAtual} de {totalPaginas}
+            {resumo.total} {textoItens} cadastrados • Página {paginaAtual} de{" "}
+            {totalPaginas}
           </p>
         </div>
 
-        {itens.length > itensPorPagina && (
-          <div className="vitrine-detalhe-page-select">
-            <span>Página</span>
-
-            <select
-              value={paginaAtual}
-              onChange={(e) => mudarPagina(Number(e.target.value))}
-            >
-              {Array.from({ length: totalPaginas }, (_, index) => (
-                <option key={index + 1} value={index + 1}>
-                  {index + 1} de {totalPaginas}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+        <Link href={linkAdicionarItem} className="vitrine-detalhe-add-inline">
+          <FiPlus />
+          Adicionar {textoItemSingular}
+        </Link>
       </section>
 
       {itemSelecionado && (
@@ -398,10 +426,14 @@ export default function VitrineDetalhePage() {
       )}
 
       {loadingItens ? (
-        <p className="vitrine-detalhe-info">Carregando itens...</p>
+        <div className="vitrine-detalhe-loading vitrine-detalhe-loading-small">
+          <span />
+          <p>Carregando itens...</p>
+        </div>
       ) : itens.length === 0 ? (
         <div className="vitrine-detalhe-empty">
           <FiPackage />
+
           <strong>
             {ehVitrineDeCampanhas
               ? "Nenhuma campanha adicionada"
@@ -416,7 +448,7 @@ export default function VitrineDetalhePage() {
 
           <Link href={linkAdicionarItem} className="vitrine-detalhe-empty-button">
             <FiPlus />
-            {textoBotaoAdicionar}
+            Adicionar {textoItemSingular}
           </Link>
         </div>
       ) : (
@@ -434,18 +466,6 @@ export default function VitrineDetalhePage() {
                   }`}
                   onClick={() => selecionarItem(item.id_vitrine_item)}
                 >
-                  <label
-                    className="vitrine-detalhe-checkbox"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selecionado}
-                      onChange={() => selecionarItem(item.id_vitrine_item)}
-                    />
-                    <span />
-                  </label>
-
                   <div className="vitrine-detalhe-card-top">
                     <div className="vitrine-detalhe-card-icon">
                       <FiPackage />
@@ -470,30 +490,13 @@ export default function VitrineDetalhePage() {
 
                     <p>
                       {item.subtitulo_personalizado ||
-                        "Sem descrição personalizada para este item."}
+                        `Sem descrição personalizada para este ${textoItemSingular}.`}
                     </p>
                   </div>
 
-                  <div className="vitrine-detalhe-meta">
-                    <div>
-                      <span>ID</span>
-                      <strong>#{item.id_vitrine_item}</strong>
-                    </div>
-
-                    <div>
-                      <span>Produto</span>
-                      <strong>{item.produto_id ?? "—"}</strong>
-                    </div>
-
-                    <div>
-                      <span>Campanha</span>
-                      <strong>{item.campanha_id ?? "—"}</strong>
-                    </div>
-
-                    <div>
-                      <span>Categoria</span>
-                      <strong>{item.categoria_id ?? "—"}</strong>
-                    </div>
+                  <div className="vitrine-detalhe-clean-meta">
+                    <span>ID da vitrine</span>
+                    <strong>#{item.id_vitrine_item}</strong>
                   </div>
                 </article>
               );
@@ -596,33 +599,28 @@ export default function VitrineDetalhePage() {
             </div>
 
             <div>
-              <span>Ordem</span>
-              <strong>{vitrine.ordem ?? "—"}</strong>
-            </div>
-
-            <div>
-              <span>Nível</span>
-              <strong>{vitrine.nivel_id ?? "—"}</strong>
-            </div>
-
-            <div>
-              <span>Total de itens</span>
+              <span>Total</span>
               <strong>{resumo.total}</strong>
             </div>
 
             <div>
-              <span>Itens ativos</span>
+              <span>Ativos</span>
               <strong>{resumo.ativos}</strong>
             </div>
 
             <div>
-              <span>Itens inativos</span>
+              <span>Inativos</span>
               <strong>{resumo.inativos}</strong>
             </div>
 
             <div>
               <span>Criada em</span>
               <strong>{formatarData(vitrine.criado_em)}</strong>
+            </div>
+
+            <div>
+              <span>Atualizada em</span>
+              <strong>{formatarData(vitrine.atualizado_em)}</strong>
             </div>
           </div>
         </div>
@@ -669,8 +667,8 @@ export default function VitrineDetalhePage() {
         <Link
           href={linkAdicionarItem}
           className="vitrine-detalhe-floating vitrine-detalhe-floating-add"
-          aria-label={ariaBotaoAdicionar}
-          title={ariaBotaoAdicionar}
+          aria-label={`Adicionar ${textoItemSingular}`}
+          title={`Adicionar ${textoItemSingular}`}
         >
           <FiPlus />
         </Link>
