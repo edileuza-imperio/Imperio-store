@@ -1,7 +1,7 @@
 "use client";
 
 import api from "@/Api/conectar";
-import styles from "./CadastrarProduto.module.css";
+import "../../../../../../components/styles/sistema/cadastrar-produto.css";
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -16,7 +16,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Sparkles,
-  CheckCircle2,
   X,
 } from "lucide-react";
 
@@ -59,77 +58,44 @@ export default function CadastrarProdutoPage() {
   }, []);
 
   useEffect(() => {
-    const urls = imagens.map((file) =>
-      URL.createObjectURL(file)
-    );
-
+    const urls = imagens.map((file) => URL.createObjectURL(file));
     setPreviewUrls(urls);
 
     return () => {
-      urls.forEach((url) =>
-        URL.revokeObjectURL(url)
-      );
+      urls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [imagens]);
 
   async function carregarDados() {
     try {
-      const [
-        categoriasRes,
-        statusRes,
-      ] = await Promise.all([
+      const [categoriasRes, statusRes] = await Promise.all([
         api.get("/painel/categorias"),
         api.get("/painel/status"),
       ]);
 
-      console.log(
-        "Categorias:",
-        categoriasRes.data
-      );
+      const categoriasDados = Array.isArray(categoriasRes.data?.dados)
+        ? categoriasRes.data.dados
+        : [];
 
-      console.log(
-        "Status:",
-        statusRes.data
-      );
+      const statusDados = Array.isArray(statusRes.data?.dados)
+        ? statusRes.data.dados
+        : [];
 
-      setCategorias(
-        Array.isArray(
-          categoriasRes.data?.dados
-        )
-          ? categoriasRes.data.dados
-          : []
-      );
+      setCategorias(categoriasDados);
+      setStatusList(statusDados);
 
-      /* ARRUMADO STATUS */
-      setStatusList(
-        Array.isArray(
-          statusRes.data?.dados?.dados
-        )
-          ? statusRes.data.dados.dados
-          : []
+      const statusAtivo = statusDados.find(
+        (item: StatusItem) => item.codigo === "ATIVO"
       );
-
-      /* PEGA AUTOMATICAMENTE O STATUS ATIVO */
-      const statusAtivo =
-        statusRes.data?.dados?.dados?.find(
-          (item: StatusItem) =>
-            item.codigo === "ATIVO"
-        );
 
       if (statusAtivo) {
         setForm((old) => ({
           ...old,
-          status_id: String(
-            statusAtivo.id_status
-          ),
+          status_id: String(statusAtivo.id_status),
         }));
       }
     } catch (error) {
-      console.error(
-        "Erro ao carregar dados:",
-        error
-      );
-
+      console.error("Erro ao carregar dados:", error);
       setCategorias([]);
       setStatusList([]);
     }
@@ -140,15 +106,11 @@ export default function CadastrarProdutoPage() {
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
-      .replace(
-        /[^a-z0-9\s-]/g,
-        ""
-      )
+      .replace(/[^a-z0-9\s-]/g, "")
       .replace(/\s+/g, "-")
       .replace(/-+/g, "-");
   }
 
-  /* SKU AUTOMÁTICO */
   function gerarSKU(nome: string) {
     const prefixo = nome
       .trim()
@@ -156,11 +118,9 @@ export default function CadastrarProdutoPage() {
       .toUpperCase()
       .replace(/\s/g, "");
 
-    const numero = Math.floor(
-      100000 + Math.random() * 900000
-    );
+    const numero = Math.floor(100000 + Math.random() * 900000);
 
-    return `${prefixo}-${numero}`;
+    return `${prefixo || "PRO"}-${numero}`;
   }
 
   function handleChange(
@@ -177,22 +137,16 @@ export default function CadastrarProdutoPage() {
         [name]: value,
       };
 
-      /* GERA AUTOMATICAMENTE */
       if (name === "nome") {
-        updated.slug =
-          gerarSlug(value);
-
-        updated.sku =
-          gerarSKU(value);
+        updated.slug = gerarSlug(value);
+        updated.sku = gerarSKU(value);
       }
 
       return updated;
     });
   }
 
-  function handleFileChange(
-    e: React.ChangeEvent<HTMLInputElement>
-  ) {
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const arquivos = e.target.files;
 
     if (!arquivos) {
@@ -204,21 +158,15 @@ export default function CadastrarProdutoPage() {
   }
 
   function removerImagem(index: number) {
-    setImagens((prev) =>
-      prev.filter((_, i) => i !== index)
-    );
+    setImagens((prev) => prev.filter((_, i) => i !== index));
   }
 
   function proximaEtapa() {
-    setEtapa((current) =>
-      Math.min(current + 1, 3)
-    );
+    setEtapa((current) => Math.min(current + 1, 3));
   }
 
   function etapaAnterior() {
-    setEtapa((current) =>
-      Math.max(current - 1, 1)
-    );
+    setEtapa((current) => Math.max(current - 1, 1));
   }
 
   async function salvar() {
@@ -227,84 +175,30 @@ export default function CadastrarProdutoPage() {
 
       const data = new FormData();
 
-      data.append(
-        "nome",
-        form.nome
-      );
-
-      data.append(
-        "slug",
-        form.slug
-      );
-
-      data.append(
-        "descricao",
-        form.descricao
-      );
-
-      data.append(
-        "preco",
-        form.preco
-      );
-
-      data.append(
-        "sku",
-        form.sku
-      );
-
-      data.append(
-        "marca",
-        form.marca
-      );
-
-      data.append(
-        "categoria_id",
-        form.categoria_id
-      );
-
-      data.append(
-        "status_id",
-        form.status_id
-      );
+      data.append("nome", form.nome);
+      data.append("slug", form.slug);
+      data.append("descricao", form.descricao);
+      data.append("preco", form.preco);
+      data.append("sku", form.sku);
+      data.append("marca", form.marca);
+      data.append("categoria_id", form.categoria_id);
+      data.append("status_id", form.status_id);
 
       imagens.forEach((arquivo) => {
-        data.append(
-          "imagens[]",
-          arquivo
-        );
+        data.append("imagens[]", arquivo);
       });
 
-      console.log(
-        "ENVIANDO:",
-        Object.fromEntries(
-          data.entries()
-        )
-      );
+      await api.post("/painel/produto", data, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
 
-      await api.post(
-        "/painel/produto",
-        data,
-        {
-          headers: {
-            "Content-Type":
-              "multipart/form-data",
-          },
-        }
-      );
-
-      alert(
-        "Produto cadastrado com sucesso!"
-      );
-
-      router.push(
-        "/painel/sistema/produtos"
-      );
+      alert("Produto cadastrado com sucesso!");
+      router.push("/painel/sistema/produtos");
     } catch (error) {
       console.error(error);
-
-      alert(
-        "Erro ao cadastrar produto."
-      );
+      alert("Erro ao cadastrar produto.");
     } finally {
       setLoading(false);
     }
@@ -315,31 +209,20 @@ export default function CadastrarProdutoPage() {
   }, [etapa]);
 
   return (
-    <div className={styles.page}>
-      <div className={styles.header}>
-        <div className={styles.headerTop}>
+    <div className="cad-produto">
+      <div className="cad-produto__header">
+        <div className="cad-produto__header-top">
           <button
-            className={
-              styles.backButton
-            }
-            onClick={() =>
-              router.back()
-            }
+            className="cad-produto__back-button"
+            onClick={() => router.back()}
+            type="button"
           >
             <ArrowLeft size={18} />
             Voltar
           </button>
 
-          <div
-            className={
-              styles.titleBlock
-            }
-          >
-            <div
-              className={
-                styles.badge
-              }
-            >
+          <div className="cad-produto__title-block">
+            <div className="cad-produto__badge">
               <Sparkles size={16} />
               Cadastro de produto
             </div>
@@ -349,564 +232,263 @@ export default function CadastrarProdutoPage() {
               Cadastrar Produto
             </h1>
 
-            <p>
-              Sistema moderno de
-              cadastro em etapas.
-            </p>
+            <p>Sistema moderno de cadastro em etapas.</p>
           </div>
         </div>
 
-        <div
-          className={styles.stepper}
-        >
-          <div
-            className={
-              styles.stepperTop
-            }
-          >
-            <span
-              className={
-                etapa >= 1
-                  ? styles.stepActive
-                  : ""
-              }
-            >
+        <div className="cad-produto__stepper">
+          <div className="cad-produto__stepper-top">
+            <span className={etapa >= 1 ? "cad-produto__step-active" : ""}>
               1
             </span>
 
-            <div
-              className={
-                styles.stepLine
-              }
-            />
+            <div className="cad-produto__step-line" />
 
-            <span
-              className={
-                etapa >= 2
-                  ? styles.stepActive
-                  : ""
-              }
-            >
+            <span className={etapa >= 2 ? "cad-produto__step-active" : ""}>
               2
             </span>
 
-            <div
-              className={
-                styles.stepLine
-              }
-            />
+            <div className="cad-produto__step-line" />
 
-            <span
-              className={
-                etapa >= 3
-                  ? styles.stepActive
-                  : ""
-              }
-            >
+            <span className={etapa >= 3 ? "cad-produto__step-active" : ""}>
               3
             </span>
           </div>
 
-          <div
-            className={
-              styles.progressBar
-            }
-          >
+          <div className="cad-produto__progress-bar">
             <div
-              className={
-                styles.progressFill
-              }
-              style={{
-                width: `${progresso}%`,
-              }}
+              className="cad-produto__progress-fill"
+              style={{ width: `${progresso}%` }}
             />
           </div>
         </div>
       </div>
 
-      <div
-        className={styles.formCard}
-      >
-        {/* ETAPA 1 */}
+      <div className="cad-produto__form-card">
         {etapa === 1 && (
-          <section
-            className={
-              styles.stepCard
-            }
-          >
-            <div
-              className={
-                styles.stepHeader
-              }
-            >
-              <div
-                className={
-                  styles.stepIcon
-                }
-              >
+          <section className="cad-produto__step-card">
+            <div className="cad-produto__step-header">
+              <div className="cad-produto__step-icon">
                 <ImagePlus size={22} />
               </div>
 
               <div>
-                <h2>
-                  Imagens do produto
-                </h2>
-
-                <p>
-                  Faça upload das
-                  imagens.
-                </p>
+                <h2>Imagens do produto</h2>
+                <p>Faça upload das imagens.</p>
               </div>
             </div>
 
-            <div
-              className={
-                styles.uploadArea
-              }
-            >
+            <div className="cad-produto__upload-area">
               <input
                 id="imagens"
                 type="file"
                 multiple
                 accept="image/*"
-                onChange={
-                  handleFileChange
-                }
-                className={
-                  styles.uploadInput
-                }
+                onChange={handleFileChange}
+                className="cad-produto__upload-input"
               />
 
-              <label
-                htmlFor="imagens"
-                className={
-                  styles.uploadLabel
-                }
-              >
-                <div
-                  className={
-                    styles.uploadIconWrap
-                  }
-                >
-                  <ImagePlus
-                    size={30}
-                  />
+              <label htmlFor="imagens" className="cad-produto__upload-label">
+                <div className="cad-produto__upload-icon-wrap">
+                  <ImagePlus size={30} />
                 </div>
 
-                <strong>
-                  Clique para enviar
-                  imagens
-                </strong>
-
-                <span>
-                  PNG, JPG, JPEG,
-                  WEBP
-                </span>
+                <strong>Clique para enviar imagens</strong>
+                <span>PNG, JPG, JPEG, WEBP</span>
               </label>
             </div>
 
-            {previewUrls.length >
-              0 && (
-              <div
-                className={
-                  styles.previewGrid
-                }
-              >
-                {previewUrls.map(
-                  (
-                    url,
-                    index
-                  ) => (
-                    <div
-                      key={url}
-                      className={
-                        styles.previewCard
-                      }
-                    >
-                      <img
-                        src={url}
-                        alt={`Preview ${index}`}
-                      />
+            {previewUrls.length > 0 && (
+              <div className="cad-produto__preview-grid">
+                {previewUrls.map((url, index) => (
+                  <div key={url} className="cad-produto__preview-card">
+                    <img src={url} alt={`Preview ${index}`} />
 
-                      <button
-                        type="button"
-                        className={
-                          styles.removeImage
-                        }
-                        onClick={() =>
-                          removerImagem(
-                            index
-                          )
-                        }
-                      >
-                        <X
-                          size={16}
-                        />
-                      </button>
-                    </div>
-                  )
-                )}
+                    <button
+                      type="button"
+                      className="cad-produto__remove-image"
+                      onClick={() => removerImagem(index)}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
 
-            <div
-              className={
-                styles.actions
-              }
-            >
+            <div className="cad-produto__actions">
               <button
                 type="button"
-                className={
-                  styles.primaryButton
-                }
-                onClick={
-                  proximaEtapa
-                }
-                disabled={
-                  imagens.length ===
-                  0
-                }
+                className="cad-produto__primary-button"
+                onClick={proximaEtapa}
+                disabled={imagens.length === 0}
               >
                 Próxima etapa
-                <ChevronRight
-                  size={18}
-                />
+                <ChevronRight size={18} />
               </button>
             </div>
           </section>
         )}
 
-        {/* ETAPA 2 */}
         {etapa === 2 && (
-          <section
-            className={
-              styles.stepCard
-            }
-          >
-            <div
-              className={
-                styles.stepHeader
-              }
-            >
-              <div
-                className={
-                  styles.stepIcon
-                }
-              >
+          <section className="cad-produto__step-card">
+            <div className="cad-produto__step-header">
+              <div className="cad-produto__step-icon">
                 <Truck size={22} />
               </div>
 
               <div>
-                <h2>
-                  Dados principais
-                </h2>
-
-                <p>
-                  Informações do
-                  produto.
-                </p>
+                <h2>Dados principais</h2>
+                <p>Informações do produto.</p>
               </div>
             </div>
 
-            <div
-              className={styles.grid}
-            >
-              <div
-                className={
-                  styles.field
-                }
-              >
+            <div className="cad-produto__grid">
+              <div className="cad-produto__field">
                 <label>Nome</label>
-
                 <input
                   type="text"
                   name="nome"
                   placeholder="Nome do produto"
-                  value={
-                    form.nome
-                  }
-                  onChange={
-                    handleChange
-                  }
+                  value={form.nome}
+                  onChange={handleChange}
                 />
               </div>
 
-              <div
-                className={
-                  styles.field
-                }
-              >
+              <div className="cad-produto__field">
                 <label>Slug</label>
-
-                <input
-                  type="text"
-                  name="slug"
-                  value={
-                    form.slug
-                  }
-                  readOnly
-                />
+                <input type="text" name="slug" value={form.slug} readOnly />
               </div>
 
-              <div
-                className={
-                  styles.field
-                }
-              >
+              <div className="cad-produto__field">
                 <label>SKU</label>
-
-                <input
-                  type="text"
-                  name="sku"
-                  value={
-                    form.sku
-                  }
-                  readOnly
-                />
+                <input type="text" name="sku" value={form.sku} readOnly />
               </div>
 
-              <div
-                className={
-                  styles.field
-                }
-              >
+              <div className="cad-produto__field">
                 <label>Preço</label>
-
                 <input
                   type="number"
                   step="0.01"
                   name="preco"
-                  value={
-                    form.preco
-                  }
-                  onChange={
-                    handleChange
-                  }
+                  value={form.preco}
+                  onChange={handleChange}
                 />
               </div>
 
-              <div
-                className={
-                  styles.field
-                }
-              >
+              <div className="cad-produto__field">
                 <label>Marca</label>
-
                 <input
                   type="text"
                   name="marca"
-                  value={
-                    form.marca
-                  }
-                  onChange={
-                    handleChange
-                  }
+                  value={form.marca}
+                  onChange={handleChange}
                 />
               </div>
 
-              <div
-                className={
-                  styles.field
-                }
-              >
-                <label>
-                  Categoria
-                </label>
-
+              <div className="cad-produto__field">
+                <label>Categoria</label>
                 <select
                   name="categoria_id"
-                  value={
-                    form.categoria_id
-                  }
-                  onChange={
-                    handleChange
-                  }
+                  value={form.categoria_id}
+                  onChange={handleChange}
                 >
-                  <option value="">
-                    Selecione
-                  </option>
+                  <option value="">Selecione</option>
 
-                  {categorias.map(
-                    (
-                      categoria
-                    ) => (
-                      <option
-                        key={
-                          categoria.id_categoria
-                        }
-                        value={
-                          categoria.id_categoria
-                        }
-                      >
-                        {
-                          categoria.nome
-                        }
-                      </option>
-                    )
-                  )}
+                  {categorias.map((categoria) => (
+                    <option
+                      key={categoria.id_categoria}
+                      value={categoria.id_categoria}
+                    >
+                      {categoria.nome}
+                    </option>
+                  ))}
                 </select>
               </div>
 
-              <div
-                className={
-                  styles.field
-                }
-              >
+              <div className="cad-produto__field">
                 <label>Status</label>
-
                 <select
                   name="status_id"
-                  value={
-                    form.status_id
-                  }
-                  onChange={
-                    handleChange
-                  }
+                  value={form.status_id}
+                  onChange={handleChange}
                 >
-                  {statusList.map(
-                    (status) => (
-                      <option
-                        key={
-                          status.id_status
-                        }
-                        value={
-                          status.id_status
-                        }
-                      >
-                        {
-                          status.nome
-                        }
-                      </option>
-                    )
-                  )}
+                  <option value="">Selecione</option>
+
+                  {statusList.map((status) => (
+                    <option key={status.id_status} value={status.id_status}>
+                      {status.nome}
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>
 
-            <div
-              className={
-                styles.actions
-              }
-            >
+            <div className="cad-produto__actions">
               <button
                 type="button"
-                className={
-                  styles.secondaryButton
-                }
-                onClick={
-                  etapaAnterior
-                }
+                className="cad-produto__secondary-button"
+                onClick={etapaAnterior}
               >
-                <ChevronLeft
-                  size={18}
-                />
+                <ChevronLeft size={18} />
                 Voltar
               </button>
 
               <button
                 type="button"
-                className={
-                  styles.primaryButton
-                }
-                onClick={
-                  proximaEtapa
-                }
+                className="cad-produto__primary-button"
+                onClick={proximaEtapa}
               >
                 Próxima etapa
-                <ChevronRight
-                  size={18}
-                />
+                <ChevronRight size={18} />
               </button>
             </div>
           </section>
         )}
 
-        {/* ETAPA 3 */}
         {etapa === 3 && (
-          <section
-            className={
-              styles.stepCard
-            }
-          >
-            <div
-              className={
-                styles.stepHeader
-              }
-            >
-              <div
-                className={
-                  styles.stepIcon
-                }
-              >
+          <section className="cad-produto__step-card">
+            <div className="cad-produto__step-header">
+              <div className="cad-produto__step-icon">
                 <FileText size={22} />
               </div>
 
               <div>
-                <h2>
-                  Descrição
-                </h2>
-
-                <p>
-                  Finalize o cadastro
-                </p>
+                <h2>Descrição</h2>
+                <p>Finalize o cadastro.</p>
               </div>
             </div>
 
-            <div
-              className={
-                styles.descricao
-              }
-            >
-              <label>
-                Descrição
-              </label>
+            <div className="cad-produto__descricao">
+              <label>Descrição</label>
 
               <textarea
                 rows={8}
                 name="descricao"
                 placeholder="Digite a descrição..."
-                value={
-                  form.descricao
-                }
-                onChange={
-                  handleChange
-                }
+                value={form.descricao}
+                onChange={handleChange}
               />
             </div>
 
-            <div
-              className={
-                styles.actions
-              }
-            >
+            <div className="cad-produto__actions">
               <button
                 type="button"
-                className={
-                  styles.secondaryButton
-                }
-                onClick={
-                  etapaAnterior
-                }
+                className="cad-produto__secondary-button"
+                onClick={etapaAnterior}
               >
-                <ChevronLeft
-                  size={18}
-                />
+                <ChevronLeft size={18} />
                 Voltar
               </button>
 
               <button
-                className={
-                  styles.primaryButton
-                }
+                className="cad-produto__primary-button"
                 onClick={salvar}
                 disabled={loading}
                 type="button"
               >
                 <Save size={18} />
-
-                {loading
-                  ? "Salvando..."
-                  : "Cadastrar Produto"}
+                {loading ? "Salvando..." : "Cadastrar Produto"}
               </button>
             </div>
           </section>
