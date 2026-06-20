@@ -204,12 +204,7 @@ export default function CarrinhoSidebar({ aberto, aoFechar }: Props) {
                 <div key={item.id_carrinho_item} className="cartMiniItem">
                   <div className="cartMiniImage">
                     {imagem ? (
-                      <Image
-                        src={imagem}
-                        alt={item.produto_nome}
-                        fill
-                        sizes="86px"
-                      />
+                      <Image src={imagem} alt={item.produto_nome} fill sizes="86px" />
                     ) : (
                       <FiPackage size={24} />
                     )}
@@ -239,9 +234,7 @@ export default function CarrinhoSidebar({ aberto, aoFechar }: Props) {
                       <button
                         type="button"
                         disabled={bloqueado}
-                        onClick={() =>
-                          atualizarQuantidade(item, item.quantidade - 1)
-                        }
+                        onClick={() => atualizarQuantidade(item, item.quantidade - 1)}
                       >
                         <FiMinus size={14} />
                       </button>
@@ -251,16 +244,12 @@ export default function CarrinhoSidebar({ aberto, aoFechar }: Props) {
                       <button
                         type="button"
                         disabled={bloqueado}
-                        onClick={() =>
-                          atualizarQuantidade(item, item.quantidade + 1)
-                        }
+                        onClick={() => atualizarQuantidade(item, item.quantidade + 1)}
                       >
                         <FiPlus size={14} />
                       </button>
 
-                      <strong className="cartItemSubtotal">
-                        {moeda(totalItem)}
-                      </strong>
+                      <strong className="cartItemSubtotal">{moeda(totalItem)}</strong>
                     </div>
                   </div>
                 </div>
@@ -271,7 +260,7 @@ export default function CarrinhoSidebar({ aberto, aoFechar }: Props) {
 
         <div className="cartSidebarFooter">
           <div className="cartResumoPedido">
-            <h3>Resumo do pedido</h3>
+            <h3>🛍️ Resumo do pedido</h3>
 
             <div>
               <span>Itens</span>
@@ -287,10 +276,18 @@ export default function CarrinhoSidebar({ aberto, aoFechar }: Props) {
               <span>Total</span>
               <strong>{moeda(resumo.total)}</strong>
             </div>
+
+            <p className="cartResumoInfo">
+              Confira os produtos e finalize sua compra com segurança.
+            </p>
           </div>
 
-          <Link href={rotas.paginas.carrinho} onClick={aoFechar}>
-            Ver carrinho completo
+          <Link
+            href={rotas.paginas.carrinho}
+            onClick={aoFechar}
+            className="cartCheckoutButton"
+          >
+            Revisar pedido e finalizar →
           </Link>
         </div>
       </aside>
