@@ -20,7 +20,7 @@ export const rotas = {
 
   paginas: {
     login: "/login",
-    carrinho: "/carrinho",
+    carrinho: "/checkout",
   },
 
   auth: {
