@@ -9,6 +9,11 @@ import {
 } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
+import Image from "next/image";
+
+import api from "@/Api/conectar";
+
+import { imagemFundo } from "@/components/Bibioteca/imagem";
 
 import type { IconType } from "react-icons";
 import {
@@ -44,6 +49,7 @@ import {
 
 import { Menu, Usuario } from "@/components/site/menu/menu";
 import "./../../../styles/navbar/menu.css";
+import { rotas } from "@/components/Bibioteca/config/rotas";
 
 type Props = {
   scrolled: boolean;
@@ -66,6 +72,19 @@ type FloatingStyle = {
   left: number;
   width: number;
   arrowLeft: number;
+};
+
+type CarrinhoItem = {
+  id_carrinho_item: number;
+  carrinho_id: number;
+  produto_id: number;
+  produto_nome: string;
+  produto_slug?: string | null;
+  imagem?: string | null;
+  quantidade: number;
+  preco_unitario: number;
+  preco_promocional_unitario?: number | null;
+  subtotal: number;
 };
 
 const ICONS: Record<string, IconType> = {
@@ -117,6 +136,26 @@ function corrigirRota(rota?: string | null, fallback = "#") {
   return valor;
 }
 
+function pegarDados<T>(res: any): T {
+  return (
+    res?.data?.dados?.dados ??
+    res?.data?.dados?.lista ??
+    res?.data?.dados?.itens ??
+    res?.data?.dados ??
+    res?.data ??
+    []
+  ) as T;
+}
+
+function formatarMoeda(valor?: number | string | null) {
+  const numero = Number(valor ?? 0);
+
+  return numero.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  });
+}
+
 export default function NavbarHeader({
   scrolled,
   titulo1,
@@ -133,6 +172,9 @@ export default function NavbarHeader({
   logout,
 }: Props) {
   const [openMenu, setOpenMenu] = useState(false);
+  const [openCart, setOpenCart] = useState(false);
+  const [cartLoading, setCartLoading] = useState(false);
+  const [cartItens, setCartItens] = useState<CarrinhoItem[]>([]);
   const [mounted, setMounted] = useState(false);
   const [floatingStyle, setFloatingStyle] = useState<FloatingStyle | null>(null);
 
@@ -142,6 +184,21 @@ export default function NavbarHeader({
 
   const safePesquisa = (pesquisa ?? "").trim();
   const rotaCarrinho = corrigirRota(carrinho?.rota, "/Carrinho");
+
+  const totalCarrinho = useMemo(() => {
+    return cartItens.reduce((total, item) => {
+      const subtotal = Number(item.subtotal ?? 0);
+
+      if (subtotal > 0) return total + subtotal;
+
+      const preco =
+        item.preco_promocional_unitario && item.preco_promocional_unitario > 0
+          ? item.preco_promocional_unitario
+          : item.preco_unitario;
+
+      return total + Number(preco ?? 0) * Number(item.quantidade ?? 1);
+    }, 0);
+  }, [cartItens]);
 
   const loginItems = useMemo(() => {
     return Array.isArray(login?.itens)
@@ -170,6 +227,7 @@ export default function NavbarHeader({
       href: rotaCarrinho,
       icon: <FiShoppingCart size={18} aria-hidden="true" focusable="false" />,
       badge: quantidadeCarrinho > 0 ? quantidadeCarrinho : 0,
+      action: "cart",
     },
   ];
 
@@ -177,30 +235,60 @@ export default function NavbarHeader({
 
   const openSidebar = () => {
     setDropdown(false);
+    setOpenCart(false);
     setOpenMenu(true);
   };
 
   const toggleUserDropdown = () => {
     setOpenMenu(false);
+    setOpenCart(false);
     setDropdown(!dropdown);
   };
+
+  async function carregarItensCarrinho() {
+    try {
+      setCartLoading(true);
+
+      const res = await api.get(rotas.carrinho.itens);
+      const dados = pegarDados<CarrinhoItem[]>(res);
+
+      setCartItens(Array.isArray(dados) ? dados : []);
+    } catch (error) {
+      console.error("Erro ao carregar carrinho:", error);
+      setCartItens([]);
+    } finally {
+      setCartLoading(false);
+    }
+  }
+
+  async function abrirCarrinhoLateral() {
+    setDropdown(false);
+    setOpenMenu(false);
+    setOpenCart(true);
+    await carregarItensCarrinho();
+  }
+
+  function fecharCarrinhoLateral() {
+    setOpenCart(false);
+  }
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    document.body.classList.toggle("menuLock", openMenu);
+    document.body.classList.toggle("menuLock", openMenu || openCart);
 
     return () => {
       document.body.classList.remove("menuLock");
     };
-  }, [openMenu]);
+  }, [openMenu, openCart]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpenMenu(false);
+        setOpenCart(false);
         setDropdown(false);
       }
     };
@@ -211,6 +299,18 @@ export default function NavbarHeader({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [setDropdown]);
+
+  useEffect(() => {
+    const atualizar = () => {
+      if (openCart) carregarItensCarrinho();
+    };
+
+    window.addEventListener("carrinhoAtualizado", atualizar);
+
+    return () => {
+      window.removeEventListener("carrinhoAtualizado", atualizar);
+    };
+  }, [openCart]);
 
   useLayoutEffect(() => {
     if (!dropdown) return;
@@ -426,14 +526,11 @@ export default function NavbarHeader({
             )}
 
             {carrinho && (
-              <Link
-                href={rotaCarrinho}
+              <button
+                type="button"
                 className="cartButton"
-                aria-label={
-                  quantidadeCarrinho > 0
-                    ? `Ver carrinho de compras, ${quantidadeCarrinho} item(s)`
-                    : "Ver carrinho de compras"
-                }
+                onClick={abrirCarrinhoLateral}
+                aria-label="Abrir carrinho de compras"
                 title="Carrinho"
               >
                 <div className="cartWrapper">
@@ -448,7 +545,7 @@ export default function NavbarHeader({
                   <span className="cartLabel">Meu</span>
                   <span className="cartTotal">Carrinho</span>
                 </div>
-              </Link>
+              </button>
             )}
           </div>
         </div>
@@ -510,14 +607,11 @@ export default function NavbarHeader({
             )}
 
             {carrinho && (
-              <Link
-                href={rotaCarrinho}
+              <button
+                type="button"
                 className="mobileCartBtn"
-                aria-label={
-                  quantidadeCarrinho > 0
-                    ? `Ver carrinho de compras, ${quantidadeCarrinho} item(s)`
-                    : "Ver carrinho de compras"
-                }
+                onClick={abrirCarrinhoLateral}
+                aria-label="Abrir carrinho"
                 title="Carrinho"
               >
                 <div className="cartWrapper">
@@ -527,7 +621,7 @@ export default function NavbarHeader({
                     <span className="badge">{quantidadeCarrinho}</span>
                   )}
                 </div>
-              </Link>
+              </button>
             )}
           </div>
         </div>
@@ -617,23 +711,129 @@ export default function NavbarHeader({
             <div className="sectionTitle">Atalhos rápidos</div>
 
             <div className="quickGrid">
-              {menuItems.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className="quickAction"
-                  onClick={closeMenu}
-                >
-                  <span className="quickActionIcon">{item.icon}</span>
-                  <span className="quickActionLabel">{item.label}</span>
+              {menuItems.map((item) => {
+                if (item.action === "cart") {
+                  return (
+                    <button
+                      key={item.label}
+                      type="button"
+                      className="quickAction"
+                      onClick={abrirCarrinhoLateral}
+                    >
+                      <span className="quickActionIcon">{item.icon}</span>
+                      <span className="quickActionLabel">{item.label}</span>
 
-                  {item.badge && item.badge > 0 && (
-                    <span className="quickBadge">{item.badge}</span>
-                  )}
-                </Link>
-              ))}
+                      {item.badge && item.badge > 0 && (
+                        <span className="quickBadge">{item.badge}</span>
+                      )}
+                    </button>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={item.label}
+                    href={item.href}
+                    className="quickAction"
+                    onClick={closeMenu}
+                  >
+                    <span className="quickActionIcon">{item.icon}</span>
+                    <span className="quickActionLabel">{item.label}</span>
+
+                    {item.badge && item.badge > 0 && (
+                      <span className="quickBadge">{item.badge}</span>
+                    )}
+                  </Link>
+                );
+              })}
             </div>
           </div>
+        </div>
+      </aside>
+
+      <div
+        className={`cartOverlay ${openCart ? "cartOverlayShow" : ""}`}
+        onClick={fecharCarrinhoLateral}
+        aria-hidden="true"
+      />
+
+      <aside
+        className={`cartSidebar ${openCart ? "cartSidebarOpen" : ""}`}
+        aria-label="Carrinho lateral"
+        aria-hidden={!openCart}
+      >
+        <div className="cartSidebarHeader">
+          <div>
+            <h2>Meu carrinho</h2>
+            <span>{cartItens.length} item(s)</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={fecharCarrinhoLateral}
+            aria-label="Fechar carrinho"
+            title="Fechar carrinho"
+          >
+            <FiX size={22} aria-hidden="true" focusable="false" />
+          </button>
+        </div>
+
+        <div className="cartSidebarContent">
+          {cartLoading ? (
+            <div className="cartEmpty">
+              <div className="cartLoader" />
+              <strong>Carregando carrinho...</strong>
+            </div>
+          ) : cartItens.length === 0 ? (
+            <div className="cartEmpty">
+              <FiShoppingCart size={36} />
+              <strong>Seu carrinho está vazio</strong>
+              <span>Adicione produtos para continuar.</span>
+            </div>
+          ) : (
+            cartItens.map((item) => {
+              const imagem = imagemFundo(item.imagem);
+              const preco =
+                item.preco_promocional_unitario &&
+                item.preco_promocional_unitario > 0
+                  ? item.preco_promocional_unitario
+                  : item.preco_unitario;
+
+              return (
+                <div key={item.id_carrinho_item} className="cartMiniItem">
+                  <div className="cartMiniImage">
+                    {imagem ? (
+                      <Image
+                        src={imagem}
+                        alt={item.produto_nome}
+                        fill
+                        sizes="76px"
+                      />
+                    ) : (
+                      <FiPackage size={22} aria-hidden="true" focusable="false" />
+                    )}
+                  </div>
+
+                  <div className="cartMiniInfo">
+                    <strong>{item.produto_nome}</strong>
+                    <span>Qtd: {item.quantidade}</span>
+                    <b>{formatarMoeda(preco)}</b>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        <div className="cartSidebarFooter">
+          <div className="cartTotalBox">
+            <span>Total</span>
+            <strong>{formatarMoeda(totalCarrinho)}</strong>
+          </div>
+
+          <Link href={rotas.paginas.carrinho} onClick={fecharCarrinhoLateral}>
+            Ver carrinho completo
+          </Link>
         </div>
       </aside>
 
