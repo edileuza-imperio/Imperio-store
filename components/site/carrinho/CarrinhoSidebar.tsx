@@ -9,6 +9,7 @@ import api from "@/Api/conectar";
 
 import { imagemFundo } from "@/components/Bibioteca/imagem";
 import { rotas } from "@/components/Bibioteca/config/rotas";
+import "../../../components/styles/navbar/CarrinhoSidebar.css";
 
 type CarrinhoItem = {
   id_carrinho_item: number;
