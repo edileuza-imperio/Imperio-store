@@ -1022,16 +1022,45 @@ body.menuLock {
   line-height: 1.35;
 }
 
-.cartMiniInfo span {
-  display: block;
-  margin: 5px 0;
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.cartMiniInfo b {
+.cartMiniPrice b {
   color: #16a34a;
   font-size: 16px;
+}
+
+.cartQtyRow {
+  margin-top: 9px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.cartQtyRow button {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  color: #111827;
+}
+
+.cartQtyRow button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cartQtyRow span {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 800;
+  color: #111827;
+}
+
+.cartRemoveBtn {
+  margin-left: auto;
+  color: #dc2626 !important;
 }
 
 .cartSidebarFooter {
