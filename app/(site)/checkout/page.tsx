@@ -14,7 +14,7 @@ import {
 } from "react-icons/fi";
 
 import { useCheckout } from "./useCheckout";
-import "../../../components/styles/Chekout.css";
+import "./CheckoutPage.css";
 
 export default function CheckoutPage() {
   const {
@@ -47,85 +47,99 @@ export default function CheckoutPage() {
     formatarMoeda,
   } = useCheckout();
 
+  const podeContinuar =
+    !processando &&
+    !salvandoEndereco &&
+    enderecos.length > 0 &&
+    !!enderecoSelecionado;
+
   return (
-    <main className="checkoutPage">
-      <div className="checkoutShell">
+    <main className="checkout-page">
+      <div className="checkout-shell">
         {isCarrinhoVazio ? (
-          <section className="emptyCard glass">
-            <div className="emptyIcon">
-              <FiShoppingBag size={30} />
+          <section className="checkout-empty-card">
+            <div className="checkout-empty-icon">
+              <FiShoppingBag />
             </div>
 
             <h1>Seu carrinho está vazio</h1>
             <p>Adicione produtos antes de continuar para o checkout.</p>
 
-            <Link href="/" className="btnPrimary">
+            <Link href="/" className="checkout-btn-primary">
               Explorar produtos
             </Link>
           </section>
         ) : (
           <>
-            <header className="checkoutHero glass">
+            <header className="checkout-hero">
               <div>
-                <div className="eyebrow">
+                <div className="checkout-eyebrow">
                   <FiLock />
                   <span>Checkout seguro</span>
                 </div>
 
                 <h1>Finalize sua compra</h1>
-                <p>Revise seu endereço e confirme o pedido com segurança.</p>
+                <p>Revise o endereço e continue para o pagamento.</p>
               </div>
 
-              <div className="heroBadge">{itens.length} item(ns)</div>
+              <div className="checkout-hero-badge">
+                {itens.length} item(ns)
+              </div>
             </header>
 
-            <section className="steps">
-              <div className="step stepActive">
-                <FiMapPin />
+            <section className="checkout-steps">
+              <div className="checkout-step checkout-step-active">
+                <div className="checkout-step-icon">
+                  <FiMapPin />
+                </div>
                 <div>
-                  <strong>1. Endereço</strong>
+                  <strong>Endereço</strong>
                   <span>Local de entrega</span>
                 </div>
               </div>
 
-              <div className="step">
-                <FiTruck />
+              <div className="checkout-step">
+                <div className="checkout-step-icon">
+                  <FiTruck />
+                </div>
                 <div>
-                  <strong>2. Entrega</strong>
+                  <strong>Entrega</strong>
                   <span>Frete e prazo</span>
                 </div>
               </div>
 
-              <div className="step">
-                <FiCreditCard />
+              <div className="checkout-step">
+                <div className="checkout-step-icon">
+                  <FiCreditCard />
+                </div>
                 <div>
-                  <strong>3. Pagamento</strong>
+                  <strong>Pagamento</strong>
                   <span>Concluir compra</span>
                 </div>
               </div>
             </section>
 
             {loading ? (
-              <div className="loadingCard glass">
+              <div className="checkout-loading-card">
                 Carregando checkout...
               </div>
             ) : (
-              <div className="checkoutGrid">
-                <section className="checkoutMain">
-                  <div className="panel glass">
-                    <div className="panelHeader">
+              <div className="checkout-grid">
+                <section className="checkout-main">
+                  <div className="checkout-panel">
+                    <div className="checkout-panel-header">
                       <h2>Endereço de entrega</h2>
                       <p>Selecione ou cadastre um endereço para continuar.</p>
                     </div>
 
                     {enderecos.length === 0 ? (
-                      <div className="addressForm">
+                      <div className="checkout-address-form">
                         <h3>Cadastrar endereço</h3>
 
-                        <div className="formGrid">
+                        <div className="checkout-form-grid">
                           <label>
                             <span>CEP</span>
-                            <div className="cepRow">
+                            <div className="checkout-cep-row">
                               <input
                                 placeholder="00000-000"
                                 value={formEndereco.cep}
@@ -138,7 +152,7 @@ export default function CheckoutPage() {
 
                               <button
                                 type="button"
-                                className="cepButton"
+                                className="checkout-cep-button"
                                 onClick={() => buscarCep()}
                                 disabled={buscandoCep}
                               >
@@ -173,7 +187,10 @@ export default function CheckoutPage() {
                             <input
                               value={formEndereco.complemento}
                               onChange={(e) =>
-                                alterarCampoEndereco("complemento", e.target.value)
+                                alterarCampoEndereco(
+                                  "complemento",
+                                  e.target.value
+                                )
                               }
                             />
                           </label>
@@ -210,21 +227,30 @@ export default function CheckoutPage() {
                           </label>
                         </div>
 
-                        {erroEndereco && <p className="formError">{erroEndereco}</p>}
-                        {sucessoEndereco && <p className="formSuccess">{sucessoEndereco}</p>}
+                        {erroEndereco && (
+                          <p className="checkout-form-error">{erroEndereco}</p>
+                        )}
+
+                        {sucessoEndereco && (
+                          <p className="checkout-form-success">
+                            {sucessoEndereco}
+                          </p>
+                        )}
 
                         <button
                           type="button"
-                          className="btnPrimary full"
+                          className="checkout-btn-primary checkout-full"
                           onClick={cadastrarEndereco}
                           disabled={salvandoEndereco || buscandoCep}
                         >
-                          {salvandoEndereco ? "Salvando..." : "Salvar endereço"}
+                          {salvandoEndereco
+                            ? "Salvando..."
+                            : "Salvar endereço"}
                           <FiCheckCircle />
                         </button>
                       </div>
                     ) : (
-                      <div className="addressList">
+                      <div className="checkout-address-list">
                         {enderecos.map((endereco) => {
                           const id = getEnderecoId(endereco);
                           const ativo = enderecoSelecionado === id;
@@ -233,40 +259,56 @@ export default function CheckoutPage() {
                             <button
                               key={id}
                               type="button"
-                              className={`addressCard ${ativo ? "addressCardActive" : ""}`}
+                              className={`checkout-address-card ${
+                                ativo ? "checkout-address-card-active" : ""
+                              }`}
                               onClick={() => setEnderecoSelecionado(id)}
                             >
-                              <div className="addressIcon">
+                              <div className="checkout-address-icon">
                                 <FiMapPin />
                               </div>
 
-                              <div className="addressInfo">
+                              <div className="checkout-address-info">
                                 <strong>
-                                  {endereco.rua || endereco.endereco || "Endereço"}, {endereco.numero || "S/N"}
+                                  {endereco.rua ||
+                                    endereco.endereco ||
+                                    "Endereço"}
+                                  , {endereco.numero || "S/N"}
                                 </strong>
-                                {endereco.complemento && <span>{endereco.complemento}</span>}
+
+                                {endereco.complemento && (
+                                  <span>{endereco.complemento}</span>
+                                )}
+
                                 <span>{endereco.bairro}</span>
-                                <span>{endereco.cidade} - {endereco.estado}</span>
-                                {endereco.cep && <span>CEP {endereco.cep}</span>}
+                                <span>
+                                  {endereco.cidade} - {endereco.estado}
+                                </span>
+
+                                {endereco.cep && (
+                                  <span>CEP {endereco.cep}</span>
+                                )}
                               </div>
 
-                              {ativo && <FiCheckCircle className="addressCheck" />}
+                              {ativo && (
+                                <FiCheckCircle className="checkout-address-check" />
+                              )}
                             </button>
                           );
                         })}
                       </div>
                     )}
 
-                    <div className="panelActions">
-                      <Link href="/Carrinho" className="btnSecondary">
+                    <div className="checkout-panel-actions">
+                      <Link href="/Carrinho" className="checkout-btn-secondary">
                         Voltar ao carrinho
                       </Link>
 
                       <button
                         type="button"
-                        className="btnPrimary"
+                        className="checkout-btn-primary"
                         onClick={finalizarCheckout}
-                        disabled={processando || salvandoEndereco || !enderecos.length || !enderecoSelecionado}
+                        disabled={!podeContinuar}
                       >
                         {processando ? "Processando..." : "Ir para pagamento"}
                         <FiArrowRight />
@@ -275,36 +317,39 @@ export default function CheckoutPage() {
                   </div>
                 </section>
 
-                <aside className="checkoutAside">
-                  <div className="summaryCard glass">
-                    <div className="summaryHeader">
+                <aside className="checkout-aside">
+                  <div className="checkout-summary-card">
+                    <div className="checkout-summary-header">
                       <h2>Resumo do pedido</h2>
                       <p>{itens.length} produto(s)</p>
                     </div>
 
-                    <div className="summaryItems">
+                    <div className="checkout-summary-items">
                       {itens.map((item) => {
                         const nome = getItemNome(item);
                         const imagem = getItemImagem(item);
 
                         return (
-                          <div className="summaryItem" key={String(getItemId(item))}>
-                            <div className="summaryImageWrap">
+                          <div
+                            className="checkout-summary-item"
+                            key={String(getItemId(item))}
+                          >
+                            <div className="checkout-summary-image-wrap">
                               <Image
                                 src={imagem}
                                 alt={nome}
-                                width={52}
-                                height={52}
-                                className="summaryImage"
+                                width={56}
+                                height={56}
+                                className="checkout-summary-image"
                               />
                             </div>
 
-                            <div className="summaryInfo">
+                            <div className="checkout-summary-info">
                               <strong>{nome}</strong>
                               <span>Qtd: {getItemQuantidade(item)}</span>
                             </div>
 
-                            <div className="summaryPrice">
+                            <div className="checkout-summary-price">
                               {formatarMoeda(getItemSubtotal(item))}
                             </div>
                           </div>
@@ -312,23 +357,27 @@ export default function CheckoutPage() {
                       })}
                     </div>
 
-                    <div className="summaryBox">
-                      <div className="summaryRow">
+                    <div className="checkout-summary-box">
+                      <div className="checkout-summary-row">
                         <span>Subtotal</span>
                         <strong>{formatarMoeda(subtotalItens)}</strong>
                       </div>
 
-                      <div className="summaryRow">
+                      <div className="checkout-summary-row">
                         <span>Frete</span>
-                        <strong>{valorFrete > 0 ? formatarMoeda(valorFrete) : "Grátis"}</strong>
+                        <strong>
+                          {valorFrete > 0
+                            ? formatarMoeda(valorFrete)
+                            : "Grátis"}
+                        </strong>
                       </div>
 
-                      <div className="summaryRow">
+                      <div className="checkout-summary-row">
                         <span>Desconto</span>
                         <strong>- {formatarMoeda(valorDesconto)}</strong>
                       </div>
 
-                      <div className="summaryTotal">
+                      <div className="checkout-summary-total">
                         <span>Total</span>
                         <strong>{formatarMoeda(valorTotal)}</strong>
                       </div>
@@ -336,16 +385,16 @@ export default function CheckoutPage() {
 
                     <button
                       type="button"
-                      className="btnPrimary full"
+                      className="checkout-btn-primary checkout-full"
                       onClick={finalizarCheckout}
-                      disabled={processando || salvandoEndereco || !enderecos.length || !enderecoSelecionado}
+                      disabled={!podeContinuar}
                     >
                       {processando ? "Processando..." : "Ir para pagamento"}
                       <FiArrowRight />
                     </button>
 
-                    <p className="summaryNote">
-                      Compra segura com dados protegidos.
+                    <p className="checkout-summary-note">
+                      🔒 Compra segura com dados protegidos.
                     </p>
                   </div>
                 </aside>
