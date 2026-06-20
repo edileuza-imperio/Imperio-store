@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import Image from "next/image";
-
 import {
   FiMapPin,
   FiCreditCard,
@@ -15,7 +14,7 @@ import {
 } from "react-icons/fi";
 
 import { useCheckout } from "./useCheckout";
-import styles from "./CheckoutPage.module.css";
+import "../../../components/styles/Chekout.css";
 
 export default function CheckoutPage() {
   const {
@@ -25,25 +24,20 @@ export default function CheckoutPage() {
     buscandoCep,
     erroEndereco,
     sucessoEndereco,
-
     enderecos,
     enderecoSelecionado,
     setEnderecoSelecionado,
-
     formEndereco,
     alterarCampoEndereco,
     buscarCep,
     cadastrarEndereco,
-
     itens,
     subtotalItens,
     valorFrete,
     valorDesconto,
     valorTotal,
-
     isCarrinhoVazio,
     finalizarCheckout,
-
     getEnderecoId,
     getItemId,
     getItemNome,
@@ -54,94 +48,86 @@ export default function CheckoutPage() {
   } = useCheckout();
 
   return (
-    <main className={styles.checkoutPage}>
-      <div className={styles.checkoutShell}>
+    <main className="checkoutPage">
+      <div className="checkoutShell">
         {isCarrinhoVazio ? (
-          <section className={`${styles.emptyCard} ${styles.glass}`}>
-            <div className={styles.emptyIcon}>
+          <section className="emptyCard glass">
+            <div className="emptyIcon">
               <FiShoppingBag size={30} />
             </div>
 
             <h1>Seu carrinho está vazio</h1>
             <p>Adicione produtos antes de continuar para o checkout.</p>
 
-            <Link href="/" className={styles.btnPrimary}>
-              Explorar coleção
+            <Link href="/" className="btnPrimary">
+              Explorar produtos
             </Link>
           </section>
         ) : (
           <>
-            <header className={`${styles.checkoutHero} ${styles.glass}`}>
+            <header className="checkoutHero glass">
               <div>
-                <div className={styles.eyebrow}>
+                <div className="eyebrow">
                   <FiLock />
                   <span>Checkout seguro</span>
                 </div>
 
                 <h1>Finalize sua compra</h1>
-                <p>Revise endereço, resumo e siga para o pagamento.</p>
+                <p>Revise seu endereço e confirme o pedido com segurança.</p>
               </div>
 
-              <div className={styles.heroBadge}>{itens.length} item(ns)</div>
+              <div className="heroBadge">{itens.length} item(ns)</div>
             </header>
 
-            <section className={styles.steps}>
-              <div className={`${styles.step} ${styles.stepActive}`}>
+            <section className="steps">
+              <div className="step stepActive">
                 <FiMapPin />
                 <div>
                   <strong>1. Endereço</strong>
-                  <span>Escolha onde receber</span>
+                  <span>Local de entrega</span>
                 </div>
               </div>
 
-              <div className={styles.step}>
+              <div className="step">
                 <FiTruck />
                 <div>
                   <strong>2. Entrega</strong>
-                  <span>Envio e prazo</span>
+                  <span>Frete e prazo</span>
                 </div>
               </div>
 
-              <div className={styles.step}>
+              <div className="step">
                 <FiCreditCard />
                 <div>
                   <strong>3. Pagamento</strong>
-                  <span>Concluir pedido</span>
+                  <span>Concluir compra</span>
                 </div>
               </div>
             </section>
 
-            {loading && (
-              <div className={`${styles.loadingCard} ${styles.glass}`}>
-                Carregando informações do checkout...
+            {loading ? (
+              <div className="loadingCard glass">
+                Carregando checkout...
               </div>
-            )}
-
-            {!loading && (
-              <div className={styles.checkoutGrid}>
-                <section className={styles.checkoutMain}>
-                  <div className={`${styles.panel} ${styles.glass}`}>
-                    <div className={styles.panelHeader}>
+            ) : (
+              <div className="checkoutGrid">
+                <section className="checkoutMain">
+                  <div className="panel glass">
+                    <div className="panelHeader">
                       <h2>Endereço de entrega</h2>
-                      <p>
-                        Selecione ou cadastre o local para receber seu pedido.
-                      </p>
+                      <p>Selecione ou cadastre um endereço para continuar.</p>
                     </div>
 
                     {enderecos.length === 0 ? (
-                      <div className={styles.addressForm}>
+                      <div className="addressForm">
                         <h3>Cadastrar endereço</h3>
-                        <p>
-                          Digite o CEP para preencher rua, bairro, cidade e
-                          estado automaticamente.
-                        </p>
 
-                        <div className={styles.formGrid}>
+                        <div className="formGrid">
                           <label>
                             <span>CEP</span>
-                            <div className={styles.cepRow}>
+                            <div className="cepRow">
                               <input
-                                placeholder="Ex: 13000-000"
+                                placeholder="00000-000"
                                 value={formEndereco.cep}
                                 onChange={(e) =>
                                   alterarCampoEndereco("cep", e.target.value)
@@ -152,7 +138,7 @@ export default function CheckoutPage() {
 
                               <button
                                 type="button"
-                                className={styles.cepButton}
+                                className="cepButton"
                                 onClick={() => buscarCep()}
                                 disabled={buscandoCep}
                               >
@@ -165,7 +151,6 @@ export default function CheckoutPage() {
                           <label>
                             <span>Rua</span>
                             <input
-                              placeholder="Nome da rua"
                               value={formEndereco.rua}
                               onChange={(e) =>
                                 alterarCampoEndereco("rua", e.target.value)
@@ -176,7 +161,6 @@ export default function CheckoutPage() {
                           <label>
                             <span>Número</span>
                             <input
-                              placeholder="Ex: 123"
                               value={formEndereco.numero}
                               onChange={(e) =>
                                 alterarCampoEndereco("numero", e.target.value)
@@ -187,13 +171,9 @@ export default function CheckoutPage() {
                           <label>
                             <span>Complemento</span>
                             <input
-                              placeholder="Apto, bloco, referência..."
                               value={formEndereco.complemento}
                               onChange={(e) =>
-                                alterarCampoEndereco(
-                                  "complemento",
-                                  e.target.value
-                                )
+                                alterarCampoEndereco("complemento", e.target.value)
                               }
                             />
                           </label>
@@ -201,7 +181,6 @@ export default function CheckoutPage() {
                           <label>
                             <span>Bairro</span>
                             <input
-                              placeholder="Nome do bairro"
                               value={formEndereco.bairro}
                               onChange={(e) =>
                                 alterarCampoEndereco("bairro", e.target.value)
@@ -212,7 +191,6 @@ export default function CheckoutPage() {
                           <label>
                             <span>Cidade</span>
                             <input
-                              placeholder="Nome da cidade"
                               value={formEndereco.cidade}
                               onChange={(e) =>
                                 alterarCampoEndereco("cidade", e.target.value)
@@ -223,7 +201,6 @@ export default function CheckoutPage() {
                           <label>
                             <span>Estado</span>
                             <input
-                              placeholder="Ex: SP"
                               value={formEndereco.estado}
                               onChange={(e) =>
                                 alterarCampoEndereco("estado", e.target.value)
@@ -233,30 +210,21 @@ export default function CheckoutPage() {
                           </label>
                         </div>
 
-                        {erroEndereco && (
-                          <p className={styles.formError}>{erroEndereco}</p>
-                        )}
-
-                        {sucessoEndereco && (
-                          <p className={styles.formSuccess}>
-                            {sucessoEndereco}
-                          </p>
-                        )}
+                        {erroEndereco && <p className="formError">{erroEndereco}</p>}
+                        {sucessoEndereco && <p className="formSuccess">{sucessoEndereco}</p>}
 
                         <button
                           type="button"
-                          className={`${styles.btnPrimary} ${styles.full}`}
+                          className="btnPrimary full"
                           onClick={cadastrarEndereco}
                           disabled={salvandoEndereco || buscandoCep}
                         >
-                          {salvandoEndereco
-                            ? "Salvando endereço..."
-                            : "Salvar endereço"}
+                          {salvandoEndereco ? "Salvando..." : "Salvar endereço"}
                           <FiCheckCircle />
                         </button>
                       </div>
                     ) : (
-                      <div className={styles.addressList}>
+                      <div className="addressList">
                         {enderecos.map((endereco) => {
                           const id = getEnderecoId(endereco);
                           const ativo = enderecoSelecionado === id;
@@ -265,65 +233,40 @@ export default function CheckoutPage() {
                             <button
                               key={id}
                               type="button"
-                              className={`${styles.addressCard} ${
-                                ativo ? styles.addressCardActive : ""
-                              }`}
+                              className={`addressCard ${ativo ? "addressCardActive" : ""}`}
                               onClick={() => setEnderecoSelecionado(id)}
                             >
-                              <div className={styles.addressIcon}>
+                              <div className="addressIcon">
                                 <FiMapPin />
                               </div>
 
-                              <div className={styles.addressInfo}>
+                              <div className="addressInfo">
                                 <strong>
-                                  {endereco.rua ||
-                                    endereco.endereco ||
-                                    "Endereço sem nome"}
-                                  , {endereco.numero || "S/N"}
+                                  {endereco.rua || endereco.endereco || "Endereço"}, {endereco.numero || "S/N"}
                                 </strong>
-
-                                {endereco.complemento && (
-                                  <span>{endereco.complemento}</span>
-                                )}
-
-                                <span>
-                                  {endereco.bairro || "Bairro não informado"}
-                                </span>
-
-                                <span>
-                                  {endereco.cidade || "Cidade"} -{" "}
-                                  {endereco.estado || "UF"}
-                                </span>
-
+                                {endereco.complemento && <span>{endereco.complemento}</span>}
+                                <span>{endereco.bairro}</span>
+                                <span>{endereco.cidade} - {endereco.estado}</span>
                                 {endereco.cep && <span>CEP {endereco.cep}</span>}
                               </div>
 
-                              {ativo && (
-                                <FiCheckCircle
-                                  className={styles.addressCheck}
-                                />
-                              )}
+                              {ativo && <FiCheckCircle className="addressCheck" />}
                             </button>
                           );
                         })}
                       </div>
                     )}
 
-                    <div className={styles.panelActions}>
-                      <Link href="/Carrinho" className={styles.btnSecondary}>
+                    <div className="panelActions">
+                      <Link href="/Carrinho" className="btnSecondary">
                         Voltar ao carrinho
                       </Link>
 
                       <button
                         type="button"
-                        className={styles.btnPrimary}
+                        className="btnPrimary"
                         onClick={finalizarCheckout}
-                        disabled={
-                          processando ||
-                          salvandoEndereco ||
-                          !enderecos.length ||
-                          !enderecoSelecionado
-                        }
+                        disabled={processando || salvandoEndereco || !enderecos.length || !enderecoSelecionado}
                       >
                         {processando ? "Processando..." : "Ir para pagamento"}
                         <FiArrowRight />
@@ -332,69 +275,60 @@ export default function CheckoutPage() {
                   </div>
                 </section>
 
-                <aside className={styles.checkoutAside}>
-                  <div className={`${styles.summaryCard} ${styles.glass}`}>
-                    <div className={styles.summaryHeader}>
+                <aside className="checkoutAside">
+                  <div className="summaryCard glass">
+                    <div className="summaryHeader">
                       <h2>Resumo do pedido</h2>
-                      <p>{itens.length} produto(s) no carrinho</p>
+                      <p>{itens.length} produto(s)</p>
                     </div>
 
-                    <div className={styles.summaryItems}>
+                    <div className="summaryItems">
                       {itens.map((item) => {
                         const nome = getItemNome(item);
                         const imagem = getItemImagem(item);
-                        const qtd = getItemQuantidade(item);
-                        const subtotal = getItemSubtotal(item);
 
                         return (
-                          <div
-                            className={styles.summaryItem}
-                            key={String(getItemId(item))}
-                          >
-                            <div className={styles.summaryImageWrap}>
+                          <div className="summaryItem" key={String(getItemId(item))}>
+                            <div className="summaryImageWrap">
                               <Image
                                 src={imagem}
                                 alt={nome}
                                 width={52}
                                 height={52}
-                                className={styles.summaryImage}
+                                className="summaryImage"
                               />
                             </div>
 
-                            <div className={styles.summaryInfo}>
+                            <div className="summaryInfo">
                               <strong>{nome}</strong>
-                              <span>Qtd: {qtd}</span>
+                              <span>Qtd: {getItemQuantidade(item)}</span>
                             </div>
 
-                            <div className={styles.summaryPrice}>
-                              {formatarMoeda(subtotal)}
+                            <div className="summaryPrice">
+                              {formatarMoeda(getItemSubtotal(item))}
                             </div>
                           </div>
                         );
                       })}
                     </div>
 
-                    <div className={styles.summaryBox}>
-                      <div className={styles.summaryRow}>
+                    <div className="summaryBox">
+                      <div className="summaryRow">
                         <span>Subtotal</span>
                         <strong>{formatarMoeda(subtotalItens)}</strong>
                       </div>
 
-                      <div className={styles.summaryRow}>
+                      <div className="summaryRow">
                         <span>Frete</span>
-                        <strong>
-                          {valorFrete > 0
-                            ? formatarMoeda(valorFrete)
-                            : "Grátis"}
-                        </strong>
+                        <strong>{valorFrete > 0 ? formatarMoeda(valorFrete) : "Grátis"}</strong>
                       </div>
 
-                      <div className={styles.summaryRow}>
+                      <div className="summaryRow">
                         <span>Desconto</span>
                         <strong>- {formatarMoeda(valorDesconto)}</strong>
                       </div>
 
-                      <div className={styles.summaryTotal}>
+                      <div className="summaryTotal">
                         <span>Total</span>
                         <strong>{formatarMoeda(valorTotal)}</strong>
                       </div>
@@ -402,21 +336,16 @@ export default function CheckoutPage() {
 
                     <button
                       type="button"
-                      className={`${styles.btnPrimary} ${styles.full}`}
+                      className="btnPrimary full"
                       onClick={finalizarCheckout}
-                      disabled={
-                        processando ||
-                        salvandoEndereco ||
-                        !enderecos.length ||
-                        !enderecoSelecionado
-                      }
+                      disabled={processando || salvandoEndereco || !enderecos.length || !enderecoSelecionado}
                     >
                       {processando ? "Processando..." : "Ir para pagamento"}
                       <FiArrowRight />
                     </button>
 
-                    <p className={styles.summaryNote}>
-                      Pagamento seguro, dados protegidos e experiência premium.
+                    <p className="summaryNote">
+                      Compra segura com dados protegidos.
                     </p>
                   </div>
                 </aside>

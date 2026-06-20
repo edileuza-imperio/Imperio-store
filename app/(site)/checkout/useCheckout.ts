@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { InicioApi } from "@/services/api/api";
 import { imagemFundo } from "@/components/Bibioteca/imagem";
+import { rotas } from "@/components/Bibioteca/config/rotas";
+
 
 type AnyRecord = Record<string, any>;
 
@@ -120,14 +122,14 @@ export function getItemId(item: ItemCarrinho) {
 }
 
 export function getItemNome(item: ItemCarrinho) {
-  const nome =
-    item.produto?.nome ??
-    item.produto?.titulo ??
-    item.produto_nome ??
-    item.nome ??
-    item.titulo;
-
-  return nome?.trim() ? nome : "Produto sem nome";
+  return (
+    item.produto?.nome ||
+    item.produto?.titulo ||
+    item.produto_nome ||
+    item.nome ||
+    item.titulo ||
+    "Produto sem nome"
+  );
 }
 
 export function getItemImagem(item: ItemCarrinho) {
@@ -156,9 +158,7 @@ export function getItemSubtotal(item: ItemCarrinho) {
     (item.preco_promocional_unitario != null
       ? normalizarNumero(item.preco_promocional_unitario) *
         getItemQuantidade(item)
-      : item.preco_unitario != null
-        ? normalizarNumero(item.preco_unitario) * getItemQuantidade(item)
-        : 0);
+      : normalizarNumero(item.preco_unitario) * getItemQuantidade(item));
 
   return normalizarNumero(subtotal);
 }
@@ -247,9 +247,9 @@ export function useCheckout() {
       setLoading(true);
 
       const [enderecoRes, carrinhoRes, itensRes] = await Promise.all([
-        InicioApi.get<any>("/usuario/endereco", { withCredentials: true }),
-        InicioApi.get<any>("/carrinho", { withCredentials: true }),
-        InicioApi.get<any>("/carrinho/itens", { withCredentials: true }),
+        InicioApi.get<any>(rotas.usuarios.enderecos, { withCredentials: true }),
+        InicioApi.get<any>(rotas.carrinho.buscar, { withCredentials: true }),
+        InicioApi.get<any>(rotas.carrinho.itens, { withCredentials: true }),
       ]);
 
       const listaEnderecos = extrairLista<Endereco>(enderecoRes?.data ?? {});
@@ -306,7 +306,7 @@ export function useCheckout() {
       setSucessoEndereco("");
 
       await InicioApi.post(
-        "/usuario/endereco",
+        rotas.usuarios.enderecos,
         {
           cep: formEndereco.cep,
           endereco: formEndereco.rua,
@@ -336,12 +336,11 @@ export function useCheckout() {
     } catch (error: any) {
       console.error("Erro ao cadastrar endereço:", error);
 
-      const mensagem =
+      setErroEndereco(
         error?.response?.data?.mensagem ||
-        error?.response?.data?.erro ||
-        "Erro ao cadastrar endereço.";
-
-      setErroEndereco(mensagem);
+          error?.response?.data?.erro ||
+          "Erro ao cadastrar endereço."
+      );
     } finally {
       setSalvandoEndereco(false);
     }
@@ -396,9 +395,11 @@ export function useCheckout() {
         valor_total: valorTotal,
       };
 
-      const response = await InicioApi.post<any>("/pedido/checkout", payload, {
-        withCredentials: true,
-      });
+      const response = await InicioApi.post<any>(
+        rotas.pedidos.checkout,
+        payload,
+        { withCredentials: true }
+      );
 
       const responseData: AnyRecord = response?.data ?? {};
 
@@ -417,7 +418,7 @@ export function useCheckout() {
         return;
       }
 
-      router.push(`/Carrinho/pagamento/${pedidoId}`);
+      router.push(rotas.paginas.pagamento(pedidoId));
     } catch (error) {
       console.error("Erro ao finalizar checkout:", error);
       alert("Erro ao finalizar pedido.");

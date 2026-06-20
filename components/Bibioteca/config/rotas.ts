@@ -21,6 +21,7 @@ export const rotas = {
   paginas: {
     login: "/login",
     carrinho: "/checkout",
+    pagamento: (pedidoId: Id) => `/Carrinho/pagamento/${pedidoId}`,
   },
 
   auth: {
@@ -62,6 +63,9 @@ export const rotas = {
     listar: "/usuarios",
     buscar: (id: Id) => `/usuario/${id}`,
     criar: "/criarusuarios",
+
+    enderecos: "/usuario/endereco",
+
     atualizar: (id: Id) => `/usuario/${id}`,
     atualizarSenha: (id: Id) => `/usuario/${id}/senha`,
     atualizarPin: (id: Id) => `/usuario/${id}/pin`,
