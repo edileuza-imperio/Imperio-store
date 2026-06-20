@@ -3,7 +3,11 @@
 import { use, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
+
 import api from "@/Api/conectar";
+
 import { imagemFundo } from "@/components/Bibioteca/imagem";
 
 import {
@@ -15,6 +19,7 @@ import {
 } from "react-icons/fi";
 
 import "../../../../components/styles/vitrine.css";
+import { rotas } from "@/components/Bibioteca/config/rotas";
 
 type Produto = {
   id_produto: number;
@@ -111,6 +116,7 @@ function estoqueProduto(produto: Produto) {
 
 export default function VitrinePage({ params }: VitrinePageProps) {
   const { slug } = use(params);
+  const router = useRouter();
 
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [vitrine, setVitrine] = useState<Vitrine | null>(null);
@@ -118,6 +124,39 @@ export default function VitrinePage({ params }: VitrinePageProps) {
   const [porPagina, setPorPagina] = useState(12);
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [ordenacao, setOrdenacao] = useState("relevancia");
+  const [adicionando, setAdicionando] = useState<number | null>(null);
+
+  async function adicionarCarrinho(produto: Produto) {
+    try {
+      setAdicionando(produto.id_produto);
+
+      await api.post(rotas.carrinho.adicionar, {
+        produto_id: produto.id_produto,
+        quantidade: 1,
+      });
+
+      toast.success("Produto adicionado ao carrinho!");
+      window.dispatchEvent(new CustomEvent("carrinhoAtualizado"));
+    } catch (error: any) {
+      console.error("Erro ao adicionar ao carrinho:", error);
+
+      const mensagem =
+        error?.response?.data?.erro ||
+        error?.response?.data?.mensagem ||
+        "Não foi possível adicionar ao carrinho.";
+
+      toast.error(mensagem);
+
+      if (
+        String(mensagem).toLowerCase().includes("login") ||
+        error?.response?.status === 401
+      ) {
+        router.push(rotas.paginas.login);
+      }
+    } finally {
+      setAdicionando(null);
+    }
+  }
 
   useEffect(() => {
     let ativo = true;
@@ -126,7 +165,7 @@ export default function VitrinePage({ params }: VitrinePageProps) {
       try {
         setLoading(true);
 
-        const vitrineRes = await api.get(`/vitrine/slug/${slug}`);
+        const vitrineRes = await api.get(rotas.vitrines.buscarPorSlug(slug));
         const vitrineData = pegarDados<Vitrine | null>(vitrineRes);
 
         if (!ativo) return;
@@ -138,9 +177,8 @@ export default function VitrinePage({ params }: VitrinePageProps) {
           return;
         }
 
-        const itensRes = await api.get(`/vitrine/${vitrineData.id_vitrine}/itens`);
+        const itensRes = await api.get(rotas.vitrines.itens(vitrineData.id_vitrine));
         const itensData = pegarDados<Item[]>(itensRes);
-
         const itens = Array.isArray(itensData) ? itensData : [];
 
         const itensAtivos = itens
@@ -152,7 +190,7 @@ export default function VitrinePage({ params }: VitrinePageProps) {
             if (!item.produto_id) return null;
 
             try {
-              const res = await api.get(`/produto/${item.produto_id}`);
+              const res = await api.get(rotas.produtos.buscar(item.produto_id));
               const produto = pegarDados<Produto | null>(res);
 
               if (!produto || !produtoAtivo(produto)) return null;
@@ -180,7 +218,6 @@ export default function VitrinePage({ params }: VitrinePageProps) {
         );
 
         if (!ativo) return;
-
         setProdutos(lista.filter(Boolean) as Produto[]);
       } catch (error) {
         console.error("Erro ao carregar vitrine:", error);
@@ -320,6 +357,7 @@ export default function VitrinePage({ params }: VitrinePageProps) {
                   const imagemProduto = imagemFundo(produto.imagem);
                   const estoque = estoqueProduto(produto);
                   const indisponivel = estoque <= 0;
+                  const carregandoBotao = adicionando === produto.id_produto;
 
                   return (
                     <article key={produto.id_produto} className="vitrineCard">
@@ -359,9 +397,17 @@ export default function VitrinePage({ params }: VitrinePageProps) {
                         </div>
 
                         <div className="vitrineActions">
-                          <button type="button" disabled={indisponivel}>
+                          <button
+                            type="button"
+                            onClick={() => adicionarCarrinho(produto)}
+                            disabled={indisponivel || carregandoBotao}
+                          >
                             <FiShoppingCart />
-                            {indisponivel ? "Esgotado" : "Carrinho"}
+                            {indisponivel
+                              ? "Esgotado"
+                              : carregandoBotao
+                              ? "Adicionando..."
+                              : "Adicionar"}
                           </button>
 
                           <Link href={produtoHref}>

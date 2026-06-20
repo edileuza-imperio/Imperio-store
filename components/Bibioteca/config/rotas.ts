@@ -8,36 +8,40 @@ export const rotas = {
     listar: "/site-configs",
     buscar: (id: Id) => `/site-config/${id}`,
     menu: "/menus",
-    vermais: "/Vitrine/{slug}",
+    vermais: (slug: Id) => `/vitrine/${slug}`,
   },
 
   inicio: {
     home: "/",
-    navbar: "/navbar",
+    navbar: "/bootstrap/navbar",
+    homeBootstrap: "/bootstrap/home",
+    cards: "/cards",
   },
 
   paginas: {
     login: "/login",
+    carrinho: "/carrinho",
   },
-  painel: {
-    campanhas: "/painel/campanhas",
-    campanhaCadastrar: "/painel/campanha",
-    campanhaBuscar: (id: number | string) => `/painel/campanha/${id}`,
-    campanhaAtualizar: (id: number | string) => `/painel/campanha/${id}`,
-    campanhaStatus: (id: number | string) => `/painel/campanha/${id}/status`,
-    status: "/painel/status",
-  },
+
   auth: {
     me: "/me",
     logout: "/logout",
     loginEtapa1: "/login",
     loginEtapa2: "/login2",
+    verificarPainel: "/verificar-painel",
   },
 
   configLogin: "/config-login",
 
   carrinho: {
+    buscar: "/carrinho",
+    itens: "/carrinho/itens",
     adicionar: "/carrinho/adicionar",
+    atualizarItem: (itemId: Id) => `/carrinho/item/${itemId}`,
+    removerItem: (itemId: Id) => `/carrinho/item/${itemId}`,
+    recalcular: "/carrinho/recalcular",
+    finalizar: "/carrinho/finalizar",
+    cancelar: "/carrinho/cancelar",
   },
 
   menu: {
@@ -103,6 +107,7 @@ export const rotas = {
   categorias: {
     listar: "/categorias",
     buscar: (id: Id) => `/categoria/${id}`,
+    buscarPorSlug: (slug: Id) => `/categoria/slug/${slug}`,
     listarPorSite: (siteConfigId: Id) => `/categorias/site/${siteConfigId}`,
     listarAtivasPorSite: (siteConfigId: Id) =>
       `/categorias/site/${siteConfigId}/ativas`,
@@ -110,6 +115,48 @@ export const rotas = {
     atualizar: (id: Id) => `/categoria/${id}`,
     atualizarStatus: (id: Id) => `/categoria/${id}/status`,
     deletar: (id: Id) => `/categoria/${id}`,
+  },
+
+  produtos: {
+    listar: "/produtos",
+    buscar: (id: Id) => `/produto/${id}`,
+    buscarPorSlug: (slug: Id) => `/produto/slug/${slug}`,
+    listarPorCategoria: (categoriaId: Id) =>
+      `/produtos/categoria/${categoriaId}`,
+    listarPorCategoriaSlug: (slug: Id) =>
+      `/produtos/categoria/slug/${slug}`,
+    criar: "/produto",
+    atualizar: (id: Id) => `/produto/${id}`,
+    deletar: (id: Id) => `/produto/${id}`,
+
+    estoque: (produtoId: Id) => `/produto/${produtoId}/estoque`,
+    zerarEstoque: "/painel/produtos/zerar-estoque",
+    zerarEstoqueProduto: (id: Id) =>
+      `/painel/produto/${id}/zerar-estoque`,
+    atualizarEstoquePainel: (id: Id) => `/painel/produto/${id}/estoque`,
+
+    destaques: "/produtos-destaque",
+    destaquesPorTipo: (tipo: Id) => `/produtos-destaque/${tipo}`,
+    definirDestaque: (produtoId: Id) => `/produto/${produtoId}/destaque`,
+    removerDestaque: (produtoId: Id) => `/produto/${produtoId}/destaque`,
+  },
+
+  vitrines: {
+    listar: "/vitrines",
+    listarComItens: "/vitrines/com-itens",
+    buscar: (id: Id) => `/vitrine/${id}`,
+    buscarPorSlug: (slug: Id) => `/vitrine/slug/${slug}`,
+    itens: (id: Id) => `/vitrine/${id}/itens`,
+    criar: "/vitrine",
+    atualizar: (id: Id) => `/vitrine/${id}`,
+    atualizarStatus: (id: Id) => `/vitrine/${id}/status`,
+    deletar: (id: Id) => `/vitrine/${id}`,
+
+    adicionarItem: (id: Id) => `/vitrine/${id}/item`,
+    atualizarItem: (itemId: Id) => `/vitrine/item/${itemId}`,
+    removerItem: (itemId: Id) => `/vitrine/item/${itemId}`,
+    removerTodosItens: (id: Id) => `/vitrine/${id}/itens`,
+    uploadImagem: "/vitrine/upload-imagem",
   },
 
   banners: {
@@ -123,5 +170,79 @@ export const rotas = {
     incrementarClick: (id: Id) => `/banner/${id}/click`,
   },
 
+  pedidos: {
+    listar: "/pedidos",
+    buscar: (id: Id) => `/pedido/${id}`,
+    buscarComItens: (id: Id) => `/pedido/${id}/com-itens`,
+    listarPorUsuario: (usuarioId: Id) => `/pedidos/usuario/${usuarioId}`,
+    buscarPorCarrinho: (carrinhoId: Id) => `/pedido/carrinho/${carrinhoId}`,
+    buscarPorPaymentId: (paymentId: Id) => `/pedido/payment/${paymentId}`,
+    buscarPorPreferenceId: (preferenceId: Id) =>
+      `/pedido/preference/${preferenceId}`,
+    buscarPorExternal: (externalReference: Id) =>
+      `/pedido/external/${externalReference}`,
+    criar: "/pedido",
+    checkout: "/pedido/checkout",
+    atualizar: (id: Id) => `/pedido/${id}`,
+    atualizarStatus: (id: Id) => `/pedido/${id}/status`,
+    atualizarPagamento: (id: Id) => `/pedido/${id}/pagamento`,
+    atualizarPreferencia: (id: Id) => `/pedido/${id}/preferencia`,
+    deletar: (id: Id) => `/pedido/${id}`,
+  },
+
+  mercadoPago: {
+    status: "/mercado/status",
+    metodos: "/mercado/metodos",
+    criarPreferencia: "/mercado/preferencia",
+    buscarPreferencia: (id: Id) => `/mercado/preferencia/${id}`,
+    atualizarPreferencia: (id: Id) => `/mercado/preferencia/${id}`,
+    pagamentoPix: "/mercado/pagamento/pix",
+    pagamentoCartao: "/mercado/pagamento/cartao",
+    pagamentoBoleto: "/mercado/pagamento/boleto",
+    verificarPagamento: "/mercado/pagamento/verificar",
+    verificarPagamentoGet: (id: Id) => `/mercado/pagamento/verificar/${id}`,
+    buscarPagamento: (id: Id) => `/mercado/pagamento/${id}`,
+    buscarPagamentoExternal: (externalReference: Id) =>
+      `/mercado/pagamento/external/${externalReference}`,
+    cancelarPagamento: (id: Id) => `/mercado/pagamento/${id}/cancelar`,
+    reembolsarPagamento: (id: Id) => `/mercado/pagamento/${id}/reembolso`,
+    webhook: "/mercado/webhook",
+    webhookMp: "/webhook/mp",
+    testarToken: "/mercado/testar-token",
+  },
+
+  mensagens: {
+    listar: "/mensagens",
+    buscar: (id: Id) => `/mensagem/${id}`,
+    criar: "/mensagem",
+    deletar: (id: Id) => `/mensagem/${id}`,
+    pedido: "/mensagem/pedido",
+    pedidoComNome: (nome: Id, pedidoId: Id) =>
+      `/mensagem/pedido/${nome}/${pedidoId}`,
+  },
+
+  painel: {
+    campanhas: "/painel/campanhas",
+    campanhaCadastrar: "/painel/campanha",
+    campanhaBuscar: (id: Id) => `/painel/campanha/${id}`,
+    campanhaAtualizar: (id: Id) => `/painel/campanha/${id}`,
+    campanhaStatus: (id: Id) => `/painel/campanha/${id}/status`,
+    status: "/painel/status",
+  },
+
+  upload: {
+    arquivo: (caminho: Id) => `/upload/${caminho}`,
+    midia: (tipo: Id, slug: Id, arquivo: Id) =>
+      `/midia/${tipo}/${slug}/${arquivo}`,
+  },
+
+  cache: {
+    listar: "/cache",
+    buscar: (key: Id) => `/cache/${key}`,
+    deletar: (key: Id) => `/cache/${key}`,
+  },
+
   admin,
 } as const;
+
+export type Rotas = typeof rotas;
