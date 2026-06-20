@@ -1,0 +1,741 @@
+/* =========================================================
+   DESTAQUES / VITRINE PREMIUM
+   Arquivo: Destaques.css
+========================================================= */
+
+.destaques-section {
+  position: relative;
+  width: 100%;
+  padding: 56px 0;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(149, 67, 79, 0.18), transparent 32%),
+    radial-gradient(circle at 92% 12%, rgba(245, 184, 155, 0.24), transparent 34%),
+    linear-gradient(180deg, #fffaf7 0%, #f9efeb 48%, #fffaf7 100%);
+}
+
+.destaques-section::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(90, 41, 48, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(90, 41, 48, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.55), transparent 80%);
+}
+
+.destaques-container {
+  position: relative;
+  z-index: 1;
+  width: min(1280px, 100%);
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.destaques-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 30px;
+}
+
+.destaques-header-text {
+  min-width: 0;
+}
+
+.destaques-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 8px 15px;
+  border-radius: 999px;
+  background: rgba(90, 41, 48, 0.08);
+  color: #7b3741;
+  border: 1px solid rgba(90, 41, 48, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  font-size: 0.74rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.destaques-title {
+  max-width: 780px;
+  margin: 14px 0 9px;
+  color: #261315;
+  font-size: clamp(1.65rem, 3vw, 2.65rem);
+  line-height: 1.05;
+  font-weight: 950;
+  letter-spacing: -0.045em;
+}
+
+.destaques-description {
+  max-width: 680px;
+  margin: 0;
+  color: #735a5e;
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+/* =========================================================
+   BOTÕES DO HEADER
+========================================================= */
+
+.destaques-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.destaques-nav-button,
+.destaques-ver-mais-button,
+.destaques-cart-button,
+.destaques-view-button {
+  border: 0;
+  outline: none;
+  text-decoration: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    background 0.22s ease,
+    color 0.22s ease,
+    opacity 0.22s ease,
+    filter 0.22s ease;
+}
+
+.destaques-nav-button {
+  width: 46px;
+  height: 46px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  color: #5a2930;
+  font-size: 1.35rem;
+  border: 1px solid rgba(90, 41, 48, 0.1);
+  box-shadow:
+    0 14px 30px rgba(74, 34, 39, 0.13),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(12px);
+}
+
+.destaques-nav-button:hover:not(:disabled) {
+  transform: translateY(-3px);
+  background: #5a2930;
+  color: #fff;
+  box-shadow: 0 18px 34px rgba(90, 41, 48, 0.26);
+}
+
+.destaques-nav-button:active:not(:disabled) {
+  transform: translateY(-1px) scale(0.97);
+}
+
+.destaques-nav-button:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.destaques-ver-mais-button {
+  position: relative;
+  min-height: 46px;
+  padding: 0 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #271315 0%, #5a2930 48%, #9b4653 100%);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 900;
+  box-shadow: 0 16px 32px rgba(90, 41, 48, 0.25);
+}
+
+.destaques-ver-mais-button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -90%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  transform: skewX(-18deg);
+  transition: 0.55s ease;
+}
+
+.destaques-ver-mais-button:hover::before {
+  left: 130%;
+}
+
+.destaques-ver-mais-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 38px rgba(90, 41, 48, 0.32);
+}
+
+/* =========================================================
+   CAROUSEL
+========================================================= */
+
+.destaques-carousel-shell {
+  position: relative;
+}
+
+.destaques-carousel {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(276px, 304px);
+  gap: 20px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  padding: 6px 4px 22px;
+  scrollbar-width: none;
+}
+
+.destaques-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+/* =========================================================
+   CARD
+========================================================= */
+
+.destaques-card {
+  position: relative;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  overflow: hidden;
+  border-radius: 30px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95), rgba(255, 250, 247, 0.92));
+  border: 1px solid rgba(91, 47, 53, 0.1);
+  box-shadow:
+    0 18px 44px rgba(71, 38, 42, 0.11),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  transition:
+    transform 0.28s ease,
+    box-shadow 0.28s ease,
+    border-color 0.28s ease;
+}
+
+.destaques-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.46), transparent 42%);
+  opacity: 0;
+  transition: opacity 0.28s ease;
+}
+
+.destaques-card:hover {
+  transform: translateY(-8px);
+  border-color: rgba(123, 55, 65, 0.2);
+  box-shadow:
+    0 26px 62px rgba(71, 38, 42, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.destaques-card:hover::after {
+  opacity: 1;
+}
+
+/* =========================================================
+   IMAGEM
+========================================================= */
+
+.destaques-media {
+  position: relative;
+  height: 240px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 35% 20%, rgba(255, 255, 255, 0.95), transparent 28%),
+    linear-gradient(135deg, #f1e3df, #fff7f3);
+}
+
+.destaques-image-link {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.destaques-image {
+  object-fit: cover;
+  transform: scale(1.01);
+  transition:
+    transform 0.45s ease,
+    filter 0.25s ease;
+}
+
+.destaques-card:hover .destaques-image {
+  transform: scale(1.08);
+}
+
+.destaques-image-sold-out {
+  filter: grayscale(0.9) brightness(0.72);
+}
+
+.destaques-no-image {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: #8b666a;
+  font-size: 0.9rem;
+  font-weight: 900;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.9), transparent 34%),
+    linear-gradient(135deg, #f3e2dd, #fff8f5);
+}
+
+/* =========================================================
+   BADGES
+========================================================= */
+
+.destaques-economy-badge,
+.destaques-sold-out-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 2;
+  max-width: calc(100% - 28px);
+  padding: 8px 13px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 950;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+}
+
+.destaques-economy-badge {
+  background: linear-gradient(135deg, #a84252, #5a2930);
+}
+
+.destaques-sold-out-badge {
+  background: linear-gradient(135deg, #202020, #646464);
+}
+
+/* =========================================================
+   CONTEÚDO
+========================================================= */
+
+.destaques-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 18px;
+}
+
+.destaques-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  min-height: 27px;
+  margin-bottom: 10px;
+}
+
+.destaques-chip {
+  max-width: 100%;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(123, 55, 65, 0.08);
+  color: #7b3741;
+  border: 1px solid rgba(123, 55, 65, 0.08);
+  font-size: 0.7rem;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.destaques-card-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.destaques-card-title {
+  margin: 0;
+  color: #261315;
+  font-size: 1.06rem;
+  line-height: 1.27;
+  font-weight: 950;
+  letter-spacing: -0.025em;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.destaques-card-link:hover .destaques-card-title {
+  color: #8a3f49;
+}
+
+.destaques-subtitle,
+.destaques-text {
+  color: #715b5f;
+  line-height: 1.52;
+  font-size: 0.88rem;
+}
+
+.destaques-subtitle {
+  margin: 8px 0 0;
+  font-weight: 850;
+}
+
+.destaques-text {
+  margin: 8px 0 0;
+  min-height: 42px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* =========================================================
+   PREÇOS
+========================================================= */
+
+.destaques-prices {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 15px;
+}
+
+.destaques-old-price {
+  color: #a18a8d;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-decoration: line-through;
+}
+
+.destaques-price {
+  color: #5a2930;
+  font-size: 1.38rem;
+  line-height: 1.1;
+  font-weight: 950;
+  letter-spacing: -0.045em;
+}
+
+/* =========================================================
+   ESTOQUE
+========================================================= */
+
+.destaques-stock-info {
+  margin-top: 11px;
+  padding: 8px 11px;
+  border-radius: 13px;
+  font-size: 0.78rem;
+  line-height: 1.2;
+  font-weight: 900;
+}
+
+.destaques-stock-ok {
+  color: #1d6b3c;
+  background: rgba(29, 107, 60, 0.09);
+  border: 1px solid rgba(29, 107, 60, 0.1);
+}
+
+.destaques-stock-bad {
+  color: #9c2c38;
+  background: rgba(156, 44, 56, 0.09);
+  border: 1px solid rgba(156, 44, 56, 0.1);
+}
+
+/* =========================================================
+   AÇÕES DO CARD
+========================================================= */
+
+.destaques-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 16px;
+}
+
+.destaques-cart-button,
+.destaques-view-button {
+  min-height: 46px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 16px;
+  font-size: 0.86rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.destaques-cart-button {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #5a2930 0%, #8f3f4c 55%, #b85866 100%);
+  color: #fff;
+  box-shadow: 0 14px 26px rgba(90, 41, 48, 0.24);
+}
+
+.destaques-cart-button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -90%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.26), transparent);
+  transform: skewX(-18deg);
+  transition: 0.55s ease;
+}
+
+.destaques-cart-button:hover:not(:disabled)::before {
+  left: 130%;
+}
+
+.destaques-cart-button:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 18px 32px rgba(90, 41, 48, 0.32);
+  filter: brightness(1.04);
+}
+
+.destaques-cart-button:active:not(:disabled) {
+  transform: translateY(-1px) scale(0.98);
+}
+
+.destaques-view-button {
+  background: rgba(255, 255, 255, 0.88);
+  color: #5a2930;
+  border: 1px solid rgba(90, 41, 48, 0.13);
+  box-shadow: 0 10px 20px rgba(74, 34, 39, 0.07);
+}
+
+.destaques-view-button:hover {
+  transform: translateY(-3px);
+  background: #fff4ef;
+  border-color: rgba(90, 41, 48, 0.22);
+  box-shadow: 0 14px 26px rgba(74, 34, 39, 0.12);
+}
+
+.destaques-cart-button:disabled,
+.destaques-cart-button-disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+  filter: grayscale(0.25);
+  box-shadow: none;
+}
+
+.destaques-inline-icon {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.destaques-cart-button span,
+.destaques-view-button span,
+.destaques-ver-mais-button span {
+  position: relative;
+  z-index: 1;
+}
+
+/* =========================================================
+   ANIMAÇÃO LOADER
+========================================================= */
+
+.destaques-spin {
+  animation: destaquesSpin 0.8s linear infinite;
+}
+
+@keyframes destaquesSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* =========================================================
+   FADE NAS LATERAIS
+========================================================= */
+
+.destaques-carousel-fade {
+  pointer-events: none;
+  position: absolute;
+  top: 0;
+  bottom: 22px;
+  width: 52px;
+  z-index: 4;
+}
+
+.destaques-left {
+  left: 0;
+  background: linear-gradient(90deg, #fffaf7 0%, rgba(255, 250, 247, 0.78) 36%, transparent 100%);
+}
+
+.destaques-right {
+  right: 0;
+  background: linear-gradient(270deg, #fffaf7 0%, rgba(255, 250, 247, 0.78) 36%, transparent 100%);
+}
+
+/* =========================================================
+   ACESSIBILIDADE
+========================================================= */
+
+.destaques-nav-button:focus-visible,
+.destaques-ver-mais-button:focus-visible,
+.destaques-cart-button:focus-visible,
+.destaques-view-button:focus-visible,
+.destaques-card-link:focus-visible,
+.destaques-image-link:focus-visible {
+  outline: 3px solid rgba(155, 70, 83, 0.35);
+  outline-offset: 3px;
+}
+
+/* =========================================================
+   RESPONSIVO
+========================================================= */
+
+@media (max-width: 1024px) {
+  .destaques-section {
+    padding: 48px 0;
+  }
+
+  .destaques-carousel {
+    grid-auto-columns: minmax(270px, 31vw);
+  }
+}
+
+@media (max-width: 900px) {
+  .destaques-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  .destaques-header-actions {
+    width: 100%;
+  }
+
+  .destaques-ver-mais-button {
+    margin-left: auto;
+  }
+
+  .destaques-carousel {
+    grid-auto-columns: minmax(266px, 42vw);
+  }
+}
+
+@media (max-width: 680px) {
+  .destaques-container {
+    padding: 0 16px;
+  }
+
+  .destaques-header-actions {
+    display: grid;
+    grid-template-columns: 42px 42px 1fr;
+    width: 100%;
+  }
+
+  .destaques-nav-button {
+    width: 42px;
+    height: 42px;
+    font-size: 1.22rem;
+  }
+
+  .destaques-ver-mais-button {
+    width: 100%;
+    min-height: 42px;
+    padding: 0 15px;
+  }
+
+  .destaques-carousel {
+    grid-auto-columns: minmax(260px, 84vw);
+    gap: 16px;
+  }
+
+  .destaques-media {
+    height: 225px;
+  }
+
+  .destaques-carousel-fade {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .destaques-section {
+    padding: 38px 0;
+  }
+
+  .destaques-container {
+    padding: 0 14px;
+  }
+
+  .destaques-title {
+    font-size: clamp(1.45rem, 8vw, 2rem);
+  }
+
+  .destaques-description {
+    font-size: 0.92rem;
+  }
+
+  .destaques-card {
+    border-radius: 24px;
+  }
+
+  .destaques-media {
+    height: 214px;
+  }
+
+  .destaques-content {
+    padding: 15px;
+  }
+
+  .destaques-card-title {
+    font-size: 1rem;
+  }
+
+  .destaques-price {
+    font-size: 1.28rem;
+  }
+
+  .destaques-actions {
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  .destaques-cart-button,
+  .destaques-view-button {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 360px) {
+  .destaques-header-actions {
+    grid-template-columns: 40px 40px 1fr;
+  }
+
+  .destaques-carousel {
+    grid-auto-columns: minmax(238px, 86vw);
+  }
+
+  .destaques-media {
+    height: 198px;
+  }
+}

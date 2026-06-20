@@ -19,9 +19,18 @@ export const rotas = {
   },
 
   paginas: {
+    home: "/",
+
     login: "/login",
-    carrinho: "/checkout",
+
+    carrinho: "/Carrinho",
+    checkout: "/checkout",
+
     pagamento: (pedidoId: Id) => `/Carrinho/pagamento/${pedidoId}`,
+    pedidoConfirmado: (pedidoId: Id) => `/pedido-confirmado/${pedidoId}`,
+
+    vitrine: (slug: Id) => `/Vitrine/${slug}`,
+    vitrineVisualizar: (slug: Id) => `/Vitrine/visualizar/${slug}`,
   },
 
   auth: {

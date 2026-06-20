@@ -15,12 +15,12 @@ import {
   FiShoppingCart,
 } from "react-icons/fi";
 
-import styles from "./Destaques.module.css";
+import "./Destaques.css";
 
 import { formatarPreco } from "@/hooks/destaque/functions";
 import { moverCarousel } from "@/hooks/carrinho";
 import { useAutoplayRef, useCarouselRef } from "@/hooks/vitrine.service";
-
+import { rotas } from "@/components/Bibioteca/config/rotas";
 
 import { ItemResolvido, useVitrine, Vitrine } from "./useVitrine";
 import SkeletonDestaques from "./destaque/SkeletonDestaques";
@@ -64,11 +64,7 @@ function calcularDisponivel(item: any): number {
       0
   );
 
-  const reservado = numero(
-    item?.reservado ??
-      item?.entidade?.reservado ??
-      0
-  );
+  const reservado = numero(item?.reservado ?? item?.entidade?.reservado ?? 0);
 
   return Math.max(quantidade - reservado, 0);
 }
@@ -104,7 +100,7 @@ export default function Destaques({
         setAbrindoCarrinho(true);
 
         window.setTimeout(() => {
-          router.push("/Carrinho");
+          router.push(rotas.paginas.carrinho);
         }, 700);
 
         window.setTimeout(() => {
@@ -195,36 +191,42 @@ export default function Destaques({
 
   const linkVerMais =
     verMaisHref ||
-    (vitrine.slug ? `/Vitrine/${vitrine.slug}` : slug ? `/Vitrine/${slug}` : "#");
+    (vitrine.slug
+      ? rotas.paginas.vitrine(vitrine.slug)
+      : slug
+      ? rotas.paginas.vitrine(slug)
+      : "#");
 
   return (
     <section
-      className={`${styles.section} ${className}`}
+      className={`destaques-section ${className}`}
       onMouseEnter={() => setPausado(true)}
       onMouseLeave={() => setPausado(false)}
       onTouchStart={() => setPausado(true)}
       onTouchEnd={() => setPausado(false)}
     >
-      <div className={styles.container}>
-        <div className={styles.header}>
-          <div className={styles.headerText}>
-            <span className={styles.badge}>{vitrine?.tipo || "Vitrine"}</span>
+      <div className="destaques-container">
+        <div className="destaques-header">
+          <div className="destaques-header-text">
+            <span className="destaques-badge">
+              {vitrine?.tipo || "Vitrine"}
+            </span>
 
-            <h2 className={styles.title}>
+            <h2 className="destaques-title">
               {tituloPersonalizado || vitrine?.titulo || vitrine?.nome}
             </h2>
 
             {(subtituloPersonalizado || vitrine?.subtitulo) && (
-              <p className={styles.description}>
+              <p className="destaques-description">
                 {subtituloPersonalizado || vitrine?.subtitulo}
               </p>
             )}
           </div>
 
-          <div className={styles.headerActions}>
+          <div className="destaques-header-actions">
             <button
               type="button"
-              className={styles.navButton}
+              className="destaques-nav-button"
               onClick={() => moverCarousel(carouselRef.current, "prev")}
               disabled={!podeVoltar || abrindoCarrinho}
               aria-label="Anterior"
@@ -234,7 +236,7 @@ export default function Destaques({
 
             <button
               type="button"
-              className={styles.navButton}
+              className="destaques-nav-button"
               onClick={() => moverCarousel(carouselRef.current, "next")}
               disabled={!podeAvancar || abrindoCarrinho}
               aria-label="Próximo"
@@ -242,15 +244,15 @@ export default function Destaques({
               <FiChevronRight />
             </button>
 
-            <Link href={linkVerMais} className={styles.verMaisButton}>
+            <Link href={linkVerMais} className="destaques-ver-mais-button">
               <span>{verMaisTexto}</span>
-              <FiArrowRight className={styles.inlineIcon} />
+              <FiArrowRight className="destaques-inline-icon" />
             </Link>
           </div>
         </div>
 
-        <div className={styles.carouselShell}>
-          <div ref={carouselRef} className={styles.carousel}>
+        <div className="destaques-carousel-shell">
+          <div ref={carouselRef} className="destaques-carousel">
             {itens.map((item, index) => {
               const precoFormatado = formatarPreco(item.preco_final);
               const precoOriginalFormatado = formatarPreco(item.preco_original);
@@ -262,7 +264,7 @@ export default function Destaques({
                 (item.categoria_id ? String(item.categoria_id) : null);
 
               const linkVisualizarCard = slugVisualizacao
-                ? `/Vitrine/visualizar/${slugVisualizacao}`
+                ? rotas.paginas.vitrineVisualizar(slugVisualizacao)
                 : "#";
 
               const estaAdicionando =
@@ -274,79 +276,91 @@ export default function Destaques({
               return (
                 <article
                   key={String(item.id_vitrine_item)}
-                  className={`${styles.card} destaque-card`}
+                  className="destaques-card destaque-card"
                 >
-                  <div className={styles.media}>
-                    <Link href={linkVisualizarCard} className={styles.imageLink}>
+                  <div className="destaques-media">
+                    <Link
+                      href={linkVisualizarCard}
+                      className="destaques-image-link"
+                    >
                       {item.imagem_final ? (
                         <Image
                           src={item.imagem_final}
                           alt={item.titulo_final}
                           fill
                           sizes="(max-width: 480px) 88vw, (max-width: 768px) 82vw, (max-width: 1100px) 42vw, 296px"
-                          className={`${styles.image} ${
-                            esgotado ? styles.imageSoldOut : ""
+                          className={`destaques-image ${
+                            esgotado ? "destaques-image-sold-out" : ""
                           }`}
                           quality={80}
                           priority={index < 2}
                         />
                       ) : (
-                        <div className={styles.noImage}>
+                        <div className="destaques-no-image">
                           <span>Sem imagem</span>
                         </div>
                       )}
                     </Link>
 
                     {item.economia_final && !esgotado && (
-                      <span className={styles.economyBadge}>
+                      <span className="destaques-economy-badge">
                         {item.economia_final}
                       </span>
                     )}
 
                     {esgotado && (
-                      <span className={styles.soldOutBadge}>
+                      <span className="destaques-sold-out-badge">
                         Esgotado
                       </span>
                     )}
                   </div>
 
-                  <div className={styles.content}>
-                    <div className={styles.meta}>
+                  <div className="destaques-content">
+                    <div className="destaques-meta">
                       {item.marca_final && (
-                        <span className={styles.chip}>{item.marca_final}</span>
+                        <span className="destaques-chip">
+                          {item.marca_final}
+                        </span>
                       )}
 
                       {item.sku_final && (
-                        <span className={styles.chip}>SKU {item.sku_final}</span>
+                        <span className="destaques-chip">
+                          SKU {item.sku_final}
+                        </span>
                       )}
                     </div>
 
-                    <Link href={linkVisualizarCard} className={styles.cardLink}>
-                      <h3 className={styles.cardTitle}>
+                    <Link
+                      href={linkVisualizarCard}
+                      className="destaques-card-link"
+                    >
+                      <h3 className="destaques-card-title">
                         {item.titulo_final}
                       </h3>
                     </Link>
 
                     {item.subtitulo_final && (
-                      <p className={styles.subtitle}>
+                      <p className="destaques-subtitle">
                         {item.subtitulo_final}
                       </p>
                     )}
 
                     {item.descricao_final && (
-                      <p className={styles.text}>{item.descricao_final}</p>
+                      <p className="destaques-text">
+                        {item.descricao_final}
+                      </p>
                     )}
 
                     {(precoFormatado || precoOriginalFormatado) && (
-                      <div className={styles.prices}>
+                      <div className="destaques-prices">
                         {precoOriginalFormatado && (
-                          <span className={styles.oldPrice}>
+                          <span className="destaques-old-price">
                             {precoOriginalFormatado}
                           </span>
                         )}
 
                         {precoFormatado && (
-                          <strong className={styles.price}>
+                          <strong className="destaques-price">
                             {precoFormatado}
                           </strong>
                         )}
@@ -355,8 +369,10 @@ export default function Destaques({
 
                     {item.tipo_item === "produto" && (
                       <div
-                        className={`${styles.stockInfo} ${
-                          esgotado ? styles.stockBad : styles.stockOk
+                        className={`destaques-stock-info ${
+                          esgotado
+                            ? "destaques-stock-bad"
+                            : "destaques-stock-ok"
                         }`}
                       >
                         {esgotado
@@ -365,27 +381,27 @@ export default function Destaques({
                       </div>
                     )}
 
-                    <div className={styles.actions}>
+                    <div className="destaques-actions">
                       {item.tipo_item === "produto" ? (
                         <button
                           type="button"
-                          className={`${styles.cartButton} ${
-                            esgotado ? styles.cartButtonDisabled : ""
+                          className={`destaques-cart-button ${
+                            esgotado ? "destaques-cart-button-disabled" : ""
                           }`}
                           onClick={() => {
                             if (esgotado) return;
                             adicionarCarrinho(item);
                           }}
-                          disabled={estaAdicionando || abrindoCarrinho || esgotado}
+                          disabled={
+                            estaAdicionando || abrindoCarrinho || esgotado
+                          }
                         >
                           {estaAdicionando ? (
-                            <FiLoader
-                              className={`${styles.inlineIcon} ${styles.spin}`}
-                            />
+                            <FiLoader className="destaques-inline-icon destaques-spin" />
                           ) : abrindoCarrinho ? (
-                            <FiCheckCircle className={styles.inlineIcon} />
+                            <FiCheckCircle className="destaques-inline-icon" />
                           ) : (
-                            <FiShoppingCart className={styles.inlineIcon} />
+                            <FiShoppingCart className="destaques-inline-icon" />
                           )}
 
                           <span>
@@ -401,18 +417,18 @@ export default function Destaques({
                       ) : (
                         <Link
                           href={item.link_final || linkVisualizarCard}
-                          className={styles.cartButton}
+                          className="destaques-cart-button"
                         >
-                          <FiArrowRight className={styles.inlineIcon} />
+                          <FiArrowRight className="destaques-inline-icon" />
                           <span>Acessar</span>
                         </Link>
                       )}
 
                       <Link
                         href={linkVisualizarCard}
-                        className={styles.viewButton}
+                        className="destaques-view-button"
                       >
-                        <FiEye className={styles.inlineIcon} />
+                        <FiEye className="destaques-inline-icon" />
                         <span>Visualizar</span>
                       </Link>
                     </div>
@@ -422,8 +438,8 @@ export default function Destaques({
             })}
           </div>
 
-          <div className={`${styles.carouselFade} ${styles.left}`} />
-          <div className={`${styles.carouselFade} ${styles.right}`} />
+          <div className="destaques-carousel-fade destaques-left" />
+          <div className="destaques-carousel-fade destaques-right" />
         </div>
       </div>
 
