@@ -3,12 +3,19 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { FiMinus, FiPackage, FiPlus, FiShoppingCart, FiTrash2, FiX } from "react-icons/fi";
+import {
+  FiMinus,
+  FiPackage,
+  FiPlus,
+  FiShoppingCart,
+  FiTrash2,
+  FiX,
+} from "react-icons/fi";
 
 import api from "@/Api/conectar";
-
 import { imagemFundo } from "@/components/Bibioteca/imagem";
 import { rotas } from "@/components/Bibioteca/config/rotas";
+
 import "../../../components/styles/navbar/CarrinhoSidebar.css";
 
 type CarrinhoItem = {
@@ -75,7 +82,10 @@ export default function CarrinhoSidebar({ aberto, aoFechar }: Props) {
   }
 
   async function atualizarQuantidade(item: CarrinhoItem, novaQuantidade: number) {
-    if (novaQuantidade <= 0) return removerItem(item.id_carrinho_item);
+    if (novaQuantidade <= 0) {
+      await removerItem(item.id_carrinho_item);
+      return;
+    }
 
     try {
       setAlterando(item.id_carrinho_item);
@@ -124,12 +134,23 @@ export default function CarrinhoSidebar({ aberto, aoFechar }: Props) {
     };
   }, [aberto]);
 
-  const total = useMemo(() => {
-    return itens.reduce((soma, item) => {
+  const resumo = useMemo(() => {
+    const quantidade = itens.reduce(
+      (soma, item) => soma + Number(item.quantidade ?? 0),
+      0
+    );
+
+    const subtotal = itens.reduce((soma, item) => {
       if (Number(item.subtotal) > 0) return soma + Number(item.subtotal);
 
       return soma + Number(precoFinal(item) ?? 0) * Number(item.quantidade ?? 1);
     }, 0);
+
+    return {
+      quantidade,
+      subtotal,
+      total: subtotal,
+    };
   }, [itens]);
 
   return (
@@ -147,8 +168,9 @@ export default function CarrinhoSidebar({ aberto, aoFechar }: Props) {
       >
         <div className="cartSidebarHeader">
           <div>
+            <span className="cartHeaderLabel">Seu pedido</span>
             <h2>Meu carrinho</h2>
-            <span>{itens.length} item(s)</span>
+            <p>{resumo.quantidade} item(ns) selecionado(s)</p>
           </div>
 
           <button type="button" onClick={aoFechar} aria-label="Fechar carrinho">
@@ -164,7 +186,7 @@ export default function CarrinhoSidebar({ aberto, aoFechar }: Props) {
             </div>
           ) : itens.length === 0 ? (
             <div className="cartEmpty">
-              <FiShoppingCart size={36} />
+              <FiShoppingCart size={42} />
               <strong>Seu carrinho está vazio</strong>
               <span>Adicione produtos para continuar.</span>
             </div>
@@ -172,29 +194,54 @@ export default function CarrinhoSidebar({ aberto, aoFechar }: Props) {
             itens.map((item) => {
               const imagem = imagemFundo(item.imagem);
               const bloqueado = alterando === item.id_carrinho_item;
+              const preco = precoFinal(item);
+              const totalItem =
+                Number(item.subtotal) > 0
+                  ? Number(item.subtotal)
+                  : Number(preco) * Number(item.quantidade ?? 1);
 
               return (
                 <div key={item.id_carrinho_item} className="cartMiniItem">
                   <div className="cartMiniImage">
                     {imagem ? (
-                      <Image src={imagem} alt={item.produto_nome} fill sizes="76px" />
+                      <Image
+                        src={imagem}
+                        alt={item.produto_nome}
+                        fill
+                        sizes="86px"
+                      />
                     ) : (
-                      <FiPackage size={22} />
+                      <FiPackage size={24} />
                     )}
                   </div>
 
                   <div className="cartMiniInfo">
-                    <strong>{item.produto_nome}</strong>
+                    <div className="cartItemTop">
+                      <strong>{item.produto_nome}</strong>
+
+                      <button
+                        type="button"
+                        className="cartRemoveBtn"
+                        disabled={bloqueado}
+                        onClick={() => removerItem(item.id_carrinho_item)}
+                        title="Remover item"
+                      >
+                        <FiTrash2 size={15} />
+                      </button>
+                    </div>
 
                     <div className="cartMiniPrice">
-                      <b>{moeda(precoFinal(item))}</b>
+                      <span>Unitário</span>
+                      <b>{moeda(preco)}</b>
                     </div>
 
                     <div className="cartQtyRow">
                       <button
                         type="button"
                         disabled={bloqueado}
-                        onClick={() => atualizarQuantidade(item, item.quantidade - 1)}
+                        onClick={() =>
+                          atualizarQuantidade(item, item.quantidade - 1)
+                        }
                       >
                         <FiMinus size={14} />
                       </button>
@@ -204,19 +251,16 @@ export default function CarrinhoSidebar({ aberto, aoFechar }: Props) {
                       <button
                         type="button"
                         disabled={bloqueado}
-                        onClick={() => atualizarQuantidade(item, item.quantidade + 1)}
+                        onClick={() =>
+                          atualizarQuantidade(item, item.quantidade + 1)
+                        }
                       >
                         <FiPlus size={14} />
                       </button>
 
-                      <button
-                        type="button"
-                        className="cartRemoveBtn"
-                        disabled={bloqueado}
-                        onClick={() => removerItem(item.id_carrinho_item)}
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
+                      <strong className="cartItemSubtotal">
+                        {moeda(totalItem)}
+                      </strong>
                     </div>
                   </div>
                 </div>
@@ -226,9 +270,23 @@ export default function CarrinhoSidebar({ aberto, aoFechar }: Props) {
         </div>
 
         <div className="cartSidebarFooter">
-          <div className="cartTotalBox">
-            <span>Total</span>
-            <strong>{moeda(total)}</strong>
+          <div className="cartResumoPedido">
+            <h3>Resumo do pedido</h3>
+
+            <div>
+              <span>Itens</span>
+              <strong>{resumo.quantidade}</strong>
+            </div>
+
+            <div>
+              <span>Subtotal</span>
+              <strong>{moeda(resumo.subtotal)}</strong>
+            </div>
+
+            <div className="cartResumoTotal">
+              <span>Total</span>
+              <strong>{moeda(resumo.total)}</strong>
+            </div>
           </div>
 
           <Link href={rotas.paginas.carrinho} onClick={aoFechar}>
