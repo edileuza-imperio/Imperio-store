@@ -38,37 +38,6 @@ type Props = {
   onAdicionarCarrinho?: (item: ItemResolvido) => void;
 };
 
-function numero(valor: unknown): number {
-  const n = Number(valor ?? 0);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function calcularDisponivel(item: any): number {
-  const disponivel =
-    item?.disponivel ??
-    item?.estoque_disponivel ??
-    item?.quantidade_disponivel ??
-    item?.entidade?.disponivel ??
-    item?.entidade?.estoque_disponivel ??
-    item?.entidade?.quantidade_disponivel;
-
-  if (disponivel !== undefined && disponivel !== null) {
-    return Math.max(numero(disponivel), 0);
-  }
-
-  const quantidade = numero(
-    item?.quantidade ??
-      item?.estoque ??
-      item?.entidade?.quantidade ??
-      item?.entidade?.estoque ??
-      0
-  );
-
-  const reservado = numero(item?.reservado ?? item?.entidade?.reservado ?? 0);
-
-  return Math.max(quantidade - reservado, 0);
-}
-
 export default function Destaques({
   slug,
   vitrine: vitrineProp,
@@ -209,16 +178,16 @@ export default function Destaques({
         <div className="destaques-header">
           <div className="destaques-header-text">
             <span className="destaques-badge">
-              {vitrine?.tipo || "Vitrine"}
+              {vitrine.tipo || "Vitrine"}
             </span>
 
             <h2 className="destaques-title">
-              {tituloPersonalizado || vitrine?.titulo || vitrine?.nome}
+              {tituloPersonalizado || vitrine.titulo || vitrine.nome}
             </h2>
 
-            {(subtituloPersonalizado || vitrine?.subtitulo) && (
+            {(subtituloPersonalizado || vitrine.subtitulo) && (
               <p className="destaques-description">
-                {subtituloPersonalizado || vitrine?.subtitulo}
+                {subtituloPersonalizado || vitrine.subtitulo}
               </p>
             )}
           </div>
@@ -258,7 +227,7 @@ export default function Destaques({
               const precoOriginalFormatado = formatarPreco(item.preco_original);
 
               const slugVisualizacao =
-                item.entidade?.slug ||
+                item.slug_final ||
                 (item.produto_id ? String(item.produto_id) : null) ||
                 (item.campanha_id ? String(item.campanha_id) : null) ||
                 (item.categoria_id ? String(item.categoria_id) : null);
@@ -270,8 +239,8 @@ export default function Destaques({
               const estaAdicionando =
                 adicionandoId === String(item.id_vitrine_item);
 
-              const disponivel = calcularDisponivel(item);
-              const esgotado = item.tipo_item === "produto" && disponivel <= 0;
+              const disponivel = Number(item.disponivel ?? 0);
+              const esgotado = Boolean(item.esgotado);
 
               return (
                 <article
