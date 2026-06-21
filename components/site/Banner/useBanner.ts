@@ -5,29 +5,46 @@ import api from "@/Api/conectar";
 import { rotas } from "@/components/Bibioteca/config/rotas";
 
 type BannerStatus = {
-  id: number;
-  nome: string;
-  codigo: string;
+  id?: number;
+  nome?: string;
+  codigo?: string;
 };
 
 export type BannerItem = {
   id_banner: number;
   titulo: string;
-  descricao: string | null;
+  descricao?: string | null;
   imagem: string;
-  link: string | null;
-  status: BannerStatus;
-  visualizacoes: number;
-  cliques: number;
-  criado: string;
-  atualizado: string;
+  link?: string | null;
+  statusid?: number;
+  status?: BannerStatus;
+  visualizacoes?: number;
+  cliques?: number;
+  criado?: string;
+  atualizado?: string;
 };
 
-type BannerResponse = {
+type ApiBannerResponse = {
   status: number;
   mensagem: string;
-  dados: BannerItem[];
+  dados: BannerItem[] | {
+    status: number;
+    mensagem: string;
+    dados: BannerItem[];
+  };
 };
+
+function normalizarBanners(data: ApiBannerResponse): BannerItem[] {
+  if (Array.isArray(data?.dados)) {
+    return data.dados;
+  }
+
+  if (Array.isArray(data?.dados?.dados)) {
+    return data.dados.dados;
+  }
+
+  return [];
+}
 
 export function useBanner() {
   const [banners, setBanners] = useState<BannerItem[]>([]);
@@ -35,13 +52,23 @@ export function useBanner() {
   const [loading, setLoading] = useState(true);
 
   async function carregarBanners() {
-    setLoading(true);
-
     try {
-      const response = await api.get<BannerResponse>(rotas.banners.listar);
-      const lista = response.data.dados ?? [];
+      setLoading(true);
 
-      setBanners(lista);
+      const response = await api.get<ApiBannerResponse>(rotas.banners.listar);
+      const lista = normalizarBanners(response.data);
+
+      const ativos = lista.filter((banner) => {
+        const statusId = banner.status?.id ?? banner.statusid;
+        const statusCodigo = banner.status?.codigo;
+
+        return (
+          Boolean(banner.imagem) &&
+          (statusId === 1 || statusCodigo === "ATIVO")
+        );
+      });
+
+      setBanners(ativos);
       setIndex(0);
     } catch (error) {
       console.error("Erro ao carregar banners:", error);
@@ -66,13 +93,13 @@ export function useBanner() {
     return () => window.clearInterval(timer);
   }, [banners.length]);
 
-  const bannerAtual = useMemo(() => {
+  const banner = useMemo(() => {
     return banners[index] ?? null;
   }, [banners, index]);
 
   return {
     banners,
-    banner: bannerAtual,
+    banner,
     index,
     setIndex,
     loading,
