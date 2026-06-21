@@ -17,6 +17,7 @@ import {
 
 import "./Destaques.css";
 
+import { imagemFundo } from "@/components/Bibioteca/imagem";
 import { formatarPreco } from "@/hooks/destaque/functions";
 import { moverCarousel } from "@/hooks/carrinho";
 import { useAutoplayRef, useCarouselRef } from "@/hooks/vitrine.service";
@@ -40,7 +41,9 @@ type Props = {
 
 function limitarTexto(texto?: string | null, limite = 95) {
   if (!texto) return "";
+
   const limpo = String(texto).trim();
+
   return limpo.length > limite ? `${limpo.slice(0, limite)}...` : limpo;
 }
 
@@ -229,6 +232,8 @@ export default function Destaques({
         <div className="destaques-carousel-shell">
           <div ref={carouselRef} className="destaques-carousel">
             {itens.map((item, index) => {
+              const imagemProduto = imagemFundo(item.imagem_final);
+
               const precoFormatado = formatarPreco(item.preco_final);
               const precoOriginalFormatado = formatarPreco(item.preco_original);
 
@@ -263,10 +268,10 @@ export default function Destaques({
                       href={linkVisualizarCard}
                       className="destaques-image-link"
                     >
-                      {item.imagem_final ? (
+                      {imagemProduto ? (
                         <Image
-                          src={item.imagem_final}
-                          alt={item.titulo_final}
+                          src={imagemProduto}
+                          alt={item.titulo_final || "Produto"}
                           fill
                           sizes="(max-width: 480px) 82vw, 250px"
                           className={`destaques-image ${
