@@ -4,13 +4,29 @@ import { useEffect, useMemo, useState } from "react";
 import api from "@/Api/conectar";
 import { rotas } from "@/components/Bibioteca/config/rotas";
 
-type BannerItem = {
+type BannerStatus = {
+  id: number;
+  nome: string;
+  codigo: string;
+};
+
+export type BannerItem = {
   id_banner: number;
   titulo: string;
-  descricao?: string | null;
+  descricao: string | null;
   imagem: string;
-  link?: string | null;
-  statusid?: number;
+  link: string | null;
+  status: BannerStatus;
+  visualizacoes: number;
+  cliques: number;
+  criado: string;
+  atualizado: string;
+};
+
+type BannerResponse = {
+  status: number;
+  mensagem: string;
+  dados: BannerItem[];
 };
 
 export function useBanner() {
@@ -18,47 +34,49 @@ export function useBanner() {
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // 🔥 API (isolada)
-  useEffect(() => {
-    async function load() {
-      try {
-        setLoading(true);
+  async function carregarBanners() {
+    setLoading(true);
 
-        const res = await api.get(rotas.banners.listar);
-        const data = res.data?.dados?.dados ?? [];
+    try {
+      const response = await api.get<BannerResponse>(rotas.banners.listar);
+      const lista = response.data.dados ?? [];
 
-        const validos = Array.isArray(data)
-          ? data.filter((b: BannerItem) => b?.statusid === 1 && b?.imagem)
-          : [];
-
-        setBanners(validos);
-        setIndex(0);
-      } finally {
-        setLoading(false);
-      }
+      setBanners(lista);
+      setIndex(0);
+    } catch (error) {
+      console.error("Erro ao carregar banners:", error);
+      setBanners([]);
+      setIndex(0);
+    } finally {
+      setLoading(false);
     }
+  }
 
-    load();
+  useEffect(() => {
+    carregarBanners();
   }, []);
 
-  // 🔥 autoplay separado
   useEffect(() => {
-    if (banners.length <= 1) return;
+    if (banners.length < 2) return;
 
-    const t = window.setInterval(() => {
-      setIndex((i) => (i + 1) % banners.length);
+    const timer = window.setInterval(() => {
+      setIndex((atual) => (atual + 1) % banners.length);
     }, 5000);
 
-    return () => clearInterval(t);
+    return () => window.clearInterval(timer);
   }, [banners.length]);
 
-  const banner = useMemo(() => banners[index], [banners, index]);
+  const bannerAtual = useMemo(() => {
+    return banners[index] ?? null;
+  }, [banners, index]);
 
   return {
     banners,
-    banner,
+    banner: bannerAtual,
     index,
     setIndex,
     loading,
+    total: banners.length,
+    recarregar: carregarBanners,
   };
 }

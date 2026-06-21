@@ -5,88 +5,79 @@ import { useRouter } from "next/navigation";
 
 import { imagemFundo } from "@/components/Bibioteca/imagem";
 import { useBanner } from "./useBanner";
-
-import styles from "./Banner.module.css";
+import "./banner.css";
 
 export default function Banner() {
   const router = useRouter();
-
   const { banners, banner, index, setIndex, loading } = useBanner();
 
-  const linkBanner = banner?.link?.trim();
-  const temLink = Boolean(linkBanner);
+  if (loading) {
+    return <section className="banner-loading" />;
+  }
 
-  function goLink() {
-    if (!linkBanner) return;
+  if (!banner) {
+    return null;
+  }
 
-    if (linkBanner.startsWith("http")) {
-      window.open(linkBanner, "_blank", "noopener,noreferrer");
+  const imagem = imagemFundo(banner.imagem);
+  const link = banner.link?.trim() || "";
+
+  function abrirLink() {
+    if (!link) return;
+
+    if (link.startsWith("http://") || link.startsWith("https://")) {
+      window.open(link, "_blank", "noopener,noreferrer");
       return;
     }
 
-    router.push(linkBanner);
+    router.push(link);
   }
-
-  if (loading) {
-    return <section className={styles.skeleton} />;
-  }
-
-  if (!banner) return null;
-
-  const imagemBanner = imagemFundo(banner.imagem);
 
   return (
-    <section className={styles.banner}>
-      <div className={styles.inner}>
-        <div className={styles.text}>
-          <span className={styles.tag}>Universo Império</span>
+    <section className="banner-home">
+      <div className="banner-container">
+        <div className="banner-content">
+          <span className="banner-badge">Universo Império</span>
 
-          <h1 className={styles.title}>{banner.titulo}</h1>
+          <h1>{banner.titulo}</h1>
 
-          <p className={styles.desc}>
-            {banner.descricao ??
-              "Promoções, lançamentos e ofertas especiais."}
-          </p>
+          <p>{banner.descricao || "Promoções, lançamentos e ofertas especiais."}</p>
 
-          {temLink && (
-            <button
-              type="button"
-              className={styles.btn}
-              onClick={goLink}
-            >
+          {link && (
+            <button type="button" className="banner-button" onClick={abrirLink}>
               Comprar agora
               <span>→</span>
             </button>
           )}
         </div>
 
-        <div
-          className={`${styles.media} ${temLink ? styles.clickable : ""}`}
-          onClick={temLink ? goLink : undefined}
+        <button
+          type="button"
+          className="banner-image-area"
+          onClick={abrirLink}
+          disabled={!link}
+          aria-label={link ? `Abrir ${banner.titulo}` : banner.titulo}
         >
-          <div className={styles.imageWrap}>
-            <Image
-              src={imagemBanner}
-              alt={banner.titulo}
-              fill
-              priority
-              fetchPriority="high"
-              sizes="(max-width: 980px) 100vw, 50vw"
-              className={styles.image}
-            />
-          </div>
-        </div>
+          <Image
+            src={imagem}
+            alt={banner.titulo}
+            fill
+            priority
+            sizes="(max-width: 900px) 100vw, 50vw"
+            className="banner-image"
+          />
+        </button>
       </div>
 
       {banners.length > 1 && (
-        <div className={styles.dots}>
-          {banners.map((_, i) => (
+        <div className="banner-dots">
+          {banners.map((item, i) => (
             <button
-              key={i}
+              key={item.id_banner}
               type="button"
-              aria-label={`Ir para o banner ${i + 1}`}
-              className={`${styles.dot} ${i === index ? styles.active : ""}`}
+              className={`banner-dot ${i === index ? "active" : ""}`}
               onClick={() => setIndex(i)}
+              aria-label={`Ir para o banner ${i + 1}`}
             />
           ))}
         </div>
