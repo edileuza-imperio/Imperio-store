@@ -9,6 +9,25 @@ import { adicionarNoCarrinhoBanco } from "@/hooks/carrinho";
 
 type TipoItem = "produto" | "campanha" | "categoria" | string;
 
+export type EntidadeGenerica = {
+  id?: number | string;
+  slug?: string;
+  nome?: string;
+  titulo?: string;
+  subtitulo?: string | null;
+  descricao?: string | null;
+  descricao_curta?: string | null;
+  preco?: number | string | null;
+  preco_promocional?: number | string | null;
+  marca?: string | null;
+  sku?: string | null;
+  imagem?: string | null;
+  imagem_url?: string | null;
+  foto?: string | null;
+  capa?: string | null;
+  [key: string]: any;
+};
+
 export type VitrineItem = {
   id_vitrine_item: number | string;
   vitrine_id?: number | string;
@@ -17,6 +36,10 @@ export type VitrineItem = {
   categoria_id?: number | string | null;
 
   tipo_item: TipoItem;
+
+  titulo_personalizado?: string | null;
+  subtitulo_personalizado?: string | null;
+  imagem_personalizada?: string | null;
 
   titulo_final: string;
   subtitulo_final?: string | null;
@@ -33,7 +56,10 @@ export type VitrineItem = {
   sku_final?: string | null;
 
   disponivel?: number;
+  reservado?: number;
   esgotado?: boolean;
+
+  entidade?: EntidadeGenerica | null;
 
   [key: string]: any;
 };
@@ -69,7 +95,7 @@ function normalizarResposta<T>(response: any): T | null {
   return response?.data?.dados ?? response?.data ?? null;
 }
 
-function limitarItens(itens: VitrineItem[], limite?: number) {
+function limitarItens(itens: VitrineItem[] = [], limite?: number): VitrineItem[] {
   return limite ? itens.slice(0, limite) : itens;
 }
 
