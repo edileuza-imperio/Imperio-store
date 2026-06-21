@@ -228,19 +228,25 @@ export default function Destaques({
 
               const slugVisualizacao =
                 item.slug_final ||
+                item.link_final ||
                 (item.produto_id ? String(item.produto_id) : null) ||
                 (item.campanha_id ? String(item.campanha_id) : null) ||
                 (item.categoria_id ? String(item.categoria_id) : null);
 
-              const linkVisualizarCard = slugVisualizacao
-                ? rotas.paginas.vitrineVisualizar(slugVisualizacao)
-                : "#";
+              const linkVisualizarCard =
+                item.link_final ||
+                (slugVisualizacao
+                  ? rotas.paginas.vitrineVisualizar(slugVisualizacao)
+                  : "#");
 
               const estaAdicionando =
                 adicionandoId === String(item.id_vitrine_item);
 
               const disponivel = Number(item.disponivel ?? 0);
-              const esgotado = Boolean(item.esgotado);
+
+              const esgotado =
+                item.tipo_item === "produto" &&
+                (Boolean(item.esgotado) || disponivel <= 0);
 
               return (
                 <article
