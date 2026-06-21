@@ -38,6 +38,12 @@ type Props = {
   onAdicionarCarrinho?: (item: ItemResolvido) => void;
 };
 
+function limitarTexto(texto?: string | null, limite = 95) {
+  if (!texto) return "";
+  const limpo = String(texto).trim();
+  return limpo.length > limite ? `${limpo.slice(0, limite)}...` : limpo;
+}
+
 export default function Destaques({
   slug,
   vitrine: vitrineProp,
@@ -114,8 +120,8 @@ export default function Destaques({
       if (pausado || abrindoCarrinho) return;
 
       const card = carousel.querySelector<HTMLElement>(".destaque-card");
-      const larguraCard = card?.offsetWidth || 280;
-      const distancia = larguraCard + 18;
+      const larguraCard = card?.offsetWidth || 250;
+      const distancia = larguraCard + 16;
 
       const { scrollLeft, scrollWidth, clientWidth } = carousel;
       const maxScroll = scrollWidth - clientWidth;
@@ -228,7 +234,6 @@ export default function Destaques({
 
               const slugVisualizacao =
                 item.slug_final ||
-                item.link_final ||
                 (item.produto_id ? String(item.produto_id) : null) ||
                 (item.campanha_id ? String(item.campanha_id) : null) ||
                 (item.categoria_id ? String(item.categoria_id) : null);
@@ -263,7 +268,7 @@ export default function Destaques({
                           src={item.imagem_final}
                           alt={item.titulo_final}
                           fill
-                          sizes="(max-width: 480px) 88vw, (max-width: 768px) 82vw, (max-width: 1100px) 42vw, 296px"
+                          sizes="(max-width: 480px) 82vw, 250px"
                           className={`destaques-image ${
                             esgotado ? "destaques-image-sold-out" : ""
                           }`}
@@ -291,19 +296,13 @@ export default function Destaques({
                   </div>
 
                   <div className="destaques-content">
-                    <div className="destaques-meta">
-                      {item.marca_final && (
+                    {item.marca_final && (
+                      <div className="destaques-meta">
                         <span className="destaques-chip">
                           {item.marca_final}
                         </span>
-                      )}
-
-                      {item.sku_final && (
-                        <span className="destaques-chip">
-                          SKU {item.sku_final}
-                        </span>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     <Link
                       href={linkVisualizarCard}
@@ -314,15 +313,9 @@ export default function Destaques({
                       </h3>
                     </Link>
 
-                    {item.subtitulo_final && (
-                      <p className="destaques-subtitle">
-                        {item.subtitulo_final}
-                      </p>
-                    )}
-
                     {item.descricao_final && (
                       <p className="destaques-text">
-                        {item.descricao_final}
+                        {limitarTexto(item.descricao_final)}
                       </p>
                     )}
 
