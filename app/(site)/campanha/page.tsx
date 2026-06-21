@@ -6,9 +6,7 @@ import Image from "next/image";
 
 import api from "@/Api/conectar";
 import { imagemFundo } from "@/components/Bibioteca/imagem";
-import { useVitrine } from "@/components/Vitrine/Destaques/useVitrine";
-
-import type { Vitrine } from "@/components/Vitrine/Destaques/useVitrine";
+import { rotas } from "@/components/Bibioteca/config/rotas";
 
 type CampanhaApi = {
   id_campanha?: number | string;
@@ -31,20 +29,6 @@ type CampanhaCard = {
   imagem: string;
   link: string;
 };
-
-type Props = {
-  vitrine?: Vitrine;
-};
-
-function extrairCampanha(payload: any): CampanhaApi | null {
-  return (
-    payload?.dados?.campanha ??
-    payload?.campanha ??
-    payload?.dados ??
-    payload ??
-    null
-  );
-}
 
 function extrairCampanhas(payload: any): CampanhaApi[] {
   const opcoes = [
@@ -71,6 +55,7 @@ function montarCardCampanha(campanha: CampanhaApi): CampanhaCard {
   const id = campanha.id_campanha ?? "";
   const titulo = campanha.titulo || campanha.nome || `Campanha #${id}`;
   const descricao = campanha.descricao || "";
+
   const imagem = imagemFundo(
     campanha.banner ||
       campanha.desktop ||
@@ -84,32 +69,24 @@ function montarCardCampanha(campanha: CampanhaApi): CampanhaCard {
     titulo,
     descricao,
     imagem,
-    link: campanha.slug ? `/campanha/${campanha.slug}` : "#",
+    link: campanha.slug
+      ? rotas.paginas.campanha(campanha.slug)
+      : "#",
   };
 }
 
-export default function Campanhas({ vitrine }: Props) {
-  const usandoVitrine = Boolean(vitrine);
-
-  const vitrineResolvida = useVitrine({
-    vitrineProp: vitrine || null,
-  });
-
+export default function CampanhasPage() {
   const [campanhasApi, setCampanhasApi] = useState<CampanhaApi[]>([]);
-  const [campanhasDaVitrine, setCampanhasDaVitrine] = useState<CampanhaCard[]>([]);
-  const [loadingApi, setLoadingApi] = useState(!usandoVitrine);
-  const [loadingVitrine, setLoadingVitrine] = useState(false);
-  const [erroApi, setErroApi] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
-    if (usandoVitrine) return;
-
     async function carregarCampanhas() {
       try {
-        setLoadingApi(true);
-        setErroApi(null);
+        setLoading(true);
+        setErro(null);
 
-        const response = await api.get("/campanhas", {
+        const response = await api.get(rotas.campanhas.listar, {
           withCredentials: true,
         });
 
@@ -117,106 +94,19 @@ export default function Campanhas({ vitrine }: Props) {
         setCampanhasApi(lista.filter(campanhaAtiva));
       } catch (error) {
         console.error("Erro ao carregar campanhas:", error);
-        setErroApi("Erro ao carregar campanhas.");
+        setErro("Erro ao carregar campanhas.");
         setCampanhasApi([]);
       } finally {
-        setLoadingApi(false);
+        setLoading(false);
       }
     }
 
     carregarCampanhas();
-  }, [usandoVitrine]);
-
-  useEffect(() => {
-    if (!usandoVitrine) return;
-    if (vitrineResolvida.loading) return;
-
-    async function carregarDadosDasCampanhas() {
-      try {
-        setLoadingVitrine(true);
-        setErroApi(null);
-
-        const itensCampanha = vitrineResolvida.itens.filter(
-          (item) => item.tipo_item === "campanha" && item.campanha_id
-        );
-
-        const cards = await Promise.all(
-          itensCampanha.map(async (item) => {
-            try {
-              const response = await api.get(`/campanha/${item.campanha_id}`, {
-                withCredentials: true,
-              });
-
-              const campanha = extrairCampanha(response.data);
-
-              if (!campanha) {
-                return {
-                  id: item.campanha_id || item.id_vitrine_item,
-                  titulo: item.titulo_final || `Campanha #${item.campanha_id}`,
-                  descricao: item.descricao_final || item.subtitulo_final || "",
-                  imagem: item.imagem_final || "",
-                  link: item.link_final || "#",
-                };
-              }
-
-              const card = montarCardCampanha(campanha);
-
-              return {
-                ...card,
-                titulo:
-                  item.titulo_personalizado ||
-                  card.titulo ||
-                  item.titulo_final ||
-                  `Campanha #${item.campanha_id}`,
-                descricao:
-                  item.subtitulo_personalizado ||
-                  card.descricao ||
-                  item.descricao_final ||
-                  item.subtitulo_final ||
-                  "",
-                imagem:
-                  imagemFundo(item.imagem_personalizada || "") ||
-                  card.imagem ||
-                  item.imagem_final ||
-                  "",
-              };
-            } catch {
-              return {
-                id: item.campanha_id || item.id_vitrine_item,
-                titulo: item.titulo_final || `Campanha #${item.campanha_id}`,
-                descricao: item.descricao_final || item.subtitulo_final || "",
-                imagem: item.imagem_final || "",
-                link: item.link_final || "#",
-              };
-            }
-          })
-        );
-
-        setCampanhasDaVitrine(cards);
-      } catch (error) {
-        console.error("Erro ao carregar campanhas da vitrine:", error);
-        setCampanhasDaVitrine([]);
-      } finally {
-        setLoadingVitrine(false);
-      }
-    }
-
-    carregarDadosDasCampanhas();
-  }, [usandoVitrine, vitrineResolvida.loading, vitrineResolvida.itens]);
-
-  const loading = usandoVitrine
-    ? vitrineResolvida.loading || loadingVitrine
-    : loadingApi;
-
-  const erro = usandoVitrine ? vitrineResolvida.erro || erroApi : erroApi;
+  }, []);
 
   const campanhas = useMemo<CampanhaCard[]>(() => {
-    if (usandoVitrine) {
-      return campanhasDaVitrine;
-    }
-
     return campanhasApi.map(montarCardCampanha);
-  }, [usandoVitrine, campanhasDaVitrine, campanhasApi]);
+  }, [campanhasApi]);
 
   if (erro) return null;
 
@@ -249,15 +139,11 @@ export default function Campanhas({ vitrine }: Props) {
         <div className="campanhas-header">
           <span>Campanhas</span>
 
-          <h2>
-            {vitrine?.titulo ||
-              vitrine?.nome ||
-              "Presentes para cada momento especial"}
-          </h2>
+          <h2>Presentes para cada momento especial</h2>
 
           <p>
-            {vitrine?.subtitulo ||
-              "Explore campanhas exclusivas e encontre o presente ideal para cada ocasião."}
+            Explore campanhas exclusivas e encontre o presente ideal para cada
+            ocasião.
           </p>
         </div>
 
@@ -357,9 +243,9 @@ const css = `
   }
 
   .campanhas-card {
-    text-decoration: none;
-    color: inherit;
     display: block;
+    color: inherit;
+    text-decoration: none;
   }
 
   .campanhas-banner {
@@ -376,10 +262,10 @@ const css = `
     content: "";
     position: absolute;
     inset: 12px;
-    border-radius: 22px;
-    border: 1px solid rgba(255,255,255,.18);
-    pointer-events: none;
     z-index: 4;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-radius: 22px;
+    pointer-events: none;
   }
 
   .campanhas-image {
@@ -420,10 +306,10 @@ const css = `
     width: fit-content;
     padding: 8px 12px;
     border-radius: 999px;
-    background: rgba(255,255,255,.18);
+    background: rgba(255, 255, 255, 0.18);
     color: #fff;
     font-weight: 950;
-    font-size: .72rem;
+    font-size: 0.72rem;
     backdrop-filter: blur(10px);
   }
 
@@ -436,7 +322,7 @@ const css = `
 
   .campanhas-content p {
     margin: 0 0 18px;
-    color: rgba(255,255,255,.88);
+    color: rgba(255, 255, 255, 0.88);
     line-height: 1.45;
     font-weight: 600;
   }
@@ -451,7 +337,7 @@ const css = `
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    box-shadow: 0 14px 30px rgba(0,0,0,.12);
+    box-shadow: 0 14px 30px rgba(0, 0, 0, 0.12);
   }
 
   .campanhas-skeleton {
@@ -463,8 +349,13 @@ const css = `
   }
 
   @keyframes campanhas-loading {
-    from { background-position: 200% 0; }
-    to { background-position: -200% 0; }
+    from {
+      background-position: 200% 0;
+    }
+
+    to {
+      background-position: -200% 0;
+    }
   }
 
   @media (max-width: 980px) {

@@ -6,7 +6,6 @@ import api from "@/Api/conectar";
 import Banner from "@/components/site/Banner/Banner";
 import CategoriasDestaque from "@/components/site/categoria/Categoria";
 import Destaques from "@/components/Vitrine/Destaques";
-import Campanhas from "../campanha/page";
 
 import type { Vitrine } from "@/components/Vitrine/Destaques/useVitrine";
 
@@ -67,7 +66,7 @@ export default function HomeContent() {
           withCredentials: true,
         });
 
-        const lista = extrairLista(response?.data) as Vitrine[];
+        const lista = extrairLista(response.data) as Vitrine[];
 
         setVitrines(lista);
       } catch (error) {
@@ -105,16 +104,22 @@ export default function HomeContent() {
       {/* Banner Principal */}
       <Banner />
 
-      {/* Produtos em Destaque */}
+      {/* Produtos */}
       {!loading &&
         vitrinesProdutos.map((vitrine) => (
-          <Destaques key={String(vitrine.id_vitrine)} vitrine={vitrine} />
+          <Destaques
+            key={`produto-${vitrine.id_vitrine}`}
+            vitrine={vitrine}
+          />
         ))}
 
-      {/* Campanhas Especiais */}
+      {/* Campanhas */}
       {!loading &&
         vitrinesCampanha.map((vitrine) => (
-          <Campanhas key={String(vitrine.id_vitrine)} vitrine={vitrine} />
+          <Destaques
+            key={`campanha-${vitrine.id_vitrine}`}
+            vitrine={vitrine}
+          />
         ))}
 
       {/* Categorias */}
@@ -123,7 +128,10 @@ export default function HomeContent() {
       {/* Novidades */}
       {!loading &&
         vitrinesNovidades.map((vitrine) => (
-          <Destaques key={String(vitrine.id_vitrine)} vitrine={vitrine} />
+          <Destaques
+            key={`novidade-${vitrine.id_vitrine}`}
+            vitrine={vitrine}
+          />
         ))}
     </>
   );
