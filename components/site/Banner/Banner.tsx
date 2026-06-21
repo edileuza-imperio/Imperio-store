@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import { imagemFundo } from "@/components/Bibioteca/imagem";
 import { useBanner } from "./useBanner";
-import "./banner.css";
+import "../../styles/banner.css";
 
 export default function Banner() {
   const router = useRouter();
