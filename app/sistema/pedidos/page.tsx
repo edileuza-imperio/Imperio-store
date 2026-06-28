@@ -2,7 +2,7 @@
 
 import api from "@/Api/conectar";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   FiCheckCircle,
   FiClock,
@@ -111,6 +111,17 @@ export default function SistemaPedidosPage() {
     carregarPedidos();
   }, []);
 
+  const totalVendido = useMemo(() => {
+    return pedidos.reduce(
+      (total, pedido) => total + Number(pedido.valor_total ?? 0),
+      0
+    );
+  }, [pedidos]);
+
+  const pedidosVendidos = useMemo(() => {
+    return pedidos.filter(pedidoPagoOuVendido).length;
+  }, [pedidos]);
+
   function formatarMoeda(valor?: number | null) {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
@@ -125,7 +136,13 @@ export default function SistemaPedidosPage() {
 
     if (Number.isNaN(dataConvertida.getTime())) return data;
 
-    return dataConvertida.toLocaleString("pt-BR");
+    return dataConvertida.toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
 
   function getItens(pedido: Pedido) {
@@ -270,23 +287,35 @@ export default function SistemaPedidosPage() {
 
   return (
     <main className={styles.container}>
-      <div className={styles.header}>
-        <div>
+      <header className={styles.header}>
+        <div className={styles.headerText}>
           <h1 className={styles.title}>
             <FiPackage />
             Pedidos
           </h1>
 
           <p className={styles.subtitle}>
-            Lista compacta de vendas, pagamentos, rastreamento e reembolsos.
+            Controle de vendas, pagamento, rastreamento e reembolso.
           </p>
         </div>
 
-        <button onClick={carregarPedidos} className={styles.refreshButton}>
-          <FiRefreshCw className={loading ? styles.spin : ""} />
-          Atualizar
-        </button>
-      </div>
+        <div className={styles.headerRight}>
+          <div className={styles.headerStats}>
+            <span>{pedidos.length} pedidos</span>
+            <span>{pedidosVendidos} vendidos</span>
+            <strong>{formatarMoeda(totalVendido)}</strong>
+          </div>
+
+          <button
+            type="button"
+            onClick={carregarPedidos}
+            className={styles.refreshButton}
+          >
+            <FiRefreshCw className={loading ? styles.spin : ""} />
+            Atualizar
+          </button>
+        </div>
+      </header>
 
       {loading ? (
         <p className={styles.info}>Carregando pedidos...</p>
@@ -300,109 +329,105 @@ export default function SistemaPedidosPage() {
 
             return (
               <article key={pedido.id_pedido} className={styles.orderCard}>
-                <div className={styles.orderContent}>
-                  <div className={styles.orderMain}>
-                    <span className={styles.orderId}>
-                      Pedido #{pedido.id_pedido}
-                    </span>
+                <div className={styles.customerBlock}>
+                  <span className={styles.orderId}>
+                    Pedido #{pedido.id_pedido}
+                  </span>
 
-                    <h3>
-                      {pedido.usuario_nome ?? `Usuário #${pedido.usuario_id}`}
-                    </h3>
+                  <h3>
+                    {pedido.usuario_nome ?? `Usuário #${pedido.usuario_id}`}
+                  </h3>
 
-                    <small>{pedido.usuario_email ?? "Sem e-mail"}</small>
+                  <small>{pedido.usuario_email ?? "Sem e-mail"}</small>
 
-                    {pedido.payment_id && (
-                      <small className={styles.paymentId}>
-                        Pagamento: {pedido.payment_id}
-                      </small>
-                    )}
-                  </div>
-
-                  <div className={styles.orderMeta}>
-                    <span className={`${styles.badge} ${statusClasse(pedido)}`}>
-                      {statusIcone(pedido)}
-                      {statusTexto(pedido)}
-                    </span>
-
-                    <span className={styles.metaItem}>
-                      <FiCreditCard />
-                      {metodoPagamento(pedido)}
-                    </span>
-
-                    <span className={styles.metaItem}>
-                      <FiCalendar />
-                      {formatarData(pedido.criado_em)}
-                    </span>
-
-                    <span className={styles.metaItem}>
-                      <FiShoppingBag />
-                      {itens.length} produto(s)
-                    </span>
-                  </div>
-
-                  <div className={styles.productLine}>
-                    {primeiroItem ? (
-                      <>
-                        <strong>{nomeItem(primeiroItem)}</strong>
-
-                        <span>
-                          {primeiroItem.quantidade ?? 1}x{" "}
-                          {formatarMoeda(precoItem(primeiroItem))} ={" "}
-                          {formatarMoeda(subtotalItem(primeiroItem))}
-                        </span>
-
-                        {itens.length > 1 && (
-                          <em>+{itens.length - 1} produto(s)</em>
-                        )}
-                      </>
-                    ) : (
-                      <strong>Sem itens no pedido</strong>
-                    )}
-                  </div>
+                  {pedido.payment_id && (
+                    <small className={styles.paymentId}>
+                      Pagamento: {pedido.payment_id}
+                    </small>
+                  )}
                 </div>
 
-                <div className={styles.orderSide}>
-                  <strong className={styles.orderTotal}>
-                    {formatarMoeda(pedido.valor_total)}
-                  </strong>
+                <div className={styles.statusBlock}>
+                  <span className={`${styles.badge} ${statusClasse(pedido)}`}>
+                    {statusIcone(pedido)}
+                    {statusTexto(pedido)}
+                  </span>
 
-                  <div className={styles.floatingActions}>
-                    <Link
-                      href={`/sistema/pedidos/${pedido.id_pedido}`}
-                      className={styles.viewButton}
-                      title="Ver pedido"
+                  <span className={styles.metaItem}>
+                    <FiCreditCard />
+                    {metodoPagamento(pedido)}
+                  </span>
+
+                  <span className={styles.metaItem}>
+                    <FiCalendar />
+                    {formatarData(pedido.criado_em)}
+                  </span>
+                </div>
+
+                <div className={styles.productBlock}>
+                  {primeiroItem ? (
+                    <>
+                      <strong>{nomeItem(primeiroItem)}</strong>
+
+                      <span>
+                        {primeiroItem.quantidade ?? 1}x{" "}
+                        {formatarMoeda(precoItem(primeiroItem))} ={" "}
+                        {formatarMoeda(subtotalItem(primeiroItem))}
+                      </span>
+
+                      {itens.length > 1 && (
+                        <em>+{itens.length - 1} produto(s)</em>
+                      )}
+                    </>
+                  ) : (
+                    <strong>Sem itens no pedido</strong>
+                  )}
+                </div>
+
+                <div className={styles.totalBlock}>
+                  <strong>{formatarMoeda(pedido.valor_total)}</strong>
+
+                  <span>
+                    <FiShoppingBag />
+                    {itens.length} item(ns)
+                  </span>
+                </div>
+
+                <div className={styles.actionBlock}>
+                  <Link
+                    href={`/sistema/pedidos/${pedido.id_pedido}`}
+                    className={styles.viewButton}
+                    title="Ver pedido"
+                  >
+                    <FiEye />
+                    <span>Ver</span>
+                  </Link>
+
+                  <Link
+                    href={`/sistema/pedidos/${pedido.id_pedido}/rastreamento`}
+                    className={styles.trackButton}
+                    title="Rastreamento"
+                  >
+                    <FiMapPin />
+                    <span>Rastrear</span>
+                  </Link>
+
+                  {podeReembolsar(pedido) && (
+                    <button
+                      type="button"
+                      onClick={() => reembolsarPedido(pedido)}
+                      className={styles.refundButton}
+                      disabled={reembolsando === pedido.id_pedido}
+                      title="Reembolso"
                     >
-                      <FiEye />
-                      <span>Ver</span>
-                    </Link>
-
-                    <Link
-                      href={`/sistema/pedidos/${pedido.id_pedido}/rastreamento`}
-                      className={styles.trackButton}
-                      title="Rastreamento"
-                    >
-                      <FiMapPin />
-                      <span>Rastrear</span>
-                    </Link>
-
-                    {podeReembolsar(pedido) && (
-                      <button
-                        type="button"
-                        onClick={() => reembolsarPedido(pedido)}
-                        className={styles.refundButton}
-                        disabled={reembolsando === pedido.id_pedido}
-                        title="Reembolso"
-                      >
-                        {reembolsando === pedido.id_pedido ? (
-                          <FiRefreshCw className={styles.spin} />
-                        ) : (
-                          <FiRotateCcw />
-                        )}
-                        <span>Reembolso</span>
-                      </button>
-                    )}
-                  </div>
+                      {reembolsando === pedido.id_pedido ? (
+                        <FiRefreshCw className={styles.spin} />
+                      ) : (
+                        <FiRotateCcw />
+                      )}
+                      <span>Reembolso</span>
+                    </button>
+                  )}
                 </div>
               </article>
             );
