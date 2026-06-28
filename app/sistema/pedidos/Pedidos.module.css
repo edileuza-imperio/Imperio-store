@@ -14,8 +14,8 @@
 .header {
   width: 100%;
   min-width: 0;
-  margin-bottom: 12px;
-  padding: 11px 13px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
   border-radius: 15px;
   background: #ffffff;
   border: 1px solid rgba(178, 106, 119, 0.14);
@@ -146,10 +146,11 @@
   max-width: 100%;
   min-width: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 292px));
+  grid-template-columns: repeat(3, minmax(0, 275px));
   justify-content: center;
-  gap: 14px;
-  padding: 4px 2px;
+  align-items: stretch;
+  gap: 12px;
+  padding: 6px 4px;
   overflow-x: hidden;
 }
 
@@ -163,8 +164,8 @@
   position: relative;
   overflow: hidden;
 
-  padding: 10px;
-  border-radius: 14px;
+  padding: 9px;
+  border-radius: 13px;
 
   background: #ffffff;
   border: 1px solid rgba(178, 106, 119, 0.16);
@@ -172,7 +173,7 @@
 
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: 6px;
 
   transition: 0.2s ease;
 }
@@ -196,7 +197,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 
 .orderId {
@@ -207,7 +208,7 @@
   border-radius: 999px;
   background: #fff3f5;
   color: #a85d6a;
-  font-size: 7.5px;
+  font-size: 7px;
   font-weight: 950;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -226,9 +227,9 @@
   max-width: 100%;
   margin: 0;
   color: #2f2427;
-  font-size: 12px;
+  font-size: 11.3px;
   font-weight: 950;
-  line-height: 1.16;
+  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -239,7 +240,7 @@
   display: block;
   margin-top: 2px;
   color: #836b6d;
-  font-size: 8.5px;
+  font-size: 8px;
   font-weight: 700;
   line-height: 1.18;
   white-space: nowrap;
@@ -260,27 +261,27 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 4px;
 }
 
 .badge,
 .metaItem {
-  min-height: 22px;
+  min-height: 21px;
   max-width: 100%;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 0 7px;
+  padding: 0 6px;
   border-radius: 999px;
-  font-size: 7.7px;
+  font-size: 7.2px;
   font-weight: 950;
   white-space: nowrap;
 }
 
 .badge svg,
 .metaItem svg {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   flex-shrink: 0;
 }
 
@@ -326,8 +327,8 @@
 
 .productBlock {
   min-width: 0;
-  padding: 7px 8px;
-  border-radius: 11px;
+  padding: 6px 7px;
+  border-radius: 10px;
   background: #fff8fa;
   border: 1px solid #ead9db;
 }
@@ -335,7 +336,7 @@
 .productBlock strong {
   display: block;
   color: #342829;
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 950;
   line-height: 1.12;
   white-space: nowrap;
@@ -347,7 +348,7 @@
   display: block;
   margin-top: 2px;
   color: #836b6d;
-  font-size: 7.8px;
+  font-size: 7.3px;
   font-weight: 750;
   white-space: nowrap;
   overflow: hidden;
@@ -358,12 +359,12 @@
   width: fit-content;
   max-width: 100%;
   display: inline-flex;
-  margin-top: 4px;
-  padding: 3px 6px;
+  margin-top: 3px;
+  padding: 2px 5px;
   border-radius: 999px;
   background: #f3e8ff;
   color: #7e22ce;
-  font-size: 7px;
+  font-size: 6.7px;
   font-style: normal;
   font-weight: 950;
 }
@@ -380,12 +381,12 @@
 }
 
 .totalBlock strong {
-  min-height: 25px;
-  padding: 0 8px;
+  min-height: 24px;
+  padding: 0 7px;
   border-radius: 9px;
   background: #f0fdf4;
   color: #15803d;
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 950;
   display: inline-flex;
   align-items: center;
@@ -397,7 +398,7 @@
   align-items: center;
   gap: 3px;
   color: #836b6d;
-  font-size: 7.5px;
+  font-size: 7px;
   font-weight: 850;
   white-space: nowrap;
 }
@@ -414,16 +415,16 @@
 .actionBlock {
   margin-top: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+  gap: 5px;
 }
 
 .viewButton,
 .trackButton,
 .refundButton {
-  min-height: 29px;
-  padding: 0 7px;
-  border-radius: 9px;
+  min-height: 28px;
+  padding: 0 6px;
+  border-radius: 8px;
   border: 0;
   outline: 0;
   cursor: pointer;
@@ -434,7 +435,7 @@
   justify-content: center;
   gap: 4px;
 
-  font-size: 8px;
+  font-size: 7.6px;
   font-weight: 950;
 
   transition: 0.2s ease;
@@ -443,8 +444,8 @@
 .viewButton svg,
 .trackButton svg,
 .refundButton svg {
-  width: 11px;
-  height: 11px;
+  width: 10px;
+  height: 10px;
   flex-shrink: 0;
 }
 
@@ -490,7 +491,7 @@
 .pagination {
   width: 100%;
   margin-top: 10px;
-  padding: 9px 11px;
+  padding: 8px 10px;
   border-radius: 13px;
   background: #ffffff;
   border: 1px solid rgba(178, 106, 119, 0.14);
@@ -581,9 +582,9 @@
 
 @media (max-width: 1200px) {
   .ordersList {
-    grid-template-columns: repeat(2, minmax(0, 292px));
+    grid-template-columns: repeat(2, minmax(0, 275px));
     justify-content: center;
-    gap: 14px;
+    gap: 12px;
   }
 }
 
@@ -678,138 +679,5 @@
   .paginationGroup,
   .paginationCenter {
     justify-content: flex-start;
-  }
-}
-/* =========================
-   AJUSTE FINO DOS CARDS
-========================= */
-
-.ordersList {
-  grid-template-columns: repeat(3, minmax(0, 275px));
-  justify-content: center;
-  gap: 12px;
-  padding: 6px 4px;
-}
-
-.orderCard {
-  padding: 9px;
-  border-radius: 13px;
-  gap: 6px;
-}
-
-.cardTop {
-  gap: 6px;
-}
-
-.orderId {
-  font-size: 7px;
-  padding: 3px 6px;
-}
-
-.customerBlock h3 {
-  font-size: 11.3px;
-  line-height: 1.15;
-}
-
-.customerBlock small {
-  font-size: 8px;
-}
-
-.statusBlock {
-  gap: 4px;
-}
-
-.badge,
-.metaItem {
-  min-height: 21px;
-  padding: 0 6px;
-  font-size: 7.2px;
-}
-
-.badge svg,
-.metaItem svg {
-  width: 9px;
-  height: 9px;
-}
-
-.productBlock {
-  padding: 6px 7px;
-  border-radius: 10px;
-}
-
-.productBlock strong {
-  font-size: 8.5px;
-}
-
-.productBlock span {
-  font-size: 7.3px;
-}
-
-.productBlock em {
-  margin-top: 3px;
-  font-size: 6.7px;
-  padding: 2px 5px;
-}
-
-.totalBlock strong {
-  min-height: 24px;
-  padding: 0 7px;
-  font-size: 8.5px;
-}
-
-.totalBlock span {
-  font-size: 7px;
-}
-
-.actionBlock {
-  gap: 5px;
-}
-
-.viewButton,
-.trackButton,
-.refundButton {
-  min-height: 28px;
-  border-radius: 8px;
-  font-size: 7.6px;
-  padding: 0 6px;
-}
-
-.viewButton svg,
-.trackButton svg,
-.refundButton svg {
-  width: 10px;
-  height: 10px;
-}
-
-/* Header um pouco mais compacto */
-.header {
-  padding: 10px 12px;
-  margin-bottom: 10px;
-}
-
-/* Paginação mais próxima e menor */
-.pagination {
-  margin-top: 10px;
-  padding: 8px 10px;
-}
-
-/* Desktop médio */
-@media (max-width: 1200px) {
-  .ordersList {
-    grid-template-columns: repeat(2, minmax(0, 275px));
-    justify-content: center;
-    gap: 12px;
-  }
-}
-
-/* Celular */
-@media (max-width: 760px) {
-  .ordersList {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .orderCard {
-    padding: 10px;
   }
 }
