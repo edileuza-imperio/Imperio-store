@@ -417,3 +417,9 @@
     grid-template-columns: 1fr;
   }
 }
+.vitrines-empty-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
