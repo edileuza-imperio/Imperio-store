@@ -3,7 +3,7 @@
   min-width: 0;
   padding: 0;
   background: transparent;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 /* HEADER */
@@ -39,19 +39,19 @@
 }
 
 .refreshButton {
-  height: 34px;
-  padding: 0 12px;
-  border-radius: 11px;
+  height: 32px;
+  padding: 0 11px;
+  border-radius: 10px;
   border: 1px solid #ead9db;
   cursor: pointer;
   background: #fffdfa;
   color: #8f4f5b;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 950;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 6px;
   box-shadow: 0 6px 16px rgba(168, 93, 106, 0.08);
   transition: 0.22s ease;
 }
@@ -66,7 +66,7 @@
 .info {
   padding: 12px;
   background: #fffdfa;
-  border-radius: 14px;
+  border-radius: 13px;
   border: 1px solid #ead9db;
   color: #5f4b4d;
   font-size: 12px;
@@ -74,35 +74,35 @@
   box-shadow: 0 8px 20px rgba(168, 93, 106, 0.05);
 }
 
-/* LISTA COMPACTA */
+/* LISTA */
 
 .ordersList {
   width: 100%;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
+
+/* LINHA DO PEDIDO */
 
 .orderCard {
   position: relative;
   width: 100%;
   min-width: 0;
-  padding: 12px;
-  border-radius: 16px;
+  min-height: 78px;
+  padding: 10px 128px 10px 14px;
+  border-radius: 14px;
   background: #fffdfa;
   border: 1px solid #ead9db;
-  box-shadow: 0 8px 22px rgba(168, 93, 106, 0.05);
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 14px;
+  box-shadow: 0 7px 18px rgba(168, 93, 106, 0.045);
   overflow: hidden;
   transition: 0.22s ease;
 }
 
 .orderCard:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(168, 93, 106, 0.09);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(168, 93, 106, 0.08);
 }
 
 .orderCard::before {
@@ -113,13 +113,16 @@
   background: linear-gradient(180deg, #b26a77, #d88b99);
 }
 
+/* CONTEÚDO */
+
 .orderContent {
+  width: 100%;
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(190px, 0.9fr) minmax(220px, 1.2fr) minmax(180px, 1fr);
+  grid-template-columns: minmax(160px, 0.85fr) minmax(250px, 1fr) minmax(190px, 0.85fr);
   align-items: center;
-  gap: 12px;
-  padding-left: 4px;
+  gap: 10px;
+  padding-left: 2px;
 }
 
 .orderMain {
@@ -128,9 +131,9 @@
 
 .orderId {
   display: block;
-  margin-bottom: 3px;
+  margin-bottom: 2px;
   color: #9d5965;
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 950;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -139,8 +142,9 @@
 .orderMain h3 {
   margin: 0;
   color: #342829;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 950;
+  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -150,41 +154,45 @@
   display: block;
   margin-top: 2px;
   color: #836b6d;
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 700;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .paymentId {
-  max-width: 210px;
+  max-width: 180px;
 }
+
+/* METAS */
 
 .orderMeta {
   min-width: 0;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 5px;
 }
 
 .badge,
 .metaItem {
-  min-height: 23px;
+  min-height: 21px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 0 7px;
+  gap: 4px;
+  padding: 0 6px;
   border-radius: 999px;
-  font-size: 8.5px;
+  font-size: 8px;
   font-weight: 950;
   white-space: nowrap;
 }
 
 .badge svg,
 .metaItem svg {
-  width: 10px;
-  height: 10px;
+  width: 9.5px;
+  height: 9.5px;
   flex-shrink: 0;
 }
 
@@ -222,7 +230,7 @@
   color: #a16207;
 }
 
-/* PRODUTO EM LINHA */
+/* PRODUTO */
 
 .productLine {
   min-width: 0;
@@ -235,8 +243,9 @@
 .productLine strong {
   display: block;
   color: #342829;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 950;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -246,7 +255,7 @@
   display: block;
   margin-top: 2px;
   color: #836b6d;
-  font-size: 9px;
+  font-size: 8.5px;
   font-weight: 750;
   white-space: nowrap;
   overflow: hidden;
@@ -256,49 +265,59 @@
 .productLine em {
   width: fit-content;
   display: inline-flex;
-  margin-top: 4px;
-  padding: 4px 7px;
+  margin-top: 3px;
+  padding: 3px 6px;
   border-radius: 999px;
   background: #f3e8ff;
   color: #7e22ce;
-  font-size: 8px;
+  font-size: 7.5px;
   font-style: normal;
   font-weight: 950;
 }
 
-/* LADO DIREITO */
+/* LADO DIREITO FLUTUANTE */
 
 .orderSide {
-  min-width: 160px;
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  width: 106px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  justify-content: center;
-  gap: 8px;
+  gap: 7px;
+  z-index: 3;
 }
 
 .orderTotal {
-  padding: 6px 9px;
-  border-radius: 11px;
+  max-width: 106px;
+  padding: 5px 8px;
+  border-radius: 10px;
   background: #f0fdf4;
   color: #15803d;
-  font-size: 12px;
+  font-size: 10.5px;
   font-weight: 950;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .floatingActions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 6px;
+  gap: 5px;
 }
+
+/* BOTÕES FLUTUANTES */
 
 .viewButton,
 .trackButton,
 .refundButton {
-  min-height: 30px;
-  padding: 0 9px;
+  width: 31px;
+  height: 31px;
+  padding: 0;
   border-radius: 10px;
   border: 0;
   outline: 0;
@@ -307,18 +326,21 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  font-size: 8.5px;
-  font-weight: 950;
   transition: 0.2s ease;
   white-space: nowrap;
+}
+
+.viewButton span,
+.trackButton span,
+.refundButton span {
+  display: none;
 }
 
 .viewButton svg,
 .trackButton svg,
 .refundButton svg {
-  width: 11px;
-  height: 11px;
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
 }
 
@@ -367,7 +389,7 @@
 
 @media (max-width: 1200px) {
   .orderContent {
-    grid-template-columns: minmax(180px, 1fr) minmax(220px, 1.2fr);
+    grid-template-columns: minmax(160px, 1fr) minmax(220px, 1fr);
   }
 
   .productLine {
@@ -386,7 +408,7 @@
   }
 
   .orderCard {
-    grid-template-columns: 1fr;
+    padding: 11px;
   }
 
   .orderContent {
@@ -394,11 +416,15 @@
   }
 
   .orderSide {
-    min-width: 0;
+    position: static;
+    transform: none;
+    width: 100%;
+    margin-top: 8px;
     align-items: stretch;
   }
 
   .orderTotal {
+    max-width: none;
     width: fit-content;
   }
 
@@ -410,6 +436,17 @@
   .trackButton,
   .refundButton {
     flex: 1;
+    width: auto;
+    height: 32px;
+    gap: 5px;
+    font-size: 8.5px;
+    font-weight: 950;
+  }
+
+  .viewButton span,
+  .trackButton span,
+  .refundButton span {
+    display: inline;
   }
 }
 
@@ -423,8 +460,7 @@
   }
 
   .orderCard {
-    padding: 11px;
-    border-radius: 14px;
+    border-radius: 13px;
   }
 
   .orderMain h3 {
@@ -433,8 +469,8 @@
 
   .badge,
   .metaItem {
-    font-size: 8px;
-    min-height: 22px;
+    font-size: 7.8px;
+    min-height: 21px;
     padding: 0 6px;
   }
 
