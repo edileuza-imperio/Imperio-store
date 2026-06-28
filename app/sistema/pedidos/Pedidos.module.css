@@ -12,16 +12,17 @@
 .header {
   width: 100%;
   min-width: 0;
-  margin-bottom: 10px;
-  padding: 12px;
-  border-radius: 15px;
+  margin-bottom: 8px;
+  padding: 10px;
+  border-radius: 13px;
   background: #ffffff;
   border: 1px solid rgba(178, 106, 119, 0.14);
-  box-shadow: 0 8px 20px rgba(80, 45, 54, 0.045);
+  box-shadow: 0 8px 18px rgba(80, 45, 54, 0.04);
+
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 10px;
 }
 
 .headerText {
@@ -32,49 +33,51 @@
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 6px;
   color: #342829;
-  font-size: clamp(17px, 1.8vw, 21px);
+  font-size: clamp(16px, 1.6vw, 19px);
   font-weight: 950;
-  letter-spacing: -0.4px;
+  letter-spacing: -0.35px;
 }
 
 .title svg {
+  width: 17px;
+  height: 17px;
   flex: 0 0 auto;
   color: #b26a77;
 }
 
 .subtitle {
-  margin: 3px 0 0;
+  margin: 2px 0 0;
   color: #836b6d;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
 }
 
 .headerRight {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   flex: 0 0 auto;
 }
 
 .headerStats {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
 
 .headerStats span,
 .headerStats strong {
-  min-height: 25px;
-  padding: 0 8px;
+  min-height: 22px;
+  padding: 0 7px;
   border-radius: 999px;
   background: #fff7f8;
   border: 1px solid #ead9db;
   color: #8f4f5b;
-  font-size: 8.5px;
+  font-size: 7.8px;
   font-weight: 950;
   display: inline-flex;
   align-items: center;
@@ -88,21 +91,26 @@
 }
 
 .refreshButton {
-  height: 31px;
-  padding: 0 10px;
-  border-radius: 10px;
+  height: 28px;
+  padding: 0 9px;
+  border-radius: 9px;
   border: 1px solid #ead9db;
   cursor: pointer;
   background: #fff7f8;
   color: #8f4f5b;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 950;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 5px;
   transition: 0.2s ease;
   white-space: nowrap;
+}
+
+.refreshButton svg {
+  width: 11px;
+  height: 11px;
 }
 
 .refreshButton:hover {
@@ -114,14 +122,14 @@
 
 .info {
   width: 100%;
-  padding: 11px;
-  border-radius: 13px;
+  padding: 10px;
+  border-radius: 12px;
   background: #ffffff;
   border: 1px solid rgba(178, 106, 119, 0.14);
   color: #5f4b4d;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
-  box-shadow: 0 8px 18px rgba(80, 45, 54, 0.045);
+  box-shadow: 0 8px 18px rgba(80, 45, 54, 0.04);
 }
 
 /* LISTA */
@@ -132,7 +140,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   overflow-x: hidden;
 }
 
@@ -144,33 +152,37 @@
   min-width: 0;
   position: relative;
   overflow: hidden;
-  padding: 10px 10px 10px 14px;
-  border-radius: 14px;
+
+  padding: 8px 8px 8px 12px;
+  border-radius: 12px;
+
   background: #ffffff;
   border: 1px solid rgba(178, 106, 119, 0.16);
-  box-shadow: 0 7px 18px rgba(80, 45, 54, 0.045);
+  box-shadow: 0 7px 16px rgba(80, 45, 54, 0.04);
+
   display: grid;
   grid-template-columns:
-    minmax(140px, 1.05fr)
-    minmax(165px, 1fr)
-    minmax(150px, 0.95fr)
-    minmax(80px, 0.42fr)
+    minmax(120px, 1fr)
+    minmax(145px, 1fr)
+    minmax(125px, 0.9fr)
+    minmax(72px, 0.42fr)
     auto;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+
   transition: 0.2s ease;
 }
 
 .orderCard:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 24px rgba(80, 45, 54, 0.075);
+  box-shadow: 0 10px 22px rgba(80, 45, 54, 0.07);
 }
 
 .orderCard::before {
   content: "";
   position: absolute;
   inset: 0 auto 0 0;
-  width: 4px;
+  width: 3px;
   background: linear-gradient(180deg, #b26a77, #d88b99);
 }
 
@@ -186,9 +198,9 @@
 
 .orderId {
   display: block;
-  margin-bottom: 2px;
+  margin-bottom: 1px;
   color: #a85d6a;
-  font-size: 8px;
+  font-size: 7.4px;
   font-weight: 950;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -198,9 +210,9 @@
   max-width: 100%;
   margin: 0;
   color: #2f2427;
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 950;
-  line-height: 1.12;
+  line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -209,9 +221,9 @@
 .customerBlock small {
   max-width: 100%;
   display: block;
-  margin-top: 2px;
+  margin-top: 1px;
   color: #836b6d;
-  font-size: 8px;
+  font-size: 7.4px;
   font-weight: 700;
   line-height: 1.15;
   white-space: nowrap;
@@ -229,27 +241,27 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: 4px;
 }
 
 .badge,
 .metaItem {
-  min-height: 21px;
+  min-height: 19px;
   max-width: 100%;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 0 6px;
+  gap: 3px;
+  padding: 0 5px;
   border-radius: 999px;
-  font-size: 8px;
+  font-size: 7.4px;
   font-weight: 950;
   white-space: nowrap;
 }
 
 .badge svg,
 .metaItem svg {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   flex-shrink: 0;
 }
 
@@ -289,8 +301,8 @@
 
 .productBlock {
   min-width: 0;
-  padding: 7px 8px;
-  border-radius: 11px;
+  padding: 6px 7px;
+  border-radius: 9px;
   background: #fff8fa;
   border: 1px solid #ead9db;
 }
@@ -298,9 +310,9 @@
 .productBlock strong {
   display: block;
   color: #342829;
-  font-size: 9.8px;
+  font-size: 8.8px;
   font-weight: 950;
-  line-height: 1.15;
+  line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -308,9 +320,9 @@
 
 .productBlock span {
   display: block;
-  margin-top: 2px;
+  margin-top: 1px;
   color: #836b6d;
-  font-size: 8px;
+  font-size: 7.4px;
   font-weight: 750;
   white-space: nowrap;
   overflow: hidden;
@@ -321,12 +333,12 @@
   width: fit-content;
   max-width: 100%;
   display: inline-flex;
-  margin-top: 3px;
-  padding: 3px 6px;
+  margin-top: 2px;
+  padding: 2px 5px;
   border-radius: 999px;
   background: #f3e8ff;
   color: #7e22ce;
-  font-size: 7.5px;
+  font-size: 6.8px;
   font-style: normal;
   font-weight: 950;
 }
@@ -337,16 +349,16 @@
   display: flex;
   flex-direction: column;
   align-items: flex-end;
-  gap: 3px;
+  gap: 2px;
 }
 
 .totalBlock strong {
   max-width: 100%;
-  padding: 5px 7px;
-  border-radius: 10px;
+  padding: 4px 6px;
+  border-radius: 8px;
   background: #f0fdf4;
   color: #15803d;
-  font-size: 9.5px;
+  font-size: 8.5px;
   font-weight: 950;
   white-space: nowrap;
   overflow: hidden;
@@ -356,16 +368,16 @@
 .totalBlock span {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   color: #836b6d;
-  font-size: 7.8px;
+  font-size: 7px;
   font-weight: 850;
   white-space: nowrap;
 }
 
 .totalBlock span svg {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
 }
 
 /* AÇÕES */
@@ -374,23 +386,25 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 5px;
+  gap: 4px;
 }
 
 .viewButton,
 .trackButton,
 .refundButton {
-  width: 30px;
-  height: 30px;
+  width: 27px;
+  height: 27px;
   padding: 0;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 0;
   outline: 0;
   cursor: pointer;
   text-decoration: none;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
+
   transition: 0.2s ease;
 }
 
@@ -403,15 +417,15 @@
 .viewButton svg,
 .trackButton svg,
 .refundButton svg {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   flex-shrink: 0;
 }
 
 .viewButton {
   background: linear-gradient(135deg, #b26a77, #874954);
   color: #ffffff;
-  box-shadow: 0 6px 14px rgba(178, 106, 119, 0.16);
+  box-shadow: 0 6px 14px rgba(178, 106, 119, 0.15);
 }
 
 .trackButton {
@@ -441,23 +455,24 @@
 
 .pagination {
   width: 100%;
-  margin-top: 10px;
-  padding: 10px;
-  border-radius: 14px;
+  margin-top: 8px;
+  padding: 8px;
+  border-radius: 12px;
   background: #ffffff;
   border: 1px solid rgba(178, 106, 119, 0.14);
-  box-shadow: 0 7px 18px rgba(80, 45, 54, 0.045);
+  box-shadow: 0 7px 16px rgba(80, 45, 54, 0.04);
+
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
 .paginationGroup,
 .paginationCenter {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 5px;
   flex-wrap: wrap;
 }
 
@@ -465,37 +480,38 @@
 .pagination label,
 .pagination strong {
   color: #6d4c52;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 950;
 }
 
 .pagination label {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .pagination select {
-  height: 28px;
-  min-width: 58px;
-  border-radius: 9px;
+  height: 25px;
+  min-width: 50px;
+  border-radius: 8px;
   border: 1px solid #ead9db;
   background: #fff7f8;
   color: #6d4c52;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 950;
   outline: none;
-  padding: 0 7px;
+  padding: 0 6px;
 }
 
 .pagination button {
-  width: 28px;
-  height: 28px;
-  border-radius: 9px;
+  width: 25px;
+  height: 25px;
+  border-radius: 8px;
   border: 0;
   background: linear-gradient(135deg, #b26a77, #874954);
   color: #ffffff;
   cursor: pointer;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -507,8 +523,8 @@
 }
 
 .pagination button svg {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }
 
 /* ANIMAÇÃO */
@@ -528,9 +544,9 @@
 @media (max-width: 1250px) {
   .orderCard {
     grid-template-columns:
-      minmax(150px, 1fr)
-      minmax(165px, 1fr)
-      minmax(100px, 0.65fr)
+      minmax(130px, 1fr)
+      minmax(145px, 1fr)
+      minmax(86px, 0.6fr)
       auto;
   }
 
@@ -580,9 +596,9 @@
   .refundButton {
     flex: 1;
     width: auto;
-    min-height: 34px;
+    min-height: 31px;
     gap: 6px;
-    font-size: 9px;
+    font-size: 8px;
     font-weight: 950;
   }
 
@@ -609,48 +625,48 @@
 
 @media (max-width: 520px) {
   .header {
-    padding: 11px;
-    border-radius: 14px;
+    padding: 9px;
+    border-radius: 12px;
   }
 
   .title {
-    font-size: 17px;
+    font-size: 16px;
   }
 
   .subtitle {
-    font-size: 9.5px;
+    font-size: 8.5px;
   }
 
   .headerStats span,
   .headerStats strong {
-    min-height: 24px;
-    font-size: 8px;
-    padding: 0 7px;
+    min-height: 22px;
+    font-size: 7.5px;
+    padding: 0 6px;
   }
 
   .orderCard {
-    padding: 10px 10px 10px 13px;
-    border-radius: 13px;
-    gap: 8px;
+    padding: 8px 8px 8px 11px;
+    border-radius: 12px;
+    gap: 7px;
   }
 
   .customerBlock h3 {
-    font-size: 11.5px;
+    font-size: 10.5px;
   }
 
   .customerBlock small {
-    font-size: 8px;
+    font-size: 7.5px;
   }
 
   .badge,
   .metaItem {
-    min-height: 21px;
-    font-size: 8px;
-    padding: 0 6px;
+    min-height: 19px;
+    font-size: 7.2px;
+    padding: 0 5px;
   }
 
   .productBlock {
-    padding: 7px 8px;
+    padding: 6px 7px;
   }
 
   .actionBlock {
@@ -662,6 +678,10 @@
   .trackButton,
   .refundButton {
     width: 100%;
+  }
+
+  .pagination {
+    padding: 7px;
   }
 
   .paginationGroup,

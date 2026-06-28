@@ -54,7 +54,7 @@ export default function SistemaPedidosPage() {
   const [loading, setLoading] = useState(true);
   const [reembolsando, setReembolsando] = useState<number | null>(null);
   const [paginaAtual, setPaginaAtual] = useState(1);
-  const [itensPorPagina, setItensPorPagina] = useState(5);
+  const [itensPorPagina, setItensPorPagina] = useState(3);
 
   async function carregarPedidos() {
     try {
@@ -187,6 +187,7 @@ export default function SistemaPedidosPage() {
     if (pedido.status_id === 16) return "Enviado";
     if (pedido.status_id === 17) return "Entregue";
     if (pedidoPagoOuVendido(pedido)) return "Vendido";
+
     return "Pendente";
   }
 
@@ -196,6 +197,7 @@ export default function SistemaPedidosPage() {
     if (pedido.status_id === 16) return <FiTruck />;
     if (pedido.status_id === 17) return <FiCheckCircle />;
     if (pedidoPagoOuVendido(pedido)) return <FiCheckCircle />;
+
     return <FiClock />;
   }
 
@@ -205,6 +207,7 @@ export default function SistemaPedidosPage() {
     if (pedido.status_id === 16) return styles.statusEnviado;
     if (pedido.status_id === 17) return styles.statusEntregue;
     if (pedidoPagoOuVendido(pedido)) return styles.statusPago;
+
     return styles.statusPendente;
   }
 
@@ -322,7 +325,7 @@ export default function SistemaPedidosPage() {
           </h1>
 
           <p className={styles.subtitle}>
-            Controle de vendas, pagamento, rastreamento e reembolso.
+            Controle de vendas, pagamentos e reembolsos.
           </p>
         </div>
 
@@ -453,6 +456,7 @@ export default function SistemaPedidosPage() {
                         ) : (
                           <FiRotateCcw />
                         )}
+
                         <span>Reembolso</span>
                       </button>
                     )}
@@ -471,9 +475,9 @@ export default function SistemaPedidosPage() {
                 onChange={(e) => mudarItensPorPagina(Number(e.target.value))}
               >
                 <option value={3}>3</option>
-                <option value={5}>5</option>
-                <option value={8}>8</option>
-                <option value={10}>10</option>
+                <option value={6}>6</option>
+                <option value={9}>9</option>
+                <option value={12}>12</option>
               </select>
 
               <span>por página</span>
