@@ -680,3 +680,136 @@
     justify-content: flex-start;
   }
 }
+/* =========================
+   AJUSTE FINO DOS CARDS
+========================= */
+
+.ordersList {
+  grid-template-columns: repeat(3, minmax(0, 275px));
+  justify-content: center;
+  gap: 12px;
+  padding: 6px 4px;
+}
+
+.orderCard {
+  padding: 9px;
+  border-radius: 13px;
+  gap: 6px;
+}
+
+.cardTop {
+  gap: 6px;
+}
+
+.orderId {
+  font-size: 7px;
+  padding: 3px 6px;
+}
+
+.customerBlock h3 {
+  font-size: 11.3px;
+  line-height: 1.15;
+}
+
+.customerBlock small {
+  font-size: 8px;
+}
+
+.statusBlock {
+  gap: 4px;
+}
+
+.badge,
+.metaItem {
+  min-height: 21px;
+  padding: 0 6px;
+  font-size: 7.2px;
+}
+
+.badge svg,
+.metaItem svg {
+  width: 9px;
+  height: 9px;
+}
+
+.productBlock {
+  padding: 6px 7px;
+  border-radius: 10px;
+}
+
+.productBlock strong {
+  font-size: 8.5px;
+}
+
+.productBlock span {
+  font-size: 7.3px;
+}
+
+.productBlock em {
+  margin-top: 3px;
+  font-size: 6.7px;
+  padding: 2px 5px;
+}
+
+.totalBlock strong {
+  min-height: 24px;
+  padding: 0 7px;
+  font-size: 8.5px;
+}
+
+.totalBlock span {
+  font-size: 7px;
+}
+
+.actionBlock {
+  gap: 5px;
+}
+
+.viewButton,
+.trackButton,
+.refundButton {
+  min-height: 28px;
+  border-radius: 8px;
+  font-size: 7.6px;
+  padding: 0 6px;
+}
+
+.viewButton svg,
+.trackButton svg,
+.refundButton svg {
+  width: 10px;
+  height: 10px;
+}
+
+/* Header um pouco mais compacto */
+.header {
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+/* Paginação mais próxima e menor */
+.pagination {
+  margin-top: 10px;
+  padding: 8px 10px;
+}
+
+/* Desktop médio */
+@media (max-width: 1200px) {
+  .ordersList {
+    grid-template-columns: repeat(2, minmax(0, 275px));
+    justify-content: center;
+    gap: 12px;
+  }
+}
+
+/* Celular */
+@media (max-width: 760px) {
+  .ordersList {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .orderCard {
+    padding: 10px;
+  }
+}
