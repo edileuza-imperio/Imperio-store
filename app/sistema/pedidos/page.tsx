@@ -308,7 +308,7 @@ export default function SistemaPedidosPage() {
           </h1>
 
           <p className={styles.subtitle}>
-            Controle de vendas, pagamentos e reembolsos.
+            Controle de vendas, pagamentos, rastreamentos e reembolsos.
           </p>
         </div>
 
@@ -343,11 +343,18 @@ export default function SistemaPedidosPage() {
 
               return (
                 <article key={pedido.id_pedido} className={styles.orderCard}>
-                  <div className={styles.customerBlock}>
+                  <div className={styles.cardTop}>
                     <span className={styles.orderId}>
                       Pedido #{pedido.id_pedido}
                     </span>
 
+                    <span className={`${styles.badge} ${statusClasse(pedido)}`}>
+                      {statusIcone(pedido)}
+                      {statusTexto(pedido)}
+                    </span>
+                  </div>
+
+                  <div className={styles.customerBlock}>
                     <h3>
                       {pedido.usuario_nome ?? `Usuário #${pedido.usuario_id}`}
                     </h3>
@@ -362,11 +369,6 @@ export default function SistemaPedidosPage() {
                   </div>
 
                   <div className={styles.statusBlock}>
-                    <span className={`${styles.badge} ${statusClasse(pedido)}`}>
-                      {statusIcone(pedido)}
-                      {statusTexto(pedido)}
-                    </span>
-
                     <span className={styles.metaItem}>
                       <FiCreditCard />
                       {metodoPagamento(pedido)}
