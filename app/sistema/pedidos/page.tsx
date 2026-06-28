@@ -13,9 +13,9 @@ import {
   FiTruck,
   FiXCircle,
   FiCreditCard,
-  FiUser,
   FiShoppingBag,
   FiCalendar,
+  FiMapPin,
 } from "react-icons/fi";
 
 import styles from "./Pedidos.module.css";
@@ -278,7 +278,7 @@ export default function SistemaPedidosPage() {
           </h1>
 
           <p className={styles.subtitle}>
-            Gerencie vendas, pagamentos, produtos comprados e reembolsos.
+            Lista compacta de vendas, pagamentos, rastreamento e reembolsos.
           </p>
         </div>
 
@@ -288,42 +288,19 @@ export default function SistemaPedidosPage() {
         </button>
       </div>
 
-      <section className={styles.summary}>
-        <div className={styles.summaryCard}>
-          <span>Total de pedidos</span>
-          <strong>{pedidos.length}</strong>
-        </div>
-
-        <div className={styles.summaryCard}>
-          <span>Pedidos vendidos</span>
-          <strong>{pedidos.filter(pedidoPagoOuVendido).length}</strong>
-        </div>
-
-        <div className={styles.summaryCard}>
-          <span>Valor total</span>
-          <strong>
-            {formatarMoeda(
-              pedidos.reduce(
-                (total, pedido) => total + Number(pedido.valor_total ?? 0),
-                0
-              )
-            )}
-          </strong>
-        </div>
-      </section>
-
       {loading ? (
         <p className={styles.info}>Carregando pedidos...</p>
       ) : pedidos.length === 0 ? (
         <p className={styles.info}>Nenhum pedido encontrado.</p>
       ) : (
-        <section className={styles.ordersGrid}>
+        <section className={styles.ordersList}>
           {pedidos.map((pedido) => {
             const itens = getItens(pedido);
+            const primeiroItem = itens[0];
 
             return (
               <article key={pedido.id_pedido} className={styles.orderCard}>
-                <div className={styles.orderTop}>
+                <div className={styles.orderContent}>
                   <div className={styles.orderMain}>
                     <span className={styles.orderId}>
                       Pedido #{pedido.id_pedido}
@@ -337,88 +314,95 @@ export default function SistemaPedidosPage() {
 
                     {pedido.payment_id && (
                       <small className={styles.paymentId}>
-                        ID: {pedido.payment_id}
+                        Pagamento: {pedido.payment_id}
                       </small>
                     )}
                   </div>
 
+                  <div className={styles.orderMeta}>
+                    <span className={`${styles.badge} ${statusClasse(pedido)}`}>
+                      {statusIcone(pedido)}
+                      {statusTexto(pedido)}
+                    </span>
+
+                    <span className={styles.metaItem}>
+                      <FiCreditCard />
+                      {metodoPagamento(pedido)}
+                    </span>
+
+                    <span className={styles.metaItem}>
+                      <FiCalendar />
+                      {formatarData(pedido.criado_em)}
+                    </span>
+
+                    <span className={styles.metaItem}>
+                      <FiShoppingBag />
+                      {itens.length} produto(s)
+                    </span>
+                  </div>
+
+                  <div className={styles.productLine}>
+                    {primeiroItem ? (
+                      <>
+                        <strong>{nomeItem(primeiroItem)}</strong>
+
+                        <span>
+                          {primeiroItem.quantidade ?? 1}x{" "}
+                          {formatarMoeda(precoItem(primeiroItem))} ={" "}
+                          {formatarMoeda(subtotalItem(primeiroItem))}
+                        </span>
+
+                        {itens.length > 1 && (
+                          <em>+{itens.length - 1} produto(s)</em>
+                        )}
+                      </>
+                    ) : (
+                      <strong>Sem itens no pedido</strong>
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles.orderSide}>
                   <strong className={styles.orderTotal}>
                     {formatarMoeda(pedido.valor_total)}
                   </strong>
-                </div>
 
-                <div className={styles.orderMeta}>
-                  <span className={`${styles.badge} ${statusClasse(pedido)}`}>
-                    {statusIcone(pedido)}
-                    {statusTexto(pedido)}
-                  </span>
-
-                  <span className={styles.metaItem}>
-                    <FiCreditCard />
-                    {metodoPagamento(pedido)}
-                  </span>
-
-                  <span className={styles.metaItem}>
-                    <FiCalendar />
-                    {formatarData(pedido.criado_em)}
-                  </span>
-
-                  <span className={styles.metaItem}>
-                    <FiShoppingBag />
-                    {itens.length} produto(s)
-                  </span>
-                </div>
-
-                <div className={styles.productsBox}>
-                  {itens.length === 0 ? (
-                    <span className={styles.emptyProducts}>Sem itens</span>
-                  ) : (
-                    itens.slice(0, 3).map((item, index) => (
-                      <div
-                        key={item.id_pedido_item ?? index}
-                        className={styles.productItem}
-                      >
-                        <strong>{nomeItem(item)}</strong>
-
-                        <span>
-                          {item.quantidade ?? 1}x {formatarMoeda(precoItem(item))} ={" "}
-                          {formatarMoeda(subtotalItem(item))}
-                        </span>
-                      </div>
-                    ))
-                  )}
-
-                  {itens.length > 3 && (
-                    <span className={styles.moreProducts}>
-                      +{itens.length - 3} produto(s)
-                    </span>
-                  )}
-                </div>
-
-                <div className={styles.actions}>
-                  <Link
-                    href={`/sistema/pedidos/${pedido.id_pedido}`}
-                    className={styles.viewButton}
-                  >
-                    <FiEye />
-                    Ver pedido
-                  </Link>
-
-                  {podeReembolsar(pedido) && (
-                    <button
-                      type="button"
-                      onClick={() => reembolsarPedido(pedido)}
-                      className={styles.refundButton}
-                      disabled={reembolsando === pedido.id_pedido}
+                  <div className={styles.floatingActions}>
+                    <Link
+                      href={`/sistema/pedidos/${pedido.id_pedido}`}
+                      className={styles.viewButton}
+                      title="Ver pedido"
                     >
-                      {reembolsando === pedido.id_pedido ? (
-                        <FiRefreshCw className={styles.spin} />
-                      ) : (
-                        <FiRotateCcw />
-                      )}
-                      Reembolso
-                    </button>
-                  )}
+                      <FiEye />
+                      <span>Ver</span>
+                    </Link>
+
+                    <Link
+                      href={`/sistema/pedidos/${pedido.id_pedido}/rastreamento`}
+                      className={styles.trackButton}
+                      title="Rastreamento"
+                    >
+                      <FiMapPin />
+                      <span>Rastrear</span>
+                    </Link>
+
+                    {podeReembolsar(pedido) && (
+                      <button
+                        type="button"
+                        onClick={() => reembolsarPedido(pedido)}
+                        className={styles.refundButton}
+                        disabled={reembolsando === pedido.id_pedido}
+                        title="Reembolso"
+                      >
+                        {reembolsando === pedido.id_pedido ? (
+                          <FiRefreshCw className={styles.spin} />
+                        ) : (
+                          <FiRotateCcw />
+                        )}
+                        <span>Reembolso</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </article>
             );
