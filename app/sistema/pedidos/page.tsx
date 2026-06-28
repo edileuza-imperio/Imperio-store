@@ -16,6 +16,8 @@ import {
   FiShoppingBag,
   FiCalendar,
   FiMapPin,
+  FiChevronLeft,
+  FiChevronRight,
 } from "react-icons/fi";
 
 import styles from "./Pedidos.module.css";
@@ -51,6 +53,8 @@ export default function SistemaPedidosPage() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [reembolsando, setReembolsando] = useState<number | null>(null);
+  const [paginaAtual, setPaginaAtual] = useState(1);
+  const [itensPorPagina, setItensPorPagina] = useState(5);
 
   async function carregarPedidos() {
     try {
@@ -99,6 +103,7 @@ export default function SistemaPedidosPage() {
       );
 
       setPedidos(listaComItens);
+      setPaginaAtual(1);
     } catch (error) {
       console.error("Erro ao carregar pedidos:", error);
       setPedidos([]);
@@ -110,17 +115,6 @@ export default function SistemaPedidosPage() {
   useEffect(() => {
     carregarPedidos();
   }, []);
-
-  const totalVendido = useMemo(() => {
-    return pedidos.reduce(
-      (total, pedido) => total + Number(pedido.valor_total ?? 0),
-      0
-    );
-  }, [pedidos]);
-
-  const pedidosVendidos = useMemo(() => {
-    return pedidos.filter(pedidoPagoOuVendido).length;
-  }, [pedidos]);
 
   function formatarMoeda(valor?: number | null) {
     return new Intl.NumberFormat("pt-BR", {
@@ -285,6 +279,39 @@ export default function SistemaPedidosPage() {
     }
   }
 
+  const totalVendido = useMemo(() => {
+    return pedidos.reduce(
+      (total, pedido) => total + Number(pedido.valor_total ?? 0),
+      0
+    );
+  }, [pedidos]);
+
+  const pedidosVendidos = useMemo(() => {
+    return pedidos.filter(pedidoPagoOuVendido).length;
+  }, [pedidos]);
+
+  const totalPaginas = Math.max(1, Math.ceil(pedidos.length / itensPorPagina));
+
+  const pedidosPaginados = useMemo(() => {
+    const inicio = (paginaAtual - 1) * itensPorPagina;
+    const fim = inicio + itensPorPagina;
+
+    return pedidos.slice(inicio, fim);
+  }, [pedidos, paginaAtual, itensPorPagina]);
+
+  function mudarItensPorPagina(valor: number) {
+    setItensPorPagina(valor);
+    setPaginaAtual(1);
+  }
+
+  function paginaAnterior() {
+    setPaginaAtual((pagina) => Math.max(1, pagina - 1));
+  }
+
+  function proximaPagina() {
+    setPaginaAtual((pagina) => Math.min(totalPaginas, pagina + 1));
+  }
+
   return (
     <main className={styles.container}>
       <header className={styles.header}>
@@ -322,117 +349,174 @@ export default function SistemaPedidosPage() {
       ) : pedidos.length === 0 ? (
         <p className={styles.info}>Nenhum pedido encontrado.</p>
       ) : (
-        <section className={styles.ordersList}>
-          {pedidos.map((pedido) => {
-            const itens = getItens(pedido);
-            const primeiroItem = itens[0];
+        <>
+          <section className={styles.ordersList}>
+            {pedidosPaginados.map((pedido) => {
+              const itens = getItens(pedido);
+              const primeiroItem = itens[0];
 
-            return (
-              <article key={pedido.id_pedido} className={styles.orderCard}>
-                <div className={styles.customerBlock}>
-                  <span className={styles.orderId}>
-                    Pedido #{pedido.id_pedido}
-                  </span>
+              return (
+                <article key={pedido.id_pedido} className={styles.orderCard}>
+                  <div className={styles.customerBlock}>
+                    <span className={styles.orderId}>
+                      Pedido #{pedido.id_pedido}
+                    </span>
 
-                  <h3>
-                    {pedido.usuario_nome ?? `Usuário #${pedido.usuario_id}`}
-                  </h3>
+                    <h3>
+                      {pedido.usuario_nome ?? `Usuário #${pedido.usuario_id}`}
+                    </h3>
 
-                  <small>{pedido.usuario_email ?? "Sem e-mail"}</small>
+                    <small>{pedido.usuario_email ?? "Sem e-mail"}</small>
 
-                  {pedido.payment_id && (
-                    <small className={styles.paymentId}>
-                      Pagamento: {pedido.payment_id}
-                    </small>
-                  )}
-                </div>
+                    {pedido.payment_id && (
+                      <small className={styles.paymentId}>
+                        Pagamento: {pedido.payment_id}
+                      </small>
+                    )}
+                  </div>
 
-                <div className={styles.statusBlock}>
-                  <span className={`${styles.badge} ${statusClasse(pedido)}`}>
-                    {statusIcone(pedido)}
-                    {statusTexto(pedido)}
-                  </span>
+                  <div className={styles.statusBlock}>
+                    <span className={`${styles.badge} ${statusClasse(pedido)}`}>
+                      {statusIcone(pedido)}
+                      {statusTexto(pedido)}
+                    </span>
 
-                  <span className={styles.metaItem}>
-                    <FiCreditCard />
-                    {metodoPagamento(pedido)}
-                  </span>
+                    <span className={styles.metaItem}>
+                      <FiCreditCard />
+                      {metodoPagamento(pedido)}
+                    </span>
 
-                  <span className={styles.metaItem}>
-                    <FiCalendar />
-                    {formatarData(pedido.criado_em)}
-                  </span>
-                </div>
+                    <span className={styles.metaItem}>
+                      <FiCalendar />
+                      {formatarData(pedido.criado_em)}
+                    </span>
+                  </div>
 
-                <div className={styles.productBlock}>
-                  {primeiroItem ? (
-                    <>
-                      <strong>{nomeItem(primeiroItem)}</strong>
+                  <div className={styles.productBlock}>
+                    {primeiroItem ? (
+                      <>
+                        <strong>{nomeItem(primeiroItem)}</strong>
 
-                      <span>
-                        {primeiroItem.quantidade ?? 1}x{" "}
-                        {formatarMoeda(precoItem(primeiroItem))} ={" "}
-                        {formatarMoeda(subtotalItem(primeiroItem))}
-                      </span>
+                        <span>
+                          {primeiroItem.quantidade ?? 1}x{" "}
+                          {formatarMoeda(precoItem(primeiroItem))} ={" "}
+                          {formatarMoeda(subtotalItem(primeiroItem))}
+                        </span>
 
-                      {itens.length > 1 && (
-                        <em>+{itens.length - 1} produto(s)</em>
-                      )}
-                    </>
-                  ) : (
-                    <strong>Sem itens no pedido</strong>
-                  )}
-                </div>
+                        {itens.length > 1 && (
+                          <em>+{itens.length - 1} produto(s)</em>
+                        )}
+                      </>
+                    ) : (
+                      <strong>Sem itens no pedido</strong>
+                    )}
+                  </div>
 
-                <div className={styles.totalBlock}>
-                  <strong>{formatarMoeda(pedido.valor_total)}</strong>
+                  <div className={styles.totalBlock}>
+                    <strong>{formatarMoeda(pedido.valor_total)}</strong>
 
-                  <span>
-                    <FiShoppingBag />
-                    {itens.length} item(ns)
-                  </span>
-                </div>
+                    <span>
+                      <FiShoppingBag />
+                      {itens.length} item(ns)
+                    </span>
+                  </div>
 
-                <div className={styles.actionBlock}>
-                  <Link
-                    href={`/sistema/pedidos/${pedido.id_pedido}`}
-                    className={styles.viewButton}
-                    title="Ver pedido"
-                  >
-                    <FiEye />
-                    <span>Ver</span>
-                  </Link>
-
-                  <Link
-                    href={`/sistema/pedidos/${pedido.id_pedido}/rastreamento`}
-                    className={styles.trackButton}
-                    title="Rastreamento"
-                  >
-                    <FiMapPin />
-                    <span>Rastrear</span>
-                  </Link>
-
-                  {podeReembolsar(pedido) && (
-                    <button
-                      type="button"
-                      onClick={() => reembolsarPedido(pedido)}
-                      className={styles.refundButton}
-                      disabled={reembolsando === pedido.id_pedido}
-                      title="Reembolso"
+                  <div className={styles.actionBlock}>
+                    <Link
+                      href={`/sistema/pedidos/${pedido.id_pedido}`}
+                      className={styles.viewButton}
+                      title="Ver pedido"
                     >
-                      {reembolsando === pedido.id_pedido ? (
-                        <FiRefreshCw className={styles.spin} />
-                      ) : (
-                        <FiRotateCcw />
-                      )}
-                      <span>Reembolso</span>
-                    </button>
-                  )}
-                </div>
-              </article>
-            );
-          })}
-        </section>
+                      <FiEye />
+                      <span>Ver</span>
+                    </Link>
+
+                    <Link
+                      href={`/sistema/pedidos/${pedido.id_pedido}/rastreamento`}
+                      className={styles.trackButton}
+                      title="Rastreamento"
+                    >
+                      <FiMapPin />
+                      <span>Rastrear</span>
+                    </Link>
+
+                    {podeReembolsar(pedido) && (
+                      <button
+                        type="button"
+                        onClick={() => reembolsarPedido(pedido)}
+                        className={styles.refundButton}
+                        disabled={reembolsando === pedido.id_pedido}
+                        title="Reembolso"
+                      >
+                        {reembolsando === pedido.id_pedido ? (
+                          <FiRefreshCw className={styles.spin} />
+                        ) : (
+                          <FiRotateCcw />
+                        )}
+                        <span>Reembolso</span>
+                      </button>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+
+          <footer className={styles.pagination}>
+            <div className={styles.paginationGroup}>
+              <span>Mostrar</span>
+
+              <select
+                value={itensPorPagina}
+                onChange={(e) => mudarItensPorPagina(Number(e.target.value))}
+              >
+                <option value={3}>3</option>
+                <option value={5}>5</option>
+                <option value={8}>8</option>
+                <option value={10}>10</option>
+              </select>
+
+              <span>por página</span>
+            </div>
+
+            <div className={styles.paginationCenter}>
+              <button
+                type="button"
+                onClick={paginaAnterior}
+                disabled={paginaAtual === 1}
+              >
+                <FiChevronLeft />
+              </button>
+
+              <label>
+                Página
+                <select
+                  value={paginaAtual}
+                  onChange={(e) => setPaginaAtual(Number(e.target.value))}
+                >
+                  {Array.from({ length: totalPaginas }, (_, index) => (
+                    <option key={index + 1} value={index + 1}>
+                      {index + 1}
+                    </option>
+                  ))}
+                </select>
+                de {totalPaginas}
+              </label>
+
+              <button
+                type="button"
+                onClick={proximaPagina}
+                disabled={paginaAtual === totalPaginas}
+              >
+                <FiChevronRight />
+              </button>
+            </div>
+
+            <strong>
+              {pedidosPaginados.length} de {pedidos.length} pedidos
+            </strong>
+          </footer>
+        </>
       )}
     </main>
   );
