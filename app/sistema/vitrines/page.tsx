@@ -31,6 +31,7 @@ type Vitrine = {
   nivel_id?: number | string | null;
   ordem?: number | string | null;
   criado_em?: string | null;
+  atualizado_em?: string | null;
 };
 
 const LIMITE_POR_PAGINA = 3;
@@ -57,7 +58,12 @@ export default function VitrinesPage() {
       setErro("");
 
       const response = await api.get("/painel/vitrines");
+
+      console.log("RESPOSTA VITRINES:", response.data);
+
       const lista = extrairListaVitrines(response.data);
+
+      console.log("VITRINES NORMALIZADAS:", lista);
 
       setVitrines(lista);
       setPaginaAtual(1);
@@ -77,32 +83,25 @@ export default function VitrinesPage() {
   }
 
   function extrairListaVitrines(data: any): Vitrine[] {
-    if (Array.isArray(data)) {
-      return data;
-    }
+    const possiveisListas = [
+      data?.dados?.dados?.vitrines,
+      data?.dados?.dados?.data,
+      data?.dados?.dados?.items,
+      data?.dados?.dados,
+      data?.dados?.vitrines,
+      data?.dados?.data,
+      data?.dados?.items,
+      data?.dados,
+      data?.vitrines,
+      data?.data,
+      data?.items,
+      data,
+    ];
 
-    if (Array.isArray(data?.dados?.vitrines)) {
-      return data.dados.vitrines;
-    }
-
-    if (Array.isArray(data?.dados?.data)) {
-      return data.dados.data;
-    }
-
-    if (Array.isArray(data?.dados?.items)) {
-      return data.dados.items;
-    }
-
-    if (Array.isArray(data?.dados)) {
-      return data.dados;
-    }
-
-    if (Array.isArray(data?.vitrines)) {
-      return data.vitrines;
-    }
-
-    if (Array.isArray(data?.data)) {
-      return data.data;
+    for (const lista of possiveisListas) {
+      if (Array.isArray(lista)) {
+        return lista;
+      }
     }
 
     return [];
@@ -163,9 +162,7 @@ export default function VitrinesPage() {
 
     const confirmar = window.confirm("Deseja realmente excluir esta vitrine?");
 
-    if (!confirmar) {
-      return;
-    }
+    if (!confirmar) return;
 
     try {
       await api.delete(`/painel/vitrine/${vitrineSelecionada}`);
@@ -195,9 +192,7 @@ export default function VitrinesPage() {
   }
 
   function formatarData(data?: string | null) {
-    if (!data) {
-      return "—";
-    }
+    if (!data) return "—";
 
     const dataConvertida = new Date(data.replace(" ", "T"));
 
@@ -270,7 +265,7 @@ export default function VitrinesPage() {
               : "Cadastre sua primeira vitrine para exibir produtos no site."}
           </span>
 
-          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <div className="vitrines-empty-actions">
             <button
               type="button"
               onClick={carregarVitrines}
