@@ -7,146 +7,206 @@
   overflow-x: hidden;
 }
 
-/* HEADER */
+/* =========================
+   HEADER
+========================= */
 
 .header {
   width: 100%;
   min-width: 0;
+  margin-bottom: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid rgba(178, 106, 119, 0.16);
+  box-shadow: 0 14px 34px rgba(80, 45, 54, 0.06);
+
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
+  justify-content: space-between;
+  gap: 14px;
 }
 
 .title {
+  margin: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin: 0;
+  gap: 9px;
+
   color: #342829;
-  font-size: 18px;
+  font-size: clamp(19px, 2vw, 24px);
   font-weight: 950;
-  letter-spacing: -0.4px;
+  letter-spacing: -0.5px;
 }
 
 .title svg {
-  width: 17px;
-  height: 17px;
   color: #b26a77;
 }
 
 .subtitle {
-  margin: 2px 0 0;
+  margin: 4px 0 0;
   color: #836b6d;
-  font-size: 9px;
+  font-size: 12px;
   font-weight: 700;
 }
 
 .refreshButton {
-  height: 28px;
-  padding: 0 8px;
-  border-radius: 9px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 12px;
   border: 1px solid #ead9db;
   cursor: pointer;
-  background: #fffdfa;
+
+  background: #fff7f8;
   color: #8f4f5b;
-  font-size: 8px;
+
+  font-size: 11px;
   font-weight: 950;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
-  white-space: nowrap;
+  gap: 7px;
+
+  transition: 0.2s ease;
 }
 
-.refreshButton svg {
-  width: 10px;
-  height: 10px;
+.refreshButton:hover {
+  background: #ffeef2;
+  transform: translateY(-1px);
 }
+
+/* =========================
+   REMOVE CARDS DE RESUMO
+========================= */
+
+.summary {
+  display: none;
+}
+
+.summaryCard {
+  display: none;
+}
+
+/* =========================
+   INFO
+========================= */
 
 .info {
-  padding: 9px;
-  background: #fffdfa;
-  border-radius: 10px;
-  border: 1px solid #ead9db;
+  width: 100%;
+  padding: 14px;
+  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid rgba(178, 106, 119, 0.16);
   color: #5f4b4d;
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 800;
+  box-shadow: 0 12px 28px rgba(80, 45, 54, 0.05);
 }
 
-/* LISTA */
+/* =========================
+   LISTA DE PEDIDOS
+========================= */
 
+.ordersGrid,
 .ordersList {
   width: 100%;
   max-width: 100%;
   min-width: 0;
+
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 12px;
+
+  margin-top: 0;
   overflow-x: hidden;
 }
 
-/* LINHA COMPACTA */
+/* =========================
+   CARD / LINHA DO PEDIDO
+========================= */
 
 .orderCard {
   width: 100%;
   max-width: 100%;
   min-width: 0;
-  padding: 7px 8px;
-  border-radius: 10px;
-  background: #fffdfa;
-  border: 1px solid #ead9db;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 78px;
-  gap: 6px;
+  position: relative;
   overflow: hidden;
-  box-shadow: none;
-}
 
-.orderCard::before {
-  display: none;
+  padding: 14px;
+  border-radius: 18px;
+
+  background: #ffffff;
+  border: 1px solid rgba(178, 106, 119, 0.18);
+  box-shadow: 0 12px 30px rgba(80, 45, 54, 0.055);
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+
+  transition: 0.2s ease;
 }
 
 .orderCard:hover {
-  transform: none;
-  box-shadow: none;
+  transform: translateY(-2px);
+  box-shadow: 0 18px 38px rgba(80, 45, 54, 0.09);
 }
 
-/* CONTEÚDO */
+.orderCard::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: linear-gradient(180deg, #b26a77, #d88b99);
+}
+
+/* =========================
+   CONTEÚDO PRINCIPAL
+========================= */
 
 .orderContent {
-  width: 100%;
-  max-width: 100%;
+  min-width: 0;
+  padding-left: 4px;
+
+  display: grid;
+  grid-template-columns: minmax(180px, 0.9fr) minmax(220px, 1fr) minmax(190px, 0.9fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.orderTop {
   min-width: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 4px;
-  overflow: hidden;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+  margin-bottom: 10px;
 }
 
 .orderMain {
   min-width: 0;
-  overflow: hidden;
 }
 
 .orderId {
   display: block;
-  margin-bottom: 1px;
-  color: #9d5965;
-  font-size: 7.5px;
+  margin-bottom: 3px;
+
+  color: #a85d6a;
+  font-size: 10px;
   font-weight: 950;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
 }
 
 .orderMain h3 {
   max-width: 100%;
   margin: 0;
-  color: #342829;
-  font-size: 10.5px;
+
+  color: #2f2427;
+  font-size: 15px;
   font-weight: 950;
-  line-height: 1.1;
+  line-height: 1.15;
+
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -155,56 +215,61 @@
 .orderMain small {
   max-width: 100%;
   display: block;
-  margin-top: 1px;
+  margin-top: 3px;
+
   color: #836b6d;
-  font-size: 7.5px;
+  font-size: 11px;
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.2;
+
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .paymentId {
-  max-width: 100%;
+  max-width: 220px;
 }
 
-/* METAS */
+/* =========================
+   STATUS / METAS
+========================= */
 
 .orderMeta {
-  width: 100%;
-  max-width: 100%;
   min-width: 0;
+
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 3px;
-  overflow: hidden;
+  gap: 7px;
 }
 
 .badge,
 .metaItem {
+  min-height: 26px;
   max-width: 100%;
-  min-height: 18px;
+
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 0 5px;
+  gap: 5px;
+
+  padding: 0 9px;
   border-radius: 999px;
-  font-size: 7px;
+
+  font-size: 10px;
   font-weight: 950;
   white-space: nowrap;
 }
 
 .badge svg,
 .metaItem svg {
-  width: 8px;
-  height: 8px;
+  width: 12px;
+  height: 12px;
   flex-shrink: 0;
 }
 
 .metaItem {
-  background: #fff7f3;
+  background: #fff7f8;
   color: #6d4c52;
   border: 1px solid #ead9db;
 }
@@ -237,115 +302,166 @@
   color: #a16207;
 }
 
-/* PRODUTO: BEM PEQUENO */
+/* =========================
+   PRODUTO
+========================= */
 
-.productLine {
+.productLine,
+.productsBox {
   width: 100%;
-  max-width: 100%;
   min-width: 0;
-  padding: 5px 6px;
-  border-radius: 8px;
-  background: #fff7f3;
+}
+
+.productLine,
+.productItem {
+  min-width: 0;
+  padding: 10px 12px;
+  border-radius: 14px;
+
+  background: #fff8fa;
   border: 1px solid #ead9db;
-  overflow: hidden;
 }
 
-.productLine strong {
+.productsBox {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 0;
+}
+
+.productLine strong,
+.productItem strong {
   display: block;
+
   color: #342829;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 950;
-  line-height: 1.1;
+  line-height: 1.2;
+
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.productLine span {
+.productLine span,
+.productItem span {
   display: block;
-  margin-top: 1px;
+  margin-top: 3px;
+
   color: #836b6d;
-  font-size: 7px;
+  font-size: 10.5px;
   font-weight: 750;
+
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.productLine em {
-  display: none;
+.productLine em,
+.moreProducts,
+.emptyProducts {
+  width: fit-content;
+  max-width: 100%;
+  display: inline-flex;
+  align-items: center;
+
+  margin-top: 5px;
+  padding: 4px 8px;
+  border-radius: 999px;
+
+  background: #f3e8ff;
+  color: #7e22ce;
+
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 950;
 }
 
-/* LADO DIREITO */
+.emptyProducts {
+  background: #fff7f8;
+  color: #9d5965;
+  border: 1px dashed #dca4ae;
+}
+
+/* =========================
+   LADO DIREITO / VALOR / AÇÕES
+========================= */
 
 .orderSide {
-  width: 78px;
-  min-width: 0;
-  max-width: 78px;
+  min-width: 150px;
+
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   justify-content: center;
-  gap: 5px;
-  overflow: hidden;
+  gap: 9px;
 }
 
 .orderTotal {
-  max-width: 78px;
-  padding: 4px 5px;
-  border-radius: 8px;
+  width: fit-content;
+  max-width: 150px;
+
+  padding: 7px 10px;
+  border-radius: 12px;
+
   background: #f0fdf4;
   color: #15803d;
-  font-size: 8px;
+
+  font-size: 13px;
   font-weight: 950;
   white-space: nowrap;
+
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
+.actions,
 .floatingActions {
-  width: 100%;
   display: flex;
+  align-items: center;
   justify-content: flex-end;
-  gap: 3px;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: 0;
 }
-
-/* BOTÕES PEQUENOS */
 
 .viewButton,
 .trackButton,
 .refundButton {
-  width: 23px;
-  height: 23px;
-  min-width: 23px;
-  padding: 0;
-  border-radius: 7px;
+  min-height: 34px;
+  padding: 0 11px;
+
+  border-radius: 11px;
   border: 0;
   outline: 0;
+
   cursor: pointer;
   text-decoration: none;
+
   display: inline-flex;
   align-items: center;
   justify-content: center;
-}
+  gap: 6px;
 
-.viewButton span,
-.trackButton span,
-.refundButton span {
-  display: none;
+  font-size: 10px;
+  font-weight: 950;
+  white-space: nowrap;
+
+  transition: 0.2s ease;
 }
 
 .viewButton svg,
 .trackButton svg,
 .refundButton svg {
-  width: 9px;
-  height: 9px;
+  width: 13px;
+  height: 13px;
   flex-shrink: 0;
 }
 
 .viewButton {
   background: linear-gradient(135deg, #b26a77, #874954);
-  color: #fff;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(178, 106, 119, 0.18);
 }
 
 .trackButton {
@@ -355,15 +471,25 @@
 }
 
 .refundButton {
-  background: #fff7f3;
+  background: #fff7f8;
   color: #9d5965;
   border: 1px solid #dca4ae;
 }
 
+.viewButton:hover,
+.trackButton:hover,
+.refundButton:hover {
+  transform: translateY(-1px);
+}
+
 .refundButton:disabled {
-  opacity: 0.7;
+  opacity: 0.65;
   cursor: not-allowed;
 }
+
+/* =========================
+   ANIMAÇÃO
+========================= */
 
 .spin {
   animation: girar 0.85s linear infinite;
@@ -375,12 +501,54 @@
   }
 }
 
-/* TABLET */
+/* =========================
+   RESPONSIVO
+========================= */
 
-@media (max-width: 900px) {
+@media (max-width: 1250px) {
+  .orderContent {
+    grid-template-columns: minmax(180px, 1fr) minmax(220px, 1fr);
+  }
+
+  .productLine,
+  .productsBox {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 980px) {
+  .orderCard {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .orderContent {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .orderSide {
+    min-width: 0;
+    width: 100%;
+
+    align-items: stretch;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .orderTotal {
+    max-width: 180px;
+  }
+
+  .actions,
+  .floatingActions {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 760px) {
   .header {
     flex-direction: column;
     align-items: stretch;
+    padding: 14px;
   }
 
   .refreshButton {
@@ -388,71 +556,67 @@
   }
 
   .orderCard {
+    padding: 13px;
+    border-radius: 16px;
+  }
+
+  .orderTop {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .orderSide {
-    width: 100%;
-    max-width: 100%;
+    flex-direction: column;
     align-items: stretch;
-    flex-direction: row;
-    justify-content: space-between;
   }
 
   .orderTotal {
-    max-width: 120px;
+    max-width: 100%;
   }
 
+  .actions,
   .floatingActions {
-    width: auto;
-  }
-}
-
-/* CELULAR */
-
-@media (max-width: 520px) {
-  .title {
-    font-size: 16px;
-  }
-
-  .subtitle {
-    font-size: 8px;
-  }
-
-  .orderCard {
-    padding: 6px;
-    border-radius: 9px;
-    gap: 5px;
-  }
-
-  .orderMain h3 {
-    font-size: 10px;
-  }
-
-  .orderMain small {
-    font-size: 7px;
-  }
-
-  .badge,
-  .metaItem {
-    min-height: 17px;
-    font-size: 6.8px;
-    padding: 0 4px;
-  }
-
-  .productLine {
-    padding: 4px 5px;
-  }
-
-  .floatingActions {
-    gap: 3px;
+    display: grid;
+    grid-template-columns: 1fr;
+    width: 100%;
   }
 
   .viewButton,
   .trackButton,
   .refundButton {
-    width: 24px;
-    height: 24px;
-    min-width: 24px;
+    width: 100%;
+  }
+}
+
+@media (max-width: 520px) {
+  .title {
+    font-size: 18px;
+  }
+
+  .subtitle {
+    font-size: 10px;
+  }
+
+  .orderCard {
+    padding: 12px;
+  }
+
+  .orderMain h3 {
+    font-size: 13px;
+  }
+
+  .orderMain small {
+    font-size: 10px;
+  }
+
+  .badge,
+  .metaItem {
+    min-height: 24px;
+    font-size: 9px;
+    padding: 0 7px;
+  }
+
+  .productLine,
+  .productItem {
+    padding: 9px 10px;
   }
 }
