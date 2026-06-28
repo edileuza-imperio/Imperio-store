@@ -17,8 +17,6 @@ import {
   X,
 } from "lucide-react";
 
-import { imagemFundo } from "@/components/Bibioteca/imagem";
-
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://api.universoimperio.com.br/api/v1";
@@ -170,7 +168,7 @@ export default function CadastrarProdutoPage() {
       return false;
     }
 
-    if (!form.preco || Number(form.preco) <= 0) {
+    if (!form.preco || Number(String(form.preco).replace(",", ".")) <= 0) {
       alert("Preencha um preço válido.");
       setEtapa(2);
       return false;
@@ -243,7 +241,7 @@ export default function CadastrarProdutoPage() {
           "Produto cadastrado com sucesso!"
       );
 
-      router.push("/painel/sistema/produtos");
+      router.push("/sistema/produtos");
     } catch (error: any) {
       console.error("Erro ao cadastrar:", error);
 
@@ -257,11 +255,340 @@ export default function CadastrarProdutoPage() {
     }
   }
 
+  function proximaEtapa() {
+    if (etapa < 3) {
+      setEtapa((atual) => atual + 1);
+    }
+  }
+
+  function etapaAnterior() {
+    if (etapa > 1) {
+      setEtapa((atual) => atual - 1);
+    }
+  }
+
   const progresso = useMemo(() => ((etapa - 1) / 2) * 100, [etapa]);
 
+  const tituloEtapa = useMemo(() => {
+    if (etapa === 1) return "Imagens do produto";
+    if (etapa === 2) return "Informações principais";
+    return "Descrição e revisão";
+  }, [etapa]);
+
   return (
-    <div className="cad-produto">
-      {/* pode manter o resto do seu JSX igual */}
-    </div>
+    <main className="cad-produto">
+      <header className="cad-produto-hero">
+        <button
+          type="button"
+          className="cad-produto-voltar"
+          onClick={() => router.back()}
+        >
+          <ArrowLeft size={18} />
+          Voltar
+        </button>
+
+        <div className="cad-produto-hero-texto">
+          <span>
+            <Sparkles size={16} />
+            Novo produto
+          </span>
+
+          <h1>Cadastrar produto</h1>
+
+          <p>
+            Preencha as etapas para cadastrar um novo produto no painel do
+            Universo Império.
+          </p>
+        </div>
+      </header>
+
+      <section className="cad-produto-card">
+        <div className="cad-produto-progress-area">
+          <div className="cad-produto-progress-info">
+            <span>Etapa {etapa} de 3</span>
+            <strong>{tituloEtapa}</strong>
+          </div>
+
+          <div className="cad-produto-progress-bar">
+            <div style={{ width: `${progresso}%` }} />
+          </div>
+        </div>
+
+        <div className="cad-produto-steps">
+          <button
+            type="button"
+            className={etapa === 1 ? "ativo" : ""}
+            onClick={() => setEtapa(1)}
+          >
+            <ImagePlus size={18} />
+            Imagens
+          </button>
+
+          <button
+            type="button"
+            className={etapa === 2 ? "ativo" : ""}
+            onClick={() => setEtapa(2)}
+          >
+            <Package size={18} />
+            Produto
+          </button>
+
+          <button
+            type="button"
+            className={etapa === 3 ? "ativo" : ""}
+            onClick={() => setEtapa(3)}
+          >
+            <FileText size={18} />
+            Descrição
+          </button>
+        </div>
+
+        {etapa === 1 && (
+          <section className="cad-produto-etapa">
+            <div className="cad-produto-etapa-header">
+              <ImagePlus size={22} />
+              <div>
+                <h2>Imagens do produto</h2>
+                <p>Envie uma ou mais imagens para exibir no catálogo.</p>
+              </div>
+            </div>
+
+            <label className="cad-produto-upload">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleFileChange}
+              />
+
+              <ImagePlus size={36} />
+
+              <strong>Clique para enviar imagens</strong>
+
+              <span>PNG, JPG ou WEBP</span>
+            </label>
+
+            {previewUrls.length > 0 && (
+              <div className="cad-produto-preview-grid">
+                {previewUrls.map((url, index) => (
+                  <div className="cad-produto-preview" key={url}>
+                    <img src={url} alt={`Imagem ${index + 1}`} />
+
+                    <button
+                      type="button"
+                      onClick={() => removerImagem(index)}
+                      aria-label="Remover imagem"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {etapa === 2 && (
+          <section className="cad-produto-etapa">
+            <div className="cad-produto-etapa-header">
+              <Package size={22} />
+              <div>
+                <h2>Informações principais</h2>
+                <p>Preencha os dados básicos do produto.</p>
+              </div>
+            </div>
+
+            <div className="cad-produto-form-grid">
+              <label>
+                <span>Nome do produto</span>
+                <input
+                  type="text"
+                  name="nome"
+                  value={form.nome}
+                  onChange={handleChange}
+                  placeholder="Ex: Camisa do Brasil Infantil"
+                />
+              </label>
+
+              <label>
+                <span>Slug</span>
+                <input
+                  type="text"
+                  name="slug"
+                  value={form.slug}
+                  onChange={handleChange}
+                  placeholder="camisa-do-brasil-infantil"
+                />
+              </label>
+
+              <label>
+                <span>Preço</span>
+                <input
+                  type="number"
+                  name="preco"
+                  value={form.preco}
+                  onChange={handleChange}
+                  placeholder="29.90"
+                  step="0.01"
+                  min="0"
+                />
+              </label>
+
+              <label>
+                <span>Quantidade</span>
+                <input
+                  type="number"
+                  name="quantidade"
+                  value={form.quantidade}
+                  onChange={handleChange}
+                  placeholder="0"
+                  min="0"
+                />
+              </label>
+
+              <label>
+                <span>SKU</span>
+                <input
+                  type="text"
+                  name="sku"
+                  value={form.sku}
+                  onChange={handleChange}
+                  placeholder="PRO-123456"
+                />
+              </label>
+
+              <label>
+                <span>Marca</span>
+                <input
+                  type="text"
+                  name="marca"
+                  value={form.marca}
+                  onChange={handleChange}
+                  placeholder="Ex: Universo Império"
+                />
+              </label>
+
+              <label>
+                <span>Categoria</span>
+                <select
+                  name="categoria_id"
+                  value={form.categoria_id}
+                  onChange={handleChange}
+                >
+                  <option value="">Selecione uma categoria</option>
+
+                  {categorias.map((categoria) => (
+                    <option
+                      key={categoria.id_categoria}
+                      value={categoria.id_categoria}
+                    >
+                      {categoria.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label>
+                <span>Status</span>
+                <select
+                  name="status_id"
+                  value={form.status_id}
+                  onChange={handleChange}
+                >
+                  <option value="">Selecione um status</option>
+
+                  {statusList.map((status) => (
+                    <option key={status.id_status} value={status.id_status}>
+                      {status.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+          </section>
+        )}
+
+        {etapa === 3 && (
+          <section className="cad-produto-etapa">
+            <div className="cad-produto-etapa-header">
+              <FileText size={22} />
+              <div>
+                <h2>Descrição e revisão</h2>
+                <p>Finalize a descrição antes de salvar o produto.</p>
+              </div>
+            </div>
+
+            <label className="cad-produto-descricao">
+              <span>Descrição do produto</span>
+
+              <textarea
+                name="descricao"
+                value={form.descricao}
+                onChange={handleChange}
+                placeholder="Descreva os detalhes, características e informações importantes do produto."
+                rows={8}
+              />
+            </label>
+
+            <div className="cad-produto-review">
+              <div>
+                <Truck size={20} />
+                <span>Resumo</span>
+              </div>
+
+              <ul>
+                <li>
+                  <strong>Produto:</strong> {form.nome || "Não informado"}
+                </li>
+                <li>
+                  <strong>Preço:</strong>{" "}
+                  {form.preco ? `R$ ${form.preco}` : "Não informado"}
+                </li>
+                <li>
+                  <strong>Imagens:</strong> {imagens.length}
+                </li>
+                <li>
+                  <strong>SKU:</strong> {form.sku || "Não informado"}
+                </li>
+              </ul>
+            </div>
+          </section>
+        )}
+
+        <footer className="cad-produto-footer">
+          <button
+            type="button"
+            className="cad-produto-btn-secundario"
+            onClick={etapaAnterior}
+            disabled={etapa === 1 || loading}
+          >
+            <ChevronLeft size={18} />
+            Anterior
+          </button>
+
+          {etapa < 3 ? (
+            <button
+              type="button"
+              className="cad-produto-btn-primario"
+              onClick={proximaEtapa}
+              disabled={loading}
+            >
+              Próxima
+              <ChevronRight size={18} />
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="cad-produto-btn-salvar"
+              onClick={salvar}
+              disabled={loading}
+            >
+              <Save size={18} />
+              {loading ? "Salvando..." : "Salvar produto"}
+            </button>
+          )}
+        </footer>
+      </section>
+    </main>
   );
 }

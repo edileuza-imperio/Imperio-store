@@ -5,29 +5,26 @@
   color: #3a2a2f;
 }
 
-.cad-produto__header,
-.cad-produto__form-card {
+.cad-produto-hero,
+.cad-produto-card {
   background: #ffffff;
   border: 1px solid rgba(168, 93, 106, 0.16);
   border-radius: 22px;
   box-shadow: 0 16px 36px rgba(80, 45, 54, 0.08);
 }
 
-.cad-produto__header {
+.cad-produto-hero {
   padding: 22px;
   margin-bottom: 18px;
-}
-
-.cad-produto__header-top {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
+  justify-content: space-between;
   gap: 18px;
 }
 
-.cad-produto__back-button,
-.cad-produto__primary-button,
-.cad-produto__secondary-button {
+.cad-produto-voltar {
+  height: 42px;
+  padding: 0 14px;
   border: 0;
   cursor: pointer;
   font-weight: 900;
@@ -36,40 +33,19 @@
   align-items: center;
   gap: 8px;
   transition: 0.2s ease;
-}
-
-.cad-produto__back-button {
-  height: 42px;
-  padding: 0 14px;
   background: #fff1f4;
   color: #8f4f5b;
 }
 
-.cad-produto__back-button:hover,
-.cad-produto__secondary-button:hover {
+.cad-produto-voltar:hover {
   background: #f8dde4;
 }
 
-.cad-produto__title-block {
+.cad-produto-hero-texto {
   flex: 1;
 }
 
-.cad-produto__title-block h1 {
-  margin: 12px 0 6px;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  color: #2f2427;
-  font-size: clamp(1.6rem, 3vw, 2.3rem);
-}
-
-.cad-produto__title-block p {
-  margin: 0;
-  color: #9b737b;
-  font-weight: 700;
-}
-
-.cad-produto__badge {
+.cad-produto-hero-texto > span {
   width: fit-content;
   padding: 8px 12px;
   border-radius: 999px;
@@ -82,100 +58,126 @@
   align-items: center;
 }
 
-.cad-produto__stepper {
-  margin-top: 22px;
+.cad-produto-hero-texto h1 {
+  margin: 12px 0 6px;
+  color: #2f2427;
+  font-size: clamp(1.6rem, 3vw, 2.3rem);
 }
 
-.cad-produto__stepper-top {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.cad-produto__stepper-top span {
-  width: 34px;
-  height: 34px;
-  border-radius: 999px;
-  display: grid;
-  place-items: center;
-  background: #f5e8eb;
+.cad-produto-hero-texto p {
+  margin: 0;
   color: #9b737b;
+  font-weight: 700;
+}
+
+.cad-produto-card {
+  padding: 22px;
+}
+
+.cad-produto-progress-area {
+  margin-bottom: 22px;
+}
+
+.cad-produto-progress-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.cad-produto-progress-info span {
+  color: #9b737b;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.cad-produto-progress-info strong {
+  color: #2f2427;
+  font-size: 14px;
   font-weight: 950;
 }
 
-.cad-produto__step-active {
-  background: #a85d6a !important;
-  color: #ffffff !important;
-}
-
-.cad-produto__step-line {
-  flex: 1;
-  height: 3px;
-  border-radius: 999px;
-  background: #f0d4da;
-}
-
-.cad-produto__progress-bar {
-  margin-top: 12px;
+.cad-produto-progress-bar {
   height: 8px;
   border-radius: 999px;
   background: #f5e8eb;
   overflow: hidden;
 }
 
-.cad-produto__progress-fill {
+.cad-produto-progress-bar div {
   height: 100%;
   background: linear-gradient(135deg, #a85d6a, #d98a99);
   transition: 0.25s ease;
 }
 
-.cad-produto__form-card {
-  padding: 22px;
-}
-
-.cad-produto__step-card {
-  display: flex;
-  flex-direction: column;
-  gap: 22px;
-}
-
-.cad-produto__step-header {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-}
-
-.cad-produto__step-header h2 {
-  margin: 0 0 4px;
-  color: #2f2427;
-}
-
-.cad-produto__step-header p {
-  margin: 0;
-  color: #9b737b;
-  font-weight: 700;
-}
-
-.cad-produto__step-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 16px;
+.cad-produto-steps {
   display: grid;
-  place-items: center;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.cad-produto-steps button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 16px;
+  background: #fff1f4;
+  color: #8f4f5b;
+  cursor: pointer;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: 0.2s ease;
+}
+
+.cad-produto-steps button:hover {
+  background: #f8dde4;
+}
+
+.cad-produto-steps button.ativo {
   color: #ffffff;
   background: linear-gradient(135deg, #a85d6a, #d98a99);
   box-shadow: 0 10px 22px rgba(168, 93, 106, 0.22);
 }
 
-.cad-produto__upload-area {
-  width: 100%;
+.cad-produto-etapa {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
 }
 
-.cad-produto__upload-input {
-  display: none;
+.cad-produto-etapa-header {
+  display: flex;
+  gap: 14px;
+  align-items: center;
 }
 
-.cad-produto__upload-label {
+.cad-produto-etapa-header > svg {
+  min-width: 48px;
+  width: 48px;
+  height: 48px;
+  padding: 12px;
+  border-radius: 16px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #a85d6a, #d98a99);
+  box-shadow: 0 10px 22px rgba(168, 93, 106, 0.22);
+}
+
+.cad-produto-etapa-header h2 {
+  margin: 0 0 4px;
+  color: #2f2427;
+}
+
+.cad-produto-etapa-header p {
+  margin: 0;
+  color: #9b737b;
+  font-weight: 700;
+}
+
+.cad-produto-upload {
   min-height: 190px;
   border: 2px dashed #e6bdc5;
   border-radius: 20px;
@@ -188,35 +190,30 @@
   color: #8f4f5b;
   font-weight: 900;
   transition: 0.2s ease;
+  padding: 24px;
 }
 
-.cad-produto__upload-label:hover {
+.cad-produto-upload:hover {
   border-color: #a85d6a;
   background: #fff1f4;
 }
 
-.cad-produto__upload-label span {
+.cad-produto-upload input {
+  display: none;
+}
+
+.cad-produto-upload span {
   color: #9b737b;
   font-size: 13px;
 }
 
-.cad-produto__upload-icon-wrap {
-  width: 58px;
-  height: 58px;
-  border-radius: 18px;
-  display: grid;
-  place-items: center;
-  background: #ffffff;
-  border: 1px solid #f0d4da;
-}
-
-.cad-produto__preview-grid {
+.cad-produto-preview-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
 }
 
-.cad-produto__preview-card {
+.cad-produto-preview {
   position: relative;
   overflow: hidden;
   border-radius: 18px;
@@ -225,13 +222,13 @@
   background: #fff8fa;
 }
 
-.cad-produto__preview-card img {
+.cad-produto-preview img {
   width: 100%;
   height: 100%;
   object-fit: cover;
 }
 
-.cad-produto__remove-image {
+.cad-produto-preview button {
   position: absolute;
   top: 8px;
   right: 8px;
@@ -247,29 +244,29 @@
   box-shadow: 0 8px 18px rgba(80, 45, 54, 0.16);
 }
 
-.cad-produto__grid {
+.cad-produto-form-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
 }
 
-.cad-produto__field,
-.cad-produto__descricao {
+.cad-produto-form-grid label,
+.cad-produto-descricao {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.cad-produto__field label,
-.cad-produto__descricao label {
+.cad-produto-form-grid label span,
+.cad-produto-descricao span {
   font-size: 13px;
   font-weight: 950;
   color: #6f4b53;
 }
 
-.cad-produto__field input,
-.cad-produto__field select,
-.cad-produto__descricao textarea {
+.cad-produto-form-grid input,
+.cad-produto-form-grid select,
+.cad-produto-descricao textarea {
   width: 100%;
   border: 1px solid #ead1d7;
   border-radius: 14px;
@@ -280,51 +277,98 @@
   font-weight: 700;
 }
 
-.cad-produto__field input:focus,
-.cad-produto__field select:focus,
-.cad-produto__descricao textarea:focus {
+.cad-produto-form-grid input:focus,
+.cad-produto-form-grid select:focus,
+.cad-produto-descricao textarea:focus {
   border-color: #a85d6a;
   box-shadow: 0 0 0 4px rgba(168, 93, 106, 0.1);
 }
 
-.cad-produto__field input[readonly] {
-  background: #fff8fa;
-  color: #8f4f5b;
-}
-
-.cad-produto__descricao textarea {
+.cad-produto-descricao textarea {
   resize: vertical;
   min-height: 180px;
 }
 
-.cad-produto__actions {
+.cad-produto-review {
+  border: 1px solid #f0d4da;
+  border-radius: 18px;
+  padding: 18px;
+  background: #fff8fa;
+}
+
+.cad-produto-review > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #8f4f5b;
+  font-weight: 950;
+  margin-bottom: 12px;
+}
+
+.cad-produto-review ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #6f4b53;
+  font-weight: 700;
+}
+
+.cad-produto-review li + li {
+  margin-top: 8px;
+}
+
+.cad-produto-footer {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #f0d4da;
   display: flex;
   justify-content: flex-end;
   gap: 12px;
 }
 
-.cad-produto__primary-button {
+.cad-produto-btn-secundario,
+.cad-produto-btn-primario,
+.cad-produto-btn-salvar {
+  border: 0;
+  cursor: pointer;
+  font-weight: 900;
+  border-radius: 14px;
   padding: 13px 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: 0.2s ease;
+}
+
+.cad-produto-btn-secundario {
+  color: #8f4f5b;
+  background: #fff1f4;
+}
+
+.cad-produto-btn-secundario:hover {
+  background: #f8dde4;
+}
+
+.cad-produto-btn-primario,
+.cad-produto-btn-salvar {
   color: #ffffff;
   background: linear-gradient(135deg, #a85d6a, #d98a99);
   box-shadow: 0 10px 22px rgba(168, 93, 106, 0.22);
 }
 
-.cad-produto__primary-button:hover {
+.cad-produto-btn-primario:hover,
+.cad-produto-btn-salvar:hover {
   transform: translateY(-1px);
   box-shadow: 0 14px 26px rgba(168, 93, 106, 0.28);
 }
 
-.cad-produto__secondary-button {
-  padding: 13px 18px;
-  color: #8f4f5b;
-  background: #fff1f4;
-}
-
-.cad-produto__primary-button:disabled {
+.cad-produto-btn-secundario:disabled,
+.cad-produto-btn-primario:disabled,
+.cad-produto-btn-salvar:disabled {
   opacity: 0.55;
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 @media (max-width: 900px) {
@@ -332,22 +376,26 @@
     padding: 16px;
   }
 
-  .cad-produto__header-top {
+  .cad-produto-hero {
     flex-direction: column;
   }
 
-  .cad-produto__grid,
-  .cad-produto__preview-grid {
+  .cad-produto-steps {
     grid-template-columns: 1fr;
   }
 
-  .cad-produto__actions {
+  .cad-produto-form-grid,
+  .cad-produto-preview-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .cad-produto-footer {
     flex-direction: column;
   }
 
-  .cad-produto__primary-button,
-  .cad-produto__secondary-button {
-    justify-content: center;
+  .cad-produto-btn-secundario,
+  .cad-produto-btn-primario,
+  .cad-produto-btn-salvar {
     width: 100%;
   }
 }
