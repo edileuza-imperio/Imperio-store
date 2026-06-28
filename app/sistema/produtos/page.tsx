@@ -372,7 +372,7 @@ export default function ProdutosPage() {
         </button>
 
         <Link
-          href="/painel/sistema/produtos/cadastrar"
+          href="/sistema/produtos/cadastrar"
           className="produtos-floating produtos-floating-add"
           aria-label="Adicionar produto"
         >
