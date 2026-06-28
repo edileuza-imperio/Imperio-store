@@ -7,22 +7,24 @@
   overflow-x: hidden;
 }
 
-/* HEADER */
+/* =========================
+   HEADER
+========================= */
 
 .header {
   width: 100%;
   min-width: 0;
-  margin-bottom: 8px;
-  padding: 10px;
-  border-radius: 13px;
+  margin-bottom: 6px;
+  padding: 8px 10px;
+  border-radius: 11px;
   background: #ffffff;
   border: 1px solid rgba(178, 106, 119, 0.14);
-  box-shadow: 0 8px 18px rgba(80, 45, 54, 0.04);
+  box-shadow: 0 5px 12px rgba(80, 45, 54, 0.035);
 
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
 .headerText {
@@ -33,51 +35,51 @@
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   color: #342829;
-  font-size: clamp(16px, 1.6vw, 19px);
+  font-size: clamp(15px, 1.4vw, 18px);
   font-weight: 950;
   letter-spacing: -0.35px;
 }
 
 .title svg {
-  width: 17px;
-  height: 17px;
+  width: 15px;
+  height: 15px;
   flex: 0 0 auto;
   color: #b26a77;
 }
 
 .subtitle {
-  margin: 2px 0 0;
+  margin: 1px 0 0;
   color: #836b6d;
-  font-size: 9px;
+  font-size: 8px;
   font-weight: 700;
 }
 
 .headerRight {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex: 0 0 auto;
 }
 
 .headerStats {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
 
 .headerStats span,
 .headerStats strong {
-  min-height: 22px;
-  padding: 0 7px;
+  min-height: 20px;
+  padding: 0 6px;
   border-radius: 999px;
   background: #fff7f8;
   border: 1px solid #ead9db;
   color: #8f4f5b;
-  font-size: 7.8px;
+  font-size: 7px;
   font-weight: 950;
   display: inline-flex;
   align-items: center;
@@ -91,26 +93,26 @@
 }
 
 .refreshButton {
-  height: 28px;
-  padding: 0 9px;
-  border-radius: 9px;
+  height: 25px;
+  padding: 0 8px;
+  border-radius: 8px;
   border: 1px solid #ead9db;
   cursor: pointer;
   background: #fff7f8;
   color: #8f4f5b;
-  font-size: 8px;
+  font-size: 7.5px;
   font-weight: 950;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
   transition: 0.2s ease;
   white-space: nowrap;
 }
 
 .refreshButton svg {
-  width: 11px;
-  height: 11px;
+  width: 10px;
+  height: 10px;
 }
 
 .refreshButton:hover {
@@ -118,21 +120,25 @@
   transform: translateY(-1px);
 }
 
-/* INFO */
+/* =========================
+   INFO
+========================= */
 
 .info {
   width: 100%;
-  padding: 10px;
-  border-radius: 12px;
+  padding: 9px;
+  border-radius: 10px;
   background: #ffffff;
   border: 1px solid rgba(178, 106, 119, 0.14);
   color: #5f4b4d;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
-  box-shadow: 0 8px 18px rgba(80, 45, 54, 0.04);
+  box-shadow: 0 5px 12px rgba(80, 45, 54, 0.035);
 }
 
-/* LISTA */
+/* =========================
+   LISTA
+========================= */
 
 .ordersList {
   width: 100%;
@@ -140,11 +146,13 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
   overflow-x: hidden;
 }
 
-/* LINHA DO PEDIDO */
+/* =========================
+   LINHA DO PEDIDO
+========================= */
 
 .orderCard {
   width: 100%;
@@ -153,29 +161,29 @@
   position: relative;
   overflow: hidden;
 
-  padding: 8px 8px 8px 12px;
-  border-radius: 12px;
+  padding: 6px 6px 6px 10px;
+  border-radius: 10px;
 
   background: #ffffff;
   border: 1px solid rgba(178, 106, 119, 0.16);
-  box-shadow: 0 7px 16px rgba(80, 45, 54, 0.04);
+  box-shadow: 0 4px 10px rgba(80, 45, 54, 0.035);
 
   display: grid;
   grid-template-columns:
-    minmax(120px, 1fr)
-    minmax(145px, 1fr)
-    minmax(125px, 0.9fr)
-    minmax(72px, 0.42fr)
+    minmax(105px, 0.95fr)
+    minmax(135px, 1fr)
+    minmax(115px, 0.85fr)
+    minmax(62px, 0.35fr)
     auto;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 
   transition: 0.2s ease;
 }
 
 .orderCard:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 22px rgba(80, 45, 54, 0.07);
+  box-shadow: 0 7px 16px rgba(80, 45, 54, 0.06);
 }
 
 .orderCard::before {
@@ -186,7 +194,9 @@
   background: linear-gradient(180deg, #b26a77, #d88b99);
 }
 
-/* COLUNAS */
+/* =========================
+   COLUNAS
+========================= */
 
 .customerBlock,
 .statusBlock,
@@ -200,7 +210,7 @@
   display: block;
   margin-bottom: 1px;
   color: #a85d6a;
-  font-size: 7.4px;
+  font-size: 6.8px;
   font-weight: 950;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -210,9 +220,9 @@
   max-width: 100%;
   margin: 0;
   color: #2f2427;
-  font-size: 10.5px;
+  font-size: 9.5px;
   font-weight: 950;
-  line-height: 1.1;
+  line-height: 1.05;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -223,9 +233,9 @@
   display: block;
   margin-top: 1px;
   color: #836b6d;
-  font-size: 7.4px;
+  font-size: 6.8px;
   font-weight: 700;
-  line-height: 1.15;
+  line-height: 1.1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -235,33 +245,35 @@
   max-width: 100%;
 }
 
-/* STATUS */
+/* =========================
+   STATUS
+========================= */
 
 .statusBlock {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 3px;
 }
 
 .badge,
 .metaItem {
-  min-height: 19px;
+  min-height: 17px;
   max-width: 100%;
   display: inline-flex;
   align-items: center;
   gap: 3px;
   padding: 0 5px;
   border-radius: 999px;
-  font-size: 7.4px;
+  font-size: 6.8px;
   font-weight: 950;
   white-space: nowrap;
 }
 
 .badge svg,
 .metaItem svg {
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   flex-shrink: 0;
 }
 
@@ -270,6 +282,8 @@
   color: #6d4c52;
   border: 1px solid #ead9db;
 }
+
+/* STATUS CORES */
 
 .statusPago,
 .statusEntregue {
@@ -297,12 +311,14 @@
   color: #a16207;
 }
 
-/* PRODUTO */
+/* =========================
+   PRODUTO
+========================= */
 
 .productBlock {
   min-width: 0;
-  padding: 6px 7px;
-  border-radius: 9px;
+  padding: 5px 6px;
+  border-radius: 8px;
   background: #fff8fa;
   border: 1px solid #ead9db;
 }
@@ -310,9 +326,9 @@
 .productBlock strong {
   display: block;
   color: #342829;
-  font-size: 8.8px;
+  font-size: 8px;
   font-weight: 950;
-  line-height: 1.1;
+  line-height: 1.05;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -322,7 +338,7 @@
   display: block;
   margin-top: 1px;
   color: #836b6d;
-  font-size: 7.4px;
+  font-size: 6.8px;
   font-weight: 750;
   white-space: nowrap;
   overflow: hidden;
@@ -338,12 +354,14 @@
   border-radius: 999px;
   background: #f3e8ff;
   color: #7e22ce;
-  font-size: 6.8px;
+  font-size: 6.4px;
   font-style: normal;
   font-weight: 950;
 }
 
-/* TOTAL */
+/* =========================
+   TOTAL
+========================= */
 
 .totalBlock {
   display: flex;
@@ -354,11 +372,11 @@
 
 .totalBlock strong {
   max-width: 100%;
-  padding: 4px 6px;
-  border-radius: 8px;
+  padding: 3px 5px;
+  border-radius: 7px;
   background: #f0fdf4;
   color: #15803d;
-  font-size: 8.5px;
+  font-size: 7.5px;
   font-weight: 950;
   white-space: nowrap;
   overflow: hidden;
@@ -370,32 +388,34 @@
   align-items: center;
   gap: 2px;
   color: #836b6d;
-  font-size: 7px;
+  font-size: 6.5px;
   font-weight: 850;
   white-space: nowrap;
 }
 
 .totalBlock span svg {
-  width: 8px;
-  height: 8px;
+  width: 7px;
+  height: 7px;
 }
 
-/* AÇÕES */
+/* =========================
+   AÇÕES
+========================= */
 
 .actionBlock {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 4px;
+  gap: 3px;
 }
 
 .viewButton,
 .trackButton,
 .refundButton {
-  width: 27px;
-  height: 27px;
+  width: 23px;
+  height: 23px;
   padding: 0;
-  border-radius: 8px;
+  border-radius: 7px;
   border: 0;
   outline: 0;
   cursor: pointer;
@@ -417,15 +437,15 @@
 .viewButton svg,
 .trackButton svg,
 .refundButton svg {
-  width: 11px;
-  height: 11px;
+  width: 9.5px;
+  height: 9.5px;
   flex-shrink: 0;
 }
 
 .viewButton {
   background: linear-gradient(135deg, #b26a77, #874954);
   color: #ffffff;
-  box-shadow: 0 6px 14px rgba(178, 106, 119, 0.15);
+  box-shadow: 0 5px 10px rgba(178, 106, 119, 0.14);
 }
 
 .trackButton {
@@ -451,28 +471,30 @@
   cursor: not-allowed;
 }
 
-/* PAGINAÇÃO */
+/* =========================
+   PAGINAÇÃO
+========================= */
 
 .pagination {
   width: 100%;
-  margin-top: 8px;
-  padding: 8px;
-  border-radius: 12px;
+  margin-top: 6px;
+  padding: 6px 8px;
+  border-radius: 10px;
   background: #ffffff;
   border: 1px solid rgba(178, 106, 119, 0.14);
-  box-shadow: 0 7px 16px rgba(80, 45, 54, 0.04);
+  box-shadow: 0 4px 10px rgba(80, 45, 54, 0.035);
 
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 
 .paginationGroup,
 .paginationCenter {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   flex-wrap: wrap;
 }
 
@@ -480,33 +502,33 @@
 .pagination label,
 .pagination strong {
   color: #6d4c52;
-  font-size: 8px;
+  font-size: 7px;
   font-weight: 950;
 }
 
 .pagination label {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 
 .pagination select {
-  height: 25px;
-  min-width: 50px;
-  border-radius: 8px;
+  height: 22px;
+  min-width: 46px;
+  border-radius: 7px;
   border: 1px solid #ead9db;
   background: #fff7f8;
   color: #6d4c52;
-  font-size: 8px;
+  font-size: 7px;
   font-weight: 950;
   outline: none;
-  padding: 0 6px;
+  padding: 0 5px;
 }
 
 .pagination button {
-  width: 25px;
-  height: 25px;
-  border-radius: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 7px;
   border: 0;
   background: linear-gradient(135deg, #b26a77, #874954);
   color: #ffffff;
@@ -523,11 +545,13 @@
 }
 
 .pagination button svg {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
 }
 
-/* ANIMAÇÃO */
+/* =========================
+   ANIMAÇÃO
+========================= */
 
 .spin {
   animation: girar 0.85s linear infinite;
@@ -539,14 +563,16 @@
   }
 }
 
-/* RESPONSIVO */
+/* =========================
+   DESKTOP MÉDIO
+========================= */
 
 @media (max-width: 1250px) {
   .orderCard {
     grid-template-columns:
-      minmax(130px, 1fr)
-      minmax(145px, 1fr)
-      minmax(86px, 0.6fr)
+      minmax(120px, 1fr)
+      minmax(135px, 1fr)
+      minmax(75px, 0.55fr)
       auto;
   }
 
@@ -555,10 +581,15 @@
   }
 }
 
+/* =========================
+   TABLET
+========================= */
+
 @media (max-width: 920px) {
   .header {
     flex-direction: column;
     align-items: stretch;
+    padding: 9px;
   }
 
   .headerRight {
@@ -572,11 +603,15 @@
 
   .refreshButton {
     width: 100%;
+    height: 29px;
+    font-size: 8px;
   }
 
   .orderCard {
     grid-template-columns: minmax(0, 1fr);
     align-items: stretch;
+    padding: 9px 9px 9px 12px;
+    gap: 7px;
   }
 
   .statusBlock {
@@ -622,6 +657,10 @@
     text-align: center;
   }
 }
+
+/* =========================
+   CELULAR
+========================= */
 
 @media (max-width: 520px) {
   .header {
