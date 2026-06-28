@@ -6,7 +6,7 @@
 
 .cad-produto {
   width: 100%;
-  max-width: 980px;
+  max-width: 960px;
   min-width: 0;
   margin: 0 auto;
   padding: 8px;
@@ -91,8 +91,18 @@
   padding: 10px;
 }
 
+.cad-produto-topo-card {
+  width: 100%;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
 .cad-produto-progress-area {
-  margin-bottom: 12px;
+  min-width: 0;
 }
 
 .cad-produto-progress-info {
@@ -132,11 +142,18 @@
   transition: 0.25s ease;
 }
 
+.cad-produto-actions-top {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
 .cad-produto-steps {
   width: 100%;
   min-width: 0;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 7px;
   margin-bottom: 12px;
 }
@@ -348,7 +365,7 @@
 .cad-produto-descricao textarea {
   height: auto;
   resize: vertical;
-  min-height: 105px;
+  min-height: 120px;
   line-height: 1.4;
 }
 
@@ -386,27 +403,17 @@
   margin-top: 5px;
 }
 
-.cad-produto-footer {
-  width: 100%;
-  min-width: 0;
-  margin-top: 12px;
-  padding-top: 10px;
-  border-top: 1px solid #f0d4da;
-  display: flex;
-  justify-content: flex-end;
-  gap: 7px;
-}
-
 .cad-produto-btn-secundario,
 .cad-produto-btn-primario,
 .cad-produto-btn-salvar {
   min-width: 0;
+  height: 32px;
   border: 0;
   cursor: pointer;
   font-size: 11.5px;
   font-weight: 900;
   border-radius: 9px;
-  padding: 8px 11px;
+  padding: 0 11px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -461,8 +468,23 @@
     flex-direction: column;
   }
 
+  .cad-produto-topo-card {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .cad-produto-actions-top {
+    justify-content: flex-end;
+  }
+
   .cad-produto-form-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 620px) {
+  .cad-produto-steps {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -485,6 +507,17 @@
 
   .cad-produto-progress-info strong {
     text-align: left;
+  }
+
+  .cad-produto-actions-top {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cad-produto-btn-secundario,
+  .cad-produto-btn-primario,
+  .cad-produto-btn-salvar {
+    width: 100%;
   }
 
   .cad-produto-steps {
@@ -517,15 +550,5 @@
 
   .cad-produto-preview {
     height: 80px;
-  }
-
-  .cad-produto-footer {
-    flex-direction: column;
-  }
-
-  .cad-produto-btn-secundario,
-  .cad-produto-btn-primario,
-  .cad-produto-btn-salvar {
-    width: 100%;
   }
 }
