@@ -6,22 +6,33 @@ import { useRouter } from "next/navigation";
 import api from "@/Api/conectar";
 import "../../../components/styles/sistema/categoria.css";
 
+import type { IconType } from "react-icons";
 import {
-  FolderOpen,
-  Tag,
-  Plus,
-  Boxes,
-  AlertCircle,
-  Trash2,
-  Pencil,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  CheckCircle2,
-  FileText,
-  Settings2,
-  Sparkles,
-} from "lucide-react";
+  FaBaby,
+  FaBoxes,
+  FaCheckCircle,
+  FaChevronLeft,
+  FaChevronRight,
+  FaChild,
+  FaCog,
+  FaExclamationCircle,
+  FaFileAlt,
+  FaFolderOpen,
+  FaGamepad,
+  FaGift,
+  FaHome,
+  FaMagic,
+  FaPaintBrush,
+  FaPencilAlt,
+  FaPlus,
+  FaPuzzlePiece,
+  FaShoppingBag,
+  FaStar,
+  FaTag,
+  FaTimes,
+  FaTrashAlt,
+  FaTshirt,
+} from "react-icons/fa";
 
 type Categoria = {
   id_categoria: number;
@@ -49,10 +60,8 @@ type CategoriaForm = {
   slug: string;
   descricao: string;
   icone: string;
-  imagem: string;
   ordem: string;
   status_id: string;
-  site_config_id: string;
 };
 
 const formInicial: CategoriaForm = {
@@ -60,13 +69,113 @@ const formInicial: CategoriaForm = {
   slug: "",
   descricao: "",
   icone: "",
-  imagem: "",
   ordem: "",
   status_id: "",
-  site_config_id: "",
 };
 
 const LIMITE_POR_PAGINA = 3;
+
+type IconeBiblioteca = {
+  valor: string;
+  label: string;
+  descricao: string;
+  Icone: IconType;
+};
+
+const BIBLIOTECA_ICONES: IconeBiblioteca[] = [
+  {
+    valor: "categoria",
+    label: "Categoria padrão",
+    descricao: "Uso geral para qualquer categoria.",
+    Icone: FaFolderOpen,
+  },
+  {
+    valor: "maquiagem",
+    label: "Maquiagem",
+    descricao: "Beleza, cosméticos e maquiagem.",
+    Icone: FaPaintBrush,
+  },
+  {
+    valor: "crianca",
+    label: "Criança",
+    descricao: "Produtos infantis, moda infantil e bebê.",
+    Icone: FaChild,
+  },
+  {
+    valor: "bebe",
+    label: "Bebê",
+    descricao: "Itens para bebê e recém-nascido.",
+    Icone: FaBaby,
+  },
+  {
+    valor: "moda",
+    label: "Moda",
+    descricao: "Roupas, camisetas e acessórios.",
+    Icone: FaTshirt,
+  },
+  {
+    valor: "presentes",
+    label: "Presentes",
+    descricao: "Cestas, kits e datas especiais.",
+    Icone: FaGift,
+  },
+  {
+    valor: "brinquedos",
+    label: "Brinquedos",
+    descricao: "Brinquedos, diversão e jogos infantis.",
+    Icone: FaPuzzlePiece,
+  },
+  {
+    valor: "casa",
+    label: "Casa",
+    descricao: "Itens de casa, decoração e utilidades.",
+    Icone: FaHome,
+  },
+  {
+    valor: "ofertas",
+    label: "Ofertas",
+    descricao: "Promoções e destaques.",
+    Icone: FaStar,
+  },
+  {
+    valor: "games",
+    label: "Games",
+    descricao: "Jogos, eletrônicos e diversão.",
+    Icone: FaGamepad,
+  },
+  {
+    valor: "loja",
+    label: "Loja",
+    descricao: "Produtos gerais da loja.",
+    Icone: FaShoppingBag,
+  },
+];
+
+const ICONES_ALIASES: Record<string, string> = {
+  "folder": "categoria",
+  "folder-open": "categoria",
+  "padrao": "categoria",
+  "padrão": "categoria",
+  "makeup": "maquiagem",
+  "beleza": "maquiagem",
+  "cosmeticos": "maquiagem",
+  "cosméticos": "maquiagem",
+  "infantil": "crianca",
+  "criança": "crianca",
+  "criancas": "crianca",
+  "crianças": "crianca",
+  "child": "crianca",
+  "children": "crianca",
+  "moda-infantil": "crianca",
+  "baby": "bebe",
+  "roupa": "moda",
+  "roupas": "moda",
+  "camiseta": "moda",
+  "gift": "presentes",
+  "presente": "presentes",
+  "promocao": "ofertas",
+  "promoção": "ofertas",
+};
 
 function slugify(valor: string) {
   return valor
@@ -77,6 +186,21 @@ function slugify(valor: string) {
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-");
+}
+
+function normalizarIcone(valor?: string | null) {
+  const icone = slugify(valor || "");
+
+  return ICONES_ALIASES[icone] || icone;
+}
+
+function buscarOpcaoIcone(valor?: string | null) {
+  const iconeNormalizado = normalizarIcone(valor);
+
+  return (
+    BIBLIOTECA_ICONES.find((opcao) => opcao.valor === iconeNormalizado) ||
+    BIBLIOTECA_ICONES[0]
+  );
 }
 
 function extrairListaAPI<T = unknown>(response: any): T[] {
@@ -120,6 +244,9 @@ export default function CategoriasPage() {
 
   const statusSelecionado =
     statusDisponiveis.find((item) => String(getStatusId(item)) === form.status_id) || null;
+
+  const iconeSelecionado = buscarOpcaoIcone(form.icone);
+  const IconeSelecionado = iconeSelecionado.Icone;
 
   useEffect(() => {
     setMounted(true);
@@ -299,10 +426,10 @@ export default function CategoriasPage() {
         slug: form.slug.trim(),
         descricao: form.descricao.trim() || null,
         icone: form.icone.trim() || null,
-        imagem: form.imagem.trim() || null,
+        imagem: null,
         ordem: form.ordem ? Number(form.ordem) : null,
         status_id: Number(form.status_id),
-        site_config_id: form.site_config_id ? Number(form.site_config_id) : null,
+        site_config_id: 1,
       };
 
       await api.post("/painel/categoria", payload);
@@ -354,23 +481,23 @@ export default function CategoriasPage() {
                   onClick={fecharModal}
                   aria-label="Fechar modal"
                 >
-                  <X size={18} />
+                  <FaTimes size={18} />
                 </button>
               </div>
 
               <div className="categorias-stepper">
                 <div className={`categorias-step-item ${passoModal >= 1 ? "categorias-step-active" : ""}`}>
-                  <FileText size={16} />
+                  <FaFileAlt size={16} />
                   <span>Dados</span>
                 </div>
 
                 <div className={`categorias-step-item ${passoModal >= 2 ? "categorias-step-active" : ""}`}>
-                  <Sparkles size={16} />
+                  <FaMagic size={16} />
                   <span>Visual</span>
                 </div>
 
                 <div className={`categorias-step-item ${passoModal >= 3 ? "categorias-step-active" : ""}`}>
-                  <Settings2 size={16} />
+                  <FaCog size={16} />
                   <span>Status</span>
                 </div>
               </div>
@@ -421,29 +548,40 @@ export default function CategoriasPage() {
                   <div className="categorias-step-content">
                     <div className="categorias-section-title">
                       <h3>Visual e organização</h3>
-                      <p>Opcional: ícone, imagem e ordem de exibição.</p>
+                      <p>Opcional: escolha um ícone da biblioteca e a ordem de exibição.</p>
                     </div>
 
                     <div className="categorias-form-grid">
                       <label className="categorias-field">
-                        <span>Ícone</span>
-                        <input
-                          type="text"
+                        <span>Ícone da biblioteca</span>
+                        <select
                           value={form.icone}
                           onChange={(e) => atualizarCampo("icone", e.target.value)}
-                          placeholder="Ex: folder-open"
-                        />
+                        >
+                          <option value="">Sem ícone específico</option>
+
+                          {BIBLIOTECA_ICONES.map((opcao) => (
+                            <option key={opcao.valor} value={opcao.valor}>
+                              {opcao.label}
+                            </option>
+                          ))}
+                        </select>
+                        <small>
+                          Exemplo: o cliente pode escolher Maquiagem, Criança, Bebê,
+                          Moda, Presentes e outras opções.
+                        </small>
                       </label>
 
-                      <label className="categorias-field">
-                        <span>Imagem</span>
-                        <input
-                          type="text"
-                          value={form.imagem}
-                          onChange={(e) => atualizarCampo("imagem", e.target.value)}
-                          placeholder="URL da imagem"
-                        />
-                      </label>
+                      <div className="categorias-field">
+                        <span>Prévia do ícone</span>
+                        <div className="categorias-resume-box">
+                          <IconeSelecionado size={22} />
+                          <p>
+                            <strong>{iconeSelecionado.label}</strong>
+                          </p>
+                          <p>{iconeSelecionado.descricao}</p>
+                        </div>
+                      </div>
 
                       <label className="categorias-field">
                         <span>Ordem</span>
@@ -489,15 +627,6 @@ export default function CategoriasPage() {
                         </select>
                       </label>
 
-                      <label className="categorias-field">
-                        <span>Site Config ID</span>
-                        <input
-                          type="number"
-                          value={form.site_config_id}
-                          onChange={(e) => atualizarCampo("site_config_id", e.target.value)}
-                          placeholder="Ex: 1"
-                        />
-                      </label>
                     </div>
 
                     <div className="categorias-resume-box">
@@ -511,6 +640,12 @@ export default function CategoriasPage() {
                       <p>
                         <strong>Status:</strong>{" "}
                         {statusSelecionado ? getStatusLabel(statusSelecionado) : "-"}
+                      </p>
+                      <p>
+                        <strong>Ícone:</strong> {form.icone ? iconeSelecionado.label : "Sem ícone específico"}
+                      </p>
+                      <p>
+                        <strong>Site:</strong> ID 1 fixo no código
                       </p>
                     </div>
                   </div>
@@ -534,7 +669,7 @@ export default function CategoriasPage() {
                         className="categorias-back-button"
                         disabled={salvando}
                       >
-                        <ChevronLeft size={16} />
+                        <FaChevronLeft size={16} />
                         Voltar
                       </button>
                     )}
@@ -547,7 +682,7 @@ export default function CategoriasPage() {
                         disabled={salvando}
                       >
                         Próximo
-                        <ChevronRight size={16} />
+                        <FaChevronRight size={16} />
                       </button>
                     ) : (
                       <button
@@ -555,7 +690,7 @@ export default function CategoriasPage() {
                         className="categorias-submit-button"
                         disabled={salvando}
                       >
-                        <CheckCircle2 size={16} />
+                        <FaCheckCircle size={16} />
                         {salvando ? "Salvando..." : "Salvar categoria"}
                       </button>
                     )}
@@ -577,7 +712,7 @@ export default function CategoriasPage() {
       <div className="categorias-header">
         <div>
           <div className="categorias-badge">
-            <Tag size={15} />
+            <FaTag size={15} />
             Gerenciamento
           </div>
 
@@ -597,7 +732,7 @@ export default function CategoriasPage() {
         </button>
 
         <span className="categorias-page-info">
-          Página {pagina} de {totalPaginas} · 3 categorias
+          Página {pagina} de {totalPaginas} · {LIMITE_POR_PAGINA} categorias
         </span>
 
         <button
@@ -621,14 +756,14 @@ export default function CategoriasPage() {
 
       {categoriaSelecionada && (
         <div className="categorias-selected-alert">
-          <CheckCircle2 size={18} />
+          <FaCheckCircle size={18} />
           Categoria selecionada para ação.
         </div>
       )}
 
       {erro && (
         <div className="categorias-error">
-          <AlertCircle size={42} />
+          <FaExclamationCircle size={42} />
           <h3>Algo deu errado</h3>
           <p>{erro}</p>
         </div>
@@ -636,7 +771,7 @@ export default function CategoriasPage() {
 
       {!erro && categoriasExibidas.length === 0 ? (
         <div className="categorias-empty">
-          <FolderOpen size={42} />
+          <FaFolderOpen size={42} />
           <h3>Nenhuma categoria encontrada</h3>
           <p>Cadastre a primeira categoria.</p>
         </div>
@@ -644,6 +779,8 @@ export default function CategoriasPage() {
         <div className="categorias-grid">
           {categoriasExibidas.map((categoria) => {
             const selecionada = categoriaSelecionada === categoria.id_categoria;
+            const opcaoIcone = buscarOpcaoIcone(categoria.icone);
+            const IconeCategoria = opcaoIcone.Icone;
 
             return (
               <div
@@ -662,7 +799,7 @@ export default function CategoriasPage() {
 
                 <div className="categorias-card-header">
                   <div className="categorias-icon">
-                    <FolderOpen size={20} />
+                    <IconeCategoria size={20} />
                   </div>
 
                   <div className="categorias-title">
@@ -677,12 +814,12 @@ export default function CategoriasPage() {
 
                 <div className="categorias-info">
                   <span>
-                    <Tag size={14} />
+                    <FaTag size={14} />
                     {categoria.slug}
                   </span>
 
                   <span>
-                    <Boxes size={14} />
+                    <FaBoxes size={14} />
                     Ordem: {categoria.ordem ?? "-"}
                   </span>
                 </div>
@@ -699,7 +836,7 @@ export default function CategoriasPage() {
           className="categorias-floating categorias-floating-edit"
           aria-label="Editar categoria"
         >
-          <Pencil size={22} />
+          <FaPencilAlt size={22} />
         </button>
 
         <button
@@ -708,7 +845,7 @@ export default function CategoriasPage() {
           className="categorias-floating categorias-floating-delete"
           aria-label="Excluir categoria"
         >
-          <Trash2 size={22} />
+          <FaTrashAlt size={22} />
         </button>
 
         <button
@@ -717,7 +854,7 @@ export default function CategoriasPage() {
           className="categorias-floating categorias-floating-add"
           aria-label="Cadastrar categoria"
         >
-          <Plus size={28} />
+          <FaPlus size={28} />
         </button>
       </div>
 
