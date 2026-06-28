@@ -1,40 +1,54 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 .cad-produto {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 100%;
-  padding: 24px;
+  padding: 14px;
   color: #3a2a2f;
+  overflow-x: clip;
 }
 
 .cad-produto-hero,
 .cad-produto-card {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   background: #ffffff;
   border: 1px solid rgba(168, 93, 106, 0.16);
-  border-radius: 22px;
-  box-shadow: 0 16px 36px rgba(80, 45, 54, 0.08);
+  border-radius: 16px;
+  box-shadow: 0 10px 24px rgba(80, 45, 54, 0.07);
 }
 
 .cad-produto-hero {
-  padding: 22px;
-  margin-bottom: 18px;
+  padding: 14px;
+  margin-bottom: 12px;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 18px;
+  gap: 12px;
 }
 
 .cad-produto-voltar {
-  height: 42px;
-  padding: 0 14px;
+  min-width: fit-content;
+  height: 38px;
+  padding: 0 11px;
   border: 0;
   cursor: pointer;
   font-weight: 900;
-  border-radius: 14px;
+  border-radius: 12px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   transition: 0.2s ease;
   background: #fff1f4;
   color: #8f4f5b;
+  font-size: 12px;
 }
 
 .cad-produto-voltar:hover {
@@ -43,15 +57,17 @@
 
 .cad-produto-hero-texto {
   flex: 1;
+  min-width: 0;
 }
 
 .cad-produto-hero-texto > span {
   width: fit-content;
-  padding: 8px 12px;
+  max-width: 100%;
+  padding: 7px 10px;
   border-radius: 999px;
   background: #fff1f4;
   color: #8f4f5b;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
   display: flex;
   gap: 6px;
@@ -59,47 +75,55 @@
 }
 
 .cad-produto-hero-texto h1 {
-  margin: 12px 0 6px;
+  margin: 10px 0 5px;
   color: #2f2427;
-  font-size: clamp(1.6rem, 3vw, 2.3rem);
+  font-size: clamp(1.25rem, 2.4vw, 1.8rem);
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
 .cad-produto-hero-texto p {
   margin: 0;
   color: #9b737b;
   font-weight: 700;
+  font-size: 12.5px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .cad-produto-card {
-  padding: 22px;
+  padding: 14px;
 }
 
 .cad-produto-progress-area {
-  margin-bottom: 22px;
+  margin-bottom: 16px;
 }
 
 .cad-produto-progress-info {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 10px;
+  margin-bottom: 10px;
 }
 
 .cad-produto-progress-info span {
   color: #9b737b;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 900;
+  white-space: nowrap;
 }
 
 .cad-produto-progress-info strong {
   color: #2f2427;
-  font-size: 14px;
+  font-size: 12.5px;
   font-weight: 950;
+  text-align: right;
+  overflow-wrap: anywhere;
 }
 
 .cad-produto-progress-bar {
-  height: 8px;
+  height: 7px;
   border-radius: 999px;
   background: #f5e8eb;
   overflow: hidden;
@@ -112,25 +136,35 @@
 }
 
 .cad-produto-steps {
+  width: 100%;
+  min-width: 0;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 18px;
 }
 
 .cad-produto-steps button {
-  min-height: 48px;
+  min-width: 0;
+  min-height: 40px;
   border: 0;
-  border-radius: 16px;
+  border-radius: 12px;
   background: #fff1f4;
   color: #8f4f5b;
   cursor: pointer;
+  font-size: 12px;
   font-weight: 900;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   transition: 0.2s ease;
+  padding: 0 8px;
+  text-align: center;
+}
+
+.cad-produto-steps button svg {
+  flex: 0 0 auto;
 }
 
 .cad-produto-steps button:hover {
@@ -140,57 +174,71 @@
 .cad-produto-steps button.ativo {
   color: #ffffff;
   background: linear-gradient(135deg, #a85d6a, #d98a99);
-  box-shadow: 0 10px 22px rgba(168, 93, 106, 0.22);
+  box-shadow: 0 8px 18px rgba(168, 93, 106, 0.18);
 }
 
 .cad-produto-etapa {
+  width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 16px;
 }
 
 .cad-produto-etapa-header {
   display: flex;
-  gap: 14px;
+  gap: 10px;
   align-items: center;
+  min-width: 0;
 }
 
 .cad-produto-etapa-header > svg {
-  min-width: 48px;
-  width: 48px;
-  height: 48px;
-  padding: 12px;
-  border-radius: 16px;
+  flex: 0 0 auto;
+  width: 40px;
+  height: 40px;
+  padding: 10px;
+  border-radius: 13px;
   color: #ffffff;
   background: linear-gradient(135deg, #a85d6a, #d98a99);
-  box-shadow: 0 10px 22px rgba(168, 93, 106, 0.22);
+  box-shadow: 0 8px 18px rgba(168, 93, 106, 0.18);
+}
+
+.cad-produto-etapa-header div {
+  min-width: 0;
 }
 
 .cad-produto-etapa-header h2 {
-  margin: 0 0 4px;
+  margin: 0 0 3px;
   color: #2f2427;
+  font-size: 18px;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
 }
 
 .cad-produto-etapa-header p {
   margin: 0;
   color: #9b737b;
+  font-size: 12.5px;
   font-weight: 700;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .cad-produto-upload {
-  min-height: 190px;
+  width: 100%;
+  min-height: 145px;
   border: 2px dashed #e6bdc5;
-  border-radius: 20px;
+  border-radius: 16px;
   display: grid;
   place-items: center;
   text-align: center;
-  gap: 8px;
+  gap: 7px;
   cursor: pointer;
   background: #fff8fa;
   color: #8f4f5b;
   font-weight: 900;
   transition: 0.2s ease;
-  padding: 24px;
+  padding: 18px;
 }
 
 .cad-produto-upload:hover {
@@ -202,22 +250,28 @@
   display: none;
 }
 
-.cad-produto-upload span {
-  color: #9b737b;
+.cad-produto-upload strong {
   font-size: 13px;
 }
 
+.cad-produto-upload span {
+  color: #9b737b;
+  font-size: 12px;
+}
+
 .cad-produto-preview-grid {
+  width: 100%;
+  min-width: 0;
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 130px), 1fr));
+  gap: 10px;
 }
 
 .cad-produto-preview {
   position: relative;
   overflow: hidden;
-  border-radius: 18px;
-  height: 150px;
+  border-radius: 14px;
+  height: 120px;
   border: 1px solid #f0d4da;
   background: #fff8fa;
 }
@@ -230,10 +284,10 @@
 
 .cad-produto-preview button {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 34px;
-  height: 34px;
+  top: 7px;
+  right: 7px;
+  width: 30px;
+  height: 30px;
   border: 0;
   border-radius: 999px;
   display: grid;
@@ -241,25 +295,28 @@
   background: #ffffff;
   color: #b4233a;
   cursor: pointer;
-  box-shadow: 0 8px 18px rgba(80, 45, 54, 0.16);
+  box-shadow: 0 6px 14px rgba(80, 45, 54, 0.14);
 }
 
 .cad-produto-form-grid {
+  width: 100%;
+  min-width: 0;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
 }
 
 .cad-produto-form-grid label,
 .cad-produto-descricao {
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
 }
 
 .cad-produto-form-grid label span,
 .cad-produto-descricao span {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 950;
   color: #6f4b53;
 }
@@ -268,12 +325,15 @@
 .cad-produto-form-grid select,
 .cad-produto-descricao textarea {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   border: 1px solid #ead1d7;
-  border-radius: 14px;
-  padding: 13px 14px;
+  border-radius: 12px;
+  padding: 11px 12px;
   outline: none;
   background: #ffffff;
   color: #3a2a2f;
+  font-size: 13px;
   font-weight: 700;
 }
 
@@ -281,63 +341,80 @@
 .cad-produto-form-grid select:focus,
 .cad-produto-descricao textarea:focus {
   border-color: #a85d6a;
-  box-shadow: 0 0 0 4px rgba(168, 93, 106, 0.1);
+  box-shadow: 0 0 0 3px rgba(168, 93, 106, 0.1);
 }
 
 .cad-produto-descricao textarea {
   resize: vertical;
-  min-height: 180px;
+  min-height: 140px;
 }
 
 .cad-produto-review {
+  width: 100%;
+  min-width: 0;
   border: 1px solid #f0d4da;
-  border-radius: 18px;
-  padding: 18px;
+  border-radius: 14px;
+  padding: 14px;
   background: #fff8fa;
 }
 
 .cad-produto-review > div {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 7px;
   color: #8f4f5b;
   font-weight: 950;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 
 .cad-produto-review ul {
   margin: 0;
-  padding-left: 18px;
+  padding-left: 17px;
   color: #6f4b53;
+  font-size: 13px;
   font-weight: 700;
 }
 
+.cad-produto-review li {
+  overflow-wrap: anywhere;
+}
+
 .cad-produto-review li + li {
-  margin-top: 8px;
+  margin-top: 7px;
 }
 
 .cad-produto-footer {
-  margin-top: 24px;
-  padding-top: 18px;
+  width: 100%;
+  min-width: 0;
+  margin-top: 18px;
+  padding-top: 14px;
   border-top: 1px solid #f0d4da;
   display: flex;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
 }
 
 .cad-produto-btn-secundario,
 .cad-produto-btn-primario,
 .cad-produto-btn-salvar {
+  min-width: 0;
   border: 0;
   cursor: pointer;
+  font-size: 13px;
   font-weight: 900;
-  border-radius: 14px;
-  padding: 13px 18px;
+  border-radius: 12px;
+  padding: 11px 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 7px;
   transition: 0.2s ease;
+}
+
+.cad-produto-btn-secundario svg,
+.cad-produto-btn-primario svg,
+.cad-produto-btn-salvar svg {
+  flex: 0 0 auto;
 }
 
 .cad-produto-btn-secundario {
@@ -353,13 +430,13 @@
 .cad-produto-btn-salvar {
   color: #ffffff;
   background: linear-gradient(135deg, #a85d6a, #d98a99);
-  box-shadow: 0 10px 22px rgba(168, 93, 106, 0.22);
+  box-shadow: 0 8px 18px rgba(168, 93, 106, 0.18);
 }
 
 .cad-produto-btn-primario:hover,
 .cad-produto-btn-salvar:hover {
   transform: translateY(-1px);
-  box-shadow: 0 14px 26px rgba(168, 93, 106, 0.28);
+  box-shadow: 0 12px 22px rgba(168, 93, 106, 0.24);
 }
 
 .cad-produto-btn-secundario:disabled,
@@ -373,20 +450,86 @@
 
 @media (max-width: 900px) {
   .cad-produto {
-    padding: 16px;
+    padding: 12px;
   }
 
   .cad-produto-hero {
     flex-direction: column;
   }
 
-  .cad-produto-steps {
-    grid-template-columns: 1fr;
+  .cad-produto-voltar {
+    height: 36px;
   }
 
-  .cad-produto-form-grid,
+  .cad-produto-steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .cad-produto-steps button {
+    font-size: 11px;
+    gap: 5px;
+  }
+
+  .cad-produto-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .cad-produto-preview-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 120px), 1fr));
+  }
+}
+
+@media (max-width: 520px) {
+  .cad-produto {
+    padding: 10px;
+  }
+
+  .cad-produto-card,
+  .cad-produto-hero {
+    padding: 12px;
+    border-radius: 14px;
+  }
+
+  .cad-produto-progress-info {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .cad-produto-progress-info strong {
+    text-align: left;
+  }
+
+  .cad-produto-steps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cad-produto-steps button {
+    width: 100%;
+    min-height: 38px;
+  }
+
+  .cad-produto-etapa-header {
+    align-items: flex-start;
+  }
+
+  .cad-produto-etapa-header > svg {
+    width: 36px;
+    height: 36px;
+    padding: 9px;
+  }
+
+  .cad-produto-etapa-header h2 {
+    font-size: 16px;
+  }
+
+  .cad-produto-upload {
+    min-height: 130px;
+    padding: 14px;
+  }
+
+  .cad-produto-preview {
+    height: 110px;
   }
 
   .cad-produto-footer {
