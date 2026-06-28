@@ -221,25 +221,8 @@ export default function SistemaPedidosPage() {
     return pedido.metodo_pagamento || "—";
   }
 
-  function nomeItem(item: PedidoItem) {
-    return (
-      item.produto_nome ??
-      item.nome_produto ??
-      item.nome ??
-      `Produto #${item.produto_id ?? "?"}`
-    );
-  }
-
   function precoItem(item: PedidoItem) {
     return Number(item.preco_unitario ?? item.preco ?? 0);
-  }
-
-  function subtotalItem(item: PedidoItem) {
-    return Number(
-      item.subtotal ??
-        Number(item.quantidade ?? 1) *
-          Number(item.preco_unitario ?? item.preco ?? 0)
-    );
   }
 
   function podeReembolsar(pedido: Pedido) {
@@ -398,20 +381,19 @@ export default function SistemaPedidosPage() {
                   <div className={styles.productBlock}>
                     {primeiroItem ? (
                       <>
-                        <strong>{nomeItem(primeiroItem)}</strong>
+                        <strong>{itens.length} produto(s)</strong>
 
                         <span>
                           {primeiroItem.quantidade ?? 1}x{" "}
-                          {formatarMoeda(precoItem(primeiroItem))} ={" "}
-                          {formatarMoeda(subtotalItem(primeiroItem))}
+                          {formatarMoeda(precoItem(primeiroItem))}
                         </span>
 
                         {itens.length > 1 && (
-                          <em>+{itens.length - 1} produto(s)</em>
+                          <em>+{itens.length - 1} item(ns)</em>
                         )}
                       </>
                     ) : (
-                      <strong>Sem itens no pedido</strong>
+                      <strong>Sem itens</strong>
                     )}
                   </div>
 
