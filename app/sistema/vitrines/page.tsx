@@ -1,23 +1,24 @@
 "use client";
 
 import api from "@/Api/conectar";
+import CadastrarVitrineModal from "@/components/pages/vitrine/Modal/CadastrarVitrineModal";
+import "../../../components/styles/sistema/vitrines.css";
+
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  FiEye,
-  FiGrid,
-  FiPlus,
-  FiEdit,
-  FiLayers,
   FiCheckCircle,
-  FiXCircle,
   FiChevronLeft,
   FiChevronRight,
+  FiEdit,
+  FiEye,
+  FiGrid,
+  FiLayers,
+  FiPlus,
+  FiRefreshCw,
   FiTrash2,
+  FiXCircle,
 } from "react-icons/fi";
-
-import "../../../components/styles/sistema/vitrines.css";
-import CadastrarVitrineModal from "@/components/pages/vitrine/Modal/CadastrarVitrineModal";
 
 type Vitrine = {
   id_vitrine: number;
@@ -26,9 +27,9 @@ type Vitrine = {
   titulo?: string | null;
   subtitulo?: string | null;
   tipo?: string | null;
-  status_id: number;
-  nivel_id?: number;
-  ordem?: number;
+  status_id: number | string;
+  nivel_id?: number | string | null;
+  ordem?: number | string | null;
   criado_em?: string | null;
 };
 
@@ -39,6 +40,7 @@ export default function VitrinesPage() {
 
   const [vitrines, setVitrines] = useState<Vitrine[]>([]);
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [vitrineSelecionada, setVitrineSelecionada] = useState<number | null>(
     null
@@ -52,31 +54,66 @@ export default function VitrinesPage() {
   async function carregarVitrines() {
     try {
       setLoading(true);
+      setErro("");
 
-      const response = await api.get("/vitrines");
-      const data = response.data;
-
-      const lista = Array.isArray(data?.dados?.vitrines)
-        ? data.dados.vitrines
-        : Array.isArray(data?.vitrines)
-          ? data.vitrines
-          : Array.isArray(data?.dados)
-            ? data.dados
-            : Array.isArray(data)
-              ? data
-              : [];
+      const response = await api.get("/painel/vitrines");
+      const lista = extrairListaVitrines(response.data);
 
       setVitrines(lista);
-    } catch (error) {
+      setPaginaAtual(1);
+      setVitrineSelecionada(null);
+    } catch (error: any) {
       console.error("Erro ao carregar vitrines:", error);
+
       setVitrines([]);
+      setErro(
+        error?.response?.data?.mensagem ||
+          error?.response?.data?.erro ||
+          "Erro ao carregar vitrines."
+      );
     } finally {
       setLoading(false);
     }
   }
 
+  function extrairListaVitrines(data: any): Vitrine[] {
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    if (Array.isArray(data?.dados?.vitrines)) {
+      return data.dados.vitrines;
+    }
+
+    if (Array.isArray(data?.dados?.data)) {
+      return data.dados.data;
+    }
+
+    if (Array.isArray(data?.dados?.items)) {
+      return data.dados.items;
+    }
+
+    if (Array.isArray(data?.dados)) {
+      return data.dados;
+    }
+
+    if (Array.isArray(data?.vitrines)) {
+      return data.vitrines;
+    }
+
+    if (Array.isArray(data?.data)) {
+      return data.data;
+    }
+
+    return [];
+  }
+
   const totalAtivas = useMemo(() => {
     return vitrines.filter((vitrine) => Number(vitrine.status_id) === 1).length;
+  }, [vitrines]);
+
+  const totalInativas = useMemo(() => {
+    return vitrines.filter((vitrine) => Number(vitrine.status_id) !== 1).length;
   }, [vitrines]);
 
   const totalPaginas = useMemo(() => {
@@ -124,19 +161,16 @@ export default function VitrinesPage() {
       return;
     }
 
-    const confirmar = confirm("Deseja realmente excluir esta vitrine?");
+    const confirmar = window.confirm("Deseja realmente excluir esta vitrine?");
 
     if (!confirmar) {
       return;
     }
 
     try {
-      await api.delete(`/vitrine/${vitrineSelecionada}`);
+      await api.delete(`/painel/vitrine/${vitrineSelecionada}`);
 
       await carregarVitrines();
-
-      setVitrineSelecionada(null);
-      setPaginaAtual(1);
 
       alert("Vitrine excluída com sucesso.");
     } catch (error: any) {
@@ -161,7 +195,9 @@ export default function VitrinesPage() {
   }
 
   function formatarData(data?: string | null) {
-    if (!data) return "—";
+    if (!data) {
+      return "—";
+    }
 
     const dataConvertida = new Date(data.replace(" ", "T"));
 
@@ -172,18 +208,21 @@ export default function VitrinesPage() {
     return dataConvertida.toLocaleString("pt-BR");
   }
 
-  function statusTexto(statusId: number) {
+  function statusTexto(statusId: number | string) {
     return Number(statusId) === 1 ? "Ativa" : "Inativa";
   }
 
   async function aoCadastrarVitrine() {
+    setModalCadastrarAberto(false);
     await carregarVitrines();
-    setPaginaAtual(1);
-    setVitrineSelecionada(null);
   }
 
   if (loading) {
-    return <div className="vitrines-loading">Carregando vitrines...</div>;
+    return (
+      <main className="vitrines-container">
+        <div className="vitrines-loading">Carregando vitrines...</div>
+      </main>
+    );
   }
 
   return (
@@ -201,8 +240,16 @@ export default function VitrinesPage() {
         <div className="vitrines-stats">
           <span>{vitrines.length} vitrines</span>
           <span>{totalAtivas} ativas</span>
+          <span>{totalInativas} inativas</span>
         </div>
       </header>
+
+      {erro && (
+        <div className="vitrines-selected-alert">
+          <FiXCircle />
+          {erro}
+        </div>
+      )}
 
       {vitrineSelecionada && (
         <div className="vitrines-selected-alert">
@@ -214,17 +261,34 @@ export default function VitrinesPage() {
       {vitrines.length === 0 ? (
         <div className="vitrines-empty">
           <FiLayers />
-          <strong>Nenhuma vitrine encontrada</strong>
-          <span>Cadastre sua primeira vitrine para exibir produtos no site.</span>
 
-          <button
-            type="button"
-            onClick={() => setModalCadastrarAberto(true)}
-            className="vitrines-empty-button"
-          >
-            <FiPlus />
-            Cadastrar vitrine
-          </button>
+          <strong>Nenhuma vitrine encontrada</strong>
+
+          <span>
+            {erro
+              ? "Não foi possível carregar as vitrines. Tente atualizar."
+              : "Cadastre sua primeira vitrine para exibir produtos no site."}
+          </span>
+
+          <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              onClick={carregarVitrines}
+              className="vitrines-empty-button"
+            >
+              <FiRefreshCw />
+              Atualizar
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setModalCadastrarAberto(true)}
+              className="vitrines-empty-button"
+            >
+              <FiPlus />
+              Cadastrar vitrine
+            </button>
+          </div>
         </div>
       ) : (
         <>
@@ -271,10 +335,14 @@ export default function VitrinesPage() {
                   </div>
 
                   <div className="vitrines-card-body">
-                    <strong>{vitrine.nome}</strong>
-                    <span className="vitrines-slug">/{vitrine.slug}</span>
+                    <strong>{vitrine.nome || "Vitrine sem nome"}</strong>
+
+                    <span className="vitrines-slug">
+                      /{vitrine.slug || "sem-slug"}
+                    </span>
 
                     <h2>{vitrine.titulo || "Sem título"}</h2>
+
                     <p>{vitrine.subtitulo || "Sem subtítulo cadastrado."}</p>
                   </div>
 
@@ -328,9 +396,20 @@ export default function VitrinesPage() {
       <div className="vitrines-floating-group">
         <button
           type="button"
+          onClick={carregarVitrines}
+          className="vitrines-floating vitrines-floating-view"
+          aria-label="Atualizar vitrines"
+          title="Atualizar vitrines"
+        >
+          <FiRefreshCw />
+        </button>
+
+        <button
+          type="button"
           onClick={verSelecionada}
           className="vitrines-floating vitrines-floating-view"
           aria-label="Ver vitrine"
+          title="Ver vitrine"
         >
           <FiEye />
         </button>
@@ -340,6 +419,7 @@ export default function VitrinesPage() {
           onClick={editarSelecionada}
           className="vitrines-floating vitrines-floating-edit"
           aria-label="Editar vitrine"
+          title="Editar vitrine"
         >
           <FiEdit />
         </button>
@@ -349,6 +429,7 @@ export default function VitrinesPage() {
           onClick={excluirSelecionada}
           className="vitrines-floating vitrines-floating-delete"
           aria-label="Excluir vitrine"
+          title="Excluir vitrine"
         >
           <FiTrash2 />
         </button>
@@ -358,6 +439,7 @@ export default function VitrinesPage() {
           onClick={() => setModalCadastrarAberto(true)}
           className="vitrines-floating vitrines-floating-add"
           aria-label="Cadastrar vitrine"
+          title="Cadastrar vitrine"
         >
           <FiPlus />
         </button>
