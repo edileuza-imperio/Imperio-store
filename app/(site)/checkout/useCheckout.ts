@@ -6,7 +6,6 @@ import { InicioApi } from "@/services/api/api";
 import { imagemFundo } from "@/components/Bibioteca/imagem";
 import { rotas } from "@/components/Bibioteca/config/rotas";
 
-
 type AnyRecord = Record<string, any>;
 
 export type Endereco = {
@@ -56,6 +55,16 @@ export type ItemCarrinho = {
     foto?: string;
     imagem_url?: string;
   };
+};
+
+export type OpcaoEntrega = {
+  id: string;
+  nome: string;
+  descricao?: string;
+  valor: number;
+  prazo?: string;
+  tipo?: string;
+  selecionavel?: boolean;
 };
 
 type Pedido = {
@@ -108,9 +117,29 @@ function extrairLista<T = unknown>(payload: any): T[] {
   if (Array.isArray(payload?.dados)) return payload.dados;
   if (Array.isArray(payload?.data)) return payload.data;
   if (Array.isArray(payload?.itens)) return payload.itens;
+  if (Array.isArray(payload?.opcoes)) return payload.opcoes;
   if (Array.isArray(payload?.dados?.itens)) return payload.dados.itens;
+  if (Array.isArray(payload?.dados?.opcoes)) return payload.dados.opcoes;
   if (Array.isArray(payload?.carrinho?.itens)) return payload.carrinho.itens;
   return [];
+}
+
+function normalizarOpcaoEntrega(opcao: any, index: number): OpcaoEntrega {
+  const id =
+    String(opcao?.id ?? opcao?.codigo ?? opcao?.tipo ?? `entrega_${index}`)
+      .trim()
+      .replace(/\s+/g, "_") || `entrega_${index}`;
+
+  return {
+    id,
+    nome: String(opcao?.nome ?? opcao?.titulo ?? "Entrega").trim(),
+    descricao:
+      String(opcao?.descricao ?? opcao?.description ?? "").trim() || undefined,
+    valor: normalizarNumero(opcao?.valor ?? opcao?.preco ?? opcao?.price ?? 0),
+    prazo: String(opcao?.prazo ?? opcao?.tempo ?? "").trim() || undefined,
+    tipo: String(opcao?.tipo ?? "").trim() || undefined,
+    selecionavel: opcao?.selecionavel !== false,
+  };
 }
 
 export function getEnderecoId(endereco: Endereco) {
@@ -170,9 +199,11 @@ export function useCheckout() {
   const [processando, setProcessando] = useState(false);
   const [salvandoEndereco, setSalvandoEndereco] = useState(false);
   const [buscandoCep, setBuscandoCep] = useState(false);
+  const [calculandoFrete, setCalculandoFrete] = useState(false);
 
   const [erroEndereco, setErroEndereco] = useState("");
   const [sucessoEndereco, setSucessoEndereco] = useState("");
+  const [erroFrete, setErroFrete] = useState("");
 
   const [enderecos, setEnderecos] = useState<Endereco[]>([]);
   const [enderecoSelecionado, setEnderecoSelecionado] = useState<number | null>(
@@ -181,6 +212,11 @@ export function useCheckout() {
 
   const [carrinho, setCarrinho] = useState<Carrinho | null>(null);
   const [itens, setItens] = useState<ItemCarrinho[]>([]);
+
+  const [opcoesEntrega, setOpcoesEntrega] = useState<OpcaoEntrega[]>([]);
+  const [entregaSelecionada, setEntregaSelecionada] = useState<string | null>(
+    null
+  );
 
   const [formEndereco, setFormEndereco] = useState({
     cep: "",
@@ -350,12 +386,119 @@ export function useCheckout() {
     return itens.reduce((acc, item) => acc + getItemSubtotal(item), 0);
   }, [itens]);
 
-  const valorFrete = normalizarNumero(carrinho?.valor_frete ?? 0);
   const valorDesconto = normalizarNumero(carrinho?.valor_desconto ?? 0);
 
-  const valorTotal =
-    normalizarNumero(carrinho?.valor_total ?? 0) ||
-    Math.max(0, subtotalItens - valorDesconto + valorFrete);
+  const entregaSelecionadaDados = useMemo(() => {
+    return (
+      opcoesEntrega.find((opcao) => opcao.id === entregaSelecionada) ?? null
+    );
+  }, [opcoesEntrega, entregaSelecionada]);
+
+  const valorFrete = normalizarNumero(
+    entregaSelecionadaDados?.valor ?? carrinho?.valor_frete ?? 0
+  );
+
+  const valorTotal = Math.max(0, subtotalItens - valorDesconto + valorFrete);
+
+  const enderecoAtual = useMemo(() => {
+    return (
+      enderecos.find((endereco) => getEnderecoId(endereco) === enderecoSelecionado) ??
+      null
+    );
+  }, [enderecos, enderecoSelecionado]);
+
+  useEffect(() => {
+    setOpcoesEntrega([]);
+    setEntregaSelecionada(null);
+    setErroFrete("");
+  }, [enderecoSelecionado]);
+
+  async function calcularFrete(enderecoManual?: Endereco): Promise<OpcaoEntrega[]> {
+    const endereco = enderecoManual ?? enderecoAtual;
+
+    if (!endereco) {
+      setErroFrete("Selecione um endereço para calcular a entrega.");
+      return [];
+    }
+
+    try {
+      setCalculandoFrete(true);
+      setErroFrete("");
+
+      const response = await InicioApi.post<any>(
+        "/frete/calcular",
+        {
+          cep: endereco.cep,
+          cidade: endereco.cidade,
+          estado: endereco.estado,
+          subtotal: subtotalItens,
+          itens: itens.map((item) => ({
+            produto_id: item.produto_id,
+            quantidade: getItemQuantidade(item),
+            subtotal: getItemSubtotal(item),
+          })),
+        },
+        { withCredentials: true }
+      );
+
+      const payload = response?.data ?? {};
+      const dados = payload?.dados ?? payload?.data ?? payload;
+      const opcoes = extrairLista<any>(dados?.opcoes ?? dados)
+        .map(normalizarOpcaoEntrega)
+        .filter((opcao) => opcao.selecionavel !== false);
+
+      if (!opcoes.length) {
+        setErroFrete(
+          "Não encontramos opções de entrega para esse endereço. Confira os dados informados."
+        );
+        setOpcoesEntrega([]);
+        setEntregaSelecionada(null);
+        return [];
+      }
+
+      const recomendada = String(dados?.opcao_recomendada ?? "").trim();
+      const recomendadaExiste = opcoes.some((opcao) => opcao.id === recomendada);
+
+      setOpcoesEntrega(opcoes);
+      setEntregaSelecionada((atual) => {
+        const atualExiste = opcoes.some((opcao) => opcao.id === atual);
+
+        if (atualExiste) return atual;
+        if (recomendadaExiste) return recomendada;
+
+        return opcoes[0].id;
+      });
+
+      return opcoes;
+    } catch (error: any) {
+      console.error("Erro ao calcular frete:", error);
+
+      const fallback: OpcaoEntrega[] = [
+        {
+          id: "retirada_combinar",
+          nome: "Retirada / combinar entrega",
+          descricao: "Combine a retirada ou entrega diretamente com a loja.",
+          valor: 0,
+          prazo: "Combinar com a loja",
+          tipo: "retirada",
+          selecionavel: true,
+        },
+      ];
+
+      setErroFrete(
+        error?.response?.data?.mensagem ||
+          error?.response?.data?.erro ||
+          "Não foi possível calcular a entrega agora. Você pode combinar a entrega com a loja."
+      );
+
+      setOpcoesEntrega(fallback);
+      setEntregaSelecionada(fallback[0].id);
+
+      return fallback;
+    } finally {
+      setCalculandoFrete(false);
+    }
+  }
 
   async function finalizarCheckout() {
     if (!enderecoSelecionado) {
@@ -365,6 +508,11 @@ export function useCheckout() {
 
     if (!itens.length) {
       alert("Carrinho vazio.");
+      return;
+    }
+
+    if (!entregaSelecionadaDados) {
+      alert("Selecione uma forma de entrega.");
       return;
     }
 
@@ -386,6 +534,14 @@ export function useCheckout() {
         })),
         endereco_entrega: {
           endereco_id: enderecoSelecionado,
+        },
+        entrega: {
+          id: entregaSelecionadaDados.id,
+          nome: entregaSelecionadaDados.nome,
+          descricao: entregaSelecionadaDados.descricao,
+          tipo: entregaSelecionadaDados.tipo,
+          prazo: entregaSelecionadaDados.prazo,
+          valor: valorFrete,
         },
         valor_produtos: normalizarNumero(
           carrinho?.valor_produtos ?? subtotalItens
@@ -432,8 +588,10 @@ export function useCheckout() {
     processando,
     salvandoEndereco,
     buscandoCep,
+    calculandoFrete,
     erroEndereco,
     sucessoEndereco,
+    erroFrete,
 
     enderecos,
     enderecoSelecionado,
@@ -450,6 +608,12 @@ export function useCheckout() {
     valorFrete,
     valorDesconto,
     valorTotal,
+
+    opcoesEntrega,
+    entregaSelecionada,
+    setEntregaSelecionada,
+    entregaSelecionadaDados,
+    calcularFrete,
 
     isCarrinhoVazio: !loading && itens.length === 0,
     finalizarCheckout,

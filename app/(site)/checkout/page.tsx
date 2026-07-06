@@ -14,7 +14,7 @@ import {
   FiLock,
   FiSearch,
   FiPackage,
-  FiShield,
+  FiLoader,
 } from "react-icons/fi";
 
 import { useCheckout } from "./useCheckout";
@@ -28,8 +28,10 @@ export default function CheckoutPage() {
     processando,
     salvandoEndereco,
     buscandoCep,
+    calculandoFrete,
     erroEndereco,
     sucessoEndereco,
+    erroFrete,
     enderecos,
     enderecoSelecionado,
     setEnderecoSelecionado,
@@ -42,6 +44,10 @@ export default function CheckoutPage() {
     valorFrete,
     valorDesconto,
     valorTotal,
+    opcoesEntrega,
+    entregaSelecionada,
+    setEntregaSelecionada,
+    calcularFrete,
     isCarrinhoVazio,
     finalizarCheckout,
     getEnderecoId,
@@ -54,15 +60,17 @@ export default function CheckoutPage() {
   } = useCheckout();
 
   const [etapa, setEtapa] = useState<CheckoutStep>("endereco");
-  const [entregaSelecionada, setEntregaSelecionada] = useState("padrao");
 
   const enderecoAtivo = useMemo(() => {
-    return enderecos.find((endereco) => getEnderecoId(endereco) === enderecoSelecionado);
+    return enderecos.find(
+      (endereco) => getEnderecoId(endereco) === enderecoSelecionado
+    );
   }, [enderecos, enderecoSelecionado, getEnderecoId]);
 
   const podeAvancarParaEntrega =
     !processando &&
     !salvandoEndereco &&
+    !calculandoFrete &&
     enderecos.length > 0 &&
     !!enderecoSelecionado;
 
@@ -84,8 +92,14 @@ export default function CheckoutPage() {
     }
   }, [enderecoSelecionado]);
 
-  function irParaEntrega() {
+  async function irParaEntrega() {
     if (!podeAvancarParaEntrega) return;
+
+    const opcoes = await calcularFrete();
+
+    if (!opcoes.length) {
+      return;
+    }
 
     setEtapa("entrega");
 
@@ -381,7 +395,9 @@ export default function CheckoutPage() {
                                     {endereco.cidade} - {endereco.estado}
                                   </span>
 
-                                  {endereco.cep && <span>CEP {endereco.cep}</span>}
+                                  {endereco.cep && (
+                                    <span>CEP {endereco.cep}</span>
+                                  )}
                                 </div>
 
                                 {ativo && (
@@ -391,6 +407,10 @@ export default function CheckoutPage() {
                             );
                           })}
                         </div>
+                      )}
+
+                      {erroFrete && (
+                        <p className="checkout-form-error">{erroFrete}</p>
                       )}
 
                       <div className="checkout-panel-actions">
@@ -404,8 +424,14 @@ export default function CheckoutPage() {
                           onClick={irParaEntrega}
                           disabled={!podeAvancarParaEntrega}
                         >
-                          Continuar para entrega
-                          <FiArrowRight />
+                          {calculandoFrete
+                            ? "Calculando entrega..."
+                            : "Continuar para entrega"}
+                          {calculandoFrete ? (
+                            <FiLoader className="checkout-spin" />
+                          ) : (
+                            <FiArrowRight />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -442,7 +468,8 @@ export default function CheckoutPage() {
                           </strong>
 
                           <p>
-                            {enderecoAtivo?.bairro && `${enderecoAtivo.bairro} • `}
+                            {enderecoAtivo?.bairro &&
+                              `${enderecoAtivo.bairro} • `}
                             {entregaCidade}
                             {enderecoAtivo?.cep && ` • CEP ${enderecoAtivo.cep}`}
                           </p>
@@ -457,46 +484,72 @@ export default function CheckoutPage() {
                         </button>
                       </div>
 
-                      <div className="checkout-delivery-list">
-                        <button
-                          type="button"
-                          className={`checkout-delivery-card ${
-                            entregaSelecionada === "padrao"
-                              ? "checkout-delivery-card-active"
-                              : ""
-                          }`}
-                          onClick={() => setEntregaSelecionada("padrao")}
-                        >
-                          <div className="checkout-delivery-icon">
-                            <FiTruck />
-                          </div>
+                      {erroFrete && (
+                        <p className="checkout-form-error">{erroFrete}</p>
+                      )}
 
-                          <div className="checkout-delivery-info">
-                            <strong>Entrega padrão</strong>
-                            <span>
-                              O prazo pode variar conforme endereço, estoque e
-                              confirmação do pedido.
-                            </span>
+                      {calculandoFrete ? (
+                        <div className="checkout-delivery-loading">
+                          <FiLoader className="checkout-spin" />
+                          Calculando opções de entrega...
+                        </div>
+                      ) : (
+                        <div className="checkout-delivery-list">
+                          {opcoesEntrega.map((opcao) => {
+                            const ativo = entregaSelecionada === opcao.id;
+                            const valor = Number(opcao.valor || 0);
+                            const valorTexto =
+                              valor > 0 ? formatarMoeda(valor) : "Grátis";
 
-                            <small>
-                              Ideal para envio comum ou entrega combinada pela
-                              loja.
-                            </small>
-                          </div>
+                            return (
+                              <button
+                                key={opcao.id}
+                                type="button"
+                                className={`checkout-delivery-card ${
+                                  ativo ? "checkout-delivery-card-active" : ""
+                                }`}
+                                onClick={() => setEntregaSelecionada(opcao.id)}
+                              >
+                                <div className="checkout-delivery-icon">
+                                  <FiTruck />
+                                </div>
 
-                          <div className="checkout-delivery-price">
-                            <span>{entregaValorTexto}</span>
-                            {entregaSelecionada === "padrao" && <FiCheckCircle />}
-                          </div>
-                        </button>
-                      </div>
+                                <div className="checkout-delivery-info">
+                                  <strong>{opcao.nome}</strong>
+
+                                  {opcao.descricao && (
+                                    <span>{opcao.descricao}</span>
+                                  )}
+
+                                  <small>
+                                    {opcao.prazo
+                                      ? `Prazo: ${opcao.prazo}`
+                                      : "Prazo confirmado pela loja."}
+                                  </small>
+                                </div>
+
+                                <div className="checkout-delivery-price">
+                                  <span>{valorTexto}</span>
+                                  {ativo && <FiCheckCircle />}
+                                </div>
+                              </button>
+                            );
+                          })}
+
+                          {!opcoesEntrega.length && (
+                            <div className="checkout-delivery-empty">
+                              Não encontramos opções de entrega para esse
+                              endereço. Volte e confira os dados informados.
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       <div className="checkout-delivery-note">
-                        <FiShield />
+                        <FiCheckCircle />
                         <span>
-                          Nesta etapa você pode mostrar frete, prazo ou entrega
-                          combinada. Para frete automático, o cálculo precisa
-                          vir do seu backend/API pelo CEP.
+                          O prazo começa a contar após a confirmação do
+                          pagamento.
                         </span>
                       </div>
 
@@ -593,8 +646,14 @@ export default function CheckoutPage() {
                         onClick={irParaEntrega}
                         disabled={!podeAvancarParaEntrega}
                       >
-                        Continuar para entrega
-                        <FiArrowRight />
+                        {calculandoFrete
+                          ? "Calculando entrega..."
+                          : "Continuar para entrega"}
+                        {calculandoFrete ? (
+                          <FiLoader className="checkout-spin" />
+                        ) : (
+                          <FiArrowRight />
+                        )}
                       </button>
                     ) : (
                       <button
