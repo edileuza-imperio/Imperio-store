@@ -1,15 +1,13 @@
 "use client";
 
-
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo } from "react";
+
 import type { IconType } from "react-icons";
 
 import {
   FiGrid,
   FiArrowRight,
-  FiChevronLeft,
-  FiChevronRight,
   FiHome,
   FiShoppingBag,
   FiGift,
@@ -23,6 +21,8 @@ import {
   FiBook,
   FiCoffee,
   FiShoppingCart,
+  FiBox,
+  FiPackage,
 } from "react-icons/fi";
 
 import {
@@ -34,7 +34,7 @@ import {
   BiGift,
 } from "react-icons/bi";
 
-import styles from "./Categorias.module.css";
+import "./Categorias.css";
 import useCategoria, { Categoria } from "./useCategoria";
 
 const ICONS: Record<string, IconType> = {
@@ -52,6 +52,8 @@ const ICONS: Record<string, IconType> = {
   FiBook,
   FiCoffee,
   FiShoppingCart,
+  FiBox,
+  FiPackage,
   BiCategory,
   BiStore,
   BiCloset,
@@ -72,7 +74,7 @@ function normalizeIconName(name?: string | null) {
     .join("");
 }
 
-function getCategoryIcon(name?: string | null, size = 20) {
+function getCategoryIcon(name?: string | null, size = 28) {
   const raw = normalizeIconName(name);
 
   const candidates = [
@@ -97,140 +99,88 @@ function getCategoryIcon(name?: string | null, size = 20) {
 export default function CategoriasDestaque() {
   const { categorias, loading, erro } = useCategoria();
 
-  const railRef = useRef<HTMLDivElement | null>(null);
-  const [canScrollLeft, setCanScrollLeft] = useState(false);
-  const [canScrollRight, setCanScrollRight] = useState(false);
-
-  const top = useMemo<Categoria[]>(() => {
-    return Array.isArray(categorias) ? categorias.slice(0, 20) : [];
+  const categoriasDestaque = useMemo<Categoria[]>(() => {
+    return Array.isArray(categorias) ? categorias.slice(0, 16) : [];
   }, [categorias]);
 
-  const updateArrows = () => {
-    const el = railRef.current;
-    if (!el) return;
-
-    const hasOverflow = el.scrollWidth > el.clientWidth + 2;
-
-    setCanScrollLeft(hasOverflow && el.scrollLeft > 8);
-    setCanScrollRight(
-      hasOverflow && el.scrollLeft + el.clientWidth < el.scrollWidth - 8
-    );
-  };
-
-  useEffect(() => {
-    const el = railRef.current;
-    if (!el) return;
-
-    updateArrows();
-
-    const handleScroll = () => updateArrows();
-    const handleResize = () => updateArrows();
-
-    el.addEventListener("scroll", handleScroll);
-    window.addEventListener("resize", handleResize);
-
-    const ro =
-      typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(updateArrows)
-        : null;
-
-    ro?.observe(el);
-
-    return () => {
-      el.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleResize);
-      ro?.disconnect();
-    };
-  }, [top.length]);
-
-  const scrollByAmount = (direction: "prev" | "next") => {
-    const el = railRef.current;
-    if (!el) return;
-
-    const firstCard = el.querySelector(
-      `.${styles.card}`
-    ) as HTMLElement | null;
-
-    const cardWidth = firstCard?.offsetWidth ?? 200;
-    const amount = cardWidth + 16;
-
-    el.scrollBy({
-      left: direction === "next" ? amount : -amount,
-      behavior: "smooth",
-    });
-  };
-
-  if (loading || erro || !top.length) return null;
+  if (loading || erro || !categoriasDestaque.length) return null;
 
   return (
-    <section className={styles.section}>
-      <div className={styles.container}>
-        <div className={styles.header}>
-          <div className={styles.headerTop}>
-            <span className={styles.badge}>Categorias em destaque</span>
+    <section className="categorias-section">
+      <div className="categorias-container">
+        <header className="categorias-header">
+          <span className="categorias-badge">Categorias em destaque</span>
 
-            <div className={styles.controls}>
-              <button
-                type="button"
-                className={styles.navBtn}
-                onClick={() => scrollByAmount("prev")}
-                disabled={!canScrollLeft}
-                aria-label="Mover categorias para a esquerda"
-              >
-                <FiChevronLeft size={18} />
-              </button>
+          <div className="categorias-title-row">
+            <div>
+              <h2>Explore nossas categorias</h2>
 
-              <button
-                type="button"
-                className={styles.navBtn}
-                onClick={() => scrollByAmount("next")}
-                disabled={!canScrollRight}
-                aria-label="Mover categorias para a direita"
-              >
-                <FiChevronRight size={18} />
-              </button>
+              <p>
+                Navegue com conforto pelas categorias mais importantes e encontre
+                o que procura de forma rápida e visual.
+              </p>
             </div>
+
+            <Link href="/categorias" className="categorias-top-link">
+              Ver todas
+              <FiArrowRight size={16} aria-hidden="true" />
+            </Link>
           </div>
+        </header>
 
-          <h2>Explore nossas categorias</h2>
-
-          <p>
-            Navegue com conforto pelas categorias mais importantes e encontre o
-            que procura de forma rápida e visual.
-          </p>
+        <div className="categorias-divider" aria-hidden="true">
+          <span />
+          <strong>✦</strong>
+          <span />
         </div>
 
-        <div ref={railRef} className={styles.rail}>
-          {top.map((categoria, index) => {
+        <div className="categorias-list">
+          {categoriasDestaque.map((categoria, index) => {
             const nome = categoria?.nome || categoria?.titulo || "Categoria";
             const slug = String(categoria?.slug || "").trim();
             const href = slug ? `/categorias/${slug}` : "/categorias";
 
             return (
               <Link
-                key={categoria?.id_categoria || categoria?.id || `${nome}-${index}`}
+                key={
+                  categoria?.id_categoria ||
+                  categoria?.id ||
+                  `${nome}-${index}`
+                }
                 href={href}
-                className={styles.card}
+                className="categorias-item"
               >
-                <div className={styles.cardAccent} />
-
-                <div className={styles.iconBox}>
-                  {getCategoryIcon(categoria?.icone, 24)}
-                </div>
-
-                <div className={styles.content}>
-                  <span className={styles.name}>{nome}</span>
-                  <span className={styles.subtitle}>
-                    Ver produtos da categoria
+                <span className="categorias-icon-wrap">
+                  <span className="categorias-icon">
+                    {getCategoryIcon(categoria?.icone, 30)}
                   </span>
-                </div>
+                </span>
 
-                <span className={styles.cta}>
-                  Explorar <FiArrowRight size={14} />
+                <span className="categorias-info">
+                  <strong>{nome}</strong>
+                  <small>Ver produtos da categoria</small>
+
+                  <span className="categorias-cta">
+                    Explorar
+                    <FiArrowRight size={14} aria-hidden="true" />
+                  </span>
                 </span>
               </Link>
             );
           })}
+        </div>
+
+        <div className="categorias-bottom">
+          <div className="categorias-divider categorias-divider-small" aria-hidden="true">
+            <span />
+            <strong>✦</strong>
+            <span />
+          </div>
+
+          <Link href="/categorias" className="categorias-all-button">
+            Ver todas as categorias
+            <FiArrowRight size={16} aria-hidden="true" />
+          </Link>
         </div>
       </div>
     </section>
