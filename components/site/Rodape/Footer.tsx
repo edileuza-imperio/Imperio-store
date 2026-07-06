@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type ComponentType } from "react";
 import Link from "next/link";
+
 import {
   FaFacebookF,
   FaInstagram,
@@ -16,10 +17,18 @@ import {
   FaInfoCircle,
   FaFileContract,
   FaQuestionCircle,
+  FaHome,
+  FaUserFriends,
+  FaShoppingBag,
+  FaGift,
+  FaShieldAlt,
+  FaHeart,
 } from "react-icons/fa";
+
 import { SiPix } from "react-icons/si";
+
 import api from "@/Api/conectar";
-import styles from "./Footer.module.css";
+import "./Footer.css";
 
 type FooterConfig = {
   titulo?: string;
@@ -76,7 +85,9 @@ function pick<T>(
 function normalizeItem(item: Record<string, any>): FooterItem {
   return {
     id_item: Number(pick(item, "id_item")) || undefined,
-    titulo: String(pick(item, "titulo", "título", "title") ?? "").trim() || undefined,
+    titulo:
+      String(pick(item, "titulo", "título", "title") ?? "").trim() ||
+      undefined,
     valor: String(pick(item, "valor", "value") ?? "").trim() || undefined,
     url: String(pick(item, "url", "link") ?? "").trim() || undefined,
     icone: String(pick(item, "icone", "ícone", "icon") ?? "").trim() || undefined,
@@ -89,20 +100,31 @@ function normalizeFooterData(raw: any): FooterData | null {
 
   if (!source || typeof source !== "object") return null;
 
-  const footerRaw = pick<Record<string, any>>(source, "footer", "rodape", "rodapé");
+  const footerRaw = pick<Record<string, any>>(
+    source,
+    "footer",
+    "rodape",
+    "rodapé"
+  );
 
   const footer: FooterConfig | undefined = footerRaw
     ? {
-        titulo: String(pick(footerRaw, "titulo", "título") ?? "").trim() || undefined,
-        subtitulo:
-          String(pick(footerRaw, "subtitulo", "subtítulo") ?? "").trim() || undefined,
-        logo_texto:
-          String(pick(footerRaw, "logo_texto", "logo texto") ?? "").trim() || undefined,
-        descricao:
-          String(pick(footerRaw, "descricao", "descrição") ?? "").trim() || undefined,
-        copyright_texto:
-          String(pick(footerRaw, "copyright_texto", "copyright texto") ?? "").trim() ||
+        titulo:
+          String(pick(footerRaw, "titulo", "título") ?? "").trim() ||
           undefined,
+        subtitulo:
+          String(pick(footerRaw, "subtitulo", "subtítulo") ?? "").trim() ||
+          undefined,
+        logo_texto:
+          String(pick(footerRaw, "logo_texto", "logo texto") ?? "").trim() ||
+          undefined,
+        descricao:
+          String(pick(footerRaw, "descricao", "descrição") ?? "").trim() ||
+          undefined,
+        copyright_texto:
+          String(
+            pick(footerRaw, "copyright_texto", "copyright texto") ?? ""
+          ).trim() || undefined,
       }
     : undefined;
 
@@ -112,8 +134,12 @@ function normalizeFooterData(raw: any): FooterData | null {
     redes_sociais: Array.isArray(source.redes_sociais)
       ? source.redes_sociais.map(normalizeItem)
       : [],
-    contatos: Array.isArray(source.contatos) ? source.contatos.map(normalizeItem) : [],
-    pagamentos: Array.isArray(source.pagamentos) ? source.pagamentos.map(normalizeItem) : [],
+    contatos: Array.isArray(source.contatos)
+      ? source.contatos.map(normalizeItem)
+      : [],
+    pagamentos: Array.isArray(source.pagamentos)
+      ? source.pagamentos.map(normalizeItem)
+      : [],
   };
 }
 
@@ -139,7 +165,11 @@ function resolveContactHref(item: FooterItem) {
     return url !== "#" ? url : valor ? `mailto:${valor}` : "#";
   }
 
-  if (titulo.includes("telefone") || titulo.includes("celular") || titulo.includes("whatsapp")) {
+  if (
+    titulo.includes("telefone") ||
+    titulo.includes("celular") ||
+    titulo.includes("whatsapp")
+  ) {
     const digits = valor.replace(/[^\d+]/g, "");
     return url !== "#" ? url : digits ? `tel:${digits}` : "#";
   }
@@ -166,6 +196,12 @@ function DynamicIcon({ name }: { name?: string }) {
     FaInfoCircle,
     FaFileContract,
     FaQuestionCircle,
+    FaHome,
+    FaUserFriends,
+    FaShoppingBag,
+    FaGift,
+    FaShieldAlt,
+    FaHeart,
   };
 
   const siMap: Record<string, ComponentType<any>> = {
@@ -179,62 +215,86 @@ function DynamicIcon({ name }: { name?: string }) {
   return <Icon aria-hidden="true" focusable="false" />;
 }
 
+function getNavIcon(title?: string) {
+  const titulo = normalizeText(title);
+
+  if (titulo.includes("sobre")) return <FaInfoCircle aria-hidden="true" />;
+  if (titulo.includes("quem")) return <FaUserFriends aria-hidden="true" />;
+  if (titulo.includes("pergunta") || titulo.includes("faq")) {
+    return <FaQuestionCircle aria-hidden="true" />;
+  }
+  if (titulo.includes("pedido")) return <FaShoppingBag aria-hidden="true" />;
+  if (titulo.includes("troca") || titulo.includes("devolu")) {
+    return <FaGift aria-hidden="true" />;
+  }
+  if (titulo.includes("termo") || titulo.includes("politica")) {
+    return <FaFileContract aria-hidden="true" />;
+  }
+
+  return <FaHome aria-hidden="true" />;
+}
+
+function getContactFallbackIcon(title?: string) {
+  const titulo = normalizeText(title);
+
+  if (titulo.includes("email")) return <FaEnvelope aria-hidden="true" />;
+  if (
+    titulo.includes("telefone") ||
+    titulo.includes("celular") ||
+    titulo.includes("whatsapp")
+  ) {
+    return <FaPhoneAlt aria-hidden="true" />;
+  }
+
+  return <FaMapMarkerAlt aria-hidden="true" />;
+}
+
+const fallbackLinks: FooterItem[] = [
+  { titulo: "Sobre Nós", url: "/sobre", posicao: 1 },
+  { titulo: "Quem Somos", url: "/quem-somos", posicao: 2 },
+  { titulo: "Perguntas Frequentes", url: "/perguntas-frequentes", posicao: 3 },
+  { titulo: "Acompanhe seu Pedido", url: "/pedido", posicao: 4 },
+  { titulo: "Trocas e Devoluções", url: "/trocas-e-devolucoes", posicao: 5 },
+  { titulo: "Política de Privacidade", url: "/politica", posicao: 99 },
+];
+
+const fallbackSocial: FooterItem[] = [
+  { titulo: "Facebook", url: "#", icone: "FaFacebookF", posicao: 1 },
+  { titulo: "Instagram", url: "#", icone: "FaInstagram", posicao: 2 },
+  { titulo: "WhatsApp", url: "#", icone: "FaWhatsapp", posicao: 3 },
+];
+
+const fallbackPayments: FooterItem[] = [
+  { titulo: "Visa", icone: "FaCcVisa", posicao: 1 },
+  { titulo: "Mastercard", icone: "FaCcMastercard", posicao: 2 },
+  { titulo: "Pix", icone: "SiPix", posicao: 3 },
+];
+
 function FooterSkeleton() {
   return (
-    <footer className={styles.footer} aria-busy="true" aria-live="polite">
-      <div className={styles.container}>
-        <div className={styles.topGrid}>
-          <section className={styles.brandCard}>
-            <div className={styles.brandHeader}>
-              <div className={styles.logo} />
-              <div className={styles.skelBlock}>
-                <div className={styles.skelTitle} />
-                <div className={styles.skelSubtitle} />
-              </div>
-            </div>
-
-            <div className={styles.skelTextLg} />
-            <div className={styles.skelTextMd} />
-
-            <div className={styles.badges}>
-              <span className={styles.skelBadge} />
-              <span className={styles.skelBadge} />
-            </div>
-
-            <div className={styles.social}>
-              <span className={styles.skelSocial} />
-              <span className={styles.skelSocial} />
-              <span className={styles.skelSocial} />
-              <span className={styles.skelSocial} />
-            </div>
+    <footer className="ui-footer" aria-busy="true" aria-live="polite">
+      <div className="ui-footer-shell">
+        <div className="ui-footer-grid">
+          <section className="ui-footer-brand">
+            <span className="ui-skeleton-logo" />
+            <span className="ui-skeleton-title" />
+            <span className="ui-skeleton-line" />
+            <span className="ui-skeleton-line short" />
           </section>
 
-          <section className={styles.column}>
-            <div className={styles.skelSectionTitle} />
-            <div className={styles.skelNavList}>
-              <span className={styles.skelNavItem} />
-              <span className={styles.skelNavItem} />
-              <span className={styles.skelNavItem} />
-              <span className={styles.skelNavItem} />
-            </div>
+          <section className="ui-footer-nav">
+            <span className="ui-skeleton-title small" />
+            <span className="ui-skeleton-nav" />
+            <span className="ui-skeleton-nav" />
+            <span className="ui-skeleton-nav" />
           </section>
 
-          <section className={styles.columnWide}>
-            <div className={styles.skelSectionTitle} />
-            <div className={styles.skelContactList}>
-              <span className={styles.skelContactItem} />
-              <span className={styles.skelContactItem} />
-              <span className={styles.skelContactItem} />
-            </div>
+          <section className="ui-footer-contact">
+            <span className="ui-skeleton-title small" />
+            <span className="ui-skeleton-contact" />
+            <span className="ui-skeleton-contact" />
+            <span className="ui-skeleton-contact" />
           </section>
-        </div>
-
-        <div className={styles.divider} />
-
-        <div className={styles.bottom}>
-          <span className={styles.skelCopy} />
-          <span className={styles.skelPayments} />
-          <span className={styles.skelBottomLinks} />
         </div>
       </div>
     </footer>
@@ -278,13 +338,28 @@ export default function FooterProfissional() {
 
   const footer = data?.footer;
 
-  const links = useMemo(() => sortByPosition(data?.links || []), [data?.links]);
-  const redesSociais = useMemo(
-    () => sortByPosition(data?.redes_sociais || []),
-    [data?.redes_sociais]
+  const links = useMemo(() => {
+    const items = data?.links?.length ? data.links : fallbackLinks;
+    return sortByPosition(items);
+  }, [data?.links]);
+
+  const redesSociais = useMemo(() => {
+    const items = data?.redes_sociais?.length
+      ? data.redes_sociais
+      : fallbackSocial;
+
+    return sortByPosition(items);
+  }, [data?.redes_sociais]);
+
+  const contatos = useMemo(
+    () => sortByPosition(data?.contatos || []),
+    [data?.contatos]
   );
-  const contatos = useMemo(() => sortByPosition(data?.contatos || []), [data?.contatos]);
-  const pagamentos = useMemo(() => sortByPosition(data?.pagamentos || []), [data?.pagamentos]);
+
+  const pagamentos = useMemo(() => {
+    const items = data?.pagamentos?.length ? data.pagamentos : fallbackPayments;
+    return sortByPosition(items);
+  }, [data?.pagamentos]);
 
   const bottomLinks = useMemo(() => {
     return links.filter((item) => {
@@ -311,46 +386,52 @@ export default function FooterProfissional() {
   if (loading) return <FooterSkeleton />;
 
   return (
-    <footer className={styles.footer}>
-      <div className={styles.container}>
-        <div className={styles.topGrid}>
-          <section className={styles.brandCard} aria-labelledby="footer-brand-title">
-            <div className={styles.brandHeader}>
-              <div className={styles.logo} aria-hidden="true">
+    <footer className="ui-footer">
+      <div className="ui-footer-shell">
+        <div className="ui-footer-grid">
+          <section className="ui-footer-brand" aria-labelledby="footer-brand-title">
+            <div className="ui-footer-logo-wrap" aria-hidden="true">
+              <div className="ui-footer-crown">♛</div>
+
+              <div className="ui-footer-logo">
                 {(footer?.logo_texto || "UI").slice(0, 3)}
               </div>
 
-              <div>
-                <h2 id="footer-brand-title" className={styles.brandTitle}>
-                  {footer?.titulo || "Universo Império"}
-                </h2>
-                <p className={styles.brandSubtitle}>
-                  {footer?.subtitulo || "Decorações & Eventos"}
-                </p>
-              </div>
+              <span className="ui-footer-spark one">✦</span>
+              <span className="ui-footer-spark two">✦</span>
             </div>
 
-            <p className={styles.description}>
+            <h2 id="footer-brand-title" className="ui-footer-brand-title">
+              {footer?.titulo || "Universo Império"}
+            </h2>
+
+            <p className="ui-footer-brand-subtitle">
+              {footer?.subtitulo || "Mimos & Presentes"}
+            </p>
+
+            <div className="ui-footer-mini-divider" aria-hidden="true">
+              <span />
+              <strong>♥</strong>
+              <span />
+            </div>
+
+            <p className="ui-footer-description">
               {footer?.descricao ||
                 "Produtos selecionados para festas e eventos. Atendimento rápido, qualidade premium e uma experiência confortável do início ao fim."}
             </p>
 
-            <div className={styles.badges}>
-              <span className={styles.badge}>Pagamento Seguro</span>
-              <span className={styles.badge}>Suporte WhatsApp</span>
-            </div>
-
-            <nav className={styles.social} aria-label="Redes sociais">
+            <nav className="ui-footer-social" aria-label="Redes sociais">
               {redesSociais.map((rede, idx) => {
                 const href = safeHref(rede.url);
+                const external = href.startsWith("http");
 
                 return (
                   <a
                     key={rede.id_item || idx}
                     href={href}
-                    target={href.startsWith("http") ? "_blank" : undefined}
-                    rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
-                    className={styles.socialLink}
+                    target={external ? "_blank" : undefined}
+                    rel={external ? "noopener noreferrer" : undefined}
+                    className="ui-footer-social-link"
                     title={rede.titulo || "Rede social"}
                     aria-label={rede.titulo || "Rede social"}
                   >
@@ -361,27 +442,47 @@ export default function FooterProfissional() {
             </nav>
           </section>
 
-          <section className={styles.column} aria-labelledby="footer-nav-title">
-            <h3 id="footer-nav-title" className={styles.sectionTitle}>
+          <section className="ui-footer-nav" aria-labelledby="footer-nav-title">
+            <h3 id="footer-nav-title" className="ui-footer-section-title">
               Navegação
             </h3>
 
-            <ul className={styles.linkList}>
+            <div className="ui-footer-title-divider" aria-hidden="true">
+              <span />
+              <strong>♥</strong>
+              <span />
+            </div>
+
+            <ul className="ui-footer-link-list">
               {navLinks.map((link, idx) => {
                 const href = safeHref(link.url);
                 const external = !isInternalHref(href);
 
+                const content = (
+                  <>
+                    <span className="ui-footer-nav-icon">
+                      <DynamicIcon name={link.icone} />
+                      {!link.icone && getNavIcon(link.titulo)}
+                    </span>
+
+                    <span>{link.titulo}</span>
+
+                    <FaArrowRight
+                      className="ui-footer-nav-arrow"
+                      aria-hidden="true"
+                    />
+                  </>
+                );
+
                 return (
                   <li key={link.id_item || idx}>
                     {external ? (
-                      <a href={href} className={styles.navLink}>
-                        <span>{link.titulo}</span>
-                        <FaArrowRight className={styles.navArrow} aria-hidden="true" />
+                      <a href={href} className="ui-footer-nav-link">
+                        {content}
                       </a>
                     ) : (
-                      <Link href={href} className={styles.navLink}>
-                        <span>{link.titulo}</span>
-                        <FaArrowRight className={styles.navArrow} aria-hidden="true" />
+                      <Link href={href} className="ui-footer-nav-link">
+                        {content}
                       </Link>
                     )}
                   </li>
@@ -390,36 +491,72 @@ export default function FooterProfissional() {
             </ul>
           </section>
 
-          <section className={styles.columnWide} aria-labelledby="footer-contact-title">
-            <h3 id="footer-contact-title" className={styles.sectionTitle}>
+          <section className="ui-footer-contact" aria-labelledby="footer-contact-title">
+            <h3 id="footer-contact-title" className="ui-footer-section-title">
               Contato
             </h3>
 
-            <div className={styles.contactList}>
+            <div className="ui-footer-title-divider" aria-hidden="true">
+              <span />
+              <strong>♥</strong>
+              <span />
+            </div>
+
+            <div className="ui-footer-contact-list">
+              {contatos.length === 0 && (
+                <>
+                  <article className="ui-footer-contact-item">
+                    <span className="ui-footer-contact-icon">
+                      <FaMapMarkerAlt aria-hidden="true" />
+                    </span>
+
+                    <div>
+                      <h4>Endereço</h4>
+                      <p>Atendimento online para todo o Brasil</p>
+                    </div>
+                  </article>
+
+                  <article className="ui-footer-contact-item">
+                    <span className="ui-footer-contact-icon">
+                      <FaEnvelope aria-hidden="true" />
+                    </span>
+
+                    <div>
+                      <h4>Email</h4>
+                      <p>contato@imperio.com.br</p>
+                    </div>
+                  </article>
+                </>
+              )}
+
               {contatos.map((contato, idx) => {
                 const href = resolveContactHref(contato);
                 const external = href.startsWith("http");
 
                 return (
-                  <article key={contato.id_item || idx} className={styles.contactItem}>
-                    <div className={styles.contactIcon} aria-hidden="true">
+                  <article
+                    key={contato.id_item || idx}
+                    className="ui-footer-contact-item"
+                  >
+                    <span className="ui-footer-contact-icon" aria-hidden="true">
                       <DynamicIcon name={contato.icone} />
-                    </div>
+                      {!contato.icone && getContactFallbackIcon(contato.titulo)}
+                    </span>
 
-                    <div className={styles.contactTextBlock}>
-                      <h4 className={styles.contactTitle}>{contato.titulo}</h4>
+                    <div>
+                      <h4>{contato.titulo}</h4>
 
                       {contato.url || contato.valor ? (
                         <a
                           href={href}
-                          className={styles.contactText}
+                          className="ui-footer-contact-text"
                           target={external ? "_blank" : undefined}
                           rel={external ? "noopener noreferrer" : undefined}
                         >
                           {contato.valor || contato.url}
                         </a>
                       ) : (
-                        <p className={styles.contactText}>Sem informação</p>
+                        <p className="ui-footer-contact-text">Sem informação</p>
                       )}
                     </div>
                   </article>
@@ -429,32 +566,35 @@ export default function FooterProfissional() {
           </section>
         </div>
 
-        <div className={styles.divider} />
-
-        <div className={styles.bottom}>
-          <p className={styles.copy}>
-            {footer?.copyright_texto || "© 2024 Universo Império. Todos os direitos reservados."}
+        <div className="ui-footer-bottom">
+          <p className="ui-footer-copy">
+            <FaHeart aria-hidden="true" />
+            <span>
+              {footer?.copyright_texto ||
+                "© 2024 Universo Império. Todos os direitos reservados."}
+            </span>
           </p>
 
-          <div className={styles.paymentWrap}>
-            <span className={styles.paymentLabel}>Formas de pagamento:</span>
+          <div className="ui-footer-payments-wrap">
+            <span className="ui-footer-payment-label">Formas de pagamento</span>
 
-            <div className={styles.payments} aria-label="Formas de pagamento">
+            <div className="ui-footer-payments" aria-label="Formas de pagamento">
               {pagamentos.map((metodo, idx) => (
                 <span
                   key={metodo.id_item || idx}
-                  className={styles.paymentItem}
+                  className="ui-footer-payment-item"
                   role="img"
                   aria-label={metodo.titulo || "Forma de pagamento"}
                   title={metodo.titulo || "Forma de pagamento"}
                 >
                   <DynamicIcon name={metodo.icone} />
+                  {!metodo.icone && <span>{metodo.titulo?.slice(0, 4)}</span>}
                 </span>
               ))}
             </div>
           </div>
 
-          <ul className={styles.bottomLinks}>
+          <ul className="ui-footer-bottom-links">
             {bottomLinks.map((item, idx) => {
               const href = safeHref(item.url);
               const external = !isInternalHref(href);
@@ -462,11 +602,13 @@ export default function FooterProfissional() {
               return (
                 <li key={item.id_item || idx}>
                   {external ? (
-                    <a href={href} className={styles.bottomLink}>
+                    <a href={href} className="ui-footer-bottom-link">
+                      <FaShieldAlt aria-hidden="true" />
                       {item.titulo}
                     </a>
                   ) : (
-                    <Link href={href} className={styles.bottomLink}>
+                    <Link href={href} className="ui-footer-bottom-link">
+                      <FaShieldAlt aria-hidden="true" />
                       {item.titulo}
                     </Link>
                   )}
