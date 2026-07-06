@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -116,8 +115,6 @@ export default function Destaques({
   verMaisTexto = "Ver mais",
   onAdicionarCarrinho,
 }: Props) {
-  const router = useRouter();
-
   const [podeVoltar, setPodeVoltar] = useState(false);
   const [podeAvancar, setPodeAvancar] = useState(false);
   const [pausado, setPausado] = useState(false);
@@ -136,12 +133,8 @@ export default function Destaques({
         setAbrindoCarrinho(true);
 
         window.setTimeout(() => {
-          router.push(rotas.paginas.carrinho);
-        }, 700);
-
-        window.setTimeout(() => {
           setAbrindoCarrinho(false);
-        }, 1200);
+        }, 1600);
       },
     });
 
@@ -497,7 +490,7 @@ export default function Destaques({
                               : estaAdicionando
                               ? "Adicionando..."
                               : abrindoCarrinho
-                              ? "Abrindo..."
+                              ? "Adicionado"
                               : "Adicionar"}
                           </span>
                         </button>
