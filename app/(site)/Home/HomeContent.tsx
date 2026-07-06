@@ -103,7 +103,8 @@ export default function HomeContent() {
     <>
       {/* Banner Principal */}
       <Banner />
-
+      {/* Categorias */}
+      <CategoriasDestaque />
       {/* Produtos */}
       {!loading &&
         vitrinesProdutos.map((vitrine) => (
@@ -122,8 +123,7 @@ export default function HomeContent() {
           />
         ))}
 
-      {/* Categorias */}
-      <CategoriasDestaque />
+      
 
       {/* Novidades */}
       {!loading &&
