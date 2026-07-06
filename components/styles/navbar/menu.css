@@ -892,3 +892,381 @@ body.menuLock {
     justify-content: flex-start;
   }
 }
+
+
+/* =========================================================
+   UPGRADE PREMIUM - Universo Império
+   Visual inspirado no mockup: logo mais refinado, busca
+   maior, botões com cara de e-commerce premium e tons quentes.
+   Pode deixar este bloco no final do arquivo para sobrescrever
+   o estilo anterior sem quebrar o restante do menu.
+========================================================= */
+
+:root {
+  --nav-bg: rgba(255, 255, 255, 0.94);
+  --nav-bg-solid: #fffdfb;
+  --nav-border: #eadcd3;
+  --nav-text: #261f1c;
+  --nav-muted: #8a786d;
+  --nav-primary: #bd6f58;
+  --nav-primary-strong: #954934;
+  --nav-primary-soft: #f7e7df;
+  --nav-soft: #fff8f4;
+  --nav-ring: rgba(189, 111, 88, 0.16);
+  --nav-shadow: 0 22px 55px rgba(55, 32, 24, 0.12);
+}
+
+.header {
+  background:
+    radial-gradient(circle at 18% -60%, rgba(189, 111, 88, 0.08), transparent 34%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 250, 247, 0.94));
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.82) inset;
+}
+
+.header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(189, 111, 88, 0.22),
+    transparent
+  );
+  pointer-events: none;
+}
+
+.headerScrolled {
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 12px 34px rgba(55, 32, 24, 0.1);
+}
+
+.desktopNavbar {
+  min-height: 98px;
+  grid-template-columns: minmax(215px, 315px) minmax(330px, 1fr) auto;
+  gap: clamp(18px, 2.4vw, 34px);
+  padding-inline: clamp(18px, 4vw, 64px);
+}
+
+.brand {
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.logoPremium {
+  position: relative;
+  align-items: baseline;
+  gap: 7px;
+  overflow: visible;
+}
+
+.logoPremium:hover .logoPink {
+  color: var(--nav-primary-strong);
+}
+
+.logoDark,
+.logoPink {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(26px, 2.35vw, 39px);
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -1.45px;
+}
+
+.logoSpark {
+  position: relative;
+  top: -15px;
+  left: -3px;
+  color: var(--nav-primary);
+  font-size: 20px;
+  line-height: 1;
+  text-shadow: 0 8px 18px rgba(189, 111, 88, 0.25);
+}
+
+.subtitleDecor {
+  width: min(100%, 310px);
+  margin-top: 11px;
+  display: grid;
+  grid-template-columns: minmax(22px, 1fr) auto minmax(22px, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.subtitleLine {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(189, 111, 88, 0.42),
+    transparent
+  );
+}
+
+.subtitle,
+.mobileSubtitle {
+  margin-top: 0;
+  color: #8c776b;
+  font-size: 10.5px;
+  font-weight: 850;
+  letter-spacing: 3.8px;
+}
+
+.brandHeart {
+  width: min(100%, 310px);
+  margin-top: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #d4866f;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.searchWrapper {
+  justify-content: stretch;
+}
+
+.searchBar {
+  max-width: 760px;
+  height: 58px;
+  padding: 0 16px 0 12px;
+  gap: 14px;
+  color: #6f5f56;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 250, 247, 0.9));
+  border-color: rgba(222, 197, 184, 0.9);
+  border-radius: 999px;
+  box-shadow:
+    0 12px 34px rgba(55, 32, 24, 0.055),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.searchIconCircle {
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--nav-primary-strong);
+  background: linear-gradient(135deg, #fffaf7, #f6ebe5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.searchBar input {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.1px;
+}
+
+.searchBar input::placeholder {
+  color: #8c7a70;
+}
+
+.searchBar:focus-within {
+  border-color: rgba(189, 111, 88, 0.7);
+  box-shadow:
+    0 0 0 5px var(--nav-ring),
+    0 16px 36px rgba(55, 32, 24, 0.1);
+}
+
+.iconBtn,
+.cartButton,
+.userBtn {
+  height: 56px;
+  border-color: rgba(222, 197, 184, 0.95);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.iconBtn,
+.accountBtn {
+  gap: 12px;
+  padding-inline: 16px;
+}
+
+.buttonIcon {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #2d2521;
+  background: #fbf3ee;
+}
+
+.cartButton {
+  position: relative;
+  min-width: 150px;
+  padding: 0 16px 0 13px;
+  overflow: visible;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(251, 236, 227, 0.95));
+}
+
+.cartButton::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(135deg, transparent, rgba(189, 111, 88, 0.12));
+}
+
+.cartIconBox {
+  width: 38px;
+  height: 38px;
+  border-radius: 14px;
+  color: #2a221f;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.cartLabel,
+.userInfo span {
+  color: #8e796e;
+}
+
+.cartTotal,
+.userInfo strong {
+  color: #261f1c;
+}
+
+.badge {
+  top: -13px;
+  right: -14px;
+  min-width: 25px;
+  height: 25px;
+  background: linear-gradient(135deg, #df9b83, #c86448);
+  font-size: 12px;
+}
+
+.iconBtn:hover,
+.cartButton:hover,
+.userBtn:hover {
+  transform: translateY(-3px);
+  border-color: rgba(189, 111, 88, 0.52);
+  box-shadow:
+    0 18px 34px rgba(55, 32, 24, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.floatingDropdown {
+  border-color: rgba(222, 197, 184, 0.9);
+  border-radius: 22px;
+  box-shadow: 0 24px 60px rgba(55, 32, 24, 0.16);
+}
+
+.floatingDropdownItem:hover {
+  color: var(--nav-primary-strong);
+  background: linear-gradient(135deg, #fff8f4, #f7ebe4);
+}
+
+@media (max-width: 1180px) {
+  .desktopNavbar {
+    grid-template-columns: minmax(185px, 260px) minmax(240px, 1fr) auto;
+  }
+
+  .cartButton {
+    min-width: 56px;
+  }
+
+  .buttonIcon {
+    background: transparent;
+  }
+}
+
+@media (max-width: 991px) {
+  .header {
+    background: rgba(255, 255, 255, 0.97);
+  }
+
+  .mobileNavbar {
+    min-height: 76px;
+  }
+
+  .mobileBrand {
+    justify-content: center;
+  }
+
+  .mobileLogo {
+    overflow: visible;
+  }
+
+  .mobileLogo .logoDark,
+  .mobileLogo .logoPink {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(20px, 5.1vw, 25px);
+    font-weight: 700;
+    letter-spacing: -0.85px;
+  }
+
+  .mobileSubtitle {
+    margin-top: 5px;
+    color: #8c776b;
+    letter-spacing: 2px;
+    font-size: 9px;
+  }
+
+  .mobileSearch {
+    padding-bottom: 14px;
+  }
+
+  .mobileSearch .searchBar {
+    height: 48px;
+    border-radius: 18px;
+  }
+
+  .mobileSearch .searchIconCircle {
+    width: 34px;
+    height: 34px;
+  }
+
+  .hamburger,
+  .mobileBtn,
+  .mobileCartBtn {
+    border-color: rgba(222, 197, 184, 0.95);
+    background: linear-gradient(135deg, #fff, #fbf1ec);
+    box-shadow: 0 8px 20px rgba(55, 32, 24, 0.06);
+  }
+
+  .mobileCartBtn .cartIconBox {
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    background: transparent;
+  }
+}
+
+@media (max-width: 560px) {
+  .mobileNavbar {
+    min-height: 70px;
+  }
+
+  .searchBar {
+    gap: 10px;
+  }
+
+  .mobileSearch .searchBar {
+    height: 46px;
+    padding-inline: 10px 13px;
+  }
+
+  .mobileLogo .logoDark,
+  .mobileLogo .logoPink {
+    font-size: clamp(18px, 5.4vw, 22px);
+  }
+}
+
+@media (max-width: 380px) {
+  .mobileLogo .logoDark,
+  .mobileLogo .logoPink {
+    font-size: 18px;
+  }
+}

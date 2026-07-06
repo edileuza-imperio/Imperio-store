@@ -41,7 +41,10 @@ export default function Banner() {
 
           <h1>{banner.titulo}</h1>
 
-          <p>{banner.descricao || "Promoções, lançamentos e ofertas especiais."}</p>
+          <p>
+            {banner.descricao ||
+              "Promoções, lançamentos e ofertas especiais."}
+          </p>
 
           {link && (
             <button type="button" className="banner-button" onClick={abrirLink}>

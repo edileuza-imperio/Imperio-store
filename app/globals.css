@@ -1,6 +1,156 @@
 @import "../styles/variables.css";
 
+
+
+
+/* Evita estourar largura da tela */
+html,
 body {
+  width: 100%;
+  min-height: 100%;
   margin: 0;
-  font-family: Arial, Helvetica, sans-serif;
+  padding: 0;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(181, 111, 90, 0.08), transparent 32%),
+    linear-gradient(180deg, #fffdfb 0%, var(--site-bg) 45%, #ffffff 100%);
+  color: var(--site-text);
+}
+
+/* Wrapper do header/navbar */
+.header-stack {
+  position: sticky;
+  top: 0;
+  z-index: 5000;
+  width: 100%;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--site-border);
+  box-shadow: 0 8px 26px rgba(37, 25, 20, 0.04);
+}
+
+/* Conteúdo principal */
+.main-content {
+  position: relative;
+  width: 100%;
+  min-height: calc(100vh - 90px);
+  padding-top: clamp(18px, 2vw, 32px);
+  padding-bottom: clamp(36px, 5vw, 80px);
+  background:
+    linear-gradient(180deg, rgba(255, 250, 247, 0.75), rgba(255, 255, 255, 0.95)),
+    var(--site-bg);
+}
+
+/* Efeito decorativo suave no fundo */
+.main-content::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(1180px, 92vw);
+  height: 280px;
+  pointer-events: none;
+  transform: translateX(-50%);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(181, 111, 90, 0.09), transparent 35%),
+    radial-gradient(circle at 80% 0%, rgba(223, 154, 130, 0.12), transparent 36%);
+  filter: blur(4px);
+  opacity: 0.9;
+}
+
+/* Garante que o conteúdo fique acima do detalhe do fundo */
+.main-content > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Para páginas que quiserem usar largura centralizada */
+.page-container {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+/* Card padrão para seções */
+.page-section {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto clamp(20px, 3vw, 36px);
+  padding: clamp(18px, 2.5vw, 32px);
+  border: 1px solid var(--site-border);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: var(--site-shadow);
+}
+
+/* Títulos padrão */
+.page-title {
+  margin: 0 0 8px;
+  color: var(--site-text);
+  font-size: clamp(26px, 4vw, 44px);
+  line-height: 1.05;
+  font-weight: 900;
+  letter-spacing: -1.4px;
+}
+
+.page-subtitle {
+  margin: 0;
+  max-width: 680px;
+  color: var(--site-muted);
+  font-size: clamp(14px, 1.5vw, 17px);
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+/* Espaçamento entre blocos do site */
+.content-spacing {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(22px, 4vw, 48px);
+}
+
+/* Melhora a rolagem quando clicar em links internos */
+section,
+[id] {
+  scroll-margin-top: 120px;
+}
+
+/* Responsivo */
+@media (max-width: 991px) {
+  .main-content {
+    min-height: calc(100vh - 120px);
+    padding-top: 16px;
+    padding-bottom: 56px;
+  }
+
+  .page-container,
+  .page-section {
+    width: min(100% - 24px, 720px);
+  }
+
+  .page-section {
+    border-radius: 22px;
+    padding: 18px;
+  }
+}
+
+@media (max-width: 560px) {
+  .main-content {
+    padding-top: 12px;
+    padding-bottom: 44px;
+  }
+
+  .page-container,
+  .page-section {
+    width: min(100% - 20px, 100%);
+  }
+
+  .page-section {
+    border-radius: 20px;
+    padding: 16px;
+  }
+
+  section,
+  [id] {
+    scroll-margin-top: 140px;
+  }
 }

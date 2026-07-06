@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -11,8 +11,13 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiEye,
+  FiGift,
+  FiHeart,
   FiLoader,
+  FiPackage,
+  FiShield,
   FiShoppingCart,
+  FiTruck,
 } from "react-icons/fi";
 
 import "./Destaques.css";
@@ -39,12 +44,65 @@ type Props = {
   onAdicionarCarrinho?: (item: ItemResolvido) => void;
 };
 
-function limitarTexto(texto?: string | null, limite = 95) {
+const CARD_LABELS = [
+  "Mais amado",
+  "Novidade",
+  "Especial",
+  "Presente ideal",
+  "Seleção premium",
+];
+
+const TRUST_ITEMS = [
+  {
+    icon: FiTruck,
+    title: "Entrega cuidadosa",
+    text: "Produtos preparados com carinho",
+  },
+  {
+    icon: FiShield,
+    title: "Compra segura",
+    text: "Pedido acompanhado do início ao fim",
+  },
+  {
+    icon: FiGift,
+    title: "Embalagem especial",
+    text: "Detalhes pensados para presentear",
+  },
+  {
+    icon: FiHeart,
+    title: "Mimos selecionados",
+    text: "Opções delicadas para momentos especiais",
+  },
+];
+
+function limitarTexto(texto?: string | null, limite = 88) {
   if (!texto) return "";
 
   const limpo = String(texto).trim();
-
   return limpo.length > limite ? `${limpo.slice(0, limite)}...` : limpo;
+}
+
+function obterSeloCard(
+  item: ItemResolvido,
+  index: number,
+  esgotado: boolean
+) {
+  if (esgotado) return "Esgotado";
+  if (item.economia_final) return String(item.economia_final);
+
+  return CARD_LABELS[index % CARD_LABELS.length];
+}
+
+function obterChipCard(
+  item: ItemResolvido,
+  tipoVitrine: string,
+  esgotado: boolean
+) {
+  if (item.marca_final) return item.marca_final;
+  if (esgotado) return "Indisponível";
+  if (item.tipo_item === "produto") return "Universo Império";
+
+  return tipoVitrine;
 }
 
 export default function Destaques({
@@ -123,8 +181,8 @@ export default function Destaques({
       if (pausado || abrindoCarrinho) return;
 
       const card = carousel.querySelector<HTMLElement>(".destaque-card");
-      const larguraCard = card?.offsetWidth || 250;
-      const distancia = larguraCard + 16;
+      const larguraCard = card?.offsetWidth || 276;
+      const distancia = larguraCard + 18;
 
       const { scrollLeft, scrollWidth, clientWidth } = carousel;
       const maxScroll = scrollWidth - clientWidth;
@@ -134,7 +192,7 @@ export default function Destaques({
       } else {
         carousel.scrollBy({ left: distancia, behavior: "smooth" });
       }
-    }, 3200);
+    }, 3600);
 
     const handleVisibility = () => {
       setPausado(document.hidden);
@@ -159,6 +217,13 @@ export default function Destaques({
     abrindoCarrinho,
   ]);
 
+  const totalItens = itens.length;
+
+  const totalTexto = useMemo(() => {
+    if (totalItens === 1) return "1 mimo selecionado";
+    return `${totalItens} mimos selecionados`;
+  }, [totalItens]);
+
   if (loading) {
     return <SkeletonDestaques className={className} />;
   }
@@ -166,6 +231,10 @@ export default function Destaques({
   if (erro || !vitrine || itens.length === 0) {
     return null;
   }
+
+  const tituloVitrine = tituloPersonalizado || vitrine.titulo || vitrine.nome;
+  const subtituloVitrine = subtituloPersonalizado || vitrine.subtitulo;
+  const tipoVitrine = vitrine.tipo || "Vitrine";
 
   const linkVerMais =
     verMaisHref ||
@@ -182,22 +251,30 @@ export default function Destaques({
       onMouseLeave={() => setPausado(false)}
       onTouchStart={() => setPausado(true)}
       onTouchEnd={() => setPausado(false)}
+      aria-label={tituloVitrine || "Vitrine de produtos"}
     >
       <div className="destaques-container">
         <div className="destaques-header">
           <div className="destaques-header-text">
-            <span className="destaques-badge">
-              {vitrine.tipo || "Vitrine"}
-            </span>
+            <div className="destaques-kicker-row">
+              <span className="destaques-badge">{tipoVitrine}</span>
 
-            <h2 className="destaques-title">
-              {tituloPersonalizado || vitrine.titulo || vitrine.nome}
-            </h2>
+              <span className="destaques-count">
+                <FiPackage aria-hidden="true" />
+                {totalTexto}
+              </span>
+            </div>
 
-            {(subtituloPersonalizado || vitrine.subtitulo) && (
-              <p className="destaques-description">
-                {subtituloPersonalizado || vitrine.subtitulo}
-              </p>
+            <h2 className="destaques-title">{tituloVitrine}</h2>
+
+            <div className="destaques-ornament" aria-hidden="true">
+              <span />
+              <strong>♥</strong>
+              <span />
+            </div>
+
+            {subtituloVitrine && (
+              <p className="destaques-description">{subtituloVitrine}</p>
             )}
           </div>
 
@@ -207,9 +284,9 @@ export default function Destaques({
               className="destaques-nav-button"
               onClick={() => moverCarousel(carouselRef.current, "prev")}
               disabled={!podeVoltar || abrindoCarrinho}
-              aria-label="Anterior"
+              aria-label="Mostrar produtos anteriores"
             >
-              <FiChevronLeft />
+              <FiChevronLeft aria-hidden="true" />
             </button>
 
             <button
@@ -217,9 +294,9 @@ export default function Destaques({
               className="destaques-nav-button"
               onClick={() => moverCarousel(carouselRef.current, "next")}
               disabled={!podeAvancar || abrindoCarrinho}
-              aria-label="Próximo"
+              aria-label="Mostrar próximos produtos"
             >
-              <FiChevronRight />
+              <FiChevronRight aria-hidden="true" />
             </button>
 
             <Link href={linkVerMais} className="destaques-ver-mais-button">
@@ -230,7 +307,11 @@ export default function Destaques({
         </div>
 
         <div className="destaques-carousel-shell">
-          <div ref={carouselRef} className="destaques-carousel">
+          <div
+            ref={carouselRef}
+            className="destaques-carousel"
+            aria-roledescription="carrossel"
+          >
             {itens.map((item, index) => {
               const imagemProduto = imagemFundo(item.imagem_final);
 
@@ -258,56 +339,80 @@ export default function Destaques({
                 item.tipo_item === "produto" &&
                 (Boolean(item.esgotado) || disponivel <= 0);
 
+              const seloCard = obterSeloCard(item, index, esgotado);
+              const chipCard = obterChipCard(item, tipoVitrine, esgotado);
+              const descricaoCurta = limitarTexto(item.descricao_final);
+
               return (
                 <article
                   key={String(item.id_vitrine_item)}
-                  className="destaques-card destaque-card"
+                  className={`destaques-card destaque-card ${
+                    esgotado ? "destaques-card-esgotado" : ""
+                  }`}
                 >
                   <div className="destaques-media">
                     <Link
                       href={linkVisualizarCard}
                       className="destaques-image-link"
+                      aria-label={`Ver detalhes de ${
+                        item.titulo_final || "produto"
+                      }`}
                     >
                       {imagemProduto ? (
                         <Image
                           src={imagemProduto}
                           alt={item.titulo_final || "Produto"}
                           fill
-                          sizes="(max-width: 480px) 82vw, 250px"
+                          sizes="(max-width: 480px) 84vw, (max-width: 1024px) 260px, 276px"
                           className={`destaques-image ${
                             esgotado ? "destaques-image-sold-out" : ""
                           }`}
-                          quality={80}
+                          quality={88}
                           priority={index < 2}
                         />
                       ) : (
                         <div className="destaques-no-image">
+                          <FiGift aria-hidden="true" />
                           <span>Sem imagem</span>
                         </div>
                       )}
                     </Link>
 
-                    {item.economia_final && !esgotado && (
-                      <span className="destaques-economy-badge">
-                        {item.economia_final}
-                      </span>
-                    )}
+                    <div className="destaques-media-overlay" />
 
-                    {esgotado && (
-                      <span className="destaques-sold-out-badge">
-                        Esgotado
+                    <div className="destaques-media-top">
+                      <span
+                        className={`destaques-card-badge ${
+                          esgotado
+                            ? "destaques-card-badge-sold"
+                            : item.economia_final
+                            ? "destaques-card-badge-discount"
+                            : ""
+                        }`}
+                      >
+                        {seloCard}
                       </span>
-                    )}
+
+                      <Link
+                        href={linkVisualizarCard}
+                        className="destaques-heart-button"
+                        aria-label={`Ver ${item.titulo_final || "produto"}`}
+                      >
+                        <FiHeart aria-hidden="true" />
+                      </Link>
+                    </div>
                   </div>
 
                   <div className="destaques-content">
-                    {item.marca_final && (
-                      <div className="destaques-meta">
-                        <span className="destaques-chip">
-                          {item.marca_final}
+                    <div className="destaques-meta">
+                      <span className="destaques-chip">{chipCard}</span>
+
+                      {!esgotado && item.tipo_item === "produto" && (
+                        <span className="destaques-chip destaques-chip-soft">
+                          Pronta entrega
                         </span>
-                      </div>
-                    )}
+                      )}
+                    </div>
 
                     <Link
                       href={linkVisualizarCard}
@@ -318,10 +423,8 @@ export default function Destaques({
                       </h3>
                     </Link>
 
-                    {item.descricao_final && (
-                      <p className="destaques-text">
-                        {limitarTexto(item.descricao_final)}
-                      </p>
+                    {descricaoCurta && (
+                      <p className="destaques-text">{descricaoCurta}</p>
                     )}
 
                     {(precoFormatado || precoOriginalFormatado) && (
@@ -333,9 +436,15 @@ export default function Destaques({
                         )}
 
                         {precoFormatado && (
-                          <strong className="destaques-price">
-                            {precoFormatado}
-                          </strong>
+                          <div className="destaques-price-row">
+                            <span className="destaques-price-label">
+                              Por apenas
+                            </span>
+
+                            <strong className="destaques-price">
+                              {precoFormatado}
+                            </strong>
+                          </div>
                         )}
                       </div>
                     )}
@@ -353,6 +462,11 @@ export default function Destaques({
                           : `${disponivel} em estoque`}
                       </div>
                     )}
+
+                    <div className="destaques-mini-info">
+                      <FiGift aria-hidden="true" />
+                      <span>Ideal para presentear</span>
+                    </div>
 
                     <div className="destaques-actions">
                       {item.tipo_item === "produto" ? (
@@ -384,7 +498,7 @@ export default function Destaques({
                               ? "Adicionando..."
                               : abrindoCarrinho
                               ? "Abrindo..."
-                              : "Carrinho"}
+                              : "Adicionar"}
                           </span>
                         </button>
                       ) : (
@@ -402,7 +516,7 @@ export default function Destaques({
                         className="destaques-view-button"
                       >
                         <FiEye className="destaques-inline-icon" />
-                        <span>Visualizar</span>
+                        <span>Detalhes</span>
                       </Link>
                     </div>
                   </div>
@@ -413,6 +527,25 @@ export default function Destaques({
 
           <div className="destaques-carousel-fade destaques-left" />
           <div className="destaques-carousel-fade destaques-right" />
+        </div>
+
+        <div className="destaques-benefits" aria-label="Benefícios da loja">
+          {TRUST_ITEMS.map((benefit) => {
+            const Icon = benefit.icon;
+
+            return (
+              <div key={benefit.title} className="destaques-benefit-item">
+                <span className="destaques-benefit-icon">
+                  <Icon aria-hidden="true" />
+                </span>
+
+                <span>
+                  <strong>{benefit.title}</strong>
+                  <small>{benefit.text}</small>
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 

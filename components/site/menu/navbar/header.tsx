@@ -372,17 +372,34 @@ export default function NavbarHeader({
       <header className={`header ${scrolled ? "headerScrolled" : ""}`}>
         <div className="desktopNavbar">
           <div className="brand">
-            <Link href="/" className="logo" aria-label="Ir para a página inicial">
+            <Link
+              href="/"
+              className="logo logoPremium"
+              aria-label="Ir para a página inicial"
+            >
               <span className="logoDark">{titulo1 || "Universo"}</span>
               <span className="logoPink">{titulo2 || "Império"}</span>
+              <span className="logoSpark" aria-hidden="true">
+                ✦
+              </span>
             </Link>
 
-            <span className="subtitle">{subtitulo || ""}</span>
+            <div className="subtitleDecor" aria-label={subtitulo || "Mimos e Presentes"}>
+              <span className="subtitleLine" aria-hidden="true" />
+              <span className="subtitle">{subtitulo || "Mimos & Presentes"}</span>
+              <span className="subtitleLine" aria-hidden="true" />
+            </div>
+
+            <span className="brandHeart" aria-hidden="true">
+              ♥
+            </span>
           </div>
 
           <div className="searchWrapper">
             <div className="searchBar">
-              <FiSearch size={18} />
+              <span className="searchIconCircle" aria-hidden="true">
+                <FiSearch size={20} />
+              </span>
 
               <input
                 type="text"
@@ -413,6 +430,7 @@ export default function NavbarHeader({
                   className="userBtn"
                   onClick={toggleUserDropdown}
                   type="button"
+                  aria-expanded={dropdown}
                 >
                   <div className="userAvatar">
                     {(usuario?.nome ?? "?").charAt(0)?.toUpperCase()}
@@ -426,8 +444,13 @@ export default function NavbarHeader({
               </div>
             ) : (
               login && (
-                <Link href={corrigirRota(login.rota, "#")} className="iconBtn">
-                  <FiUser size={18} />
+                <Link
+                  href={corrigirRota(login.rota, "#")}
+                  className="iconBtn accountBtn"
+                >
+                  <span className="buttonIcon" aria-hidden="true">
+                    <FiUser size={19} />
+                  </span>
                   <span>Entrar</span>
                 </Link>
               )
@@ -440,8 +463,8 @@ export default function NavbarHeader({
                 onClick={abrirCarrinhoLateral}
                 aria-label="Abrir carrinho"
               >
-                <div className="cartWrapper">
-                  <FiShoppingCart size={21} />
+                <div className="cartWrapper cartIconBox">
+                  <FiShoppingCart size={22} />
 
                   {quantidadeCarrinho > 0 && (
                     <span className="badge">{quantidadeCarrinho}</span>
@@ -484,6 +507,7 @@ export default function NavbarHeader({
                   className="mobileUserBtn"
                   onClick={toggleUserDropdown}
                   type="button"
+                  aria-expanded={dropdown}
                 >
                   <div className="mobileAvatar">
                     {(usuario?.nome ?? "?").charAt(0)?.toUpperCase()}
@@ -523,7 +547,9 @@ export default function NavbarHeader({
 
         <div className="mobileSearch">
           <div className="searchBar">
-            <FiSearch size={16} />
+            <span className="searchIconCircle" aria-hidden="true">
+              <FiSearch size={18} />
+            </span>
 
             <input
               type="text"
