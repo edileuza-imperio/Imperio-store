@@ -120,6 +120,9 @@ function extrairLista<T = unknown>(payload: any): T[] {
   if (Array.isArray(payload?.opcoes)) return payload.opcoes;
   if (Array.isArray(payload?.dados?.itens)) return payload.dados.itens;
   if (Array.isArray(payload?.dados?.opcoes)) return payload.dados.opcoes;
+  if (Array.isArray(payload?.dados?.dados?.opcoes)) {
+    return payload.dados.dados.opcoes;
+  }
   if (Array.isArray(payload?.carrinho?.itens)) return payload.carrinho.itens;
   return [];
 }
@@ -402,8 +405,9 @@ export function useCheckout() {
 
   const enderecoAtual = useMemo(() => {
     return (
-      enderecos.find((endereco) => getEnderecoId(endereco) === enderecoSelecionado) ??
-      null
+      enderecos.find(
+        (endereco) => getEnderecoId(endereco) === enderecoSelecionado
+      ) ?? null
     );
   }, [enderecos, enderecoSelecionado]);
 
@@ -413,7 +417,9 @@ export function useCheckout() {
     setErroFrete("");
   }, [enderecoSelecionado]);
 
-  async function calcularFrete(enderecoManual?: Endereco): Promise<OpcaoEntrega[]> {
+  async function calcularFrete(
+    enderecoManual?: Endereco
+  ): Promise<OpcaoEntrega[]> {
     const endereco = enderecoManual ?? enderecoAtual;
 
     if (!endereco) {
@@ -442,8 +448,14 @@ export function useCheckout() {
       );
 
       const payload = response?.data ?? {};
-      const dados = payload?.dados ?? payload?.data ?? payload;
-      const opcoes = extrairLista<any>(dados?.opcoes ?? dados)
+
+      const dadosFrete =
+        payload?.dados?.dados ??
+        payload?.dados ??
+        payload?.data ??
+        payload;
+
+      const opcoes = extrairLista<any>(dadosFrete?.opcoes ?? dadosFrete)
         .map(normalizarOpcaoEntrega)
         .filter((opcao) => opcao.selecionavel !== false);
 
@@ -456,7 +468,7 @@ export function useCheckout() {
         return [];
       }
 
-      const recomendada = String(dados?.opcao_recomendada ?? "").trim();
+      const recomendada = String(dadosFrete?.opcao_recomendada ?? "").trim();
       const recomendadaExiste = opcoes.some((opcao) => opcao.id === recomendada);
 
       setOpcoesEntrega(opcoes);

@@ -968,3 +968,56 @@ button.checkout-step:disabled {
 .checkout-delivery-note svg {
   color: #137044;
 }       
+/* ==========================================
+   Ajustes da etapa de entrega com frete por API
+========================================== */
+
+.checkout-spin {
+  animation: checkoutSpin 0.9s linear infinite;
+}
+
+@keyframes checkoutSpin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.checkout-delivery-loading,
+.checkout-delivery-empty {
+  min-height: 88px;
+  padding: 18px;
+  border: 1px solid rgba(239, 225, 216, 0.92);
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--site-muted, #766a63);
+  background: rgba(255, 250, 247, 0.7);
+  font-size: 0.92rem;
+  font-weight: 850;
+  line-height: 1.5;
+}
+
+.checkout-delivery-loading svg {
+  color: var(--site-primary-strong, #9f563f);
+}
+
+.checkout-delivery-empty {
+  justify-content: center;
+  text-align: center;
+}
+
+.checkout-delivery-note {
+  color: #137044;
+  background: rgba(19, 112, 68, 0.08);
+  border-color: rgba(19, 112, 68, 0.13);
+  font-weight: 850;
+}
+
+.checkout-delivery-note svg {
+  color: #137044;
+}

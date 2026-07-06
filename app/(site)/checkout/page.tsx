@@ -75,9 +75,7 @@ export default function CheckoutPage() {
     !!enderecoSelecionado;
 
   const podeFinalizar =
-    podeAvancarParaEntrega &&
-    etapa === "entrega" &&
-    !!entregaSelecionada;
+    podeAvancarParaEntrega && etapa === "entrega" && !!entregaSelecionada;
 
   const entregaValorTexto = valorFrete > 0 ? formatarMoeda(valorFrete) : "Grátis";
 
@@ -427,6 +425,7 @@ export default function CheckoutPage() {
                           {calculandoFrete
                             ? "Calculando entrega..."
                             : "Continuar para entrega"}
+
                           {calculandoFrete ? (
                             <FiLoader className="checkout-spin" />
                           ) : (
@@ -649,6 +648,7 @@ export default function CheckoutPage() {
                         {calculandoFrete
                           ? "Calculando entrega..."
                           : "Continuar para entrega"}
+
                         {calculandoFrete ? (
                           <FiLoader className="checkout-spin" />
                         ) : (
