@@ -1,36 +1,11 @@
 import api from "@/Api/conectar";
-import { ItemResolvido } from "@/components/Vitrine/Destaques/useVitrine";
+
 
 import { temValor } from "@/hooks/destaque/functions";
 
 /**
  * Adiciona produto no carrinho (API)
  */
-export async function adicionarNoCarrinhoBanco(item: ItemResolvido) {
-  if (item.tipo_item !== "produto" || !item.produto_id) return;
-
-  const precoBase = temValor(item.preco_original)
-    ? Number(item.preco_original)
-    : Number(item.preco_final || 0);
-
-  const precoPromocional = temValor(item.preco_original)
-    ? Number(item.preco_final || 0)
-    : null;
-
-  await api.post(
-    "/carrinho/adicionar",
-    {
-      produto_id: Number(item.produto_id),
-      quantidade: 1,
-      preco: Number.isNaN(precoBase) ? 0 : precoBase,
-      preco_promocional:
-        precoPromocional !== null && !Number.isNaN(precoPromocional)
-          ? precoPromocional
-          : null,
-    },
-    { withCredentials: true }
-  );
-}
 
 export function moverCarousel(
   carousel: HTMLDivElement | null,
