@@ -22,44 +22,45 @@ import {
   FiX,
 } from "react-icons/fi";
 
-type ApiResposta<T> = {
-  status: number;
-  mensagem: string;
-  dados: T;
-};
-
-type ProdutoPayload = {
-  produto?: Produto;
-};
-
 type Produto = {
   id?: number | string;
   id_produto?: number | string;
+
   nome?: string;
   titulo?: string;
   subtitulo?: string;
   descricao?: string;
   descricao_curta?: string;
+
   imagem?: string;
   miniatura?: string;
   banner?: string;
   foto?: string;
   desktop?: string;
   mobile?: string;
+
   slug?: string;
-  preco?: number | string;
-  preco_numero?: number | string;
-  preco_formatado?: string | null;
-  preco_promocional?: number | string | null;
-  preco_promocional_numero?: number | string | null;
-  preco_promocional_formatado?: string | null;
-  preco_final?: number | string | null;
-  preco_final_formatado?: string | null;
-  tem_promocao?: boolean;
   sku?: string;
   marca?: string;
-  disponivel?: number | string;
-  esgotado?: boolean;
+
+  preco?: number | string;
+  preco_promocional?: number | string;
+
+  preco_numero?: number;
+  preco_formatado?: string;
+  preco_promocional_numero?: number | null;
+  preco_promocional_formatado?: string | null;
+  tem_promocao?: boolean;
+  preco_final?: number;
+  preco_final_formatado?: string;
+};
+
+type ApiRespostaProduto = {
+  status?: number;
+  mensagem?: string;
+  dados?: {
+    produto?: Produto | null;
+  };
 };
 
 type Notificacao = {
@@ -67,63 +68,8 @@ type Notificacao = {
   texto: string;
 };
 
-function extrairProduto(payload: ApiResposta<ProdutoPayload>): Produto | null {
-  return payload?.dados?.produto || null;
-}
-
-function normalizarNumero(valor?: number | string | null) {
-  if (valor === null || valor === undefined || valor === "") return 0;
-
-  if (typeof valor === "number") {
-    return Number.isFinite(valor) ? valor : 0;
-  }
-
-  const texto = String(valor)
-    .trim()
-    .replace(/R\$/gi, "")
-    .replace(/\s/g, "")
-    .replace(/[^\d,.-]/g, "");
-
-  if (!texto) return 0;
-
-  const temVirgula = texto.includes(",");
-  const temPonto = texto.includes(".");
-
-  let normalizado = texto;
-
-  if (temVirgula && temPonto) {
-    const ultimaVirgula = texto.lastIndexOf(",");
-    const ultimoPonto = texto.lastIndexOf(".");
-
-    normalizado =
-      ultimaVirgula > ultimoPonto
-        ? texto.replace(/\./g, "").replace(",", ".")
-        : texto.replace(/,/g, "");
-  } else if (temVirgula) {
-    const partes = texto.split(",");
-    const decimal = partes[partes.length - 1] || "";
-
-    normalizado =
-      decimal.length <= 2
-        ? texto.replace(/\./g, "").replace(",", ".")
-        : texto.replace(/,/g, "");
-  } else if (temPonto) {
-    const partes = texto.split(".");
-    const decimal = partes[partes.length - 1] || "";
-
-    if (partes.length > 2) {
-      normalizado =
-        decimal.length <= 2
-          ? `${partes.slice(0, -1).join("")}.${decimal}`
-          : texto.replace(/\./g, "");
-    } else {
-      normalizado = decimal.length <= 2 ? texto : texto.replace(/\./g, "");
-    }
-  }
-
-  const numero = Number(normalizado);
-
-  return Number.isFinite(numero) ? numero : 0;
+function extrairProduto(payload: ApiRespostaProduto): Produto | null {
+  return payload?.dados?.produto ?? null;
 }
 
 function montarGaleria(produto?: Produto | null) {
@@ -139,39 +85,17 @@ function montarGaleria(produto?: Produto | null) {
   return [...new Set(imagens.map(imagemFundo).filter(Boolean))];
 }
 
-function formatarPreco(valor?: number | string | null) {
-  const numero = normalizarNumero(valor);
+function calcularDescontoBackend(produto?: Produto | null) {
+  if (!produto?.tem_promocao) return null;
 
-  if (numero <= 0) return null;
+  const precoOriginal = Number(produto.preco_numero || 0);
+  const precoFinal = Number(produto.preco_final || 0);
 
-  return numero.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  });
-}
+  if (!precoOriginal || !precoFinal || precoFinal >= precoOriginal) {
+    return null;
+  }
 
-function precoFinalFormatado(produto: Produto) {
-  return (
-    produto.preco_final_formatado ||
-    produto.preco_promocional_formatado ||
-    produto.preco_formatado ||
-    formatarPreco(produto.preco_final ?? produto.preco_promocional ?? produto.preco)
-  );
-}
-
-function precoOriginalFormatado(produto: Produto) {
-  if (!produto.tem_promocao) return null;
-
-  return produto.preco_formatado || formatarPreco(produto.preco);
-}
-
-function calcularDesconto(produto: Produto) {
-  const original = normalizarNumero(produto.preco_numero ?? produto.preco);
-  const final = normalizarNumero(produto.preco_final ?? produto.preco_promocional);
-
-  if (!original || !final || final >= original) return null;
-
-  return Math.round(((original - final) / original) * 100);
+  return Math.round(((precoOriginal - precoFinal) / precoOriginal) * 100);
 }
 
 function extrairMensagemErro(error: unknown, fallback = "Ocorreu um erro.") {
@@ -179,13 +103,10 @@ function extrairMensagemErro(error: unknown, fallback = "Ocorreu um erro.") {
 
   if (error && typeof error === "object") {
     const anyError = error as any;
-    const data = anyError?.response?.data;
 
     return (
-      data?.dados?.erro ||
-      data?.dados?.mensagem ||
-      data?.erro ||
-      data?.mensagem ||
+      anyError?.response?.data?.erro ||
+      anyError?.response?.data?.mensagem ||
       anyError?.message ||
       fallback
     );
@@ -270,27 +191,37 @@ export default function VisualizarProdutoDaVitrine() {
         setLoading(true);
         setErro("");
 
-        const response = await api.get<ApiResposta<ProdutoPayload>>(
-          `/produto/slug/${slug}`
+        const response = await api.get<ApiRespostaProduto>(
+          `/produto/slug/${slug}`,
+          {
+            withCredentials: true,
+          }
         );
 
         const produtoData = extrairProduto(response.data);
 
         if (!produtoData) {
           if (!ativo) return;
+
           setErro("Produto não encontrado.");
           setProduto(null);
           return;
         }
 
         if (!ativo) return;
+
         setProduto(produtoData);
       } catch (error) {
+        console.error("Erro ao carregar produto:", error);
+
         if (!ativo) return;
-        setErro(extrairMensagemErro(error, "Não foi possível carregar o produto."));
+
+        setErro("Não foi possível carregar o produto.");
         setProduto(null);
       } finally {
-        if (ativo) setLoading(false);
+        if (ativo) {
+          setLoading(false);
+        }
       }
     }
 
@@ -322,10 +253,17 @@ export default function VisualizarProdutoDaVitrine() {
 
   const produtoId = Number(produto?.id_produto || produto?.id || 0);
   const nomeProduto = produto?.nome || produto?.titulo || "Produto sem nome";
-  const precoFinal = produto ? precoFinalFormatado(produto) : null;
-  const precoOriginal = produto ? precoOriginalFormatado(produto) : null;
-  const desconto = produto ? calcularDesconto(produto) : null;
-  const esgotado = Boolean(produto?.esgotado) || Number(produto?.disponivel ?? 1) <= 0;
+
+  const temPromocao = Boolean(produto?.tem_promocao);
+
+  const precoFinal =
+    produto?.preco_final_formatado || produto?.preco_formatado || null;
+
+  const precoOriginal = temPromocao
+    ? produto?.preco_formatado || null
+    : null;
+
+  const desconto = calcularDescontoBackend(produto);
 
   async function handleAdicionarCarrinho() {
     if (!produtoId) {
@@ -395,11 +333,18 @@ export default function VisualizarProdutoDaVitrine() {
       {notificacao && (
         <div
           className={`pv-toast ${
-            notificacao.tipo === "sucesso" ? "pv-toast-success" : "pv-toast-error"
+            notificacao.tipo === "sucesso"
+              ? "pv-toast-success"
+              : "pv-toast-error"
           }`}
         >
           <div className="pv-toast-content">
-            {notificacao.tipo === "sucesso" ? <FiCheckCircle /> : <FiAlertCircle />}
+            {notificacao.tipo === "sucesso" ? (
+              <FiCheckCircle />
+            ) : (
+              <FiAlertCircle />
+            )}
+
             <span>{notificacao.texto}</span>
           </div>
 
@@ -432,13 +377,17 @@ export default function VisualizarProdutoDaVitrine() {
               <div className="pv-gallery-head">
                 <span className="pv-eyebrow">Universo Império</span>
 
-                {desconto && <span className="pv-discount">-{desconto}% OFF</span>}
+                {desconto && (
+                  <span className="pv-discount">-{desconto}% OFF</span>
+                )}
               </div>
 
               <div className="pv-main-image-card">
                 <button
                   type="button"
-                  className={`pv-favorite ${favoritado ? "pv-favorite-active" : ""}`}
+                  className={`pv-favorite ${
+                    favoritado ? "pv-favorite-active" : ""
+                  }`}
                   onClick={handleFavoritar}
                   aria-label="Favoritar produto"
                 >
@@ -535,9 +484,7 @@ export default function VisualizarProdutoDaVitrine() {
                     )}
                   </div>
 
-                  <span className="pv-price-note">
-                    {esgotado ? "Produto esgotado" : "Oferta da vitrine"}
-                  </span>
+                  <span className="pv-price-note">Oferta da vitrine</span>
                 </div>
 
                 <div className="pv-actions">
@@ -545,9 +492,7 @@ export default function VisualizarProdutoDaVitrine() {
                     type="button"
                     className="pv-btn pv-btn-secondary"
                     onClick={handleAdicionarCarrinho}
-                    disabled={
-                      loadingCarrinho || loadingComprar || !produtoId || esgotado
-                    }
+                    disabled={loadingCarrinho || loadingComprar || !produtoId}
                   >
                     <FiShoppingCart />
                     {loadingCarrinho ? "Adicionando..." : "Adicionar"}
@@ -557,9 +502,7 @@ export default function VisualizarProdutoDaVitrine() {
                     type="button"
                     className="pv-btn pv-btn-primary"
                     onClick={handleComprarAgora}
-                    disabled={
-                      loadingComprar || loadingCarrinho || !produtoId || esgotado
-                    }
+                    disabled={loadingComprar || loadingCarrinho || !produtoId}
                   >
                     <FiCreditCard />
                     {loadingComprar ? "Processando..." : "Comprar agora"}
