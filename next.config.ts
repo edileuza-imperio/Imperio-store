@@ -12,8 +12,25 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "api.universoimperio.com.br",
       },
+      {
+        protocol: "https",
+        hostname: "universoimperio.com.br",
+      },
     ],
     qualities: [75, 80],
+  },
+
+  async rewrites() {
+    return [
+      {
+        source: "/api/v1/:path*",
+        destination: "https://api.universoimperio.com.br/api/v1/:path*",
+      },
+      {
+        source: "/upload/:path*",
+        destination: "https://api.universoimperio.com.br/upload/:path*",
+      },
+    ];
   },
 
   experimental: {
