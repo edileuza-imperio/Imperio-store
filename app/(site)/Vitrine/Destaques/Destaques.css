@@ -4,6 +4,11 @@
    Destaques - Universo Império
    Adaptado para variables.css
    Paleta: rosa queimado + creme
+
+   Observação:
+   - O ToastContainer é renderizado fora da section.
+   - Por isso, as cores do toast usam variáveis próprias
+     dentro de .destaques-toast-container.
 ========================================================= */
 
 .destaques-pro-section {
@@ -177,11 +182,12 @@
   position: relative;
   overflow: hidden;
   border: 1px solid color-mix(in srgb, var(--destaque-border) 78%, var(--destaque-primary) 16%);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.86);
+  border-radius: 24px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 250, 247, 0.9));
   box-shadow:
-    0 18px 42px rgba(37, 25, 20, 0.075),
-    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+    0 20px 48px rgba(37, 25, 20, 0.085),
+    0 2px 10px rgba(37, 25, 20, 0.035),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   transition: transform 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
@@ -285,13 +291,18 @@
 
 .destaques-pro-tag {
   display: inline-flex;
+  align-items: center;
   width: fit-content;
-  margin-bottom: 10px;
+  margin-bottom: 11px;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--destaque-primary) 16%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--destaque-primary) 7%, white);
   color: var(--destaque-primary);
-  font-size: 0.72rem;
-  font-weight: 900;
+  font-size: 0.66rem;
+  font-weight: 950;
   text-transform: uppercase;
-  letter-spacing: 0.13em;
+  letter-spacing: 0.12em;
 }
 
 .destaques-pro-content h3 {
@@ -361,23 +372,30 @@
 .destaques-pro-actions {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
+  margin-top: 2px;
 }
 
 .destaques-pro-action-btn {
-  min-height: 50px;
-  border: 1px solid color-mix(in srgb, var(--destaque-primary) 24%, transparent);
-  border-radius: 13px;
+  min-height: 52px;
+  border: 1px solid color-mix(in srgb, var(--destaque-primary) 20%, var(--destaque-border));
+  border-radius: 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, rgba(255, 250, 247, 0.96), rgba(255, 255, 255, 0.96));
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 250, 247, 0.94));
   color: var(--destaque-primary);
   box-shadow:
-    0 10px 22px color-mix(in srgb, var(--destaque-primary) 8%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+    0 8px 20px rgba(37, 25, 20, 0.045),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
   cursor: pointer;
-  transition: transform 0.22s ease, background 0.22s ease, color 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .destaques-pro-action-btn svg {
@@ -388,23 +406,50 @@
 
 .destaques-pro-action-btn:hover {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--destaque-primary) 42%, transparent);
-  background: linear-gradient(135deg, var(--destaque-primary), var(--destaque-primary-soft));
-  color: #ffffff;
-  box-shadow: 0 16px 30px color-mix(in srgb, var(--destaque-primary) 22%, transparent);
+  border-color: color-mix(in srgb, var(--destaque-primary) 38%, var(--destaque-border));
+  background: linear-gradient(135deg, var(--destaque-cream), #ffffff);
+  color: var(--destaque-primary);
+  box-shadow:
+    0 14px 30px color-mix(in srgb, var(--destaque-primary) 14%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.96);
+}
+
+.destaques-pro-action-btn:active {
+  transform: translateY(0) scale(0.99);
 }
 
 .destaques-pro-action-btn:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 0.58;
   transform: none;
   background: color-mix(in srgb, var(--destaque-border) 55%, white);
   color: color-mix(in srgb, var(--destaque-muted) 50%, white);
   box-shadow: none;
 }
 
+/* Botão principal de compra: é o 3º botão da linha */
 .destaques-pro-action-cart {
-  border-color: color-mix(in srgb, var(--destaque-primary) 34%, transparent);
+  border-color: transparent;
+  background: linear-gradient(135deg, var(--destaque-primary), var(--destaque-primary-soft));
+  color: #ffffff;
+  box-shadow:
+    0 14px 28px color-mix(in srgb, var(--destaque-primary) 24%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.destaques-pro-action-cart:hover {
+  border-color: transparent;
+  background:
+    linear-gradient(135deg, var(--destaque-primary-soft), var(--destaque-primary));
+  color: #ffffff;
+  box-shadow:
+    0 18px 36px color-mix(in srgb, var(--destaque-primary) 30%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.destaques-pro-action-cart:disabled {
+  background: linear-gradient(135deg, #cdb8b2, #d8c7c1);
+  color: rgba(255, 255, 255, 0.86);
 }
 
 /* Compatibilidade caso o TSX antigo ainda tenha esses botões */
@@ -427,9 +472,10 @@
 .destaques-pro-cart-btn {
   width: 100%;
   margin-top: 8px;
-  border: 1px solid color-mix(in srgb, var(--destaque-primary) 24%, transparent);
-  background: linear-gradient(135deg, rgba(255, 250, 247, 0.96), #ffffff);
-  color: var(--destaque-primary);
+  border: 1px solid transparent;
+  background: linear-gradient(135deg, var(--destaque-primary), var(--destaque-primary-soft));
+  color: #ffffff;
+  box-shadow: 0 14px 28px color-mix(in srgb, var(--destaque-primary) 22%, transparent);
   cursor: pointer;
 }
 
@@ -472,13 +518,13 @@
   margin-top: 2px;
   padding: 18px 24px;
   border: 1px solid color-mix(in srgb, var(--destaque-border) 80%, var(--destaque-primary) 12%);
-  border-radius: 18px;
+  border-radius: 22px;
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 18px;
-  background: rgba(255, 250, 247, 0.78);
+  background: linear-gradient(135deg, rgba(255, 250, 247, 0.94), rgba(255, 245, 238, 0.88));
   box-shadow:
-    0 16px 40px rgba(37, 25, 20, 0.065),
+    0 18px 42px rgba(37, 25, 20, 0.075),
     inset 0 1px 0 rgba(255, 255, 255, 0.86);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
@@ -557,64 +603,115 @@
   }
 }
 
-/* Toast */
+/* Toast
+   IMPORTANTE: o ToastContainer fica fora da seção no DOM.
+   Por isso ele NÃO enxerga as variáveis --destaque-* criadas dentro
+   de .destaques-pro-section. Aqui usamos variáveis próprias com fallback.
+*/
 
 .destaques-toast-container {
+  --toast-rose: var(--accent, #8f3048);
+  --toast-rose-soft: var(--accent-soft, #b14f68);
+  --toast-cream: var(--cream, #fffaf5);
+  --toast-cream-soft: var(--cream-soft, #fff5ee);
+  --toast-text: var(--text-primary, #5b2230);
+  --toast-muted: var(--text-secondary, #6e4450);
+
   top: 88px !important;
   right: 18px !important;
   z-index: 99999 !important;
 }
 
 .destaques-toast {
-  min-height: 62px !important;
-  border-radius: 18px !important;
-  padding: 14px !important;
-  background: linear-gradient(135deg, var(--destaque-primary), var(--destaque-primary-soft)) !important;
-  color: #ffffff !important;
+  position: relative !important;
+  min-height: 68px !important;
+  overflow: hidden !important;
+  border-radius: 20px !important;
+  padding: 15px 16px !important;
+  background:
+    linear-gradient(135deg, rgba(255, 250, 245, 0.98), rgba(255, 245, 238, 0.98)) !important;
+  color: var(--toast-text) !important;
   box-shadow:
-    0 18px 46px color-mix(in srgb, var(--destaque-primary) 30%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-  border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    0 22px 58px rgba(91, 34, 48, 0.18),
+    0 6px 18px rgba(91, 34, 48, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(143, 48, 72, 0.22) !important;
   font-family: inherit !important;
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.destaques-toast::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 6px;
+  background: linear-gradient(180deg, var(--toast-rose), var(--toast-rose-soft));
 }
 
 .destaques-toast .Toastify__toast-body,
 .destaques-toast-body {
-  color: #ffffff !important;
+  color: var(--toast-text) !important;
   margin: 0 !important;
-  padding: 0 6px 0 0 !important;
-  font-size: 0.88rem !important;
-  font-weight: 850 !important;
+  padding: 0 8px 0 4px !important;
+  font-size: 0.9rem !important;
+  font-weight: 800 !important;
   line-height: 1.45 !important;
 }
 
 .destaques-toast .Toastify__toast-icon {
-  width: 22px !important;
-  margin-inline-end: 10px !important;
-  color: #ffffff !important;
+  width: 24px !important;
+  margin-inline-end: 12px !important;
+  color: var(--toast-rose) !important;
 }
 
 .destaques-toast .Toastify__toast-icon svg,
 .destaques-toast-body svg {
-  color: #ffffff !important;
+  color: var(--toast-rose) !important;
+  fill: var(--toast-rose) !important;
+  stroke: var(--toast-rose) !important;
   stroke-width: 2.6 !important;
 }
 
 .destaques-toast-progress {
   height: 4px !important;
-  background: rgba(255, 255, 255, 0.82) !important;
+  background: linear-gradient(90deg, var(--toast-rose), var(--toast-rose-soft)) !important;
+  opacity: 1 !important;
 }
 
 .destaques-toast .Toastify__close-button {
-  color: #ffffff !important;
-  opacity: 0.88 !important;
-  transition: opacity 0.18s ease !important;
+  align-self: center !important;
+  width: 28px !important;
+  height: 28px !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(143, 48, 72, 0.08) !important;
+  color: var(--toast-rose) !important;
+  opacity: 1 !important;
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease !important;
 }
 
 .destaques-toast .Toastify__close-button:hover {
-  opacity: 1 !important;
+  transform: translateY(-1px) !important;
+  background: var(--toast-rose) !important;
+  color: #ffffff !important;
+}
+
+.destaques-toast .Toastify__close-button svg {
+  width: 16px !important;
+  height: 16px !important;
+}
+
+.destaques-toast.Toastify__toast--success {
+  border-color: rgba(143, 48, 72, 0.28) !important;
+}
+
+.destaques-toast.Toastify__toast--error {
+  border-color: rgba(143, 48, 72, 0.38) !important;
+  background:
+    linear-gradient(135deg, #fff7f3, #fff1eb) !important;
 }
 
 /* Responsivo */
