@@ -22,6 +22,16 @@ import {
   FiX,
 } from "react-icons/fi";
 
+type ApiResposta<T> = {
+  status: number;
+  mensagem: string;
+  dados: T;
+};
+
+type ProdutoPayload = {
+  produto?: Produto;
+};
+
 type Produto = {
   id?: number | string;
   id_produto?: number | string;
@@ -38,9 +48,18 @@ type Produto = {
   mobile?: string;
   slug?: string;
   preco?: number | string;
-  preco_promocional?: number | string;
+  preco_numero?: number | string;
+  preco_formatado?: string | null;
+  preco_promocional?: number | string | null;
+  preco_promocional_numero?: number | string | null;
+  preco_promocional_formatado?: string | null;
+  preco_final?: number | string | null;
+  preco_final_formatado?: string | null;
+  tem_promocao?: boolean;
   sku?: string;
   marca?: string;
+  disponivel?: number | string;
+  esgotado?: boolean;
 };
 
 type Notificacao = {
@@ -48,8 +67,8 @@ type Notificacao = {
   texto: string;
 };
 
-function normalizarDados<T = any>(payload: any): T | null {
-  return payload?.dados?.dados ?? payload?.dados ?? payload ?? null;
+function extrairProduto(payload: ApiResposta<ProdutoPayload>): Produto | null {
+  return payload?.dados?.produto || null;
 }
 
 function normalizarNumero(valor?: number | string | null) {
@@ -76,18 +95,14 @@ function normalizarNumero(valor?: number | string | null) {
     const ultimaVirgula = texto.lastIndexOf(",");
     const ultimoPonto = texto.lastIndexOf(".");
 
-    // Formato brasileiro: 1.234,56
-    if (ultimaVirgula > ultimoPonto) {
-      normalizado = texto.replace(/\./g, "").replace(",", ".");
-    } else {
-      // Formato americano/API: 1,234.56
-      normalizado = texto.replace(/,/g, "");
-    }
+    normalizado =
+      ultimaVirgula > ultimoPonto
+        ? texto.replace(/\./g, "").replace(",", ".")
+        : texto.replace(/,/g, "");
   } else if (temVirgula) {
     const partes = texto.split(",");
     const decimal = partes[partes.length - 1] || "";
 
-    // 39,90 vira 39.90 | 1,234 vira 1234
     normalizado =
       decimal.length <= 2
         ? texto.replace(/\./g, "").replace(",", ".")
@@ -97,14 +112,11 @@ function normalizarNumero(valor?: number | string | null) {
     const decimal = partes[partes.length - 1] || "";
 
     if (partes.length > 2) {
-      // 1.234.567, caso sem vírgula
       normalizado =
         decimal.length <= 2
           ? `${partes.slice(0, -1).join("")}.${decimal}`
           : texto.replace(/\./g, "");
     } else {
-      // Importante: 39.00 vindo da API deve continuar 39.00,
-      // não pode virar 3900.
       normalizado = decimal.length <= 2 ? texto : texto.replace(/\./g, "");
     }
   }
@@ -138,16 +150,28 @@ function formatarPreco(valor?: number | string | null) {
   });
 }
 
-function calcularDesconto(
-  preco?: number | string | null,
-  precoPromocional?: number | string | null
-) {
-  const original = normalizarNumero(preco);
-  const promocional = normalizarNumero(precoPromocional);
+function precoFinalFormatado(produto: Produto) {
+  return (
+    produto.preco_final_formatado ||
+    produto.preco_promocional_formatado ||
+    produto.preco_formatado ||
+    formatarPreco(produto.preco_final ?? produto.preco_promocional ?? produto.preco)
+  );
+}
 
-  if (!original || !promocional || promocional >= original) return null;
+function precoOriginalFormatado(produto: Produto) {
+  if (!produto.tem_promocao) return null;
 
-  return Math.round(((original - promocional) / original) * 100);
+  return produto.preco_formatado || formatarPreco(produto.preco);
+}
+
+function calcularDesconto(produto: Produto) {
+  const original = normalizarNumero(produto.preco_numero ?? produto.preco);
+  const final = normalizarNumero(produto.preco_final ?? produto.preco_promocional);
+
+  if (!original || !final || final >= original) return null;
+
+  return Math.round(((original - final) / original) * 100);
 }
 
 function extrairMensagemErro(error: unknown, fallback = "Ocorreu um erro.") {
@@ -155,10 +179,13 @@ function extrairMensagemErro(error: unknown, fallback = "Ocorreu um erro.") {
 
   if (error && typeof error === "object") {
     const anyError = error as any;
+    const data = anyError?.response?.data;
 
     return (
-      anyError?.response?.data?.erro ||
-      anyError?.response?.data?.mensagem ||
+      data?.dados?.erro ||
+      data?.dados?.mensagem ||
+      data?.erro ||
+      data?.mensagem ||
       anyError?.message ||
       fallback
     );
@@ -243,8 +270,11 @@ export default function VisualizarProdutoDaVitrine() {
         setLoading(true);
         setErro("");
 
-        const response = await api.get(`/produto/slug/${slug}`);
-        const produtoData = normalizarDados<Produto>(response?.data);
+        const response = await api.get<ApiResposta<ProdutoPayload>>(
+          `/produto/slug/${slug}`
+        );
+
+        const produtoData = extrairProduto(response.data);
 
         if (!produtoData) {
           if (!ativo) return;
@@ -255,9 +285,9 @@ export default function VisualizarProdutoDaVitrine() {
 
         if (!ativo) return;
         setProduto(produtoData);
-      } catch {
+      } catch (error) {
         if (!ativo) return;
-        setErro("Não foi possível carregar o produto.");
+        setErro(extrairMensagemErro(error, "Não foi possível carregar o produto."));
         setProduto(null);
       } finally {
         if (ativo) setLoading(false);
@@ -290,14 +320,12 @@ export default function VisualizarProdutoDaVitrine() {
     setImagemSelecionada(galeria[0] || "");
   }, [galeria]);
 
-  const produtoId = Number(produto?.id || produto?.id_produto || 0);
-  const precoProduto = normalizarNumero(produto?.preco);
-  const precoPromocional = normalizarNumero(produto?.preco_promocional);
-  const temPromocao = precoPromocional > 0 && precoPromocional < precoProduto;
-  const precoFinal = temPromocao ? produto?.preco_promocional : produto?.preco || null;
-  const precoOriginal = temPromocao ? produto?.preco : null;
-  const desconto = calcularDesconto(produto?.preco, produto?.preco_promocional);
+  const produtoId = Number(produto?.id_produto || produto?.id || 0);
   const nomeProduto = produto?.nome || produto?.titulo || "Produto sem nome";
+  const precoFinal = produto ? precoFinalFormatado(produto) : null;
+  const precoOriginal = produto ? precoOriginalFormatado(produto) : null;
+  const desconto = produto ? calcularDesconto(produto) : null;
+  const esgotado = Boolean(produto?.esgotado) || Number(produto?.disponivel ?? 1) <= 0;
 
   async function handleAdicionarCarrinho() {
     if (!produtoId) {
@@ -495,19 +523,21 @@ export default function VisualizarProdutoDaVitrine() {
                 <div className="pv-price-row">
                   <div>
                     {precoOriginal && (
-                      <span className="pv-old-price">
-                        De {formatarPreco(precoOriginal)}
-                      </span>
+                      <span className="pv-old-price">De {precoOriginal}</span>
                     )}
 
                     {precoFinal ? (
-                      <strong className="pv-price">{formatarPreco(precoFinal)}</strong>
+                      <strong className="pv-price">{precoFinal}</strong>
                     ) : (
-                      <strong className="pv-price pv-price-small">Consultar preço</strong>
+                      <strong className="pv-price pv-price-small">
+                        Consultar preço
+                      </strong>
                     )}
                   </div>
 
-                  <span className="pv-price-note">Oferta da vitrine</span>
+                  <span className="pv-price-note">
+                    {esgotado ? "Produto esgotado" : "Oferta da vitrine"}
+                  </span>
                 </div>
 
                 <div className="pv-actions">
@@ -515,7 +545,9 @@ export default function VisualizarProdutoDaVitrine() {
                     type="button"
                     className="pv-btn pv-btn-secondary"
                     onClick={handleAdicionarCarrinho}
-                    disabled={loadingCarrinho || loadingComprar || !produtoId}
+                    disabled={
+                      loadingCarrinho || loadingComprar || !produtoId || esgotado
+                    }
                   >
                     <FiShoppingCart />
                     {loadingCarrinho ? "Adicionando..." : "Adicionar"}
@@ -525,7 +557,9 @@ export default function VisualizarProdutoDaVitrine() {
                     type="button"
                     className="pv-btn pv-btn-primary"
                     onClick={handleComprarAgora}
-                    disabled={loadingComprar || loadingCarrinho || !produtoId}
+                    disabled={
+                      loadingComprar || loadingCarrinho || !produtoId || esgotado
+                    }
                   >
                     <FiCreditCard />
                     {loadingComprar ? "Processando..." : "Comprar agora"}

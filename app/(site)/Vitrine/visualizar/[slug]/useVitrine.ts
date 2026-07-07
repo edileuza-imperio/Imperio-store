@@ -4,25 +4,60 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import api from "@/Api/conectar";
 
-type RespostaCarrinho = {
+type ApiResposta<T = unknown> = {
+  status?: number;
+  mensagem?: string;
+  dados?: T;
+};
+
+type CarrinhoPayload = {
   mensagem?: string;
   erro?: string;
-  dados?: unknown;
+  carrinho?: unknown;
+  item?: unknown;
+  produto_id?: number;
+  quantidade?: number;
 };
+
+type RespostaCarrinho = {
+  status?: number;
+  mensagem?: string;
+  dados?: CarrinhoPayload;
+};
+
+function normalizarRespostaCarrinho(
+  payload: ApiResposta<CarrinhoPayload>
+): RespostaCarrinho {
+  const dados = payload?.dados || {};
+
+  return {
+    status: payload?.status,
+    mensagem:
+      dados?.mensagem ||
+      dados?.erro ||
+      payload?.mensagem ||
+      "Operação realizada com sucesso.",
+    dados,
+  };
+}
 
 function extrairMensagemErro(error: unknown, fallback = "Erro inesperado.") {
   if (typeof error === "string") return error;
 
   if (error && typeof error === "object") {
     const anyError = error as any;
+    const status = anyError?.response?.status;
+    const data = anyError?.response?.data;
 
-    if (anyError?.response?.status === 401) {
+    if (status === 401) {
       return "Você precisa fazer login para continuar.";
     }
 
     return (
-      anyError?.response?.data?.erro ||
-      anyError?.response?.data?.mensagem ||
+      data?.dados?.erro ||
+      data?.dados?.mensagem ||
+      data?.erro ||
+      data?.mensagem ||
       anyError?.message ||
       fallback
     );
@@ -45,7 +80,7 @@ export function useVitrine() {
     try {
       setLoadingCarrinho(true);
 
-      const response = await api.post<RespostaCarrinho>(
+      const response = await api.post<ApiResposta<CarrinhoPayload>>(
         "/carrinho/adicionar",
         {
           produto_id: produtoId,
@@ -56,7 +91,7 @@ export function useVitrine() {
         }
       );
 
-      return response.data;
+      return normalizarRespostaCarrinho(response.data);
     } catch (error) {
       throw new Error(
         extrairMensagemErro(error, "Não foi possível adicionar ao carrinho.")
@@ -74,7 +109,7 @@ export function useVitrine() {
     try {
       setLoadingComprar(true);
 
-      const response = await api.post<RespostaCarrinho>(
+      const response = await api.post<ApiResposta<CarrinhoPayload>>(
         "/carrinho/adicionar",
         {
           produto_id: produtoId,
@@ -85,7 +120,7 @@ export function useVitrine() {
         }
       );
 
-      return response.data;
+      return normalizarRespostaCarrinho(response.data);
     } catch (error) {
       throw new Error(
         extrairMensagemErro(error, "Não foi possível comprar agora.")
