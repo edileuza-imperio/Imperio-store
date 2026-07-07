@@ -7,7 +7,7 @@ import Image from "next/image";
 import api from "@/Api/conectar";
 import { imagemFundo } from "@/components/Bibioteca/imagem";
 import { useVitrine } from "./useVitrine";
-import styles from "./ProdutoVitrine.module.css";
+import "./ProdutoVitrine.css";
 
 import {
   FiAlertCircle,
@@ -52,6 +52,68 @@ function normalizarDados<T = any>(payload: any): T | null {
   return payload?.dados?.dados ?? payload?.dados ?? payload ?? null;
 }
 
+function normalizarNumero(valor?: number | string | null) {
+  if (valor === null || valor === undefined || valor === "") return 0;
+
+  if (typeof valor === "number") {
+    return Number.isFinite(valor) ? valor : 0;
+  }
+
+  const texto = String(valor)
+    .trim()
+    .replace(/R\$/gi, "")
+    .replace(/\s/g, "")
+    .replace(/[^\d,.-]/g, "");
+
+  if (!texto) return 0;
+
+  const temVirgula = texto.includes(",");
+  const temPonto = texto.includes(".");
+
+  let normalizado = texto;
+
+  if (temVirgula && temPonto) {
+    const ultimaVirgula = texto.lastIndexOf(",");
+    const ultimoPonto = texto.lastIndexOf(".");
+
+    // Formato brasileiro: 1.234,56
+    if (ultimaVirgula > ultimoPonto) {
+      normalizado = texto.replace(/\./g, "").replace(",", ".");
+    } else {
+      // Formato americano/API: 1,234.56
+      normalizado = texto.replace(/,/g, "");
+    }
+  } else if (temVirgula) {
+    const partes = texto.split(",");
+    const decimal = partes[partes.length - 1] || "";
+
+    // 39,90 vira 39.90 | 1,234 vira 1234
+    normalizado =
+      decimal.length <= 2
+        ? texto.replace(/\./g, "").replace(",", ".")
+        : texto.replace(/,/g, "");
+  } else if (temPonto) {
+    const partes = texto.split(".");
+    const decimal = partes[partes.length - 1] || "";
+
+    if (partes.length > 2) {
+      // 1.234.567, caso sem vírgula
+      normalizado =
+        decimal.length <= 2
+          ? `${partes.slice(0, -1).join("")}.${decimal}`
+          : texto.replace(/\./g, "");
+    } else {
+      // Importante: 39.00 vindo da API deve continuar 39.00,
+      // não pode virar 3900.
+      normalizado = decimal.length <= 2 ? texto : texto.replace(/\./g, "");
+    }
+  }
+
+  const numero = Number(normalizado);
+
+  return Number.isFinite(numero) ? numero : 0;
+}
+
 function montarGaleria(produto?: Produto | null) {
   const imagens = [
     produto?.miniatura,
@@ -66,10 +128,9 @@ function montarGaleria(produto?: Produto | null) {
 }
 
 function formatarPreco(valor?: number | string | null) {
-  if (valor === null || valor === undefined || valor === "") return null;
+  const numero = normalizarNumero(valor);
 
-  const numero = Number(valor);
-  if (Number.isNaN(numero)) return null;
+  if (numero <= 0) return null;
 
   return numero.toLocaleString("pt-BR", {
     style: "currency",
@@ -81,18 +142,10 @@ function calcularDesconto(
   preco?: number | string | null,
   precoPromocional?: number | string | null
 ) {
-  const original = Number(preco);
-  const promocional = Number(precoPromocional);
+  const original = normalizarNumero(preco);
+  const promocional = normalizarNumero(precoPromocional);
 
-  if (
-    !original ||
-    !promocional ||
-    Number.isNaN(original) ||
-    Number.isNaN(promocional) ||
-    promocional >= original
-  ) {
-    return null;
-  }
+  if (!original || !promocional || promocional >= original) return null;
 
   return Math.round(((original - promocional) / original) * 100);
 }
@@ -128,7 +181,6 @@ export default function VisualizarProdutoDaVitrine() {
     adicionarAoCarrinho,
     comprarAgora,
     irParaLogin,
-    irParaCarrinho,
   } = useVitrine();
 
   const [loading, setLoading] = useState(true);
@@ -238,12 +290,21 @@ export default function VisualizarProdutoDaVitrine() {
     setImagemSelecionada(galeria[0] || "");
   }, [galeria]);
 
-  const produtoId = Number(produto?.id || produto?.id_produto);
-  const precoFinal = produto?.preco_promocional || produto?.preco || null;
-  const precoOriginal = produto?.preco_promocional ? produto?.preco : null;
+  const produtoId = Number(produto?.id || produto?.id_produto || 0);
+  const precoProduto = normalizarNumero(produto?.preco);
+  const precoPromocional = normalizarNumero(produto?.preco_promocional);
+  const temPromocao = precoPromocional > 0 && precoPromocional < precoProduto;
+  const precoFinal = temPromocao ? produto?.preco_promocional : produto?.preco || null;
+  const precoOriginal = temPromocao ? produto?.preco : null;
   const desconto = calcularDesconto(produto?.preco, produto?.preco_promocional);
+  const nomeProduto = produto?.nome || produto?.titulo || "Produto sem nome";
 
   async function handleAdicionarCarrinho() {
+    if (!produtoId) {
+      mostrarNotificacao("Não foi possível identificar o produto.", "erro");
+      return;
+    }
+
     try {
       const resultado = await adicionarAoCarrinho(produtoId, 1);
 
@@ -264,17 +325,18 @@ export default function VisualizarProdutoDaVitrine() {
   }
 
   async function handleComprarAgora() {
+    if (!produtoId) {
+      mostrarNotificacao("Não foi possível identificar o produto.", "erro");
+      return;
+    }
+
     try {
       await comprarAgora(produtoId, 1);
 
       mostrarNotificacao(
-        "Produto adicionado. Redirecionando para o carrinho...",
+        "Produto adicionado ao carrinho. Você pode continuar comprando ou finalizar pelo carrinho.",
         "sucesso"
       );
-
-      redirecionarDepois(() => {
-        irParaCarrinho();
-      });
     } catch (error) {
       const mensagem = extrairMensagemErro(
         error,
@@ -301,25 +363,15 @@ export default function VisualizarProdutoDaVitrine() {
   }
 
   return (
-    <section className={styles.produtoVisualizarPage}>
-      <div className={`${styles.bgDecor} ${styles.bgDecorTop}`} />
-      <div className={`${styles.bgDecor} ${styles.bgDecorBottom}`} />
-
+    <section className="pv-page">
       {notificacao && (
         <div
-          className={`${styles.toastNotificacao} ${
-            notificacao.tipo === "sucesso"
-              ? styles.toastSucesso
-              : styles.toastErro
+          className={`pv-toast ${
+            notificacao.tipo === "sucesso" ? "pv-toast-success" : "pv-toast-error"
           }`}
         >
-          <div className={styles.toastConteudo}>
-            {notificacao.tipo === "sucesso" ? (
-              <FiCheckCircle />
-            ) : (
-              <FiAlertCircle />
-            )}
-
+          <div className="pv-toast-content">
+            {notificacao.tipo === "sucesso" ? <FiCheckCircle /> : <FiAlertCircle />}
             <span>{notificacao.texto}</span>
           </div>
 
@@ -333,90 +385,92 @@ export default function VisualizarProdutoDaVitrine() {
         </div>
       )}
 
-      <div className={styles.containerProduto}>
+      <div className="pv-container">
         {loading ? (
-          <div className={styles.estadoBox}>
-            <div className={styles.estadoCard}>Carregando produto...</div>
+          <div className="pv-state">
+            <div className="pv-state-card">Carregando produto...</div>
           </div>
         ) : erro ? (
-          <div className={styles.estadoBox}>
-            <div className={`${styles.estadoCard} ${styles.erro}`}>{erro}</div>
+          <div className="pv-state">
+            <div className="pv-state-card pv-state-error">{erro}</div>
           </div>
         ) : !produto ? (
-          <div className={styles.estadoBox}>
-            <div className={styles.estadoCard}>Produto não encontrado.</div>
+          <div className="pv-state">
+            <div className="pv-state-card">Produto não encontrado.</div>
           </div>
         ) : (
-          <div className={styles.produtoCard}>
-            <div className={styles.produtoGaleria}>
-              {desconto && (
-                <span className={styles.tagDesconto}>-{desconto}% OFF</span>
-              )}
+          <article className="pv-shell">
+            <div className="pv-gallery-panel">
+              <div className="pv-gallery-head">
+                <span className="pv-eyebrow">Universo Império</span>
 
-              <button
-                type="button"
-                className={`${styles.btnFavorito} ${
-                  favoritado ? styles.ativo : ""
-                }`}
-                onClick={handleFavoritar}
-                aria-label="Favoritar produto"
-              >
-                <FiHeart />
-              </button>
+                {desconto && <span className="pv-discount">-{desconto}% OFF</span>}
+              </div>
 
-              <div className={styles.galeriaLayout}>
-                <div className={styles.miniaturas}>
-                  {galeria.length > 0 ? (
-                    galeria.map((imagem, index) => (
-                      <button
-                        type="button"
-                        key={`${imagem}-${index}`}
-                        className={`${styles.miniatura} ${
-                          imagemSelecionada === imagem ? styles.ativa : ""
-                        }`}
-                        onClick={() => setImagemSelecionada(imagem)}
-                      >
-                        <Image
-                          src={imagem}
-                          alt={`${produto.nome || produto.titulo || "Produto"} ${
-                            index + 1
-                          }`}
-                          fill
-                          sizes="90px"
-                        />
-                      </button>
-                    ))
-                  ) : (
-                    <div className={styles.miniaturaVazia}>Sem imagem</div>
-                  )}
-                </div>
+              <div className="pv-main-image-card">
+                <button
+                  type="button"
+                  className={`pv-favorite ${favoritado ? "pv-favorite-active" : ""}`}
+                  onClick={handleFavoritar}
+                  aria-label="Favoritar produto"
+                >
+                  <FiHeart />
+                </button>
 
-                <div className={styles.imagemPrincipal}>
-                  {imagemSelecionada ? (
-                    <Image
-                      src={imagemSelecionada}
-                      alt={produto.nome || produto.titulo || "Produto"}
-                      fill
-                      priority
-                      sizes="(max-width: 768px) 100vw, 560px"
-                    />
-                  ) : (
-                    <div className={styles.semImagem}>Sem imagem disponível</div>
-                  )}
-                </div>
+                {imagemSelecionada ? (
+                  <Image
+                    src={imagemSelecionada}
+                    alt={nomeProduto}
+                    fill
+                    priority
+                    sizes="(max-width: 768px) 100vw, 620px"
+                    className="pv-main-image"
+                  />
+                ) : (
+                  <div className="pv-no-image">Sem imagem disponível</div>
+                )}
+              </div>
+
+              <div className="pv-thumbs" aria-label="Galeria do produto">
+                {galeria.length > 0 ? (
+                  galeria.map((imagem, index) => (
+                    <button
+                      type="button"
+                      key={`${imagem}-${index}`}
+                      className={`pv-thumb ${
+                        imagemSelecionada === imagem ? "pv-thumb-active" : ""
+                      }`}
+                      onClick={() => setImagemSelecionada(imagem)}
+                      aria-label={`Visualizar imagem ${index + 1}`}
+                    >
+                      <Image
+                        src={imagem}
+                        alt={`${nomeProduto} ${index + 1}`}
+                        fill
+                        sizes="86px"
+                      />
+                    </button>
+                  ))
+                ) : (
+                  <div className="pv-thumb-empty">Sem imagem</div>
+                )}
               </div>
             </div>
 
-            <div className={styles.produtoInfo}>
-              <span className={styles.selo}>Produto em destaque</span>
+            <div className="pv-info-panel">
+              <div className="pv-title-block">
+                <span className="pv-kicker">
+                  <FiStar /> Produto selecionado
+                </span>
 
-              <h1>{produto.nome || produto.titulo || "Produto sem nome"}</h1>
+                <h1>{nomeProduto}</h1>
 
-              {produto.subtitulo && (
-                <p className={styles.subtitulo}>{produto.subtitulo}</p>
-              )}
+                {produto.subtitulo && (
+                  <p className="pv-subtitle">{produto.subtitulo}</p>
+                )}
+              </div>
 
-              <div className={styles.infoGrid}>
+              <div className="pv-meta-list">
                 {produto.marca && (
                   <div>
                     <span>Marca</span>
@@ -432,82 +486,87 @@ export default function VisualizarProdutoDaVitrine() {
                 )}
 
                 <div>
-                  <span>Galeria</span>
-                  <strong>{galeria.length} imagem(ns)</strong>
+                  <span>Fotos</span>
+                  <strong>{galeria.length || 0}</strong>
                 </div>
               </div>
 
-              <div className={styles.precoBox}>
-                {precoOriginal && (
-                  <span className={styles.precoOriginal}>
-                    De {formatarPreco(precoOriginal)}
-                  </span>
-                )}
+              <div className="pv-buy-box">
+                <div className="pv-price-row">
+                  <div>
+                    {precoOriginal && (
+                      <span className="pv-old-price">
+                        De {formatarPreco(precoOriginal)}
+                      </span>
+                    )}
 
-                {precoFinal && (
-                  <strong className={styles.precoFinal}>
-                    {formatarPreco(precoFinal)}
-                  </strong>
-                )}
+                    {precoFinal ? (
+                      <strong className="pv-price">{formatarPreco(precoFinal)}</strong>
+                    ) : (
+                      <strong className="pv-price pv-price-small">Consultar preço</strong>
+                    )}
+                  </div>
 
-                <p>Oferta especial disponível na vitrine.</p>
-              </div>
+                  <span className="pv-price-note">Oferta da vitrine</span>
+                </div>
 
-              <div className={styles.acoes}>
-                <button
-                  type="button"
-                  className={styles.btnCarrinho}
-                  onClick={handleAdicionarCarrinho}
-                  disabled={loadingCarrinho || loadingComprar}
-                >
-                  <FiShoppingCart />
-                  {loadingCarrinho ? "Adicionando..." : "Adicionar ao carrinho"}
-                </button>
+                <div className="pv-actions">
+                  <button
+                    type="button"
+                    className="pv-btn pv-btn-secondary"
+                    onClick={handleAdicionarCarrinho}
+                    disabled={loadingCarrinho || loadingComprar || !produtoId}
+                  >
+                    <FiShoppingCart />
+                    {loadingCarrinho ? "Adicionando..." : "Adicionar"}
+                  </button>
 
-                <button
-                  type="button"
-                  className={styles.btnComprar}
-                  onClick={handleComprarAgora}
-                  disabled={loadingComprar || loadingCarrinho}
-                >
-                  <FiCreditCard />
-                  {loadingComprar ? "Processando..." : "Comprar agora"}
-                </button>
+                  <button
+                    type="button"
+                    className="pv-btn pv-btn-primary"
+                    onClick={handleComprarAgora}
+                    disabled={loadingComprar || loadingCarrinho || !produtoId}
+                  >
+                    <FiCreditCard />
+                    {loadingComprar ? "Processando..." : "Comprar agora"}
+                  </button>
+                </div>
               </div>
 
               {(produto.descricao_curta || produto.descricao) && (
-                <div className={styles.descricao}>
-                  <h2>Descrição do produto</h2>
+                <div className="pv-description">
+                  <h2>Sobre o produto</h2>
                   <p>{produto.descricao_curta || produto.descricao}</p>
                 </div>
               )}
 
-              <div className={styles.beneficios}>
+              <div className="pv-benefits">
                 <div>
                   <FiTruck />
-                  <strong>Entrega rápida</strong>
-                  <p>Envio com acompanhamento do pedido.</p>
+                  <span>
+                    <strong>Entrega rápida</strong>
+                    <small>Pedido com acompanhamento.</small>
+                  </span>
                 </div>
 
                 <div>
                   <FiShield />
-                  <strong>Compra segura</strong>
-                  <p>Seus dados protegidos durante a compra.</p>
+                  <span>
+                    <strong>Compra segura</strong>
+                    <small>Ambiente protegido.</small>
+                  </span>
                 </div>
 
                 <div>
                   <FiRefreshCcw />
-                  <strong>Suporte</strong>
-                  <p>Atendimento para dúvidas e pós-venda.</p>
+                  <span>
+                    <strong>Suporte</strong>
+                    <small>Atendimento pós-venda.</small>
+                  </span>
                 </div>
               </div>
-
-              <div className={styles.destaque}>
-                <FiStar />
-                <span>Produto selecionado com carinho para você.</span>
-              </div>
             </div>
-          </div>
+          </article>
         )}
       </div>
     </section>

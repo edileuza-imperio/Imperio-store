@@ -16,10 +16,9 @@ import {
   FiChevronLeft,
   FiChevronRight,
   FiCreditCard,
-  FiHeart,
+  FiEye,
   FiLoader,
   FiLock,
-  FiRepeat,
   FiShield,
   FiShoppingCart,
   FiTruck,
@@ -420,31 +419,14 @@ function VitrineDestaqueSection({
                       </div>
 
                       <div className="destaques-pro-actions">
-                        <button
-                          type="button"
-                          className="destaques-pro-action-btn"
-                          aria-label={`Salvar ${item.titulo_final || "produto"} nos favoritos`}
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            toast.info("Favoritos em breve.", { icon: false });
-                          }}
+                        <Link
+                          href={link}
+                          className="destaques-pro-action-btn destaques-pro-action-view"
+                          aria-label={`Visualizar ${item.titulo_final || "produto"}`}
                         >
-                          <FiHeart />
-                        </button>
-
-                        <button
-                          type="button"
-                          className="destaques-pro-action-btn"
-                          aria-label={`Comparar ${item.titulo_final || "produto"}`}
-                          onClick={(event) => {
-                            event.preventDefault();
-                            event.stopPropagation();
-                            toast.info("Comparação em breve.", { icon: false });
-                          }}
-                        >
-                          <FiRepeat />
-                        </button>
+                          <FiEye />
+                          <span>Visualizar</span>
+                        </Link>
 
                         <button
                           type="button"
@@ -462,6 +444,8 @@ function VitrineDestaqueSection({
                           ) : (
                             <FiShoppingCart />
                           )}
+
+                          <span>{estaAdicionando ? "Adicionando" : "Carrinho"}</span>
                         </button>
                       </div>
                     </div>
