@@ -2,14 +2,31 @@
 
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type MouseEvent,
+} from "react";
+
 import Image from "next/image";
 import Link from "next/link";
 import {
   FiChevronLeft,
   FiChevronRight,
+  FiCreditCard,
+  FiHeart,
   FiLoader,
+  FiLock,
+  FiRepeat,
+  FiShield,
+  FiShoppingCart,
+  FiTruck,
 } from "react-icons/fi";
+
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 import api from "@/Api/conectar";
 import { imagemFundo } from "@/components/Bibioteca/imagem";
@@ -51,6 +68,7 @@ function extrairLista(payload: any): Vitrine[] {
   if (Array.isArray(payload?.dados)) return payload.dados;
   if (Array.isArray(payload?.data)) return payload.data;
   if (Array.isArray(payload)) return payload;
+
   return [];
 }
 
@@ -87,12 +105,21 @@ function ordenarPorOrdem(a: Vitrine, b: Vitrine) {
   return Number(a.id_vitrine ?? a.id ?? 0) - Number(b.id_vitrine ?? b.id ?? 0);
 }
 
-function formatarPreco(valor?: number | string | null) {
-  const numero = Number(valor ?? 0);
+function normalizarNumero(valor: unknown) {
+  if (typeof valor === "number") return Number.isFinite(valor) ? valor : 0;
 
-  if (!Number.isFinite(numero) || numero <= 0) {
-    return "";
+  if (typeof valor === "string") {
+    const numero = Number(valor.replace(/\./g, "").replace(",", "."));
+    return Number.isFinite(numero) ? numero : 0;
   }
+
+  return 0;
+}
+
+function formatarPreco(valor?: number | string | null) {
+  const numero = normalizarNumero(valor);
+
+  if (numero <= 0) return "";
 
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -136,6 +163,10 @@ function montarChaveItem(item: ItemVitrine, index: number) {
   );
 }
 
+function getItemKey(item: ItemVitrine) {
+  return String(item.produto_id || item.id_vitrine_item || "");
+}
+
 function moverCarousel(
   element: HTMLDivElement | null,
   direction: "prev" | "next"
@@ -143,8 +174,8 @@ function moverCarousel(
   if (!element) return;
 
   const card = element.querySelector<HTMLElement>(".destaques-pro-card");
-  const cardWidth = card?.offsetWidth || 280;
-  const gap = 18;
+  const cardWidth = card?.offsetWidth || 292;
+  const gap = 20;
   const distance = cardWidth + gap;
 
   element.scrollBy({
@@ -161,13 +192,71 @@ function VitrineDestaqueSection({
   index: number;
 }) {
   const carouselRef = useRef<HTMLDivElement | null>(null);
+
   const [pausado, setPausado] = useState(false);
+  const [adicionandoProdutoId, setAdicionandoProdutoId] = useState<
+    string | null
+  >(null);
 
   const titulo = vitrine.titulo || vitrine.nome || "Produtos em destaque";
   const subtitulo =
     vitrine.subtitulo || "Selecionamos opções especiais para você.";
 
   const itens = vitrine.itens || [];
+
+  async function adicionarAoCarrinho(
+    event: MouseEvent<HTMLButtonElement>,
+    item: ItemVitrine
+  ) {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!item.produto_id) {
+      toast.error("Não foi possível identificar o produto.", {
+        icon: false,
+      });
+      return;
+    }
+
+    const itemKey = getItemKey(item);
+
+    try {
+      setAdicionandoProdutoId(itemKey);
+
+      await api.post(
+        "/carrinho/adicionar",
+        {
+          produto_id: item.produto_id,
+          quantidade: 1,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+
+      toast.success(
+        `${item.titulo_final || "Produto"} foi adicionado ao carrinho.`,
+        {
+          icon: <FiShoppingCart />,
+        }
+      );
+
+      window.dispatchEvent(new CustomEvent("carrinho:atualizado"));
+    } catch (error: any) {
+      console.error("Erro ao adicionar ao carrinho:", error);
+
+      toast.error(
+        error?.response?.data?.mensagem ||
+          error?.response?.data?.erro ||
+          "Não foi possível adicionar ao carrinho.",
+        {
+          icon: false,
+        }
+      );
+    } finally {
+      setAdicionandoProdutoId(null);
+    }
+  }
 
   useEffect(() => {
     const carousel = carouselRef.current;
@@ -178,12 +267,12 @@ function VitrineDestaqueSection({
       if (pausado) return;
 
       const card = carousel.querySelector<HTMLElement>(".destaques-pro-card");
-      const larguraCard = card?.offsetWidth || 280;
-      const distancia = larguraCard + 18;
+      const larguraCard = card?.offsetWidth || 292;
+      const distancia = larguraCard + 20;
 
       const maxScroll = carousel.scrollWidth - carousel.clientWidth;
 
-      if (carousel.scrollLeft >= maxScroll - 12) {
+      if (carousel.scrollLeft >= maxScroll - 14) {
         carousel.scrollTo({
           left: 0,
           behavior: "smooth",
@@ -194,7 +283,7 @@ function VitrineDestaqueSection({
           behavior: "smooth",
         });
       }
-    }, 3800);
+    }, 4200);
 
     return () => {
       window.clearInterval(intervalo);
@@ -212,7 +301,7 @@ function VitrineDestaqueSection({
       <div className="destaques-pro-container">
         <div className="destaques-pro-header">
           <div className="destaques-pro-title-area">
-            <span className="destaques-pro-kicker">Destaques</span>
+            <span className="destaques-pro-kicker">🇧🇷 Seleção especial</span>
 
             <h2>{titulo}</h2>
             <p>{subtitulo}</p>
@@ -246,7 +335,8 @@ function VitrineDestaqueSection({
             Nenhum item cadastrado nesta vitrine ainda.
           </div>
         ) : (
-          <div className="destaques-pro-carousel-shell">
+          <>
+            <div className="destaques-pro-carousel-shell">
             <div ref={carouselRef} className="destaques-pro-carousel">
               {itens.map((item, itemIndex) => {
                 const imagem = imagemFundo(item.imagem_final);
@@ -259,75 +349,123 @@ function VitrineDestaqueSection({
                   item.tipo_item === "produto" &&
                   (Boolean(item.esgotado) || estoque <= 0);
 
+                const itemKey = getItemKey(item);
+                const estaAdicionando = adicionandoProdutoId === itemKey;
+
                 return (
-                  <Link
+                  <article
                     key={montarChaveItem(item, itemIndex)}
-                    href={link}
                     className={`destaques-pro-card ${
                       esgotado ? "destaques-pro-card-disabled" : ""
                     }`}
                   >
-                    <div className="destaques-pro-media">
-                      {imagem ? (
-                        <Image
-                          src={imagem}
-                          alt={item.titulo_final || "Produto"}
-                          fill
-                          sizes="(max-width: 768px) 78vw, 280px"
-                          className="destaques-pro-image"
-                          priority={index === 0 && itemIndex < 2}
-                        />
-                      ) : (
-                        <div className="destaques-pro-no-image">
-                          Sem imagem
-                        </div>
-                      )}
+                    <Link href={link} className="destaques-pro-card-link">
+                      <div className="destaques-pro-media">
+                        {imagem ? (
+                          <Image
+                            src={imagem}
+                            alt={item.titulo_final || "Produto"}
+                            fill
+                            sizes="(max-width: 768px) 82vw, 292px"
+                            className="destaques-pro-image"
+                            priority={index === 0 && itemIndex < 2}
+                          />
+                        ) : (
+                          <div className="destaques-pro-no-image">
+                            Sem imagem
+                          </div>
+                        )}
 
-                      <div className="destaques-pro-media-gradient" />
+                        <div className="destaques-pro-media-gradient" />
 
-                      {esgotado && (
-                        <span className="destaques-pro-soldout">Esgotado</span>
-                      )}
-                    </div>
+                        {esgotado && (
+                          <span className="destaques-pro-soldout">
+                            Esgotado
+                          </span>
+                        )}
+                      </div>
 
-                    <div className="destaques-pro-content">
-                      <span className="destaques-pro-tag">
-                        {item.tipo_item === "categoria"
-                          ? "Categoria especial"
-                          : "Produto selecionado"}
-                      </span>
-
-                      <h3>{item.titulo_final || "Produto"}</h3>
-
-                      {item.descricao_final && (
-                        <p>{limitarTexto(item.descricao_final)}</p>
-                      )}
-
-                      <div className="destaques-pro-footer">
-                        <div className="destaques-pro-price-area">
-                          {precoOriginal && (
-                            <span className="destaques-pro-old-price">
-                              {precoOriginal}
-                            </span>
-                          )}
-
-                          {preco ? (
-                            <strong className="destaques-pro-price">
-                              {preco}
-                            </strong>
-                          ) : (
-                            <strong className="destaques-pro-price-soft">
-                              Ver detalhes
-                            </strong>
-                          )}
-                        </div>
-
-                        <span className="destaques-pro-link-text">
-                          Ver detalhes
+                      <div className="destaques-pro-content">
+                        <span className="destaques-pro-tag">
+                          {item.tipo_item === "categoria"
+                            ? "Categoria especial"
+                            : "Produto selecionado"}
                         </span>
+
+                        <h3>{item.titulo_final || "Produto"}</h3>
+
+                        {item.descricao_final && (
+                          <p>{limitarTexto(item.descricao_final)}</p>
+                        )}
+                      </div>
+                    </Link>
+
+                    <div className="destaques-pro-bottom">
+                      <div className="destaques-pro-price-area">
+                        {precoOriginal && (
+                          <span className="destaques-pro-old-price">
+                            {precoOriginal}
+                          </span>
+                        )}
+
+                        {preco ? (
+                          <strong className="destaques-pro-price">
+                            {preco}
+                          </strong>
+                        ) : (
+                          <strong className="destaques-pro-price-soft">
+                            Ver detalhes
+                          </strong>
+                        )}
+                      </div>
+
+                      <div className="destaques-pro-actions">
+                        <button
+                          type="button"
+                          className="destaques-pro-action-btn"
+                          aria-label={`Salvar ${item.titulo_final || "produto"} nos favoritos`}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            toast.info("Favoritos em breve.", { icon: false });
+                          }}
+                        >
+                          <FiHeart />
+                        </button>
+
+                        <button
+                          type="button"
+                          className="destaques-pro-action-btn"
+                          aria-label={`Comparar ${item.titulo_final || "produto"}`}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            toast.info("Comparação em breve.", { icon: false });
+                          }}
+                        >
+                          <FiRepeat />
+                        </button>
+
+                        <button
+                          type="button"
+                          className="destaques-pro-action-btn destaques-pro-action-cart"
+                          aria-label={`Adicionar ${item.titulo_final || "produto"} ao carrinho`}
+                          onClick={(event) => adicionarAoCarrinho(event, item)}
+                          disabled={
+                            estaAdicionando ||
+                            esgotado ||
+                            item.tipo_item !== "produto"
+                          }
+                        >
+                          {estaAdicionando ? (
+                            <FiLoader className="destaques-pro-spin" />
+                          ) : (
+                            <FiShoppingCart />
+                          )}
+                        </button>
                       </div>
                     </div>
-                  </Link>
+                  </article>
                 );
               })}
             </div>
@@ -335,6 +473,41 @@ function VitrineDestaqueSection({
             <div className="destaques-pro-fade destaques-pro-fade-left" />
             <div className="destaques-pro-fade destaques-pro-fade-right" />
           </div>
+
+            <div className="destaques-pro-trust-bar" aria-label="Benefícios da compra">
+              <div className="destaques-pro-trust-item">
+                <FiShield />
+                <div>
+                  <strong>Produtos oficiais</strong>
+                  <span>Qualidade e autenticidade garantidas</span>
+                </div>
+              </div>
+
+              <div className="destaques-pro-trust-item">
+                <FiLock />
+                <div>
+                  <strong>Compra segura</strong>
+                  <span>Ambiente protegido e confiável</span>
+                </div>
+              </div>
+
+              <div className="destaques-pro-trust-item">
+                <FiCreditCard />
+                <div>
+                  <strong>Parcele em até 6x</strong>
+                  <span>Sem juros no cartão</span>
+                </div>
+              </div>
+
+              <div className="destaques-pro-trust-item">
+                <FiTruck />
+                <div>
+                  <strong>Entrega para todo o Brasil</strong>
+                  <span>Com rastreamento completo</span>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </div>
     </section>
@@ -394,6 +567,20 @@ export default function Destaques() {
 
   return (
     <>
+      <ToastContainer
+        position="top-right"
+        autoClose={2600}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnHover
+        draggable
+        className="destaques-toast-container"
+        toastClassName="destaques-toast"
+        
+        progressClassName="destaques-toast-progress"
+      />
+
       {vitrinesDestaque.map((vitrine, index) => (
         <VitrineDestaqueSection
           key={montarChaveVitrine(vitrine, index)}
@@ -403,4 +590,4 @@ export default function Destaques() {
       ))}
     </>
   );
-}
+} 
