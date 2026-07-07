@@ -7,7 +7,7 @@ export const rotas = {
   paginas: {
     home: "/",
     login: "/login",
-    carrinho: "/Carrinho",
+    carrinho: "/checkout",
     checkout: "/checkout",
     pagamento: (pedidoId: Id) => `/Carrinho/pagamento/${pedidoId}`,
     pedidoConfirmado: (pedidoId: Id) => `/pedido-confirmado/${pedidoId}`,
