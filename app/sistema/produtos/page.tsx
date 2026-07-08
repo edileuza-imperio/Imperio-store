@@ -29,12 +29,24 @@ interface Produto {
   descricao?: string;
   imagem?: string;
   miniatura?: string;
-  preco: string;
-  sku: string;
-  marca: string;
-  quantidade?: number;
-  reservado?: number;
-  disponivel?: number;
+
+  preco?: string | number;
+  preco_numero?: number | null;
+  preco_formatado?: string | null;
+
+  preco_promocional?: string | number | null;
+  preco_promocional_numero?: number | null;
+  preco_promocional_formatado?: string | null;
+
+  preco_final?: number | null;
+  preco_final_formatado?: string | null;
+
+  sku?: string;
+  marca?: string;
+
+  quantidade?: number | string;
+  reservado?: number | string;
+  disponivel?: number | string;
 }
 
 const LIMITE_POR_PAGINA = 3;
@@ -42,9 +54,12 @@ const LIMITE_POR_PAGINA = 3;
 export default function ProdutosPage() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState("");
   const [atualizandoId, setAtualizandoId] = useState<number | null>(null);
   const [paginaAtual, setPaginaAtual] = useState(1);
-  const [produtoSelecionado, setProdutoSelecionado] = useState<number | null>(null);
+  const [produtoSelecionado, setProdutoSelecionado] = useState<number | null>(
+    null
+  );
 
   useEffect(() => {
     carregarProdutos();
@@ -53,20 +68,41 @@ export default function ProdutosPage() {
   async function carregarProdutos() {
     try {
       setLoading(true);
+      setErro("");
 
       const response = await api.get("/painel/produtos");
-      const lista = response.data?.dados?.dados || response.data?.dados || [];
 
-      setProdutos(Array.isArray(lista) ? lista : []);
+      console.log("RESPOSTA PRODUTOS:", response.data);
+
+      const lista =
+        response.data?.dados?.produtos ||
+        response.data?.produtos ||
+        response.data?.dados ||
+        [];
+
+      if (!Array.isArray(lista)) {
+        console.error("Formato inesperado da API:", response.data);
+        setProdutos([]);
+        setErro("A API respondeu, mas os produtos vieram em formato inválido.");
+        return;
+      }
+
+      setProdutos(lista);
+      setPaginaAtual(1);
+      setProdutoSelecionado(null);
     } catch (error) {
       console.error("Erro ao carregar produtos:", error);
       setProdutos([]);
+      setErro("Erro ao carregar produtos.");
     } finally {
       setLoading(false);
     }
   }
 
-  const totalPaginas = Math.max(1, Math.ceil(produtos.length / LIMITE_POR_PAGINA));
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(produtos.length / LIMITE_POR_PAGINA)
+  );
 
   const produtosExibidos = useMemo(() => {
     const inicio = (paginaAtual - 1) * LIMITE_POR_PAGINA;
@@ -85,7 +121,7 @@ export default function ProdutosPage() {
       return;
     }
 
-    window.location.href = `/painel/sistema/produtos/editar/${produtoSelecionado}`;
+    window.location.href = `/sistema/produtos/editar/${produtoSelecionado}`;
   }
 
   async function excluirSelecionado() {
@@ -103,7 +139,12 @@ export default function ProdutosPage() {
 
     try {
       await api.delete(`/painel/produto/${id}`);
+
       setProdutos((prev) => prev.filter((item) => item.id_produto !== id));
+
+      if (produtosExibidos.length === 1 && paginaAtual > 1) {
+        setPaginaAtual((pagina) => pagina - 1);
+      }
     } catch (error) {
       console.error("Erro ao excluir produto:", error);
       alert("Erro ao excluir produto.");
@@ -143,6 +184,7 @@ export default function ProdutosPage() {
 
   async function colocarComoEsgotado(produto: Produto) {
     if (!confirm(`Deseja deixar "${produto.nome}" como ESGOTADO?`)) return;
+
     await atualizarEstoqueProduto(produto, 0);
   }
 
@@ -172,6 +214,33 @@ export default function ProdutosPage() {
     setPaginaAtual((pagina) => Math.min(totalPaginas, pagina + 1));
   }
 
+  function formatarPreco(produto: Produto) {
+    if (produto.preco_final_formatado) {
+      return produto.preco_final_formatado;
+    }
+
+    if (produto.preco_formatado) {
+      return produto.preco_formatado;
+    }
+
+    const preco = Number(produto.preco || 0);
+
+    return preco.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL",
+    });
+  }
+
+  function pegarImagemProduto(produto: Produto) {
+    const imgPath = produto.imagem || produto.miniatura || "";
+
+    if (!imgPath) {
+      return "/placeholder.png";
+    }
+
+    return imagemFundo(imgPath);
+  }
+
   if (loading) {
     return <div className="produtos-loading">Carregando produtos...</div>;
   }
@@ -181,7 +250,7 @@ export default function ProdutosPage() {
       <div className="produtos-header">
         <div>
           <h1>Sistema de Produtos</h1>
-          <p>Selecione um produto para editar ou excluir</p>
+          <p>Selecione um produto para editar, excluir ou alterar estoque</p>
         </div>
 
         <div className="produtos-stats">
@@ -190,6 +259,13 @@ export default function ProdutosPage() {
         </div>
       </div>
 
+      {erro && (
+        <div className="produtos-selected-alert">
+          <XCircle size={18} />
+          {erro}
+        </div>
+      )}
+
       {produtoSelecionado && (
         <div className="produtos-selected-alert">
           <CheckCircle size={18} />
@@ -197,160 +273,179 @@ export default function ProdutosPage() {
         </div>
       )}
 
-      <div className="produtos-grid">
-        {produtosExibidos.map((produto) => {
-          const descricao = produto.descricao || "Sem descrição disponível";
-          const imgPath = produto.imagem || produto.miniatura || "";
-          const imagem = imgPath ? imagemFundo(imgPath) : "/placeholder.png";
+      {produtos.length === 0 ? (
+        <div className="produtos-loading">
+          Nenhum produto encontrado.
 
-          const quantidadeAtual = Number(produto.quantidade || 0);
-          const reservadoAtual = Number(produto.reservado || 0);
+          <br />
 
-          const disponivel = Number(
-            produto.disponivel ?? quantidadeAtual - reservadoAtual
-          );
+          <button type="button" onClick={carregarProdutos}>
+            Tentar carregar novamente
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="produtos-grid">
+            {produtosExibidos.map((produto) => {
+              const descricao =
+                produto.descricao || "Sem descrição disponível";
 
-          const esgotado = disponivel <= 0;
-          const atualizando = atualizandoId === produto.id_produto;
-          const selecionado = produtoSelecionado === produto.id_produto;
+              const imagem = pegarImagemProduto(produto);
 
-          return (
-            <article
-              key={produto.id_produto}
-              className={`produtos-card ${
-                selecionado ? "produtos-card-selected" : ""
-              }`}
-              onClick={() => selecionarProduto(produto.id_produto)}
-            >
-              <label
-                className="produtos-checkbox"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <input
-                  type="checkbox"
-                  checked={selecionado}
-                  onChange={() => selecionarProduto(produto.id_produto)}
-                />
-                <span />
-              </label>
+              const quantidadeAtual = Number(produto.quantidade || 0);
+              const reservadoAtual = Number(produto.reservado || 0);
 
-              <div className="produtos-image-wrap">
-                <Image
-                  src={imagem}
-                  alt={produto.nome}
-                  fill
-                  className="produtos-image"
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                />
+              const disponivel = Number(
+                produto.disponivel ?? quantidadeAtual - reservadoAtual
+              );
 
-                <span className="produtos-price">
-                  R$ {Number(produto.preco || 0).toFixed(2)}
-                </span>
+              const esgotado = disponivel <= 0;
+              const atualizando = atualizandoId === produto.id_produto;
+              const selecionado = produtoSelecionado === produto.id_produto;
 
-                {esgotado ? (
-                  <span className="produtos-sold-out-badge">ESGOTADO</span>
-                ) : (
-                  <span className="produtos-stock-badge">COM ESTOQUE</span>
-                )}
-              </div>
-
-              <div className="produtos-content">
-                <h3>{produto.nome}</h3>
-
-                <p>
-                  {descricao.length > 80
-                    ? `${descricao.substring(0, 80)}...`
-                    : descricao}
-                </p>
-
-                <div className="produtos-info">
-                  <span>
-                    <Tag size={13} />
-                    {produto.marca || "Sem marca"}
-                  </span>
-
-                  <span>
-                    <Package size={13} />
-                    {produto.sku || "Sem SKU"}
-                  </span>
-
-                  <span>
-                    <Boxes size={13} />
-                    Estoque: {Math.max(disponivel, 0)}
-                  </span>
-                </div>
-
-                <div className="produtos-stock-actions">
-                  {esgotado ? (
-                    <button
-                      type="button"
-                      className="produtos-restore-button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        retirarDoEsgotado(produto);
-                      }}
-                      disabled={atualizando}
-                    >
-                      <CheckCircle size={15} />
-                      {atualizando ? "Atualizando..." : "Ativar"}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="produtos-sold-out-button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        colocarComoEsgotado(produto);
-                      }}
-                      disabled={atualizando}
-                    >
-                      <XCircle size={15} />
-                      {atualizando ? "Atualizando..." : "Esgotar"}
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    className="produtos-change-stock-button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      retirarDoEsgotado(produto);
-                    }}
-                    disabled={atualizando}
+              return (
+                <article
+                  key={produto.id_produto}
+                  className={`produtos-card ${
+                    selecionado ? "produtos-card-selected" : ""
+                  }`}
+                  onClick={() => selecionarProduto(produto.id_produto)}
+                >
+                  <label
+                    className="produtos-checkbox"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <RotateCcw size={15} />
-                    Estoque
-                  </button>
-                </div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+                    <input
+                      type="checkbox"
+                      checked={selecionado}
+                      onChange={() => selecionarProduto(produto.id_produto)}
+                    />
+                    <span />
+                  </label>
 
-      <div className="produtos-pagination">
-        <button
-          type="button"
-          onClick={voltarPagina}
-          disabled={paginaAtual === 1}
-        >
-          <ChevronLeft size={18} />
-          Voltar
-        </button>
+                  <div className="produtos-image-wrap">
+                    <Image
+                      src={imagem}
+                      alt={produto.nome}
+                      fill
+                      className="produtos-image"
+                      sizes="(max-width: 768px) 100vw, 33vw"
+                    />
 
-        <span>
-          Página {paginaAtual} de {totalPaginas}
-        </span>
+                    <span className="produtos-price">
+                      {formatarPreco(produto)}
+                    </span>
 
-        <button
-          type="button"
-          onClick={avancarPagina}
-          disabled={paginaAtual === totalPaginas}
-        >
-          Próxima
-          <ChevronRight size={18} />
-        </button>
-      </div>
+                    {esgotado ? (
+                      <span className="produtos-sold-out-badge">
+                        ESGOTADO
+                      </span>
+                    ) : (
+                      <span className="produtos-stock-badge">
+                        COM ESTOQUE
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="produtos-content">
+                    <h3>{produto.nome}</h3>
+
+                    <p>
+                      {descricao.length > 80
+                        ? `${descricao.substring(0, 80)}...`
+                        : descricao}
+                    </p>
+
+                    <div className="produtos-info">
+                      <span>
+                        <Tag size={13} />
+                        {produto.marca || "Sem marca"}
+                      </span>
+
+                      <span>
+                        <Package size={13} />
+                        {produto.sku || "Sem SKU"}
+                      </span>
+
+                      <span>
+                        <Boxes size={13} />
+                        Estoque: {Math.max(disponivel, 0)}
+                      </span>
+                    </div>
+
+                    <div className="produtos-stock-actions">
+                      {esgotado ? (
+                        <button
+                          type="button"
+                          className="produtos-restore-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            retirarDoEsgotado(produto);
+                          }}
+                          disabled={atualizando}
+                        >
+                          <CheckCircle size={15} />
+                          {atualizando ? "Atualizando..." : "Ativar"}
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          className="produtos-sold-out-button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            colocarComoEsgotado(produto);
+                          }}
+                          disabled={atualizando}
+                        >
+                          <XCircle size={15} />
+                          {atualizando ? "Atualizando..." : "Esgotar"}
+                        </button>
+                      )}
+
+                      <button
+                        type="button"
+                        className="produtos-change-stock-button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          retirarDoEsgotado(produto);
+                        }}
+                        disabled={atualizando}
+                      >
+                        <RotateCcw size={15} />
+                        Estoque
+                      </button>
+                    </div>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+
+          <div className="produtos-pagination">
+            <button
+              type="button"
+              onClick={voltarPagina}
+              disabled={paginaAtual === 1}
+            >
+              <ChevronLeft size={18} />
+              Voltar
+            </button>
+
+            <span>
+              Página {paginaAtual} de {totalPaginas}
+            </span>
+
+            <button
+              type="button"
+              onClick={avancarPagina}
+              disabled={paginaAtual === totalPaginas}
+            >
+              Próxima
+              <ChevronRight size={18} />
+            </button>
+          </div>
+        </>
+      )}
 
       <div className="produtos-floating-group">
         <button
