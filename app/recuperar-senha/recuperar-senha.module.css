@@ -1,0 +1,323 @@
+.pagina,
+.pagina * {
+  box-sizing: border-box;
+}
+
+.pagina {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+  overflow: hidden;
+  padding: 42px 20px;
+  color: var(--ui-texto, #352c2e);
+  background:
+    radial-gradient(circle at 12% 10%, rgba(190, 77, 112, 0.12), transparent 28rem),
+    radial-gradient(circle at 90% 88%, rgba(117, 29, 60, 0.11), transparent 26rem),
+    linear-gradient(145deg, var(--ui-marfin, #fbf7f3), var(--ui-superficie-suave, #f4ece8));
+}
+
+.decoracao {
+  position: absolute;
+  z-index: -1;
+  top: 50%;
+  left: 50%;
+  width: min(78vw, 760px);
+  aspect-ratio: 1;
+  border: 1px solid rgba(117, 29, 60, 0.10);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.decoracao::before,
+.decoracao::after {
+  position: absolute;
+  content: "";
+  border: 1px solid rgba(117, 29, 60, 0.08);
+  border-radius: 50%;
+  inset: 8%;
+}
+
+.decoracao::after {
+  inset: 17%;
+}
+
+.cartao {
+  width: min(100%, 492px);
+  padding: clamp(28px, 5vw, 46px);
+  border: 1px solid var(--ui-borda, #e8dadd);
+  border-radius: 26px;
+  background: var(--ui-superficie, rgba(255, 255, 255, 0.94));
+  box-shadow: 0 24px 80px rgba(64, 25, 39, 0.12);
+  backdrop-filter: blur(12px);
+}
+
+.marca {
+  display: flex;
+  width: fit-content;
+  align-items: center;
+  gap: 10px;
+  margin: 0 auto 34px;
+  color: var(--ui-vinho-escuro, #4e182c);
+  text-decoration: none;
+}
+
+.marcaSimbolo {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(145deg, var(--ui-vinho, #7a2445), var(--ui-rosa, #c24e77));
+  font-family: var(--ui-fonte-titulo, Georgia, serif);
+  font-size: 23px;
+  font-weight: 800;
+}
+
+.marcaTexto {
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+}
+
+.marcaTexto strong {
+  font-weight: 850;
+}
+
+.icone {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  place-items: center;
+  margin: 0 auto 22px;
+  border: 1px solid var(--ui-borda-suave, #f0dce3);
+  border-radius: 20px;
+  color: var(--ui-vinho, #7a2445);
+  background: var(--ui-superficie-suave, #fbf1f4);
+}
+
+.icone svg {
+  width: 29px;
+  height: 29px;
+  stroke: currentColor;
+  stroke-width: 1.65;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.conteudo {
+  text-align: center;
+}
+
+.sobretitulo {
+  display: inline-block;
+  margin-bottom: 10px;
+  color: var(--ui-rosa, #b63f69);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.19em;
+  text-transform: uppercase;
+}
+
+.conteudo h1 {
+  margin: 0;
+  color: var(--ui-vinho-escuro, #4e182c);
+  font-family: var(--ui-fonte-titulo, Georgia, serif);
+  font-size: clamp(29px, 5vw, 37px);
+  font-weight: 750;
+  line-height: 1.12;
+  letter-spacing: -0.035em;
+}
+
+.descricao {
+  max-width: 370px;
+  margin: 14px auto 27px;
+  color: var(--ui-texto-secundario, #74666b);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.formulario {
+  display: grid;
+  gap: 10px;
+  text-align: left;
+}
+
+.formulario label {
+  margin-top: 4px;
+  color: var(--ui-texto, #352c2e);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.formulario input {
+  width: 100%;
+  min-width: 0;
+  height: 49px;
+  padding: 0 15px;
+  border: 1px solid var(--ui-borda, #e5d8dc);
+  border-radius: 12px;
+  outline: none;
+  color: var(--ui-texto, #352c2e);
+  background: var(--ui-superficie, #fff);
+  font: inherit;
+  font-size: 14px;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.formulario input::placeholder {
+  color: var(--ui-texto-claro, #a49399);
+}
+
+.formulario input:focus {
+  border-color: var(--ui-rosa, #b63f69);
+  box-shadow: 0 0 0 3px rgba(182, 63, 105, 0.12);
+}
+
+.campoSenha {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.campoSenha input {
+  padding-right: 78px;
+}
+
+.alternarSenha {
+  position: absolute;
+  right: 11px;
+  padding: 7px 5px;
+  border: 0;
+  color: var(--ui-vinho, #7a2445);
+  background: transparent;
+  font-size: 11px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.botaoPrimario,
+.botaoSecundario {
+  display: flex;
+  width: 100%;
+  min-height: 50px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+  padding: 13px 18px;
+  border-radius: 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.botaoPrimario {
+  border: 1px solid var(--ui-vinho, #7a2445);
+  color: #fff;
+  background: linear-gradient(110deg, var(--ui-vinho, #7a2445), var(--ui-rosa, #c24e77));
+  box-shadow: 0 10px 22px rgba(122, 36, 69, 0.18);
+}
+
+.botaoPrimario:hover:not(:disabled),
+.botaoSecundario:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 13px 25px rgba(122, 36, 69, 0.18);
+}
+
+.botaoPrimario:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+
+.botaoSecundario {
+  border: 1px solid var(--ui-borda, #e5d8dc);
+  color: var(--ui-vinho, #7a2445);
+  background: transparent;
+}
+
+.linkVoltar,
+.linkVoltarBotao {
+  display: block;
+  width: fit-content;
+  margin: 22px auto 0;
+  padding: 3px;
+  border: 0;
+  color: var(--ui-texto-secundario, #74666b);
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.linkVoltar:hover,
+.linkVoltarBotao:hover,
+.alternarSenha:hover {
+  color: var(--ui-rosa, #b63f69);
+  text-decoration: underline;
+}
+
+.mensagemErro {
+  margin: 7px 0 0;
+  padding: 11px 12px;
+  border: 1px solid #f1c7cb;
+  border-radius: 10px;
+  color: #9b2635;
+  background: #fff4f4;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.avisoSucesso {
+  margin-top: 20px;
+  padding: 14px 15px;
+  border: 1px solid #cfe8d8;
+  border-radius: 12px;
+  color: #286a43;
+  background: #f2fbf5;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.rodape {
+  margin: 30px 0 0;
+  color: var(--ui-texto-claro, #a49399);
+  font-size: 10px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+@media (max-width: 520px) {
+  .pagina {
+    padding: 18px 13px;
+  }
+
+  .cartao {
+    padding: 28px 22px 22px;
+    border-radius: 21px;
+  }
+
+  .marca {
+    margin-bottom: 29px;
+  }
+
+  .conteudo h1 {
+    font-size: 30px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .formulario input,
+  .botaoPrimario,
+  .botaoSecundario {
+    transition: none;
+  }
+}

@@ -1,0 +1,1140 @@
+/* =========================================================
+   UNIVERSO IMPÉRIO — NAVBAR
+   Arquivo: navbar.css
+
+   Usa as variáveis centralizadas em variaveis.css.
+   Não cria uma segunda paleta de cores.
+========================================================= */
+
+/* =========================================================
+   ESTRUTURA PRINCIPAL
+========================================================= */
+
+.navbar-imperio {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  width: 100%;
+  color: var(--ui-texto);
+  background: var(--ui-marfin);
+  font-family: var(--ui-fonte-base);
+  isolation: isolate;
+}
+
+.navbar-imperio *,
+.navbar-imperio *::before,
+.navbar-imperio *::after,
+.navbar-imperio__sidebar *,
+.navbar-imperio__sidebar *::before,
+.navbar-imperio__sidebar *::after {
+  box-sizing: border-box;
+}
+
+.navbar-imperio a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.navbar-imperio button,
+.navbar-imperio__sidebar button {
+  font: inherit;
+}
+
+.navbar-imperio button:focus-visible,
+.navbar-imperio a:focus-visible,
+.navbar-imperio__sidebar button:focus-visible,
+.navbar-imperio__sidebar a:focus-visible {
+  outline: 2px solid var(--ui-rosa);
+  outline-offset: 3px;
+}
+
+/* Classe adicional passada pelo HomeLayout */
+.navbar-pagina {
+  width: 100%;
+}
+
+/* =========================================================
+   PRIMEIRA FAIXA — MARCA, PESQUISA E AÇÕES
+========================================================= */
+
+.navbar-imperio__topbar {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  border-bottom: 1px solid var(--ui-borda-suave);
+  background: linear-gradient(
+    180deg,
+    var(--ui-branco) 0%,
+    var(--ui-marfin) 100%
+  );
+}
+
+.navbar-imperio__container {
+  width: min(calc(100% - 64px), 1240px);
+  min-height: 94px;
+  display: grid;
+  grid-template-columns: minmax(170px, 205px) minmax(280px, 1fr) auto;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(22px, 2.5vw, 38px);
+  margin-inline: auto;
+  padding-block: var(--ui-espaco-3);
+}
+
+/* =========================================================
+   MARCA
+========================================================= */
+
+.navbar-imperio__brand {
+  display: inline-flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  width: max-content;
+  min-width: max-content;
+  color: var(--ui-vinho-escuro);
+  line-height: 0.92;
+  transition:
+    opacity var(--ui-transicao-rapida),
+    transform var(--ui-transicao-rapida);
+}
+
+.navbar-imperio__brand:hover {
+  opacity: 0.84;
+  transform: translateY(-1px);
+}
+
+.navbar-imperio__brand-eyebrow {
+  margin-left: 2px;
+  color: var(--ui-rosa);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.31em;
+}
+
+.navbar-imperio__brand strong {
+  display: block;
+  margin-top: 5px;
+  color: var(--ui-vinho-escuro);
+  font-family: var(--ui-fonte-titulo);
+  font-size: clamp(23px, 2.3vw, 31px);
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  line-height: 1;
+}
+
+/* =========================================================
+   BOTÃO MENU MOBILE
+========================================================= */
+
+.navbar-imperio__menu-toggle {
+  display: none;
+  width: 43px;
+  height: 43px;
+  flex: 0 0 43px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0;
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio-md);
+  background: var(--ui-superficie);
+  cursor: pointer;
+  transition:
+    border-color var(--ui-transicao-rapida),
+    background var(--ui-transicao-rapida);
+}
+
+.navbar-imperio__menu-toggle:hover {
+  border-color: var(--ui-rosa);
+  background: var(--ui-blush);
+}
+
+.navbar-imperio__menu-toggle span {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: var(--ui-raio-pilula);
+  background: var(--ui-vinho);
+}
+
+/* =========================================================
+   CAMPO DE PESQUISA
+========================================================= */
+
+.navbar-imperio__search {
+  width: 100%;
+  max-width: 650px;
+  min-width: 0;
+  height: 46px;
+  display: flex;
+  justify-self: center;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio-pilula);
+  background: var(--ui-superficie);
+  box-shadow: var(--ui-sombra-suave);
+  transition:
+    border-color var(--ui-transicao-rapida),
+    box-shadow var(--ui-transicao-rapida);
+}
+
+.navbar-imperio__search:focus-within {
+  border-color: var(--ui-rosa);
+  box-shadow: 0 0 0 3px var(--ui-borda-suave);
+}
+
+.navbar-imperio__search input {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  padding-inline: var(--ui-espaco-5);
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--ui-texto);
+  font-size: var(--ui-texto-sm);
+}
+
+.navbar-imperio__search input::placeholder {
+  color: var(--ui-texto-claro);
+  opacity: 1;
+}
+
+.navbar-imperio__search button {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--ui-vinho);
+  cursor: pointer;
+  transition:
+    background var(--ui-transicao-rapida),
+    color var(--ui-transicao-rapida);
+}
+
+.navbar-imperio__search button:hover {
+  background: var(--ui-rosa-claro);
+  color: var(--ui-vinho-escuro);
+}
+
+/* =========================================================
+   AÇÕES À DIREITA
+========================================================= */
+
+.navbar-imperio__actions {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  justify-content: flex-end;
+  gap: clamp(8px, 1.1vw, 15px);
+}
+
+.navbar-imperio__account-wrap {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.navbar-imperio__account {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--ui-raio-md);
+  background: transparent;
+  color: var(--ui-vinho);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--ui-transicao-rapida),
+    border-color var(--ui-transicao-rapida);
+}
+
+.navbar-imperio__account:hover,
+.navbar-imperio__account.is-open {
+  border-color: var(--ui-borda);
+  background: var(--ui-superficie);
+}
+
+.navbar-imperio__account-icon {
+  width: 39px;
+  height: 39px;
+  flex: 0 0 39px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ui-borda);
+  border-radius: 50%;
+  background: var(--ui-blush);
+  color: var(--ui-vinho);
+}
+
+.navbar-imperio__account-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.navbar-imperio__account-copy small {
+  color: var(--ui-texto-claro);
+  font-size: 10px;
+  line-height: 1;
+}
+
+.navbar-imperio__account-copy strong {
+  max-width: 130px;
+  overflow: hidden;
+  color: var(--ui-vinho-escuro);
+  font-size: 12px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navbar-imperio__account-chevron {
+  display: grid;
+  place-items: center;
+  color: var(--ui-texto-claro);
+}
+
+.navbar-imperio__action-link {
+  position: relative;
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--ui-raio-md);
+  background: transparent;
+  color: var(--ui-vinho);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--ui-transicao-rapida),
+    border-color var(--ui-transicao-rapida),
+    color var(--ui-transicao-rapida);
+}
+
+.navbar-imperio__action-link:hover,
+.navbar-imperio__wishlist-trigger[aria-expanded="true"] {
+  border-color: var(--ui-borda);
+  background: var(--ui-superficie);
+  color: var(--ui-vinho-escuro);
+}
+
+.navbar-imperio__action-icon-wrap {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+
+.navbar-imperio__cart-badge {
+  position: absolute;
+  top: -9px;
+  right: -11px;
+  min-width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  padding-inline: 4px;
+  border: 2px solid var(--ui-marfin);
+  border-radius: var(--ui-raio-pilula);
+  background: var(--ui-rosa);
+  color: var(--ui-branco);
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* =========================================================
+   DROPDOWN DA CONTA
+========================================================= */
+
+.navbar-imperio__account-menu {
+  position: absolute;
+  top: calc(100% + 12px);
+  right: 0;
+  z-index: 1200;
+  width: min(290px, calc(100vw - 28px));
+  max-height: min(70vh, 440px);
+  overflow: auto;
+  padding: var(--ui-espaco-3);
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio-lg);
+  background: var(--ui-superficie);
+  box-shadow: var(--ui-sombra-destaque);
+  animation: navbar-aparecer var(--ui-transicao-rapida) both;
+}
+
+.navbar-imperio__account-menu-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--ui-espaco-2) var(--ui-espaco-2) var(--ui-espaco-4);
+  border-bottom: 1px solid var(--ui-borda);
+}
+
+.navbar-imperio__account-menu-heading small {
+  color: var(--ui-texto-claro);
+  font-size: 10px;
+}
+
+.navbar-imperio__account-menu-heading strong {
+  color: var(--ui-vinho-escuro);
+  font-size: 14px;
+}
+
+.navbar-imperio__account-menu ul {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: var(--ui-espaco-2);
+  padding: 0;
+  list-style: none;
+}
+
+.navbar-imperio__account-menu-link {
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: var(--ui-raio-sm);
+  background: transparent;
+  color: var(--ui-texto);
+  text-align: left;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.navbar-imperio__account-menu-link:hover {
+  background: var(--ui-blush);
+  color: var(--ui-vinho);
+}
+
+.navbar-imperio__logout-link {
+  color: var(--ui-erro);
+}
+
+.navbar-imperio__empty,
+.navbar-imperio__loading {
+  padding: var(--ui-espaco-3) var(--ui-espaco-2);
+  color: var(--ui-texto-secundario);
+  font-size: 12px;
+}
+
+/* =========================================================
+   SEGUNDA FAIXA — NAVEGAÇÃO DESKTOP
+========================================================= */
+
+.navbar-imperio__navigation {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  border-bottom: 1px solid var(--ui-borda-suave);
+  background: var(--ui-superficie);
+  box-shadow: var(--ui-sombra-suave);
+}
+
+.navbar-imperio__desktop-nav {
+  width: min(calc(100% - 64px), 1120px);
+  margin-inline: auto;
+}
+
+.navbar-imperio__desktop-nav > ul {
+  min-height: 48px;
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: clamp(8px, 2vw, 27px);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navbar-imperio__nav-item {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+.navbar-imperio__nav-link {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding-inline: 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--ui-texto-secundario);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color var(--ui-transicao-rapida),
+    border-color var(--ui-transicao-rapida),
+    background var(--ui-transicao-rapida);
+}
+
+.navbar-imperio__nav-link:hover,
+.navbar-imperio__nav-link.is-open,
+.navbar-imperio__nav-item:focus-within > .navbar-imperio__nav-link {
+  border-bottom-color: var(--ui-rosa);
+  color: var(--ui-vinho-escuro);
+}
+
+.navbar-imperio__nav-chevron,
+.navbar-imperio__submenu-chevron {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ui-rosa);
+}
+
+.navbar-imperio__dropdown {
+  position: absolute;
+  top: calc(100% - 1px);
+  left: 0;
+  z-index: 1300;
+  min-width: 220px;
+  max-width: min(320px, calc(100vw - 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 9px;
+  border: 1px solid var(--ui-borda);
+  border-radius: 0 0 var(--ui-raio-md) var(--ui-raio-md);
+  background: var(--ui-superficie);
+  box-shadow: var(--ui-sombra-destaque);
+  list-style: none;
+  animation: navbar-aparecer var(--ui-transicao-rapida) both;
+}
+
+.navbar-imperio__dropdown[hidden],
+.navbar-imperio__submenu[hidden],
+.navbar-imperio__sidebar-sublist[hidden] {
+  display: none !important;
+}
+
+.navbar-imperio__dropdown-link {
+  width: 100%;
+  min-height: 39px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 11px;
+  border-radius: var(--ui-raio-sm);
+  color: var(--ui-texto);
+  font-size: 12px;
+  text-align: left;
+}
+
+.navbar-imperio__dropdown-link:hover {
+  background: var(--ui-blush);
+  color: var(--ui-vinho);
+}
+
+.navbar-imperio__submenu-item {
+  position: relative;
+  min-width: 0;
+}
+
+.navbar-imperio__submenu-trigger {
+  width: 100%;
+  justify-content: space-between;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.navbar-imperio__submenu {
+  min-width: 205px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 3px 0 3px 10px;
+  padding: 5px;
+  border-left: 2px solid var(--ui-rosa-claro);
+  list-style: none;
+}
+
+/* =========================================================
+   MENU LATERAL
+========================================================= */
+
+.navbar-imperio__sidebar {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.navbar-imperio__sidebar.is-open {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.navbar-imperio__sidebar-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background: rgba(73, 52, 58, 0.48);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity var(--ui-transicao-padrao);
+}
+
+.navbar-imperio__sidebar.is-open .navbar-imperio__sidebar-overlay {
+  opacity: 1;
+}
+
+.navbar-imperio__sidebar-panel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: min(390px, calc(100vw - 46px));
+  height: 100%;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--ui-borda);
+  background: var(--ui-marfin);
+  box-shadow: var(--ui-sombra-destaque);
+  transform: translateX(-105%);
+  transition: transform 240ms cubic-bezier(0.2, 0.75, 0.25, 1);
+  will-change: transform;
+}
+
+.navbar-imperio__sidebar.is-open .navbar-imperio__sidebar-panel {
+  transform: translateX(0);
+}
+
+.navbar-imperio__sidebar-header {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--ui-espaco-4);
+  padding: 26px 23px 21px;
+  border-bottom: 1px solid var(--ui-borda);
+  background: linear-gradient(135deg, var(--ui-vinho-escuro), var(--ui-vinho));
+  color: var(--ui-branco);
+}
+
+.navbar-imperio__sidebar-header > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.navbar-imperio__sidebar-header small {
+  color: var(--ui-rosa-claro);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+}
+
+.navbar-imperio__sidebar-header strong {
+  color: var(--ui-branco);
+  font-family: var(--ui-fonte-titulo);
+  font-size: 23px;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.navbar-imperio__sidebar-header span {
+  color: var(--ui-rosa-claro);
+  font-size: 11px;
+}
+
+.navbar-imperio__sidebar-close {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: background var(--ui-transicao-rapida);
+}
+
+.navbar-imperio__sidebar-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.navbar-imperio__sidebar-close span {
+  position: absolute;
+  width: 15px;
+  height: 2px;
+  border-radius: var(--ui-raio-pilula);
+  background: var(--ui-branco);
+}
+
+.navbar-imperio__sidebar-close span:first-child {
+  transform: rotate(45deg);
+}
+
+.navbar-imperio__sidebar-close span:last-child {
+  transform: rotate(-45deg);
+}
+
+.navbar-imperio__sidebar-content {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--ui-espaco-5) var(--ui-espaco-5) var(--ui-espaco-8);
+}
+
+.navbar-imperio__sidebar-section {
+  margin-bottom: var(--ui-espaco-8);
+}
+
+.navbar-imperio__sidebar-section h2 {
+  margin: 0 0 var(--ui-espaco-3);
+  color: var(--ui-texto-claro);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.navbar-imperio__sidebar-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.navbar-imperio__sidebar-item {
+  min-width: 0;
+}
+
+.navbar-imperio__sidebar-link,
+.navbar-imperio__sidebar-sublink {
+  width: 100%;
+  min-height: 43px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  border-radius: var(--ui-raio-md);
+  background: transparent;
+  color: var(--ui-texto);
+  font-size: 13px;
+  font-weight: 650;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    color var(--ui-transicao-rapida),
+    background var(--ui-transicao-rapida),
+    border-color var(--ui-transicao-rapida);
+}
+
+.navbar-imperio__sidebar-link:hover,
+.navbar-imperio__sidebar-link.is-open,
+.navbar-imperio__sidebar-sublink:hover {
+  border-color: var(--ui-borda);
+  background: var(--ui-superficie);
+  color: var(--ui-vinho);
+}
+
+.navbar-imperio__sidebar-link > span:first-child,
+.navbar-imperio__sidebar-sublink > span:first-child {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.navbar-imperio__sidebar-sublist {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 4px 0 7px 16px;
+  padding-left: 9px;
+  border-left: 2px solid var(--ui-rosa-claro);
+  list-style: none;
+}
+
+.navbar-imperio__sidebar-sublink {
+  min-height: 38px;
+  padding: 8px 10px;
+  color: var(--ui-texto-secundario);
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.navbar-imperio__sidebar-message {
+  padding: var(--ui-espaco-4);
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio-md);
+  background: var(--ui-superficie);
+  color: var(--ui-texto-secundario);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.navbar-imperio__sidebar-message.is-error {
+  border-color: var(--ui-borda);
+  color: var(--ui-erro);
+}
+
+.navbar-imperio__sidebar-footer {
+  padding: var(--ui-espaco-4) var(--ui-espaco-5);
+  border-top: 1px solid var(--ui-borda);
+  background: var(--ui-superficie);
+  color: var(--ui-texto-claro);
+  font-family: var(--ui-fonte-titulo);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-align: center;
+}
+
+/* =========================================================
+   LISTAS DE DESEJOS
+   O dropdown possui algumas propriedades inline no componente.
+   As regras abaixo complementam o visual sem depender de mudanças
+   no TSX.
+========================================================= */
+
+.navbar-imperio__wishlist-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
+.navbar-imperio__wishlist-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.navbar-imperio__wishlist-list button:hover {
+  border-color: var(--ui-rosa) !important;
+  background: var(--ui-blush) !important;
+}
+
+.navbar-imperio__wishlist-footer:hover {
+  color: var(--ui-vinho-escuro) !important;
+}
+
+/* =========================================================
+   ANIMAÇÕES
+========================================================= */
+
+@keyframes navbar-aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================
+   TABLETS E NOTEBOOKS MENORES
+========================================================= */
+
+/* =========================================================
+   AJUSTES FINOS DO DESKTOP
+========================================================= */
+
+.navbar-imperio__navigation {
+  min-height: 50px;
+}
+
+.navbar-imperio__desktop-nav > ul {
+  min-height: 50px;
+}
+
+.navbar-imperio__topbar .navbar-imperio__container > * {
+  min-width: 0;
+}
+
+.navbar-imperio__search {
+  justify-self: stretch;
+}
+
+.navbar-imperio__actions {
+  white-space: nowrap;
+}
+
+/* O conteúdo interno dos dropdowns pode crescer sem alargar o header. */
+.navbar-imperio__account-menu,
+.navbar-imperio__dropdown,
+.navbar-imperio__wishlist-dropdown {
+  overflow-wrap: anywhere;
+}
+
+/* =========================================================
+   AUTOCOMPLETE DE PRODUTOS — NOVA PESQUISA DA LOJA
+   Complementa o formulário existente sem substituir a paleta global.
+========================================================= */
+
+.navbar-imperio__search-area {
+  position: relative;
+  z-index: 40;
+  width: 100%;
+  max-width: 720px;
+  min-width: 0;
+  justify-self: stretch;
+}
+
+.navbar-imperio__search-area > .navbar-imperio__search {
+  width: 100%;
+  max-width: none;
+  justify-self: stretch;
+}
+
+.navbar-imperio__search-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  right: 0;
+  z-index: 10020;
+  overflow: hidden;
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio-lg);
+  background: var(--ui-superficie);
+  color: var(--ui-texto);
+  box-shadow: var(--ui-sombra-destaque);
+  animation: navbar-aparecer var(--ui-transicao-rapida) both;
+}
+
+.navbar-imperio__search-dropdown-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--ui-borda-suave);
+  color: var(--ui-vinho);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+}
+
+.navbar-imperio__search-dropdown-heading small {
+  color: var(--ui-texto-claro);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.navbar-imperio__search-list {
+  display: grid;
+  gap: 2px;
+  max-height: min(390px, 60vh);
+  margin: 0;
+  padding: 5px 8px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.navbar-imperio__search-list li + li {
+  border-top: 1px solid var(--ui-borda-suave);
+}
+
+.navbar-imperio__search-result {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border: 0;
+  border-radius: var(--ui-raio-md);
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background var(--ui-transicao-rapida),
+    color var(--ui-transicao-rapida);
+}
+
+.navbar-imperio__search-result:hover,
+.navbar-imperio__search-result:focus-visible {
+  outline: none;
+  background: var(--ui-blush);
+  color: var(--ui-vinho-escuro);
+}
+
+.navbar-imperio__search-result-image,
+.navbar-imperio__search-result-placeholder {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio-md);
+  background: var(--ui-marfin);
+  color: var(--ui-rosa);
+}
+
+.navbar-imperio__search-result-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.navbar-imperio__search-result-placeholder {
+  background: linear-gradient(145deg, var(--ui-marfin), var(--ui-rosa-claro));
+}
+
+.navbar-imperio__search-result-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.navbar-imperio__search-result-copy > strong {
+  overflow: hidden;
+  color: var(--ui-vinho-escuro);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navbar-imperio__search-result-copy > small {
+  color: var(--ui-texto-claro);
+  font-size: 10px;
+}
+
+.navbar-imperio__search-result-prices {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.navbar-imperio__search-result-prices strong {
+  color: var(--ui-vinho);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.navbar-imperio__search-result-prices del {
+  color: var(--ui-texto-claro);
+  font-size: 10px;
+}
+
+.navbar-imperio__search-result-arrow {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--ui-rosa);
+}
+
+.navbar-imperio__search-feedback {
+  display: flex;
+  min-height: 82px;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  color: var(--ui-texto-secundario);
+  font-size: 12px;
+  text-align: center;
+}
+
+.navbar-imperio__search-feedback.is-error {
+  color: var(--ui-erro);
+}
+
+.navbar-imperio__search-spinner {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  margin-right: 9px;
+  border: 2px solid var(--ui-borda);
+  border-top-color: var(--ui-vinho);
+  border-radius: 50%;
+  vertical-align: -3px;
+  animation: navbar-search-spin 0.7s linear infinite;
+}
+
+.navbar-imperio__search-all {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 0;
+  border-top: 1px solid var(--ui-borda-suave);
+  border-radius: 0 0 var(--ui-raio-lg) var(--ui-raio-lg);
+  background: var(--ui-marfin);
+  color: var(--ui-vinho);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background var(--ui-transicao-rapida),
+    color var(--ui-transicao-rapida);
+}
+
+.navbar-imperio__search-all:hover,
+.navbar-imperio__search-all:focus-visible {
+  outline: none;
+  background: var(--ui-blush);
+  color: var(--ui-vinho-escuro);
+}
+
+@keyframes navbar-search-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

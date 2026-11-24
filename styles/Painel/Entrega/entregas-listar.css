@@ -1,0 +1,120 @@
+.entregas-lista-pagina {
+  width: 100%;
+  min-height: 100%;
+  padding: 30px clamp(16px, 3vw, 42px) 48px;
+  color: var(--ui-texto, #38212d);
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.entregas-lista-container { width: 100%; max-width: 1580px; margin: 0 auto; }
+.entregas-lista-cabecalho { display: flex; align-items: flex-end; justify-content: space-between; gap: 22px; margin-bottom: 24px; }
+.entregas-lista-eyebrow { display: inline-block; color: var(--ui-vinho, #8a334d); font-size: 10px; font-weight: 800; letter-spacing: 1.15px; }
+.entregas-lista-titulo-wrap h1 { margin: 7px 0 7px; color: var(--ui-vinho-escuro, #59283b); font-family: var(--ui-fonte-titulo, inherit); font-size: clamp(27px, 3vw, 36px); line-height: 1.12; letter-spacing: -0.8px; }
+.entregas-lista-titulo-wrap p { max-width: 760px; margin: 0; color: var(--ui-texto-secundario, #806b75); font-size: 13px; line-height: 1.65; }
+.entregas-lista-acoes-topo { display: flex; align-items: center; gap: 9px; flex-shrink: 0; }
+.entregas-lista-botao-secundario, .entregas-lista-botao-principal { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 42px; padding: 0 15px; border-radius: var(--ui-raio-md, 9px); font-size: 12px; font-weight: 700; text-decoration: none; cursor: pointer; transition: var(--ui-transicao, 160ms ease); }
+.entregas-lista-botao-secundario { color: var(--ui-vinho, #8a334d); background: var(--ui-superficie, #fff); border: 1px solid var(--ui-borda, #ead6dc); }
+.entregas-lista-botao-secundario:hover:not(:disabled) { background: var(--ui-rosa-claro, #faedf1); border-color: var(--ui-rosa-medio, #dba8b9); }
+.entregas-lista-botao-secundario:disabled { opacity: .6; cursor: wait; }
+.entregas-lista-botao-principal { color: var(--ui-branco, #fff); background: var(--ui-vinho, #8a334d); border: 1px solid var(--ui-vinho, #8a334d); box-shadow: var(--ui-sombra-sm, 0 4px 12px rgba(93, 37, 58, .12)); }
+.entregas-lista-botao-principal:hover { background: var(--ui-vinho-escuro, #69283f); border-color: var(--ui-vinho-escuro, #69283f); transform: translateY(-1px); }
+.entregas-lista-girando { animation: entregas-lista-girar .8s linear infinite; }
+@keyframes entregas-lista-girar { to { transform: rotate(360deg); } }
+
+.entregas-lista-alerta { display: flex; align-items: center; gap: 11px; margin-bottom: 17px; padding: 12px 14px; color: var(--ui-erro, #a73343); background: #fff3f3; border: 1px solid #f0c9ce; border-radius: var(--ui-raio-md, 9px); font-size: 12px; }
+.entregas-lista-alerta span { flex: 1; }
+.entregas-lista-alerta button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 9px; color: inherit; background: transparent; border: 1px solid currentColor; border-radius: 7px; font-size: 11px; font-weight: 700; cursor: pointer; }
+
+.entregas-lista-indicadores { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px; margin-bottom: 19px; }
+.entregas-lista-indicador { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 17px 18px; background: var(--ui-superficie, #fff); border: 1px solid var(--ui-borda, #ead6dc); border-radius: var(--ui-raio-lg, 12px); box-shadow: var(--ui-sombra-sm, 0 4px 14px rgba(75, 37, 52, .045)); }
+.entregas-lista-indicador-icone { display: grid; place-items: center; flex: 0 0 39px; width: 39px; height: 39px; color: var(--ui-vinho, #8a334d); background: var(--ui-rosa-claro, #faedf1); border: 1px solid var(--ui-borda-suave, #f1e2e6); border-radius: 10px; }
+.entregas-lista-indicador div { display: grid; gap: 5px; min-width: 0; }
+.entregas-lista-indicador small { color: var(--ui-texto-secundario, #806b75); font-size: 10px; line-height: 1.3; }
+.entregas-lista-indicador strong { overflow: hidden; color: var(--ui-texto, #38212d); font-size: 21px; line-height: 1.1; text-overflow: ellipsis; white-space: nowrap; }
+
+.entregas-lista-painel { overflow: hidden; background: var(--ui-superficie, #fff); border: 1px solid var(--ui-borda, #ead6dc); border-radius: var(--ui-raio-lg, 12px); box-shadow: var(--ui-sombra-sm, 0 5px 18px rgba(75, 37, 52, .045)); }
+.entregas-lista-painel-topo { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 21px 21px 17px; border-bottom: 1px solid var(--ui-borda-suave, #f1e2e6); }
+.entregas-lista-painel-topo h2 { margin: 5px 0 5px; color: var(--ui-vinho-escuro, #59283b); font-size: 18px; letter-spacing: -.25px; }
+.entregas-lista-painel-topo p { max-width: 760px; margin: 0; color: var(--ui-texto-secundario, #806b75); font-size: 11px; line-height: 1.55; }
+.entregas-lista-contagem { flex-shrink: 0; padding: 6px 9px; color: var(--ui-vinho, #8a334d); background: var(--ui-rosa-claro, #faedf1); border-radius: 7px; font-size: 10px; font-weight: 700; }
+
+.entregas-lista-filtros { display: flex; align-items: center; gap: 10px; padding: 14px 20px; background: var(--ui-superficie-suave, #fffafb); border-bottom: 1px solid var(--ui-borda-suave, #f1e2e6); }
+.entregas-lista-busca { display: flex; align-items: center; flex: 1; min-width: 180px; gap: 9px; height: 39px; padding: 0 11px; color: var(--ui-texto-claro, #9a818d); background: var(--ui-superficie, #fff); border: 1px solid var(--ui-borda, #ead6dc); border-radius: 8px; }
+.entregas-lista-busca:focus-within { border-color: var(--ui-rosa-medio, #dba8b9); box-shadow: 0 0 0 3px rgba(191, 103, 139, .09); }
+.entregas-lista-busca input { width: 100%; min-width: 0; height: 100%; color: var(--ui-texto, #38212d); background: transparent; border: 0; outline: 0; font: inherit; font-size: 11px; }
+.entregas-lista-busca input::placeholder { color: var(--ui-texto-claro, #9a818d); }
+.entregas-lista-busca button { display: grid; place-items: center; padding: 4px; color: var(--ui-texto-secundario, #806b75); background: transparent; border: 0; cursor: pointer; }
+.entregas-lista-filtro-status { display: flex; align-items: center; gap: 7px; height: 39px; padding: 0 10px; color: var(--ui-vinho, #8a334d); background: var(--ui-superficie, #fff); border: 1px solid var(--ui-borda, #ead6dc); border-radius: 8px; }
+.entregas-lista-filtro-status select { min-width: 140px; color: var(--ui-texto, #38212d); background: transparent; border: 0; outline: 0; font-size: 11px; }
+
+.entregas-lista-tabela-wrap { width: 100%; overflow-x: auto; }
+.entregas-lista-tabela { width: 100%; min-width: 1120px; border-collapse: collapse; text-align: left; }
+.entregas-lista-tabela thead { background: var(--ui-superficie-suave, #fffafb); }
+.entregas-lista-tabela th { padding: 12px 13px; color: var(--ui-texto-secundario, #806b75); border-bottom: 1px solid var(--ui-borda, #ead6dc); font-size: 9px; font-weight: 800; letter-spacing: .55px; text-transform: uppercase; white-space: nowrap; }
+.entregas-lista-tabela td { padding: 14px 13px; color: var(--ui-texto, #38212d); border-bottom: 1px solid var(--ui-borda-suave, #f1e2e6); font-size: 11px; vertical-align: middle; }
+.entregas-lista-tabela tbody tr:last-child td { border-bottom: 0; }
+.entregas-lista-tabela tbody tr:hover { background: rgba(250, 237, 241, .42); }
+.entregas-lista-tabela td strong { display: block; max-width: 210px; overflow-wrap: anywhere; color: var(--ui-texto, #38212d); font-size: 11px; font-weight: 700; }
+.entregas-lista-id { color: var(--ui-vinho, #8a334d) !important; }
+.entregas-lista-subtexto { display: block; margin-top: 5px; color: var(--ui-texto-claro, #9a818d); font-size: 9px; line-height: 1.4; }
+.entregas-lista-status { display: inline-flex; align-items: center; max-width: 160px; padding: 5px 8px; border: 1px solid transparent; border-radius: 20px; font-size: 9px; font-weight: 750; white-space: nowrap; }
+.entregas-status-entregue { color: #24734a; background: #edf8f1; border-color: #cce9d7; }
+.entregas-status-cancelado { color: #a53d4b; background: #fff0f1; border-color: #f0d0d4; }
+.entregas-status-transito { color: #8a5a16; background: #fff7e8; border-color: #f0dfb8; }
+.entregas-status-pendente { color: #87516b; background: #fbf0f5; border-color: #ecd4df; }
+.entregas-status-neutro { color: var(--ui-texto-secundario, #806b75); background: #f5f1f3; border-color: #e6dfe3; }
+.entregas-lista-rastreio { display: inline-block; max-width: 165px; overflow-wrap: anywhere; color: var(--ui-vinho, #8a334d); font-size: 10px; }
+.entregas-lista-sem-dado { color: var(--ui-texto-claro, #9a818d); font-size: 10px; }
+.entregas-lista-custo { color: var(--ui-vinho-escuro, #59283b) !important; white-space: nowrap; }
+.entregas-lista-data { display: inline-flex; align-items: center; gap: 5px; color: var(--ui-texto-secundario, #806b75); font-size: 10px; white-space: nowrap; }
+.entregas-lista-data svg { flex-shrink: 0; color: var(--ui-rosa, #bd678b); }
+
+.entregas-lista-estado { height: 170px; color: var(--ui-texto-secundario, #806b75) !important; text-align: center !important; }
+.entregas-lista-spinner { display: inline-block; width: 17px; height: 17px; margin-right: 9px; vertical-align: middle; border: 2px solid var(--ui-rosa-claro, #faedf1); border-top-color: var(--ui-vinho, #8a334d); border-radius: 50%; animation: entregas-lista-girar .8s linear infinite; }
+.entregas-lista-estado-vazio { height: 230px; color: var(--ui-texto-secundario, #806b75) !important; text-align: center !important; }
+.entregas-lista-estado-vazio strong { max-width: none !important; margin-top: 10px; color: var(--ui-vinho-escuro, #59283b) !important; font-size: 13px !important; }
+.entregas-lista-estado-vazio p { margin: 6px 0 12px; color: var(--ui-texto-secundario, #806b75); font-size: 10px; }
+.entregas-lista-vazio-icone { display: grid; place-items: center; width: 44px; height: 44px; margin: 0 auto; color: var(--ui-vinho, #8a334d); background: var(--ui-rosa-claro, #faedf1); border-radius: 12px; }
+.entregas-lista-link-vazio { display: inline-flex; align-items: center; gap: 6px; color: var(--ui-vinho, #8a334d); font-size: 10px; font-weight: 750; text-decoration: none; }
+.entregas-lista-link-vazio:hover { text-decoration: underline; }
+
+.entregas-lista-rodape { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 19px; color: var(--ui-texto-secundario, #806b75); background: var(--ui-superficie-suave, #fffafb); border-top: 1px solid var(--ui-borda-suave, #f1e2e6); font-size: 10px; }
+.entregas-lista-paginacao { display: flex; align-items: center; gap: 10px; }
+.entregas-lista-paginacao span { white-space: nowrap; }
+.entregas-lista-paginacao strong { color: var(--ui-vinho, #8a334d); }
+.entregas-lista-paginacao button { display: grid; place-items: center; width: 29px; height: 29px; color: var(--ui-vinho, #8a334d); background: var(--ui-superficie, #fff); border: 1px solid var(--ui-borda, #ead6dc); border-radius: 7px; cursor: pointer; }
+.entregas-lista-paginacao button:disabled { opacity: .4; cursor: not-allowed; }
+.entregas-lista-nota { display: flex; align-items: flex-start; gap: 9px; margin-top: 14px; padding: 12px 14px; color: var(--ui-texto-secundario, #806b75); background: var(--ui-rosa-claro, #faedf1); border: 1px solid var(--ui-borda-suave, #f1e2e6); border-radius: 9px; font-size: 10px; line-height: 1.55; }
+.entregas-lista-nota svg { flex-shrink: 0; margin-top: 1px; color: var(--ui-vinho, #8a334d); }
+.entregas-lista-nota p { margin: 0; }
+.entregas-lista-nota strong { color: var(--ui-vinho-escuro, #59283b); }
+
+@media (max-width: 1050px) {
+  .entregas-lista-indicadores { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 700px) {
+  .entregas-lista-pagina { padding: 21px 13px 32px; }
+  .entregas-lista-cabecalho { align-items: flex-start; flex-direction: column; }
+  .entregas-lista-acoes-topo { width: 100%; }
+  .entregas-lista-acoes-topo > * { flex: 1; }
+  .entregas-lista-indicadores { gap: 9px; }
+  .entregas-lista-indicador { padding: 12px; gap: 9px; }
+  .entregas-lista-indicador-icone { flex-basis: 33px; width: 33px; height: 33px; }
+  .entregas-lista-indicador strong { font-size: 17px; }
+  .entregas-lista-painel-topo { align-items: flex-start; flex-direction: column; padding: 17px 14px; }
+  .entregas-lista-filtros { align-items: stretch; flex-direction: column; padding: 12px; }
+  .entregas-lista-busca, .entregas-lista-filtro-status { min-height: 39px; }
+  .entregas-lista-filtro-status select { width: 100%; }
+  .entregas-lista-rodape { align-items: flex-start; flex-direction: column; padding: 12px; }
+  .entregas-lista-paginacao { align-self: flex-end; }
+}
+@media (max-width: 420px) {
+  .entregas-lista-indicadores { grid-template-columns: 1fr 1fr; }
+  .entregas-lista-indicador { align-items: flex-start; flex-direction: column; }
+  .entregas-lista-indicador strong { white-space: normal; }
+  .entregas-lista-botao-secundario, .entregas-lista-botao-principal { padding: 0 10px; font-size: 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .entregas-lista-pagina *, .entregas-lista-pagina *::before, .entregas-lista-pagina *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

@@ -1,0 +1,532 @@
+/* =====================================================
+   UNIVERSO IMPÉRIO — BANNER PRINCIPAL
+   CSS base. Depende de src/app/variaveis.css.
+   Breakpoints ficam em banner-responsivo.css.
+===================================================== */
+
+/* =====================================================
+   UNIVERSO IMPÉRIO — BANNER PRINCIPAL
+   Creme, rosa queimado e vinho | full-bleed responsivo
+====================================================== */
+
+.banner,
+.banner * {
+  box-sizing: border-box;
+}
+
+.banner {
+position: relative;
+  isolation: isolate;
+  left: 50%;
+  width: 100vw;
+  max-width: 100vw;
+  margin: 0 0 0 -50vw;
+  padding: clamp(42px, 5.2vw, 76px)
+    max(24px, env(safe-area-inset-right)) clamp(58px, 6vw, 84px)
+    max(24px, env(safe-area-inset-left));
+  overflow: hidden;
+  color: var(--ui-texto);
+  /* Fallback para Safari/iOS mais antigo, antes dos gradientes translúcidos. */
+  background: linear-gradient(
+    118deg,
+    var(--ui-marfin) 0%,
+    var(--ui-blush) 48%,
+    var(--ui-rosa-claro) 100%
+  );
+  background:
+    radial-gradient(
+      ellipse at 9% 12%,
+      color-mix(in srgb, var(--ui-branco) 96%, transparent) 0,
+      transparent 34%
+    ),
+    radial-gradient(
+      ellipse at 91% 90%,
+      color-mix(in srgb, var(--ui-rosa) 16%, transparent) 0,
+      color-mix(in srgb, var(--ui-rosa) 0%, transparent) 36%
+    ),
+    linear-gradient(118deg, var(--ui-marfin) 0%, var(--ui-blush) 48%, var(--ui-rosa-claro) 100%);
+  border-top: 1px solid var(--ui-borda-suave);
+  border-bottom: 1px solid var(--ui-borda-suave);
+  border-top-color: color-mix(in srgb, var(--ui-rosa) 16%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--ui-rosa) 22%, transparent);
+}
+
+.banner::before,
+.banner::after {
+  position: absolute;
+  z-index: 0;
+  content: "";
+  pointer-events: none;
+  border-radius: 50%;
+}
+
+.banner::before {
+  top: -230px;
+  left: -170px;
+  width: 480px;
+  height: 480px;
+  border: 1px solid color-mix(in srgb, var(--ui-rosa) 15%, transparent);
+  box-shadow:
+    0 0 0 28px color-mix(in srgb, var(--ui-rosa) 2.5%, transparent),
+    0 0 0 58px color-mix(in srgb, var(--ui-rosa) 2%, transparent);
+}
+
+.banner::after {
+  right: -210px;
+  bottom: -300px;
+  width: 560px;
+  height: 560px;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--ui-rosa) 12%, transparent),
+    color-mix(in srgb, var(--ui-rosa) 0%, transparent) 68%
+  );
+}
+
+.banner__container {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: center;
+  gap: clamp(34px, 5.1vw, 78px);
+  width: 100%;
+  max-width: 1460px;
+  min-height: clamp(340px, 33vw, 440px);
+  margin: 0 auto;
+  padding: 0 0 34px;
+}
+
+/* TEXTO */
+
+.banner__conteudo {
+  width: 100%;
+  max-width: 610px;
+  min-width: 0;
+  animation: bannerEntrada 0.55s ease both;
+}
+
+.banner__etiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 clamp(17px, 2vw, 25px);
+  padding: 9px 16px;
+  border: 1px solid var(--ui-borda);
+  border-color: color-mix(in srgb, var(--ui-rosa) 35%, transparent);
+  border-radius: 999px;
+  background: var(--ui-superficie);
+  background: color-mix(in srgb, var(--ui-branco) 68%, transparent);
+  color: var(--ui-vinho-suave);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  line-height: 1;
+  box-shadow: var(--ui-sombra-suave);
+}
+
+.banner__etiqueta-ponto {
+  flex: 0 0 7px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--ui-rosa);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--ui-rosa) 13%, transparent);
+}
+
+.banner__titulo {
+  max-width: 700px;
+  margin: 0;
+  color: var(--ui-vinho-escuro);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(38px, 4.45vw, 66px);
+  font-weight: 700;
+  line-height: 1.06;
+  letter-spacing: -1.7px;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.banner__descricao {
+  max-width: 540px;
+  margin: 20px 0 28px;
+  color: var(--ui-texto-secundario);
+  font-size: clamp(14px, 1.12vw, 16px);
+  font-weight: 400;
+  line-height: 1.78;
+  overflow-wrap: anywhere;
+}
+
+/* CTA */
+
+.banner__botao {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  min-width: 186px;
+  min-height: 54px;
+  padding: 0 25px;
+  border: 1px solid var(--ui-vinho-suave);
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--ui-rosa) 0%, var(--ui-rosa) 100%);
+  color: var(--ui-marfin);
+  font-size: 14px;
+  font-weight: 750;
+  text-decoration: none;
+  box-shadow: var(--ui-sombra-card);
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    filter 0.22s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.banner__botao span {
+  font-size: 22px;
+  line-height: 1;
+  transition: transform 0.22s ease;
+}
+
+.banner__botao:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.04) saturate(1.03);
+  box-shadow: var(--ui-sombra-destaque);
+}
+
+.banner__botao:hover span {
+  transform: translateX(5px);
+}
+
+.banner__botao:focus-visible,
+.banner__seta:focus-visible,
+.banner__ponto:focus-visible {
+  outline: 3px solid var(--ui-vinho-suave);
+  outline-offset: 4px;
+}
+
+.banner__assinatura {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 28px;
+  color: var(--ui-texto-claro);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.7px;
+}
+
+.banner__assinatura-linha {
+  flex: 0 0 34px;
+  width: 34px;
+  height: 1px;
+  background: var(--ui-rosa);
+}
+
+/* FOTO / ARTE */
+
+.banner__visual {
+  position: relative;
+  align-self: center;
+  width: 100%;
+  min-width: 0;
+  aspect-ratio: 1.42 / 1;
+  max-height: 470px;
+  overflow: hidden;
+  border: 5px solid var(--ui-branco);
+  border-color: color-mix(in srgb, var(--ui-branco) 88%, transparent);
+  border-radius: 25px;
+  background: linear-gradient(145deg, var(--ui-rosa-claro), var(--ui-rosa-claro));
+  box-shadow:
+    var(--ui-sombra-destaque),
+    0 0 0 1px color-mix(in srgb, var(--ui-rosa) 14%, transparent),
+    0 8px 20px color-mix(in srgb, var(--ui-branco) 70%, transparent) inset;
+}
+
+.banner__imagem {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  animation: bannerImagemEntrada 0.65s ease both;
+  transition: transform 0.75s ease;
+}
+
+.banner__visual:hover .banner__imagem {
+  transform: scale(1.025);
+}
+
+.banner__imagem-overlay {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: linear-gradient(
+    0deg,
+    color-mix(in srgb, var(--ui-vinho-escuro) 28%, transparent) 0%,
+    color-mix(in srgb, var(--ui-vinho-escuro) 6%, transparent) 28%,
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+/* FALLBACK SEM FOTO */
+
+.banner__fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      circle at 50% 44%,
+      color-mix(in srgb, var(--ui-branco) 92%, transparent),
+      transparent 39%
+    ),
+    linear-gradient(135deg, var(--ui-superficie-suave) 0%, var(--ui-rosa-claro) 100%);
+}
+
+.banner__circulo-externo,
+.banner__circulo-interno {
+  position: absolute;
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--ui-vinho-suave) 25%, transparent);
+  border-radius: 50%;
+}
+
+.banner__circulo-externo {
+  width: min(74%, 340px);
+}
+.banner__circulo-interno {
+  width: min(59%, 270px);
+  border-color: color-mix(in srgb, var(--ui-vinho-suave) 18%, transparent);
+}
+
+.banner__brasao {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--ui-vinho);
+}
+
+.banner__letra {
+  color: var(--ui-rosa);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(72px, 8vw, 112px);
+  line-height: 0.95;
+}
+
+.banner__brasao-linha {
+  width: 86px;
+  height: 1px;
+  background: var(--ui-rosa);
+}
+
+.banner__brasao strong {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 18px;
+  letter-spacing: 5px;
+}
+
+.banner__brasao small {
+  color: var(--ui-vinho-suave);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+/* SELO */
+
+.banner__selo {
+  position: absolute;
+  z-index: 2;
+  left: clamp(12px, 2vw, 22px);
+  bottom: clamp(12px, 2vw, 22px);
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  max-width: calc(100% - 24px);
+  padding: 11px 15px;
+  border: 1px solid var(--ui-borda);
+  border-color: color-mix(in srgb, var(--ui-branco) 82%, transparent);
+  border-radius: 14px;
+  background: var(--ui-marfin);
+  background: color-mix(in srgb, var(--ui-marfin) 94%, transparent);
+  box-shadow: var(--ui-sombra-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.banner__selo > span {
+  display: flex;
+  flex: 0 0 34px;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--ui-rosa-claro);
+  color: var(--ui-vinho-suave);
+  font-size: 20px;
+}
+
+.banner__selo div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+.banner__selo strong {
+  color: var(--ui-vinho-escuro);
+  font-size: 11px;
+  font-weight: 750;
+}
+.banner__selo small {
+  color: var(--ui-texto-claro);
+  font-size: 10px;
+}
+
+/* CARROSSEL */
+
+.banner__seta {
+  position: absolute;
+  z-index: 5;
+  top: 44%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0 0 3px;
+  transform: translateY(-50%);
+  border: 1px solid color-mix(in srgb, var(--ui-rosa) 24%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--ui-marfin) 95%, transparent);
+  color: var(--ui-vinho-suave);
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--ui-sombra-suave);
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.banner__seta:hover {
+  transform: translateY(-50%) scale(1.06);
+  background: var(--ui-rosa);
+  color: var(--ui-branco);
+}
+
+.banner__seta--esquerda {
+  left: 8px;
+}
+.banner__seta--direita {
+  right: 8px;
+}
+
+.banner__navegacao {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 18px;
+}
+
+.banner__contador {
+  color: var(--ui-texto-claro);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 1.5px;
+}
+
+.banner__contador strong {
+  color: var(--ui-vinho-suave);
+  font-size: 14px;
+}
+.banner__pontos {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.banner__ponto {
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ui-vinho-suave) 30%, transparent);
+  cursor: pointer;
+  transition:
+    width 0.22s ease,
+    background 0.22s ease;
+}
+
+.banner__ponto.ativo {
+  width: 25px;
+  background: var(--ui-rosa);
+}
+
+/* DECORAÇÃO */
+
+.banner__brilho {
+  position: absolute;
+  z-index: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(14px);
+}
+
+.banner__brilho--um {
+  top: -190px;
+  left: -110px;
+  width: 370px;
+  height: 370px;
+  background: color-mix(in srgb, var(--ui-branco) 55%, transparent);
+}
+
+.banner__brilho--dois {
+  right: -170px;
+  bottom: -220px;
+  width: 430px;
+  height: 430px;
+  background: color-mix(in srgb, var(--ui-rosa) 13%, transparent);
+}
+
+
+
+
+
+
+
+@keyframes bannerEntrada {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bannerImagemEntrada {
+  from {
+    opacity: 0.55;
+    transform: scale(1.025);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

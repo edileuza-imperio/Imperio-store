@@ -1,0 +1,79 @@
+.entregas-eventos-pagina{width:100%;min-height:100%;padding:30px clamp(16px,3vw,42px) 48px;color:var(--ui-texto,#38212d);box-sizing:border-box}
+.entregas-eventos-container{width:100%;max-width:1420px;margin:0 auto}
+.entregas-eventos-voltar{display:inline-flex;align-items:center;gap:7px;margin-bottom:18px;color:var(--ui-vinho,#8a334d);font-size:11px;font-weight:700;text-decoration:none}
+.entregas-eventos-voltar:hover{text-decoration:underline}
+.entregas-eventos-cabecalho{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;margin-bottom:24px}
+.entregas-eventos-eyebrow{display:inline-block;color:var(--ui-vinho,#8a334d);font-size:10px;font-weight:800;letter-spacing:1.1px}
+.entregas-eventos-titulo-wrap h1{margin:7px 0;color:var(--ui-vinho-escuro,#59283b);font-family:var(--ui-fonte-titulo,inherit);font-size:clamp(27px,3vw,36px);line-height:1.12;letter-spacing:-.8px}
+.entregas-eventos-titulo-wrap p{max-width:760px;margin:0;color:var(--ui-texto-secundario,#806b75);font-size:13px;line-height:1.65}
+.entregas-eventos-botao-atualizar{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:0 15px;color:var(--ui-vinho,#8a334d);background:var(--ui-superficie,#fff);border:1px solid var(--ui-borda,#ead6dc);border-radius:var(--ui-raio-md,9px);font-size:12px;font-weight:700;cursor:pointer;transition:var(--ui-transicao,160ms ease)}
+.entregas-eventos-botao-atualizar:hover:not(:disabled){background:var(--ui-rosa-claro,#faedf1);border-color:var(--ui-rosa-medio,#dba8b9)}
+.entregas-eventos-botao-atualizar:disabled{opacity:.6;cursor:wait}
+.entregas-eventos-girando{animation:entregas-eventos-girar .8s linear infinite}
+@keyframes entregas-eventos-girar{to{transform:rotate(360deg)}}
+.entregas-eventos-alerta{display:flex;align-items:center;gap:10px;margin-bottom:15px;padding:12px 14px;border:1px solid;border-radius:9px;font-size:11px;line-height:1.5}
+.entregas-eventos-alerta>svg{flex-shrink:0}
+.entregas-eventos-alerta-erro{color:var(--ui-erro,#a73343);background:#fff3f3;border-color:#f0c9ce}
+.entregas-eventos-alerta-aviso{align-items:flex-start;color:#80551d;background:#fff8e9;border-color:#ead8b6}
+.entregas-eventos-alerta-aviso div{display:grid;gap:3px}
+.entregas-eventos-alerta button{display:inline-flex;align-items:center;gap:6px;margin-left:auto;padding:5px 8px;color:inherit;background:transparent;border:0;font-size:10px;font-weight:700;cursor:pointer}
+.entregas-eventos-indicadores{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-bottom:19px}
+.entregas-eventos-indicador{display:flex;align-items:center;gap:12px;min-width:0;padding:17px 18px;background:var(--ui-superficie,#fff);border:1px solid var(--ui-borda,#ead6dc);border-radius:var(--ui-raio-lg,12px);box-shadow:var(--ui-sombra-sm,0 4px 14px rgba(75,37,52,.045))}
+.entregas-eventos-indicador-icone{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;color:var(--ui-vinho,#8a334d);background:var(--ui-rosa-claro,#faedf1);border:1px solid var(--ui-borda-suave,#f1e2e6);border-radius:10px}
+.entregas-eventos-indicador div{display:grid;gap:5px;min-width:0}
+.entregas-eventos-indicador small{color:var(--ui-texto-secundario,#806b75);font-size:10px}
+.entregas-eventos-indicador strong{color:var(--ui-texto,#38212d);font-size:22px;line-height:1.1}
+.entregas-eventos-painel{overflow:hidden;background:var(--ui-superficie,#fff);border:1px solid var(--ui-borda,#ead6dc);border-radius:var(--ui-raio-lg,12px);box-shadow:var(--ui-sombra-sm,0 5px 18px rgba(75,37,52,.045))}
+.entregas-eventos-painel-topo{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:21px 21px 17px;border-bottom:1px solid var(--ui-borda-suave,#f1e2e6)}
+.entregas-eventos-painel-topo h2{margin:5px 0;color:var(--ui-vinho-escuro,#59283b);font-size:18px;letter-spacing:-.25px}
+.entregas-eventos-painel-topo p{margin:0;color:var(--ui-texto-secundario,#806b75);font-size:11px;line-height:1.55}
+.entregas-eventos-contagem{flex-shrink:0;padding:6px 9px;color:var(--ui-vinho,#8a334d);background:var(--ui-rosa-claro,#faedf1);border-radius:7px;font-size:10px;font-weight:700}
+.entregas-eventos-filtros{display:flex;align-items:center;gap:9px;padding:14px 20px;background:var(--ui-superficie-suave,#fffafb);border-bottom:1px solid var(--ui-borda-suave,#f1e2e6)}
+.entregas-eventos-busca,.entregas-eventos-filtro{display:flex;align-items:center;gap:8px;height:39px;padding:0 11px;color:var(--ui-vinho,#8a334d);background:var(--ui-superficie,#fff);border:1px solid var(--ui-borda,#ead6dc);border-radius:8px}
+.entregas-eventos-busca{flex:1;min-width:180px}
+.entregas-eventos-busca:focus-within,.entregas-eventos-filtro:focus-within{border-color:var(--ui-rosa-medio,#dba8b9);box-shadow:0 0 0 3px rgba(191,103,139,.08)}
+.entregas-eventos-busca input{width:100%;min-width:0;height:100%;color:var(--ui-texto,#38212d);background:transparent;border:0;outline:0;font:inherit;font-size:11px}
+.entregas-eventos-busca input::placeholder{color:var(--ui-texto-claro,#9a818d)}
+.entregas-eventos-busca button{display:grid;place-items:center;padding:4px;color:var(--ui-texto-secundario,#806b75);background:transparent;border:0;cursor:pointer}
+.entregas-eventos-filtro select{max-width:220px;min-width:145px;color:var(--ui-texto,#38212d);background:transparent;border:0;outline:0;font-size:11px}
+.entregas-eventos-lista{padding:18px 20px 8px}
+.entregas-eventos-item{display:grid;grid-template-columns:25px minmax(0,1fr);gap:12px;min-height:116px}
+.entregas-eventos-linha-tempo{display:flex;flex-direction:column;align-items:center}
+.entregas-eventos-ponto{display:grid;place-items:center;flex:0 0 25px;width:25px;height:25px;color:var(--ui-vinho,#8a334d);background:var(--ui-rosa-claro,#faedf1);border:1px solid var(--ui-borda,#ead6dc);border-radius:50%}
+.entregas-eventos-linha{width:1px;flex:1;min-height:70px;margin:4px 0;background:var(--ui-borda,#ead6dc)}
+.entregas-eventos-cartao{min-width:0;margin-bottom:13px;padding:14px 16px;background:var(--ui-superficie,#fff);border:1px solid var(--ui-borda-suave,#f1e2e6);border-radius:10px;transition:background 150ms ease,border-color 150ms ease}
+.entregas-eventos-cartao:hover{background:var(--ui-superficie-suave,#fffafb);border-color:var(--ui-rosa-medio,#dba8b9)}
+.entregas-eventos-item-topo{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.entregas-eventos-item-titulo{display:flex;align-items:center;flex-wrap:wrap;gap:9px;min-width:0}
+.entregas-eventos-item-titulo>strong{color:var(--ui-texto,#38212d);font-size:12px;line-height:1.5}
+.entregas-eventos-item-topo time{flex-shrink:0;color:var(--ui-texto-secundario,#806b75);font-size:10px;white-space:nowrap}
+.entregas-eventos-status{display:inline-flex;align-items:center;max-width:180px;padding:4px 8px;border:1px solid transparent;border-radius:20px;font-size:9px;font-weight:750;white-space:nowrap}
+.entregas-eventos-status-entregue{color:#24734a;background:#edf8f1;border-color:#cce9d7}
+.entregas-eventos-status-cancelado{color:#a53d4b;background:#fff0f1;border-color:#f0d0d4}
+.entregas-eventos-status-transito{color:#8a5a16;background:#fff7e8;border-color:#f0dfb8}
+.entregas-eventos-status-pendente{color:#87516b;background:#fbf0f5;border-color:#ecd4df}
+.entregas-eventos-status-neutro{color:var(--ui-texto-secundario,#806b75);background:#f5f1f3;border-color:#e6dfe3}
+.entregas-eventos-metadados{display:flex;align-items:center;flex-wrap:wrap;gap:8px 17px;margin-top:11px}
+.entregas-eventos-metadados span{display:inline-flex;align-items:center;gap:5px;color:var(--ui-texto-secundario,#806b75);font-size:10px}
+.entregas-eventos-metadados svg{color:var(--ui-rosa,#bd678b)}
+.entregas-eventos-metadados strong{color:var(--ui-vinho-escuro,#59283b);font-weight:750}
+.entregas-eventos-id{display:block;margin-top:9px;color:var(--ui-texto-claro,#9a818d);font-size:9px}
+.entregas-eventos-estado{display:flex;align-items:center;justify-content:center;min-height:210px;color:var(--ui-texto-secundario,#806b75);font-size:12px}
+.entregas-eventos-spinner{display:inline-block;width:17px;height:17px;margin-right:9px;border:2px solid var(--ui-rosa-claro,#faedf1);border-top-color:var(--ui-vinho,#8a334d);border-radius:50%;animation:entregas-eventos-girar .8s linear infinite}
+.entregas-eventos-vazio{display:grid;justify-items:center;align-content:center;min-height:250px;padding:24px;text-align:center}
+.entregas-eventos-vazio-icone{display:grid;place-items:center;width:48px;height:48px;margin-bottom:12px;color:var(--ui-vinho,#8a334d);background:var(--ui-rosa-claro,#faedf1);border-radius:13px}
+.entregas-eventos-vazio>strong{color:var(--ui-vinho-escuro,#59283b);font-size:14px}
+.entregas-eventos-vazio p{margin:7px 0 0;color:var(--ui-texto-secundario,#806b75);font-size:11px;line-height:1.6}
+.entregas-eventos-vazio button{margin-top:13px;padding:7px 11px;color:var(--ui-vinho,#8a334d);background:var(--ui-superficie,#fff);border:1px solid var(--ui-borda,#ead6dc);border-radius:7px;font-size:10px;font-weight:700;cursor:pointer}
+.entregas-eventos-rodape{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 19px;color:var(--ui-texto-secundario,#806b75);background:var(--ui-superficie-suave,#fffafb);border-top:1px solid var(--ui-borda-suave,#f1e2e6);font-size:10px}
+.entregas-eventos-paginacao{display:flex;align-items:center;gap:10px}
+.entregas-eventos-paginacao span{white-space:nowrap}
+.entregas-eventos-paginacao strong{color:var(--ui-vinho,#8a334d)}
+.entregas-eventos-paginacao button{display:grid;place-items:center;width:29px;height:29px;color:var(--ui-vinho,#8a334d);background:var(--ui-superficie,#fff);border:1px solid var(--ui-borda,#ead6dc);border-radius:7px;cursor:pointer}
+.entregas-eventos-paginacao button:disabled{opacity:.4;cursor:not-allowed}
+.entregas-eventos-nota{display:flex;align-items:flex-start;gap:9px;margin-top:14px;padding:12px 14px;color:var(--ui-texto-secundario,#806b75);background:var(--ui-rosa-claro,#faedf1);border:1px solid var(--ui-borda-suave,#f1e2e6);border-radius:9px;font-size:10px;line-height:1.55}
+.entregas-eventos-nota svg{flex-shrink:0;margin-top:1px;color:var(--ui-vinho,#8a334d)}
+.entregas-eventos-nota p{margin:0}
+.entregas-eventos-nota strong{color:var(--ui-vinho-escuro,#59283b)}
+@media(max-width:900px){.entregas-eventos-indicadores{grid-template-columns:repeat(2,minmax(0,1fr))}.entregas-eventos-filtros{flex-wrap:wrap}.entregas-eventos-busca{flex-basis:100%}}
+@media(max-width:620px){.entregas-eventos-pagina{padding:21px 13px 32px}.entregas-eventos-cabecalho{align-items:flex-start;flex-direction:column}.entregas-eventos-botao-atualizar{width:100%}.entregas-eventos-indicadores{grid-template-columns:1fr}.entregas-eventos-painel-topo{align-items:flex-start;flex-direction:column;padding:17px 14px}.entregas-eventos-filtros{align-items:stretch;padding:12px;flex-direction:column}.entregas-eventos-busca{flex-basis:auto}.entregas-eventos-filtro select{max-width:none;width:100%;min-height:37px}.entregas-eventos-lista{padding:14px 11px 5px}.entregas-eventos-item{grid-template-columns:22px minmax(0,1fr);gap:8px}.entregas-eventos-ponto{width:22px;height:22px;flex-basis:22px}.entregas-eventos-cartao{padding:12px 11px}.entregas-eventos-item-topo{flex-direction:column;gap:7px}.entregas-eventos-item-topo time{white-space:normal}.entregas-eventos-rodape{align-items:flex-start;flex-direction:column}.entregas-eventos-paginacao{align-self:flex-end}}

@@ -1,0 +1,106 @@
+/* =========================================================
+   UNIVERSO IMPÉRIO — LAYOUT DA LOJA
+   Arquivo: src/app/layout.css
+
+   Estrutura externa compartilhada por todas as páginas.
+   As páginas e seções controlam suas próprias larguras.
+========================================================= */
+
+.layout-loja,
+.layout-loja *,
+.layout-loja *::before,
+.layout-loja *::after {
+  box-sizing: border-box;
+}
+
+.layout-loja {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 100vh;
+  min-height: 100svh;
+  margin: 0;
+  overflow-x: clip;
+
+  background: var(--ui-fundo);
+  color: var(--ui-texto);
+  font-family: var(--ui-fonte-base);
+}
+
+/* Navbar sempre no topo e fora do fluxo de conteúdo expansível. */
+.layout-loja > .navbar-pagina {
+  position: relative;
+  z-index: 100;
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+/* Área principal: ocupa o espaço entre Navbar e Footer. */
+.layout-loja__conteudo {
+  position: relative;
+  display: block;
+  flex: 1 0 auto;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+
+/* Evita que grids e flex filhos ampliem a página horizontalmente. */
+.layout-loja__conteudo > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+/*
+  IMPORTANTE:
+  Não aplique .container do Bootstrap no main global.
+  Uma página pode ter seu próprio container interno quando
+  precisar limitar a largura do conteúdo.
+*/
+
+/* Rodapé depois do conteúdo, sem encolher dentro do flex. */
+.layout-loja > footer,
+.layout-loja > .loja-footer,
+.layout-loja > .footer-loja,
+.layout-loja > [class*="footer"] {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-top: auto;
+}
+
+/* Foco visível consistente em toda a loja. */
+.layout-loja a:focus-visible,
+.layout-loja button:focus-visible,
+.layout-loja input:focus-visible,
+.layout-loja select:focus-visible,
+.layout-loja textarea:focus-visible {
+  outline: 2px solid var(--ui-rosa);
+  outline-offset: 3px;
+}
+
+/* Telas compactas: não força largura mínima de 320px. */
+@media screen and (max-width: 360px) {
+  .layout-loja {
+    min-width: 0;
+  }
+
+  .layout-loja__conteudo {
+    min-width: 0;
+  }
+}
+
+/* Dispositivos que oferecem viewport dinâmica. */
+@supports (min-height: 100dvh) {
+  .layout-loja {
+    min-height: 100dvh;
+  }
+}

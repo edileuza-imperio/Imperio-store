@@ -1,0 +1,1255 @@
+/* =========================================================
+   UNIVERSO IMPÉRIO
+   CADASTRO — E-COMMERCE PROFISSIONAL
+   Rosa queimado | Creme | Vinho
+========================================================= */
+
+/* =========================================================
+   01. VARIÁVEIS
+========================================================= */
+
+:root {
+  --cadastro-rosa: #bd7b85;
+  --cadastro-rosa-medio: #a96773;
+  --cadastro-rosa-escuro: #874653;
+  --cadastro-vinho: #683542;
+
+  --cadastro-rosa-claro: #efd4d3;
+  --cadastro-rosa-suave: #f8eae7;
+  --cadastro-rosa-palido: #fcf5f1;
+
+  --cadastro-creme: #fffaf4;
+  --cadastro-branco: #fffdf9;
+
+  --cadastro-texto: #45373a;
+  --cadastro-texto-secundario: #877779;
+
+  --cadastro-borda: #eadbd5;
+  --cadastro-borda-forte: #dcc2bc;
+
+  --cadastro-sombra:
+    0 30px 80px rgba(75, 39, 48, 0.13), 0 8px 24px rgba(75, 39, 48, 0.05);
+
+  --cadastro-transicao: 0.25s ease;
+}
+
+/* =========================================================
+   02. RESET E BASE
+========================================================= */
+
+.cadastro-page,
+.cadastro-page * {
+  box-sizing: border-box;
+}
+
+.cadastro-page {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+
+  padding: 36px 24px;
+
+  overflow: hidden;
+
+  color: var(--cadastro-texto);
+
+  font-family: var(--font-interface), sans-serif;
+
+  background:
+    radial-gradient(
+      ellipse at 5% 10%,
+      rgba(189, 123, 133, 0.13),
+      transparent 35%
+    ),
+    radial-gradient(
+      ellipse at 95% 90%,
+      rgba(104, 53, 66, 0.09),
+      transparent 36%
+    ),
+    linear-gradient(135deg, #fbf6f0 0%, #f6eee8 52%, #fbf5f0 100%);
+}
+
+/* =========================================================
+   03. DECORAÇÕES DE FUNDO
+========================================================= */
+
+.cadastro-page__decoracao {
+  position: absolute;
+
+  border: 1px solid rgba(135, 70, 83, 0.09);
+  border-radius: 50%;
+
+  pointer-events: none;
+}
+
+.cadastro-page__decoracao--um {
+  top: -210px;
+  left: -170px;
+
+  width: 490px;
+  height: 490px;
+
+  box-shadow:
+    0 0 0 35px rgba(135, 70, 83, 0.018),
+    0 0 0 70px rgba(135, 70, 83, 0.012);
+}
+
+.cadastro-page__decoracao--dois {
+  right: -220px;
+  bottom: -220px;
+
+  width: 550px;
+  height: 550px;
+
+  box-shadow:
+    0 0 0 35px rgba(135, 70, 83, 0.018),
+    0 0 0 70px rgba(135, 70, 83, 0.012);
+}
+
+/* =========================================================
+   04. CARTÃO PRINCIPAL
+========================================================= */
+
+.cadastro-container {
+  position: relative;
+  z-index: 1;
+
+  display: grid;
+
+  grid-template-columns: 0.88fr 1.12fr;
+
+  width: 100%;
+  max-width: 1120px;
+
+  min-height: 690px;
+
+  overflow: hidden;
+
+  background: var(--cadastro-branco);
+
+  border: 1px solid rgba(135, 70, 83, 0.09);
+  border-radius: 18px;
+
+  box-shadow: var(--cadastro-sombra);
+}
+
+/* =========================================================
+   05. PAINEL INSTITUCIONAL
+========================================================= */
+
+.cadastro-apresentacao {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  min-width: 0;
+
+  padding: 39px 43px;
+
+  overflow: hidden;
+
+  color: #fff;
+
+  background:
+    radial-gradient(
+      circle at 90% 10%,
+      rgba(255, 255, 255, 0.15),
+      transparent 33%
+    ),
+    linear-gradient(145deg, #62313e 0%, #874653 52%, #ad6875 100%);
+}
+
+.cadastro-apresentacao::before,
+.cadastro-apresentacao::after {
+  content: "";
+
+  position: absolute;
+
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 50%;
+
+  pointer-events: none;
+}
+
+.cadastro-apresentacao::before {
+  right: -135px;
+  bottom: -170px;
+
+  width: 410px;
+  height: 410px;
+
+  box-shadow:
+    0 0 0 35px rgba(255, 255, 255, 0.025),
+    0 0 0 70px rgba(255, 255, 255, 0.018);
+}
+
+.cadastro-apresentacao::after {
+  top: 38%;
+  left: -190px;
+
+  width: 300px;
+  height: 300px;
+
+  border-color: rgba(255, 255, 255, 0.065);
+}
+
+/* =========================================================
+   06. VOLTAR PARA A LOJA
+========================================================= */
+
+.cadastro-apresentacao__voltar {
+  position: relative;
+  z-index: 2;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 9px;
+
+  width: fit-content;
+  padding: 8px 0;
+
+  color: rgba(255, 255, 255, 0.83);
+
+  font-size: 12px;
+  font-weight: 500;
+
+  text-decoration: none;
+
+  transition:
+    color var(--cadastro-transicao),
+    gap var(--cadastro-transicao);
+}
+
+.cadastro-apresentacao__voltar:hover {
+  color: #fff;
+  gap: 13px;
+}
+
+/* =========================================================
+   07. IDENTIDADE DA MARCA
+========================================================= */
+
+.cadastro-apresentacao__conteudo {
+  position: relative;
+  z-index: 1;
+
+  width: 100%;
+  max-width: 400px;
+
+  margin: auto 0;
+  padding: 35px 0;
+}
+
+.cadastro-apresentacao__legenda {
+  display: block;
+
+  margin-bottom: 17px;
+
+  color: rgba(255, 255, 255, 0.74);
+
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 4px;
+}
+
+.cadastro-apresentacao__conteudo h1 {
+  display: flex;
+  flex-direction: column;
+
+  margin: 0;
+
+  color: #fff;
+
+  font-family: var(--font-marca), Georgia, serif;
+  font-size: clamp(52px, 5vw, 68px);
+  font-weight: 500;
+
+  letter-spacing: -1px;
+  line-height: 0.99;
+}
+
+.cadastro-apresentacao__conteudo h1 strong {
+  color: #f3d9d6;
+  font-weight: 600;
+}
+
+.cadastro-apresentacao__linha {
+  width: 52px;
+  height: 2px;
+
+  margin: 24px 0;
+
+  background: #e6c1c1;
+}
+
+.cadastro-apresentacao__conteudo > p {
+  max-width: 350px;
+
+  margin: 0;
+
+  color: rgba(255, 255, 255, 0.85);
+
+  font-size: 13px;
+  line-height: 1.85;
+}
+
+/* =========================================================
+   08. BENEFÍCIOS
+========================================================= */
+
+.cadastro-apresentacao__beneficios {
+  display: flex;
+  flex-direction: column;
+
+  gap: 11px;
+
+  margin-top: 30px;
+}
+
+.cadastro-apresentacao__beneficio {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 11px;
+
+  background: rgba(255, 255, 255, 0.075);
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+
+  transition:
+    background var(--cadastro-transicao),
+    transform var(--cadastro-transicao);
+}
+
+.cadastro-apresentacao__beneficio:hover {
+  background: rgba(255, 255, 255, 0.14);
+  transform: translateX(3px);
+}
+
+.cadastro-apresentacao__beneficio-icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  width: 39px;
+  height: 39px;
+
+  color: #fff;
+
+  background: rgba(255, 255, 255, 0.13);
+
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+}
+
+.cadastro-apresentacao__beneficio > div {
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+}
+
+.cadastro-apresentacao__beneficio strong {
+  color: #fff;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.cadastro-apresentacao__beneficio span {
+  color: rgba(255, 255, 255, 0.75);
+
+  font-size: 9px;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   09. RODAPÉ INSTITUCIONAL
+========================================================= */
+
+.cadastro-apresentacao__rodape {
+  position: relative;
+  z-index: 1;
+
+  color: rgba(255, 255, 255, 0.6);
+
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 3px;
+}
+
+/* =========================================================
+   10. PAINEL DO FORMULÁRIO
+========================================================= */
+
+.cadastro-formulario {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  min-width: 0;
+
+  padding: 31px 55px 23px;
+
+  background: linear-gradient(145deg, #fffefb 0%, #fffaf6 100%);
+}
+
+/* =========================================================
+   11. MARCA SUPERIOR
+========================================================= */
+
+.cadastro-formulario__topo {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.cadastro-formulario__marca {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+
+  line-height: 0.9;
+}
+
+.cadastro-formulario__marca-legenda {
+  margin-bottom: 5px;
+
+  color: var(--cadastro-rosa-medio);
+
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 4px;
+}
+
+.cadastro-formulario__marca strong {
+  color: var(--cadastro-vinho);
+
+  font-family: var(--font-marca), Georgia, serif;
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+/* =========================================================
+   12. CONTEÚDO CENTRAL
+========================================================= */
+
+.cadastro-formulario__conteudo {
+  width: 100%;
+  max-width: 460px;
+
+  margin: auto;
+  padding: 24px 0;
+}
+
+/* =========================================================
+   13. TÍTULO
+========================================================= */
+
+.cadastro-formulario__titulo {
+  margin-bottom: 25px;
+}
+
+.cadastro-formulario__boas-vindas {
+  display: block;
+
+  margin-bottom: 10px;
+
+  color: var(--cadastro-rosa-medio);
+
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2.2px;
+}
+
+.cadastro-formulario__titulo h2 {
+  margin: 0;
+
+  color: var(--cadastro-vinho);
+
+  font-family: var(--font-marca), Georgia, serif;
+  font-size: clamp(31px, 3vw, 38px);
+  font-weight: 600;
+
+  letter-spacing: -0.3px;
+  line-height: 1.13;
+}
+
+.cadastro-formulario__titulo p {
+  margin: 9px 0 0;
+
+  color: var(--cadastro-texto-secundario);
+
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* =========================================================
+   14. FORMULÁRIO EM GRADE
+========================================================= */
+
+.cadastro-form {
+  display: grid;
+
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  align-items: start;
+
+  column-gap: 16px;
+  row-gap: 17px;
+}
+
+.cadastro-form__grupo {
+  display: flex;
+  flex-direction: column;
+
+  min-width: 0;
+  gap: 7px;
+}
+
+.cadastro-form__grupo--total {
+  grid-column: 1 / -1;
+}
+
+.cadastro-form__grupo > label {
+  color: var(--cadastro-texto);
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* =========================================================
+   15. CAMPOS
+========================================================= */
+
+.cadastro-form__campo {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+  height: 47px;
+
+  padding: 0 12px;
+
+  background: #fff;
+
+  border: 1px solid var(--cadastro-borda);
+  border-radius: 8px;
+
+  transition:
+    border-color var(--cadastro-transicao),
+    box-shadow var(--cadastro-transicao),
+    background var(--cadastro-transicao);
+}
+
+.cadastro-form__campo:hover {
+  border-color: var(--cadastro-borda-forte);
+}
+
+.cadastro-form__campo:focus-within {
+  background: #fff;
+
+  border-color: var(--cadastro-rosa-medio);
+
+  box-shadow: 0 0 0 3px rgba(184, 117, 128, 0.11);
+}
+
+.cadastro-form__icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  margin-right: 10px;
+
+  color: var(--cadastro-rosa-medio);
+}
+
+.cadastro-form__icone svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.8;
+}
+
+.cadastro-form__campo input {
+  display: block;
+
+  flex: 1;
+
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+
+  margin: 0;
+  padding: 0;
+
+  color: var(--cadastro-texto);
+  background: transparent;
+
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  font-family: var(--font-interface), sans-serif;
+  font-size: 11px;
+  line-height: normal;
+}
+
+.cadastro-form__campo input::placeholder {
+  color: #b1a2a0;
+  opacity: 1;
+}
+
+.cadastro-form__campo input:focus,
+.cadastro-form__campo input:focus-visible,
+.cadastro-form__campo input:active {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* =========================================================
+   16. ESTADO DA CONFIRMAÇÃO DE SENHA
+========================================================= */
+
+.cadastro-form__campo.is-valid {
+  border-color: #76a58b;
+}
+
+.cadastro-form__campo.is-valid:focus-within {
+  box-shadow: 0 0 0 3px rgba(76, 150, 103, 0.1);
+}
+
+.cadastro-form__campo.is-invalid {
+  border-color: #d17e82;
+}
+
+.cadastro-form__campo.is-invalid:focus-within {
+  box-shadow: 0 0 0 3px rgba(209, 126, 130, 0.1);
+}
+
+/* =========================================================
+   17. MOSTRAR SENHA
+========================================================= */
+
+.cadastro-form__mostrar-senha {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  width: 32px;
+  height: 32px;
+
+  padding: 0;
+
+  color: var(--cadastro-texto-secundario);
+  background: transparent;
+
+  border: none;
+  border-radius: 6px;
+
+  cursor: pointer;
+
+  transition:
+    color var(--cadastro-transicao),
+    background var(--cadastro-transicao);
+}
+
+.cadastro-form__mostrar-senha:hover {
+  color: var(--cadastro-vinho);
+  background: var(--cadastro-rosa-suave);
+}
+
+.cadastro-form__mostrar-senha svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* =========================================================
+   18. AJUDA E ESTADOS
+========================================================= */
+
+.cadastro-form__ajuda {
+  color: var(--cadastro-texto-secundario);
+
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.cadastro-form__estado {
+  display: flex;
+  align-items: center;
+
+  gap: 5px;
+
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.cadastro-form__estado--sucesso {
+  color: #488561;
+}
+
+.cadastro-form__estado--erro {
+  color: #ac4f59;
+}
+
+/* =========================================================
+   19. TERMOS
+========================================================= */
+
+.cadastro-form__termos {
+  position: relative;
+
+  grid-column: 1 / -1;
+
+  display: flex;
+  align-items: flex-start;
+
+  gap: 10px;
+
+  margin-top: 2px;
+
+  color: var(--cadastro-texto-secundario);
+
+  font-size: 10px;
+  line-height: 1.7;
+
+  cursor: pointer;
+}
+
+.cadastro-form__termos input {
+  position: absolute;
+
+  width: 1px;
+  height: 1px;
+
+  opacity: 0;
+}
+
+.cadastro-form__checkbox-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  width: 17px;
+  height: 17px;
+
+  margin-top: 1px;
+
+  background: #fff;
+
+  border: 1px solid #d8c4c0;
+  border-radius: 4px;
+
+  transition:
+    background var(--cadastro-transicao),
+    border-color var(--cadastro-transicao);
+}
+
+.cadastro-form__checkbox-visual::after {
+  content: "";
+
+  width: 8px;
+  height: 5px;
+
+  border-left: 2px solid white;
+  border-bottom: 2px solid white;
+
+  transform: rotate(-45deg) scale(0);
+
+  transition: transform 0.15s ease;
+}
+
+.cadastro-form__termos input:checked + .cadastro-form__checkbox-visual {
+  background: var(--cadastro-vinho);
+  border-color: var(--cadastro-vinho);
+}
+
+.cadastro-form__termos input:checked + .cadastro-form__checkbox-visual::after {
+  transform: rotate(-45deg) scale(1);
+}
+
+.cadastro-form__termos input:focus-visible + .cadastro-form__checkbox-visual {
+  outline: 2px solid var(--cadastro-rosa);
+  outline-offset: 3px;
+}
+
+.cadastro-form__termos a {
+  color: var(--cadastro-rosa-escuro);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.cadastro-form__termos a:hover {
+  color: var(--cadastro-vinho);
+  text-decoration: underline;
+}
+
+/* =========================================================
+   20. ERRO
+========================================================= */
+
+.cadastro-form__erro {
+  grid-column: 1 / -1;
+
+  display: flex;
+  align-items: flex-start;
+
+  gap: 9px;
+
+  padding: 11px 12px;
+
+  color: #a53f4c;
+  background: #fff0ef;
+
+  border: 1px solid #f1d1ce;
+  border-radius: 7px;
+
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.cadastro-form__erro svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* =========================================================
+   21. BOTÃO DE CADASTRO
+========================================================= */
+
+.cadastro-form__botao {
+  grid-column: 1 / -1;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 12px;
+
+  width: 100%;
+  min-height: 49px;
+
+  margin-top: 2px;
+  padding: 12px 18px;
+
+  color: #fff;
+
+  background: linear-gradient(115deg, #bd7b85 0%, #874653 65%, #683542 100%);
+
+  border: 1px solid rgba(104, 53, 66, 0.12);
+  border-radius: 8px;
+
+  font-family: var(--font-interface), sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+
+  cursor: pointer;
+
+  box-shadow: 0 5px 14px rgba(135, 70, 83, 0.17);
+
+  transition:
+    transform var(--cadastro-transicao),
+    box-shadow var(--cadastro-transicao),
+    filter var(--cadastro-transicao);
+}
+
+.cadastro-form__botao:hover {
+  filter: brightness(0.96);
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 9px 20px rgba(104, 53, 66, 0.22);
+}
+
+.cadastro-form__botao:active {
+  transform: translateY(0);
+}
+
+.cadastro-form__botao svg {
+  width: 19px;
+  height: 19px;
+
+  transition: transform var(--cadastro-transicao);
+}
+
+.cadastro-form__botao:hover svg {
+  transform: translateX(4px);
+}
+
+/* =========================================================
+   22. LINK PARA LOGIN
+========================================================= */
+
+.cadastro-formulario__login {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-wrap: wrap;
+  gap: 5px;
+
+  margin-top: 22px;
+
+  color: var(--cadastro-texto-secundario);
+
+  font-size: 11px;
+}
+
+.cadastro-formulario__login a {
+  color: var(--cadastro-rosa-escuro);
+
+  font-weight: 700;
+  text-decoration: none;
+
+  transition: color var(--cadastro-transicao);
+}
+
+.cadastro-formulario__login a:hover {
+  color: var(--cadastro-vinho);
+  text-decoration: underline;
+}
+
+/* =========================================================
+   23. RODAPÉ
+========================================================= */
+
+.cadastro-formulario__rodape {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 9px;
+
+  padding-top: 16px;
+
+  color: #a39491;
+
+  border-top: 1px solid #efe5e0;
+
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.cadastro-formulario__rodape svg {
+  width: 15px;
+  height: 15px;
+
+  color: var(--cadastro-rosa-medio);
+}
+
+/* =========================================================
+   24. NOTEBOOKS E TABLETS
+========================================================= */
+
+@media (max-width: 950px) {
+  .cadastro-page {
+    padding: 25px 18px;
+  }
+
+  .cadastro-container {
+    max-width: 850px;
+    min-height: 690px;
+
+    grid-template-columns: 0.83fr 1.17fr;
+  }
+
+  .cadastro-apresentacao {
+    padding: 30px 25px;
+  }
+
+  .cadastro-apresentacao__conteudo h1 {
+    font-size: 49px;
+  }
+
+  .cadastro-apresentacao__beneficios {
+    gap: 8px;
+    margin-top: 22px;
+  }
+
+  .cadastro-apresentacao__beneficio {
+    padding: 9px;
+  }
+
+  .cadastro-formulario {
+    padding: 27px 30px 21px;
+  }
+
+  .cadastro-formulario__conteudo {
+    max-width: 440px;
+  }
+
+  .cadastro-formulario__titulo h2 {
+    font-size: 32px;
+  }
+
+  .cadastro-form {
+    column-gap: 12px;
+    row-gap: 14px;
+  }
+}
+
+/* =========================================================
+   25. CELULARES
+========================================================= */
+
+@media (max-width: 650px) {
+  .cadastro-page {
+    align-items: flex-start;
+
+    min-height: 100vh;
+    min-height: 100dvh;
+
+    padding: 15px 12px;
+  }
+
+  .cadastro-container {
+    display: flex;
+    flex-direction: column;
+
+    width: 100%;
+    max-width: 460px;
+
+    min-height: auto;
+
+    border-radius: 14px;
+  }
+
+  /* APRESENTAÇÃO */
+
+  .cadastro-apresentacao {
+    min-height: 195px;
+
+    padding: 20px 23px;
+  }
+
+  .cadastro-apresentacao__conteudo {
+    margin: 20px 0 14px;
+    padding: 0;
+  }
+
+  .cadastro-apresentacao__legenda {
+    margin-bottom: 9px;
+
+    font-size: 8px;
+    letter-spacing: 3px;
+  }
+
+  .cadastro-apresentacao__conteudo h1 {
+    font-size: 39px;
+  }
+
+  .cadastro-apresentacao__linha {
+    width: 38px;
+    margin: 13px 0;
+  }
+
+  .cadastro-apresentacao__conteudo > p {
+    max-width: 310px;
+
+    font-size: 11px;
+    line-height: 1.65;
+  }
+
+  .cadastro-apresentacao__beneficios {
+    display: none;
+  }
+
+  .cadastro-apresentacao__rodape {
+    font-size: 8px;
+  }
+
+  /* FORMULÁRIO */
+
+  .cadastro-formulario {
+    padding: 20px 23px 18px;
+  }
+
+  .cadastro-formulario__topo {
+    display: none;
+  }
+
+  .cadastro-formulario__conteudo {
+    max-width: none;
+    padding: 16px 0 21px;
+  }
+
+  .cadastro-formulario__titulo {
+    margin-bottom: 22px;
+  }
+
+  .cadastro-formulario__titulo h2 {
+    font-size: 31px;
+  }
+
+  .cadastro-formulario__titulo p {
+    font-size: 11px;
+  }
+
+  /* Uma coluna no celular */
+
+  .cadastro-form {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 15px;
+  }
+
+  .cadastro-form__grupo,
+  .cadastro-form__grupo--total {
+    grid-column: 1;
+  }
+
+  .cadastro-form__campo {
+    height: 46px;
+  }
+
+  .cadastro-form__termos,
+  .cadastro-form__erro,
+  .cadastro-form__botao {
+    grid-column: 1;
+  }
+
+  .cadastro-formulario__login {
+    margin-top: 20px;
+  }
+
+  .cadastro-formulario__rodape {
+    padding-top: 14px;
+    font-size: 9px;
+  }
+}
+
+/* =========================================================
+   26. CELULARES PEQUENOS
+========================================================= */
+
+@media (max-width: 380px) {
+  .cadastro-page {
+    padding: 9px 8px;
+  }
+
+  .cadastro-apresentacao {
+    min-height: 175px;
+    padding: 17px 18px;
+  }
+
+  .cadastro-apresentacao__conteudo h1 {
+    font-size: 35px;
+  }
+
+  .cadastro-formulario {
+    padding: 17px 17px 15px;
+  }
+
+  .cadastro-formulario__titulo h2 {
+    font-size: 28px;
+  }
+
+  .cadastro-form__grupo > label {
+    font-size: 11px;
+  }
+
+  .cadastro-form__campo {
+    height: 44px;
+    padding: 0 11px;
+  }
+
+  .cadastro-form__campo input {
+    font-size: 11px;
+  }
+
+  .cadastro-form__termos {
+    font-size: 9px;
+  }
+}
+
+/* =========================================================
+   27. TELAS COM POUCA ALTURA
+========================================================= */
+
+@media (min-width: 651px) and (max-height: 780px) {
+  .cadastro-page {
+    align-items: flex-start;
+    padding-top: 18px;
+    padding-bottom: 18px;
+  }
+
+  .cadastro-container {
+    min-height: 690px;
+  }
+
+  .cadastro-apresentacao__conteudo {
+    padding: 20px 0;
+  }
+
+  .cadastro-apresentacao__beneficios {
+    margin-top: 21px;
+  }
+
+  .cadastro-formulario__conteudo {
+    padding: 16px 0;
+  }
+
+  .cadastro-formulario__titulo {
+    margin-bottom: 19px;
+  }
+
+  .cadastro-form {
+    row-gap: 12px;
+  }
+}
+
+/* =========================================================
+   28. ACESSIBILIDADE
+========================================================= */
+
+.cadastro-page a:focus-visible,
+.cadastro-page button:focus-visible {
+  outline: 2px solid var(--cadastro-rosa-escuro);
+  outline-offset: 3px;
+}
+
+.cadastro-form__campo input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* =========================================================
+   29. REDUÇÃO DE MOVIMENTO
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .cadastro-page *,
+  .cadastro-page *::before,
+  .cadastro-page *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

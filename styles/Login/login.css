@@ -1,0 +1,1171 @@
+/* =========================================================
+   UNIVERSO IMPÉRIO
+   LOGIN — E-COMMERCE PREMIUM
+   Rosa queimado | Creme | Vinho
+========================================================= */
+
+/* =========================================================
+   01. DESIGN TOKENS
+========================================================= */
+
+:root {
+  --login-rosa: #bd7b85;
+  --login-rosa-medio: #a96773;
+  --login-rosa-escuro: #874653;
+  --login-vinho: #683542;
+
+  --login-rosa-claro: #efd4d3;
+  --login-rosa-suave: #f8eae7;
+  --login-rosa-palido: #fcf5f1;
+
+  --login-creme: #fffaf4;
+  --login-branco: #fffdf9;
+
+  --login-texto: #45373a;
+  --login-texto-secundario: #877779;
+
+  --login-borda: #eadbd5;
+  --login-borda-forte: #dcc2bc;
+
+  --login-radius: 18px;
+
+  --login-sombra:
+    0 30px 80px rgba(75, 39, 48, 0.13), 0 8px 24px rgba(75, 39, 48, 0.05);
+
+  --login-transicao: 0.25s ease;
+}
+
+/* =========================================================
+   02. RESET E BASE
+========================================================= */
+
+.login-page,
+.login-page * {
+  box-sizing: border-box;
+}
+
+.login-page {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+
+  padding: 42px 26px;
+
+  overflow: hidden;
+
+  color: var(--login-texto);
+
+  font-family: var(--font-interface), sans-serif;
+
+  background:
+    radial-gradient(
+      ellipse at 5% 10%,
+      rgba(189, 123, 133, 0.13),
+      transparent 35%
+    ),
+    radial-gradient(
+      ellipse at 95% 90%,
+      rgba(104, 53, 66, 0.09),
+      transparent 36%
+    ),
+    linear-gradient(135deg, #fbf6f0 0%, #f6eee8 52%, #fbf5f0 100%);
+}
+
+/* =========================================================
+   03. DECORAÇÕES DO FUNDO
+========================================================= */
+
+.login-page__decoracao {
+  position: absolute;
+
+  border: 1px solid rgba(135, 70, 83, 0.09);
+  border-radius: 50%;
+
+  pointer-events: none;
+}
+
+.login-page__decoracao--um {
+  top: -210px;
+  left: -170px;
+
+  width: 490px;
+  height: 490px;
+
+  box-shadow:
+    0 0 0 35px rgba(135, 70, 83, 0.018),
+    0 0 0 70px rgba(135, 70, 83, 0.012);
+}
+
+.login-page__decoracao--dois {
+  right: -220px;
+  bottom: -220px;
+
+  width: 550px;
+  height: 550px;
+
+  box-shadow:
+    0 0 0 35px rgba(135, 70, 83, 0.018),
+    0 0 0 70px rgba(135, 70, 83, 0.012);
+}
+
+/* =========================================================
+   04. CARTÃO PRINCIPAL
+========================================================= */
+
+.login-container {
+  position: relative;
+  z-index: 1;
+
+  display: grid;
+
+  grid-template-columns: 0.91fr 1.09fr;
+
+  width: 100%;
+  max-width: 1080px;
+
+  min-height: 630px;
+
+  overflow: hidden;
+
+  background: var(--login-branco);
+
+  border: 1px solid rgba(135, 70, 83, 0.09);
+  border-radius: var(--login-radius);
+
+  box-shadow: var(--login-sombra);
+}
+
+/* =========================================================
+   05. PAINEL INSTITUCIONAL
+========================================================= */
+
+.login-apresentacao {
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  min-width: 0;
+
+  padding: 38px 43px;
+
+  overflow: hidden;
+
+  color: #fff;
+
+  background:
+    radial-gradient(
+      circle at 90% 10%,
+      rgba(255, 255, 255, 0.15),
+      transparent 33%
+    ),
+    linear-gradient(145deg, #62313e 0%, #874653 52%, #ad6875 100%);
+}
+
+/* Formas decorativas */
+
+.login-apresentacao::before,
+.login-apresentacao::after {
+  content: "";
+
+  position: absolute;
+
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 50%;
+
+  pointer-events: none;
+}
+
+.login-apresentacao::before {
+  right: -135px;
+  bottom: -170px;
+
+  width: 410px;
+  height: 410px;
+
+  box-shadow:
+    0 0 0 35px rgba(255, 255, 255, 0.025),
+    0 0 0 70px rgba(255, 255, 255, 0.018);
+}
+
+.login-apresentacao::after {
+  top: 38%;
+  left: -190px;
+
+  width: 300px;
+  height: 300px;
+
+  border-color: rgba(255, 255, 255, 0.065);
+}
+
+/* =========================================================
+   06. LINK VOLTAR
+========================================================= */
+
+.login-apresentacao__voltar {
+  position: relative;
+  z-index: 2;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 9px;
+
+  width: fit-content;
+
+  padding: 8px 0;
+
+  color: rgba(255, 255, 255, 0.83);
+
+  font-size: 12px;
+  font-weight: 500;
+
+  text-decoration: none;
+
+  transition:
+    color var(--login-transicao),
+    gap var(--login-transicao);
+}
+
+.login-apresentacao__voltar:hover {
+  color: #fff;
+  gap: 13px;
+}
+
+.login-apresentacao__voltar svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* =========================================================
+   07. APRESENTAÇÃO DA MARCA
+========================================================= */
+
+.login-apresentacao__conteudo {
+  position: relative;
+  z-index: 1;
+
+  width: 100%;
+  max-width: 390px;
+
+  margin: auto 0;
+  padding: 48px 0;
+}
+
+.login-apresentacao__legenda {
+  display: block;
+
+  margin-bottom: 17px;
+
+  color: rgba(255, 255, 255, 0.74);
+
+  font-size: 10px;
+  font-weight: 700;
+
+  letter-spacing: 4px;
+  text-transform: uppercase;
+}
+
+.login-apresentacao__conteudo h1 {
+  display: flex;
+  flex-direction: column;
+
+  margin: 0;
+
+  color: #fff;
+
+  font-family: var(--font-marca), Georgia, serif;
+  font-size: clamp(52px, 5vw, 68px);
+  font-weight: 500;
+
+  letter-spacing: -1px;
+  line-height: 0.99;
+}
+
+.login-apresentacao__conteudo h1 strong {
+  color: #f3d9d6;
+  font-weight: 600;
+}
+
+.login-apresentacao__linha {
+  width: 52px;
+  height: 2px;
+
+  margin: 25px 0;
+
+  background: #e6c1c1;
+}
+
+.login-apresentacao__conteudo > p {
+  max-width: 350px;
+
+  margin: 0;
+
+  color: rgba(255, 255, 255, 0.85);
+
+  font-size: 13px;
+  font-weight: 400;
+
+  line-height: 1.9;
+}
+
+/* =========================================================
+   08. DESTAQUE INSTITUCIONAL
+========================================================= */
+
+.login-apresentacao__destaque {
+  display: flex;
+  align-items: center;
+
+  gap: 14px;
+
+  margin-top: 40px;
+  padding: 16px;
+
+  background: rgba(255, 255, 255, 0.095);
+
+  border: 1px solid rgba(255, 255, 255, 0.17);
+  border-radius: 11px;
+
+  backdrop-filter: blur(8px);
+
+  transition:
+    background var(--login-transicao),
+    transform var(--login-transicao);
+}
+
+.login-apresentacao__destaque:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+}
+
+.login-apresentacao__destaque-icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  width: 44px;
+  height: 44px;
+
+  color: #fff;
+
+  background: rgba(255, 255, 255, 0.14);
+
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 10px;
+}
+
+.login-apresentacao__destaque > div:last-child {
+  display: flex;
+  flex-direction: column;
+
+  gap: 5px;
+}
+
+.login-apresentacao__destaque strong {
+  color: #fff;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.login-apresentacao__destaque span {
+  color: rgba(255, 255, 255, 0.77);
+
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   09. RODAPÉ INSTITUCIONAL
+========================================================= */
+
+.login-apresentacao__rodape {
+  position: relative;
+  z-index: 1;
+
+  color: rgba(255, 255, 255, 0.6);
+
+  font-size: 9px;
+  font-weight: 700;
+
+  letter-spacing: 3px;
+}
+
+/* =========================================================
+   10. PAINEL DO FORMULÁRIO
+========================================================= */
+
+.login-formulario {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+
+  min-width: 0;
+
+  padding: 34px 58px 24px;
+
+  background: linear-gradient(145deg, #fffefb 0%, #fffaf6 100%);
+}
+
+/* =========================================================
+   11. MARCA SUPERIOR
+========================================================= */
+
+.login-formulario__topo {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.login-formulario__marca {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+
+  line-height: 0.9;
+}
+
+.login-formulario__marca-legenda {
+  margin-bottom: 5px;
+
+  color: var(--login-rosa-medio);
+
+  font-size: 8px;
+  font-weight: 700;
+
+  letter-spacing: 4px;
+}
+
+.login-formulario__marca strong {
+  color: var(--login-vinho);
+
+  font-family: var(--font-marca), Georgia, serif;
+  font-size: 25px;
+  font-weight: 600;
+
+  letter-spacing: 1px;
+}
+
+/* =========================================================
+   12. CONTEÚDO CENTRAL DO LOGIN
+========================================================= */
+
+.login-formulario__conteudo {
+  width: 100%;
+  max-width: 405px;
+
+  margin: auto;
+  padding: 39px 0;
+}
+
+/* =========================================================
+   13. TÍTULO
+========================================================= */
+
+.login-formulario__titulo {
+  margin-bottom: 31px;
+}
+
+.login-formulario__boas-vindas {
+  display: block;
+
+  margin-bottom: 12px;
+
+  color: var(--login-rosa-medio);
+
+  font-size: 10px;
+  font-weight: 700;
+
+  letter-spacing: 2.2px;
+}
+
+.login-formulario__titulo h2 {
+  margin: 0;
+
+  color: var(--login-vinho);
+
+  font-family: var(--font-marca), Georgia, serif;
+  font-size: clamp(31px, 3vw, 38px);
+  font-weight: 600;
+
+  letter-spacing: -0.3px;
+  line-height: 1.13;
+}
+
+.login-formulario__titulo p {
+  margin: 11px 0 0;
+
+  color: var(--login-texto-secundario);
+
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+/* =========================================================
+   14. FORMULÁRIO
+========================================================= */
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+
+  gap: 21px;
+}
+
+.login-form__grupo {
+  display: flex;
+  flex-direction: column;
+
+  gap: 8px;
+}
+
+.login-form__grupo > label {
+  color: var(--login-texto);
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* =========================================================
+   15. CAMPOS
+========================================================= */
+
+.login-form__campo {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+
+  width: 100%;
+  height: 49px;
+
+  padding: 0 14px;
+
+  background: #fff;
+
+  border: 1px solid var(--login-borda);
+  border-radius: 8px;
+
+  transition:
+    border-color var(--login-transicao),
+    box-shadow var(--login-transicao),
+    background var(--login-transicao);
+}
+
+.login-form__campo:hover {
+  border-color: var(--login-borda-forte);
+}
+
+.login-form__campo:focus-within {
+  background: #fff;
+
+  border-color: var(--login-rosa-medio);
+
+  box-shadow: 0 0 0 3px rgba(184, 117, 128, 0.11);
+}
+
+/* Ícone do campo */
+
+.login-form__icone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  margin-right: 12px;
+
+  color: var(--login-rosa-medio);
+}
+
+.login-form__icone svg {
+  width: 19px;
+  height: 19px;
+
+  stroke-width: 1.8;
+}
+
+/* Input */
+
+.login-form__campo input {
+  display: block;
+
+  flex: 1;
+
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+
+  margin: 0;
+  padding: 0;
+
+  color: var(--login-texto);
+  background: transparent;
+
+  border: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  font-family: var(--font-interface), sans-serif;
+  font-size: 12px;
+  line-height: normal;
+}
+
+.login-form__campo input::placeholder {
+  color: #b1a2a0;
+  opacity: 1;
+}
+
+/* Corrige o contorno duplicado do input */
+
+.login-form__campo input:focus,
+.login-form__campo input:focus-visible,
+.login-form__campo input:active {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* =========================================================
+   16. MOSTRAR E OCULTAR SENHA
+========================================================= */
+
+.login-form__mostrar-senha {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  width: 34px;
+  height: 34px;
+
+  padding: 0;
+
+  color: var(--login-texto-secundario);
+  background: transparent;
+
+  border: none;
+  border-radius: 6px;
+
+  cursor: pointer;
+
+  transition:
+    color var(--login-transicao),
+    background var(--login-transicao);
+}
+
+.login-form__mostrar-senha:hover {
+  color: var(--login-vinho);
+  background: var(--login-rosa-suave);
+}
+
+.login-form__mostrar-senha svg {
+  width: 19px;
+  height: 19px;
+}
+
+/* =========================================================
+   17. OPÇÕES DO LOGIN
+========================================================= */
+
+.login-form__opcoes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  flex-wrap: wrap;
+  gap: 12px;
+
+  margin-top: -2px;
+}
+
+/* Lembrar acesso */
+
+.login-form__lembrar {
+  position: relative;
+
+  display: inline-flex;
+  align-items: center;
+
+  gap: 9px;
+
+  color: var(--login-texto-secundario);
+
+  font-size: 11px;
+  font-weight: 500;
+
+  cursor: pointer;
+}
+
+.login-form__lembrar input {
+  position: absolute;
+
+  width: 1px;
+  height: 1px;
+
+  opacity: 0;
+}
+
+.login-form__checkbox-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 17px;
+  height: 17px;
+
+  background: #fff;
+
+  border: 1px solid #d8c4c0;
+  border-radius: 4px;
+
+  transition:
+    background var(--login-transicao),
+    border-color var(--login-transicao);
+}
+
+.login-form__lembrar input:checked + .login-form__checkbox-visual {
+  background: var(--login-vinho);
+  border-color: var(--login-vinho);
+}
+
+.login-form__checkbox-visual::after {
+  content: "";
+
+  width: 8px;
+  height: 5px;
+
+  border-left: 2px solid white;
+  border-bottom: 2px solid white;
+
+  transform: rotate(-45deg) scale(0);
+
+  transition: transform 0.15s ease;
+}
+
+.login-form__lembrar input:checked + .login-form__checkbox-visual::after {
+  transform: rotate(-45deg) scale(1);
+}
+
+.login-form__lembrar input:focus-visible + .login-form__checkbox-visual {
+  outline: 2px solid var(--login-rosa);
+  outline-offset: 3px;
+}
+
+/* Recuperar senha */
+
+.login-form__recuperar {
+  color: var(--login-rosa-escuro);
+
+  font-size: 11px;
+  font-weight: 600;
+
+  text-decoration: none;
+
+  transition: color var(--login-transicao);
+}
+
+.login-form__recuperar:hover {
+  color: var(--login-vinho);
+  text-decoration: underline;
+}
+
+/* =========================================================
+   18. BOTÃO PRINCIPAL
+========================================================= */
+
+.login-form__botao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 12px;
+
+  width: 100%;
+  min-height: 49px;
+
+  margin-top: 4px;
+  padding: 12px 18px;
+
+  color: #fff;
+
+  background: linear-gradient(115deg, #bd7b85 0%, #874653 65%, #683542 100%);
+
+  border: 1px solid rgba(104, 53, 66, 0.12);
+  border-radius: 8px;
+
+  font-family: var(--font-interface), sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+
+  cursor: pointer;
+
+  box-shadow: 0 5px 14px rgba(135, 70, 83, 0.17);
+
+  transition:
+    transform var(--login-transicao),
+    box-shadow var(--login-transicao),
+    filter var(--login-transicao);
+}
+
+.login-form__botao:hover {
+  filter: brightness(0.96);
+
+  transform: translateY(-2px);
+
+  box-shadow: 0 9px 20px rgba(104, 53, 66, 0.22);
+}
+
+.login-form__botao:active {
+  transform: translateY(0);
+}
+
+.login-form__botao svg {
+  width: 19px;
+  height: 19px;
+
+  transition: transform var(--login-transicao);
+}
+
+.login-form__botao:hover svg {
+  transform: translateX(4px);
+}
+
+/* =========================================================
+   19. CADASTRO
+========================================================= */
+
+.login-formulario__cadastro {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-wrap: wrap;
+  gap: 5px;
+
+  margin-top: 26px;
+
+  color: var(--login-texto-secundario);
+
+  font-size: 11px;
+}
+
+.login-formulario__cadastro a {
+  color: var(--login-rosa-escuro);
+
+  font-weight: 700;
+  text-decoration: none;
+
+  transition: color var(--login-transicao);
+}
+
+.login-formulario__cadastro a:hover {
+  color: var(--login-vinho);
+  text-decoration: underline;
+}
+
+/* =========================================================
+   20. RODAPÉ
+========================================================= */
+
+.login-formulario__rodape {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 9px;
+
+  padding-top: 17px;
+
+  color: #a39491;
+
+  border-top: 1px solid #efe5e0;
+
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.login-formulario__rodape svg {
+  width: 15px;
+  height: 15px;
+
+  color: var(--login-rosa-medio);
+}
+
+/* =========================================================
+   21. NOTEBOOKS E TABLETS
+========================================================= */
+
+@media (max-width: 950px) {
+  .login-page {
+    padding: 30px 20px;
+  }
+
+  .login-container {
+    max-width: 820px;
+    min-height: 610px;
+
+    grid-template-columns: 0.87fr 1.13fr;
+  }
+
+  .login-apresentacao {
+    padding: 33px 30px;
+  }
+
+  .login-apresentacao__conteudo h1 {
+    font-size: 52px;
+  }
+
+  .login-formulario {
+    padding: 32px 38px 24px;
+  }
+
+  .login-formulario__conteudo {
+    max-width: 390px;
+  }
+
+  .login-formulario__titulo h2 {
+    font-size: 34px;
+  }
+}
+
+/* =========================================================
+   22. CELULARES
+========================================================= */
+
+@media (max-width: 650px) {
+  .login-page {
+    align-items: flex-start;
+
+    min-height: 100vh;
+    min-height: 100dvh;
+
+    padding: 18px 13px;
+  }
+
+  .login-container {
+    display: flex;
+    flex-direction: column;
+
+    width: 100%;
+    max-width: 440px;
+
+    min-height: auto;
+
+    border-radius: 14px;
+  }
+
+  /* Apresentação */
+
+  .login-apresentacao {
+    min-height: 200px;
+
+    padding: 21px 23px;
+  }
+
+  .login-apresentacao__conteudo {
+    margin: 23px 0 16px;
+    padding: 0;
+  }
+
+  .login-apresentacao__legenda {
+    margin-bottom: 9px;
+
+    font-size: 8px;
+    letter-spacing: 3px;
+  }
+
+  .login-apresentacao__conteudo h1 {
+    font-size: 40px;
+  }
+
+  .login-apresentacao__linha {
+    width: 38px;
+    margin: 14px 0;
+  }
+
+  .login-apresentacao__conteudo > p {
+    max-width: 310px;
+
+    font-size: 11px;
+    line-height: 1.65;
+  }
+
+  .login-apresentacao__destaque {
+    display: none;
+  }
+
+  .login-apresentacao__rodape {
+    font-size: 8px;
+  }
+
+  /* Formulário */
+
+  .login-formulario {
+    padding: 22px 24px 19px;
+  }
+
+  .login-formulario__topo {
+    display: none;
+  }
+
+  .login-formulario__conteudo {
+    max-width: none;
+    padding: 15px 0 23px;
+  }
+
+  .login-formulario__titulo {
+    margin-bottom: 25px;
+  }
+
+  .login-formulario__titulo h2 {
+    font-size: 32px;
+  }
+
+  .login-formulario__titulo p {
+    font-size: 11px;
+  }
+
+  .login-form {
+    gap: 18px;
+  }
+
+  .login-form__campo {
+    height: 47px;
+  }
+
+  .login-form__botao {
+    min-height: 48px;
+  }
+
+  .login-formulario__cadastro {
+    margin-top: 23px;
+  }
+
+  .login-formulario__rodape {
+    padding-top: 15px;
+    font-size: 9px;
+  }
+}
+
+/* =========================================================
+   23. CELULARES PEQUENOS
+========================================================= */
+
+@media (max-width: 380px) {
+  .login-page {
+    padding: 12px 9px;
+  }
+
+  .login-apresentacao {
+    min-height: 180px;
+    padding: 18px 19px;
+  }
+
+  .login-apresentacao__conteudo h1 {
+    font-size: 36px;
+  }
+
+  .login-formulario {
+    padding: 19px 18px 17px;
+  }
+
+  .login-formulario__titulo h2 {
+    font-size: 29px;
+  }
+
+  .login-form__opcoes {
+    gap: 8px;
+  }
+
+  .login-form__lembrar,
+  .login-form__recuperar {
+    font-size: 10px;
+  }
+}
+
+/* =========================================================
+   24. TELAS COM POUCA ALTURA
+========================================================= */
+
+@media (min-width: 651px) and (max-height: 760px) {
+  .login-page {
+    align-items: flex-start;
+    padding-top: 24px;
+    padding-bottom: 24px;
+  }
+
+  .login-container {
+    min-height: 600px;
+  }
+
+  .login-apresentacao__conteudo {
+    padding: 28px 0;
+  }
+
+  .login-apresentacao__destaque {
+    margin-top: 25px;
+  }
+
+  .login-formulario__conteudo {
+    padding: 25px 0;
+  }
+
+  .login-formulario__titulo {
+    margin-bottom: 24px;
+  }
+
+  .login-form {
+    gap: 17px;
+  }
+}
+
+/* =========================================================
+   25. ACESSIBILIDADE
+========================================================= */
+
+.login-page a:focus-visible,
+.login-page button:focus-visible {
+  outline: 2px solid var(--login-rosa-escuro);
+  outline-offset: 3px;
+}
+
+/* Foco do campo controlado pelo container */
+
+.login-form__campo:focus-within {
+  outline: none;
+}
+
+.login-form__campo input:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* =========================================================
+   26. REDUÇÃO DE MOVIMENTO
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .login-page *,
+  .login-page *::before,
+  .login-page *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

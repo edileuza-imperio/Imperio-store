@@ -1,46 +1,100 @@
-  import type { NextConfig } from "next";
-  import bundleAnalyzer from "@next/bundle-analyzer";
+import type { NextConfig } from "next";
 
-  const withBundleAnalyzer = bundleAnalyzer({
-    enabled: process.env.ANALYZE === "true",
-  });
+import bundleAnalyzer from "@next/bundle-analyzer";
 
-  const nextConfig: NextConfig = {
-    images: {
-      remotePatterns: [
-        {
-          protocol: "https",
-          hostname: "api.universoimperio.com.br",
-        },
-        {
-          protocol: "https",
-          hostname: "universoimperio.com.br",
-        },
-      ],
-      qualities: [75, 80],
-    },
+const withBundleAnalyzer = bundleAnalyzer({
+  enabled: process.env.ANALYZE === "true",
+});
 
-    async rewrites() {
-      return [
-        {
-          source: "/api/v1/:path*",
-          destination: "https://api.universoimperio.com.br/api/v1/:path*",
-        },
-        {
-          source: "/upload/:path*",
-          destination: "https://api.universoimperio.com.br/upload/:path*",
-        },
-      ];
-    },
+const nextConfig: NextConfig = {
+  /*
+   * --------------------------------------------------------------------------
+   * IMAGENS
+   * --------------------------------------------------------------------------
+   */
+  images: {
+    remotePatterns: [
+      {
+        protocol: "http",
+        hostname: "api.universoimperio.test",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "api.universoimperio.test",
+        port: "",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "imperio.com.br",
+        port: "",
+      },
+      {
+        protocol: "https",
+        hostname: "imperio.com.br",
+        port: "",
+      },
+      {
+        protocol: "http",
+        hostname: "www.imperio.com.br",
+        port: "",
+      },
+      {
+        protocol: "https",
+        hostname: "www.imperio.com.br",
+        port: "",
+      },
+      {
+        protocol: "http",
+        hostname: "localhost",
+        port: "80",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "127.0.0.1",
+        port: "80",
+        pathname: "/**",
+      },
+    ],
+    qualities: [75, 80],
+    dangerouslyAllowLocalIP: true,
+  },
 
-    experimental: {
-      optimizePackageImports: ["react-icons"],
-      scrollRestoration: true,
-    },
+  /*
+   * --------------------------------------------------------------------------
+   * DESENVOLVIMENTO
+   * --------------------------------------------------------------------------
+   */
+  allowedDevOrigins: [
+    "imperio.com.br",
+    "www.imperio.com.br",
+    "localhost",
+    "127.0.0.1",
+    "universoimperio.test",
+    "api.universoimperio.test",
+  ],
 
-    compiler: {
-      removeConsole: process.env.NODE_ENV === "production",
-    },
-  };
+  /*
+   * --------------------------------------------------------------------------
+   * EXPERIMENTAL
+   * --------------------------------------------------------------------------
+   */
+  experimental: {
+    optimizePackageImports: ["react-icons"],
+    scrollRestoration: true,
+  },
 
-  export default withBundleAnalyzer(nextConfig);
+  /*
+   * --------------------------------------------------------------------------
+   * COMPILER
+   * --------------------------------------------------------------------------
+   */
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production",
+  },
+};
+
+export default withBundleAnalyzer(nextConfig);

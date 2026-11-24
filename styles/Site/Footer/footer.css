@@ -1,0 +1,488 @@
+/* =========================================================
+   UNIVERSO IMPÉRIO — FOOTER PROFISSIONAL
+   Arquivo: footer.css
+
+   CSS base do rodapé. Responsividade centralizada em
+   src/app/responsivo.css. Cores via variaveis.css.
+========================================================= */
+
+.loja-footer,
+.loja-footer *,
+.loja-footer *::before,
+.loja-footer *::after {
+  box-sizing: border-box;
+}
+
+.loja-footer {
+  position: relative;
+  isolation: isolate;
+  left: 50%;
+  width: 100vw;
+  max-width: 100vw;
+  min-width: 0;
+  margin: 0;
+  padding: clamp(48px, 5vw, 72px) 0 0;
+  transform: translateX(-50%);
+  overflow: hidden;
+  color: var(--ui-texto);
+  background:
+    radial-gradient(ellipse at 5% 10%, var(--ui-borda-suave), transparent 32rem),
+    radial-gradient(ellipse at 95% 18%, var(--ui-borda-suave), transparent 29rem),
+    linear-gradient(140deg, var(--ui-marfin), var(--ui-blush) 58%, var(--ui-marfin));
+  font-family: var(--ui-fonte-base);
+}
+
+.loja-footer__ornamento {
+  position: absolute;
+  z-index: -1;
+  width: 360px;
+  height: 360px;
+  border: 1px solid var(--ui-borda-suave);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.loja-footer__ornamento--superior {
+  top: -230px;
+  right: -120px;
+}
+
+.loja-footer__container {
+  width: min(calc(100% - 72px), 1440px);
+  min-width: 0;
+  margin-inline: auto;
+}
+
+/* =========================================================
+   ÁREA PRINCIPAL
+========================================================= */
+
+.loja-footer__principal {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.82fr) minmax(0, 2.18fr);
+  align-items: start;
+  gap: clamp(34px, 5vw, 76px);
+  padding-bottom: clamp(38px, 4vw, 58px);
+}
+
+.loja-footer__marca {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.loja-footer__logo {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 88px;
+  align-items: center;
+  justify-content: center;
+  color: var(--ui-vinho);
+  text-decoration: none;
+}
+
+.loja-footer__logo img {
+  display: block;
+  width: auto;
+  max-width: min(100%, 270px);
+  max-height: 94px;
+  object-fit: contain;
+}
+
+.loja-footer__logo-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: var(--ui-vinho);
+}
+
+.loja-footer__logo-fallback svg {
+  margin-bottom: 3px;
+  color: var(--ui-rosa);
+}
+
+.loja-footer__logo-fallback > span {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.3em;
+}
+
+.loja-footer__logo-fallback strong {
+  font-family: var(--ui-fonte-titulo);
+  font-size: clamp(32px, 3vw, 43px);
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  line-height: 1;
+}
+
+.loja-footer__descricao {
+  max-width: 330px;
+  margin: 17px 0 22px;
+  color: var(--ui-texto-secundario);
+  font-family: var(--ui-fonte-titulo);
+  font-size: clamp(15px, 1.25vw, 19px);
+  font-style: italic;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+/* =========================================================
+   REDES SOCIAIS
+========================================================= */
+
+.loja-footer__redes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.loja-footer__redes a {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio-md);
+  background: var(--ui-superficie);
+  color: var(--ui-vinho);
+  box-shadow: var(--ui-sombra-suave);
+  text-decoration: none;
+  transition:
+    transform var(--ui-transicao-rapida),
+    color var(--ui-transicao-rapida),
+    background var(--ui-transicao-rapida),
+    border-color var(--ui-transicao-rapida);
+}
+
+.loja-footer__redes a:hover {
+  transform: translateY(-3px);
+  border-color: var(--ui-vinho);
+  background: var(--ui-vinho);
+  color: var(--ui-branco);
+}
+
+.loja-footer__redes svg {
+  width: 19px;
+  height: 19px;
+}
+
+/* =========================================================
+   COLUNAS DE LINKS
+========================================================= */
+
+.loja-footer__colunas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  align-items: start;
+  min-width: 0;
+  gap: clamp(22px, 2.5vw, 38px);
+}
+
+.loja-footer__coluna {
+  min-width: 0;
+  padding-left: clamp(15px, 1.8vw, 26px);
+  border-left: 1px solid var(--ui-borda);
+}
+
+.loja-footer__coluna h2 {
+  margin: 0;
+  color: var(--ui-vinho-escuro);
+  font-family: var(--ui-fonte-titulo);
+  font-size: clamp(16px, 1.35vw, 20px);
+  font-weight: 800;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+}
+
+.loja-footer__titulo-linha {
+  display: block;
+  width: 42px;
+  height: 3px;
+  margin: 12px 0 19px;
+  border-radius: var(--ui-raio-pilula);
+  background: var(--ui-rosa);
+}
+
+.loja-footer__coluna ul {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.loja-footer__coluna li {
+  min-width: 0;
+}
+
+.loja-footer__coluna li > a,
+.loja-footer__link-sem-url {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  color: var(--ui-texto-secundario);
+  font-size: 12px;
+  line-height: 1.5;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+  transition: color var(--ui-transicao-rapida);
+}
+
+.loja-footer__coluna li > a > svg:first-child,
+.loja-footer__link-sem-url > svg {
+  flex: 0 0 auto;
+  color: var(--ui-rosa);
+}
+
+.loja-footer__coluna li > a:hover {
+  color: var(--ui-vinho);
+}
+
+.loja-footer__link-externo {
+  flex: 0 0 auto;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity var(--ui-transicao-rapida);
+}
+
+.loja-footer__coluna li > a:hover .loja-footer__link-externo {
+  opacity: 1;
+}
+
+.loja-footer__vazio,
+.loja-footer__estado-vazio,
+.loja-footer__estado-carregando {
+  color: var(--ui-texto-claro);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.loja-footer__estado-vazio {
+  grid-column: 1 / -1;
+  padding: 18px;
+  border: 1px dashed var(--ui-borda);
+  border-radius: var(--ui-raio-md);
+  text-align: center;
+}
+
+.loja-footer__estado-carregando {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px;
+}
+
+.loja-footer__spinner {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  border: 2px solid var(--ui-rosa-claro);
+  border-top-color: var(--ui-vinho);
+  border-radius: 50%;
+  animation: loja-footer-girar 750ms linear infinite;
+}
+
+/* =========================================================
+   ATENDIMENTO
+========================================================= */
+
+.loja-footer__atendimento ul {
+  gap: 14px;
+}
+
+.loja-footer__atendimento li > a.loja-footer__contato,
+.loja-footer__contato--texto {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--ui-texto-secundario);
+  font-size: 11px;
+  line-height: 1.5;
+  text-decoration: none;
+}
+
+.loja-footer__contato-icone {
+  display: grid;
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  place-items: center;
+  border: 1px solid var(--ui-borda);
+  border-radius: 50%;
+  background: var(--ui-superficie);
+  color: var(--ui-vinho);
+}
+
+.loja-footer__contato-icone svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* =========================================================
+   BENEFÍCIOS E PAGAMENTOS
+========================================================= */
+
+.loja-footer__beneficios {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 0 36px;
+  padding: 20px clamp(20px, 3vw, 38px);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--ui-raio-xl);
+  background: linear-gradient(110deg, var(--ui-rosa), var(--ui-vinho-suave));
+  color: var(--ui-branco);
+  box-shadow: var(--ui-sombra-card);
+}
+
+.loja-footer__pagamentos {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px 22px;
+}
+
+.loja-footer__beneficio-titulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.loja-footer__beneficio-titulo strong {
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.loja-footer__beneficio-icone {
+  display: grid;
+  width: 31px;
+  height: 31px;
+  flex: 0 0 31px;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.loja-footer__beneficio-icone svg {
+  width: 18px;
+  height: 18px;
+}
+
+.loja-footer__icone-tiktok {
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.loja-footer__bandeiras {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.loja-footer__bandeiras span {
+  display: inline-flex;
+  min-height: 29px;
+  align-items: center;
+  padding: 5px 9px;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: var(--ui-raio-sm);
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--ui-branco);
+  font-size: 10px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.loja-footer__selos {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 18px;
+}
+
+.loja-footer__selo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ui-branco);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+
+.loja-footer__selo svg {
+  flex: 0 0 auto;
+  opacity: 0.95;
+}
+
+/* =========================================================
+   BASE / DIREITOS AUTORAIS
+========================================================= */
+
+.loja-footer__base {
+  position: relative;
+  display: flex;
+  min-height: 76px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  padding: 20px max(36px, calc((100vw - 1440px) / 2));
+  background: var(--ui-vinho);
+  color: var(--ui-branco);
+}
+
+.loja-footer__base p,
+.loja-footer__base span {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.loja-footer__base p {
+  font-weight: 700;
+}
+
+.loja-footer__base span {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.loja-footer__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.loja-footer a:focus-visible {
+  outline: 2px solid var(--ui-rosa);
+  outline-offset: 3px;
+}
+
+@keyframes loja-footer-girar {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loja-footer *,
+  .loja-footer *::before,
+  .loja-footer *::after {
+    animation: none;
+    transition: none;
+  }
+}

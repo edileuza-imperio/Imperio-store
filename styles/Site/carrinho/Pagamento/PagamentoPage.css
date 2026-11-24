@@ -1,0 +1,1249 @@
+/* Universo Império — Checkout de pagamento | folha de estilos independente */
+.uiPayment-page {
+  --pay-ink: #292331;
+  --pay-muted: #77717d;
+  --pay-line: #e9e4ec;
+  --pay-surface: #ffffff;
+  --pay-canvas: #f6f5f8;
+  --pay-accent: #7b4b70;
+  --pay-accent-strong: #62385a;
+  --pay-accent-soft: #f4edf4;
+  --pay-success: #26734f;
+  --pay-success-bg: #edf7f1;
+  --pay-danger: #9e3f48;
+  min-height: 100vh;
+  color: var(--pay-ink);
+  background:
+    radial-gradient(
+      circle at 9% 0%,
+      rgba(123, 75, 112, 0.09),
+      transparent 28rem
+    ),
+    linear-gradient(180deg, #fbfafc 0%, var(--pay-canvas) 60%, #f4f2f6 100%);
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.uiPayment-page *,
+.uiPayment-page *::before,
+.uiPayment-page *::after {
+  box-sizing: border-box;
+}
+
+.uiPayment-topBar {
+  position: relative;
+  z-index: 2;
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 18px;
+  padding: 12px clamp(18px, 5vw, 76px);
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid rgba(222, 214, 226, 0.85);
+  box-shadow: 0 4px 18px rgba(39, 27, 45, 0.035);
+  backdrop-filter: blur(14px);
+}
+
+.uiPayment-backButton {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 14px;
+  border: 1px solid var(--pay-line);
+  border-radius: 999px;
+  color: #5d5663;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    border-color 0.18s ease,
+    color 0.18s ease,
+    transform 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.uiPayment-backButton:hover {
+  color: var(--pay-accent-strong);
+  border-color: #cbb8ca;
+  box-shadow: 0 4px 14px rgba(85, 52, 80, 0.08);
+  transform: translateY(-1px);
+}
+.uiPayment-backButton span {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.uiPayment-brand {
+  display: flex;
+  align-items: center;
+  justify-self: center;
+  gap: 10px;
+  color: #332b37;
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.13em;
+  white-space: nowrap;
+}
+.uiPayment-brand strong {
+  color: var(--pay-accent);
+}
+.uiPayment-brandMark {
+  width: 38px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  color: #fff;
+  background: linear-gradient(145deg, #8e6487, #613b61);
+  box-shadow: 0 6px 14px rgba(95, 57, 91, 0.2);
+  font-family: Georgia, serif;
+  font-size: 22px;
+  font-weight: 500;
+}
+.uiPayment-secureLabel {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  border: 1px solid #dcebe2;
+  border-radius: 999px;
+  color: #397455;
+  background: #f3faf6;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.uiPayment-secureLabel span {
+  font-size: 14px;
+}
+
+.uiPayment-container {
+  width: min(1160px, calc(100% - 40px));
+  margin: 0 auto;
+}
+.uiPayment-heading {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 42px 0 22px;
+  text-align: center;
+}
+.uiPayment-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pay-accent);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.2em;
+}
+.uiPayment-heading h1 {
+  margin: 10px 0 9px;
+  color: #312638;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(34px, 4.4vw, 48px);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+.uiPayment-heading p {
+  margin: 0;
+  color: var(--pay-muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.uiPayment-steps {
+  width: min(520px, 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin: 2px auto 30px;
+}
+.uiPayment-steps > i {
+  flex: 1;
+  max-width: 112px;
+  height: 1px;
+  background: #dcd4e0;
+}
+.uiPayment-stepDone,
+.uiPayment-stepActive {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #77717d;
+  white-space: nowrap;
+}
+.uiPayment-stepDone span,
+.uiPayment-stepActive span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 800;
+}
+.uiPayment-stepDone span {
+  color: #fff;
+  background: #4f876b;
+}
+.uiPayment-stepActive span {
+  color: #fff;
+  background: var(--pay-accent);
+  box-shadow: 0 0 0 5px #eee5ef;
+}
+.uiPayment-stepActive small {
+  color: var(--pay-accent-strong);
+  font-weight: 800;
+}
+.uiPayment-steps small {
+  font-size: 11px;
+}
+
+.uiPayment-alert {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 7px;
+  margin: 0 0 20px;
+  padding: 15px 17px;
+  border: 1px solid #f0cfd3;
+  border-left: 4px solid var(--pay-danger);
+  border-radius: 13px;
+  color: #823b43;
+  background: #fff8f8;
+  box-shadow: 0 5px 18px rgba(128, 45, 56, 0.05);
+  font-size: 13px;
+  line-height: 1.55;
+}
+.uiPayment-alert strong {
+  font-size: 14px;
+}
+.uiPayment-alert button {
+  justify-self: start;
+  margin-top: 4px;
+  padding: 8px 12px;
+  border: 1px solid #e7c2c6;
+  border-radius: 8px;
+  color: #803b44;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.uiPayment-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.82fr);
+  align-items: start;
+  gap: 22px;
+  padding-bottom: 16px;
+}
+.uiPayment-paymentPanel,
+.uiPayment-summaryPanel {
+  min-width: 0;
+  border: 1px solid rgba(226, 220, 231, 0.92);
+  border-radius: 22px;
+  background: var(--pay-surface);
+  box-shadow: 0 14px 42px rgba(43, 31, 52, 0.065);
+}
+.uiPayment-paymentPanel {
+  padding: clamp(22px, 3.2vw, 34px);
+}
+.uiPayment-summaryPanel {
+  position: sticky;
+  top: 18px;
+  padding: 25px;
+}
+.uiPayment-panelHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eeeaf0;
+}
+.uiPayment-panelHeading > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.uiPayment-sectionNumber {
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  color: var(--pay-accent);
+  background: var(--pay-accent-soft);
+  font-size: 11px;
+  font-weight: 850;
+}
+.uiPayment-panelHeading h2,
+.uiPayment-summaryHeading h2 {
+  margin: 0;
+  color: #342b3a;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.uiPayment-mercadoPago {
+  color: #88818c;
+  font-size: 11px;
+  font-weight: 650;
+  text-align: right;
+}
+
+.uiPayment-paymentIntro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 21px 0 14px;
+}
+.uiPayment-paymentBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 11px;
+  border: 1px solid #e8dfeb;
+  border-radius: 999px;
+  color: #6c4a6b;
+  background: #faf7fb;
+  font-size: 10px;
+  font-weight: 800;
+}
+.uiPayment-brickWrapper {
+  padding-top: 2px;
+}
+.uiPayment-brickWrapper > div {
+  max-width: 100%;
+}
+.uiPayment-trustInfo {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin-top: 24px;
+  padding: 14px 15px;
+  border: 1px solid #e7e2eb;
+  border-radius: 13px;
+  background: #faf9fb;
+}
+.uiPayment-trustInfo > span {
+  color: var(--pay-accent);
+  font-size: 18px;
+  line-height: 1.2;
+}
+.uiPayment-trustInfo p {
+  margin: 0;
+  color: #77717d;
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.uiPayment-summaryHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 17px;
+  border-bottom: 1px solid #eeeaf0;
+}
+.uiPayment-summaryHeading > span {
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #77717d;
+  background: #f6f4f7;
+  font-size: 10px;
+  font-weight: 750;
+}
+.uiPayment-itemsList {
+  display: grid;
+  gap: 14px;
+  padding: 18px 0;
+}
+.uiPayment-itemRow {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+}
+.uiPayment-itemThumb {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #e9e1ec;
+  border-radius: 13px;
+  color: var(--pay-accent);
+  background: linear-gradient(145deg, #f6f0f7, #fbf9fc);
+  font-family: Georgia, serif;
+  font-size: 17px;
+  font-weight: 700;
+}
+.uiPayment-itemInfo {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+.uiPayment-itemInfo strong {
+  overflow: hidden;
+  color: #403644;
+  font-size: 12px;
+  font-weight: 750;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.uiPayment-itemInfo span {
+  color: #8b8490;
+  font-size: 10px;
+}
+.uiPayment-itemRow > strong {
+  color: #403644;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.uiPayment-freightSection {
+  margin: 5px 0 0;
+  padding: 17px 0;
+  border-top: 1px solid #eeeaf0;
+  border-bottom: 1px solid #eeeaf0;
+}
+.uiPayment-freightHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 13px;
+}
+.uiPayment-freightHeading > div {
+  display: grid;
+  gap: 4px;
+}
+.uiPayment-freightHeading strong {
+  color: #403644;
+  font-size: 12px;
+  font-weight: 800;
+}
+.uiPayment-freightHeading small,
+.uiPayment-freightHint {
+  color: #89828e;
+  font-size: 10px;
+}
+.uiPayment-freightRefresh,
+.uiPayment-freightError button {
+  padding: 8px 11px;
+  border: 1px solid #e5dce8;
+  border-radius: 8px;
+  color: #6c4a6b;
+  background: #faf7fb;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background 0.16s ease,
+    border-color 0.16s ease;
+}
+.uiPayment-freightRefresh:hover,
+.uiPayment-freightError button:hover {
+  border-color: #cbb7cf;
+  background: #f3edf5;
+}
+.uiPayment-freightRefresh:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+.uiPayment-freightOptions {
+  display: grid;
+  gap: 9px;
+}
+.uiPayment-freightOption {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 11px;
+  padding: 13px;
+  border: 1px solid #e8e1eb;
+  border-radius: 12px;
+  color: inherit;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    background 0.16s ease,
+    box-shadow 0.16s ease;
+}
+.uiPayment-freightOption:hover,
+.uiPayment-freightOption.isSelected {
+  border-color: #a980a4;
+  background: #fcf9fd;
+  box-shadow: 0 0 0 3px rgba(123, 75, 112, 0.08);
+}
+.uiPayment-freightRadio {
+  position: relative;
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid #b9aebd;
+  border-radius: 50%;
+}
+.uiPayment-freightOption.isSelected .uiPayment-freightRadio {
+  border-color: var(--pay-accent);
+}
+.uiPayment-freightOption.isSelected .uiPayment-freightRadio::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  background: var(--pay-accent);
+}
+.uiPayment-freightOptionInfo {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+.uiPayment-freightOptionInfo strong {
+  color: #403644;
+  font-size: 12px;
+}
+.uiPayment-freightOptionInfo small {
+  color: #89828e;
+  font-size: 10px;
+}
+.uiPayment-freightPrice {
+  color: var(--pay-accent-strong);
+  font-size: 12px;
+  font-weight: 850;
+  white-space: nowrap;
+}
+.uiPayment-freightState {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 12px;
+  border: 1px solid #e9e3ed;
+  border-radius: 11px;
+  color: #77717d;
+  background: #fbfafc;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.uiPayment-freightError {
+  display: grid;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid #efd4d7;
+  border-radius: 11px;
+  color: #883e47;
+  background: #fff8f8;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.uiPayment-freightError button {
+  justify-self: start;
+}
+.uiPayment-manualFreight {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 14px;
+  border: 1px solid #cfe6d8;
+  border-radius: 13px;
+  background: var(--pay-success-bg);
+}
+.uiPayment-manualFreightIcon {
+  flex: 0 0 27px;
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--pay-success);
+  font-size: 13px;
+  font-weight: 850;
+}
+.uiPayment-manualFreight > div {
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+}
+.uiPayment-manualFreight strong {
+  color: #246345;
+  font-size: 12px;
+  font-weight: 850;
+}
+.uiPayment-manualFreight small {
+  color: #52715f;
+  font-size: 10px;
+  line-height: 1.55;
+}
+.uiPayment-freightHint {
+  margin: 4px 0 0;
+  line-height: 1.55;
+}
+.uiPayment-freightDiscount {
+  color: var(--pay-success) !important;
+}
+
+.uiPayment-summaryLines {
+  display: grid;
+  gap: 11px;
+  padding: 17px 0 13px;
+}
+.uiPayment-summaryLines > div,
+.uiPayment-totalRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.uiPayment-summaryLines span {
+  color: #7d7682;
+  font-size: 11px;
+}
+.uiPayment-summaryLines strong {
+  color: #433847;
+  font-size: 11px;
+  font-weight: 750;
+}
+.uiPayment-totalRow {
+  padding: 15px 0 5px;
+  border-top: 1px solid #eeeaf0;
+}
+.uiPayment-totalRow span {
+  color: #403644;
+  font-size: 13px;
+  font-weight: 800;
+}
+.uiPayment-totalRow strong {
+  color: var(--pay-accent-strong);
+  font-family: Georgia, serif;
+  font-size: 27px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+.uiPayment-summaryFootnote {
+  margin: 8px 0 17px;
+  color: #89828e;
+  font-size: 10px;
+  line-height: 1.55;
+}
+.uiPayment-secureCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px;
+  border: 1px solid #e3e9e4;
+  border-radius: 12px;
+  background: #f8fbf9;
+}
+.uiPayment-lockIcon {
+  color: #4a8062;
+  font-size: 17px;
+  line-height: 1;
+}
+.uiPayment-secureCard > div {
+  display: grid;
+  gap: 4px;
+}
+.uiPayment-secureCard strong {
+  color: #386149;
+  font-size: 11px;
+  font-weight: 800;
+}
+.uiPayment-secureCard small {
+  color: #718379;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.uiPayment-loadingBox,
+.uiPayment-emptyState {
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 38px 22px;
+  text-align: center;
+}
+.uiPayment-loadingBox {
+  gap: 12px;
+  color: #77717d;
+  font-size: 12px;
+}
+.uiPayment-spinner {
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  flex: 0 0 auto;
+  border: 2px solid #e6dce9;
+  border-top-color: var(--pay-accent);
+  border-radius: 50%;
+  animation: uiPaymentSpin 0.75s linear infinite;
+}
+.uiPayment-emptyState {
+  gap: 9px;
+}
+.uiPayment-emptyIcon {
+  color: #a27a9b;
+  font-size: 34px;
+}
+.uiPayment-emptyState h3 {
+  margin: 4px 0 0;
+  color: #403644;
+  font-size: 16px;
+  font-weight: 800;
+}
+.uiPayment-emptyState p {
+  max-width: 390px;
+  margin: 0;
+  color: #89828e;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.uiPayment-manualNoticeLabel {
+  display: inline-flex;
+  margin-top: 7px;
+  color: #8a536e;
+  font-size: 10px;
+  font-weight: 750;
+}
+@keyframes uiPaymentSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.uiPayment-pixResult,
+.uiPayment-successResult {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 32px clamp(8px, 3vw, 26px) 20px;
+  text-align: center;
+}
+.uiPayment-pixIcon {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 17px;
+  color: #fff;
+  background: linear-gradient(145deg, #398d68, #206c4d);
+  box-shadow: 0 8px 20px rgba(39, 120, 82, 0.2);
+  font-size: 25px;
+}
+.uiPayment-pixResult h3,
+.uiPayment-successResult h3 {
+  margin: 14px 0 5px;
+  color: #352b3a;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 26px;
+  font-weight: 500;
+}
+.uiPayment-pixResult p,
+.uiPayment-successResult p {
+  max-width: 460px;
+  color: #77717d;
+  font-size: 12px;
+  line-height: 1.65;
+}
+.uiPayment-qrCode {
+  width: min(230px, 72vw);
+  height: auto;
+  aspect-ratio: 1;
+  object-fit: contain;
+  margin: 12px auto 20px;
+  padding: 12px;
+  border: 1px solid #e6e0e8;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 10px 28px rgba(41, 32, 48, 0.08);
+}
+.uiPayment-copyLabel {
+  align-self: stretch;
+  margin: 4px 0 7px;
+  color: #514657;
+  font-size: 11px;
+  font-weight: 800;
+  text-align: left;
+}
+.uiPayment-pixCode {
+  width: 100%;
+  min-height: 100px;
+  resize: vertical;
+  padding: 12px;
+  border: 1px solid #e4dce7;
+  border-radius: 11px;
+  color: #514657;
+  background: #fbfafc;
+  font:
+    11px/1.55 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace;
+  overflow-wrap: anywhere;
+}
+.uiPayment-copyButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 13px 20px;
+  border: 0;
+  border-radius: 11px;
+  color: #fff;
+  background: linear-gradient(135deg, #805579, #623b60);
+  box-shadow: 0 8px 18px rgba(99, 59, 96, 0.2);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 850;
+  cursor: pointer;
+  transition:
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+}
+.uiPayment-copyButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 11px 22px rgba(99, 59, 96, 0.25);
+}
+.uiPayment-ticketLink {
+  margin-top: 13px;
+  color: var(--pay-accent-strong);
+  font-size: 12px;
+  font-weight: 750;
+}
+.uiPayment-pendingNote {
+  margin-top: 16px !important;
+  font-size: 10px !important;
+}
+.uiPayment-pixMissing {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  margin: 10px 0 2px;
+  padding: 13px;
+  border: 1px solid #efd7bc;
+  border-radius: 11px;
+  color: #80552c;
+  background: #fff9f0;
+  text-align: left;
+  font-size: 10px;
+  line-height: 1.5;
+}
+.uiPayment-successIcon {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: #39825e;
+  font-size: 24px;
+  font-weight: 800;
+}
+.uiPayment-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 24px 2px 34px;
+  color: #96909b;
+  font-size: 10px;
+}
+
+/* Integração com o Payment Brick: mantém a tipografia e limita a largura. */
+.uiPayment-brickWrapper [data-testid],
+.uiPayment-brickWrapper button,
+.uiPayment-brickWrapper input,
+.uiPayment-brickWrapper select {
+  max-width: 100%;
+}
+.uiPayment-brickWrapper button {
+  cursor: pointer;
+}
+.uiPayment-brickWrapper [class*="CardPaymentBrick"],
+.uiPayment-brickWrapper [class*="PaymentBrick"] {
+  font-family: inherit;
+}
+
+@media (max-width: 900px) {
+  .uiPayment-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(285px, 0.8fr);
+    gap: 16px;
+  }
+  .uiPayment-summaryPanel {
+    padding: 20px;
+  }
+  .uiPayment-paymentPanel {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 760px) {
+  .uiPayment-layout {
+    grid-template-columns: 1fr;
+  }
+  .uiPayment-summaryPanel {
+    position: static;
+    order: -1;
+  }
+  .uiPayment-heading {
+    padding-top: 34px;
+  }
+}
+
+@media (max-width: 560px) {
+  .uiPayment-topBar {
+    min-height: 62px;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    padding: 10px 12px;
+  }
+  .uiPayment-backButton {
+    width: 36px;
+    height: 36px;
+    justify-content: center;
+    padding: 0;
+    font-size: 0;
+  }
+  .uiPayment-backButton span {
+    font-size: 20px;
+  }
+  .uiPayment-brand {
+    gap: 7px;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+  }
+  .uiPayment-brandMark {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    font-size: 19px;
+  }
+  .uiPayment-secureLabel {
+    padding: 7px 8px;
+    gap: 4px;
+    font-size: 9px;
+  }
+  .uiPayment-container {
+    width: min(100% - 22px, 1160px);
+  }
+  .uiPayment-heading {
+    padding: 29px 0 18px;
+  }
+  .uiPayment-heading h1 {
+    font-size: 34px;
+  }
+  .uiPayment-heading p {
+    max-width: 330px;
+    margin: 0 auto;
+    font-size: 12px;
+  }
+  .uiPayment-steps {
+    gap: 7px;
+    margin-bottom: 19px;
+  }
+  .uiPayment-steps > i {
+    max-width: 46px;
+  }
+  .uiPayment-stepDone,
+  .uiPayment-stepActive {
+    gap: 5px;
+  }
+  .uiPayment-stepDone span,
+  .uiPayment-stepActive span {
+    width: 25px;
+    height: 25px;
+  }
+  .uiPayment-steps small {
+    font-size: 9px;
+  }
+  .uiPayment-paymentPanel,
+  .uiPayment-summaryPanel {
+    padding: 17px;
+    border-radius: 17px;
+  }
+  .uiPayment-panelHeading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .uiPayment-panelHeading h2,
+  .uiPayment-summaryHeading h2 {
+    font-size: 16px;
+  }
+  .uiPayment-mercadoPago {
+    text-align: left;
+  }
+  .uiPayment-itemRow {
+    grid-template-columns: 42px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  .uiPayment-itemThumb {
+    width: 42px;
+    height: 42px;
+  }
+  .uiPayment-totalRow strong {
+    font-size: 24px;
+  }
+  .uiPayment-trustInfo {
+    padding: 12px;
+  }
+  .uiPayment-footer {
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0 28px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 370px) {
+  .uiPayment-brand {
+    font-size: 8px;
+    letter-spacing: 0.06em;
+  }
+  .uiPayment-brandMark {
+    width: 29px;
+    height: 29px;
+  }
+  .uiPayment-secureLabel {
+    max-width: 86px;
+    white-space: normal;
+    line-height: 1.25;
+  }
+  .uiPayment-stepDone small,
+  .uiPayment-stepActive small {
+    font-size: 8px;
+  }
+  .uiPayment-steps {
+    gap: 5px;
+  }
+  .uiPayment-steps > i {
+    max-width: 28px;
+  }
+  .uiPayment-freightOption {
+    padding: 10px;
+    gap: 8px;
+  }
+}
+
+/* =========================================================
+   ESTADOS DO PAGAMENTO — aprovação, pendência e recusa
+   ========================================================= */
+.uiPayment-resultFlow {
+  display: grid;
+  gap: 20px;
+  padding-top: 22px;
+}
+
+.uiPayment-paymentStatus {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  align-items: center;
+  gap: 13px;
+  width: 100%;
+  padding: 16px 17px;
+  border: 1px solid var(--pay-line);
+  border-radius: 16px;
+  background: #fbfafc;
+}
+.uiPayment-paymentStatusIcon {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  font-size: 23px;
+  font-weight: 900;
+  line-height: 1;
+}
+.uiPayment-paymentStatusText {
+  min-width: 0;
+}
+.uiPayment-paymentStatusText strong {
+  display: block;
+  margin: 0 0 4px;
+  color: var(--pay-ink);
+  font-size: 14px;
+  font-weight: 850;
+}
+.uiPayment-paymentStatusText p {
+  margin: 0;
+  color: var(--pay-muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+.uiPayment-paymentStatusText small {
+  display: block;
+  margin-top: 7px;
+  color: #8c8490;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.uiPayment-paymentStatus.isApproved {
+  border-color: #c7e6d4;
+  background: #f1faf4;
+}
+.uiPayment-paymentStatus.isApproved .uiPayment-paymentStatusIcon {
+  color: #fff;
+  background: #258356;
+  box-shadow: 0 5px 13px rgba(37, 131, 86, 0.18);
+}
+.uiPayment-paymentStatus.isFailed {
+  border-color: #f0cbd0;
+  background: #fff6f6;
+}
+.uiPayment-paymentStatus.isFailed .uiPayment-paymentStatusIcon {
+  color: #fff;
+  background: #b84a55;
+}
+.uiPayment-paymentStatus.isPending {
+  border-color: #eadbb9;
+  background: #fffbf2;
+}
+.uiPayment-paymentStatus.isPending .uiPayment-paymentStatusIcon {
+  color: #79551e;
+  background: #f6e9c9;
+}
+.uiPayment-paymentStatus.isAttention {
+  border-color: #ead7b9;
+  background: #fffaf2;
+}
+.uiPayment-paymentStatus.isAttention .uiPayment-paymentStatusIcon {
+  color: #79551e;
+  background: #f6e9c9;
+}
+
+.uiPayment-finalResult {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 12px 12px;
+  text-align: center;
+}
+.uiPayment-finalResult h3 {
+  margin: 14px 0 6px;
+  color: #342b3a;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(23px, 3vw, 29px);
+  font-weight: 500;
+}
+.uiPayment-finalResult p {
+  max-width: 470px;
+  margin: 5px 0;
+  color: #77717d;
+  font-size: 12px;
+  line-height: 1.65;
+}
+.uiPayment-finalResult small {
+  margin-top: 9px;
+  color: #77717d;
+  font-size: 11px;
+}
+.uiPayment-finalResultIcon {
+  width: 66px;
+  height: 66px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: linear-gradient(145deg, #35a36f, #20764f);
+  box-shadow: 0 9px 24px rgba(32, 118, 79, 0.2);
+  font-size: 32px;
+  font-weight: 900;
+}
+.uiPayment-finalResultIcon.isFailed {
+  background: linear-gradient(145deg, #d16a73, #a83d49);
+  box-shadow: 0 9px 24px rgba(168, 61, 73, 0.18);
+}
+.uiPayment-pendingSpinner {
+  width: 46px;
+  height: 46px;
+  border: 4px solid #eee5ef;
+  border-top-color: var(--pay-accent);
+  border-radius: 50%;
+  animation: uiPayment-spin 0.85s linear infinite;
+}
+@keyframes uiPayment-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.uiPayment-pixResult {
+  padding-top: 5px;
+}
+.uiPayment-pixResult .uiPayment-pixIcon {
+  width: 50px;
+  height: 50px;
+  border-radius: 15px;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  font-weight: 900;
+}
+.uiPayment-pixResult h3 {
+  margin-top: 13px;
+}
+.uiPayment-pendingNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  margin: 17px 0 0 !important;
+  padding: 12px 14px;
+  border: 1px solid #eadbb9;
+  border-radius: 11px;
+  color: #79551e !important;
+  background: #fffbf2;
+  font-size: 11px !important;
+  line-height: 1.55;
+  text-align: left;
+}
+
+@media (max-width: 560px) {
+  .uiPayment-resultFlow {
+    gap: 15px;
+    padding-top: 17px;
+  }
+  .uiPayment-paymentStatus {
+    grid-template-columns: 39px minmax(0, 1fr);
+    gap: 10px;
+    padding: 13px;
+    border-radius: 13px;
+  }
+  .uiPayment-paymentStatusIcon {
+    width: 38px;
+    height: 38px;
+    font-size: 20px;
+  }
+  .uiPayment-paymentStatusText strong {
+    font-size: 12px;
+  }
+  .uiPayment-paymentStatusText p {
+    font-size: 11px;
+  }
+  .uiPayment-finalResult {
+    padding: 16px 4px 8px;
+  }
+  .uiPayment-finalResultIcon {
+    width: 58px;
+    height: 58px;
+    font-size: 28px;
+  }
+}

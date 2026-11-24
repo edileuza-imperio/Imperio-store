@@ -1,0 +1,76 @@
+:root {
+  --mobile-gutter: clamp(12px, 4vw, 28px);
+  --mobile-section-space: clamp(30px, 5vw, 72px);
+  /* Identidade visual */
+  --ui-vinho: #713c4c;
+  --ui-vinho-escuro: #542b39;
+  --ui-vinho-suave: #895767;
+
+  --ui-rosa: #bd7182;
+  --ui-rosa-medio: #d69aa5;
+  --ui-rosa-claro: #f4e4e3;
+  --ui-blush: #fbf1ee;
+
+  --ui-marfin: #fffaf7;
+  --ui-branco: #ffffff;
+
+  /* Texto */
+  --ui-texto: #49343a;
+  --ui-texto-secundario: #806c70;
+  --ui-texto-claro: #a18b90;
+
+  /* Superfícies e bordas */
+  --ui-fundo: #fffaf7;
+  --ui-superficie: #ffffff;
+  --ui-superficie-suave: #fff7f4;
+  --ui-borda: #ead8d7;
+  --ui-borda-suave: rgba(189, 113, 130, 0.16);
+
+  /* Estados */
+  --ui-sucesso: #52785d;
+  --ui-alerta: #a66b31;
+  --ui-erro: #a7474d;
+  --ui-info: #55758b;
+
+  /* Tipografia */
+  --ui-fonte-base: Arial, Helvetica, sans-serif;
+  --ui-fonte-titulo: inherit;
+
+  --ui-texto-xs: 0.75rem;
+  --ui-texto-sm: 0.875rem;
+  --ui-texto-base: 1rem;
+  --ui-texto-lg: 1.125rem;
+
+  /* Layout */
+  --ui-largura-maxima: 1440px;
+  --ui-largura-conteudo: 1200px;
+  --ui-espaco-lateral: clamp(14px, 4vw, 56px);
+
+  /* Espaçamentos */
+  --ui-espaco-1: 4px;
+  --ui-espaco-2: 8px;
+  --ui-espaco-3: 12px;
+  --ui-espaco-4: 16px;
+  --ui-espaco-5: 20px;
+  --ui-espaco-6: 24px;
+  --ui-espaco-8: 32px;
+  --ui-espaco-10: 40px;
+  --ui-espaco-12: 48px;
+  --ui-espaco-16: 64px;
+
+  /* Bordas */
+  --ui-raio-sm: 8px;
+  --ui-raio-md: 12px;
+  --ui-raio-lg: 18px;
+  --ui-raio-xl: 24px;
+  --ui-raio-pilula: 999px;
+
+  /* Sombras */
+  --ui-sombra-suave: 0 6px 20px rgba(84, 43, 57, 0.06);
+  --ui-sombra-card: 0 10px 28px rgba(84, 43, 57, 0.09);
+  --ui-sombra-destaque: 0 14px 36px rgba(84, 43, 57, 0.13);
+
+  /* Transições */
+  --ui-transicao-rapida: 150ms ease;
+  --ui-transicao-padrao: 220ms ease;
+}

@@ -1,0 +1,1060 @@
+/* =========================================================
+   UNIVERSO IMPÉRIO — CUPONS
+   Arquivo: CuponsPage.css
+
+   Estilos-base do componente.
+   Breakpoints e comportamento por dispositivo ficam em responsivo.css.
+   Cores e medidas usam variaveis.css.
+========================================================= */
+
+.ui-cupons,
+.ui-cupons *,
+.ui-cupons *::before,
+.ui-cupons *::after {
+  box-sizing: border-box;
+}
+
+.ui-cupons {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-inline: auto;
+  transform: none;
+  padding: clamp(55px, 6vw, 82px) 0 clamp(48px, 5vw, 68px);
+  overflow: hidden;
+  color: var(--ui-texto);
+  background:
+    radial-gradient(
+      circle at 92% 10%,
+      var(--ui-borda-suave),
+      transparent 25rem
+    ),
+    linear-gradient(
+      180deg,
+      var(--ui-marfin) 0%,
+      var(--ui-superficie-suave) 100%
+    );
+}
+
+.ui-cupons::before,
+.ui-cupons::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  border: 1px solid var(--ui-borda-suave);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.ui-cupons::before {
+  top: -190px;
+  right: -145px;
+  width: 380px;
+  height: 380px;
+}
+
+.ui-cupons::after {
+  bottom: -230px;
+  left: -160px;
+  width: 390px;
+  height: 390px;
+}
+
+.ui-cupons__container {
+  position: relative;
+  width: 100%;
+  max-width: var(--ui-largura-conteudo, 1200px);
+  min-width: 0;
+  margin-inline: auto;
+  padding-inline: clamp(14px, 3.5vw, 32px);
+}
+
+/* =========================================================
+   INTRODUÇÃO
+========================================================= */
+
+.ui-cupons__intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ui-espaco-8);
+  padding-block: 7px 12px;
+}
+
+.ui-cupons__intro-texto {
+  width: 100%;
+  max-width: 790px;
+  min-width: 0;
+}
+
+.ui-cupons__sobretitulo {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 14px;
+  color: var(--ui-rosa);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.ui-cupons__sobretitulo-ponto {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-radius: 50%;
+  background: var(--ui-rosa);
+  box-shadow: 0 0 0 4px var(--ui-borda-suave);
+}
+
+.ui-cupons__intro h2 {
+  max-width: 760px;
+  margin: 0;
+  color: var(--ui-vinho-escuro);
+  font-family: var(--ui-fonte-titulo);
+  font-size: clamp(31px, 3.7vw, 46px);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.ui-cupons__intro p {
+  max-width: 650px;
+  margin: 14px 0 0;
+  color: var(--ui-texto-secundario);
+  font-size: var(--ui-texto-sm);
+  line-height: 1.75;
+}
+
+.ui-cupons__selo {
+  position: relative;
+  width: 124px;
+  height: 124px;
+  flex: 0 0 124px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--ui-rosa-medio);
+  border-radius: 50%;
+  background: var(--ui-superficie);
+  color: var(--ui-vinho);
+  box-shadow: var(--ui-sombra-suave);
+  transform: rotate(7deg);
+}
+
+.ui-cupons__selo::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border: 1px solid var(--ui-borda-suave);
+  border-radius: 50%;
+}
+
+.ui-cupons__selo-icone {
+  position: relative;
+  color: var(--ui-vinho);
+  font-family: var(--ui-fonte-titulo);
+  font-size: 52px;
+  font-weight: 800;
+  line-height: 0.9;
+}
+
+.ui-cupons__selo-texto {
+  position: relative;
+  margin-top: 8px;
+  color: var(--ui-rosa);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  line-height: 1.25;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* =========================================================
+   DIVISOR E RESUMO
+========================================================= */
+
+.ui-cupons__divisor {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 19px 0 23px;
+}
+
+.ui-cupons__divisor span {
+  display: block;
+  height: 3px;
+  border-radius: var(--ui-raio-pilula);
+  background: var(--ui-rosa-claro);
+}
+
+.ui-cupons__divisor span:first-child {
+  width: 35px;
+  background: var(--ui-rosa);
+}
+
+.ui-cupons__divisor span:nth-child(2) {
+  width: 15px;
+}
+
+.ui-cupons__divisor span:nth-child(3) {
+  width: 7px;
+}
+
+.ui-cupons__resumo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  color: var(--ui-vinho);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ui-cupons__resumo-detalhe {
+  color: var(--ui-texto-claro);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+/* =========================================================
+   CARROSSEL
+========================================================= */
+
+.ui-cupons__carrossel {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.ui-cupons__viewport {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 2px 18px;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: 2px;
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+}
+
+.ui-cupons__viewport::-webkit-scrollbar {
+  display: none;
+}
+
+.ui-cupons__viewport:focus-visible {
+  outline: 2px solid var(--ui-rosa);
+  outline-offset: 3px;
+  border-radius: var(--ui-raio-lg);
+}
+
+.ui-cupons__trilho {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  width: 100%;
+  min-width: 0;
+}
+
+.ui-cupons__slide {
+  display: flex;
+  flex: 0 0 100%;
+  width: 100%;
+  min-width: 0;
+  justify-content: center;
+  padding-inline: 2px;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* =========================================================
+   CARD DO CUPOM — TICKET PREMIUM
+========================================================= */
+
+.ui-cupom-card {
+  position: relative;
+  display: grid;
+  grid-template-columns: 9px minmax(0, 1fr);
+  width: min(100%, 920px);
+  min-width: 0;
+  min-height: 270px;
+  margin-inline: auto;
+  overflow: hidden;
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio-xl);
+  background: var(--ui-superficie);
+  box-shadow: var(--ui-sombra-card);
+  transition:
+    border-color var(--ui-transicao-padrao),
+    box-shadow var(--ui-transicao-padrao),
+    transform var(--ui-transicao-padrao);
+}
+
+.ui-cupom-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--ui-rosa-medio);
+  box-shadow: var(--ui-sombra-destaque);
+}
+
+.ui-cupom-card__faixa {
+  position: relative;
+  grid-column: 1;
+  grid-row: 1;
+  width: auto;
+  min-width: 0;
+  background: linear-gradient(180deg, var(--ui-rosa-medio), var(--ui-vinho));
+}
+
+.ui-cupom-card__corpo {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 0.42fr);
+  grid-template-areas:
+    "topo rodape"
+    "desconto rodape"
+    "descricao rodape"
+    "regras rodape";
+  align-content: center;
+  align-items: center;
+  column-gap: clamp(22px, 4vw, 48px);
+  row-gap: 7px;
+  padding: clamp(24px, 3vw, 38px);
+}
+
+.ui-cupom-card__topo {
+  grid-area: topo;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ui-cupom-card__categoria {
+  color: var(--ui-texto-claro);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+  text-transform: uppercase;
+}
+
+.ui-cupom-card__icone {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ui-blush);
+  color: var(--ui-vinho);
+  font-family: var(--ui-fonte-titulo);
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.ui-cupom-card__desconto {
+  grid-area: desconto;
+  margin-top: 3px;
+  color: var(--ui-vinho-escuro);
+  font-family: var(--ui-fonte-titulo);
+  font-size: clamp(31px, 3.5vw, 42px);
+  font-weight: 850;
+  letter-spacing: -0.05em;
+  line-height: 1.08;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  writing-mode: horizontal-tb;
+  text-wrap: pretty;
+}
+
+.ui-cupom-card__descricao {
+  grid-area: descricao;
+  margin: 0;
+  color: var(--ui-texto-secundario);
+  font-size: 13px;
+  line-height: 1.55;
+}
+/* Proteção estrutural: nenhum filho pode comprimir a coluna do cupom. */
+.ui-cupom-card__corpo > *,
+.ui-cupom-card__topo > *,
+.ui-cupom-card__rodape > *,
+.ui-cupom-card__codigo > * {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.ui-cupom-card__desconto {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+  writing-mode: horizontal-tb;
+  text-wrap: balance;
+}
+
+.ui-cupom-card__descricao {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  word-break: normal;
+  overflow-wrap: break-word;
+}
+
+.ui-cupom-card__codigo strong {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
+.ui-cupom-card__regras {
+  grid-area: regras;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px 16px;
+  margin-top: 8px;
+  color: var(--ui-texto-claro);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.ui-cupom-card__regras span {
+  display: inline-flex;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+}
+
+.ui-cupom-card__regras span::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  flex: 0 0 6px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--ui-rosa);
+}
+
+/* =========================================================
+   CÓDIGO E BOTÃO — COLUNA LATERAL
+========================================================= */
+
+.ui-cupom-card__rodape {
+  grid-area: rodape;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 17px;
+  padding-left: clamp(20px, 3vw, 34px);
+  border-left: 1px dashed var(--ui-borda);
+}
+
+.ui-cupom-card__codigo {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 14px 15px;
+  border: 1px dashed var(--ui-rosa-medio);
+  border-radius: var(--ui-raio-md);
+  background: var(--ui-superficie-suave);
+}
+
+.ui-cupom-card__codigo small {
+  color: var(--ui-texto-claro);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.ui-cupom-card__codigo strong {
+  color: var(--ui-vinho);
+  font-size: clamp(15px, 1.5vw, 19px);
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  overflow-wrap: anywhere;
+}
+
+.ui-cupom-card__copiar {
+  width: 100%;
+  min-height: 47px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 16px;
+  border: 1px solid var(--ui-vinho);
+  border-radius: var(--ui-raio-md);
+  background: var(--ui-vinho);
+  color: var(--ui-branco);
+  font-family: var(--ui-fonte-base);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    background var(--ui-transicao-rapida),
+    border-color var(--ui-transicao-rapida),
+    transform var(--ui-transicao-rapida),
+    box-shadow var(--ui-transicao-rapida);
+}
+
+.ui-cupom-card__copiar:hover {
+  transform: translateY(-1px);
+  border-color: var(--ui-vinho-escuro);
+  background: var(--ui-vinho-escuro);
+  box-shadow: var(--ui-sombra-suave);
+}
+
+.ui-cupom-card__copiar--copiado {
+  border-color: var(--ui-sucesso);
+  background: var(--ui-sucesso);
+}
+
+.ui-cupom-card__recorte {
+  position: absolute;
+  top: 50%;
+  right: -11px;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--ui-borda);
+  border-radius: 50%;
+  background: var(--ui-marfin);
+  transform: translateY(-50%);
+}
+
+/* =========================================================
+   CONTROLES DO CARROSSEL
+========================================================= */
+
+.ui-cupons__controles {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 13px;
+  margin-top: 11px;
+}
+
+.ui-cupons__seta,
+.ui-cupons__play {
+  width: 39px;
+  height: 39px;
+  flex: 0 0 39px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--ui-borda);
+  border-radius: 50%;
+  background: var(--ui-superficie);
+  color: var(--ui-vinho);
+  box-shadow: var(--ui-sombra-suave);
+  cursor: pointer;
+  transition:
+    color var(--ui-transicao-rapida),
+    background var(--ui-transicao-rapida),
+    border-color var(--ui-transicao-rapida),
+    transform var(--ui-transicao-rapida);
+}
+
+.ui-cupons__seta span {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.ui-cupons__seta:hover,
+.ui-cupons__play:hover {
+  transform: translateY(-1px);
+  border-color: var(--ui-vinho);
+  background: var(--ui-vinho);
+  color: var(--ui-branco);
+}
+
+.ui-cupons__indicadores {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  max-width: min(42vw, 320px);
+  overflow: hidden;
+}
+
+.ui-cupons__indicador {
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ui-raio-pilula);
+  background: var(--ui-rosa-medio);
+  opacity: 0.48;
+  cursor: pointer;
+  transition:
+    width var(--ui-transicao-padrao),
+    background var(--ui-transicao-padrao),
+    opacity var(--ui-transicao-padrao);
+}
+
+.ui-cupons__indicador.ativo {
+  width: 24px;
+  flex-basis: 24px;
+  background: var(--ui-vinho);
+  opacity: 1;
+}
+
+.ui-cupons__progresso {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--ui-vinho);
+  font-size: 11px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ui-cupons__progresso span {
+  color: var(--ui-texto-claro);
+  font-weight: 500;
+}
+
+.ui-cupons__play {
+  width: 34px;
+  height: 34px;
+  flex-basis: 34px;
+  color: var(--ui-texto-secundario);
+  font-size: 11px;
+}
+
+.ui-cupons__dica {
+  margin: 9px 0 0;
+  color: var(--ui-texto-claro);
+  font-size: 10px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.ui-cupons__feedback {
+  margin: 13px 0 0;
+  color: var(--ui-sucesso);
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* =========================================================
+   SKELETON
+========================================================= */
+
+.ui-cupons__viewport--carregando {
+  overflow: hidden;
+}
+
+.ui-cupom-card--skeleton {
+  width: min(100%, 920px);
+  min-height: 240px;
+}
+
+.ui-cupom-skeleton__linha,
+.ui-cupom-skeleton__valor,
+.ui-cupom-skeleton__rodape {
+  display: block;
+  border-radius: var(--ui-raio-sm);
+  background: linear-gradient(
+    100deg,
+    var(--ui-rosa-claro) 20%,
+    var(--ui-blush) 38%,
+    var(--ui-rosa-claro) 62%
+  );
+  background-size: 220% 100%;
+  animation: ui-cupom-pulso 1.4s ease-in-out infinite;
+}
+
+.ui-cupom-skeleton__linha {
+  width: 72%;
+  height: 12px;
+  margin-top: 13px;
+}
+
+.ui-cupom-skeleton__linha--curta {
+  width: 38%;
+  margin-top: 0;
+}
+
+.ui-cupom-skeleton__valor {
+  width: 55%;
+  height: 36px;
+  margin-top: 17px;
+}
+
+.ui-cupom-skeleton__rodape {
+  width: 100%;
+  height: 82px;
+  margin-top: 15px;
+}
+
+/* =========================================================
+   ESTADOS
+========================================================= */
+
+.ui-cupons__estado {
+  min-height: 190px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(24px, 4vw, 38px);
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio-xl);
+  background: var(--ui-superficie);
+  text-align: center;
+  box-shadow: var(--ui-sombra-suave);
+}
+
+.ui-cupons__estado-icone {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ui-blush);
+  color: var(--ui-vinho);
+  font-family: var(--ui-fonte-titulo);
+  font-size: 22px;
+  font-weight: 800;
+}
+
+.ui-cupons__estado strong {
+  margin-top: 13px;
+  color: var(--ui-vinho-escuro);
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.ui-cupons__estado p {
+  max-width: 480px;
+  margin: 7px 0 0;
+  color: var(--ui-texto-secundario);
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.ui-cupons__spinner {
+  width: 30px;
+  height: 30px;
+  border: 3px solid var(--ui-rosa-claro);
+  border-top-color: var(--ui-vinho);
+  border-radius: 50%;
+  animation: ui-cupom-girar 750ms linear infinite;
+}
+
+.ui-cupons__botao-tentar {
+  min-height: 42px;
+  margin-top: 17px;
+  padding: 0 18px;
+  border: 1px solid var(--ui-vinho);
+  border-radius: var(--ui-raio-pilula);
+  background: var(--ui-vinho);
+  color: var(--ui-branco);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background var(--ui-transicao-rapida);
+}
+
+.ui-cupons__botao-tentar:hover {
+  background: var(--ui-vinho-escuro);
+}
+
+/* =========================================================
+   NOTA INFORMATIVA
+========================================================= */
+
+.ui-cupons__nota {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: min(100%, 920px);
+  margin: 23px auto 0;
+  padding: 13px 15px;
+  border: 1px solid var(--ui-borda-suave);
+  border-radius: var(--ui-raio-md);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.ui-cupons__nota-icone {
+  width: 19px;
+  height: 19px;
+  flex: 0 0 19px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--ui-blush);
+  color: var(--ui-vinho);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.ui-cupons__nota p {
+  margin: 0;
+  color: var(--ui-texto-claro);
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.ui-cupons__sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+/* =========================================================
+   ANIMAÇÕES E ACESSIBILIDADE
+========================================================= */
+
+@keyframes ui-cupom-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ui-cupom-pulso {
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.ui-cupons button:focus-visible {
+  outline: 2px solid var(--ui-rosa);
+  outline-offset: 3px;
+}
+
+/* =========================================================
+   ACABAMENTO DESKTOP — TELAS GRANDES
+   Ajustes exclusivos para desktop. O layout mobile/tablet continua
+   sendo controlado pelo responsividade.css existente.
+========================================================= */
+@media screen and (min-width: 1101px) {
+  .ui-cupons {
+    padding-top: clamp(72px, 6.2vw, 96px);
+    padding-bottom: clamp(68px, 6vw, 88px);
+  }
+
+  .ui-cupons__container {
+    max-width: min(100%, 1360px);
+    padding-inline: clamp(34px, 4vw, 58px);
+  }
+
+  .ui-cupons__intro {
+    align-items: center;
+    gap: clamp(40px, 6vw, 90px);
+    padding-block: 12px 18px;
+  }
+
+  .ui-cupons__intro-texto {
+    max-width: 900px;
+  }
+
+  .ui-cupons__sobretitulo {
+    margin-bottom: 17px;
+    font-size: 11px;
+    letter-spacing: 0.22em;
+  }
+
+  .ui-cupons__intro h2 {
+    max-width: 900px;
+    font-size: clamp(42px, 3.6vw, 54px);
+    line-height: 1.06;
+  }
+
+  .ui-cupons__intro p {
+    max-width: 720px;
+    margin-top: 18px;
+    font-size: 15px;
+    line-height: 1.8;
+  }
+
+  .ui-cupons__selo {
+    width: 144px;
+    height: 144px;
+    flex-basis: 144px;
+  }
+
+  .ui-cupons__selo-icone {
+    font-size: 58px;
+  }
+
+  .ui-cupons__selo-texto {
+    font-size: 10px;
+  }
+
+  .ui-cupons__divisor {
+    margin-block: 27px 30px;
+  }
+
+  .ui-cupons__resumo {
+    margin-bottom: 20px;
+    font-size: 13px;
+  }
+
+  .ui-cupons__resumo-detalhe {
+    font-size: 12px;
+  }
+
+  .ui-cupons__carrossel {
+    max-width: 100%;
+  }
+
+  .ui-cupons__viewport {
+    padding: 8px 8px 24px;
+  }
+
+  .ui-cupons__slide {
+    padding-inline: 8px;
+  }
+
+  .ui-cupom-card {
+    width: min(100%, 1120px);
+    min-height: 310px;
+    border-radius: clamp(22px, 1.8vw, 28px);
+    box-shadow: 0 18px 48px rgba(84, 43, 57, 0.09);
+  }
+
+  .ui-cupom-card__corpo {
+    grid-template-columns: minmax(0, 1fr) minmax(285px, 0.38fr);
+    column-gap: clamp(42px, 5vw, 72px);
+    row-gap: 12px;
+    padding: clamp(38px, 3.5vw, 54px);
+  }
+
+  .ui-cupom-card__categoria {
+    font-size: 10px;
+    letter-spacing: 0.17em;
+  }
+
+  .ui-cupom-card__icone {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+    font-size: 27px;
+  }
+
+  .ui-cupom-card__desconto {
+    font-size: clamp(42px, 3.8vw, 54px);
+    line-height: 1.06;
+  }
+
+  .ui-cupom-card__descricao {
+    max-width: 58ch;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  .ui-cupom-card__regras {
+    gap: 10px 22px;
+    margin-top: 13px;
+    font-size: 12px;
+  }
+
+  .ui-cupom-card__rodape {
+    gap: 20px;
+    padding-left: clamp(34px, 3.5vw, 48px);
+  }
+
+  .ui-cupom-card__codigo {
+    gap: 10px;
+    padding: 20px 21px;
+    border-radius: 16px;
+  }
+
+  .ui-cupom-card__codigo small {
+    font-size: 10px;
+  }
+
+  .ui-cupom-card__codigo strong {
+    font-size: clamp(19px, 1.5vw, 23px);
+  }
+
+  .ui-cupom-card__copiar {
+    min-height: 54px;
+    border-radius: 13px;
+    font-size: 13px;
+  }
+
+  .ui-cupons__controles {
+    gap: 15px;
+    margin-top: 18px;
+  }
+
+  .ui-cupons__seta {
+    width: 44px;
+    height: 44px;
+    flex-basis: 44px;
+  }
+
+  .ui-cupons__play {
+    width: 38px;
+    height: 38px;
+    flex-basis: 38px;
+  }
+
+  .ui-cupons__progresso {
+    font-size: 12px;
+  }
+
+  .ui-cupons__dica {
+    margin-top: 12px;
+    font-size: 11px;
+  }
+
+  .ui-cupons__nota {
+    width: min(100%, 1120px);
+    margin-top: 30px;
+    padding: 16px 19px;
+  }
+
+  .ui-cupons__nota p {
+    font-size: 11px;
+  }
+}
+
+@media screen and (min-width: 1440px) {
+  .ui-cupons__container {
+    max-width: min(100%, 1440px);
+    padding-inline: 64px;
+  }
+
+  .ui-cupom-card {
+    width: min(100%, 1160px);
+  }
+}

@@ -1,0 +1,359 @@
+/* ==========================================================
+   UNIVERSO IMPÉRIO
+   LAYOUT PRINCIPAL DO PAINEL ADMINISTRATIVO
+   Dependência: variaveis.css
+   Responsividade: responsividade.css
+========================================================== */
+
+/* ----------------------------------------------------------
+   1. CONTAINER PRINCIPAL
+---------------------------------------------------------- */
+
+.painel-container {
+  --painel-largura: var(--ui-largura-maxima, 1440px);
+
+  display: flex;
+  flex-direction: column;
+
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
+
+  margin: 0 auto;
+
+  background: var(--ui-fundo, #fffaf7);
+  color: var(--ui-texto, #49343a);
+
+  font-family: var(--ui-fonte-base, Arial, Helvetica, sans-serif);
+
+  box-sizing: border-box;
+}
+
+/* ----------------------------------------------------------
+   2. CONTEÚDO PRINCIPAL
+---------------------------------------------------------- */
+
+.painel-content {
+  flex: 1;
+
+  width: 100%;
+  max-width: var(--painel-largura);
+
+  margin-inline: auto;
+
+  padding: clamp(20px, 3vw, 36px) var(--ui-espaco-lateral, 24px)
+    clamp(32px, 4vw, 56px);
+
+  box-sizing: border-box;
+
+  animation: painelEntrada 350ms ease both;
+}
+
+/* ----------------------------------------------------------
+   3. SEÇÕES INTERNAS
+---------------------------------------------------------- */
+
+.painel-content > section,
+.painel-content > article {
+  width: 100%;
+  min-width: 0;
+}
+
+.painel-content section + section {
+  margin-top: var(--ui-espaco-8, 32px);
+}
+
+/* ----------------------------------------------------------
+   4. CABEÇALHOS DAS PÁGINAS
+---------------------------------------------------------- */
+
+.painel-content .pagina-header,
+.painel-content .page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  flex-wrap: wrap;
+  gap: var(--ui-espaco-4, 16px);
+
+  margin-bottom: var(--ui-espaco-8, 32px);
+}
+
+.painel-content .pagina-titulo,
+.painel-content .page-title {
+  margin: 0;
+
+  color: var(--ui-vinho-escuro, #542b39);
+
+  font-size: clamp(1.4rem, 2.5vw, 2rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.painel-content .pagina-descricao,
+.painel-content .page-description {
+  margin-top: var(--ui-espaco-2, 8px);
+
+  color: var(--ui-texto-secundario, #806c70);
+
+  font-size: var(--ui-texto-sm, 0.875rem);
+  line-height: 1.6;
+}
+
+/* ----------------------------------------------------------
+   5. CARDS E SUPERFÍCIES
+---------------------------------------------------------- */
+
+.painel-content .painel-card {
+  width: 100%;
+  min-width: 0;
+
+  padding: clamp(16px, 2vw, 24px);
+
+  background: var(--ui-superficie, #ffffff);
+
+  border: 1px solid var(--ui-borda, #ead8d7);
+  border-radius: var(--ui-raio-lg, 18px);
+
+  box-shadow: var(--ui-sombra-suave);
+
+  box-sizing: border-box;
+
+  transition:
+    box-shadow var(--ui-transicao-padrao, 220ms ease),
+    border-color var(--ui-transicao-padrao, 220ms ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .painel-content .painel-card:hover {
+    border-color: var(--ui-rosa-medio, #d69aa5);
+    box-shadow: var(--ui-sombra-card);
+  }
+}
+
+/* ----------------------------------------------------------
+   6. GRID E ORGANIZAÇÃO DE CONTEÚDO
+---------------------------------------------------------- */
+
+.painel-content .painel-grid {
+  display: grid;
+
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+
+  gap: var(--ui-espaco-5, 20px);
+}
+
+.painel-content .painel-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+
+  gap: var(--ui-espaco-5, 20px);
+}
+
+.painel-content .painel-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  gap: var(--ui-espaco-5, 20px);
+}
+
+/* ----------------------------------------------------------
+   7. FORMULÁRIOS
+---------------------------------------------------------- */
+
+.painel-content .painel-form {
+  display: flex;
+  flex-direction: column;
+
+  gap: var(--ui-espaco-5, 20px);
+}
+
+.painel-content .painel-form-group {
+  display: flex;
+  flex-direction: column;
+
+  gap: var(--ui-espaco-2, 8px);
+
+  min-width: 0;
+}
+
+.painel-content .painel-form-group label {
+  color: var(--ui-texto, #49343a);
+
+  font-size: var(--ui-texto-sm, 0.875rem);
+  font-weight: 600;
+}
+
+.painel-content .painel-form-group input,
+.painel-content .painel-form-group select,
+.painel-content .painel-form-group textarea {
+  width: 100%;
+  min-width: 0;
+
+  padding: 12px 14px;
+
+  color: var(--ui-texto, #49343a);
+  background: var(--ui-superficie, #ffffff);
+
+  border: 1px solid var(--ui-borda, #ead8d7);
+  border-radius: var(--ui-raio-md, 12px);
+
+  box-sizing: border-box;
+
+  transition:
+    border-color var(--ui-transicao-rapida, 150ms ease),
+    box-shadow var(--ui-transicao-rapida, 150ms ease);
+}
+
+.painel-content .painel-form-group input:focus,
+.painel-content .painel-form-group select:focus,
+.painel-content .painel-form-group textarea:focus {
+  border-color: var(--ui-rosa, #bd7182);
+
+  box-shadow: 0 0 0 3px var(--ui-borda-suave);
+
+  outline: none;
+}
+
+/* ----------------------------------------------------------
+   8. BOTÕES
+---------------------------------------------------------- */
+
+.painel-content .painel-btn {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+
+  min-height: 42px;
+
+  padding: 10px 18px;
+
+  color: var(--ui-texto, #49343a);
+
+  border: 1px solid transparent;
+  border-radius: var(--ui-raio-md, 12px);
+
+  font-size: var(--ui-texto-sm, 0.875rem);
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background var(--ui-transicao-padrao, 220ms ease),
+    color var(--ui-transicao-padrao, 220ms ease),
+    transform var(--ui-transicao-rapida, 150ms ease);
+}
+
+.painel-content .painel-btn-primary {
+  color: var(--ui-branco, #ffffff);
+  background: var(--ui-vinho, #713c4c);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .painel-content .painel-btn-primary:hover {
+    background: var(--ui-vinho-escuro, #542b39);
+    transform: translateY(-1px);
+  }
+}
+
+/* ----------------------------------------------------------
+   9. TABELAS
+---------------------------------------------------------- */
+
+.painel-content .painel-table-wrapper {
+  width: 100%;
+
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+
+  -webkit-overflow-scrolling: touch;
+
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio-md);
+
+  background: var(--ui-superficie);
+}
+
+.painel-content .painel-table {
+  width: 100%;
+
+  border-collapse: collapse;
+}
+
+.painel-content .painel-table th {
+  padding: 14px;
+
+  color: var(--ui-vinho-escuro);
+  background: var(--ui-rosa-claro);
+
+  font-size: var(--ui-texto-sm);
+  font-weight: 700;
+
+  text-align: left;
+}
+
+.painel-content .painel-table td {
+  padding: 14px;
+
+  color: var(--ui-texto);
+
+  border-top: 1px solid var(--ui-borda);
+
+  font-size: var(--ui-texto-sm);
+}
+
+/* ----------------------------------------------------------
+   10. SEPARADORES E ESTADOS
+---------------------------------------------------------- */
+
+.painel-content .painel-divider {
+  width: 100%;
+  height: 1px;
+
+  margin-block: var(--ui-espaco-5, 20px);
+
+  background: var(--ui-borda);
+
+  border: 0;
+}
+
+.painel-content .painel-empty {
+  padding: var(--ui-espaco-8, 32px);
+
+  color: var(--ui-texto-secundario);
+
+  text-align: center;
+
+  background: var(--ui-superficie-suave);
+
+  border: 1px dashed var(--ui-borda);
+  border-radius: var(--ui-raio-lg);
+}
+
+/* ----------------------------------------------------------
+   11. ACESSIBILIDADE
+---------------------------------------------------------- */
+
+.painel-content :focus-visible {
+  outline: 2px solid var(--ui-rosa);
+  outline-offset: 3px;
+}
+
+/* ----------------------------------------------------------
+   12. ANIMAÇÃO DE ENTRADA
+---------------------------------------------------------- */
+
+@keyframes painelEntrada {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,1111 @@
+/* =========================================================
+   UNIVERSO IMPÉRIO V3
+   CATEGORIAS — GRID RESPONSIVO
+========================================================= */
+
+.categorias,
+.categorias *,
+.categorias *::before,
+.categorias *::after {
+  box-sizing: border-box;
+}
+
+.categorias {
+  position: relative;
+  isolation: isolate;
+  left: 50%;
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: -50vw;
+  padding-block: clamp(42px, 5vw, 76px);
+  overflow: hidden;
+  color: var(--ui-texto);
+  background:
+    radial-gradient(circle at 92% 8%, var(--ui-borda-suave), transparent 26rem),
+    linear-gradient(
+      180deg,
+      var(--ui-marfin) 0%,
+      var(--ui-superficie-suave) 100%
+    );
+}
+
+.categorias::before,
+.categorias::after {
+  position: absolute;
+  z-index: -1;
+  content: "";
+  border: 1px solid var(--ui-borda-suave);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.categorias::before {
+  top: -190px;
+  right: -130px;
+  width: 380px;
+  height: 380px;
+}
+
+.categorias::after {
+  bottom: -220px;
+  left: -160px;
+  width: 400px;
+  height: 400px;
+}
+
+/* =========================================================
+   CONTAINER
+========================================================= */
+
+.categorias__container {
+  position: relative;
+  width: min(calc(100% - 64px), var(--ui-largura-conteudo));
+  margin-inline: auto;
+}
+
+/* =========================================================
+   CABEÇALHO
+========================================================= */
+
+.categorias__cabecalho {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: clamp(26px, 3vw, 38px);
+}
+
+.categorias__cabecalho-texto {
+  min-width: 0;
+  max-width: 760px;
+}
+
+.categorias__cabecalho h2 {
+  margin: 0;
+  color: var(--ui-vinho-escuro);
+  font-family: var(--ui-fonte-titulo);
+  font-size: clamp(27px, 3.2vw, 42px);
+  font-weight: 750;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+.categorias__cabecalho p {
+  max-width: 650px;
+  margin: 12px 0 0;
+  color: var(--ui-texto-secundario);
+  font-size: var(--ui-texto-sm);
+  line-height: 1.75;
+}
+
+.categorias__contador {
+  display: flex;
+  min-width: 104px;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 13px 17px;
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio-lg);
+  background: var(--ui-superficie);
+  box-shadow: var(--ui-sombra-suave);
+}
+
+.categorias__contador strong {
+  color: var(--ui-vinho);
+  font-family: var(--ui-fonte-titulo);
+  font-size: 25px;
+  font-weight: 750;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.categorias__contador span {
+  color: var(--ui-texto-claro);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* =========================================================
+   GRID DE CATEGORIAS
+========================================================= */
+
+.categorias__grid {
+  display: grid;
+  width: 100%;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+/* =========================================================
+   CARD
+========================================================= */
+
+.categoria-item {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio-xl);
+
+  background: var(--ui-superficie);
+  color: var(--ui-texto);
+  text-decoration: none;
+
+  box-shadow: var(--ui-sombra-suave);
+
+  animation: categoria-entrada 420ms ease both;
+  animation-delay: calc(var(--item-indice, 0) * 45ms);
+
+  transition:
+    transform var(--ui-transicao-padrao),
+    border-color var(--ui-transicao-padrao),
+    box-shadow var(--ui-transicao-padrao);
+}
+
+.categoria-item:hover {
+  transform: translateY(-5px);
+  border-color: var(--ui-rosa-medio);
+  box-shadow: var(--ui-sombra-card);
+}
+
+.categoria-item:focus-visible {
+  outline: 3px solid var(--ui-rosa);
+  outline-offset: 4px;
+}
+
+.categoria-item__numero {
+  position: absolute;
+  z-index: 2;
+  top: 12px;
+  left: 13px;
+
+  display: grid;
+  min-width: 32px;
+  height: 27px;
+  place-items: center;
+
+  padding-inline: 7px;
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio-pilula);
+
+  background: var(--ui-superficie);
+  color: var(--ui-vinho);
+
+  font-size: 10px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+/* =========================================================
+   IMAGEM
+========================================================= */
+
+.categoria-item__imagem {
+  position: relative;
+  display: grid;
+  width: 100%;
+  aspect-ratio: 1.25 / 1;
+  min-width: 0;
+  place-items: center;
+  overflow: hidden;
+
+  background: radial-gradient(
+    circle at 50% 40%,
+    var(--ui-branco) 0,
+    var(--ui-blush) 58%,
+    var(--ui-rosa-claro) 100%
+  );
+}
+
+.categoria-item__imagem img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+
+  transition: transform 500ms ease;
+}
+
+.categoria-item:hover .categoria-item__imagem img {
+  transform: scale(1.06);
+}
+
+/* =========================================================
+   IMAGEM ALTERNATIVA
+========================================================= */
+
+.categoria-item__fallback {
+  display: grid;
+  width: 100%;
+  height: 100%;
+  place-items: center;
+
+  background:
+    radial-gradient(circle at 50% 35%, var(--ui-branco), transparent 60%),
+    linear-gradient(145deg, var(--ui-rosa-claro), var(--ui-blush));
+
+  color: var(--ui-vinho);
+}
+
+.categoria-item__fallback span {
+  font-family: var(--ui-fonte-titulo);
+  font-size: clamp(42px, 5vw, 68px);
+  font-weight: 750;
+  line-height: 1;
+}
+
+/* =========================================================
+   SELO DA IMAGEM
+========================================================= */
+
+.categoria-item__selo {
+  position: absolute;
+  right: 11px;
+  bottom: 11px;
+
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+
+  border: 1px solid var(--ui-borda);
+  border-radius: 50%;
+
+  background: var(--ui-superficie);
+  color: var(--ui-vinho);
+
+  font-size: 17px;
+  box-shadow: var(--ui-sombra-suave);
+
+  transition:
+    transform var(--ui-transicao-padrao),
+    color var(--ui-transicao-padrao),
+    background var(--ui-transicao-padrao);
+}
+
+.categoria-item:hover .categoria-item__selo {
+  transform: rotate(45deg);
+  background: var(--ui-vinho);
+  color: var(--ui-branco);
+}
+
+/* =========================================================
+   CONTEÚDO DO CARD
+========================================================= */
+
+.categoria-item__texto {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 17px 17px 16px;
+}
+
+.categoria-item__texto h3 {
+  width: 100%;
+  margin: 0;
+
+  color: var(--ui-vinho-escuro);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.categoria-item__texto p {
+  display: -webkit-box;
+  width: 100%;
+  min-height: 3em;
+  margin: 7px 0 0;
+  overflow: hidden;
+
+  color: var(--ui-texto-secundario);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
+/* =========================================================
+   LINK DO CARD
+========================================================= */
+
+.categoria-item__link {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+
+  margin-top: auto;
+  padding-top: 15px;
+
+  color: var(--ui-vinho);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.categoria-item__link > span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  place-items: center;
+
+  border-radius: 50%;
+  background: var(--ui-blush);
+  color: var(--ui-vinho);
+
+  font-size: 15px;
+
+  transition:
+    transform var(--ui-transicao-padrao),
+    color var(--ui-transicao-padrao),
+    background var(--ui-transicao-padrao);
+}
+
+.categoria-item:hover .categoria-item__link > span {
+  transform: translateX(3px);
+  background: var(--ui-vinho);
+  color: var(--ui-branco);
+}
+
+/* =========================================================
+   ANIMAÇÃO DE ENTRADA
+========================================================= */
+
+@keyframes categoria-entrada {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =========================================================
+   SKELETON
+========================================================= */
+
+.categoria-skeleton {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 11px;
+  overflow: hidden;
+
+  padding: 12px;
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio-xl);
+
+  background: var(--ui-superficie);
+}
+
+.categoria-skeleton__imagem,
+.categoria-skeleton__linha {
+  display: block;
+  overflow: hidden;
+  border-radius: var(--ui-raio-md);
+
+  background: linear-gradient(
+    100deg,
+    var(--ui-rosa-claro) 20%,
+    var(--ui-blush) 38%,
+    var(--ui-rosa-claro) 62%
+  );
+
+  background-size: 220% 100%;
+  animation: categoria-skeleton-pulso 1.4s ease-in-out infinite;
+}
+
+.categoria-skeleton__imagem {
+  width: 100%;
+  aspect-ratio: 1.25 / 1;
+}
+
+.categoria-skeleton__linha {
+  width: 72%;
+  height: 11px;
+}
+
+.categoria-skeleton__linha--titulo {
+  width: 55%;
+  height: 15px;
+}
+
+@keyframes categoria-skeleton-pulso {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: -100% 0;
+  }
+}
+
+/* =========================================================
+   ESTADOS: ERRO E VAZIO
+========================================================= */
+
+.categorias__estado {
+  display: flex;
+  min-height: 190px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  padding: 30px;
+  border: 1px solid var(--ui-borda);
+  border-radius: var(--ui-raio-xl);
+
+  background: var(--ui-superficie);
+  text-align: center;
+  box-shadow: var(--ui-sombra-suave);
+}
+
+.categorias__estado-icone {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+
+  border-radius: 50%;
+  background: var(--ui-blush);
+  color: var(--ui-vinho);
+
+  font-family: var(--ui-fonte-titulo);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.categorias__estado strong {
+  margin-top: 13px;
+  color: var(--ui-vinho-escuro);
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.categorias__estado p {
+  max-width: 480px;
+  margin: 7px 0 0;
+  color: var(--ui-texto-secundario);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.categorias__estado button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+
+  margin-top: 17px;
+  padding-inline: 19px;
+
+  border: 1px solid var(--ui-vinho);
+  border-radius: var(--ui-raio-pilula);
+
+  background: var(--ui-vinho);
+  color: var(--ui-branco);
+
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+
+  transition:
+    transform var(--ui-transicao-rapida),
+    background var(--ui-transicao-rapida);
+}
+
+.categorias__estado button:hover {
+  transform: translateY(-1px);
+  background: var(--ui-vinho-escuro);
+}
+
+/* =========================================================
+   ACESSIBILIDADE
+========================================================= */
+
+.categorias .sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+/* =========================================================
+   RESPONSIVIDADE
+========================================================= */
+
+@media (max-width: 1100px) {
+  .categorias__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 17px;
+  }
+}
+
+@media (max-width: 760px) {
+  .categorias {
+    padding-block: 42px;
+  }
+
+  .categorias__container {
+    width: min(calc(100% - 36px), var(--ui-largura-conteudo));
+  }
+
+  .categorias__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .categorias__cabecalho {
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 25px;
+  }
+
+  .categorias__cabecalho h2 {
+    font-size: clamp(23px, 4.5vw, 32px);
+  }
+
+  .categorias__contador {
+    min-width: 74px;
+    padding: 11px 9px;
+  }
+
+  .categoria-item__texto {
+    padding: 13px 12px;
+  }
+
+  .categoria-item__texto h3 {
+    font-size: 13px;
+  }
+
+  .categoria-item__texto p {
+    font-size: 11px;
+  }
+
+  .categoria-item__link {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 380px) {
+  .categorias__container {
+    width: calc(100% - 24px);
+  }
+
+  .categorias__grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+
+  .categoria-item__imagem {
+    aspect-ratio: 1.65 / 1;
+  }
+}
+
+/* =========================================================
+   REDUÇÃO DE MOVIMENTO
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .categoria-item,
+  .categoria-skeleton__imagem,
+  .categoria-skeleton__linha {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* =========================================================
+   UNIVERSO IMPÉRIO V3
+   CATEGORIAS — REFINAMENTO VISUAL
+========================================================= */
+
+/* Área principal */
+
+.categorias {
+  padding-block: clamp(48px, 6vw, 82px);
+  background:
+    radial-gradient(
+      ellipse at 8% 90%,
+      var(--ui-borda-suave),
+      transparent 25rem
+    ),
+    radial-gradient(ellipse at 95% 5%, var(--ui-blush), transparent 25rem),
+    var(--ui-marfin);
+}
+
+.categorias__container {
+  width: min(calc(100% - 64px), var(--ui-largura-conteudo));
+  margin-inline: auto;
+}
+
+/* =========================================================
+   CABEÇALHO
+========================================================= */
+
+.categorias__cabecalho {
+  align-items: center;
+  margin-bottom: 34px;
+}
+
+.categorias__cabecalho-texto {
+  max-width: 720px;
+}
+
+.categorias__cabecalho h2 {
+  font-size: clamp(29px, 3.5vw, 43px);
+  line-height: 1.15;
+  letter-spacing: -0.045em;
+}
+
+.categorias__cabecalho p {
+  max-width: 600px;
+  margin-top: 13px;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.categorias__contador {
+  border-radius: 16px;
+  padding: 15px 21px;
+}
+
+/* =========================================================
+   GRID — ESPAÇO ENTRE OS CARDS
+========================================================= */
+
+.categorias .categorias__grid {
+  display: grid !important;
+  width: 100%;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+
+  column-gap: 24px !important;
+  row-gap: 26px !important;
+
+  align-items: stretch;
+  justify-content: start;
+}
+
+/* =========================================================
+   CARD INDIVIDUAL
+========================================================= */
+
+.categorias .categoria-item {
+  display: flex;
+  position: relative;
+
+  width: 100% !important;
+  min-width: 0;
+  min-height: 100%;
+  flex: initial !important;
+
+  flex-direction: column;
+  overflow: hidden;
+
+  margin: 0 !important;
+
+  border: 1px solid var(--ui-borda);
+  border-radius: 21px;
+
+  background: var(--ui-superficie);
+  color: var(--ui-texto);
+  text-decoration: none;
+
+  box-shadow:
+    0 3px 12px rgba(82, 35, 52, 0.035),
+    0 12px 30px rgba(82, 35, 52, 0.045);
+
+  transition:
+    transform 250ms ease,
+    border-color 250ms ease,
+    box-shadow 250ms ease;
+}
+
+.categorias .categoria-item:hover {
+  transform: translateY(-6px);
+
+  border-color: var(--ui-rosa-medio);
+
+  box-shadow:
+    0 8px 18px rgba(82, 35, 52, 0.07),
+    0 20px 40px rgba(82, 35, 52, 0.09);
+}
+
+/* =========================================================
+   NÚMERO DA CATEGORIA
+========================================================= */
+
+.categoria-item__numero {
+  top: 14px;
+  left: 14px;
+
+  min-width: 34px;
+  height: 29px;
+
+  border: 1px solid var(--ui-borda-suave);
+  border-radius: 30px;
+
+  background: var(--ui-superficie);
+  color: var(--ui-vinho);
+
+  font-size: 10px;
+  font-weight: 800;
+
+  box-shadow: 0 2px 8px rgba(82, 35, 52, 0.05);
+}
+
+/* =========================================================
+   IMAGEM
+========================================================= */
+
+.categoria-item__imagem {
+  position: relative;
+
+  width: 100%;
+  aspect-ratio: 1.35 / 1;
+
+  overflow: hidden;
+
+  background: radial-gradient(
+    circle at 50% 45%,
+    var(--ui-branco),
+    var(--ui-blush) 65%,
+    var(--ui-rosa-claro)
+  );
+}
+
+.categoria-item__imagem img {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  object-fit: cover;
+  object-position: center;
+
+  transition: transform 600ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.categoria-item:hover .categoria-item__imagem img {
+  transform: scale(1.07);
+}
+
+/* =========================================================
+   FALLBACK QUANDO NÃO EXISTE IMAGEM
+========================================================= */
+
+.categoria-item__fallback {
+  position: relative;
+
+  display: grid;
+  width: 100%;
+  height: 100%;
+
+  place-items: center;
+  overflow: hidden;
+
+  background: radial-gradient(
+    circle at 50% 40%,
+    var(--ui-branco),
+    var(--ui-blush) 65%,
+    var(--ui-rosa-claro)
+  );
+}
+
+.categoria-item__fallback::before {
+  content: "";
+
+  position: absolute;
+
+  width: 58%;
+  aspect-ratio: 1;
+
+  border: 1px solid var(--ui-borda);
+  border-radius: 50%;
+
+  box-shadow:
+    0 0 0 12px var(--ui-borda-suave),
+    0 0 0 27px rgba(189, 113, 130, 0.025);
+}
+
+.categoria-item__fallback span {
+  position: relative;
+  z-index: 1;
+
+  color: var(--ui-vinho);
+  font-family: var(--ui-fonte-titulo);
+
+  font-size: clamp(38px, 4vw, 60px);
+  font-weight: 700;
+
+  opacity: 0.85;
+}
+
+/* =========================================================
+   BOTÃO SOBRE A IMAGEM
+========================================================= */
+
+.categoria-item__selo {
+  right: 13px;
+  bottom: 13px;
+
+  width: 36px;
+  height: 36px;
+
+  border: 1px solid var(--ui-borda-suave);
+  background: var(--ui-superficie);
+
+  box-shadow: 0 3px 12px rgba(82, 35, 52, 0.08);
+}
+
+/* =========================================================
+   INFORMAÇÕES DO CARD
+========================================================= */
+
+.categoria-item__texto {
+  display: flex;
+  flex: 1;
+
+  min-height: 153px;
+
+  flex-direction: column;
+  align-items: flex-start;
+
+  padding: 19px 19px 16px;
+  background: var(--ui-superficie);
+}
+
+.categoria-item__texto h3 {
+  color: var(--ui-vinho-escuro);
+
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.categoria-item__texto p {
+  min-height: 36px;
+
+  margin-top: 7px;
+
+  color: var(--ui-texto-secundario);
+
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+/* =========================================================
+   EXPLORAR CATEGORIA
+========================================================= */
+
+.categoria-item__link {
+  display: flex;
+
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+
+  margin-top: auto;
+  padding-top: 16px;
+
+  color: var(--ui-vinho);
+
+  font-size: 11px;
+  font-weight: 800;
+
+  border-top: 1px solid var(--ui-borda-suave);
+}
+
+.categoria-item__link > span {
+  display: grid;
+
+  width: 31px;
+  height: 31px;
+
+  flex: 0 0 31px;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background: var(--ui-blush);
+  color: var(--ui-vinho);
+
+  transition:
+    transform 250ms ease,
+    background 250ms ease,
+    color 250ms ease;
+}
+
+.categoria-item:hover .categoria-item__link > span {
+  transform: translateX(4px);
+
+  background: var(--ui-vinho);
+  color: var(--ui-branco);
+}
+
+/* =========================================================
+   SKELETON
+========================================================= */
+
+.categorias .categoria-skeleton {
+  min-width: 0;
+  padding: 13px;
+
+  border-radius: 21px;
+  border: 1px solid var(--ui-borda);
+
+  background: var(--ui-superficie);
+  box-shadow: var(--ui-sombra-suave);
+}
+
+.categoria-skeleton__imagem {
+  aspect-ratio: 1.35 / 1;
+  border-radius: 13px;
+}
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1100px) {
+  .categorias .categorias__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    column-gap: 20px !important;
+    row-gap: 22px !important;
+  }
+}
+
+/* =========================================================
+   CELULAR
+========================================================= */
+
+@media (max-width: 760px) {
+  .categorias {
+    padding-block: 42px;
+  }
+
+  .categorias__container {
+    width: calc(100% - 36px);
+  }
+
+  .categorias .categorias__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+
+    column-gap: 17px !important;
+    row-gap: 19px !important;
+  }
+
+  .categorias__cabecalho {
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 25px;
+  }
+
+  .categorias__cabecalho h2 {
+    font-size: clamp(23px, 5vw, 30px);
+  }
+
+  .categorias__cabecalho p {
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  .categorias__contador {
+    min-width: 70px;
+    padding: 11px 8px;
+  }
+
+  .categoria-item__imagem {
+    aspect-ratio: 1.12 / 1;
+  }
+
+  .categoria-item__texto {
+    min-height: 145px;
+    padding: 14px 12px 13px;
+  }
+
+  .categoria-item__texto h3 {
+    font-size: 13px;
+  }
+
+  .categoria-item__texto p {
+    font-size: 11px;
+  }
+
+  .categoria-item__link {
+    font-size: 10px;
+    padding-top: 12px;
+  }
+
+  .categoria-item__link > span {
+    width: 27px;
+    height: 27px;
+    flex-basis: 27px;
+  }
+}
+
+/* =========================================================
+   TELAS MUITO PEQUENAS
+========================================================= */
+
+@media (max-width: 360px) {
+  .categorias__container {
+    width: calc(100% - 24px);
+  }
+
+  .categorias .categorias__grid {
+    column-gap: 12px !important;
+    row-gap: 15px !important;
+  }
+
+  .categoria-item__texto {
+    padding-inline: 10px;
+  }
+
+  .categoria-item__texto h3 {
+    font-size: 12px;
+  }
+
+  .categoria-item__link {
+    font-size: 9px;
+  }
+}
+
+/* =========================================================
+   ACESSIBILIDADE
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .categorias *,
+  .categorias *::before,
+  .categorias *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

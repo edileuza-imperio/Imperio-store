@@ -1,0 +1,158 @@
+/* Editor estruturado de configuracao_json */
+.hb-json-editor {
+  grid-column: 1/-1;
+  padding: 18px;
+  border: 1px solid var(--hb-border);
+  border-radius: 12px;
+  background: #fcfafb;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.hb-json-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.hb-json-heading > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+.hb-json-heading strong {
+  font-size: 13px;
+  color: var(--hb-text);
+}
+.hb-json-heading small,
+.hb-json-help {
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--hb-muted);
+}
+.hb-json-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.hb-json-toolbar select,
+.hb-json-row input,
+.hb-json-row select,
+.hb-json-row textarea {
+  width: 100%;
+  min-height: 39px;
+  padding: 9px 10px;
+  border: 1px solid var(--hb-border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--hb-text);
+  font: inherit;
+  font-size: 12px;
+  outline: 0;
+}
+.hb-json-toolbar select {
+  width: auto;
+  min-width: 130px;
+}
+.hb-json-row input:focus,
+.hb-json-row select:focus,
+.hb-json-row textarea:focus,
+.hb-json-toolbar select:focus {
+  border-color: var(--hb-pink);
+  box-shadow: 0 0 0 3px #d66b911a;
+}
+.hb-json-fields {
+  display: grid;
+  gap: 9px;
+}
+.hb-json-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1fr) minmax(145px, 0.8fr) minmax(
+      170px,
+      1.2fr
+    ) 38px;
+  align-items: end;
+  gap: 9px;
+  padding: 11px;
+  background: #fff;
+  border: 1px solid var(--hb-border);
+  border-radius: 10px;
+}
+.hb-json-row label {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.hb-json-row label > span {
+  font-size: 10px;
+  font-weight: 750;
+  color: var(--hb-muted);
+}
+.hb-json-row textarea {
+  min-height: 58px;
+  resize: vertical;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+}
+.hb-json-row input[readonly] {
+  background: #f5f1f3;
+  color: var(--hb-muted);
+}
+.hb-json-remove {
+  width: 36px;
+  height: 38px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #efd0d0;
+  border-radius: 8px;
+  background: #fff8f8;
+  color: #ad424d;
+  cursor: pointer;
+}
+.hb-json-remove:hover {
+  background: #ffeded;
+}
+.hb-json-empty {
+  padding: 18px;
+  border: 1px dashed #d9c9d1;
+  border-radius: 9px;
+  color: var(--hb-muted);
+  font-size: 12px;
+  text-align: center;
+}
+.hb-json-help {
+  display: block;
+}
+@media (max-width: 760px) {
+  .hb-json-editor {
+    padding: 13px;
+  }
+  .hb-json-row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .hb-json-value {
+    grid-column: 1/-1;
+  }
+  .hb-json-remove {
+    grid-column: 2;
+    justify-self: end;
+  }
+  .hb-json-toolbar {
+    width: 100%;
+  }
+  .hb-json-toolbar select {
+    flex: 1;
+  }
+}
+@media (max-width: 420px) {
+  .hb-json-row {
+    grid-template-columns: 1fr;
+  }
+  .hb-json-value,
+  .hb-json-remove {
+    grid-column: auto;
+  }
+  .hb-json-remove {
+    justify-self: start;
+  }
+}
